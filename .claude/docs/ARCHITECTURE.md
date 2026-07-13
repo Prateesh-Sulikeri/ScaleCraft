@@ -25,6 +25,7 @@ type ComponentDefinition = {
   outputs: PortSpec[];         // what this can connect OUT to
   configSchema: ZodSchema;     // per-instance configuration (e.g. LB algorithm, cache TTL)
   defaultConfig: unknown;
+  summary: string;             // one short line, shown directly on the canvas node
   docs: string;                // markdown, shown in the contextual docs panel
 };
 ```

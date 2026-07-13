@@ -119,7 +119,9 @@ function FlowCanvas({ nodeStates }: FlowCanvasProps) {
         selectionOnDrag
         panOnDrag={[1]}
         proOptions={{ hideAttribution: true }}
+        minZoom={0.25}
         fitView
+        fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
       >
         <Background />
         <Controls />

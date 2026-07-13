@@ -17,6 +17,7 @@ const client: ComponentDefinition<Record<string, never>> = {
   outputs: [{ id: "out", label: "Request" }],
   configSchema: z.object({}),
   defaultConfig: {},
+  summary: "Issues requests into the system",
   docs: "The end user's device or application issuing requests into the system.",
 };
 
@@ -31,6 +32,7 @@ const loadBalancer: ComponentDefinition<{ algorithm: "round-robin" | "least-conn
     algorithm: z.enum(["round-robin", "least-connections"]),
   }),
   defaultConfig: { algorithm: "round-robin" },
+  summary: "Distributes requests across instances",
   docs: "Distributes incoming requests across multiple downstream instances to avoid overloading any single one.",
 };
 
@@ -45,6 +47,7 @@ const appServer: ComponentDefinition<{ instances: number }> = {
     instances: z.number().int().min(1).max(20),
   }),
   defaultConfig: { instances: 1 },
+  summary: "Runs business logic and enforces access control",
   docs: "Runs application logic: authentication, authorization, and business rules. Should mediate all access to the database — clients should never reach it directly.",
 };
 
@@ -59,6 +62,7 @@ const sqlDatabase: ComponentDefinition<{ engine: "postgres" | "mysql" }> = {
     engine: z.enum(["postgres", "mysql"]),
   }),
   defaultConfig: { engine: "postgres" },
+  summary: "Durable, structured relational storage",
   docs: "Durable, structured, relational storage. Exposing this directly to clients bypasses the application server's authentication, authorization, and business logic.",
 };
 

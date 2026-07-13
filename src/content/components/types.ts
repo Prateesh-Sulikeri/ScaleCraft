@@ -33,6 +33,10 @@ export type ComponentDefinition<Config = unknown> = {
   outputs: PortSpec[];
   configSchema: ZodType<Config>;
   defaultConfig: Config;
+  /** One short line (roughly 40-60 chars) shown directly on the canvas node,
+   * under the label — a caption, not documentation. Keep it terse; the full
+   * explanation belongs in `docs`, not here. */
+  summary: string;
   /** Markdown, shown in the contextual docs panel. */
   docs: string;
 };

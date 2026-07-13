@@ -15,25 +15,29 @@ import { ruleRegistry } from "@/validation-engine/rules";
 // Seeded once on first load so the canvas isn't empty — not a chapter
 // starterGraph (those arrive with the chapter framework, milestone 5), just
 // a friendlier first impression than a blank pane.
+// Two rows rather than one wide row: at the node width needed to fit a
+// title + description (see ComponentNode), four nodes in a single line
+// don't fit the center canvas column at a comfortable zoom — this halves
+// the horizontal span fitView has to accommodate.
 const seedGraph: ArchitectureGraph = {
   nodes: [
-    { id: "client-1", componentId: "client", position: { x: 0, y: 100 }, config: {} },
+    { id: "client-1", componentId: "client", position: { x: 0, y: 0 }, config: {} },
     {
       id: "lb-1",
       componentId: "load-balancer",
-      position: { x: 240, y: 100 },
+      position: { x: 280, y: 0 },
       config: { algorithm: "round-robin" },
     },
     {
       id: "app-1",
       componentId: "app-server",
-      position: { x: 480, y: 100 },
+      position: { x: 0, y: 160 },
       config: { instances: 2 },
     },
     {
       id: "db-1",
       componentId: "sql-database",
-      position: { x: 720, y: 100 },
+      position: { x: 280, y: 160 },
       config: { engine: "postgres" },
     },
   ],
