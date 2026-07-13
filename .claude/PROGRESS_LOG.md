@@ -272,3 +272,73 @@ hot-reloading throughout.
 original sequence position. Milestone 1's earlier multi-select context-menu gap is also
 closed. **Next steps:** Milestone 3 (`/sandbox` route — everything still lives on `/`)
 not started; the additional context-menu options above are pending the user's choice.
+
+---
+
+## 2026-07-13 (further continuation) — Node card redesign; a zoom-tuning misdiagnosis worth reading before touching Canvas sizing again
+
+Same day, picks up right after the layout-restructure entry above.
+
+**Node card redesigned**, based on a reference screenshot the user shared (a
+hellointerview.com-style bit.ly diagram) showing an icon-badge + title + short-description
+card pattern. Explicitly not a copy: same general UI pattern (common/generic, not
+proprietary to that site), our own colors/icons/layout per DESIGN_LANGUAGE.md.
+- `ComponentDefinition` (`src/content/components/types.ts`) gained a `summary` field — one
+  short caption (~40-60 chars) shown on the canvas node, distinct from the existing longer
+  `docs` field (still inspector-only, Docs tab). Confirmed all four registry entries in
+  `src/content/components/registry.ts` have one (client, load-balancer, app-server,
+  sql-database).
+- `src/canvas/ComponentNode.tsx` rewritten: category color now drives a tinted icon badge
+  (`color-mix(in srgb, ${categoryColor} 20%, transparent)` behind the Lucide icon) instead
+  of the old left border stripe; card fixed at `w-[200px]`; title + summary stacked under
+  the badge. The validation-state ring (2px outline) is unchanged.
+- `.claude/docs/ARCHITECTURE.md`'s `ComponentDefinition` snippet updated to include
+  `summary` — confirmed in sync with the actual type.
+
+**Separately, the user reported the canvas "feels like either the components are too
+large or we are too zoomed in" by default — this took two wrong turns before landing on
+the actual cause, worth recording so a future session doesn't repeat them:**
+- *First attempt*: shrunk node padding/text AND increased `fitView` padding to 0.4 at the
+  same time. Screenshotted it — made things worse (text went tiny and hard to read, nodes
+  looked lost in too much empty space). Reverted the node-size shrink immediately.
+- *Second attempt* (after the redesign above made nodes wider, 200px): tried tightening
+  `fitView` padding to 0.15, then 0.1, with `maxZoom` capped at 1/1.2. Screenshots showed
+  only marginal improvement (~0.66-0.69 computed zoom) — legible but not solid.
+- *Root cause*, found by directly measuring the rendered node's bounding box in the
+  headless browser rather than guessing from screenshots: it was never a node-size or
+  fitView-padding problem. Four 200px-wide cards in one horizontal row need ~900px, but the
+  center canvas column is only ~700px wide once the left (Question) and right (Inspector)
+  panels from the layout-restructure commit are accounted for — `fitView` is mathematically
+  forced below 100% no matter how padding/maxZoom get tuned. Confirmed in
+  `src/app/page.tsx`: the seed graph's original layout was one row, all four nodes at the
+  same `y` with `x: 0/240/480/720`.
+- *Actual fix*: rearranged the seed graph into two rows of two — Client/Load-Balancer at
+  `y:0`, App-Server/SQL-Database at `y:160`, `x: 0/280` within each row (confirmed in the
+  current `src/app/page.tsx`, lines ~22-49) — halving the required horizontal span. This
+  alone brought fitView's computed zoom to exactly 1.0, confirmed by measuring the
+  rendered node's screen bounding box (200x76.5px under `matrix(1,0,0,1,...)`, i.e.
+  genuinely native/unscaled). Also widened `minZoom` from xyflow's default 0.5 to 0.25 in
+  `src/canvas/Canvas.tsx` (confirmed: `minZoom={0.25}`, `fitViewOptions={{ padding: 0.1,
+  maxZoom: 1 }}`) so future, bigger graphs (real chapters, RWE) have room to zoom out
+  manually.
+- **Lesson**: when "things look the wrong size," measure the actual rendered geometry
+  (node bounding box + viewport transform, e.g. via `getBoundingClientRect` /
+  `getComputedStyle` transform) in a real browser before touching CSS/props. Two
+  consecutive guesses based on visual impression alone were wrong and had to be reverted;
+  the third attempt, which measured pixel dimensions directly, found the real cause on the
+  first try.
+
+**Verification**: all of the above exercised in the real headless browser (the
+`local-libs`/`LD_LIBRARY_PATH` workaround logged two entries back — re-extract via
+`apt-get download` + `dpkg-deb -x` if starting a genuinely new session, scratchpad doesn't
+persist), screenshotting and visually inspecting at each iteration rather than trusting
+computed zoom numbers alone.
+
+**Repo state:** commit `aee0dd9` "Redesign node card (icon badge + description) and fix
+default zoom" — confirmed `origin/main` matches `HEAD` (`aee0dd9490460e8395091eb519f021cbe59002c3`
+both), working tree clean. Dev server still running in the background on `localhost:3000`.
+
+**Pending decision, unchanged from the entry above**: the right-click context-menu
+additions proposed but not built — per-node Duplicate, a Docs-tab jump shortcut, edge
+Reverse direction, and an empty-canvas "Add component here" quick-add menu — are still
+awaiting the user's pick before any get built.
