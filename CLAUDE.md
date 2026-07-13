@@ -15,6 +15,15 @@ yet. The `backend/` and `frontend/` folders in the repo root are stale leftovers
 topology that was reconsidered — see [[TECH_STACK]] — and should be removed/replaced
 when scaffolding begins.
 
+## Progress log (read this first, every session)
+
+`.claude/PROGRESS_LOG.md` is the transferable record between sessions — what's been
+built, what's live vs. scaffolded-but-inert, environment gotchas, and next steps. Read
+it before doing anything else. After a significant work session, spawn a subagent to
+append a new entry (don't self-report — a dedicated logging agent that independently
+verifies repo state via git/file inspection stays honest in a way self-written notes
+don't).
+
 ## Planning docs (read before making architectural decisions)
 
 - `.claude/docs/RESEARCH.md` — competitive landscape, library comparisons, prior-art
