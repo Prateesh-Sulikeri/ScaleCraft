@@ -102,7 +102,7 @@ function FlowCanvas({ nodeStates }: FlowCanvasProps) {
         fitView
       >
         <Background />
-        <Controls showInteractive={false} />
+        <Controls />
       </ReactFlow>
       <EdgeInspector />
       <ContextMenu target={menu} onClose={() => setMenu(null)} />
