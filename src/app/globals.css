@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/*
+ * Dark mode is the default posture (see .claude/docs/DESIGN_LANGUAGE.md,
+ * "Theming") — :root below is the dark palette; an explicit light-preference
+ * override follows. This is a stand-in for a real toggle (next-themes,
+ * persisted) which is a follow-up UI task, not needed to prove the stack.
+ */
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --panel: #141414;
+  --border: #2a2a2a;
+
+  /* Category colors — identity, which kind of component this is.
+   * Two-channel color system: category vs. validation state must stay
+   * visually distinct, never collide on the same node. */
+  --category-networking: #3b82f6; /* blue */
+  --category-compute: #8b5cf6; /* violet */
+  --category-data: #22c55e; /* green */
+  --category-caching: #f59e0b; /* amber */
+  --category-messaging: #ec4899; /* pink */
+  --category-distributed-systems: #ef4444; /* red */
+
+  /* Validation state colors — status, layered as a ring/border, never a fill. */
+  --state-valid: #22c55e;
+  --state-warning: #f59e0b;
+  --state-error: #ef4444;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #ffffff;
+    --foreground: #171717;
+    --panel: #f5f5f5;
+    --border: #e2e2e2;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
+
+  --color-category-networking: var(--category-networking);
+  --color-category-compute: var(--category-compute);
+  --color-category-data: var(--category-data);
+  --color-category-caching: var(--category-caching);
+  --color-category-messaging: var(--category-messaging);
+  --color-category-distributed-systems: var(--category-distributed-systems);
+
+  --color-state-valid: var(--state-valid);
+  --color-state-warning: var(--state-warning);
+  --color-state-error: var(--state-error);
+
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
