@@ -142,3 +142,63 @@ edge-kind picker, live validation) and all UX/theming bugs from live testing fix
 - Milestone 2 (not started): node inspector panel — click a node to view/edit its
   `config` and read its `docs`; currently there is no UI path to either at all.
 - Milestone 3 (not started): dedicated `/sandbox` route; everything still lives on `/`.
+
+---
+
+## 2026-07-13 (continued) — Real headless-browser verification unblocked; box-select color fix
+
+Same day, same working arc as the milestone 1 entry above — picks up right after it.
+
+**Headless browser now works here WITHOUT root — read this before re-concluding it
+doesn't.** The prior entry logged `playwright install-deps` as blocked (needs apt-get +
+root, no passwordless sudo). Found a workaround: `apt-get download` does NOT need root
+(it just fetches `.deb`s to the cwd), so:
+```
+apt-get download libnspr4 libnss3 libasound2t64
+mkdir local-libs && for f in *.deb; do dpkg-deb -x "$f" local-libs; done
+# launch with: LD_LIBRARY_PATH=<local-libs>/usr/lib/x86_64-linux-gnu
+# chromium.launch({ args: ['--no-sandbox'], env: { ...process.env, LD_LIBRARY_PATH } })
+```
+Confirmed working end-to-end: real screenshots, real clicks, real computed-CSS reads
+against the dev server at localhost:3000. The extracted libs lived under this session's
+scratchpad (`.../scratchpad/local-libs`), which does NOT persist — a future session must
+redo the `apt-get download` + `dpkg-deb -x` steps (under a minute), but now knows it
+works and shouldn't waste time rediscovering it or giving up on browser verification.
+
+**Used it to check three things the user flagged after manual testing:**
+- *"Validation didn't work"* — false alarm. Reproduced Client→SQL-Database in the real
+  browser; `noDirectClientDatabase` fired correctly with the right message/explanation.
+  The screenshot that prompted this concern showed a 3-node subgraph with no database
+  node at all — correctly zero violations, just a different graph state, not a bug.
+- *Edge animation looked static* — false alarm, but instructive. Sampling
+  `getComputedStyle(path).strokeDashoffset` twice, 500ms apart, gave identical values —
+  looked like proof it wasn't animating. It IS animating
+  (`animationName: "dashdraw"`, `animationPlayState: "running"`); the 500ms sampling gap
+  exactly matched the animation's own period, so both samples caught the same phase
+  (stroboscope/aliasing artifact). Lesson: check `animationPlayState` directly, don't
+  infer motion from property snapshots at a fixed interval.
+- *Box-select drag rectangle looked weird* — real bug, fixed. xyflow's
+  `--xy-selection-background-color`/`--xy-selection-border` default to a hardcoded blue
+  in both colorMode variants, colliding with the app's own "networking" category blue
+  (see DESIGN_LANGUAGE.md's two-channel color system) and reading as an unstyled
+  default. Fixed in `src/app/globals.css` (`.react-flow` block) with
+  `color-mix(in srgb, var(--foreground) ...)` overrides for those two vars plus
+  `--xy-node-boxshadow-selected`, so it adapts to light/dark automatically. Verified via
+  screenshots in both themes.
+
+**Also restored** the Controls panel's interactivity-lock (padlock) icon in
+`src/canvas/Canvas.tsx` — hiding it via `showInteractive={false}` in the milestone 1
+commit was a misread of feedback; the user explicitly wanted it back. One-line revert to
+the default (`<Controls />`).
+
+**Repo state:** three commits landed this round, `origin/main` confirmed matching
+`HEAD`, working tree clean:
+- `79c7b35` "Restore the Controls interactivity-lock icon"
+- `644fc9b` "Theme the box-select overlay to match the app instead of xyflow's default
+  blue"
+(plus `a35c669` logging the milestone 1 entry above, already covered by that entry).
+Dev server still running in the background on `localhost:3000`, hot-reloading
+throughout.
+
+**Next steps:** unchanged from the milestone 1 entry above (Milestone 2 node inspector
+panel; Milestone 3 `/sandbox` route).
