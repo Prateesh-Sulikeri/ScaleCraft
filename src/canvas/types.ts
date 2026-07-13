@@ -12,5 +12,22 @@ export type ComponentNodeData = {
 };
 export type ComponentNodeType = Node<ComponentNodeData, "component">;
 
+/**
+ * A labeled grouping rectangle (see .claude/docs/ARCHITECTURE.md-adjacent
+ * discussion — not part of ArchitectureGraph/the domain model, purely a
+ * canvas presentation aid). v1 is visual-only: resizable and labeled, but
+ * does not reparent contained component nodes or move them together. See
+ * ZoneNode.tsx.
+ */
+export type ZoneNodeData = {
+  label: string;
+  width: number;
+  height: number;
+  validationState?: ValidationState;
+};
+export type ZoneNodeType = Node<ZoneNodeData, "zone">;
+
+export type AnyNodeType = ComponentNodeType | ZoneNodeType;
+
 export type ArchitectureEdgeData = { kind: EdgeKind };
 export type ArchitectureEdgeType = Edge<ArchitectureEdgeData>;

@@ -23,7 +23,11 @@ export function NodeInspector() {
   const nodes = useCanvasStore((s) => s.nodes);
   const updateNodeConfig = useCanvasStore((s) => s.updateNodeConfig);
 
-  const node = nodes.find((n) => n.id === selectedNodeId);
+  const selected = nodes.find((n) => n.id === selectedNodeId);
+  // Zones aren't ComponentDefinitions (see types.ts) — no config/docs to
+  // show for one, so it falls through to the same empty state as nothing
+  // selected.
+  const node = selected?.type === "component" ? selected : undefined;
   const definition = node ? getComponent(node.data.componentId) : undefined;
 
   if (collapsed) {

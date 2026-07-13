@@ -9,7 +9,7 @@ import {
 } from "@xyflow/react";
 import type { ComponentDefinition } from "@/content/components/types";
 import type { ArchitectureGraph, EdgeKind, XY } from "@/lib/graph";
-import type { ComponentNodeType, ArchitectureEdgeType } from "./types";
+import type { AnyNodeType, ComponentNodeType, ZoneNodeData, ArchitectureEdgeType } from "./types";
 
 function edgeStyle(kind: EdgeKind) {
   return {
@@ -19,16 +19,20 @@ function edgeStyle(kind: EdgeKind) {
 }
 
 type CanvasStore = {
-  nodes: ComponentNodeType[];
+  nodes: AnyNodeType[];
   edges: ArchitectureEdgeType[];
   selectedEdgeId: string | null;
   selectedNodeId: string | null;
 
   /** Replaces the whole graph — used for seeding a demo/starter graph and,
-   * later, loading a chapter's starterGraph or a persisted save. */
+   * later, loading a chapter's starterGraph or a persisted save. Zones
+   * aren't part of ArchitectureGraph (see types.ts), so this never creates
+   * any — it only ever replaces component nodes wholesale. */
   loadGraph: (graph: ArchitectureGraph) => void;
   addNode: (definition: ComponentDefinition, position: XY) => void;
-  onNodesChange: (changes: NodeChange<ComponentNodeType>[]) => void;
+  addZone: (position: XY) => void;
+  updateZone: (nodeId: string, patch: Partial<ZoneNodeData>) => void;
+  onNodesChange: (changes: NodeChange<AnyNodeType>[]) => void;
   onEdgesChange: (changes: EdgeChange<ArchitectureEdgeType>[]) => void;
   onConnect: (connection: Connection) => void;
   setEdgeKind: (edgeId: string, kind: EdgeKind) => void;
@@ -92,6 +96,27 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set((state) => ({ nodes: [...state.nodes, node] }));
   },
 
+  addZone: (position) => {
+    // Negative zIndex keeps zones rendered behind component nodes
+    // regardless of array order, so grouped components always sit "on top."
+    const zone: AnyNodeType = {
+      id: crypto.randomUUID(),
+      type: "zone",
+      position,
+      zIndex: -1,
+      data: { label: "Zone", width: 320, height: 220 },
+    };
+    set((state) => ({ nodes: [...state.nodes, zone] }));
+  },
+
+  updateZone: (nodeId, patch) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId && n.type === "zone" ? { ...n, data: { ...n.data, ...patch } } : n,
+      ),
+    }));
+  },
+
   onNodesChange: (changes) => {
     set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) }));
   },
@@ -129,7 +154,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   updateNodeConfig: (nodeId, config) => {
     set((state) => ({
-      nodes: state.nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, config } } : n)),
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId && n.type === "component" ? { ...n, data: { ...n.data, config } } : n,
+      ),
     }));
   },
 
@@ -160,7 +187,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   duplicateNode: (nodeId) => {
     const source = get().nodes.find((n) => n.id === nodeId);
     if (!source) return;
-    const clone: ComponentNodeType = {
+    const clone: AnyNodeType = {
       ...source,
       id: crypto.randomUUID(),
       position: { x: source.position.x + 32, y: source.position.y + 32 },
@@ -207,13 +234,16 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
 /** Pure — the store's RF-shaped state translated to the domain graph the
  * validation engine (and, later, persistence) operate on. See
- * .claude/docs/ARCHITECTURE.md ("Architecture Graph"). */
+ * .claude/docs/ARCHITECTURE.md ("Architecture Graph"). Zone nodes are a
+ * canvas presentation concept, not part of the domain model — filtered out
+ * here rather than ever reaching the validation engine. */
 export function toArchitectureGraph(
-  nodes: ComponentNodeType[],
+  nodes: AnyNodeType[],
   edges: ArchitectureEdgeType[],
 ): ArchitectureGraph {
+  const componentNodes = nodes.filter((n): n is ComponentNodeType => n.type === "component");
   return {
-    nodes: nodes.map((n) => ({
+    nodes: componentNodes.map((n) => ({
       id: n.id,
       componentId: n.data.componentId,
       position: n.position,

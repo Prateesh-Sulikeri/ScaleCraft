@@ -12,6 +12,7 @@
   --foreground: #ededed;
   --panel: #141414;
   --border: #2a2a2a;
+  --zone: #A5E9DD;
 
   /* Category colors — identity, which kind of component this is.
    * Two-channel color system: category vs. validation state must stay
@@ -34,6 +35,8 @@
   --foreground: #171717;
   --panel: #f5f5f5;
   --border: #e2e2e2;
+    --zone: #A5E9DD;
+
 }
 
 @theme inline {

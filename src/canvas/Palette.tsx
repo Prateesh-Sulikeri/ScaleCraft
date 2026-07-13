@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Server } from "lucide-react";
+import { ChevronDown, ChevronUp, Server, SquareDashedBottom } from "lucide-react";
 import { componentRegistry } from "@/content/components/registry";
 import { categoryColorVar } from "./category-colors";
 import { iconMap } from "./icon-map";
+import { useCanvasStore } from "./store";
 
 /** The MIME type used to identify a drag as "a component from our palette"
  * vs. an arbitrary browser drag (e.g. dragging a link/image onto the page). */
@@ -19,16 +20,26 @@ export const PALETTE_DRAG_TYPE = "application/scalecraft-component";
  */
 export function Palette() {
   const [collapsed, setCollapsed] = useState(false);
+  const addZone = useCanvasStore((s) => s.addZone);
 
   return (
     <div className="shrink-0 border-t border-border">
-      <button
-        onClick={() => setCollapsed((c) => !c)}
-        className="flex w-full items-center justify-between px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-foreground/60 hover:text-foreground"
-      >
-        Components
-        {collapsed ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-      </button>
+      <div className="flex items-center justify-between px-3 pt-2">
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-foreground/60 hover:text-foreground"
+        >
+          Components
+          {collapsed ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+        <button
+          onClick={() => addZone({ x: 0, y: -280 })}
+          className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-foreground/60 hover:text-foreground"
+        >
+          <SquareDashedBottom size={12} />
+          Add zone
+        </button>
+      </div>
       {!collapsed && (
         <div className="flex gap-2 overflow-x-auto p-3">
           {componentRegistry.map((definition) => {

@@ -12,13 +12,14 @@ import { useTheme } from "next-themes";
 import { useHasMounted } from "@/lib/use-has-mounted";
 import { getComponent } from "@/content/components/registry";
 import { ComponentNode } from "./ComponentNode";
+import { ZoneNode } from "./ZoneNode";
 import { EdgeInspector } from "./EdgeInspector";
 import { ContextMenu, type ContextMenuTarget } from "./ContextMenu";
 import { PALETTE_DRAG_TYPE } from "./Palette";
 import { useCanvasStore } from "./store";
-import type { ValidationState } from "./types";
+import type { AnyNodeType, ValidationState } from "./types";
 
-const nodeTypes = { component: ComponentNode };
+const nodeTypes = { component: ComponentNode, zone: ZoneNode };
 
 type FlowCanvasProps = {
   /** Keyed by node id — derived from the latest validation run, merged into
@@ -50,10 +51,16 @@ function FlowCanvas({ nodeStates }: FlowCanvasProps) {
   const nodes = useMemo(
     () =>
       nodeStates
-        ? storeNodes.map((n) => ({
-            ...n,
-            data: { ...n.data, validationState: nodeStates[n.id] },
-          }))
+        ? storeNodes.map((n): AnyNodeType => {
+            const validationState = nodeStates[n.id];
+            // Branching (rather than one generic spread) keeps `data`'s
+            // shape tied to `n.type` per xyflow's discriminated union —
+            // a single spread across the union loses that tie and both
+            // branches end up structurally identical anyway.
+            return n.type === "zone"
+              ? { ...n, data: { ...n.data, validationState } }
+              : { ...n, data: { ...n.data, validationState } };
+          })
         : storeNodes,
     [storeNodes, nodeStates],
   );
