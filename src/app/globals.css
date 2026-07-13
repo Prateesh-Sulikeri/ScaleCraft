@@ -84,3 +84,13 @@ body {
 .react-flow__controls-button svg {
   fill: var(--foreground);
 }
+
+/* xyflow's default box-select uses a hardcoded blue
+ * (rgba(0,89,220,...)) regardless of colorMode — collides with the
+ * "networking" category color and doesn't adapt to light/dark. Override with
+ * our own neutral foreground-based tokens instead. */
+.react-flow {
+  --xy-selection-background-color: color-mix(in srgb, var(--foreground) 8%, transparent);
+  --xy-selection-border: 1px dashed color-mix(in srgb, var(--foreground) 60%, transparent);
+  --xy-node-boxshadow-selected: 0 0 0 1.5px var(--foreground);
+}
