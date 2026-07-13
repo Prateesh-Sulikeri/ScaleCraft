@@ -34,6 +34,11 @@ type CanvasStore = {
   setEdgeKind: (edgeId: string, kind: EdgeKind) => void;
   setSelectedEdgeId: (id: string | null) => void;
   setSelectedNodeId: (id: string | null) => void;
+  inspectorTab: "config" | "docs";
+  setInspectorTab: (tab: "config" | "docs") => void;
+  /** Used by the right-click "View docs" shortcut — selects the node AND
+   * forces the inspector to the Docs tab in one action. */
+  openDocsFor: (nodeId: string) => void;
   /** Config panel (milestone 2) writes here — kept separate from
    * onNodesChange since it's a data update, not a position/selection one. */
   updateNodeConfig: (nodeId: string, config: unknown) => void;
@@ -49,6 +54,7 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   edges: [],
   selectedEdgeId: null,
   selectedNodeId: null,
+  inspectorTab: "config",
 
   loadGraph: (graph) => {
     set({
@@ -112,6 +118,8 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
 
   setSelectedEdgeId: (id) => set({ selectedEdgeId: id }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+  setInspectorTab: (tab) => set({ inspectorTab: tab }),
+  openDocsFor: (nodeId) => set({ selectedNodeId: nodeId, selectedEdgeId: null, inspectorTab: "docs" }),
 
   updateNodeConfig: (nodeId, config) => {
     set((state) => ({

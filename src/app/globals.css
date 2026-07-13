@@ -90,7 +90,29 @@ body {
  * "networking" category color and doesn't adapt to light/dark. Override with
  * our own neutral foreground-based tokens instead. */
 .react-flow {
-  --xy-selection-background-color: color-mix(in srgb, var(--foreground) 8%, transparent);
-  --xy-selection-border: 1px dashed color-mix(in srgb, var(--foreground) 60%, transparent);
   --xy-node-boxshadow-selected: 0 0 0 1.5px var(--foreground);
+}
+
+/* The selection rect's width/height are set inline by xyflow to exactly the
+ * selected nodes' bounding box — a `border` there hugs the nodes with zero
+ * breathing room and reads as one fused block. `outline` + `outline-offset`
+ * draws the boundary pushed 10px outward on all four sides instead, without
+ * touching the (JS-computed) box itself. */
+.react-flow__nodesselection-rect,
+.react-flow__selection,
+/* xyflow's own stylesheet sets `outline: none` specifically on :focus /
+ * :focus-visible for these classes, which the rect actually is once
+ * selected (it's focused for keyboard delete/move) — that beats a plain
+ * class selector on specificity alone regardless of source order, so the
+ * override has to target the same pseudo-classes to win. */
+.react-flow__nodesselection-rect:focus,
+.react-flow__nodesselection-rect:focus-visible,
+.react-flow__selection:focus,
+.react-flow__selection:focus-visible {
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  border: none;
+  outline-style: dashed;
+  outline-width: 1px;
+  outline-color: color-mix(in srgb, var(--foreground) 60%, transparent);
+  outline-offset: 10px;
 }
