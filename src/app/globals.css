@@ -2,9 +2,10 @@
 
 /*
  * Dark mode is the default posture (see .claude/docs/DESIGN_LANGUAGE.md,
- * "Theming") — :root below is the dark palette; an explicit light-preference
- * override follows. This is a stand-in for a real toggle (next-themes,
- * persisted) which is a follow-up UI task, not needed to prove the stack.
+ * "Theming") — :root below is the dark palette (also the pre-hydration/no-JS
+ * fallback). next-themes toggles a "dark"/"light" class on <html>; the
+ * .light override below is what a manual toggle switches to, independent of
+ * OS preference (enableSystem={false} in ThemeProvider — see layout.tsx).
  */
 :root {
   --background: #0a0a0a;
@@ -28,13 +29,11 @@
   --state-error: #ef4444;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --background: #ffffff;
-    --foreground: #171717;
-    --panel: #f5f5f5;
-    --border: #e2e2e2;
-  }
+.light {
+  --background: #ffffff;
+  --foreground: #171717;
+  --panel: #f5f5f5;
+  --border: #e2e2e2;
 }
 
 @theme inline {
@@ -62,4 +61,26 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* React Flow ships its own chrome (Controls, Background, selection outlines)
+ * themed via the `colorMode` prop (see Canvas.tsx) — these overrides just
+ * pull its panel styling onto our exact tokens instead of xyflow's own dark
+ * palette, so it reads as one system rather than two overlapping ones. */
+.react-flow__controls {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: none;
+}
+.react-flow__controls-button {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+}
+.react-flow__controls-button:hover {
+  background: var(--border);
+}
+.react-flow__controls-button svg {
+  fill: var(--foreground);
 }

@@ -1,56 +1,119 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
   Background,
   Controls,
-  type Edge,
+  useReactFlow,
 } from "@xyflow/react";
-import type { ArchitectureGraph } from "@/lib/graph";
-import { ComponentNode, type ComponentNodeType, type ValidationState } from "./ComponentNode";
+import { useTheme } from "next-themes";
+import { useHasMounted } from "@/lib/use-has-mounted";
+import { getComponent } from "@/content/components/registry";
+import { ComponentNode } from "./ComponentNode";
+import { EdgeInspector } from "./EdgeInspector";
+import { ContextMenu, type ContextMenuTarget } from "./ContextMenu";
+import { PALETTE_DRAG_TYPE } from "./Palette";
+import { useCanvasStore } from "./store";
+import type { ValidationState } from "./types";
 
 const nodeTypes = { component: ComponentNode };
 
-type CanvasProps = {
-  graph: ArchitectureGraph;
-  /** Keyed by node id — drives the validation-state ring, see ComponentNode. */
+type FlowCanvasProps = {
+  /** Keyed by node id — derived from the latest validation run, merged into
+   * node data at render time only. Never written back into the store: the
+   * store holds the graph a user is editing, not validation results. */
   nodeStates?: Record<string, ValidationState>;
 };
 
-export function Canvas({ graph, nodeStates }: CanvasProps) {
-  const nodes: ComponentNodeType[] = useMemo(
+function FlowCanvas({ nodeStates }: FlowCanvasProps) {
+  const { screenToFlowPosition } = useReactFlow();
+  const storeNodes = useCanvasStore((s) => s.nodes);
+  const edges = useCanvasStore((s) => s.edges);
+  const onNodesChange = useCanvasStore((s) => s.onNodesChange);
+  const onEdgesChange = useCanvasStore((s) => s.onEdgesChange);
+  const onConnect = useCanvasStore((s) => s.onConnect);
+  const addNode = useCanvasStore((s) => s.addNode);
+  const setSelectedEdgeId = useCanvasStore((s) => s.setSelectedEdgeId);
+
+  const [menu, setMenu] = useState<ContextMenuTarget | null>(null);
+
+  // next-themes only knows the real theme after mount (it reads the class
+  // the pre-hydration script set) — default to our declared dark posture
+  // until then rather than risk a hydration-mismatch flash.
+  const { resolvedTheme } = useTheme();
+  const mounted = useHasMounted();
+  const colorMode = mounted && resolvedTheme === "light" ? "light" : "dark";
+
+  const nodes = useMemo(
     () =>
-      graph.nodes.map((n) => ({
-        id: n.id,
-        type: "component",
-        position: n.position,
-        data: { componentId: n.componentId, validationState: nodeStates?.[n.id] },
-      })),
-    [graph.nodes, nodeStates],
+      nodeStates
+        ? storeNodes.map((n) => ({
+            ...n,
+            data: { ...n.data, validationState: nodeStates[n.id] },
+          }))
+        : storeNodes,
+    [storeNodes, nodeStates],
   );
 
-  const edges: Edge[] = useMemo(
-    () =>
-      graph.edges.map((e) => ({
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        animated: e.kind === "request-flow",
-        style: e.kind !== "request-flow" ? { strokeDasharray: "4 4" } : undefined,
-      })),
-    [graph.edges],
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      const componentId = event.dataTransfer.getData(PALETTE_DRAG_TYPE);
+      const definition = getComponent(componentId);
+      if (!definition) return;
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      addNode(definition, position);
+    },
+    [screenToFlowPosition, addNode],
   );
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
 
   return (
-    <div className="h-full w-full">
-      <ReactFlowProvider>
-        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView>
-          <Background />
-          <Controls />
-        </ReactFlow>
-      </ReactFlowProvider>
+    <div className="relative h-full w-full" onDrop={onDrop} onDragOver={onDragOver}>
+      <ReactFlow
+        colorMode={colorMode}
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onEdgeClick={(_, edge) => setSelectedEdgeId(edge.id)}
+        onPaneClick={() => setSelectedEdgeId(null)}
+        onNodeContextMenu={(event, node) => {
+          event.preventDefault();
+          setMenu({ type: "node", id: node.id, x: event.clientX, y: event.clientY });
+        }}
+        onEdgeContextMenu={(event, edge) => {
+          event.preventDefault();
+          setMenu({ type: "edge", id: edge.id, x: event.clientX, y: event.clientY });
+        }}
+        onPaneContextMenu={(event) => event.preventDefault()}
+        deleteKeyCode={["Backspace", "Delete"]}
+        selectionOnDrag
+        panOnDrag={[1]}
+        proOptions={{ hideAttribution: true }}
+        fitView
+      >
+        <Background />
+        <Controls showInteractive={false} />
+      </ReactFlow>
+      <EdgeInspector />
+      <ContextMenu target={menu} onClose={() => setMenu(null)} />
     </div>
+  );
+}
+
+export function Canvas(props: FlowCanvasProps) {
+  return (
+    <ReactFlowProvider>
+      <FlowCanvas {...props} />
+    </ReactFlowProvider>
   );
 }

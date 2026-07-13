@@ -58,3 +58,9 @@ or any monetization, not before — no architecture change required either way.
 open registration (and whether/when a paid tier appears) is intentionally not decided
 yet — [[MVP_SCOPE]] sequences it as "post-beta" without a firmer commitment. Revisit once
 the closed beta has enough signal to make that call with real data instead of a guess.
+
+**React Flow attribution watermark.** Hidden via `proOptions={{ hideAttribution: true }}`
+in `src/canvas/Canvas.tsx` as of milestone 1. xyflow's terms permit this without a Pro
+subscription for non-commercial projects — true of the closed beta right now. **Trigger:**
+re-check xyflow's current terms before any monetized/public launch; either the terms
+still cover it, a Pro subscription needs purchasing, or the attribution needs restoring.

@@ -1,25 +1,11 @@
 "use client";
 
-import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
-import { Monitor, Shuffle, Server, Database, type LucideIcon } from "lucide-react";
+import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Server } from "lucide-react";
 import { getComponent } from "@/content/components/registry";
 import { categoryColorVar } from "./category-colors";
-
-const iconMap: Record<string, LucideIcon> = {
-  monitor: Monitor,
-  shuffle: Shuffle,
-  server: Server,
-  database: Database,
-};
-
-export type ValidationState = "valid" | "warning" | "error";
-
-export type ComponentNodeData = {
-  componentId: string;
-  validationState?: ValidationState;
-};
-
-export type ComponentNodeType = Node<ComponentNodeData, "component">;
+import { iconMap } from "./icon-map";
+import type { ComponentNodeType, ValidationState } from "./types";
 
 const stateRingVar: Record<ValidationState, string> = {
   valid: "var(--state-valid)",
