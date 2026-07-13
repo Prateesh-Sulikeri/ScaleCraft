@@ -36,6 +36,7 @@ function FlowCanvas({ nodeStates }: FlowCanvasProps) {
   const onConnect = useCanvasStore((s) => s.onConnect);
   const addNode = useCanvasStore((s) => s.addNode);
   const setSelectedEdgeId = useCanvasStore((s) => s.setSelectedEdgeId);
+  const setSelectedNodeId = useCanvasStore((s) => s.setSelectedNodeId);
 
   const [menu, setMenu] = useState<ContextMenuTarget | null>(null);
 
@@ -84,8 +85,18 @@ function FlowCanvas({ nodeStates }: FlowCanvasProps) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onEdgeClick={(_, edge) => setSelectedEdgeId(edge.id)}
-        onPaneClick={() => setSelectedEdgeId(null)}
+        onEdgeClick={(_, edge) => {
+          setSelectedEdgeId(edge.id);
+          setSelectedNodeId(null);
+        }}
+        onNodeClick={(_, node) => {
+          setSelectedNodeId(node.id);
+          setSelectedEdgeId(null);
+        }}
+        onPaneClick={() => {
+          setSelectedEdgeId(null);
+          setSelectedNodeId(null);
+        }}
         onNodeContextMenu={(event, node) => {
           event.preventDefault();
           setMenu({ type: "node", id: node.id, x: event.clientX, y: event.clientY });
@@ -93,6 +104,15 @@ function FlowCanvas({ nodeStates }: FlowCanvasProps) {
         onEdgeContextMenu={(event, edge) => {
           event.preventDefault();
           setMenu({ type: "edge", id: edge.id, x: event.clientX, y: event.clientY });
+        }}
+        onSelectionContextMenu={(event, selectedNodes) => {
+          event.preventDefault();
+          setMenu({
+            type: "selection",
+            ids: selectedNodes.map((n) => n.id),
+            x: event.clientX,
+            y: event.clientY,
+          });
         }}
         onPaneContextMenu={(event) => event.preventDefault()}
         deleteKeyCode={["Backspace", "Delete"]}

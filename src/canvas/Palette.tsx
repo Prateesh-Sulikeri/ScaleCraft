@@ -9,13 +9,20 @@ import { Server } from "lucide-react";
  * vs. an arbitrary browser drag (e.g. dragging a link/image onto the page). */
 export const PALETTE_DRAG_TYPE = "application/scalecraft-component";
 
+/**
+ * A horizontal tray docked under the canvas. The registry will outgrow a
+ * single screen width well before MVP (two Building Blocks chapters plus one
+ * Real World Extraction chapter each add components — see
+ * .claude/docs/MILESTONES.md) — `overflow-x-auto` is the fix for that: cards
+ * never wrap or shrink to fit, the tray scrolls horizontally instead.
+ */
 export function Palette() {
   return (
-    <aside className="w-56 shrink-0 border-r border-border p-3 overflow-y-auto">
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground/60">
+    <div className="shrink-0 border-t border-border">
+      <h2 className="px-3 pt-2 text-xs font-semibold uppercase tracking-wide text-foreground/60">
         Components
       </h2>
-      <div className="flex flex-col gap-2">
+      <div className="flex gap-2 overflow-x-auto p-3">
         {componentRegistry.map((definition) => {
           const Icon = iconMap[definition.icon] ?? Server;
           return (
@@ -26,15 +33,15 @@ export function Palette() {
                 event.dataTransfer.setData(PALETTE_DRAG_TYPE, definition.id);
                 event.dataTransfer.effectAllowed = "move";
               }}
-              className="flex cursor-grab items-center gap-2 rounded-md border border-border bg-panel px-3 py-2 text-sm active:cursor-grabbing"
+              className="flex shrink-0 cursor-grab items-center gap-2 rounded-md border border-border bg-panel px-3 py-2 text-sm active:cursor-grabbing"
               style={{ borderLeft: `3px solid ${categoryColorVar[definition.category]}` }}
             >
               <Icon size={14} style={{ color: categoryColorVar[definition.category] }} />
-              <span>{definition.label}</span>
+              <span className="whitespace-nowrap">{definition.label}</span>
             </div>
           );
         })}
       </div>
-    </aside>
+    </div>
   );
 }

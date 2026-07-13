@@ -22,6 +22,7 @@ type CanvasStore = {
   nodes: ComponentNodeType[];
   edges: ArchitectureEdgeType[];
   selectedEdgeId: string | null;
+  selectedNodeId: string | null;
 
   /** Replaces the whole graph — used for seeding a demo/starter graph and,
    * later, loading a chapter's starterGraph or a persisted save. */
@@ -32,9 +33,14 @@ type CanvasStore = {
   onConnect: (connection: Connection) => void;
   setEdgeKind: (edgeId: string, kind: EdgeKind) => void;
   setSelectedEdgeId: (id: string | null) => void;
+  setSelectedNodeId: (id: string | null) => void;
+  /** Config panel (milestone 2) writes here — kept separate from
+   * onNodesChange since it's a data update, not a position/selection one. */
+  updateNodeConfig: (nodeId: string, config: unknown) => void;
   /** Explicit actions for the right-click context menu — a second path to
    * delete besides the deleteKeyCode shortcut, see EdgeInspector/ContextMenu. */
   deleteNode: (nodeId: string) => void;
+  deleteNodes: (nodeIds: string[]) => void;
   deleteEdge: (edgeId: string) => void;
 };
 
@@ -42,6 +48,7 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   nodes: [],
   edges: [],
   selectedEdgeId: null,
+  selectedNodeId: null,
 
   loadGraph: (graph) => {
     set({
@@ -59,6 +66,7 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
         ...edgeStyle(e.kind),
       })),
       selectedEdgeId: null,
+      selectedNodeId: null,
     });
   },
 
@@ -103,11 +111,28 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   },
 
   setSelectedEdgeId: (id) => set({ selectedEdgeId: id }),
+  setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+
+  updateNodeConfig: (nodeId, config) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, config } } : n)),
+    }));
+  },
 
   deleteNode: (nodeId) => {
     set((state) => ({
       nodes: state.nodes.filter((n) => n.id !== nodeId),
       edges: state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
+      selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
+    }));
+  },
+
+  deleteNodes: (nodeIds) => {
+    const idSet = new Set(nodeIds);
+    set((state) => ({
+      nodes: state.nodes.filter((n) => !idSet.has(n.id)),
+      edges: state.edges.filter((e) => !idSet.has(e.source) && !idSet.has(e.target)),
+      selectedNodeId: state.selectedNodeId && idSet.has(state.selectedNodeId) ? null : state.selectedNodeId,
     }));
   },
 

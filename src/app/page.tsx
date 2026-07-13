@@ -3,7 +3,9 @@
 import { useEffect, useMemo } from "react";
 import { Palette } from "@/canvas/Palette";
 import { Canvas } from "@/canvas/Canvas";
+import { NodeInspector } from "@/canvas/NodeInspector";
 import { ThemeToggle } from "./ThemeToggle";
+import { QuestionPanel } from "./QuestionPanel";
 import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
 import type { ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
@@ -81,36 +83,18 @@ export default function Home() {
         <ThemeToggle />
       </header>
 
-      <main className="flex flex-1">
-        <Palette />
+      <main className="flex flex-1 overflow-hidden">
+        <QuestionPanel violations={violations} />
 
-        <div className="flex-1">
-          <Canvas nodeStates={nodeStates} />
+        <div className="flex flex-1 flex-col">
+          <div className="flex-1">
+            <Canvas nodeStates={nodeStates} />
+          </div>
+          <Palette />
         </div>
 
-        <aside className="w-96 shrink-0 overflow-y-auto border-l border-border p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
-            Validation
-          </h2>
-          {violations.length === 0 ? (
-            <p className="mt-3 text-sm text-state-valid">No violations.</p>
-          ) : (
-            <ul className="mt-3 space-y-4">
-              {violations.map((v, i) => (
-                <li key={i} className="rounded-md border border-border p-3">
-                  <p
-                    className="text-sm font-medium"
-                    style={{
-                      color: v.severity === "error" ? "var(--state-error)" : "var(--state-warning)",
-                    }}
-                  >
-                    {v.message}
-                  </p>
-                  <p className="mt-1 text-sm text-foreground/70">{v.explanation}</p>
-                </li>
-              ))}
-            </ul>
-          )}
+        <aside className="w-96 shrink-0 overflow-y-auto border-l border-border">
+          <NodeInspector />
         </aside>
       </main>
     </div>
