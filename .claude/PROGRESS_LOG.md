@@ -342,3 +342,125 @@ both), working tree clean. Dev server still running in the background on `localh
 additions proposed but not built — per-node Duplicate, a Docs-tab jump shortcut, edge
 Reverse direction, and an empty-canvas "Add component here" quick-add menu — are still
 awaiting the user's pick before any get built.
+
+---
+
+## 2026-07-13 (further continuation) — Manual validate, collapsible panels, selection-gap fix, expanded context menu, mark-zone feature
+
+Same day, picks up right after the node-card/zoom entry above. Six distinct changes requested
+in one message; verified against `git log --oneline -8` (three new commits, not four — see
+repo state below) and by reading the actual current file contents, not transcribed from the
+request as given.
+
+**1. Validation: live → manual, and "it's not catching wrong stuff" was a false alarm.**
+Before touching anything, the live-at-the-time validation was reproduced directly in a real
+headless browser with a genuine Client→Database edge — it fired correctly. Conclusion:
+`src/validation-engine/rules/index.ts` has exactly **one** rule
+(`noDirectClientDatabase`, the INITIAL_THOUGHTS.md example) — anything else the user tried
+that went unflagged has no rule written for it. That's content-authoring scope (milestone 6),
+not an engine bug, and was said plainly rather than quietly padding rule coverage to make the
+symptom go away. Confirmed in `src/app/page.tsx`: validation is now behind an explicit
+"Validate" button (top-right of the header) backed by `useState<ValidationViolation[] | null>`
+plus a `checkedGraphKey` (a `JSON.stringify` snapshot of `toArchitectureGraph(nodes, edges)`
+taken at click-time). `isStale` is a direct comparison of that snapshot against the current
+graph — a stale note, not a silent re-run.
+
+**2. QuestionPanel / NodeInspector / Palette are independently collapsible.** Confirmed each
+owns its own `useState(false)` `collapsed` and renders a thin strip when true:
+`QuestionPanel.tsx` uses `PanelLeftOpen`/`PanelLeftClose`, `NodeInspector.tsx` uses
+`PanelRightOpen`/`PanelRightClose`, `Palette.tsx` uses `ChevronUp`/`ChevronDown` (all
+lucide-react, all confirmed by grep against the actual files). NodeInspector's Config/Docs tab
+state moved out of local state into the store (`inspectorTab`/`setInspectorTab` in
+`store.ts`) specifically so the new "View docs" context-menu action (point 4) can jump the
+inspector to Docs from outside the component.
+
+**3. Box-select "sticking together" — real bug, two-attempt fix, worth the detail.** Root
+cause: xyflow sets the selection rect's `width`/`height` inline to the exact bounding box of
+the selected nodes, so a plain `border` there hugs them with zero margin. First fix (`outline`
++ `outline-offset: 10px` in `globals.css` — outline doesn't participate in box layout, so it
+can sit outside the tight box) *looked* right in the CSS but didn't render: `getComputedStyle`
+still showed `outline-style: none`. Cause: xyflow's own stylesheet has
+`.react-flow__nodesselection-rect:focus, :focus-visible { outline: none; }`, and the rect
+genuinely is focused once selected (needed for keyboard delete/move) — a same-specificity
+class selector loses to that regardless of source order. Fix confirmed in the current
+`globals.css` (lines ~104-121): the override is duplicated onto the exact same
+`:focus`/`:focus-visible` compound selectors to match specificity, not just the bare classes.
+Confirmed via real `getComputedStyle()` reads before and after, not assumed from the CSS
+alone.
+
+**4. Context menu expanded from Delete-only to four target types.** Confirmed in
+`src/canvas/store.ts`: `duplicateNode` (offset clone), `duplicateNodes` (clones a selection,
+remapping ids, keeping only edges where *both* endpoints were in the duplicated set — an edge
+to a node outside the selection is correctly dropped rather than invented), `reverseEdge`
+(swaps `source`/`target`), `openDocsFor` (sets `selectedNodeId` + `inspectorTab: "docs"` in
+one call). `src/canvas/ContextMenu.tsx`'s `ContextMenuTarget` is now a 4-way discriminated
+union — `"node"` (Duplicate/View docs/Delete), `"edge"` (Reverse direction/Delete),
+`"selection"` (Duplicate N/Delete N), `"pane"` (new — right-click on empty canvas opens an
+"Add component" submenu at the click position via `screenToFlowPosition`, replacing the old
+suppress-only native-menu-block). Commit message claims all four paths were exercised
+end-to-end in a real headless browser before landing; taken as reported, consistent with this
+session's established verification pattern in earlier entries.
+
+**5. New "mark zone" feature — visual-only grouping, scope deliberately limited.** Confirmed
+in `src/canvas/types.ts`: `ZoneNodeData` (`label`, `width`, `height`, optional
+`validationState`), `ZoneNodeType = Node<ZoneNodeData, "zone">`, and
+`AnyNodeType = ComponentNodeType | ZoneNodeType`. The store's `nodes` field is `AnyNodeType[]`
+throughout; `toArchitectureGraph` (`store.ts`) filters to `n.type === "component"` before
+mapping — zones never reach the validation engine, confirmed by reading the function directly.
+`NodeInspector.tsx` also narrows on `.type === "component"` before touching
+`componentId`/`config`. `src/canvas/ZoneNode.tsx` (new) renders a dashed-border box sized from
+`data.width`/`data.height`, using xyflow's `<NodeResizer>` (`onResize` writes back through the
+store's new `updateZone`) and a plain `<input className="nodrag">` for the inline-editable
+label — `nodrag` confirmed as xyflow's real opt-out class for the node-drag gesture. New zones
+get `zIndex: -1` on creation (`addZone` in `store.ts`) so they always render behind component
+nodes. `src/canvas/Palette.tsx` has a "+ Add zone" control in its header. **Scope note,
+confirmed in both the code comments and commit message**: this is explicitly visual-only —
+dragging a zone does not move contained nodes, dropping a node into a zone does not reparent
+it. True parent/child grouping (`parentId` + `extent: 'parent'`) was named and deliberately
+deferred, not attempted. Flag this if a future ask is "nodes should move with their zone."
+
+**6. `--zone` CSS variable — defensive fallback shipped, root cause NOT resolved, and the
+color itself has since drifted from what was reported.** The session's account: the user
+added their own `--zone` custom property mid-session and started wiring `ZoneNode.tsx` to it;
+when asked to also apply it to the zone's border and dial the intensity in between, sampling
+`getComputedStyle` showed `--zone` resolving to an **empty string** in the browser despite
+being present and syntactically valid in `globals.css` on disk — suspected stale
+Turbopack CSS cache/hot-reload gap, never confirmed, because the user cut the debugging loop
+short ("push it" / "enough mate"). Worked around rather than root-caused: confirmed both
+`ZoneNode.tsx`'s `borderColor` and the `NodeResizer`'s `lineStyle`/`handleStyle` now use
+`var(--zone, #e22f80)` (inline fallback syntax), not a bare `var(--zone)` — so the border
+renders a sane color regardless of whether the custom property resolves. **Discrepancy caught
+during this verification pass, worth flagging explicitly**: the reported color was magenta
+(`#E22F80`), matching the code fallback — but `globals.css` right now actually declares
+`--zone: #A5E9DD` (a mint/teal), in both `:root` and `.light` (the `.light` block's copy has
+visibly hand-edited indentation, consistent with a manual, out-of-band edit rather than
+generated). Whether this is a later change made after the session described here, or a
+misremembered color in the handoff, is unknown from the repo alone — the *mechanism*
+(fallback-based defensive styling) is confirmed correctly in place; the *specific color value*
+currently committed does not match this entry's own narrative and should not be assumed
+without re-checking `globals.css` directly. **Standing flag for a future session**: if
+`getComputedStyle(document.documentElement).getPropertyValue('--zone')` still comes back empty
+in a real browser, that's the genuinely open question (Next.js 16/Turbopack possibly
+dropping/delaying custom properties declared outside `@theme`) — worth a clean investigation
+(hard refresh, inspect the served CSS bundle, restart dev server) rather than trusting the
+fallback as a full fix.
+
+**Repo state:** three commits landed this round (not four — confirmed via
+`git log --oneline -8`), `origin/main` matches `HEAD`, working tree clean:
+- `7f3ab22` "Manual validate button, collapsible panels, fix selection gap"
+- `efe1498` "Add Duplicate, View docs, Reverse direction, and quick-add context menu options"
+- `f707e17` "Add mark-zone feature (labeled grouping containers)" — this commit's own message
+  already includes the `--zone` fallback description in point 6 above, i.e. the fallback
+  pattern was part of the zone feature's initial commit, not a later patch.
+Dev server still running in the background on `localhost:3000` throughout.
+
+**Verification method, unchanged from prior entries**: real headless browser via the
+`local-libs`/`LD_LIBRARY_PATH` workaround (re-extract via `apt-get download` + `dpkg-deb -x`
+if starting fresh, scratchpad doesn't persist) used for points 1, 3, and 4 above per commit
+messages and prior investigation; explicitly *not* re-verified end-to-end for point 6 since
+the user asked to stop debugging and ship — recorded above as unresolved rather than claimed
+as checked.
+
+**Next steps**: Milestone 3 (`/sandbox` route) still not started. True parent/child zone
+grouping (point 5) remains deferred, not scheduled. The `--zone` custom-property mystery
+(point 6) is the most actionable loose end for a future session.
