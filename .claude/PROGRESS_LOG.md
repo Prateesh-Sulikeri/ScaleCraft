@@ -202,3 +202,73 @@ throughout.
 
 **Next steps:** unchanged from the milestone 1 entry above (Milestone 2 node inspector
 panel; Milestone 3 `/sandbox` route).
+
+---
+
+## 2026-07-13 (further continuation) — Three-zone layout restructure, doubling as Milestone 2
+
+Same day, picks up right after the box-select/verification entry above.
+
+**Layout restructured to three zones**, per explicit direction, replacing the milestone-1
+left-sidebar + right-validation layout:
+- **Left** — `src/app/QuestionPanel.tsx`: a placeholder for chapter problem statements
+  (the chapter framework is milestone 5 and doesn't exist yet) plus the live validation
+  feedback panel, moved here from the right side on the reasoning that "how am I doing
+  against the question" belongs with the question.
+- **Right** — `src/canvas/NodeInspector.tsx`: Config/Docs tab switcher, backed by
+  `src/canvas/ConfigForm.tsx` for the actual form.
+- **Bottom** — `src/canvas/Palette.tsx` rewritten from a `flex-col` sidebar to a `flex`
+  row with `overflow-x-auto` + `shrink-0` cards, anticipating the registry outgrowing one
+  screen width as chapters add components.
+- `src/app/page.tsx` recomposed around these three zones (confirmed: `QuestionPanel` left,
+  `Canvas`+`Palette` center column, `NodeInspector` in a `w-96` right aside).
+
+**This is effectively Milestone 2** from `.claude/docs/MILESTONES.md` ("node inspector
+panel"), folded into the layout work rather than done separately. Confirmed in
+`src/canvas/store.ts`: `selectedNodeId` state, `setSelectedNodeId`, and
+`updateNodeConfig` were added; `Canvas.tsx`'s `onNodeClick` sets the selected node and
+clears edge selection (and `onEdgeClick` does the reverse) so only one of node/edge is
+ever selected at a time.
+
+**Architecture decision worth flagging for reuse**: `ConfigForm.tsx` is genuinely
+schema-driven, not a per-component form. It reads `definition.configSchema` (a Zod
+object) at runtime — `schema.shape` for the field map, then `instanceof z.ZodEnum /
+ZodNumber / ZodBoolean / ZodString` to pick a control (`ZodEnum.options` for select
+choices, `ZodNumber.minValue`/`.maxValue` for input bounds) — confirmed this reads
+correctly against the installed zod v4.4.3 runtime API. Driven by react-hook-form; a
+`useWatch` + `useEffect` gated on `formState.isValid` writes into the store only on
+valid state, so partially-invalid input never reaches the graph. Mounted `key={node.id}`
+in `NodeInspector` so switching nodes remounts with fresh `defaultValues` rather than
+carrying stale state. One documented TS friction point: `zodResolver()` doesn't
+type-check against a schema type-erased to `z.ZodType<Record<string, unknown>>`, worked
+around with `zodResolver(schema as never)` rather than fighting the generics — noted
+inline as deliberate, not sloppy. Docs tab renders `definition.docs` as plain text by
+design (current docs content has no markdown syntax), with a code comment flagging
+`react-markdown` for whenever that changes.
+
+**Bug fix**: multi-select right-click did nothing. Root cause, confirmed in `Canvas.tsx`
+and `ContextMenu.tsx`: xyflow fires a separate `onSelectionContextMenu` callback (not
+`onNodeContextMenu`) when the selection bounding-box overlay is under the cursor instead
+of an individual node; it wasn't wired at all. Fixed by wiring it, adding a bulk
+`deleteNodes(nodeIds: string[])` action to the store, and extending `ContextMenuTarget`
+to a discriminated union (`"node" | "edge" | "selection"`) with a "Delete N components"
+label for the selection case — all three confirmed present in the current files. Other
+right-click options (per-node Duplicate, a Docs-tab shortcut, edge Reverse direction,
+empty-canvas quick-add) were proposed to the user but not built, pending their pick.
+
+**Verification**: exercised in a real headless browser (the `local-libs`/
+`LD_LIBRARY_PATH` workaround from the prior entry, scratchpad-local so it won't survive
+into a new session) rather than trusted from typecheck/build alone — node click opens a
+working Config tab, the Load Balancer's algorithm select persists a change, the Docs tab
+renders real content, and box-selecting two nodes then right-clicking shows "Delete 2
+components" and deletes both.
+
+**Repo state:** commit `5252128` "Restructure layout: left=question/validation,
+right=config+docs, bottom=palette" — confirmed `origin/main` matches `HEAD`, working
+tree clean. Dev server still running in the background on `localhost:3000`,
+hot-reloading throughout.
+
+**Milestone status:** Milestone 2 (node inspector) now effectively done, ahead of its
+original sequence position. Milestone 1's earlier multi-select context-menu gap is also
+closed. **Next steps:** Milestone 3 (`/sandbox` route — everything still lives on `/`)
+not started; the additional context-menu options above are pending the user's choice.
