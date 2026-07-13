@@ -9,11 +9,11 @@ ScaleCraft only ever links out to it via manual citation URLs, no content coupli
 
 Full vision: `INITIAL_THOUGHTS.md`. Architecture/planning docs: `.claude/docs/`.
 
-**Status as of 2026-07-13: pre-code.** Infrastructure, architecture, tech stack, design
-language, and MVP scope are decided (see docs below) but nothing has been scaffolded
-yet. The `backend/` and `frontend/` folders in the repo root are stale leftovers from a
-topology that was reconsidered — see [[TECH_STACK]] — and should be removed/replaced
-when scaffolding begins.
+**Status as of 2026-07-13: scaffolded, pre-interactivity.** Next.js app is running
+(canvas, component registry, validation engine wired end-to-end), but the canvas is
+still a static demo graph — no drag-and-drop, no chapters, no persistence, no auth yet.
+See `.claude/docs/MILESTONES.md` for the sequenced plan to MVP and
+`.claude/PROGRESS_LOG.md` for exactly what's built vs. stubbed right now.
 
 ## Progress log (read this first, every session)
 
@@ -39,6 +39,8 @@ don't).
   deferred and to which phase.
 - `.claude/docs/OPEN_QUESTIONS.md` — unresolved items, each with an owner and a trigger
   for when it actually needs resolving. Check this before assuming a design is final.
+- `.claude/docs/MILESTONES.md` — the sequenced, currently-active roadmap from the
+  scaffold to MVP. Check this before picking what to work on next.
 
 ## Non-negotiable product principles (from `INITIAL_THOUGHTS.md` and explicit product calls, do not relitigate casually)
 
