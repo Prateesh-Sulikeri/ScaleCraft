@@ -1,21 +1,52 @@
 "use client";
 
+import { Copy, FileText, RotateCw, Server, Trash2 } from "lucide-react";
 import { useCanvasStore } from "./store";
+import { componentRegistry } from "@/content/components/registry";
+import { iconMap } from "./icon-map";
+import type { XY } from "@/lib/graph";
 
 export type ContextMenuTarget =
   | { type: "node"; id: string; x: number; y: number }
   | { type: "edge"; id: string; x: number; y: number }
-  | { type: "selection"; ids: string[]; x: number; y: number };
+  | { type: "selection"; ids: string[]; x: number; y: number }
+  | { type: "pane"; flowPosition: XY; x: number; y: number };
 
 type ContextMenuProps = {
   target: ContextMenuTarget | null;
   onClose: () => void;
 };
 
+function MenuItem({
+  icon: Icon,
+  label,
+  danger,
+  onClick,
+}: {
+  icon: React.ComponentType<{ size?: number }>;
+  label: string;
+  danger?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-border ${
+        danger ? "text-state-error" : "text-foreground"
+      }`}
+    >
+      <Icon size={14} />
+      {label}
+    </button>
+  );
+}
+
 /**
- * A second, discoverable path to delete besides the keyboard shortcut —
- * right-clicking a node or edge previously did nothing but suppress the
- * browser's own menu, which read as broken rather than intentional.
+ * Right-click menu, shape depends on what was clicked. Delete was the
+ * original (and only) option; this adds Duplicate, a Docs-tab shortcut,
+ * edge direction reversal, and a quick-add menu on empty canvas — the set
+ * proposed after the layout-restructure round, now built rather than left
+ * as an open question.
  *
  * A multi-node selection is a distinct case from a single node: xyflow's
  * selection bounding-box overlay intercepts the right-click before it
@@ -27,31 +58,80 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
   const deleteNode = useCanvasStore((s) => s.deleteNode);
   const deleteNodes = useCanvasStore((s) => s.deleteNodes);
   const deleteEdge = useCanvasStore((s) => s.deleteEdge);
+  const duplicateNode = useCanvasStore((s) => s.duplicateNode);
+  const duplicateNodes = useCanvasStore((s) => s.duplicateNodes);
+  const reverseEdge = useCanvasStore((s) => s.reverseEdge);
+  const openDocsFor = useCanvasStore((s) => s.openDocsFor);
+  const addNode = useCanvasStore((s) => s.addNode);
 
   if (!target) return null;
 
-  const label =
-    target.type === "selection" ? `Delete ${target.ids.length} components` : "Delete";
+  const act = (fn: () => void) => () => {
+    fn();
+    onClose();
+  };
 
   return (
     <>
       {/* Full-screen catcher to close the menu on the next click anywhere else. */}
       <div className="fixed inset-0 z-20" onClick={onClose} onContextMenu={(e) => e.preventDefault()} />
       <div
-        className="fixed z-30 min-w-[160px] rounded-md border border-border bg-panel py-1 shadow-lg"
+        className="fixed z-30 min-w-[180px] rounded-md border border-border bg-panel py-1 shadow-lg"
         style={{ left: target.x, top: target.y }}
       >
-        <button
-          className="w-full px-3 py-1.5 text-left text-sm text-state-error hover:bg-border"
-          onClick={() => {
-            if (target.type === "node") deleteNode(target.id);
-            else if (target.type === "edge") deleteEdge(target.id);
-            else deleteNodes(target.ids);
-            onClose();
-          }}
-        >
-          {label}
-        </button>
+        {target.type === "node" && (
+          <>
+            <MenuItem icon={Copy} label="Duplicate" onClick={act(() => duplicateNode(target.id))} />
+            <MenuItem icon={FileText} label="View docs" onClick={act(() => openDocsFor(target.id))} />
+            <MenuItem icon={Trash2} label="Delete" danger onClick={act(() => deleteNode(target.id))} />
+          </>
+        )}
+
+        {target.type === "edge" && (
+          <>
+            <MenuItem
+              icon={RotateCw}
+              label="Reverse direction"
+              onClick={act(() => reverseEdge(target.id))}
+            />
+            <MenuItem icon={Trash2} label="Delete" danger onClick={act(() => deleteEdge(target.id))} />
+          </>
+        )}
+
+        {target.type === "selection" && (
+          <>
+            <MenuItem
+              icon={Copy}
+              label={`Duplicate ${target.ids.length} components`}
+              onClick={act(() => duplicateNodes(target.ids))}
+            />
+            <MenuItem
+              icon={Trash2}
+              label={`Delete ${target.ids.length} components`}
+              danger
+              onClick={act(() => deleteNodes(target.ids))}
+            />
+          </>
+        )}
+
+        {target.type === "pane" && (
+          <>
+            <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-foreground/50">
+              Add component
+            </div>
+            {componentRegistry.map((definition) => {
+              const Icon = iconMap[definition.icon] ?? Server;
+              return (
+                <MenuItem
+                  key={definition.id}
+                  icon={Icon}
+                  label={definition.label}
+                  onClick={act(() => addNode(definition, target.flowPosition))}
+                />
+              );
+            })}
+          </>
+        )}
       </div>
     </>
   );

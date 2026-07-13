@@ -47,9 +47,15 @@ type CanvasStore = {
   deleteNode: (nodeId: string) => void;
   deleteNodes: (nodeIds: string[]) => void;
   deleteEdge: (edgeId: string) => void;
+  duplicateNode: (nodeId: string) => void;
+  /** Clones the whole set with an offset, remapping and preserving edges
+   * that ran *between* duplicated nodes (not edges to nodes outside the
+   * set — a partial duplicate shouldn't invent a new external connection). */
+  duplicateNodes: (nodeIds: string[]) => void;
+  reverseEdge: (edgeId: string) => void;
 };
 
-export const useCanvasStore = create<CanvasStore>((set) => ({
+export const useCanvasStore = create<CanvasStore>((set, get) => ({
   nodes: [],
   edges: [],
   selectedEdgeId: null,
@@ -148,6 +154,53 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
     set((state) => ({
       edges: state.edges.filter((e) => e.id !== edgeId),
       selectedEdgeId: state.selectedEdgeId === edgeId ? null : state.selectedEdgeId,
+    }));
+  },
+
+  duplicateNode: (nodeId) => {
+    const source = get().nodes.find((n) => n.id === nodeId);
+    if (!source) return;
+    const clone: ComponentNodeType = {
+      ...source,
+      id: crypto.randomUUID(),
+      position: { x: source.position.x + 32, y: source.position.y + 32 },
+      selected: false,
+    };
+    set((state) => ({ nodes: [...state.nodes, clone] }));
+  },
+
+  duplicateNodes: (nodeIds) => {
+    const idSet = new Set(nodeIds);
+    const { nodes, edges } = get();
+    const idMap = new Map<string, string>();
+    const clones = nodes
+      .filter((n) => idSet.has(n.id))
+      .map((n) => {
+        const newId = crypto.randomUUID();
+        idMap.set(n.id, newId);
+        return {
+          ...n,
+          id: newId,
+          position: { x: n.position.x + 32, y: n.position.y + 32 },
+          selected: false,
+        };
+      });
+    const clonedEdges = edges
+      .filter((e) => idSet.has(e.source) && idSet.has(e.target))
+      .map((e) => ({
+        ...e,
+        id: crypto.randomUUID(),
+        source: idMap.get(e.source)!,
+        target: idMap.get(e.target)!,
+      }));
+    set((state) => ({ nodes: [...state.nodes, ...clones], edges: [...state.edges, ...clonedEdges] }));
+  },
+
+  reverseEdge: (edgeId) => {
+    set((state) => ({
+      edges: state.edges.map((e) =>
+        e.id === edgeId ? { ...e, source: e.target, target: e.source } : e,
+      ),
     }));
   },
 }));

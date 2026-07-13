@@ -114,7 +114,16 @@ function FlowCanvas({ nodeStates }: FlowCanvasProps) {
             y: event.clientY,
           });
         }}
-        onPaneContextMenu={(event) => event.preventDefault()}
+        onPaneContextMenu={(event) => {
+          event.preventDefault();
+          const mouseEvent = event as MouseEvent;
+          setMenu({
+            type: "pane",
+            flowPosition: screenToFlowPosition({ x: mouseEvent.clientX, y: mouseEvent.clientY }),
+            x: mouseEvent.clientX,
+            y: mouseEvent.clientY,
+          });
+        }}
         deleteKeyCode={["Backspace", "Delete"]}
         selectionOnDrag
         panOnDrag={[1]}
