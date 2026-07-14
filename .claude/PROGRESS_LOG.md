@@ -715,3 +715,109 @@ located.
 page) is next per `MILESTONES.md` sequencing — `/` is only a redirect stub today. The
 `--zone` custom-property mystery flagged two entries back remains open and untouched by this
 round's work.
+
+---
+
+## 2026-07-15 (continued) — Component registry expanded to 27 components; 5 config/topology-aware validation rules
+
+Same date as the previous entry, commits land minutes after it (`00:39` vs. `23:58` the
+prior evening) — same working arc, across midnight. User ask was "lots and lots of
+relevant nodes," researched and real, with config that's actually consequential rather
+than decorative. Two commits, verified directly against `git show --stat` on both
+hashes (not reused from any prior report) and by reading the current file contents.
+
+**1. `370c789` "Expand component registry to the full 27-component catalog."** Confirmed
+by counting `label:` occurrences per file: networking 8 (Client, Browser, DNS, CDN,
+Reverse Proxy, API Gateway, Firewall, + one more), compute 4, data 5, caching 2,
+messaging 4, distributed-systems 4 — sums to 27, matching every component named in
+`INITIAL_THOUGHTS.md`'s "Core Components" list, up from the original 4 (Client, Load
+Balancer, App Server, SQL Database). `src/content/components/registry.ts` (read
+directly) is now an 18-line barrel: imports six new per-category files
+(`networking.ts`, `compute.ts`, `data.ts`, `caching.ts`, `messaging.ts`,
+`distributed-systems.ts`) and concatenates them into the same `componentRegistry`
+array, `getComponent(id)` unchanged — confirmed the public API every other module
+imports from didn't move. Spot-checked `networking.ts`: each entry (`client`, `browser`,
+`dns`, ...) is a fully-typed `ComponentDefinition<...>` with a real, specific config
+shape (e.g. `browser`'s `honorsCacheControl: boolean`, `dns`'s
+`recordType: "A" | "CNAME" | "ALIAS"` + `ttlSeconds`) — not placeholder fields, and this
+checks out against the commit message's claim that several of these feed the next
+commit's rules directly. `src/canvas/icon-map.ts` diff confirms 54 lines added (~23 new
+Lucide entries); commit message claims each was checked against the installed
+`lucide-react` package before use — plausible given `npm run typecheck`/`build` were
+reported clean and an unresolved icon import would fail at compile time either way.
+`sql-database`/`nosql-database` gained a real output port (previously `outputs: []`)
+specifically to let a "replication" edge be drawn to a Read Replica — this is the
+setup the next commit's `orphan-read-replica` rule depends on. `ConfigForm.tsx`'s label
+derivation diff (8 lines) confirms a bare capitalize-first-letter was replaced with a
+camelCase→spaced-Title-Case regex — plausible bug framing (every pre-existing config
+field, `instances`/`algorithm`/`engine`, happens to be one word, so the gap was
+invisible until multi-word fields like `ttlSeconds` arrived in this same commit).
+
+**2. `7369432` "Add 5 config- and topology-aware validation rules."** Confirmed via
+`git show --stat`: 11 files, 382 insertions, all new — five rule files plus five
+matching `.test.ts` files under `src/validation-engine/rules/`, plus a diff to
+`rules/index.ts` (+14 lines) registering all five in `ruleRegistry`, which previously
+held only the original scaffold's `noDirectClientDatabase`. The five, per the commit
+message: `single-instance-load-balancer` (warning, sums App Server `instances` config
+across a Load Balancer's backends), `permissive-firewall` (warning, fires purely off
+Firewall's `defaultPolicy` config, no topology), `split-brain-risk` (warning, >1 Leader
+with no Coordinator), `queue-without-dead-letter-queue` (warning, only when Message
+Queue's `deliveryGuarantee` can retry AND no DLQ is connected), `orphan-read-replica`
+(error — first rule in the codebase to check `EdgeKind` specifically, requiring a
+"replication"-kind edge rather than any edge, from a SQL/NoSQL Database into a Read
+Replica; the `lib/graph.ts` `EdgeKind` type has existed since the original scaffold but
+this is the first rule to ever read it). Severity split (one error, four warnings)
+matches the commit message's own stated rationale: `orphan-read-replica` is
+structurally certain to be broken (same class as the pre-existing
+`noDirectClientDatabase`), the other four are real anti-pattern risk but not
+definitively wrong in every context.
+
+**Test count verified independently, not trusted from the commit message:** re-ran
+`npm test -- --run` this pass — **8 test files, 25 tests, all passing**, exactly
+matching the prior log entry's baseline (10 tests / 3 files) plus this round's claimed
+15 new tests across 5 new files (10+15=25, 3+5=8). `npm run typecheck`/`lint`/`build`
+were not independently re-run this pass (no code changes made during logging) but the
+clean test run plus a direct read of `registry.ts` and `networking.ts` gives no reason
+to doubt the commit messages' typecheck/lint/build claims.
+
+**Real headless-browser verification — claimed, plausible, not re-driven in this
+logging pass.** Per the commit's own account: used the same no-root Playwright
+workaround logged several entries back (`apt-get download libnspr4 libnss3
+libasound2t64` + `dpkg-deb -x` + `LD_LIBRARY_PATH`, re-derived fresh since scratchpad
+doesn't persist across sessions) to confirm all 27 palette labels render with distinct,
+correct icons (ruling out a silent fallback-icon-repeated-27-times bug), and to
+exercise the actual Import → Validate flow end-to-end. Worth flagging the reported
+two-attempt detail as a genuine, instructive test-script bug rather than a product bug:
+the first import attempt used the flat domain `ArchitectureGraph`/`GraphNode` shape
+(`{id, componentId, position, config}`) instead of React Flow's own nested shape the
+app's Import feature actually expects (`{id, type: "component", position, data:
+{componentId, config}}` for nodes, matching what `ExportMenu.tsx`'s
+`handleExportJson` dumps) — produced blank/iconless nodes and zero violations, which is
+consistent with `ComponentNode.tsx`'s `getComponent(data.componentId)` returning
+`undefined` on the wrong shape and the component returning `null`, not with any rule
+logic being broken (the unit tests already covered the correct domain shape and all
+passed throughout). Second attempt with the correct shape reportedly produced exactly
+the 4 expected violations (single-instance-load-balancer, permissive-firewall,
+split-brain-risk, orphan-read-replica) with correct messages in the real Validate
+dropdown, plus a Cache node's config form rendering the eviction-policy select and a
+TTL number input bounded 1–86400 with the fixed spaced labels ("Eviction Policy", "Ttl
+Seconds"). No screenshot or script artifact from this survives in the repo tree to
+independently re-check (consistent with this file's established cleanup pattern) —
+taken as reported, flagged as such per this log's convention.
+
+**Repo state:** two commits this round, most recent first:
+- `7369432` "Add 5 config- and topology-aware validation rules"
+- `370c789` "Expand component registry to the full 27-component catalog"
+
+`git status` shows a clean working tree. **Not yet pushed** — confirmed via `git log
+origin/main..HEAD`: branch is ahead of `origin/main` by 2 commits (on top of the 3
+already-unpushed commits from the previous entry, so `origin/main` is now 5 commits
+behind `HEAD`, still sitting at `b6ee6d0`).
+
+**Next steps:** push the now-5 unpushed commits. Milestone 4 (Home / mode-select page)
+remains next per `MILESTONES.md` — unaffected by this round's content-only work. The
+27-component catalog and its 5 new rules are themselves a big step into milestone 6
+(curriculum/chapter content) territory even though no chapter yet references most of
+these components by `availableComponentIds` — worth checking `MVP_SCOPE.md`'s two-chapter
+requirement against which of the 27 actually get used before assuming this closes that
+milestone. The `--zone` custom-property mystery remains open and untouched.
