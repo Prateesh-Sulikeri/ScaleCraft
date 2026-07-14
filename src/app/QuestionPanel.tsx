@@ -5,19 +5,24 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Palette } from "@/canvas/Palette";
 import { useResizableWidth } from "@/lib/use-resizable-width";
 
+type QuestionPanelProps = {
+  /** Short instructional line shown above the palette. Once the chapter
+   * framework lands (milestone 5, see .claude/docs/MILESTONES.md) this slot
+   * holds a chapter's problem statement and learning objectives instead —
+   * Sandbox has no chapter, so it gets a plain how-to-use-this-mode line
+   * passed in from the route instead of hardcoded here. */
+  intro: string;
+};
+
 /**
- * The left panel. Once the chapter framework lands (milestone 5, see
- * .claude/docs/MILESTONES.md) this is where a chapter's problem statement
- * and learning objectives render, pinned above the component list. Until
- * then (Sandbox has no chapter, so no question) it's just the searchable
- * component palette, full height — kept as its own collapsible component
- * rather than folded into page.tsx specifically so that slot doesn't need
- * re-plumbing when chapters arrive. Validation feedback lives at the
+ * The left panel. Kept as its own collapsible component rather than folded
+ * into page.tsx specifically so the intro/problem-statement slot doesn't
+ * need re-plumbing when chapters arrive. Validation feedback lives at the
  * Validate button itself now (see ValidationIndicator), not here — it never
  * belonged to "the question," and there was no upside to burying it in a
  * side panel.
  */
-export function QuestionPanel() {
+export function QuestionPanel({ intro }: QuestionPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { width, onMouseDown } = useResizableWidth(320, 220, 480, "right");
 
@@ -47,6 +52,7 @@ export function QuestionPanel() {
             <PanelLeftClose size={14} />
           </button>
         </div>
+        <p className="border-b border-border px-3 pb-3 pt-2 text-sm text-foreground/70">{intro}</p>
         <div className="min-h-0 flex-1">
           <Palette />
         </div>

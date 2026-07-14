@@ -1,20 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { type AppMode, modeColorVar, modeDescription, modeLabel, modeTagline } from "@/lib/modes";
+
+type ModeBadgeProps = { mode: AppMode };
 
 /**
- * The only always-visible answer to "which mode am I in" — everything else
- * in the header (title, subtitle) reads the same regardless of mode. Once
- * chapters exist (milestone 5+) this becomes one of several labels
- * (Building Blocks / Real World Extraction / Sandbox), so it's built as a
- * disclosure now rather than sandbox-specific copy baked into the header.
- * Purpose/scope text is opt-in (click), not shown by default — same
- * "explanation available, never forced" posture as validation hints, just
- * applied to mode identity instead of a validation failure.
+ * The always-visible answer to "which mode am I in" — colored per mode
+ * (see globals.css's `--mode-*` tokens and .claude/docs/DESIGN_LANGUAGE.md's
+ * "Mode color" section) so it reads at a glance, not just as text. Purpose/
+ * scope text is opt-in (click), not shown by default — same "explanation
+ * available, never forced" posture as validation hints, just applied to mode
+ * identity instead of a validation failure.
  */
-export function ModeBadge() {
+export function ModeBadge({ mode }: ModeBadgeProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const color = modeColorVar[mode];
 
   useEffect(() => {
     if (!open) return;
@@ -36,19 +38,23 @@ export function ModeBadge() {
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="rounded-full border border-border bg-panel px-2.5 py-0.5 text-xs font-medium text-foreground/70 hover:border-foreground/30 hover:text-foreground"
+        style={{
+          borderColor: color,
+          backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)`,
+          color,
+        }}
+        className="rounded-full border px-2.5 py-0.5 text-xs font-semibold"
       >
-        Sandbox
+        {modeLabel[mode]}
       </button>
 
       {open && (
-        <div className="absolute left-0 z-30 mt-2 w-72 rounded-md border border-border bg-panel p-3 shadow-lg">
-          <p className="text-sm font-medium">Free exploration — no objectives, no scoring.</p>
-          <p className="mt-1.5 text-sm text-foreground/70">
-            Build anything with the full component library. Validate still checks structural
-            rules (e.g. no direct client→database calls), but there&apos;s no single correct
-            answer here to match — this is the mode for trying things out.
-          </p>
+        <div
+          style={{ borderTopColor: color, borderTopWidth: 2 }}
+          className="absolute left-0 z-30 mt-2 w-72 rounded-md border border-border bg-panel p-3 shadow-lg"
+        >
+          <p className="text-sm font-medium">{modeTagline[mode]}</p>
+          <p className="mt-1.5 text-sm text-foreground/70">{modeDescription[mode]}</p>
         </div>
       )}
     </div>

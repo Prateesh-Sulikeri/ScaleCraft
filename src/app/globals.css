@@ -28,6 +28,18 @@
   --state-valid: #22c55e;
   --state-warning: #f59e0b;
   --state-error: #ef4444;
+
+  /* Mode colors — a third channel, identifying which learning mode the
+   * current route is (Sandbox / Building Blocks / Real World Extraction).
+   * Confined to the mode badge and header accent only — never on a
+   * component node — so it never collides with the category/state
+   * two-channel system above. Dark/light values tuned separately (not
+   * shared, unlike category/state above) because a single hue can't clear
+   * 4.5:1 contrast against both panel backgrounds at once — verified with
+   * a WCAG contrast check, not eyeballed. */
+  --mode-sandbox: #06b6d4;
+  --mode-building-blocks: #f97316;
+  --mode-real-world-extraction: #818cf8;
 }
 
 .light {
@@ -37,6 +49,9 @@
   --border: #e2e2e2;
   --zone: #FF3483;
 
+  --mode-sandbox: #0e7490;
+  --mode-building-blocks: #c2410c;
+  --mode-real-world-extraction: #4338ca;
 }
 
 @theme inline {
@@ -55,6 +70,10 @@
   --color-state-valid: var(--state-valid);
   --color-state-warning: var(--state-warning);
   --color-state-error: var(--state-error);
+
+  --color-mode-sandbox: var(--mode-sandbox);
+  --color-mode-building-blocks: var(--mode-building-blocks);
+  --color-mode-real-world-extraction: var(--mode-real-world-extraction);
 
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);

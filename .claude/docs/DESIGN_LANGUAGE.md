@@ -55,6 +55,22 @@ Because "Data" category and "Error" state are both red/green-adjacent, state is
 communicated by *ring + icon* (e.g. a small warning glyph), not fill color alone — don't
 rely on hue by itself to distinguish the two channels.
 
+**Mode color** (context — which learning mode the current route is), a third channel
+added when the Sandbox route shipped (milestone 3). Confined to the mode badge and the
+header's bottom border only — **never** on a component node — so it can't collide with
+the category/state channels above:
+
+| Mode | Color |
+|---|---|
+| Sandbox | Cyan |
+| Building Blocks | Orange |
+| Real World Extraction | Indigo |
+
+Unlike category/state colors (currently one shared value across themes, a known gap —
+see "Theming" below), mode colors are tuned with separate dark/light values
+(`src/app/globals.css`'s `--mode-*` tokens): no single hue cleared 4.5:1 contrast against
+both panel backgrounds at once, verified with a WCAG contrast check.
+
 ## Typography
 
 - UI chrome, body text, docs panels: **Inter** (or system-ui equivalent) — neutral,

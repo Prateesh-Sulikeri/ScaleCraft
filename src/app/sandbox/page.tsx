@@ -15,6 +15,7 @@ import { ModeBadge } from "@/app/ModeBadge";
 import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
+import { modeColorVar } from "@/lib/modes";
 import { runValidation } from "@/validation-engine/engine";
 import { ruleRegistry } from "@/validation-engine/rules";
 import type { ValidationViolation } from "@/validation-engine/types";
@@ -55,6 +56,8 @@ const seedGraph: ArchitectureGraph = {
     { id: "e3", source: "app-1", target: "db-1", kind: "request-flow" },
   ],
 };
+
+const mode = "sandbox" as const;
 
 export default function SandboxPage() {
   const nodes = useCanvasStore((s) => s.nodes);
@@ -140,7 +143,10 @@ export default function SandboxPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-start justify-between border-b border-border px-6 py-4">
+      <header
+        style={{ borderBottomColor: modeColorVar[mode] }}
+        className="flex items-center justify-between border-b-2 px-6 py-3"
+      >
         <div className="flex items-center gap-2.5">
           <Image
             src="/logo-mark.png"
@@ -150,15 +156,8 @@ export default function SandboxPage() {
             className="rounded-md"
             priority
           />
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-semibold">ScaleCraft</h1>
-              <ModeBadge />
-            </div>
-            <p className="text-sm text-foreground/60">
-              Drag components from the palette, connect them, then click Validate.
-            </p>
-          </div>
+          <h1 className="text-base font-semibold">ScaleCraft</h1>
+          <ModeBadge mode={mode} />
         </div>
         <div className="flex items-center gap-2">
           <div className="flex flex-col items-end">
@@ -198,7 +197,7 @@ export default function SandboxPage() {
       </header>
 
       <main className="flex flex-1 overflow-hidden">
-        <QuestionPanel />
+        <QuestionPanel intro="Drag components from the palette, connect them, then click Validate." />
 
         <div className="flex flex-1 flex-col">
           <Canvas ref={canvasRef} nodeStates={nodeStates} />
