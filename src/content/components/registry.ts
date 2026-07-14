@@ -1,76 +1,26 @@
-import { z } from "zod";
 import type { ComponentDefinition } from "./types";
+import { networkingComponents } from "./networking";
+import { computeComponents } from "./compute";
+import { dataComponents } from "./data";
+import { cachingComponents } from "./caching";
+import { messagingComponents } from "./messaging";
+import { distributedSystemsComponents } from "./distributed-systems";
 
 /**
- * The global component registry. Every chapter references components from
- * here by id via `availableComponentIds` — components are never redefined
- * per chapter. This is intentionally a small seed set for the scaffold; real
- * chapter content will grow this list.
+ * The global component registry — every chapter references components from
+ * here by id via `availableComponentIds`; components are never redefined per
+ * chapter. Split into one file per category (see .claude/docs/DESIGN_LANGUAGE.md's
+ * Color System table for the same six categories) purely for file size —
+ * this barrel is still the single source of truth other modules import from.
+ * Covers the full "Core Components" list from INITIAL_THOUGHTS.md.
  */
-
-const client: ComponentDefinition<Record<string, never>> = {
-  id: "client",
-  category: "networking",
-  label: "Client",
-  icon: "monitor",
-  inputs: [],
-  outputs: [{ id: "out", label: "Request" }],
-  configSchema: z.object({}),
-  defaultConfig: {},
-  summary: "Issues requests into the system",
-  docs: "The end user's device or application issuing requests into the system.",
-};
-
-const loadBalancer: ComponentDefinition<{ algorithm: "round-robin" | "least-connections" }> = {
-  id: "load-balancer",
-  category: "networking",
-  label: "Load Balancer",
-  icon: "shuffle",
-  inputs: [{ id: "in", label: "Incoming" }],
-  outputs: [{ id: "out", label: "Distributed" }],
-  configSchema: z.object({
-    algorithm: z.enum(["round-robin", "least-connections"]),
-  }),
-  defaultConfig: { algorithm: "round-robin" },
-  summary: "Distributes requests across instances",
-  docs: "Distributes incoming requests across multiple downstream instances to avoid overloading any single one.",
-};
-
-const appServer: ComponentDefinition<{ instances: number }> = {
-  id: "app-server",
-  category: "compute",
-  label: "Application Server",
-  icon: "server",
-  inputs: [{ id: "in", label: "Request" }],
-  outputs: [{ id: "out", label: "Query" }],
-  configSchema: z.object({
-    instances: z.number().int().min(1).max(20),
-  }),
-  defaultConfig: { instances: 1 },
-  summary: "Runs business logic and enforces access control",
-  docs: "Runs application logic: authentication, authorization, and business rules. Should mediate all access to the database — clients should never reach it directly.",
-};
-
-const sqlDatabase: ComponentDefinition<{ engine: "postgres" | "mysql" }> = {
-  id: "sql-database",
-  category: "data",
-  label: "SQL Database",
-  icon: "database",
-  inputs: [{ id: "in", label: "Query" }],
-  outputs: [],
-  configSchema: z.object({
-    engine: z.enum(["postgres", "mysql"]),
-  }),
-  defaultConfig: { engine: "postgres" },
-  summary: "Durable, structured relational storage",
-  docs: "Durable, structured, relational storage. Exposing this directly to clients bypasses the application server's authentication, authorization, and business logic.",
-};
-
 export const componentRegistry: ComponentDefinition[] = [
-  client,
-  loadBalancer,
-  appServer,
-  sqlDatabase,
+  ...networkingComponents,
+  ...computeComponents,
+  ...dataComponents,
+  ...cachingComponents,
+  ...messagingComponents,
+  ...distributedSystemsComponents,
 ];
 
 export function getComponent(id: string): ComponentDefinition | undefined {

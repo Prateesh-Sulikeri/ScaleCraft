@@ -72,7 +72,13 @@ function ConfigField({
   schema: z.ZodType;
   register: UseFormRegister<Record<string, unknown>>;
 }) {
-  const label = name.charAt(0).toUpperCase() + name.slice(1);
+  // camelCase -> "Camel Case": was a no-op label fix while every config field
+  // happened to be one word (instances, algorithm, engine) — the new
+  // multi-word fields (ttlSeconds, replicationLagBudgetMs, ...) made the
+  // gap actually visible, so this now inserts spaces before each hump.
+  const label = name
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/^./, (c) => c.toUpperCase());
 
   if (schema instanceof z.ZodEnum) {
     return (
