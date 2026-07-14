@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-14T00:00:00.000Z",
+  "title": "Design System: ScaleCraft",
+  "extensions": {
+    "colorMeta": {
+      "near-black-canvas": { "role": "neutral", "displayName": "Near-Black Canvas", "canonical": "#0a0a0a" },
+      "raised-panel": { "role": "neutral", "displayName": "Raised Panel", "canonical": "#141414" },
+      "hairline-border": { "role": "neutral", "displayName": "Hairline Border", "canonical": "#2a2a2a" },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#ededed" },
+      "wire-blue": {
+        "role": "category",
+        "displayName": "Wire Blue",
+        "canonical": "#3b82f6",
+        "tonalRamp": ["#031e49", "#06327a", "#094cb9", "#0b64f4", "#4689f6", "#80aef9", "#b6d0fc", "#e7effe"]
+      },
+      "circuit-violet": {
+        "role": "category",
+        "displayName": "Circuit Violet",
+        "canonical": "#8b5cf6",
+        "tonalRamp": ["#190448", "#2a0779", "#3f0ab8", "#530df2", "#7c47f5", "#a681f8", "#cbb7fb", "#eee7fe"]
+      },
+      "ledger-green": {
+        "role": "category",
+        "displayName": "Ledger Green",
+        "canonical": "#22c55e",
+        "tonalRamp": ["#0b411f", "#136d34", "#1da54f", "#26d968", "#5ae28c", "#8eebb0", "#bef4d2", "#e9fbf0"]
+      },
+      "cache-amber": {
+        "role": "category",
+        "displayName": "Cache Amber",
+        "canonical": "#f59e0b",
+        "tonalRamp": ["#492f03", "#7a4f05", "#ba7808", "#f59e0a", "#f7b545", "#facc80", "#fce2b6", "#fef5e7"]
+      },
+      "signal-pink": {
+        "role": "category",
+        "displayName": "Signal Pink",
+        "canonical": "#ec4899",
+        "tonalRamp": ["#450726", "#740c3f", "#b01260", "#e7187e", "#ed4f9d", "#f387bc", "#f8bad8", "#fde8f2"]
+      },
+      "fault-red": {
+        "role": "category",
+        "displayName": "Fault Red",
+        "canonical": "#ef4444",
+        "tonalRamp": ["#460606", "#750a0a", "#b30f0f", "#eb1414", "#f04c4c", "#f58585", "#f9b9b9", "#fde8e8"]
+      },
+      "state-valid": { "role": "semantic", "displayName": "Valid (= Ledger Green)", "canonical": "#22c55e" },
+      "state-warning": { "role": "semantic", "displayName": "Warning (= Cache Amber)", "canonical": "#f59e0b" },
+      "state-error": { "role": "semantic", "displayName": "Error (= Fault Red)", "canonical": "#ef4444" },
+      "zone-magenta": {
+        "role": "accent",
+        "displayName": "Zone Magenta",
+        "canonical": "#ff3483",
+        "tonalRamp": ["#4d001e", "#800032", "#c2004b", "#ff0063", "#ff3d89", "#ff7aae", "#ffb3d0", "#ffe5ef"]
+      }
+    },
+    "typographyMeta": {
+      "title": { "displayName": "Title", "purpose": "Panel headers, node titles, docs-window title bars." },
+      "body": { "displayName": "Body", "purpose": "Buttons, form labels, validation messages, docs prose." },
+      "label": { "displayName": "Label", "purpose": "Uppercase section/category headers — the densest text in the system." },
+      "mono": { "displayName": "Mono", "purpose": "Config-form values and component identifiers only." }
+    },
+    "shadows": [
+      { "name": "ambient-card", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "Component node cards at rest; barely perceptible." },
+      { "name": "floating-menu", "value": "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)", "purpose": "Dropdowns, context menu, palette hover tooltip." },
+      { "name": "floating-window", "value": "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)", "purpose": "The docs window — a persistent, draggable surface, one step heavier than a transient menu." }
+    ],
+    "motion": [
+      {
+        "name": "dashdraw",
+        "value": "dashdraw 0.5s linear infinite",
+        "purpose": "The system's one real, reused animation token — xyflow's own keyframe, applied to animated request-flow edges and (permanently, not just on creation) to the zone grouping rectangle's dashed border. Any new element that should read as 'part of the live system' reuses this rather than inventing a new animation."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Header Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Neutral action button — Save, Export, Import. The only variant; no ghost/secondary split.",
+      "html": "<button class=\"ds-btn\"><svg class=\"ds-btn-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z\"/><path d=\"M17 21v-8H7v8M7 3v5h8\"/></svg>Save</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; border: 1px solid #2a2a2a; background: #141414; color: #ededed; padding: 6px 12px; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; } .ds-btn:hover { background: #2a2a2a; } .ds-btn:focus-visible { outline: 2px solid #ededed; outline-offset: 2px; } .ds-btn-icon { width: 14px; height: 14px; }"
+    },
+    {
+      "name": "Validate Button (stateful)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The system's one semantically-colored button — neutral at rest, green when the graph passes, red when it fails, dashed/dimmed when results are stale.",
+      "html": "<button class=\"ds-btn ds-btn-error\"><svg class=\"ds-btn-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m15 9-6 6M9 9l6 6\"/></svg>Validate</button>",
+      "css": ".ds-btn-error { border-color: #ef4444; color: #ef4444; } .ds-btn-error:hover { background: color-mix(in srgb, #ef4444 12%, #141414); }"
+    },
+    {
+      "name": "Dropdown / Context Menu",
+      "kind": "custom",
+      "refersTo": "dropdown-menu",
+      "description": "Shared visual language across the Export menu, Validate's result dropdown, and the right-click context menu.",
+      "html": "<div class=\"ds-menu\"><button class=\"ds-menu-item\">Export as JSON</button><button class=\"ds-menu-item ds-menu-item-danger\">Delete</button></div>",
+      "css": ".ds-menu { border-radius: 6px; border: 1px solid #2a2a2a; background: #141414; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); padding: 4px 0; min-width: 180px; } .ds-menu-item { display: flex; width: 100%; align-items: center; gap: 8px; padding: 6px 12px; text-align: left; font-size: 14px; color: #ededed; background: none; border: none; cursor: pointer; } .ds-menu-item:hover { background: #2a2a2a; } .ds-menu-item-danger { color: #ef4444; }"
+    },
+    {
+      "name": "Component Node Card",
+      "kind": "card",
+      "refersTo": "node-card",
+      "description": "The canonical architecture-diagram node: icon badge, title, one-line summary, category-tinted, state-ring outline.",
+      "html": "<div class=\"ds-node\"><div class=\"ds-node-badge\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#3b82f6\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" width=\"16\" height=\"16\"><rect width=\"20\" height=\"14\" x=\"2\" y=\"3\" rx=\"2\"/><line x1=\"8\" x2=\"16\" y1=\"21\" y2=\"21\"/><line x1=\"12\" x2=\"12\" y1=\"17\" y2=\"21\"/></svg></div><div class=\"ds-node-text\"><div class=\"ds-node-title\">Client</div><div class=\"ds-node-summary\">Issues requests into the system</div></div></div>",
+      "css": ".ds-node { display: flex; align-items: flex-start; gap: 10px; width: 200px; border-radius: 12px; border: 1px solid #2a2a2a; background: #141414; padding: 10px 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); outline: 2px solid #2a2a2a; outline-offset: 1px; } .ds-node-badge { display: flex; height: 32px; width: 32px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 8px; background: color-mix(in srgb, #3b82f6 20%, transparent); } .ds-node-title { font-family: Inter, system-ui, sans-serif; font-size: 14px; font-weight: 600; color: #ededed; } .ds-node-summary { margin-top: 2px; font-size: 12px; color: color-mix(in srgb, #ededed 60%, transparent); }"
+    },
+    {
+      "name": "Palette Tile",
+      "kind": "custom",
+      "refersTo": "palette-tile",
+      "description": "Icon+name-only component tile in the searchable, category-grouped palette grid; full details on hover.",
+      "html": "<div class=\"ds-tile\"><div class=\"ds-tile-icon\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#3b82f6\" stroke-width=\"2\" width=\"22\" height=\"22\"><rect width=\"20\" height=\"14\" x=\"2\" y=\"3\" rx=\"2\"/></svg></div><span class=\"ds-tile-label\">Load Balancer</span></div>",
+      "css": ".ds-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; } .ds-tile-icon { display: flex; height: 40px; width: 40px; align-items: center; justify-content: center; border-radius: 8px; border: 2px solid #3b82f6; background: color-mix(in srgb, #3b82f6 12%, transparent); cursor: grab; } .ds-tile-label { width: 64px; text-align: center; font-size: 12px; line-height: 1.3; color: color-mix(in srgb, #ededed 70%, transparent); }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": null,
+      "description": "The palette's component search field.",
+      "html": "<div class=\"ds-search\"><svg class=\"ds-search-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" width=\"14\" height=\"14\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input type=\"search\" class=\"ds-search-input\" placeholder=\"Search components...\"/></div>",
+      "css": ".ds-search { position: relative; } .ds-search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: color-mix(in srgb, #ededed 40%, transparent); } .ds-search-input { width: 100%; border-radius: 6px; border: 1px solid #2a2a2a; background: #0a0a0a; padding: 6px 8px 6px 28px; font-size: 14px; color: #ededed; outline: none; } .ds-search-input:focus { border-color: color-mix(in srgb, #ededed 40%, transparent); }"
+    },
+    {
+      "name": "Docs Window",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Signature component: a small floating, draggable, resizable, minimizable window for component documentation. No backdrop — the canvas stays interactive around it.",
+      "html": "<div class=\"ds-docs-window\"><div class=\"ds-docs-titlebar\"><span class=\"ds-docs-title\">Client</span><div class=\"ds-docs-controls\"><button class=\"ds-docs-btn\">–</button><button class=\"ds-docs-btn\">×</button></div></div><div class=\"ds-docs-body\">The end user's device or application issuing requests into the system.</div><div class=\"ds-docs-grip\"></div></div>",
+      "css": ".ds-docs-window { position: relative; display: flex; flex-direction: column; width: 380px; height: 260px; border-radius: 8px; border: 1px solid #2a2a2a; background: #141414; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); overflow: hidden; } .ds-docs-titlebar { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #2a2a2a; cursor: move; } .ds-docs-title { font-size: 14px; font-weight: 600; color: #ededed; } .ds-docs-controls { display: flex; gap: 4px; } .ds-docs-btn { border: none; background: none; color: color-mix(in srgb, #ededed 50%, transparent); border-radius: 4px; padding: 4px; cursor: pointer; } .ds-docs-btn:hover { background: #2a2a2a; color: #ededed; } .ds-docs-body { flex: 1; overflow-y: auto; padding: 16px; font-size: 16px; line-height: 1.75; color: color-mix(in srgb, #ededed 80%, transparent); } .ds-docs-grip { position: absolute; bottom: 0; right: 0; height: 16px; width: 16px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, #2a2a2a 50%); }"
+    },
+    {
+      "name": "Zone (grouping rectangle)",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Signature component: labeled, resizable grouping rectangle with a permanently animated dashed border, reusing the same keyframe as animated edges.",
+      "html": "<div class=\"ds-zone\"><svg class=\"ds-zone-border\" width=\"100%\" height=\"100%\"><rect x=\"0.75\" y=\"0.75\" width=\"calc(100% - 1.5px)\" height=\"calc(100% - 1.5px)\" rx=\"8\" fill=\"none\" stroke=\"#ff3483\" stroke-width=\"1.5\" stroke-dasharray=\"6 4\" class=\"ds-zone-animated\"/></svg><input class=\"ds-zone-label\" value=\"Backend\"/></div>",
+      "css": "@keyframes ds-dashdraw { to { stroke-dashoffset: -10; } } .ds-zone { position: relative; border-radius: 8px; background: color-mix(in srgb, #141414 20%, transparent); } .ds-zone-border { position: absolute; inset: 0; pointer-events: none; } .ds-zone-animated { animation: ds-dashdraw 0.5s linear infinite; } .ds-zone-label { position: relative; margin: 8px; width: 192px; background: transparent; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: color-mix(in srgb, #ededed 60%, transparent); border: none; outline: none; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Systems Console",
+    "overview": "ScaleCraft's own product brief is explicit: \"ScaleCraft is not intended to be a game.\" The visual language reads as a technical instrument — closer to Excalidraw, Linear, or a cloud provider's architecture-diagram console than to a puzzle game's chrome, even though the interaction model borrows mechanics from puzzle games. Motion and color are load-bearing signal, never decoration: a ring color says a node passed or failed validation, a dashed line moving along an edge says \"this is the live request path\" — nothing plays because a page loaded, nothing loops because it looks nice at rest.\n\nDark is the default posture, in the same way Figma, Excalidraw, and tldraw default to (or heavily favor) dark — but light mode is a fully realized second theme, not an inverted afterthought. The system runs on exactly one sans-serif (Inter) for essentially everything, with a monospace face (JetBrains Mono) held in reserve for anything that is literally code-shaped. There is no single \"brand accent\" — instead there are six equally-weighted category identity colors layered against a completely separate, three-color semantic state vocabulary.",
+    "keyCharacteristics": [
+      "Two independent color channels that never share a rendering surface: category (identity, always a fill/badge) and validation state (status, always a ring/outline)",
+      "One sans face (Inter) carries headings, buttons, labels, and body; JetBrains Mono is the only second face, reserved for config/technical values",
+      "Flat by default — shadow exists only on chrome that floats above the canvas plane, never on canvas content itself",
+      "Every animation ties to a specific, real state change; nothing idles, nothing celebrates"
+    ],
+    "rules": [
+      { "name": "The Two-Channel Rule", "body": "Category color and validation-state color never occupy the same rendering surface on one node: category always fills or tints a badge/border, state always renders as a ring/outline layered on top. Three category hues intentionally coincide exactly with a state hue at the pixel level (Data ↔ Valid, Caching ↔ Warning, Distributed Systems ↔ Error), and this is safe specifically because they never share a channel. Never use a state color as a fill; never use a category color as a status ring.", "section": "colors" },
+      { "name": "The One-Family Rule", "body": "Inter alone carries every weight of the interface. JetBrains Mono is the only second face, reserved strictly for values that are literally code-shaped. Never reach for a third face; never use the mono face decoratively.", "section": "typography" },
+      { "name": "The Flat Canvas Rule", "body": "Nothing on the canvas plane itself casts a shadow beyond node cards' own whisper-thin ambient-card. Shadow means \"this is floating above the diagram\" — chrome-only vocabulary, never applied to diagram content.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do treat category color and validation-state color as two channels that never occupy the same rendering surface on one node.",
+      "Do reuse the dashdraw motion token for anything that should read as \"part of the live system\" rather than inventing a new animation per element.",
+      "Do keep every button the same neutral shape and color, with the single deliberate exception of the Validate button's semantic state color.",
+      "Do favor a floating, dismissible window over a modal when the content is reference material the user wants to keep glancing at while they keep working.",
+      "Do wrap long labels across two lines rather than truncating with an ellipsis when there's vertical room."
+    ],
+    "donts": [
+      "Don't add idle animation, gamified particle effects, or celebratory confetti-style success states — \"ScaleCraft is not intended to be a game.\"",
+      "Don't reuse AWS/GCP/Azure's architecture-diagram icon sets — trademarked, not licensed for a competing product.",
+      "Don't rely on hue alone to distinguish the category channel from the state channel on a single node — pair state with a ring and an icon.",
+      "Don't use border-left/border-right as a colored accent stripe anywhere in this system.",
+      "Don't default to a modal for anything that could be inline or a lightweight floating window instead.",
+      "Don't invent a new one-off animation for a new element — check whether dashdraw (or a real state-change transition) already covers the intent."
+    ]
+  }
+}

@@ -55,13 +55,14 @@ function MenuItem({
  * onNodeContextMenu.
  */
 export function ContextMenu({ target, onClose }: ContextMenuProps) {
+  const nodes = useCanvasStore((s) => s.nodes);
   const deleteNode = useCanvasStore((s) => s.deleteNode);
   const deleteNodes = useCanvasStore((s) => s.deleteNodes);
   const deleteEdge = useCanvasStore((s) => s.deleteEdge);
   const duplicateNode = useCanvasStore((s) => s.duplicateNode);
   const duplicateNodes = useCanvasStore((s) => s.duplicateNodes);
   const reverseEdge = useCanvasStore((s) => s.reverseEdge);
-  const openDocsFor = useCanvasStore((s) => s.openDocsFor);
+  const openDocsWindow = useCanvasStore((s) => s.openDocsWindow);
   const addNode = useCanvasStore((s) => s.addNode);
 
   if (!target) return null;
@@ -69,6 +70,13 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
   const act = (fn: () => void) => () => {
     fn();
     onClose();
+  };
+
+  // Docs windows are keyed by componentId (see store.ts), not node id — the
+  // menu only has the clicked node's id, so resolve it here.
+  const viewDocsForNode = (nodeId: string) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (node?.type === "component") openDocsWindow(node.data.componentId);
   };
 
   return (
@@ -82,7 +90,7 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
         {target.type === "node" && (
           <>
             <MenuItem icon={Copy} label="Duplicate" onClick={act(() => duplicateNode(target.id))} />
-            <MenuItem icon={FileText} label="View docs" onClick={act(() => openDocsFor(target.id))} />
+            <MenuItem icon={FileText} label="View docs" onClick={act(() => viewDocsForNode(target.id))} />
             <MenuItem icon={Trash2} label="Delete" danger onClick={act(() => deleteNode(target.id))} />
           </>
         )}
@@ -116,7 +124,7 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
 
         {target.type === "pane" && (
           <>
-            <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-foreground/50">
+            <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-foreground/70">
               Add component
             </div>
             {componentRegistry.map((definition) => {

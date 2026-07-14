@@ -12,3 +12,24 @@ export const categoryColorVar: Record<ComponentCategory, string> = {
   messaging: "var(--category-messaging)",
   "distributed-systems": "var(--category-distributed-systems)",
 };
+
+/** Display names — Title Case per DESIGN_LANGUAGE.md's Color System table
+ * ("Distributed Systems" as two words, not the raw hyphenated slug). */
+export const categoryLabel: Record<ComponentCategory, string> = {
+  networking: "Networking",
+  compute: "Compute",
+  data: "Data",
+  caching: "Caching",
+  messaging: "Messaging",
+  "distributed-systems": "Distributed Systems",
+};
+
+/** Fixed display order, matching the DESIGN_LANGUAGE.md table row order. */
+export const categoryOrder: ComponentCategory[] = [
+  "networking",
+  "compute",
+  "data",
+  "caching",
+  "messaging",
+  "distributed-systems",
+];

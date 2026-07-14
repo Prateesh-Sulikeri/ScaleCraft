@@ -31,7 +31,7 @@ export function ComponentNode({ data }: NodeProps<ComponentNodeType>) {
 
   return (
     <div
-      className="w-[200px] rounded-xl border border-border bg-panel px-3 py-2.5 shadow-sm"
+      className="w-[200px] rounded-xl border border-border bg-panel px-3 py-2.5 shadow-sm transition-[outline-color] duration-150 ease-out"
       style={{ outline: `2px solid ${ringColor}`, outlineOffset: "1px" }}
     >
       {definition.inputs.length > 0 && <Handle type="target" position={Position.Left} />}

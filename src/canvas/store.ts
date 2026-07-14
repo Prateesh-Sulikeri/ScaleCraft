@@ -18,6 +18,62 @@ function edgeStyle(kind: EdgeKind) {
   };
 }
 
+/** A scoped alternative to a full undo/redo history stack — only delete is
+ * risky enough (permanent, one click, no confirmation) to need a safety
+ * net; every other mutation stays a plain, un-undoable action. */
+export type PendingUndo = {
+  nodes: AnyNodeType[];
+  edges: ArchitectureEdgeType[];
+  label: string;
+  at: number;
+};
+
+const UNDO_MERGE_WINDOW_MS = 200;
+
+function undoLabel(nodes: AnyNodeType[], edges: ArchitectureEdgeType[]): string {
+  const nodeWord = nodes.length === 1 ? "item" : "items";
+  const edgeWord = edges.length === 1 ? "connection" : "connections";
+  if (nodes.length > 0 && edges.length > 0) {
+    return `${nodes.length} ${nodeWord} and ${edges.length} ${edgeWord} deleted`;
+  }
+  if (nodes.length > 0) return `${nodes.length} ${nodeWord} deleted`;
+  return `${edges.length} ${edgeWord} deleted`;
+}
+
+/** Deleting a node also removes its connected edges via a SEPARATE
+ * onNodesChange/onEdgesChange call (xyflow dispatches them independently,
+ * order not guaranteed) — merging into a still-fresh pendingUndo (within
+ * UNDO_MERGE_WINDOW_MS) rather than overwriting it is what keeps "delete a
+ * connected node" as one combined undo entry regardless of which handler
+ * runs first, instead of the second call clobbering the first's snapshot. */
+function mergeIntoPendingUndo(
+  current: PendingUndo | null,
+  newNodes: AnyNodeType[],
+  newEdges: ArchitectureEdgeType[],
+): PendingUndo {
+  if (current && Date.now() - current.at < UNDO_MERGE_WINDOW_MS) {
+    const nodes = [...current.nodes, ...newNodes.filter((n) => !current.nodes.some((cn) => cn.id === n.id))];
+    const edges = [...current.edges, ...newEdges.filter((e) => !current.edges.some((ce) => ce.id === e.id))];
+    return { nodes, edges, label: undoLabel(nodes, edges), at: current.at };
+  }
+  return { nodes: newNodes, edges: newEdges, label: undoLabel(newNodes, newEdges), at: Date.now() };
+}
+
+/** Keyed by componentId (not node id) — two node instances of the same
+ * component share one docs window rather than opening a duplicate. Position
+ * and size are deliberately NOT tracked here: they change continuously
+ * during drag/resize, and routing that through the store would re-render
+ * every subscriber on every pixel of movement. `minimized` toggles rarely
+ * (an explicit click), so it's cheap to keep here — that's what lets
+ * re-opening an already-open, minimized window restore it instead of
+ * no-op'ing. See DocsWindows.tsx/DocsModal.tsx. */
+export type DocsWindowState = {
+  componentId: string;
+  minimized: boolean;
+};
+
+export const MAX_DOCS_WINDOWS = 4;
+
 type CanvasStore = {
   nodes: AnyNodeType[];
   edges: ArchitectureEdgeType[];
@@ -29,20 +85,35 @@ type CanvasStore = {
    * aren't part of ArchitectureGraph (see types.ts), so this never creates
    * any — it only ever replaces component nodes wholesale. */
   loadGraph: (graph: ArchitectureGraph) => void;
+  /** Restores a raw canvas snapshot (see src/persistence/db.ts) — unlike
+   * loadGraph, takes AnyNodeType[]/ArchitectureEdgeType[] directly instead
+   * of mapping from ArchitectureGraph, so zones survive a restore. */
+  loadCanvasState: (nodes: AnyNodeType[], edges: ArchitectureEdgeType[]) => void;
   addNode: (definition: ComponentDefinition, position: XY) => void;
-  addZone: (position: XY) => void;
+  /** width/height default to the original fixed zone size — the
+   * drag-to-draw gesture (see Canvas.tsx) passes explicit dimensions from
+   * what the user drew; a plain click falls back to these defaults. */
+  addZone: (position: XY, width?: number, height?: number) => void;
   updateZone: (nodeId: string, patch: Partial<ZoneNodeData>) => void;
+  /** True while the user is in "place a zone" mode — set by the palette's
+   * "Add zone" button, cleared on placement or Escape. See Canvas.tsx. */
+  isPlacingZone: boolean;
+  setIsPlacingZone: (placing: boolean) => void;
   onNodesChange: (changes: NodeChange<AnyNodeType>[]) => void;
   onEdgesChange: (changes: EdgeChange<ArchitectureEdgeType>[]) => void;
   onConnect: (connection: Connection) => void;
   setEdgeKind: (edgeId: string, kind: EdgeKind) => void;
   setSelectedEdgeId: (id: string | null) => void;
   setSelectedNodeId: (id: string | null) => void;
-  inspectorTab: "config" | "docs";
-  setInspectorTab: (tab: "config" | "docs") => void;
-  /** Used by the right-click "View docs" shortcut — selects the node AND
-   * forces the inspector to the Docs tab in one action. */
-  openDocsFor: (nodeId: string) => void;
+  /** Independent of node selection/inspector state entirely — a docs
+   * window stays open across deselecting a node, collapsing a panel, or
+   * selecting a different node. Ordered by open time; capped at
+   * MAX_DOCS_WINDOWS. See NodeInspector.tsx/ContextMenu.tsx for the two
+   * trigger points, and DocsWindows.tsx for where these actually render. */
+  docsWindows: DocsWindowState[];
+  openDocsWindow: (componentId: string) => void;
+  closeDocsWindow: (componentId: string) => void;
+  setDocsWindowMinimized: (componentId: string, minimized: boolean) => void;
   /** Config panel (milestone 2) writes here — kept separate from
    * onNodesChange since it's a data update, not a position/selection one. */
   updateNodeConfig: (nodeId: string, config: unknown) => void;
@@ -51,6 +122,14 @@ type CanvasStore = {
   deleteNode: (nodeId: string) => void;
   deleteNodes: (nodeIds: string[]) => void;
   deleteEdge: (edgeId: string) => void;
+  /** The one delete-safety-net this app has — not a full undo/redo stack,
+   * just a short grace window after a delete (see UndoToast.tsx). Captured
+   * by every delete path, including xyflow's own keyboard delete which
+   * bypasses deleteNode/deleteNodes/deleteEdge entirely (see onNodesChange/
+   * onEdgesChange below). */
+  pendingUndo: PendingUndo | null;
+  undoLastDelete: () => void;
+  dismissUndo: () => void;
   duplicateNode: (nodeId: string) => void;
   /** Clones the whole set with an offset, remapping and preserving edges
    * that ran *between* duplicated nodes (not edges to nodes outside the
@@ -64,7 +143,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   edges: [],
   selectedEdgeId: null,
   selectedNodeId: null,
-  inspectorTab: "config",
+  docsWindows: [],
+  isPlacingZone: false,
+  pendingUndo: null,
 
   loadGraph: (graph) => {
     set({
@@ -86,6 +167,15 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     });
   },
 
+  loadCanvasState: (nodes, edges) => {
+    set({
+      nodes: nodes.map((n) => ({ ...n, selected: false })),
+      edges: edges.map((e) => ({ ...e, selected: false })),
+      selectedEdgeId: null,
+      selectedNodeId: null,
+    });
+  },
+
   addNode: (definition, position) => {
     const node: ComponentNodeType = {
       id: crypto.randomUUID(),
@@ -96,7 +186,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set((state) => ({ nodes: [...state.nodes, node] }));
   },
 
-  addZone: (position) => {
+  addZone: (position, width = 320, height = 220) => {
     // Negative zIndex keeps zones rendered behind component nodes
     // regardless of array order, so grouped components always sit "on top."
     const zone: AnyNodeType = {
@@ -104,7 +194,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       type: "zone",
       position,
       zIndex: -1,
-      data: { label: "Zone", width: 320, height: 220 },
+      // Empty by default (not "Zone") — a pre-filled bold uppercase-tracked
+      // value reads as a rendering glitch at a glance ("ZO NE"); the muted
+      // placeholder text does the same job without that risk.
+      data: { label: "", width, height },
     };
     set((state) => ({ nodes: [...state.nodes, zone] }));
   },
@@ -117,12 +210,45 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     }));
   },
 
+  setIsPlacingZone: (placing) => set({ isPlacingZone: placing }),
+
   onNodesChange: (changes) => {
-    set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) }));
+    set((state) => {
+      const removedIds = changes.filter((c) => c.type === "remove").map((c) => c.id);
+      const nextNodes = applyNodeChanges(changes, state.nodes);
+      if (removedIds.length === 0) return { nodes: nextNodes };
+      const removedIdSet = new Set(removedIds);
+      const removedNodes = state.nodes.filter((n) => removedIdSet.has(n.id));
+      // Connected edges are removed via a separate onEdgesChange call, not
+      // this one — capture them here too (from pre-change state.edges) so
+      // "delete a connected node" is one undo entry, not just the node.
+      const removedEdges = state.edges.filter((e) => removedIdSet.has(e.source) || removedIdSet.has(e.target));
+      return {
+        nodes: nextNodes,
+        pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
+      };
+    });
   },
 
   onEdgesChange: (changes) => {
-    set((state) => ({ edges: applyEdgeChanges(changes, state.edges) }));
+    set((state) => {
+      const removedIds = changes.filter((c) => c.type === "remove").map((c) => c.id);
+      const nextEdges = applyEdgeChanges(changes, state.edges);
+      if (removedIds.length === 0) return { edges: nextEdges };
+      const removedIdSet = new Set(removedIds);
+      // If a concurrent node deletion already captured these exact edges
+      // (see onNodesChange), skip — merging again would double-count them.
+      const alreadyCaptured =
+        state.pendingUndo &&
+        Date.now() - state.pendingUndo.at < UNDO_MERGE_WINDOW_MS &&
+        removedIds.every((id) => state.pendingUndo!.edges.some((e) => e.id === id));
+      if (alreadyCaptured) return { edges: nextEdges };
+      const removedEdges = state.edges.filter((e) => removedIdSet.has(e.id));
+      return {
+        edges: nextEdges,
+        pendingUndo: mergeIntoPendingUndo(state.pendingUndo, [], removedEdges),
+      };
+    });
   },
 
   onConnect: (connection) => {
@@ -149,8 +275,33 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   setSelectedEdgeId: (id) => set({ selectedEdgeId: id }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
-  setInspectorTab: (tab) => set({ inspectorTab: tab }),
-  openDocsFor: (nodeId) => set({ selectedNodeId: nodeId, selectedEdgeId: null, inspectorTab: "docs" }),
+
+  openDocsWindow: (componentId) => {
+    set((state) => {
+      const existing = state.docsWindows.find((w) => w.componentId === componentId);
+      if (existing) {
+        // Already open — a repeat "View docs" click restores it if it was
+        // minimized, rather than doing nothing.
+        return {
+          docsWindows: state.docsWindows.map((w) =>
+            w.componentId === componentId ? { ...w, minimized: false } : w,
+          ),
+        };
+      }
+      if (state.docsWindows.length >= MAX_DOCS_WINDOWS) return {};
+      return { docsWindows: [...state.docsWindows, { componentId, minimized: false }] };
+    });
+  },
+
+  closeDocsWindow: (componentId) => {
+    set((state) => ({ docsWindows: state.docsWindows.filter((w) => w.componentId !== componentId) }));
+  },
+
+  setDocsWindowMinimized: (componentId, minimized) => {
+    set((state) => ({
+      docsWindows: state.docsWindows.map((w) => (w.componentId === componentId ? { ...w, minimized } : w)),
+    }));
+  },
 
   updateNodeConfig: (nodeId, config) => {
     set((state) => ({
@@ -161,28 +312,55 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   deleteNode: (nodeId) => {
-    set((state) => ({
-      nodes: state.nodes.filter((n) => n.id !== nodeId),
-      edges: state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
-      selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
-    }));
+    set((state) => {
+      const removedNodes = state.nodes.filter((n) => n.id === nodeId);
+      const removedEdges = state.edges.filter((e) => e.source === nodeId || e.target === nodeId);
+      return {
+        nodes: state.nodes.filter((n) => n.id !== nodeId),
+        edges: state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
+        selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
+        pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
+      };
+    });
   },
 
   deleteNodes: (nodeIds) => {
     const idSet = new Set(nodeIds);
-    set((state) => ({
-      nodes: state.nodes.filter((n) => !idSet.has(n.id)),
-      edges: state.edges.filter((e) => !idSet.has(e.source) && !idSet.has(e.target)),
-      selectedNodeId: state.selectedNodeId && idSet.has(state.selectedNodeId) ? null : state.selectedNodeId,
-    }));
+    set((state) => {
+      const removedNodes = state.nodes.filter((n) => idSet.has(n.id));
+      const removedEdges = state.edges.filter((e) => idSet.has(e.source) || idSet.has(e.target));
+      return {
+        nodes: state.nodes.filter((n) => !idSet.has(n.id)),
+        edges: state.edges.filter((e) => !idSet.has(e.source) && !idSet.has(e.target)),
+        selectedNodeId: state.selectedNodeId && idSet.has(state.selectedNodeId) ? null : state.selectedNodeId,
+        pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
+      };
+    });
   },
 
   deleteEdge: (edgeId) => {
-    set((state) => ({
-      edges: state.edges.filter((e) => e.id !== edgeId),
-      selectedEdgeId: state.selectedEdgeId === edgeId ? null : state.selectedEdgeId,
-    }));
+    set((state) => {
+      const removedEdges = state.edges.filter((e) => e.id === edgeId);
+      return {
+        edges: state.edges.filter((e) => e.id !== edgeId),
+        selectedEdgeId: state.selectedEdgeId === edgeId ? null : state.selectedEdgeId,
+        pendingUndo: mergeIntoPendingUndo(state.pendingUndo, [], removedEdges),
+      };
+    });
   },
+
+  undoLastDelete: () => {
+    set((state) => {
+      if (!state.pendingUndo) return {};
+      return {
+        nodes: [...state.nodes, ...state.pendingUndo.nodes],
+        edges: [...state.edges, ...state.pendingUndo.edges],
+        pendingUndo: null,
+      };
+    });
+  },
+
+  dismissUndo: () => set({ pendingUndo: null }),
 
   duplicateNode: (nodeId) => {
     const source = get().nodes.find((n) => n.id === nodeId);

@@ -1,24 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { FileText, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { useCanvasStore } from "./store";
 import { getComponent } from "@/content/components/registry";
 import { ConfigForm } from "./ConfigForm";
+import { useResizableWidth } from "@/lib/use-resizable-width";
 
 /**
- * The right panel — see .claude/docs/MILESTONES.md milestone 2. Two
- * user-selected sections, never both forced into view: Config (a form
- * derived from the component's configSchema) and Docs (its markdown docs,
- * opened on demand). See "Hints vs. explanations" in ARCHITECTURE.md for the
- * same opt-in principle applied here to documentation. Tab state lives in
- * the canvas store (not local) so the right-click "View docs" shortcut
- * (see ContextMenu) can jump straight to the Docs tab from outside.
+ * The right panel — see .claude/docs/MILESTONES.md milestone 2. Config (a
+ * form derived from the component's configSchema) is its only body — Docs
+ * opens as an independent floating window (see DocsWindows.tsx), not tied
+ * to this panel or to node selection at all, so collapsing this sidebar or
+ * deselecting a node no longer hides or closes a docs window someone left
+ * open. "View docs" here just calls the same store action the right-click
+ * context-menu shortcut uses.
  */
 export function NodeInspector() {
   const [collapsed, setCollapsed] = useState(false);
-  const tab = useCanvasStore((s) => s.inspectorTab);
-  const setTab = useCanvasStore((s) => s.setInspectorTab);
+  const { width, onMouseDown } = useResizableWidth(384, 280, 560, "left");
+  const openDocsWindow = useCanvasStore((s) => s.openDocsWindow);
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
   const nodes = useCanvasStore((s) => s.nodes);
   const updateNodeConfig = useCanvasStore((s) => s.updateNodeConfig);
@@ -45,7 +46,12 @@ export function NodeInspector() {
   }
 
   return (
-    <aside className="flex w-96 shrink-0 flex-col overflow-y-auto border-l border-border p-4">
+    <div className="flex shrink-0">
+      <div
+        onMouseDown={onMouseDown}
+        className="w-1 shrink-0 cursor-col-resize bg-transparent hover:bg-foreground/20 active:bg-foreground/30"
+      />
+      <aside style={{ width }} className="flex shrink-0 flex-col overflow-y-auto border-l border-border p-4">
       {!node || !definition ? (
         <>
           <div className="flex items-center justify-between">
@@ -68,49 +74,35 @@ export function NodeInspector() {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
               {definition.label}
             </h2>
-            <button
-              onClick={() => setCollapsed(true)}
-              aria-label="Collapse inspector panel"
-              className="text-foreground/40 hover:text-foreground"
-            >
-              <PanelRightClose size={14} />
-            </button>
-          </div>
-
-          <div className="mt-3 flex gap-1 border-b border-border">
-            {(["config", "docs"] as const).map((t) => (
+            <div className="flex items-center gap-3">
               <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`px-3 py-1.5 text-sm capitalize ${
-                  tab === t
-                    ? "border-b-2 border-foreground text-foreground"
-                    : "text-foreground/50 hover:text-foreground"
-                }`}
+                onClick={() => openDocsWindow(definition.id)}
+                className="flex items-center gap-1 text-xs text-foreground/60 hover:text-foreground"
               >
-                {t}
+                <FileText size={12} />
+                View docs
               </button>
-            ))}
+              <button
+                onClick={() => setCollapsed(true)}
+                aria-label="Collapse inspector panel"
+                className="text-foreground/40 hover:text-foreground"
+              >
+                <PanelRightClose size={14} />
+              </button>
+            </div>
           </div>
 
           <div className="mt-3 flex-1 overflow-y-auto">
-            {tab === "config" ? (
-              <ConfigForm
-                key={node.id}
-                definition={definition}
-                value={node.data.config}
-                onChange={(config) => updateNodeConfig(node.id, config)}
-              />
-            ) : (
-              // Plain text for now: current docs content is plain prose with
-              // no markdown syntax in use, so this renders identically to a
-              // markdown pass. Swap in a real renderer (e.g. react-markdown)
-              // once chapter content actually uses markdown formatting.
-              <p className="text-sm leading-relaxed text-foreground/80">{definition.docs}</p>
-            )}
+            <ConfigForm
+              key={node.id}
+              definition={definition}
+              value={node.data.config}
+              onChange={(config) => updateNodeConfig(node.id, config)}
+            />
           </div>
         </>
       )}
-    </aside>
+      </aside>
+    </div>
   );
 }

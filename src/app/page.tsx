@@ -1,18 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
-import { Palette } from "@/canvas/Palette";
-import { Canvas } from "@/canvas/Canvas";
+import { useEffect, useRef, useState } from "react";
+import { Save, Upload } from "lucide-react";
+import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { NodeInspector } from "@/canvas/NodeInspector";
+import { DocsWindows } from "@/canvas/DocsWindows";
+import { UndoToast } from "./UndoToast";
 import { ThemeToggle } from "./ThemeToggle";
+import { ValidationIndicator } from "./ValidationIndicator";
+import { ExportMenu } from "./ExportMenu";
 import { QuestionPanel } from "./QuestionPanel";
 import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
-import type { ValidationState } from "@/canvas/types";
+import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
 import { runValidation } from "@/validation-engine/engine";
 import { ruleRegistry } from "@/validation-engine/rules";
 import type { ValidationViolation } from "@/validation-engine/types";
+import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
 
 // Seeded once on first load so the canvas isn't empty — not a chapter
 // starterGraph (those arrive with the chapter framework, milestone 5), just
@@ -54,13 +58,48 @@ export default function Home() {
   const nodes = useCanvasStore((s) => s.nodes);
   const edges = useCanvasStore((s) => s.edges);
   const loadGraph = useCanvasStore((s) => s.loadGraph);
+  const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
 
+  // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
+  // the seed demo graph — this is what makes a refresh not lose work.
   useEffect(() => {
     if (useCanvasStore.getState().nodes.length > 0) return;
-    loadGraph(seedGraph);
-    // Seed once on mount; loadGraph is a stable store action, not a reactive dep.
+    db.saves.get(SANDBOX_SAVE_ID).then((save) => {
+      if (useCanvasStore.getState().nodes.length > 0) return;
+      if (save) {
+        loadCanvasState(save.nodes, save.edges);
+      } else {
+        loadGraph(seedGraph);
+      }
+    });
+    // Runs once on mount; loadGraph/loadCanvasState are stable store actions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const [saveLabel, setSaveLabel] = useState<"Save" | "Saved">("Save");
+  const [importError, setImportError] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<CanvasHandle>(null);
+
+  const handleSave = async () => {
+    const { nodes, edges } = useCanvasStore.getState();
+    await db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
+    setSaveLabel("Saved");
+    setTimeout(() => setSaveLabel("Save"), 1500);
+  };
+
+  const handleImportFile = async (file: File) => {
+    setImportError(null);
+    try {
+      const parsed = JSON.parse(await file.text());
+      if (!Array.isArray(parsed?.nodes) || !Array.isArray(parsed?.edges)) {
+        throw new Error("File is missing nodes/edges arrays.");
+      }
+      loadCanvasState(parsed.nodes as AnyNodeType[], parsed.edges as ArchitectureEdgeType[]);
+    } catch {
+      setImportError("Couldn't import that file — not a valid ScaleCraft canvas export.");
+    }
+  };
 
   // Validation is explicit, not live — per direction, an automatic
   // per-edit re-check felt noisy. `checkedGraphKey` is a snapshot of the
@@ -81,9 +120,18 @@ export default function Home() {
 
   const nodeStates: Record<string, ValidationState> = {};
   if (violations && !isStale) {
-    for (const v of violations) {
-      for (const id of v.offendingNodeIds) {
-        nodeStates[id] = v.severity === "error" ? "error" : "warning";
+    if (violations.length === 0) {
+      // A passing run needs a lasting signal on the canvas itself, not just
+      // a dropdown line that closes on the next click — otherwise failure
+      // gets a persistent visual result and success doesn't.
+      for (const n of nodes) {
+        if (n.type === "component") nodeStates[n.id] = "valid";
+      }
+    } else {
+      for (const v of violations) {
+        for (const id of v.offendingNodeIds) {
+          nodeStates[id] = v.severity === "error" ? "error" : "warning";
+        }
       }
     }
   }
@@ -92,35 +140,60 @@ export default function Home() {
     <div className="flex flex-1 flex-col">
       <header className="flex items-start justify-between border-b border-border px-6 py-4">
         <div>
-          <h1 className="text-lg font-semibold">ScaleCraft</h1>
+          <h1 className="text-base font-semibold">ScaleCraft</h1>
           <p className="text-sm text-foreground/60">
             Drag components from the palette, connect them, then click Validate.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleValidate}
-            className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
-          >
-            <CheckCircle2 size={14} />
-            Validate
-          </button>
+          <div className="flex flex-col items-end">
+            <button
+              onClick={handleSave}
+              className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
+            >
+              <Save size={14} />
+              {saveLabel}
+            </button>
+          </div>
+          <ExportMenu canvasRef={canvasRef} />
+          <div className="flex flex-col items-end">
+            <button
+              onClick={() => importInputRef.current?.click()}
+              className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
+            >
+              <Upload size={14} />
+              Import
+            </button>
+            {importError && <p className="mt-1 max-w-[220px] text-xs text-state-error">{importError}</p>}
+          </div>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleImportFile(file);
+              e.target.value = "";
+            }}
+          />
+          <ValidationIndicator violations={violations} isStale={isStale} onValidate={handleValidate} />
           <ThemeToggle />
         </div>
       </header>
 
       <main className="flex flex-1 overflow-hidden">
-        <QuestionPanel violations={violations} isStale={isStale} />
+        <QuestionPanel />
 
         <div className="flex flex-1 flex-col">
-          <div className="flex-1">
-            <Canvas nodeStates={nodeStates} />
-          </div>
-          <Palette />
+          <Canvas ref={canvasRef} nodeStates={nodeStates} />
         </div>
 
         <NodeInspector />
       </main>
+
+      <DocsWindows />
+      <UndoToast />
     </div>
   );
 }

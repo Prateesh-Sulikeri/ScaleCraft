@@ -12,7 +12,7 @@
   --foreground: #ededed;
   --panel: #141414;
   --border: #2a2a2a;
-  --zone: #A5E9DD;
+  --zone: #FF3483;
 
   /* Category colors — identity, which kind of component this is.
    * Two-channel color system: category vs. validation state must stay
@@ -35,7 +35,7 @@
   --foreground: #171717;
   --panel: #f5f5f5;
   --border: #e2e2e2;
-    --zone: #A5E9DD;
+  --zone: #FF3483;
 
 }
 
@@ -64,6 +64,20 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* The browser default focus outline (near-black) is indistinguishable from
+ * this app's dark-theme surfaces (#0a0a0a/#141414) — a keyboard-only user
+ * could Tab through the whole header and never see where focus is. One
+ * token-driven rule, verified against both themes, fixes every interactive
+ * element at once rather than styling each one individually. A brief
+ * transition (150ms, matching the product register's state-feedback
+ * convention) so the ring appearing reads as a deliberate state change,
+ * not an abrupt snap. */
+*:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+  transition: outline-color 150ms ease-out;
 }
 
 /* React Flow ships its own chrome (Controls, Background, selection outlines)

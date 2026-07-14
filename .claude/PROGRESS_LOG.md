@@ -464,3 +464,154 @@ as checked.
 **Next steps**: Milestone 3 (`/sandbox` route) still not started. True parent/child zone
 grouping (point 5) remains deferred, not scheduled. The `--zone` custom-property mystery
 (point 6) is the most actionable loose end for a future session.
+
+---
+
+## 2026-07-14 — Milestone 2 follow-up round: validation moved to the header, docs as an overlay modal, local persistence (Dexie), palette rewritten as a searchable sidebar list
+
+Follow-up round driven by explicit feedback after live use of the three-zone layout from
+the prior day's entries. Verified against `git status`/`git diff` and the actual current
+file contents (working tree, not yet committed — nothing landed this round has a commit
+hash). Four distinct changes, plus one milestone-doc edit; all confirmed present and
+consistent with the diffs below.
+
+**1. Validation feedback moved out of the left sidebar, onto the Validate button itself.**
+`src/app/ValidationIndicator.tsx` (new) replaces the old plain "Validate" button in
+`src/app/page.tsx`'s header. Confirmed: the button's border/text color is driven by
+`hasViolations`/`isValid` (red/`state-error` vs. green/`state-valid`, neutral otherwise),
+goes `border-dashed opacity-70` when `isStale`, and clicking it — when results are
+`null` or stale — calls `onValidate` and force-opens (`setOpen(true)`) a dropdown showing
+every violation's message *and* explanation unconditionally, never gated behind a second
+click. This satisfies CLAUDE.md's "explanations always shown on failure" rule directly in
+the component's own doc comment. The dropdown uses `<div className="fixed inset-0 z-20"
+onClick={...} />` as its click-outside backdrop — confirmed this is the same convention
+already used elsewhere (`ContextMenu.tsx`), not a new pattern invented for this component.
+`src/app/QuestionPanel.tsx`'s diff confirms the entire old Validation section (the
+`violations`/`isStale` props, the `<ul>` of violation cards) was deleted outright, not
+just visually hidden — the component's props changed from
+`{ violations, isStale }` to none at all.
+
+**2. Docs moved from a cramped inspector tab to a centered overlay modal.**
+`src/canvas/DocsModal.tsx` (new): `max-w-2xl`, `max-h-[80vh]`, closes on Escape
+(`keydown` listener), backdrop click, or an explicit X button — confirmed all three paths
+in the file. `src/canvas/NodeInspector.tsx`'s diff confirms the old Config/Docs tab
+switcher (a two-button row toggling which section rendered) is gone; Config now renders
+unconditionally as the sidebar's only persistent body, with a small "View docs" text
+button next to the collapse toggle that sets `tab` to `"docs"`, which mounts
+`<DocsModal>`. The existing `inspectorTab`/`openDocsFor` store plumbing that
+`ContextMenu.tsx`'s right-click "View docs" already used was confirmed **untouched** —
+`NodeInspector` still reads the store's tab state the same way, so that entry point kept
+working with zero changes to `store.ts` or `ContextMenu.tsx` for this feature.
+
+**3. New local persistence via Dexie (IndexedDB) — pulls forward the core of milestone 8.**
+`src/persistence/db.ts` (new): a `ScaleCraftDB extends Dexie` with one `saves` table
+(`EntityTable<CanvasSave, "id">`, schema `"id"`), storing `{ id, updatedAt, nodes, edges }`
+where `nodes`/`edges` are the **raw canvas-store shape** (`AnyNodeType[]`/
+`ArchitectureEdgeType[]`), confirmed deliberately not the domain `ArchitectureGraph` —
+the file's own comment states zones aren't part of `ArchitectureGraph` and would be
+silently dropped by a restore that went through it. `SANDBOX_SAVE_ID = "sandbox"` is a
+single fixed key, no multi-slot UI yet. `src/canvas/store.ts` gained `loadCanvasState`
+(diff confirmed, ~9 lines): unlike `loadGraph` (which maps from `ArchitectureGraph`),
+it takes the raw shape directly and just resets `selected`/`selectedNodeId`/
+`selectedEdgeId`. `src/app/page.tsx`'s mount effect now checks `db.saves.get(SANDBOX_SAVE_ID)`
+first and only falls back to the hardcoded `seedGraph` if no save exists (confirmed in the
+diff — the old bare `loadGraph(seedGraph)` call is now inside an `else` branch of that
+check). Header gained three buttons, all confirmed in the `page.tsx` diff: **Save**
+(`db.saves.put`, flips its own label to "Saved" for 1.5s via `setTimeout`), **Export**
+(Blob + `URL.createObjectURL` + a synthetic `<a download>` click, filename
+`scalecraft-canvas-<timestamp>.json`), **Import** (hidden `<input type="file">` triggered
+by a visible button, `JSON.parse`s the file, does a minimal `Array.isArray` shape check
+on `nodes`/`edges` before calling `loadCanvasState`, shows an inline error string on
+failure rather than throwing). `fake-indexeddb` was added as a devDependency (confirmed
+in `package.json` diff, `"^6.2.5"`) and two tests added: `src/canvas/store.test.ts` gained
+a `loadCanvasState` describe block (confirmed: builds a zone node + a component node,
+asserts both survive with `type` intact, and that `selected`/`selectedNodeId`/
+`selectedEdgeId` all reset) and `src/persistence/db.test.ts` (new) does a real
+`db.saves.put` → `db.saves.get` round-trip under `fake-indexeddb/auto`.
+
+**4. Palette rewritten: horizontal under-canvas tray → searchable vertical list, relocated
+into the left panel.** `src/canvas/Palette.tsx`'s diff confirms: the component's own
+`collapsed` state and toggle button are gone (comment explains why — the containing
+`QuestionPanel` aside already has one, nothing left in this panel to hide without it), a
+`query` state plus a `useMemo` filter over `componentRegistry` by
+`label.toLowerCase().includes(q) || summary.toLowerCase().includes(q)`, a search input
+with a `Search` icon, and each row now shows `definition.summary` under the label (it
+previously showed only the label). `src/app/QuestionPanel.tsx`'s diff confirms it now
+renders `<Palette />` full-height in place of its old "No chapter loaded" placeholder
+paragraph and the (now-removed, see point 1) Validation section — the component's doc
+comment explicitly frames this as intentional: kept as its own named component so
+milestone 5's real chapter problem statement has a slot to land in later "without
+re-plumbing." `src/app/page.tsx`'s diff confirms the old bottom `<Palette />` mount
+(previously stacked under `<Canvas>` in a `flex-col` center column) is gone; the center
+column is now just `<Canvas nodeStates={nodeStates} />` alone.
+
+**Milestone doc updated to match**: `.claude/docs/MILESTONES.md` milestone 8 diff
+confirmed — a new paragraph states the core "a refresh doesn't lose work" primitive was
+pulled forward into this round (naming `src/persistence/db.ts` and the manual Save/
+Export/Import specifically), and lists what's still deferred to milestone 8 proper:
+autosave-on-every-edit (today's Save is a manual click, not automatic), multi-slot saves
+for real chapter attempts (schema allows it later, only one `"sandbox"` slot exists now),
+and Home-page wiring. The milestone's "Done when" line was correspondingly reworded from
+"a browser refresh doesn't lose work" to "autosave-on-every-edit works offline ... and
+Home reflects real state" — reads sensibly against the rest of the milestone, this is a
+legitimate re-sequencing note per the doc's own stated convention, not silent drift.
+
+**Verification — independently re-run this pass, not just trusted from the session's own
+report:** `npm run typecheck` (clean, no errors), `npm run lint` (clean), `npm test --
+--run` (**7 tests passed across 3 files** — matches the claim exactly:
+`toArchitectureGraph`/`loadCanvasState` in `store.test.ts`, the new `db.test.ts` round-trip,
+plus the pre-existing `no-direct-client-database.test.ts`), and `npm run build` (Next.js
+16.2.10 + Turbopack, compiled and generated static pages successfully). Real
+headless-browser verification (screenshots/clicks/computed-CSS, the `apt-get download
+libnspr4 libnss3 libasound2t64` + `dpkg-deb -x` + `LD_LIBRARY_PATH` workaround logged
+several entries back) was claimed for: palette search filtering, the Validate button
+going green/red with the dropdown message+explanation visible and the offending nodes
+ring-highlighted, right-click "View docs" opening the modal and closing on Escape, and a
+Save → reload round-trip including a zone specifically (the flagged risk) surviving via
+Export. This could not be independently re-driven in this verification pass (no browser
+session was active) — taken as reported, consistent with the pattern in every prior entry
+in this file, but flagged as unverified-by-this-pass specifically. Confirmed instead by
+static inspection: no `scratch-verify*.mjs` scripts, screenshots, or `local-libs/` dir
+show up anywhere in `git status --short` or the repo tree — cleanup claim holds.
+
+**Pre-existing uncommitted drift, NOT part of this round — do not attribute to this
+session's feature work:** `git status` also shows `src/app/globals.css` and
+`src/canvas/ZoneNode.tsx` as modified. `git diff` on both confirms they are unrelated to
+points 1-4 above: `globals.css`'s `--zone` custom property (both `:root` and `.light`)
+has changed from the `#A5E9DD` mint/teal recorded in the previous entry's "`--zone`
+mystery" writeup to `#FF3483` (a hot pink/magenta), and `ZoneNode.tsx`'s border
+`color-mix` opacity moved from `65%` to `75%`. Both read as continued manual tuning of
+the same `--zone` value the prior entry flagged as unresolved (empty-string resolution in
+the browser, suspected stale Turbopack CSS cache), not a regression introduced now. Left
+uncommitted and untouched by this session's work; a future session should not assume this
+round's commits (once made) include or explain this color change.
+
+**Separately, a different work thread earlier in this same session (not the feature work
+above):** the user installed `graphify` and `impeccable` as global Claude Code skills
+into `~/.claude/` (`uv tool install graphifyy` + `graphify install`; `npx impeccable
+install` steered to global scope) and ran `/graphify .` against this repo, producing
+`graphify-out/` (confirmed present — `GRAPH_REPORT.md`, `cache/`, `cost.json`,
+`graph.html`, `graph.json`, `manifest.json`; confirmed **not** gitignored, so it will show
+as untracked in `git status` until either committed or added to `.gitignore` — worth a
+decision before it's accidentally swept into a future commit). `~/.bashrc` was also
+confirmed edited this session (lines ~123-127) to source `nvm` and run `nvm use default`,
+fixing the long-standing WSL gotcha (documented in this file's very first entry) where
+plain `node`/`npm` resolved to a Windows install via `/mnt/c/` — this should mean future
+sessions no longer need the `export PATH=".../nvm/versions/node/v22.22.3/bin:$PATH"`
+prefix manually, though this pass still used the explicit prefix out of caution and didn't
+re-test a bare shell.
+
+**Repo state:** working tree **not clean** — everything in points 1-4 above plus the
+milestone doc edit is still uncommitted (`git diff --stat`: 11 files modified, 259
+insertions/143 deletions, plus untracked `src/app/ValidationIndicator.tsx`,
+`src/canvas/DocsModal.tsx`, `src/persistence/` (`db.ts` + `db.test.ts`), and
+`graphify-out/`). No commit hashes exist for this round yet. `origin/main` still points at
+`48ee248` (the previous log entry), which remains the last pushed commit.
+
+**Next steps:** commit this round's changes (currently all uncommitted). Decide on
+`graphify-out/`'s fate (gitignore vs. commit vs. delete) before it gets swept into that
+commit by accident. Milestone 3 (`/sandbox` route) still not started. The `--zone`
+custom-property empty-string mystery remains open and has now drifted further (new color,
+still uncommitted) without being root-caused. Milestone 8's remaining scope (autosave,
+multi-slot saves, Home-page wiring) is now more precisely defined by this round's
+MILESTONES.md edit but not started.

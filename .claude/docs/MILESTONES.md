@@ -118,7 +118,16 @@ Building Blocks and RWE), per [[ARCHITECTURE]]'s "Persistence" section. No auth
 required for this layer — it works standalone. This is what upgrades the Home page's
 progress indicators (4) from placeholders to real state.
 
-**Done when:** a browser refresh doesn't lose work, offline, and Home reflects it.
+**Partially pulled forward into milestone 2's follow-up round:** the core "a refresh
+doesn't lose work" primitive already exists — `src/persistence/db.ts` (Dexie, table
+`saves`) plus a manual Save/Export/Import in the header, restoring on load if a save
+is present. What's still deferred to this milestone proper: autosave-on-every-edit
+(today's is a manual button, not automatic), multi-slot saves for actual chapter
+attempts (the Dexie schema is keyed to allow this later, but there's only one fixed
+`"sandbox"` slot today), and the Home page wiring in (4).
+
+**Done when:** autosave-on-every-edit works offline for both sandbox and chapter
+attempts, and Home reflects real state.
 
 ## 9. Auth + cloud sync — *external dependency, can start anytime*
 
