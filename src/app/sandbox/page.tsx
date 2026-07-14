@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/app/ThemeToggle";
 import { ValidationIndicator } from "@/app/ValidationIndicator";
 import { ExportMenu } from "@/app/ExportMenu";
 import { QuestionPanel } from "@/app/QuestionPanel";
+import { ModeBadge } from "@/app/ModeBadge";
 import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
@@ -150,7 +151,10 @@ export default function SandboxPage() {
             priority
           />
           <div>
-            <h1 className="text-base font-semibold">ScaleCraft</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-semibold">ScaleCraft</h1>
+              <ModeBadge />
+            </div>
             <p className="text-sm text-foreground/60">
               Drag components from the palette, connect them, then click Validate.
             </p>
