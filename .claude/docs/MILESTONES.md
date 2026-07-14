@@ -52,13 +52,20 @@ toggle, not both forced into view at once):
 **Done when:** every seed component (`src/content/components/registry.ts`) is
 configurable, and its docs are reachable but not intrusive.
 
-## 3. Sandbox mode
+## 3. Sandbox mode — done
 
 A dedicated `/sandbox` route: full component registry, free editing, live validation,
 no constraints — matches `INITIAL_THOUGHTS.md`'s Sandbox description exactly.
 
 **Done when:** this is a genuinely shippable, standalone "play with it" experience —
 treat this as the first real MVP-shaped checkpoint, worth demoing on its own.
+
+**Status:** done. What had accumulated at `/` through milestones 1–2 (canvas, palette,
+node inspector, validation, persistence — already exactly the "no objectives, no
+constraints" experience `INITIAL_THOUGHTS.md` describes) moved to `src/app/sandbox/`
+essentially unchanged; the milestone was route structure, not new functionality. `/`
+now `redirect()`s to `/sandbox` as a placeholder until milestone 4 gives it a real
+mode-select page.
 
 ## 4. Home / mode-select page
 
