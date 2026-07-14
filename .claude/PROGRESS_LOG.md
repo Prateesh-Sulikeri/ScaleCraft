@@ -615,3 +615,103 @@ custom-property empty-string mystery remains open and has now drifted further (n
 still uncommitted) without being root-caused. Milestone 8's remaining scope (autosave,
 multi-slot saves, Home-page wiring) is now more precisely defined by this round's
 MILESTONES.md edit but not started.
+
+---
+
+## 2026-07-15 — App icons/logo, Milestone 3 (`/sandbox` route), graphify wired into CLAUDE.md + hooks
+
+Three commits landed this round; verified directly against `git log`/`git show --stat` on
+each (hashes below are the real ones from `git log`, not reused from any prior report) and
+by reading the current file contents, not transcribed from the session's own account.
+
+**1. App icons and header logo.** `ff082de` "Add ScaleCraft logo, favicon, and app icons" —
+confirmed a 5-file, binary-only diff (`0 insertions(+), 0 deletions(-)`, as expected for
+image assets): `public/ScaleCraft logo.png` (new, 888KB, the full-padding source) and
+`public/logo-mark.png` (new, 52KB, the tighter crop) added, plus `src/app/favicon.ico`
+(overwritten, 25931→10950 bytes), `src/app/icon.png` and `src/app/apple-icon.png` (new).
+Commit message states the crop was needed because the original logo's built-in padding made
+it illegible at small sizes — plausible and consistent with the file-size delta, taken as
+reported since favicon legibility isn't independently checkable from the repo alone. The
+header logo is confirmed wired into the *new* `src/app/sandbox/page.tsx` (see next point),
+not the old root page: an `<Image src="/logo-mark.png" ... width={32} height={32}
+className="rounded-md" priority />` sits left of the "ScaleCraft" header title (lines
+~144-153 of the current file).
+
+**2. Milestone 3 — dedicated `/sandbox` route, confirmed done.** `1c7113a` "Milestone 3:
+dedicated /sandbox route" — a 3-file diff (`.claude/docs/MILESTONES.md`, `src/app/page.tsx`,
+new `src/app/sandbox/page.tsx`), 224 insertions / 198 deletions, net-additive because the
+canvas page itself didn't shrink, it moved. Confirmed by reading both files directly:
+`src/app/page.tsx` is now an 8-line server component,
+```
+import { redirect } from "next/navigation";
+export default function RootPage() {
+  redirect("/sandbox");
+}
+```
+with a comment explaining `/` forwards to Sandbox rather than duplicating the canvas
+experience until milestone 4's real mode-select Home page exists. The full canvas/palette/
+inspector/validation/persistence experience that had accumulated at `/` through milestones
+1-2 (and the follow-up round logged in the previous entry — `ValidationIndicator`,
+`DocsModal`, Dexie persistence, the rewritten `Palette`) now lives at
+`src/app/sandbox/page.tsx`, default export renamed `Home` → `SandboxPage`; confirmed no
+functional rewrite happened here, this was a pure move (matches the commit message's own
+framing: "moved ... essentially unchanged; the milestone was route structure, not new
+functionality"). `.claude/docs/MILESTONES.md`'s milestone 3 section (current lines 55-68)
+now reads "## 3. Sandbox mode — done" with a **Status: done** paragraph confirming this same
+account — components/palette/inspector/validation/persistence moved as-is, `/` redirects as
+a placeholder pending milestone 4.
+
+**3. graphify wired into CLAUDE.md and hooks — a portability bug caught before it shipped.**
+`834e831` "Wire graphify knowledge graph into CLAUDE.md and PreToolUse hooks" — 2-file diff,
+34 insertions only (no deletions), `.claude/settings.json` (new) + `CLAUDE.md`. Confirmed
+`CLAUDE.md` gained a `## graphify` section (current lines 73-81) instructing future sessions
+to run `graphify query "<question>"` before grepping/reading raw files when
+`graphify-out/graph.json` exists, `graphify path`/`graphify explain` for relationships/
+concepts, the wiki index for broad navigation if present, `GRAPH_REPORT.md` as a fallback,
+and `graphify update .` after code changes. Confirmed `.claude/settings.json` (new, not
+previously present in this repo) registers two `PreToolUse` hooks — `Bash` matcher running
+`graphify hook-guard search`, `Read|Glob` matcher running `graphify hook-guard read` — both
+using a **bare** `graphify` command, not an absolute path. Per the session's own account,
+these originally hardcoded `/home/prateesh/.local/bin/graphify` and were caught as a
+portability problem (would break on any other machine or PATH layout) and fixed before this
+commit landed — the committed file only ever shows the bare form, consistent with that fix
+having happened pre-commit rather than needing a follow-up patch. `bash -lc 'which graphify'`
+resolves to `/home/prateesh/.local/bin/graphify` in this environment, confirming the bare
+command works via PATH here. The claimed `graphify hook install` step (post-commit +
+post-checkout hooks in `.git/hooks/`, untracked) is confirmed present on disk:
+`.git/hooks/post-commit` and `.git/hooks/post-checkout`, both executable, both dated
+Jul 14 23:58 — same evening as this round's commits, and, being under `.git/hooks/`, correctly
+absent from `git status`/any commit.
+
+**Verification.** `npm run typecheck`, `npm run lint`, and `npm test -- --run` (10 tests
+across 3 files) were reported clean after the route move — not independently re-run in this
+verification pass, but plausible given the move was framed as file-relocation-only, not a
+rewrite, and the file counts/diff shape in `1c7113a` support that (no new logic files, only
+the two `page.tsx` variants + the milestone doc). Real headless-browser verification was
+claimed using the same `local-libs`/`LD_LIBRARY_PATH` no-root Playwright workaround
+documented several entries back (re-derived fresh this session since scratchpad state
+doesn't persist): `GET /` → 307 to `/sandbox`, `/sandbox` → 200, the seeded 4-node graph
+rendering correctly with the new header logo, screenshotted. Not re-driven in this
+verification pass (no active browser session); taken as reported, consistent with this
+file's established pattern of flagging claims as reported-not-reverified when a fresh
+browser session isn't spun up during the logging pass itself.
+
+**Repo state:** three commits this round, most recent first:
+- `834e831` "Wire graphify knowledge graph into CLAUDE.md and PreToolUse hooks"
+- `1c7113a` "Milestone 3: dedicated /sandbox route"
+- `ff082de` "Add ScaleCraft logo, favicon, and app icons"
+
+`git status` shows a clean working tree. **Not yet pushed** — `git status` reports
+"Your branch is ahead of 'origin/main' by 3 commits"; `origin/main` still points at `b6ee6d0`
+(the last entry's logging commit), one behind this round's first new commit.
+
+**graphify hooks are now live for this and all future sessions in this repo** (root/`Bash`/
+`Read`/`Glob` tool calls in this environment are gated by `graphify hook-guard`) — worth
+flagging since it changes the shape of how a future session (or subagent) should explore this
+codebase: query the graph first, read raw files only to modify/debug specific lines already
+located.
+
+**Next steps:** push these 3 commits (currently local-only). Milestone 4 (Home / mode-select
+page) is next per `MILESTONES.md` sequencing — `/` is only a redirect stub today. The
+`--zone` custom-property mystery flagged two entries back remains open and untouched by this
+round's work.
