@@ -35,11 +35,17 @@ function edgeStyle(kind: EdgeKind) {
 
 /** A scoped alternative to a full undo/redo history stack — only delete is
  * risky enough (permanent, one click, no confirmation) to need a safety
- * net; every other mutation stays a plain, un-undoable action. */
+ * net; every other mutation stays a plain, un-undoable action. `mode`
+ * decides how `undoLastDelete` restores the snapshot: "merge" adds it back
+ * onto whatever's there now (a delete changed nothing else), "replace"
+ * discards current state in favor of the snapshot (clear board / restore
+ * last save already replaced state with something else, so adding back on
+ * top would merge two full graphs together instead of reverting). */
 export type PendingUndo = {
   nodes: AnyNodeType[];
   edges: ArchitectureEdgeType[];
   label: string;
+  mode: "merge" | "replace";
   at: number;
 };
 
@@ -79,12 +85,12 @@ function mergeIntoPendingUndo(
   newNodes: AnyNodeType[],
   newEdges: ArchitectureEdgeType[],
 ): PendingUndo {
-  if (current && Date.now() - current.at < UNDO_MERGE_WINDOW_MS) {
+  if (current && current.mode === "merge" && Date.now() - current.at < UNDO_MERGE_WINDOW_MS) {
     const nodes = [...current.nodes, ...newNodes.filter((n) => !current.nodes.some((cn) => cn.id === n.id))];
     const edges = [...current.edges, ...newEdges.filter((e) => !current.edges.some((ce) => ce.id === e.id))];
-    return { nodes, edges, label: undoLabel(nodes, edges), at: current.at };
+    return { nodes, edges, label: undoLabel(nodes, edges), mode: "merge", at: current.at };
   }
-  return { nodes: newNodes, edges: newEdges, label: undoLabel(newNodes, newEdges), at: Date.now() };
+  return { nodes: newNodes, edges: newEdges, label: undoLabel(newNodes, newEdges), mode: "merge", at: Date.now() };
 }
 
 /** Keyed by componentId (not node id) — two node instances of the same
@@ -181,6 +187,15 @@ type CanvasStore = {
   pendingUndo: PendingUndo | null;
   undoLastDelete: () => void;
   dismissUndo: () => void;
+  /** Wipes the board — a no-op if it's already empty. Snapshots the prior
+   * nodes/edges as a "replace"-mode pendingUndo first, so the same
+   * UndoToast that covers delete also covers this. See BoardMenu.tsx. */
+  clearBoard: () => void;
+  /** Snapshots current nodes/edges as a "replace"-mode pendingUndo without
+   * otherwise touching state — for a caller about to overwrite nodes/edges
+   * itself (e.g. restoring the last save via loadCanvasState) so that
+   * replacement is undoable too. A no-op if the board is already empty. */
+  snapshotForUndo: (label: string) => void;
   duplicateNode: (nodeId: string) => void;
   /** Clones the whole set with an offset, remapping and preserving edges
    * that ran *between* duplicated nodes (not edges to nodes outside the
@@ -480,6 +495,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   undoLastDelete: () => {
     set((state) => {
       if (!state.pendingUndo) return {};
+      if (state.pendingUndo.mode === "replace") {
+        return { nodes: state.pendingUndo.nodes, edges: state.pendingUndo.edges, pendingUndo: null };
+      }
       return {
         nodes: [...state.nodes, ...state.pendingUndo.nodes],
         edges: [...state.edges, ...state.pendingUndo.edges],
@@ -489,6 +507,29 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   dismissUndo: () => set({ pendingUndo: null }),
+
+  clearBoard: () => {
+    set((state) => {
+      if (state.nodes.length === 0 && state.edges.length === 0) return {};
+      return {
+        nodes: [],
+        edges: [],
+        selectedNodeId: null,
+        selectedEdgeId: null,
+        editingAnnotation: null,
+        pendingUndo: { nodes: state.nodes, edges: state.edges, label: "Board cleared", mode: "replace", at: Date.now() },
+      };
+    });
+  },
+
+  snapshotForUndo: (label) => {
+    set((state) => {
+      if (state.nodes.length === 0 && state.edges.length === 0) return {};
+      return {
+        pendingUndo: { nodes: state.nodes, edges: state.edges, label, mode: "replace", at: Date.now() },
+      };
+    });
+  },
 
   duplicateNode: (nodeId) => {
     const source = get().nodes.find((n) => n.id === nodeId);

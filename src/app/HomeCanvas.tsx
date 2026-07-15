@@ -31,6 +31,15 @@ const MODE_ROW = [
 ];
 const MODE_ROW_CENTER_X = (MODE_ROW[MODE_ROW.length - 1].x + MODE_NODE_WIDTH) / 2;
 
+// Content spans roughly x:[0,900] y:[-200,150] (mode row + title, see layout
+// below); this pads that out so panning still feels free without letting a
+// user scroll into empty space indefinitely — this is a fixed, small
+// composition, not an open canvas like Sandbox's.
+const HOME_TRANSLATE_EXTENT: [[number, number], [number, number]] = [
+  [-350, -550],
+  [1250, 500],
+];
+
 // Static layout — three fixed slots, one per AppMode (src/lib/modes.ts), all
 // on one baseline. fitView below handles responsive placement, so the exact
 // spacing here only needs to keep the three from overlapping.
@@ -107,6 +116,7 @@ export function HomeCanvas() {
           nodesConnectable={false}
           nodesDraggable={false}
           panOnScroll
+          translateExtent={HOME_TRANSLATE_EXTENT}
           proOptions={{ hideAttribution: true }}
           fitView
           fitViewOptions={{ padding: 0.25, maxZoom: 1 }}

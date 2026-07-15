@@ -31,7 +31,7 @@ function PaletteItem({
   definition: ComponentDefinition;
   isCustom?: boolean;
   onEdit?: () => void;
-  onDelete?: () => void;
+  onDelete?: (event: React.MouseEvent) => void;
 }) {
   const Icon = iconMap[definition.icon] ?? Server;
   const color = categoryColorVar[definition.category];
@@ -92,7 +92,7 @@ function PaletteItem({
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
-              onDelete?.();
+              onDelete?.(e);
             }}
             aria-label={`Delete ${definition.label}`}
             className="rounded border border-border bg-panel p-0.5 text-foreground/60 shadow-sm hover:text-state-error"
@@ -229,6 +229,7 @@ export function Palette() {
   const customComponents = useCanvasStore((s) => s.customComponents);
   const upsertCustomComponent = useCanvasStore((s) => s.upsertCustomComponent);
   const deleteCustomComponent = useCanvasStore((s) => s.deleteCustomComponent);
+  const nodes = useCanvasStore((s) => s.nodes);
   const togglePlacement = (mode: "zone" | "comment" | "start") =>
     setPlacementMode(placementMode === mode ? null : mode);
 
@@ -238,9 +239,30 @@ export function Palette() {
     setModal(null);
   };
 
+  // Deleting a custom component removes its *definition*, not one instance
+  // — every placed node using it would silently stop rendering (see
+  // ComponentNode.tsx: it returns null when getComponent can't find a
+  // definition). Counted here so the confirm popover below can block the
+  // delete with an explanation instead of letting that happen silently.
+  const customUsageCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const n of nodes) {
+      if (n.type === "component") counts.set(n.data.componentId, (counts.get(n.data.componentId) ?? 0) + 1);
+    }
+    return counts;
+  }, [nodes]);
+
+  // One shared target rather than per-tile state — same "one target, one
+  // portaled overlay, click-outside backdrop" shape as ContextMenu's own
+  // menu state, just scoped to this one confirm popover instead of a menu.
+  const [deleteTarget, setDeleteTarget] = useState<{ record: CustomComponentRecord; x: number; y: number } | null>(
+    null,
+  );
+
   const handleDelete = (record: CustomComponentRecord) => {
     void db.customComponents.delete(record.id);
     deleteCustomComponent(record.id);
+    setDeleteTarget(null);
   };
 
   // Custom components (see CreateComponentModal.tsx) live in the store as
@@ -344,9 +366,9 @@ export function Palette() {
                       }
                       onDelete={
                         isCustom
-                          ? () => {
+                          ? (event) => {
                               const record = customComponents.find((r) => r.id === definition.id);
-                              if (record) handleDelete(record);
+                              if (record) setDeleteTarget({ record, x: event.clientX, y: event.clientY });
                             }
                           : undefined
                       }
@@ -366,6 +388,90 @@ export function Palette() {
           initialRecord={modal.mode === "edit" ? modal.record : undefined}
         />
       )}
+
+      {deleteTarget &&
+        createPortal(
+          <DeleteConfirmPopover
+            target={deleteTarget}
+            usageCount={customUsageCounts.get(deleteTarget.record.id) ?? 0}
+            onCancel={() => setDeleteTarget(null)}
+            onConfirm={() => handleDelete(deleteTarget.record)}
+          />,
+          document.body,
+        )}
     </div>
+  );
+}
+
+/**
+ * The 4th instance of the app's one documented floating-menu visual
+ * language (raised-panel, hairline-border, 6px radius, floating-menu
+ * shadow — see DESIGN.md's "Dropdown / Context Menus"), not a new pattern —
+ * a full-viewport click-catcher backdrop closes it on any outside click,
+ * same as ExportMenu/ContextMenu. Deleting a custom component removes its
+ * definition, not an instance, so this is deliberately a harder stop than
+ * node/edge delete's toast-based undo: no confirm dialogs exist elsewhere in
+ * this app, but nothing here is undoable after the fact (see
+ * customUsageCounts's comment in Palette above), which is exactly the case
+ * that safety net doesn't cover.
+ */
+function DeleteConfirmPopover({
+  target,
+  usageCount,
+  onCancel,
+  onConfirm,
+}: {
+  target: { record: CustomComponentRecord; x: number; y: number };
+  usageCount: number;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const left = Math.min(target.x, window.innerWidth - 272);
+  const top = Math.min(target.y + 8, window.innerHeight - 140);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onCancel} />
+      <div
+        className="fixed z-50 w-64 rounded-md border border-border bg-panel p-3 shadow-lg"
+        style={{ left, top }}
+      >
+        {usageCount > 0 ? (
+          <>
+            <p className="text-sm text-foreground">
+              &ldquo;{target.record.label}&rdquo; is used by {usageCount} node{usageCount === 1 ? "" : "s"} on the
+              canvas.
+            </p>
+            <p className="mt-1 text-xs text-foreground/60">Remove those first, then delete it.</p>
+            <button
+              onClick={onCancel}
+              className="mt-3 w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm font-medium hover:bg-border"
+            >
+              OK
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-foreground">
+              Delete &ldquo;{target.record.label}&rdquo;? This can&rsquo;t be undone.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={onCancel}
+                className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm font-medium hover:bg-border"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onConfirm}
+                className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm font-medium text-state-error hover:bg-border"
+              >
+                Delete
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }

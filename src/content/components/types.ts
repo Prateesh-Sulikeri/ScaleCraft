@@ -40,3 +40,46 @@ export type ComponentDefinition<Config = unknown> = {
   /** Markdown, shown in the contextual docs panel. */
   docs: string;
 };
+
+/**
+ * One config field on a declaratively-authored component (see
+ * src/content/components/config/*.ts and CreateComponentModal.tsx). A
+ * discriminated union, not a single shape with optional fields — `kind`
+ * picks which of `min`/`max`/`int`/`options` are even meaningful, mirroring
+ * how ConfigForm.tsx reads a real ComponentDefinition's Zod schema by
+ * instanceof-checking ZodEnum/ZodNumber/ZodBoolean/ZodString.
+ */
+export type ConfigFieldSpec =
+  | { kind: "string"; name: string; label: string; default: string }
+  | {
+      kind: "number";
+      name: string;
+      label: string;
+      default: number;
+      min?: number;
+      max?: number;
+      /** Every built-in numeric field is integer-only; user-authored custom
+       * components default to plain (non-integer) numbers. */
+      int?: boolean;
+    }
+  | { kind: "boolean"; name: string; label: string; default: boolean }
+  | { kind: "enum"; name: string; label: string; default: string; options: string[] };
+
+/**
+ * The declarative, JSON-shaped source a `ComponentDefinition` is generated
+ * from (see generate.ts's `generateComponentDefinition`) — data only, no
+ * live Zod schema. This is what src/content/components/config/*.ts files
+ * export; adding a built-in component means adding one of these to the
+ * right category file, nothing else.
+ */
+export type ComponentConfigSpec = {
+  id: string;
+  category: ComponentCategory;
+  label: string;
+  icon: string;
+  inputs: PortSpec[];
+  outputs: PortSpec[];
+  fields: ConfigFieldSpec[];
+  summary: string;
+  docs: string;
+};
