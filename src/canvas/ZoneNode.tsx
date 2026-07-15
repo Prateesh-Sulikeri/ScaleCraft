@@ -1,7 +1,9 @@
 "use client";
 
+import { Pencil } from "lucide-react";
 import { NodeResizer, type NodeProps } from "@xyflow/react";
 import { useCanvasStore } from "./store";
+import { DEFAULT_ZONE_COLOR } from "./annotation-colors";
 import type { ZoneNodeType } from "./types";
 
 /**
@@ -20,6 +22,8 @@ import type { ZoneNodeType } from "./types";
  */
 export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
   const updateZone = useCanvasStore((s) => s.updateZone);
+  const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
+  const color = data.color ?? DEFAULT_ZONE_COLOR;
 
   return (
     <div
@@ -38,12 +42,13 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
           height={Math.max(data.height - 1.5, 0)}
           rx={8}
           fill="none"
-          // Slightly under full opacity — a fully-saturated zone-magenta
-          // stroke sitting next to a fault-red error ring reads as "the
-          // same red" at a glance; softening it keeps the two channels
-          // (zone accent vs. validation state) visually distinct even when
-          // adjacent, without touching the state ring's own color.
-          stroke="color-mix(in srgb, var(--zone, #ff3483) 80%, transparent)"
+          // Slightly under full opacity — a fully-saturated accent stroke
+          // sitting next to a fault-red error ring reads as "the same red"
+          // at a glance when the zone's own color happens to be close to it;
+          // softening it keeps the two channels (zone accent vs. validation
+          // state) visually distinct even when adjacent, without touching
+          // the state ring's own color.
+          stroke={`color-mix(in srgb, ${color} 80%, transparent)`}
           strokeWidth={1.5}
           strokeDasharray="6 4"
           style={{ animation: "dashdraw 0.5s linear infinite" }}
@@ -54,8 +59,8 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
         minWidth={200}
         minHeight={140}
         onResize={(_, params) => updateZone(id, { width: params.width, height: params.height })}
-        lineStyle={{ borderColor: "var(--zone, #ff3483)" }}
-        handleStyle={{ backgroundColor: "var(--zone, #ff3483)", width: 8, height: 8, borderRadius: 2 }}
+        lineStyle={{ borderColor: color }}
+        handleStyle={{ backgroundColor: color, width: 8, height: 8, borderRadius: 2 }}
       />
       <input
         value={data.label}
@@ -74,9 +79,25 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
         // copy about what a zone actually does, surfaced when a user is
         // actively looking at this one rather than cluttering every zone
         // on the canvas permanently.
-        <p className="mx-2 text-[10px] text-foreground/60">
+        <p className="relative mx-2 text-[10px] text-foreground/60">
           Visual grouping only — doesn&apos;t move or reparent components
         </p>
+      )}
+      {selected && (
+        // Reopens the same color+label popup shown right after placement
+        // (see AnnotationEditor.tsx) — one discoverable way to change a
+        // zone's color, not a second, separate inline control.
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            openAnnotationEditor(id, { x: event.clientX, y: event.clientY });
+          }}
+          aria-label="Edit zone"
+          className="nodrag absolute -right-1.5 -top-1.5 z-10 rounded border border-border bg-panel p-1 text-foreground/60 shadow-sm hover:text-foreground"
+        >
+          <Pencil size={11} />
+        </button>
       )}
     </div>
   );

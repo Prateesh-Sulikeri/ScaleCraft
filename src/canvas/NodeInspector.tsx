@@ -31,77 +31,70 @@ export function NodeInspector() {
   const node = selected?.type === "component" ? selected : undefined;
   const definition = node ? getComponent(node.data.componentId) : undefined;
 
-  if (collapsed) {
-    return (
-      <div className="flex w-10 shrink-0 flex-col items-center border-l border-border py-3">
-        <button
-          onClick={() => setCollapsed(false)}
-          aria-label="Expand inspector panel"
-          className="text-foreground/60 hover:text-foreground"
-        >
-          <PanelRightOpen size={16} />
-        </button>
-      </div>
-    );
-  }
+  const COLLAPSED_WIDTH = 40;
 
   return (
     <div className="flex shrink-0">
-      <div
-        onMouseDown={onMouseDown}
-        className="w-1 shrink-0 cursor-col-resize bg-transparent hover:bg-foreground/20 active:bg-foreground/30"
-      />
-      <aside style={{ width }} className="flex shrink-0 flex-col overflow-y-auto border-l border-border p-4">
-      {!node || !definition ? (
-        <>
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
-              Inspector
-            </h2>
-            <button
-              onClick={() => setCollapsed(true)}
-              aria-label="Collapse inspector panel"
-              className="text-foreground/40 hover:text-foreground"
-            >
-              <PanelRightClose size={14} />
-            </button>
-          </div>
-          <p className="mt-3 text-sm text-foreground/60">Select a component to configure it or read its docs.</p>
-        </>
-      ) : (
-        <>
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
-              {definition.label}
-            </h2>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => openDocsWindow(definition.id)}
-                className="flex items-center gap-1 text-xs text-foreground/60 hover:text-foreground"
-              >
-                <FileText size={12} />
-                View docs
-              </button>
-              <button
-                onClick={() => setCollapsed(true)}
-                aria-label="Collapse inspector panel"
-                className="text-foreground/40 hover:text-foreground"
-              >
-                <PanelRightClose size={14} />
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-3 flex-1 overflow-y-auto">
-            <ConfigForm
-              key={node.id}
-              definition={definition}
-              value={node.data.config}
-              onChange={(config) => updateNodeConfig(node.id, config)}
-            />
-          </div>
-        </>
+      {!collapsed && (
+        <div
+          onMouseDown={onMouseDown}
+          className="w-1 shrink-0 cursor-col-resize bg-transparent hover:bg-foreground/20 active:bg-foreground/30"
+        />
       )}
+      <aside
+        style={{ width: collapsed ? COLLAPSED_WIDTH : width }}
+        className="flex shrink-0 flex-col overflow-hidden border-l border-border transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+      >
+        <div
+          className={`flex shrink-0 items-center py-3 ${collapsed ? "justify-center" : "justify-end px-3"}`}
+        >
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expand inspector panel" : "Collapse inspector panel"}
+            className="text-foreground/60 hover:text-foreground"
+          >
+            {collapsed ? <PanelRightOpen size={16} /> : <PanelRightClose size={14} />}
+          </button>
+        </div>
+
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto px-4 pb-4 transition-opacity duration-150 motion-reduce:transition-none ${
+            collapsed ? "pointer-events-none opacity-0" : "opacity-100"
+          }`}
+        >
+          {!node || !definition ? (
+            <>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
+                Inspector
+              </h2>
+              <p className="mt-3 text-sm text-foreground/60">Select a component to configure it or read its docs.</p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground/60">
+                  {definition.label}
+                </h2>
+                <button
+                  onClick={() => openDocsWindow(definition.id)}
+                  className="flex items-center gap-1 text-xs text-foreground/60 hover:text-foreground"
+                >
+                  <FileText size={12} />
+                  View docs
+                </button>
+              </div>
+
+              <div className="mt-3 flex-1 overflow-y-auto">
+                <ConfigForm
+                  key={node.id}
+                  definition={definition}
+                  value={node.data.config}
+                  onChange={(config) => updateNodeConfig(node.id, config)}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </aside>
     </div>
   );

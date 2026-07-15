@@ -16,7 +16,7 @@ export type ModeNodeData = {
   /** Static placeholder; milestone 9 (persistence) is what makes this
    * reflect a user's real per-chapter state. Omitted for Sandbox — it's
    * freeform with no chapter to complete, so the vocabulary doesn't apply. */
-  status?: "not started" | "in progress" | "complete";
+  status?: "coming soon" | "in progress" | "complete";
 };
 export type ModeNodeType = Node<ModeNodeData, "mode">;
 export type TitleNodeType = Node<Record<string, never>, "title">;
@@ -64,7 +64,7 @@ const nodes: (ModeNodeType | TitleNodeType)[] = [
       data:
         id === "sandbox"
           ? { mode: "sandbox", href: "/sandbox" }
-          : { mode: id, status: "not started" },
+          : { mode: id, status: "coming soon" },
       draggable: false,
       focusable: false,
     }),

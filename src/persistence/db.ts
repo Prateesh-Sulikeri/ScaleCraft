@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
+import type { CustomComponentRecord } from "@/content/components/custom";
 
 /**
  * Local-first persistence — see .claude/docs/ARCHITECTURE.md "Persistence"
@@ -27,11 +28,23 @@ export const SANDBOX_SAVE_ID = "sandbox";
 
 class ScaleCraftDB extends Dexie {
   saves!: EntityTable<CanvasSave, "id">;
+  /** User-created components (see CreateComponentModal.tsx /
+   * content/components/custom.ts) — plain records, not live ComponentDefinitions
+   * (a Zod schema instance isn't structured-clone-safe for IndexedDB;
+   * toComponentDefinition rebuilds one at load time). */
+  customComponents!: EntityTable<CustomComponentRecord, "id">;
 
   constructor() {
     super("scalecraft");
     this.version(1).stores({
       saves: "id",
+    });
+    // First schema bump in this app — Dexie's own convention: list every
+    // table that should exist at this version (not just the new one);
+    // existing v1 installs auto-migrate forward with no data loss.
+    this.version(2).stores({
+      saves: "id",
+      customComponents: "id",
     });
   }
 }

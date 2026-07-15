@@ -1,5 +1,6 @@
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { HomeCanvas } from "@/app/HomeCanvas";
+import { AboutButton } from "@/app/AboutButton";
 
 // The mode-select landing page (milestone 4, .claude/docs/MILESTONES.md).
 // The ScaleCraft mark + "choose a mode" heading live inside HomeCanvas's own
@@ -19,6 +20,10 @@ export default function RootPage() {
 
       <div className="absolute right-6 top-6 z-10">
         <ThemeToggle />
+      </div>
+
+      <div className="absolute bottom-6 left-6 z-10">
+        <AboutButton />
       </div>
     </main>
   );

@@ -35,6 +35,17 @@ export function ComponentNode({ data }: NodeProps<ComponentNodeType>) {
       style={{ outline: `2px solid ${ringColor}`, outlineOffset: "1px" }}
     >
       {definition.inputs.length > 0 && <Handle type="target" position={Position.Left} />}
+      {/* Unconditional, invisible — a Start marker's pointer arrow (see
+       * StartNode.tsx/Canvas.tsx) needs a target anchor on every component,
+       * including ones with no real inputs (e.g. Client), so it can't reuse
+       * the conditional target handle above. */}
+      <Handle
+        type="target"
+        id="start-target"
+        position={Position.Top}
+        isConnectable={false}
+        style={{ opacity: 0, pointerEvents: "none" }}
+      />
       <div className="flex items-start gap-2.5">
         <div
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"

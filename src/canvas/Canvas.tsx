@@ -15,6 +15,7 @@ import {
   ReactFlowProvider,
   Background,
   Controls,
+  MarkerType,
   getNodesBounds,
   getViewportForBounds,
   useReactFlow,
@@ -25,13 +26,32 @@ import { useHasMounted } from "@/lib/use-has-mounted";
 import { getComponent } from "@/content/components/registry";
 import { ComponentNode } from "./ComponentNode";
 import { ZoneNode } from "./ZoneNode";
+import { CommentNode } from "./CommentNode";
+import { StartNode } from "./StartNode";
 import { EdgeInspector } from "./EdgeInspector";
 import { ContextMenu, type ContextMenuTarget } from "./ContextMenu";
+import { AnnotationEditor } from "./AnnotationEditor";
 import { PALETTE_DRAG_TYPE } from "./Palette";
-import { useCanvasStore } from "./store";
-import type { AnyNodeType, ValidationState } from "./types";
+import { useCanvasStore, type PlacementMode } from "./store";
+import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "./types";
 
-const nodeTypes = { component: ComponentNode, zone: ZoneNode };
+const nodeTypes = { component: ComponentNode, zone: ZoneNode, comment: CommentNode, start: StartNode };
+
+/** Drag-to-draw defaults for the two resizable annotation types — "start"
+ * isn't here since it's fixed-size and never drag-sized (see
+ * startPlacementDrag below). Mirrors each store action's own default
+ * width/height (addZone/addComment) so the plain-click fallback centers a
+ * same-sized annotation on the click point. */
+const ANNOTATION_DEFAULTS = {
+  zone: { width: 320, height: 220, minWidth: 120, minHeight: 80 },
+  comment: { width: 220, height: 140, minWidth: 140, minHeight: 90 },
+} as const;
+
+const PLACEMENT_HINT: Record<Exclude<PlacementMode, null>, string> = {
+  zone: "Click and drag to place a zone · Esc to cancel",
+  comment: "Click and drag to place a comment · Esc to cancel",
+  start: "Click to place a start marker · Esc to cancel",
+};
 
 const EXPORT_IMAGE_WIDTH = 1600;
 const EXPORT_IMAGE_HEIGHT = 1200;
@@ -89,8 +109,11 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   const onConnect = useCanvasStore((s) => s.onConnect);
   const addNode = useCanvasStore((s) => s.addNode);
   const addZone = useCanvasStore((s) => s.addZone);
-  const isPlacingZone = useCanvasStore((s) => s.isPlacingZone);
-  const setIsPlacingZone = useCanvasStore((s) => s.setIsPlacingZone);
+  const addComment = useCanvasStore((s) => s.addComment);
+  const addStartMarker = useCanvasStore((s) => s.addStartMarker);
+  const placementMode = useCanvasStore((s) => s.placementMode);
+  const setPlacementMode = useCanvasStore((s) => s.setPlacementMode);
+  const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
   const setSelectedEdgeId = useCanvasStore((s) => s.setSelectedEdgeId);
   const setSelectedNodeId = useCanvasStore((s) => s.setSelectedNodeId);
 
@@ -107,22 +130,36 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   // the mode) and mid-drag (tears down the in-progress window listeners
   // via the ref below, so nothing gets created).
   useEffect(() => {
-    if (!isPlacingZone) return;
+    if (!placementMode) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       dragCleanupRef.current?.();
-      setIsPlacingZone(false);
+      setPlacementMode(null);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isPlacingZone, setIsPlacingZone]);
+  }, [placementMode, setPlacementMode]);
 
-  // Zones don't just spawn in — clicking "Add zone" arms placement mode
-  // (crosshair cursor, see the overlay in the render below) and this drags
-  // out the actual rectangle. A near-zero drag (a plain click) falls back
-  // to the original fixed default size, centered on the click point, so a
-  // quick click still works without requiring the drag.
+  // Annotations don't just spawn in — clicking a palette "Add …" button arms
+  // placement mode (crosshair cursor, see the overlay in the render below)
+  // and this drags out the actual rectangle for the two resizable types
+  // (zone/comment). A near-zero drag (a plain click) falls back to that
+  // type's fixed default size, centered on the click point, so a quick click
+  // still works without requiring the drag. "start" is fixed-size and never
+  // drag-sized — a single click places it immediately, no rectangle at all.
   const startPlacementDrag = (event: React.MouseEvent) => {
+    const mode = placementMode;
+    if (!mode) return;
+
+    if (mode === "start") {
+      const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      addStartMarker({ x: flowPos.x - 70, y: flowPos.y - 24 });
+      setPlacementMode(null);
+      return;
+    }
+
+    const addAnnotation = mode === "zone" ? addZone : addComment;
+    const { width, height, minWidth, minHeight } = ANNOTATION_DEFAULTS[mode];
     const start = { x: event.clientX, y: event.clientY };
     setPreviewRect({ left: start.x, top: start.y, width: 0, height: 0 });
 
@@ -152,20 +189,25 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       // screenToFlowPosition, not raw pixel deltas, for the size too — a
       // raw screen-pixel diff would be wrong under any zoom other than 1.
       const topLeftFlow = screenToFlowPosition({ x: screenLeft, y: screenTop });
+      let newId: string;
       if (screenWidth < 10 && screenHeight < 10) {
-        addZone({ x: topLeftFlow.x - 160, y: topLeftFlow.y - 110 });
+        newId = addAnnotation({ x: topLeftFlow.x - width / 2, y: topLeftFlow.y - height / 2 });
       } else {
         const bottomRightFlow = screenToFlowPosition({
           x: screenLeft + screenWidth,
           y: screenTop + screenHeight,
         });
-        addZone(
+        newId = addAnnotation(
           topLeftFlow,
-          Math.max(120, bottomRightFlow.x - topLeftFlow.x),
-          Math.max(80, bottomRightFlow.y - topLeftFlow.y),
+          Math.max(minWidth, bottomRightFlow.x - topLeftFlow.x),
+          Math.max(minHeight, bottomRightFlow.y - topLeftFlow.y),
         );
       }
-      setIsPlacingZone(false);
+      setPlacementMode(null);
+      // Opens right where the drag/click just ended — see
+      // AnnotationEditor.tsx — so a new user sees color + label/text in one
+      // obvious place instead of having to discover the inline controls.
+      openAnnotationEditor(newId, { x: upEvent.clientX, y: upEvent.clientY });
     }
 
     dragCleanupRef.current = cleanup;
@@ -184,18 +226,58 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     () =>
       nodeStates
         ? storeNodes.map((n): AnyNodeType => {
+            // Only component/zone nodes declare a validationState field at
+            // all (see types.ts) — comment/start are pure annotations, never
+            // touched by the validation engine, so they pass through as-is.
+            // Branched per literal type (not one guard + generic spread):
+            // narrowing to a 2+ member remaining union still loses the
+            // type/data correlation the same way spreading the full union
+            // would — each branch has to narrow to exactly one member.
             const validationState = nodeStates[n.id];
-            // Branching (rather than one generic spread) keeps `data`'s
-            // shape tied to `n.type` per xyflow's discriminated union —
-            // a single spread across the union loses that tie and both
-            // branches end up structurally identical anyway.
-            return n.type === "zone"
-              ? { ...n, data: { ...n.data, validationState } }
-              : { ...n, data: { ...n.data, validationState } };
+            if (n.type === "component") return { ...n, data: { ...n.data, validationState } };
+            if (n.type === "zone") return { ...n, data: { ...n.data, validationState } };
+            return n;
           })
         : storeNodes,
     [storeNodes, nodeStates],
   );
+
+  // A Start marker's pointer arrow (see StartNode.tsx) — derived purely from
+  // each start node's targetId, never stored in the store's own `edges`
+  // (that array is the domain graph's edges; this is a canvas-only visual).
+  // Filtered to targets that still exist, since a targetId can go stale for
+  // one render after its component is deleted, before store.ts's
+  // pruneStartTargets cleanup lands. Non-interactive (selectable/deletable/
+  // focusable all false) — it's a picked-from-dropdown pointer, not
+  // something a user drags or deletes like a real edge.
+  const pointerEdges = useMemo(() => {
+    const componentIds = new Set(storeNodes.filter((n) => n.type === "component").map((n) => n.id));
+    return storeNodes
+      .filter((n) => n.type === "start" && n.data.targetId && componentIds.has(n.data.targetId))
+      .map(
+        (n): ArchitectureEdgeType => ({
+          id: `start-pointer:${n.id}`,
+          source: n.id,
+          sourceHandle: "start-source",
+          target: (n as Extract<AnyNodeType, { type: "start" }>).data.targetId!,
+          targetHandle: "start-target",
+          type: "straight",
+          selectable: false,
+          deletable: false,
+          focusable: false,
+          interactionWidth: 0,
+          // `kind` is never read for a pointer edge — it's not a real edge
+          // in the domain graph (see toArchitectureGraph in store.ts) and
+          // never reaches EdgeInspector, so this value is just filler to
+          // satisfy ArchitectureEdgeData's shape.
+          data: { kind: "request-flow" },
+          style: { stroke: "var(--foreground)", strokeWidth: 1.5, strokeDasharray: "4 4", opacity: 0.55 },
+          markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: "var(--foreground)" },
+        }),
+      );
+  }, [storeNodes]);
+
+  const displayEdges = useMemo(() => [...edges, ...pointerEdges], [edges, pointerEdges]);
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
@@ -219,7 +301,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       <ReactFlow
         colorMode={colorMode}
         nodes={nodes}
-        edges={edges}
+        edges={displayEdges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -276,11 +358,12 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       </ReactFlow>
       <EdgeInspector />
       <ContextMenu target={menu} onClose={() => setMenu(null)} />
+      <AnnotationEditor />
 
-      {isPlacingZone && (
+      {placementMode && (
         <>
           <div className="pointer-events-none absolute left-1/2 top-4 z-40 -translate-x-1/2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
-            Click and drag to place a zone · Esc to cancel
+            {PLACEMENT_HINT[placementMode]}
           </div>
           <div
             onMouseDown={startPlacementDrag}
@@ -292,9 +375,10 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       {previewRect &&
         createPortal(
           // Plain, static outline while dragging — a normal drag is enough
-          // here; the animated dashed border (see ZoneNode.tsx) is what the
-          // zone actually looks like once placed, not something the
-          // in-progress drag needs to preempt.
+          // here; the annotation's own placed-state border (ZoneNode's
+          // animated dash, CommentNode's plain neutral border) is what it
+          // actually looks like once placed, not something the in-progress
+          // drag needs to preempt.
           <div
             className="pointer-events-none fixed z-50 rounded-lg border border-dashed bg-panel/20"
             style={{
@@ -302,7 +386,10 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
               top: previewRect.top,
               width: previewRect.width,
               height: previewRect.height,
-              borderColor: "color-mix(in srgb, var(--zone, #ff3483) 75%, transparent)",
+              borderColor:
+                placementMode === "comment"
+                  ? "color-mix(in srgb, var(--foreground) 50%, transparent)"
+                  : "color-mix(in srgb, var(--zone, #ff3483) 75%, transparent)",
             }}
           />,
           document.body,

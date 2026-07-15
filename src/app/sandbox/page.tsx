@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import Link from "next/link";
 import { Save, Upload } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { NodeInspector } from "@/canvas/NodeInspector";
@@ -12,6 +12,7 @@ import { ValidationIndicator } from "@/app/ValidationIndicator";
 import { ExportMenu } from "@/app/ExportMenu";
 import { QuestionPanel } from "@/app/QuestionPanel";
 import { ModeBadge } from "@/app/ModeBadge";
+import { PageEnter } from "@/app/PageEnter";
 import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
@@ -64,6 +65,7 @@ export default function SandboxPage() {
   const edges = useCanvasStore((s) => s.edges);
   const loadGraph = useCanvasStore((s) => s.loadGraph);
   const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
+  const loadCustomComponents = useCanvasStore((s) => s.loadCustomComponents);
 
   // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
   // the seed demo graph — this is what makes a refresh not lose work.
@@ -78,6 +80,14 @@ export default function SandboxPage() {
       }
     });
     // Runs once on mount; loadGraph/loadCanvasState are stable store actions.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Custom components (see CreateComponentModal.tsx) are separate from the
+  // canvas save above — they're registry entries, not canvas state, so this
+  // loads regardless of whether a save exists.
+  useEffect(() => {
+    db.customComponents.toArray().then(loadCustomComponents);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -142,21 +152,32 @@ export default function SandboxPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <PageEnter>
       <header
         style={{ borderBottomColor: modeColorVar[mode] }}
         className="flex items-center justify-between border-b-2 px-6 py-3"
       >
         <div className="flex items-center gap-2.5">
-          <Image
-            src="/logo-mark.png"
-            alt=""
-            width={32}
-            height={32}
-            className="rounded-md"
-            priority
-          />
-          <h1 className="text-base font-semibold">ScaleCraft</h1>
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 opacity-100 transition-opacity hover:opacity-70"
+          >
+            <div
+              aria-hidden="true"
+              style={{
+                width: 32,
+                height: 32,
+                backgroundColor: "var(--foreground)",
+                WebkitMaskImage: "url(/logo-mask.png)",
+                maskImage: "url(/logo-mask.png)",
+                WebkitMaskSize: "contain",
+                maskSize: "contain",
+                WebkitMaskRepeat: "no-repeat",
+                maskRepeat: "no-repeat",
+              }}
+            />
+            <h1 className="text-base font-semibold">ScaleCraft</h1>
+          </Link>
           <ModeBadge mode={mode} />
         </div>
         <div className="flex items-center gap-2">
@@ -196,7 +217,7 @@ export default function SandboxPage() {
         </div>
       </header>
 
-      <main className="flex flex-1 overflow-hidden">
+      <main className="flex min-h-0 flex-1 overflow-hidden">
         <QuestionPanel intro="Drag components from the palette, connect them, then click Validate." />
 
         <div className="flex flex-1 flex-col">
@@ -208,6 +229,6 @@ export default function SandboxPage() {
 
       <DocsWindows />
       <UndoToast />
-    </div>
+    </PageEnter>
   );
 }

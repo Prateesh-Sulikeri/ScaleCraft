@@ -8,8 +8,23 @@ import {
   type Connection,
 } from "@xyflow/react";
 import type { ComponentDefinition } from "@/content/components/types";
+import type { CustomComponentRecord } from "@/content/components/custom";
 import type { ArchitectureGraph, EdgeKind, XY } from "@/lib/graph";
-import type { AnyNodeType, ComponentNodeType, ZoneNodeData, ArchitectureEdgeType } from "./types";
+import type {
+  AnyNodeType,
+  ComponentNodeType,
+  ZoneNodeData,
+  CommentNodeData,
+  StartNodeData,
+  ArchitectureEdgeType,
+} from "./types";
+import { DEFAULT_ZONE_COLOR, DEFAULT_COMMENT_COLOR } from "./annotation-colors";
+
+/** What the palette's "Add zone"/"Add comment"/"Add start" buttons put the
+ * canvas into — one mutually-exclusive placement mode rather than three
+ * parallel booleans, so Canvas.tsx's drag-gesture/Escape-cancel/preview
+ * logic branches once instead of tripling itself per annotation type. */
+export type PlacementMode = "zone" | "comment" | "start" | null;
 
 function edgeStyle(kind: EdgeKind) {
   return {
@@ -38,6 +53,19 @@ function undoLabel(nodes: AnyNodeType[], edges: ArchitectureEdgeType[]): string 
   }
   if (nodes.length > 0) return `${nodes.length} ${nodeWord} deleted`;
   return `${edges.length} ${edgeWord} deleted`;
+}
+
+/** A Start marker's `targetId` (see StartNode.tsx) points at a component id
+ * directly, not via a real edge — so deleting that component doesn't clean
+ * itself up the way an edge would via onEdgesChange. Called from every node
+ * removal path (onNodesChange, deleteNode, deleteNodes) so a Start marker
+ * never keeps pointing at a node that no longer exists. */
+function pruneStartTargets(nodes: AnyNodeType[], removedIds: Set<string>): AnyNodeType[] {
+  return nodes.map((n) =>
+    n.type === "start" && n.data.targetId && removedIds.has(n.data.targetId)
+      ? { ...n, data: { ...n.data, targetId: null } }
+      : n,
+  );
 }
 
 /** Deleting a node also removes its connected edges via a SEPARATE
@@ -92,13 +120,36 @@ type CanvasStore = {
   addNode: (definition: ComponentDefinition, position: XY) => void;
   /** width/height default to the original fixed zone size — the
    * drag-to-draw gesture (see Canvas.tsx) passes explicit dimensions from
-   * what the user drew; a plain click falls back to these defaults. */
-  addZone: (position: XY, width?: number, height?: number) => void;
+   * what the user drew; a plain click falls back to these defaults. Returns
+   * the new node's id so the caller can immediately open its
+   * AnnotationEditor popup (see editingAnnotation below). */
+  addZone: (position: XY, width?: number, height?: number) => string;
   updateZone: (nodeId: string, patch: Partial<ZoneNodeData>) => void;
-  /** True while the user is in "place a zone" mode — set by the palette's
-   * "Add zone" button, cleared on placement or Escape. See Canvas.tsx. */
-  isPlacingZone: boolean;
-  setIsPlacingZone: (placing: boolean) => void;
+  /** width/height default to a fixed comment-note size — same drag-to-draw
+   * vs. plain-click split as addZone. */
+  addComment: (position: XY, width?: number, height?: number) => string;
+  updateComment: (nodeId: string, patch: Partial<CommentNodeData>) => void;
+  /** Fixed size, no drag-to-draw — a start marker never needs a drawn
+   * rectangle, only a drop point. */
+  addStartMarker: (position: XY) => void;
+  updateStartMarker: (nodeId: string, patch: Partial<StartNodeData>) => void;
+  /** Which annotation the user is currently placing — set by the palette's
+   * "Add zone"/"Add comment"/"Add start" buttons, cleared on placement or
+   * Escape. See Canvas.tsx. */
+  placementMode: PlacementMode;
+  setPlacementMode: (mode: PlacementMode) => void;
+  /** Drives the AnnotationEditor popup (color + label/text for a single
+   * Zone or Comment node) — opened automatically right after a Zone/Comment
+   * is placed (see Canvas.tsx), and reopenable any time via the Pencil
+   * button ZoneNode/CommentNode show while selected. `anchor` is a real
+   * screen/viewport point (e.g. a click event's clientX/clientY), not a
+   * flow-space position — the popup is a fixed-position overlay, not a
+   * canvas node. Living in the store (not local component state) is what
+   * lets a deeply-nested node component (ZoneNode's edit button) trigger it
+   * directly, same reasoning as selectedNodeId/docsWindows. */
+  editingAnnotation: { id: string; anchor: { x: number; y: number } } | null;
+  openAnnotationEditor: (id: string, anchor: { x: number; y: number }) => void;
+  closeAnnotationEditor: () => void;
   onNodesChange: (changes: NodeChange<AnyNodeType>[]) => void;
   onEdgesChange: (changes: EdgeChange<ArchitectureEdgeType>[]) => void;
   onConnect: (connection: Connection) => void;
@@ -136,6 +187,24 @@ type CanvasStore = {
    * set — a partial duplicate shouldn't invent a new external connection). */
   duplicateNodes: (nodeIds: string[]) => void;
   reverseEdge: (edgeId: string) => void;
+  /** User-created components (see CreateComponentModal.tsx) — the raw,
+   * editable records, not derived ComponentDefinitions. registry.ts's
+   * getComponent/getAllComponents build a real ComponentDefinition from a
+   * record on demand (via content/components/custom.ts's
+   * toComponentDefinition) — keeping the record as the source of truth
+   * here, rather than a derived definition, is what makes editing
+   * possible: a placed ComponentDefinition's live Zod configSchema can't be
+   * un-rendered back into editable field specs. This is in-memory state
+   * only — same convention as `nodes`/`edges`: the store doesn't do
+   * persistence I/O itself. CreateComponentModal's submit handler writes to
+   * src/persistence/db.ts's customComponents table AND calls
+   * upsertCustomComponent in the same handler; the Sandbox page loads from
+   * that table into here on mount (mirrors how it already restores a
+   * canvas save). */
+  customComponents: CustomComponentRecord[];
+  upsertCustomComponent: (record: CustomComponentRecord) => void;
+  deleteCustomComponent: (id: string) => void;
+  loadCustomComponents: (records: CustomComponentRecord[]) => void;
 };
 
 export const useCanvasStore = create<CanvasStore>((set, get) => ({
@@ -144,8 +213,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   selectedEdgeId: null,
   selectedNodeId: null,
   docsWindows: [],
-  isPlacingZone: false,
+  placementMode: null,
+  editingAnnotation: null,
   pendingUndo: null,
+  customComponents: [],
 
   loadGraph: (graph) => {
     set({
@@ -187,19 +258,21 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   addZone: (position, width = 320, height = 220) => {
+    const id = crypto.randomUUID();
     // Negative zIndex keeps zones rendered behind component nodes
     // regardless of array order, so grouped components always sit "on top."
     const zone: AnyNodeType = {
-      id: crypto.randomUUID(),
+      id,
       type: "zone",
       position,
       zIndex: -1,
       // Empty by default (not "Zone") — a pre-filled bold uppercase-tracked
       // value reads as a rendering glitch at a glance ("ZO NE"); the muted
       // placeholder text does the same job without that risk.
-      data: { label: "", width, height },
+      data: { label: "", width, height, color: DEFAULT_ZONE_COLOR },
     };
     set((state) => ({ nodes: [...state.nodes, zone] }));
+    return id;
   },
 
   updateZone: (nodeId, patch) => {
@@ -210,7 +283,48 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     }));
   },
 
-  setIsPlacingZone: (placing) => set({ isPlacingZone: placing }),
+  addComment: (position, width = 220, height = 140) => {
+    const id = crypto.randomUUID();
+    const comment: AnyNodeType = {
+      id,
+      type: "comment",
+      position,
+      data: { text: "", width, height, color: DEFAULT_COMMENT_COLOR },
+    };
+    set((state) => ({ nodes: [...state.nodes, comment] }));
+    return id;
+  },
+
+  updateComment: (nodeId, patch) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId && n.type === "comment" ? { ...n, data: { ...n.data, ...patch } } : n,
+      ),
+    }));
+  },
+
+  addStartMarker: (position) => {
+    const marker: AnyNodeType = {
+      id: crypto.randomUUID(),
+      type: "start",
+      position,
+      data: { label: "", targetId: null },
+    };
+    set((state) => ({ nodes: [...state.nodes, marker] }));
+  },
+
+  updateStartMarker: (nodeId, patch) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId && n.type === "start" ? { ...n, data: { ...n.data, ...patch } } : n,
+      ),
+    }));
+  },
+
+  setPlacementMode: (mode) => set({ placementMode: mode }),
+
+  openAnnotationEditor: (id, anchor) => set({ editingAnnotation: { id, anchor } }),
+  closeAnnotationEditor: () => set({ editingAnnotation: null }),
 
   onNodesChange: (changes) => {
     set((state) => {
@@ -224,7 +338,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       // "delete a connected node" is one undo entry, not just the node.
       const removedEdges = state.edges.filter((e) => removedIdSet.has(e.source) || removedIdSet.has(e.target));
       return {
-        nodes: nextNodes,
+        nodes: pruneStartTargets(nextNodes, removedIdSet),
+        editingAnnotation:
+          state.editingAnnotation && removedIdSet.has(state.editingAnnotation.id)
+            ? null
+            : state.editingAnnotation,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
       };
     });
@@ -315,10 +433,15 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set((state) => {
       const removedNodes = state.nodes.filter((n) => n.id === nodeId);
       const removedEdges = state.edges.filter((e) => e.source === nodeId || e.target === nodeId);
+      const idSet = new Set([nodeId]);
       return {
-        nodes: state.nodes.filter((n) => n.id !== nodeId),
+        nodes: pruneStartTargets(
+          state.nodes.filter((n) => n.id !== nodeId),
+          idSet,
+        ),
         edges: state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
         selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
+        editingAnnotation: state.editingAnnotation?.id === nodeId ? null : state.editingAnnotation,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
       };
     });
@@ -330,9 +453,14 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       const removedNodes = state.nodes.filter((n) => idSet.has(n.id));
       const removedEdges = state.edges.filter((e) => idSet.has(e.source) || idSet.has(e.target));
       return {
-        nodes: state.nodes.filter((n) => !idSet.has(n.id)),
+        nodes: pruneStartTargets(
+          state.nodes.filter((n) => !idSet.has(n.id)),
+          idSet,
+        ),
         edges: state.edges.filter((e) => !idSet.has(e.source) && !idSet.has(e.target)),
         selectedNodeId: state.selectedNodeId && idSet.has(state.selectedNodeId) ? null : state.selectedNodeId,
+        editingAnnotation:
+          state.editingAnnotation && idSet.has(state.editingAnnotation.id) ? null : state.editingAnnotation,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
       };
     });
@@ -408,18 +536,42 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       ),
     }));
   },
+
+  upsertCustomComponent: (record) => {
+    set((state) => {
+      const exists = state.customComponents.some((c) => c.id === record.id);
+      return {
+        customComponents: exists
+          ? state.customComponents.map((c) => (c.id === record.id ? record : c))
+          : [...state.customComponents, record],
+      };
+    });
+  },
+
+  deleteCustomComponent: (id) => {
+    set((state) => ({ customComponents: state.customComponents.filter((c) => c.id !== id) }));
+  },
+
+  loadCustomComponents: (records) => {
+    set({ customComponents: records });
+  },
 }));
 
 /** Pure — the store's RF-shaped state translated to the domain graph the
  * validation engine (and, later, persistence) operate on. See
- * .claude/docs/ARCHITECTURE.md ("Architecture Graph"). Zone nodes are a
- * canvas presentation concept, not part of the domain model — filtered out
- * here rather than ever reaching the validation engine. */
+ * .claude/docs/ARCHITECTURE.md ("Architecture Graph"). Zone/comment/start
+ * nodes are a canvas presentation concept, not part of the domain model —
+ * filtered out here rather than ever reaching the validation engine. A Start
+ * marker's pointer arrow (see StartNode.tsx/Canvas.tsx) isn't in `edges` at
+ * all — it's a derived, canvas-only visual computed straight from the
+ * marker's `targetId` field, so there's nothing from it to filter here. */
 export function toArchitectureGraph(
   nodes: AnyNodeType[],
   edges: ArchitectureEdgeType[],
 ): ArchitectureGraph {
   const componentNodes = nodes.filter((n): n is ComponentNodeType => n.type === "component");
+  const componentIds = new Set(componentNodes.map((n) => n.id));
+  const componentEdges = edges.filter((e) => componentIds.has(e.source) && componentIds.has(e.target));
   return {
     nodes: componentNodes.map((n) => ({
       id: n.id,
@@ -427,7 +579,7 @@ export function toArchitectureGraph(
       position: n.position,
       config: n.data.config,
     })),
-    edges: edges.map((e) => ({
+    edges: componentEdges.map((e) => ({
       id: e.id,
       source: e.source,
       target: e.target,

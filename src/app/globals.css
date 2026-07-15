@@ -85,6 +85,36 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Used by LoadingTransition.tsx's branded loading sweep — a real state
+ * signal (navigation is pending), not decoration, so it's exempt from
+ * "no idle animation." Reduced-motion users get a static full-width bar
+ * instead (see the component's own motion-reduce override). */
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+/* Used by PageEnter.tsx — a mode page fading/sliding into place after the
+ * Home -> mode loading transition (see ModeNode.tsx), instead of just
+ * popping into view. A real state signal (this page just became visible),
+ * not decoration. Plain CSS, not a JS-driven class flip: it plays on
+ * initial paint regardless of tab visibility, so it can't get stuck
+ * mid-transition the way a rAF/useEffect-gated reveal can. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* The browser default focus outline (near-black) is indistinguishable from
  * this app's dark-theme surfaces (#0a0a0a/#141414) — a keyboard-only user
  * could Tab through the whole header and never see where focus is. One

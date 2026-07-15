@@ -1,9 +1,14 @@
 "use client";
 
-import { Copy, FileText, RotateCw, Server, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { ChevronRight, Copy, FileText, Flag, MessageSquare, RotateCw, Server, Trash2 } from "lucide-react";
 import { useCanvasStore } from "./store";
 import { componentRegistry } from "@/content/components/registry";
+import { toComponentDefinition } from "@/content/components/custom";
+import { categoryColorVar, categoryLabel, categoryOrder } from "./category-colors";
 import { iconMap } from "./icon-map";
+import type { ComponentDefinition } from "@/content/components/types";
 import type { XY } from "@/lib/graph";
 
 export type ContextMenuTarget =
@@ -41,6 +46,76 @@ function MenuItem({
   );
 }
 
+const FLYOUT_WIDTH = 190;
+
+/**
+ * A hover-opened nested panel, portaled to document.body and positioned off
+ * the trigger row's own measured rect (flips to the left edge if there's no
+ * room on the right) — same reasoning as PaletteItem's tooltip in
+ * Palette.tsx: a fixed-position ancestor can clip an in-flow flyout, so it
+ * can't just be an absolutely-positioned child. Used twice, nested: once for
+ * "Add component" -> category, again for category -> individual component,
+ * so a 27-item registry never renders as one flat scrolling list (see
+ * ContextMenu's pane case below).
+ */
+function Flyout({
+  icon: Icon,
+  iconColor,
+  label,
+  panel,
+}: {
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  iconColor?: string;
+  label: string;
+  panel: React.ReactNode;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  };
+  const open = () => {
+    cancelClose();
+    const rect = rowRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const fitsRight = rect.right + FLYOUT_WIDTH <= window.innerWidth;
+    setPos({ top: rect.top, left: fitsRight ? rect.right - 2 : rect.left - FLYOUT_WIDTH + 2 });
+  };
+  const scheduleClose = () => {
+    closeTimer.current = setTimeout(() => setPos(null), 120);
+  };
+
+  return (
+    <div ref={rowRef} onMouseEnter={open} onMouseLeave={scheduleClose}>
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm text-foreground hover:bg-border"
+      >
+        <span className="flex items-center gap-2">
+          <Icon size={14} style={iconColor ? { color: iconColor } : undefined} />
+          {label}
+        </span>
+        <ChevronRight size={12} className="text-foreground/40" />
+      </button>
+
+      {pos &&
+        createPortal(
+          <div
+            onMouseEnter={cancelClose}
+            onMouseLeave={scheduleClose}
+            className="fixed z-40 max-h-[70vh] min-w-[180px] overflow-y-auto rounded-md border border-border bg-panel py-1 shadow-lg"
+            style={{ top: pos.top, left: pos.left, width: FLYOUT_WIDTH }}
+          >
+            {panel}
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}
+
 /**
  * Right-click menu, shape depends on what was clicked. Delete was the
  * original (and only) option; this adds Duplicate, a Docs-tab shortcut,
@@ -64,6 +139,15 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
   const reverseEdge = useCanvasStore((s) => s.reverseEdge);
   const openDocsWindow = useCanvasStore((s) => s.openDocsWindow);
   const addNode = useCanvasStore((s) => s.addNode);
+  const addComment = useCanvasStore((s) => s.addComment);
+  const addStartMarker = useCanvasStore((s) => s.addStartMarker);
+  const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
+  // Custom components (see CreateComponentModal.tsx) live in the store as
+  // raw records, not the static registry array — combined here, same as
+  // Palette.tsx, so a newly-created component shows up in this list
+  // immediately too.
+  const customComponents = useCanvasStore((s) => s.customComponents);
+  const allComponents = [...componentRegistry, ...customComponents.map(toComponentDefinition)];
 
   if (!target) return null;
 
@@ -124,20 +208,58 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
 
         {target.type === "pane" && (
           <>
-            <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-foreground/70">
-              Add component
-            </div>
-            {componentRegistry.map((definition) => {
-              const Icon = iconMap[definition.icon] ?? Server;
-              return (
-                <MenuItem
-                  key={definition.id}
-                  icon={Icon}
-                  label={definition.label}
-                  onClick={act(() => addNode(definition, target.flowPosition))}
-                />
-              );
-            })}
+            <MenuItem
+              icon={MessageSquare}
+              label="Add comment here"
+              onClick={act(() => {
+                const id = addComment(target.flowPosition);
+                openAnnotationEditor(id, { x: target.x, y: target.y });
+              })}
+            />
+            <MenuItem
+              icon={Flag}
+              label="Add start marker here"
+              onClick={act(() => addStartMarker(target.flowPosition))}
+            />
+            <div className="my-1 border-t border-border" />
+            <Flyout
+              icon={Server}
+              label="Add component"
+              panel={
+                <>
+                  {categoryOrder
+                    .filter((category) => allComponents.some((d) => d.category === category))
+                    .map((category) => {
+                      const items = allComponents.filter(
+                        (d): d is ComponentDefinition => d.category === category,
+                      );
+                      return (
+                        <Flyout
+                          key={category}
+                          icon={Server}
+                          iconColor={categoryColorVar[category]}
+                          label={categoryLabel[category]}
+                          panel={
+                            <>
+                              {items.map((definition) => {
+                                const Icon = iconMap[definition.icon] ?? Server;
+                                return (
+                                  <MenuItem
+                                    key={definition.id}
+                                    icon={Icon}
+                                    label={definition.label}
+                                    onClick={act(() => addNode(definition, target.flowPosition))}
+                                  />
+                                );
+                              })}
+                            </>
+                          }
+                        />
+                      );
+                    })}
+                </>
+              }
+            />
           </>
         )}
       </div>

@@ -2,12 +2,15 @@
 
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Search, Server, SquareDashedBottom } from "lucide-react";
+import { Flag, MessageSquare, Pencil, Plus, Search, Server, SquareDashedBottom, Trash2 } from "lucide-react";
 import { componentRegistry } from "@/content/components/registry";
 import type { ComponentDefinition } from "@/content/components/types";
+import { toComponentDefinition, type CustomComponentRecord } from "@/content/components/custom";
+import { db } from "@/persistence/db";
 import { categoryColorVar, categoryLabel, categoryOrder } from "./category-colors";
 import { iconMap } from "./icon-map";
 import { useCanvasStore } from "./store";
+import { CreateComponentModal } from "./CreateComponentModal";
 
 /** The MIME type used to identify a drag as "a component from our palette"
  * vs. an arbitrary browser drag (e.g. dragging a link/image onto the page). */
@@ -19,7 +22,17 @@ const TOOLTIP_WIDTH = 176;
 // flip above it, not for exact layout.
 const TOOLTIP_EST_HEIGHT = 90;
 
-function PaletteItem({ definition }: { definition: ComponentDefinition }) {
+function PaletteItem({
+  definition,
+  isCustom,
+  onEdit,
+  onDelete,
+}: {
+  definition: ComponentDefinition;
+  isCustom?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}) {
   const Icon = iconMap[definition.icon] ?? Server;
   const color = categoryColorVar[definition.category];
   const boxRef = useRef<HTMLDivElement>(null);
@@ -58,8 +71,36 @@ function PaletteItem({ definition }: { definition: ComponentDefinition }) {
       ref={boxRef}
       onMouseEnter={showTooltip}
       onMouseLeave={() => setTooltipPos(null)}
-      className="flex flex-col items-center gap-1"
+      className="group/item relative flex flex-col items-center gap-1"
     >
+      {isCustom && (
+        <div className="absolute -right-1.5 -top-1.5 z-10 hidden gap-0.5 group-hover/item:flex">
+          <button
+            type="button"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit?.();
+            }}
+            aria-label={`Edit ${definition.label}`}
+            className="rounded border border-border bg-panel p-0.5 text-foreground/60 shadow-sm hover:text-foreground"
+          >
+            <Pencil size={10} />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.();
+            }}
+            aria-label={`Delete ${definition.label}`}
+            className="rounded border border-border bg-panel p-0.5 text-foreground/60 shadow-sm hover:text-state-error"
+          >
+            <Trash2 size={10} />
+          </button>
+        </div>
+      )}
       <div
         draggable
         onDragStart={(event) => {
@@ -97,6 +138,79 @@ function PaletteItem({ definition }: { definition: ComponentDefinition }) {
 }
 
 /**
+ * A toolbar button that's icon-only, always — no hover-expand width
+ * animation. Name + short description live together in a portaled hover
+ * tooltip (same positioning approach as PaletteItem's tooltip below) instead
+ * of the native `title` attribute, so the two can be styled distinctly
+ * (bold name, muted description) rather than a single plain-text line.
+ */
+function ToolbarButton({
+  icon: Icon,
+  label,
+  description,
+  active,
+  onClick,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  description: string;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+
+  const showTooltip = () => {
+    const rect = btnRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const center = rect.left + rect.width / 2;
+    const margin = 8;
+    const left = Math.min(
+      Math.max(center, TOOLTIP_WIDTH / 2 + margin),
+      window.innerWidth - TOOLTIP_WIDTH / 2 - margin,
+    );
+    setTooltipPos({ top: rect.bottom + 6, left });
+  };
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={onClick}
+        onMouseEnter={showTooltip}
+        onMouseLeave={() => setTooltipPos(null)}
+        aria-label={label}
+        className={`flex items-center justify-center rounded-md border p-1.5 ${
+          active
+            ? "border-foreground/40 text-foreground"
+            : "border-border text-foreground/60 hover:text-foreground"
+        }`}
+      >
+        <Icon size={14} className="shrink-0" />
+      </button>
+
+      {tooltipPos &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-50 rounded-md border border-border bg-panel px-2.5 py-2 shadow-lg"
+            style={{
+              top: tooltipPos.top,
+              left: tooltipPos.left,
+              width: TOOLTIP_WIDTH,
+              transform: "translateX(-50%)",
+            }}
+          >
+            <div className="text-xs font-semibold text-foreground">{label}</div>
+            <div className="mt-0.5 text-xs leading-snug text-foreground/70">{description}</div>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
+/**
  * A searchable grid, grouped by category, living inside the left panel (see
  * QuestionPanel.tsx) rather than a horizontal tray under the canvas. Each
  * card is icon+name only (Clapet-style) — the description moves to a
@@ -107,51 +221,103 @@ function PaletteItem({ definition }: { definition: ComponentDefinition }) {
  */
 export function Palette() {
   const [query, setQuery] = useState("");
-  const isPlacingZone = useCanvasStore((s) => s.isPlacingZone);
-  const setIsPlacingZone = useCanvasStore((s) => s.setIsPlacingZone);
+  const [modal, setModal] = useState<{ mode: "create" } | { mode: "edit"; record: CustomComponentRecord } | null>(
+    null,
+  );
+  const placementMode = useCanvasStore((s) => s.placementMode);
+  const setPlacementMode = useCanvasStore((s) => s.setPlacementMode);
+  const customComponents = useCanvasStore((s) => s.customComponents);
+  const upsertCustomComponent = useCanvasStore((s) => s.upsertCustomComponent);
+  const deleteCustomComponent = useCanvasStore((s) => s.deleteCustomComponent);
+  const togglePlacement = (mode: "zone" | "comment" | "start") =>
+    setPlacementMode(placementMode === mode ? null : mode);
+
+  const handleSave = (record: CustomComponentRecord) => {
+    void db.customComponents.put(record);
+    upsertCustomComponent(record);
+    setModal(null);
+  };
+
+  const handleDelete = (record: CustomComponentRecord) => {
+    void db.customComponents.delete(record.id);
+    deleteCustomComponent(record.id);
+  };
+
+  // Custom components (see CreateComponentModal.tsx) live in the store as
+  // raw editable records, not the static registry array — combined here so
+  // search/grouping treats both as one list, and a newly-created or edited
+  // component shows up immediately with no reload.
+  const customIds = useMemo(() => new Set(customComponents.map((r) => r.id)), [customComponents]);
+  const allComponents = useMemo(
+    () => [...componentRegistry, ...customComponents.map(toComponentDefinition)],
+    [customComponents],
+  );
 
   const grouped = useMemo(() => {
     const q = query.trim().toLowerCase();
     const matches = q
-      ? componentRegistry.filter(
+      ? allComponents.filter(
           (d) => d.label.toLowerCase().includes(q) || d.summary.toLowerCase().includes(q),
         )
-      : componentRegistry;
+      : allComponents;
     return categoryOrder
       .map((category) => ({ category, items: matches.filter((d) => d.category === category) }))
       .filter((g) => g.items.length > 0);
-  }, [query]);
+  }, [query, allComponents]);
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-3 pt-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 px-3 pt-3">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-foreground/60">Components</h2>
-        <button
-          onClick={() => setIsPlacingZone(!isPlacingZone)}
-          title="Visual grouping only — a zone doesn't move or reparent the components inside it"
-          className={`flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${
-            isPlacingZone
-              ? "border-foreground/40 text-foreground"
-              : "border-border text-foreground/60 hover:text-foreground"
-          }`}
-        >
-          <SquareDashedBottom size={12} />
-          {isPlacingZone ? "Cancel" : "Add zone"}
-        </button>
+        <div className="flex items-center gap-1">
+          <ToolbarButton
+            icon={SquareDashedBottom}
+            label={placementMode === "zone" ? "Cancel" : "Add zone"}
+            description="Visual grouping only — a zone doesn't move or reparent the components inside it"
+            active={placementMode === "zone"}
+            onClick={() => togglePlacement("zone")}
+          />
+          <ToolbarButton
+            icon={MessageSquare}
+            label={placementMode === "comment" ? "Cancel" : "Add comment"}
+            description="Add a free-floating comment note"
+            active={placementMode === "comment"}
+            onClick={() => togglePlacement("comment")}
+          />
+          <ToolbarButton
+            icon={Flag}
+            label={placementMode === "start" ? "Cancel" : "Add start"}
+            description="Add a start-here marker"
+            active={placementMode === "start"}
+            onClick={() => togglePlacement("start")}
+          />
+          <ToolbarButton
+            icon={Plus}
+            label="New component"
+            description="Create your own component"
+            onClick={() => setModal({ mode: "create" })}
+          />
+        </div>
       </div>
 
-      <div className="relative px-3 pt-2">
-        <Search size={14} className="absolute left-6 top-1/2 -translate-y-1/2 text-foreground/40" />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search components..."
-          className="w-full rounded-md border border-border bg-background py-1.5 pl-7 pr-2 text-sm outline-none focus:border-foreground/40"
-        />
+      <div className="px-3 pt-2">
+        {/* The icon centers against THIS relative wrapper's box — it must
+         * hug the input with no extra padding of its own, or `top-1/2`
+         * centers against the padded box instead of the input and the icon
+         * reads as vertically off relative to the placeholder text. */}
+        <div className="relative">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-foreground/40" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search components..."
+            className="w-full rounded-md border border-border bg-background py-1.5 pl-7 pr-2 text-sm outline-none focus:border-foreground/40"
+          />
+        </div>
       </div>
 
-      <div className="mt-2 flex-1 space-y-4 overflow-y-auto p-3">
+      <div className="mt-2 min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
         {grouped.length === 0 ? (
           <p className="text-sm text-foreground/70">No components match &ldquo;{query}&rdquo;.</p>
         ) : (
@@ -161,14 +327,45 @@ export function Palette() {
                 {categoryLabel[category]}
               </h3>
               <div data-palette-group className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-3">
-                {items.map((definition) => (
-                  <PaletteItem key={definition.id} definition={definition} />
-                ))}
+                {items.map((definition) => {
+                  const isCustom = customIds.has(definition.id);
+                  return (
+                    <PaletteItem
+                      key={definition.id}
+                      definition={definition}
+                      isCustom={isCustom}
+                      onEdit={
+                        isCustom
+                          ? () => {
+                              const record = customComponents.find((r) => r.id === definition.id);
+                              if (record) setModal({ mode: "edit", record });
+                            }
+                          : undefined
+                      }
+                      onDelete={
+                        isCustom
+                          ? () => {
+                              const record = customComponents.find((r) => r.id === definition.id);
+                              if (record) handleDelete(record);
+                            }
+                          : undefined
+                      }
+                    />
+                  );
+                })}
               </div>
             </div>
           ))
         )}
       </div>
+
+      {modal && (
+        <CreateComponentModal
+          onClose={() => setModal(null)}
+          onSave={handleSave}
+          initialRecord={modal.mode === "edit" ? modal.record : undefined}
+        />
+      )}
     </div>
   );
 }

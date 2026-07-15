@@ -25,8 +25,21 @@ describe("toArchitectureGraph", () => {
   });
 
   it("defaults edges with no data to request-flow", () => {
+    const nodes: ComponentNodeType[] = [
+      { id: "a", type: "component", position: { x: 0, y: 0 }, data: { componentId: "client", config: {} } },
+      { id: "b", type: "component", position: { x: 200, y: 0 }, data: { componentId: "client", config: {} } },
+    ];
     const edges: ArchitectureEdgeType[] = [{ id: "e1", source: "a", target: "b" }];
-    expect(toArchitectureGraph([], edges).edges[0].kind).toBe("request-flow");
+    expect(toArchitectureGraph(nodes, edges).edges[0].kind).toBe("request-flow");
+  });
+
+  it("drops edges where either endpoint isn't a real component node (e.g. a Start marker's connectable handle)", () => {
+    const nodes: ComponentNodeType[] = [
+      { id: "n1", type: "component", position: { x: 0, y: 0 }, data: { componentId: "client", config: {} } },
+    ];
+    // "s1" (a start marker, or any non-component id) isn't in `nodes` above.
+    const edges: ArchitectureEdgeType[] = [{ id: "e1", source: "s1", target: "n1" }];
+    expect(toArchitectureGraph(nodes, edges).edges).toHaveLength(0);
   });
 });
 
@@ -137,5 +150,46 @@ describe("delete undo safety net", () => {
     const state = useCanvasStore.getState();
     expect(state.pendingUndo).toBeNull();
     expect(state.nodes).toHaveLength(0);
+  });
+});
+
+describe("comment and start annotations", () => {
+  it("placementMode toggles independently of the three annotation types", () => {
+    useCanvasStore.getState().setPlacementMode("zone");
+    expect(useCanvasStore.getState().placementMode).toBe("zone");
+    useCanvasStore.getState().setPlacementMode("comment");
+    expect(useCanvasStore.getState().placementMode).toBe("comment");
+    useCanvasStore.getState().setPlacementMode("start");
+    expect(useCanvasStore.getState().placementMode).toBe("start");
+    useCanvasStore.getState().setPlacementMode(null);
+    expect(useCanvasStore.getState().placementMode).toBeNull();
+  });
+
+  it("addComment/addStartMarker add annotation nodes excluded from toArchitectureGraph", () => {
+    useCanvasStore.getState().loadCanvasState([], []);
+    useCanvasStore.getState().addComment({ x: 0, y: 0 });
+    useCanvasStore.getState().addStartMarker({ x: 10, y: 10 });
+
+    const state = useCanvasStore.getState();
+    expect(state.nodes.map((n) => n.type).sort()).toEqual(["comment", "start"]);
+
+    const graph = toArchitectureGraph(state.nodes, state.edges);
+    expect(graph.nodes).toHaveLength(0);
+  });
+
+  it("updateComment/updateStartMarker patch only the matching node's data", () => {
+    useCanvasStore.getState().loadCanvasState([], []);
+    useCanvasStore.getState().addComment({ x: 0, y: 0 });
+    useCanvasStore.getState().addStartMarker({ x: 10, y: 10 });
+
+    const [comment, start] = useCanvasStore.getState().nodes;
+    useCanvasStore.getState().updateComment(comment.id, { text: "check the source" });
+    useCanvasStore.getState().updateStartMarker(start.id, { label: "Entry point" });
+
+    const state = useCanvasStore.getState();
+    const updatedComment = state.nodes.find((n) => n.id === comment.id);
+    const updatedStart = state.nodes.find((n) => n.id === start.id);
+    expect(updatedComment?.type === "comment" && updatedComment.data.text).toBe("check the source");
+    expect(updatedStart?.type === "start" && updatedStart.data.label).toBe("Entry point");
   });
 });

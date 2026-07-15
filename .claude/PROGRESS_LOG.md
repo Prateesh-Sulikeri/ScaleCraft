@@ -821,3 +821,185 @@ remains next per `MILESTONES.md` — unaffected by this round's content-only wor
 these components by `availableComponentIds` — worth checking `MVP_SCOPE.md`'s two-chapter
 requirement against which of the 27 actually get used before assuming this closes that
 milestone. The `--zone` custom-property mystery remains open and untouched.
+
+---
+
+## 2026-07-15 (continued) — Nine UI/UX fixes across Home and Sandbox, six build groups plus two follow-up rounds
+
+Same date as the two entries above; this round lands after Milestone 4 (`4213f98`,
+already on `main`) and is entirely uncommitted working-tree state at logging time.
+Verified directly: `git status` (clean apart from this round), `git diff --stat` (17
+files modified, 722 insertions / 191 deletions), 8 new untracked files, and
+`git rev-list --left-right --count origin/main...HEAD` reports `0  0` — this branch is
+even with `origin/main`, so nothing from the prior two entries' "still unpushed" notes is
+outstanding anymore (those commits are already on `origin/main`) and none of this round
+has been committed at all yet. Every claim below was checked by reading the current file
+contents directly, not transcribed from the session's own account.
+
+**Verification run fresh this pass, not trusted from the session's report:**
+`npm run typecheck` — clean. `npm run lint` — one warning, exactly as claimed:
+`CreateComponentModal.tsx:112` flags `useForm()`'s `watch()` under
+`react-hooks/incompatible-library` (React Compiler can't memoize it safely); confirmed
+this is the same pre-existing pattern `ConfigForm.tsx` already uses, not a new problem
+class. `npm test -- --run` — **8 test files, 30 tests, all passing** (exactly the claimed
+25→30 delta). `npm run build` — Next.js 16.2.10 + Turbopack, compiled and generated all
+static routes (`/`, `/_not-found`, `/apple-icon.png`, `/icon.png`, `/sandbox`) cleanly.
+
+**Group 1 (Home polish) — confirmed in `ModeNode.tsx`/`HomeTitleNode.tsx`/
+`sandbox/page.tsx`.** The Sandbox card's `<Link>` (the only mode with an `href` — the
+other two render as a plain disabled `<div>`, confirmed in `HomeCanvas.tsx`'s node data)
+carries both `border border-border` (solid) and the pre-existing animated dashed-SVG
+accent rendered inside it — the double-border claim holds, and `hover:scale-[1.03]
+motion-reduce:hover:scale-100` is present only on that `<Link>` branch, never on the
+disabled-card branch, so it's Sandbox-only as claimed. `public/logo-mask.png` exists,
+confirmed via `file` as a genuine `256x256 RGBA` PNG with an alpha channel (22.5KB,
+timestamped 11:47 same day, newer than `logo-mark.png`'s 23:49 the prior evening) —
+consistent with being freshly generated this session, not a stray leftover. Both
+`HomeTitleNode.tsx` and `sandbox/page.tsx`'s header apply it via `WebkitMaskImage`/
+`maskImage: url(/logo-mask.png)` + `backgroundColor: var(--foreground)`, exactly as
+described. `HomeTitleNode.tsx`'s subheading reads verbatim "Design real systems.
+Understand every trade-off." `sandbox/page.tsx`'s header logo+title is wrapped in a real
+`next/link` `<Link href="/">`.
+
+**Group 2 (sidebar collapse animation) — confirmed in `QuestionPanel.tsx`/
+`NodeInspector.tsx`.** Both are now a single persistent `<aside>` with
+`style={{ width: collapsed ? COLLAPSED_WIDTH : width }}` and
+`transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none`;
+inner content cross-fades via `opacity-0`/`pointer-events-none` vs. `opacity-100` on a
+150ms transition. This is a genuinely new pattern in this codebase — no prior entry in
+this log, and no code in the current tree apart from these two files, uses a CSS
+`transition` on a collapse toggle; every earlier collapsible panel (Palette's old
+collapse, per the 2026-07-13 entries) was a hard conditional swap. `QuestionPanel.tsx`
+gained a `Home` icon `<Link href="/">` in its header, present in both the expanded
+(`justify-between`) and collapsed (`flex-col gap-3`) layouts. **Follow-up fix confirmed
+exact**: `NodeInspector.tsx` line 49 now reads
+`` collapsed ? "justify-center" : "justify-end px-3" `` — centered only when collapsed,
+right-aligned when expanded, matching the reported regression and its fix precisely.
+
+**Group 3 (About window) — confirmed in `AboutButton.tsx`/`page.tsx`.** `AboutButton.tsx`
+is a thin wrapper: an "About" trigger button that swaps to a mounted `<DocsModal
+title="About ScaleCraft" docs={ABOUT_TEXT} .../>` — `DocsModal` itself has zero diff (not
+in `git status`'s modified list), confirming it needed no changes. Mounted via
+`page.tsx`'s `absolute bottom-6 left-6` div — Home only; not present in `sandbox/page.tsx`.
+
+**Group 4 (loading transition) — confirmed in `LoadingTransition.tsx`/`sandbox/loading.tsx`.**
+`MIN_VISIBLE_MS = 2000` (the claimed 400ms→2000ms follow-up change) is the literal
+constant in the file today. The component reads `useLinkStatus()` and is mounted as a
+child of `ModeNode`'s real Sandbox `<Link>`; a `visible` state plus a `shownAtRef`
+timestamp enforces the minimum-visible window entirely inside effects/callbacks (no
+`Date.now()` read during render), exactly as the code comment claims React's purity rules
+require. `sandbox/loading.tsx` exists, uses `flex-1 flex-col` (not `h-full`) with an
+explanatory comment citing the same `h-full`-vs-`flex-1` gotcha already logged elsewhere
+in this file (HomeCanvas.tsx's own comment references the identical issue) — consistent,
+not a one-off claim. `globals.css`'s `@keyframes sweep` (lines 92-99) is confirmed the
+**only** `@keyframes` block in the file (`grep -n "@keyframes"` returns exactly one hit),
+supporting the claim it's the first native keyframe animation this codebase's own CSS has
+ever defined (xyflow's own `dashdraw` keyframe, reused elsewhere, ships inside the
+library's stylesheet, not this file).
+
+**Group 5 (comment/start annotations) — confirmed across `types.ts`, `store.ts`,
+`CommentNode.tsx`, `StartNode.tsx`, `Canvas.tsx`, `ContextMenu.tsx`, `Palette.tsx`.**
+`AnyNodeType` is now `ComponentNodeType | ZoneNodeType | CommentNodeType | StartNodeType`.
+`CommentNode.tsx` uses `border-blue-500/50 bg-blue-500/5` — confirmed a generic Tailwind
+blue, not `--category-networking`, with the file's own comment stating that was
+deliberate. `store.ts`'s `PlacementMode` is `"zone" | "comment" | "start" | null`, with
+`addComment`/`updateComment`/`addStartMarker`/`updateStartMarker` mirroring `addZone`/
+`updateZone` exactly. **The Start-node upgrade to a real connectable node is confirmed
+precisely as described**: `StartNode.tsx` renders an actual `<Handle type="source"
+position={Position.Right} />`, and `store.ts`'s `toArchitectureGraph` (lines 520-541) now
+builds a `componentIds` set from real component nodes and filters
+`edges.filter((e) => componentIds.has(e.source) && componentIds.has(e.target))` before
+mapping to the domain graph — exactly the "both source and target must be real component
+nodes" fix claimed. `store.test.ts` has both the new regression test ("drops edges where
+either endpoint isn't a real component node") and the previously-broken
+"defaults edges with no data to request-flow" test, now fixed to use two nodes (`"a"`,
+`"b"`) that actually exist in its own fixture rather than referencing ids absent from
+`nodes` — confirmed this exact fix by reading the test body. `Canvas.tsx`'s
+`startPlacementDrag` branches cleanly on `placementMode` (`"start"` places immediately on
+mousedown with no drag rectangle; `"zone"`/`"comment"` share the drag-to-draw path via
+`ANNOTATION_DEFAULTS`), and `ContextMenu.tsx`'s pane-type menu now offers "Add comment
+here"/"Add start marker here" alongside the existing per-component quick-add list.
+
+**Group 6 (custom component creation) — confirmed across `custom.ts`,
+`CreateComponentModal.tsx`, `db.ts`, `registry.ts`, `Palette.tsx`, `store.ts`.**
+`custom.ts` defines `CustomFieldSpec` as a 4-way discriminated union (string/number/
+boolean/enum) and `toComponentDefinition()` builds a live `ComponentDefinition` via
+`z.object(shape)` assembled field-by-field at runtime — confirmed Zod schemas are
+constructed as ordinary values here, no static-only trick. `CreateComponentModal.tsx`
+takes an optional `initialRecord` prop; when present, `useForm`'s `defaultValues` are
+built from it (including `fields.map(specToFormValue)`, a documented reverse of the
+submit-time narrowing), the submit button reads "Save changes" vs. "Create component",
+and the built record reuses `initialRecord?.id` instead of minting a new UUID — the
+edit-mode claim holds exactly. `db.ts`'s `ScaleCraftDB` constructor confirmed as: `version(1)`
+with only `saves`, then `version(2)` adding `customComponents` alongside `saves` again
+(Dexie's own list-every-table-at-this-version convention) — `git log --follow -p` on this
+file shows only that one prior `version(1)` ever existed, confirming this actually is the
+first schema bump in the file's history, not just an unverified claim. **Key architecture
+decision confirmed**: `registry.ts`'s `getAllComponents()`/`getComponent()` derive a
+`ComponentDefinition` from a `CustomComponentRecord` on demand via `toComponentDefinition`
+— `Canvas.tsx`'s `nodeTypes` map is unchanged (still just `component`/`zone`/`comment`/
+`start`), confirming a custom component really does render through the stock
+`ComponentNode.tsx` with no new node type. The store's `customComponents` field is typed
+`CustomComponentRecord[]` (raw, editable), not derived definitions — confirmed in
+`store.ts`'s own inline comment explaining why (a placed Zod schema instance can't be
+un-rendered back into editable field specs). `Palette.tsx` combines
+`[...componentRegistry, ...customComponents.map(toComponentDefinition)]` into one
+searchable/grouped list, and its `PaletteItem` renders hover-revealed Pencil/Trash2
+buttons gated on an `isCustom` flag (derived from `customIds`, a `Set` of the store's
+custom-record ids) — built-in tiles get neither button, confirmed by the conditional
+`onEdit`/`onDelete` props. `db.test.ts` has a new `customComponents` round-trip test
+(`"round-trips a custom component record through IndexedDB (schema v2)"`); `store.test.ts`
+has a new `"comment and start annotations"` describe block covering `placementMode`
+toggling and `addComment`/`addStartMarker`/`updateComment`/`updateStartMarker`.
+
+**Additional follow-up fixes — both confirmed landed.** (a) `NodeInspector.tsx`'s
+collapse-toggle `justify-center`/`justify-end` fix — see Group 2 above, confirmed exact.
+(b) The four Palette toolbar buttons ("Add zone"/"Add comment"/"Add start"/"New
+component") are now unified through one new `ToolbarButton` component (confirmed in
+`Palette.tsx`, lines ~148-179): icon-only at rest, `hover:pr-2.5 hover:gap-1.5` plus a
+label `<span>` transitioning `max-width` from `0` to `120px` on `group-hover`, all with
+`motion-reduce` fallbacks that skip straight to the open state, plus a native `title`
+attribute carrying a longer description than the inline label. All four call sites in
+`Palette.tsx` use this same component — the old "Add zone"-only-has-a-permanent-label
+asymmetry is gone.
+
+**graphify/impeccable housekeeping — confirmed independently, not just taken as
+reported.** `graphify --version` in this environment reports `0.9.16` (matches the
+claimed 0.9.15→0.9.16 upgrade). `npx impeccable check` (run from `~`, since the skill is
+installed globally, matching the session's own note about where it lives) reports
+"Skills are up to date (v3.9.1)" — matches the claim exactly, no action needed.
+
+**Real headless-browser verification — reported by the session, not independently
+re-driven in this logging pass** (no active browser session existed when this entry was
+written; consistent with this file's established convention of flagging such claims
+rather than re-doing the `apt-get download`/`dpkg-deb -x`/`LD_LIBRARY_PATH` workaround
+purely to re-confirm what static inspection above already corroborates line-by-line):
+logo fix in both themes, hover-scale, the sidebar collapse animation sampled mid-transition
+via `getComputedStyle`, the About window, the loading transition resolving correctly under
+a realistic throttle (after an unrealistically severe first throttle attempt was misread
+as a hang), comment/start placement via both the palette buttons and the pane right-click
+menu, a full custom-component create → palette → place → configure → Save → real
+`page.reload()` → survives round trip (custom definition, placed instance, Start marker,
+and comment note all confirmed present after reload), and an edit/delete pass (rename
+visible immediately in the palette, then deleted and confirmed gone). The HTML5-drag-
+from-palette limitation (Playwright can't reliably simulate native HTML5 DnD, so the pane
+right-click path was used instead to exercise the same `addNode` code) is a known
+tooling limitation, not something checkable from the repo alone, and is taken as reported.
+
+**Repo state:** working tree **not clean** — this entire round (Groups 1-6 plus both
+follow-up fixes) is uncommitted. `git status` shows 17 modified files (`HomeCanvas.tsx`,
+`HomeTitleNode.tsx`, `ModeNode.tsx`, `QuestionPanel.tsx`, `globals.css`, `page.tsx`,
+`sandbox/page.tsx`, `Canvas.tsx`, `ContextMenu.tsx`, `NodeInspector.tsx`, `Palette.tsx`,
+`store.test.ts`, `store.ts`, `types.ts`, `registry.ts`, `db.test.ts`, `db.ts`) and 8
+untracked new files (`public/logo-mask.png`, `AboutButton.tsx`, `LoadingTransition.tsx`,
+`sandbox/loading.tsx`, `CommentNode.tsx`, `CreateComponentModal.tsx`, `StartNode.tsx`,
+`content/components/custom.ts`). No commit hashes exist for any of this yet.
+`origin/main` and local `HEAD` are even (`4213f98`, the Milestone 4 commit from the prior
+entry) — this round sits entirely on top of that as unstaged/untracked changes.
+
+**Next steps:** commit this round once the user gives the go-ahead (nothing here has been
+committed or pushed). Milestone 5 (Stronger validation agent) is next per
+`.claude/docs/MILESTONES.md`'s sequencing and is unaffected by this round's UI/UX-only
+work — none of Groups 1-6 touch `src/validation-engine/`. The `--zone` custom-property
+value (`#ff3483` fallback, confirmed still present in `Canvas.tsx`'s preview-rect styling)
+remains unchanged and untouched by this round.
