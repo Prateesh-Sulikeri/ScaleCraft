@@ -153,6 +153,69 @@ describe("delete undo safety net", () => {
   });
 });
 
+describe("clearBoard / snapshotForUndo (replace-mode undo)", () => {
+  it("clearBoard wipes nodes/edges and undoLastDelete restores exactly the pre-clear state", () => {
+    const client: ComponentNodeType = {
+      id: "n1",
+      type: "component",
+      position: { x: 0, y: 0 },
+      data: { componentId: "client", config: {} },
+    };
+    const edges: ArchitectureEdgeType[] = [{ id: "e1", source: "n1", target: "n1" }];
+    useCanvasStore.getState().loadCanvasState([client], edges);
+
+    useCanvasStore.getState().clearBoard();
+    let state = useCanvasStore.getState();
+    expect(state.nodes).toHaveLength(0);
+    expect(state.edges).toHaveLength(0);
+    expect(state.pendingUndo?.label).toBe("Board cleared");
+    expect(state.pendingUndo?.mode).toBe("replace");
+
+    useCanvasStore.getState().undoLastDelete();
+    state = useCanvasStore.getState();
+    expect(state.nodes.map((n) => n.id)).toEqual(["n1"]);
+    expect(state.edges.map((e) => e.id)).toEqual(["e1"]);
+    expect(state.pendingUndo).toBeNull();
+  });
+
+  it("clearBoard on an already-empty board is a no-op (no pendingUndo set)", () => {
+    useCanvasStore.getState().loadCanvasState([], []);
+    useCanvasStore.getState().clearBoard();
+    expect(useCanvasStore.getState().pendingUndo).toBeNull();
+  });
+
+  it("snapshotForUndo followed by loadCanvasState (restore-last-save) undoes back to the pre-restore state, not a merge of both", () => {
+    const original: ComponentNodeType = {
+      id: "n1",
+      type: "component",
+      position: { x: 0, y: 0 },
+      data: { componentId: "client", config: {} },
+    };
+    useCanvasStore.getState().loadCanvasState([original], []);
+
+    const restored: ComponentNodeType = {
+      id: "n2",
+      type: "component",
+      position: { x: 100, y: 0 },
+      data: { componentId: "sql-database", config: {} },
+    };
+    // Mirrors BoardMenu's "Restore last save" handler: snapshot the current
+    // (unsaved) state, then overwrite with the saved one.
+    useCanvasStore.getState().snapshotForUndo("Restore reverted");
+    useCanvasStore.getState().loadCanvasState([restored], []);
+
+    let state = useCanvasStore.getState();
+    expect(state.nodes.map((n) => n.id)).toEqual(["n2"]);
+    expect(state.pendingUndo?.mode).toBe("replace");
+
+    useCanvasStore.getState().undoLastDelete();
+    state = useCanvasStore.getState();
+    // Must revert to exactly the pre-restore state — a merge would leave
+    // both n1 and n2 on the board.
+    expect(state.nodes.map((n) => n.id)).toEqual(["n1"]);
+  });
+});
+
 describe("comment and start annotations", () => {
   it("placementMode toggles independently of the three annotation types", () => {
     useCanvasStore.getState().setPlacementMode("zone");

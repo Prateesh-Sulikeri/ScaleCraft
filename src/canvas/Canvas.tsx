@@ -118,6 +118,10 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   const setSelectedNodeId = useCanvasStore((s) => s.setSelectedNodeId);
 
   const [menu, setMenu] = useState<ContextMenuTarget | null>(null);
+  // Set on pointerdown on a handle, before any drag motion — disables
+  // selectionOnDrag for the gesture's whole duration so a connection drag
+  // that passes over an intervening node never also starts a selection box.
+  const [isConnecting, setIsConnecting] = useState(false);
   const [previewRect, setPreviewRect] = useState<{
     left: number;
     top: number;
@@ -306,6 +310,8 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectStart={() => setIsConnecting(true)}
+        onConnectEnd={() => setIsConnecting(false)}
         onEdgeClick={(_, edge) => {
           setSelectedEdgeId(edge.id);
           setSelectedNodeId(null);
@@ -346,7 +352,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
           });
         }}
         deleteKeyCode={["Backspace", "Delete"]}
-        selectionOnDrag
+        selectionOnDrag={!isConnecting}
         panOnDrag={[1]}
         proOptions={{ hideAttribution: true }}
         minZoom={0.25}
