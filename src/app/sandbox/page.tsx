@@ -10,6 +10,7 @@ import { UndoToast } from "@/app/UndoToast";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { ValidationIndicator } from "@/app/ValidationIndicator";
 import { ExportMenu } from "@/app/ExportMenu";
+import { BoardMenu } from "@/app/BoardMenu";
 import { QuestionPanel } from "@/app/QuestionPanel";
 import { ModeBadge } from "@/app/ModeBadge";
 import { PageEnter } from "@/app/PageEnter";
@@ -191,6 +192,7 @@ export default function SandboxPage() {
             </button>
           </div>
           <ExportMenu canvasRef={canvasRef} />
+          <BoardMenu />
           <div className="flex flex-col items-end">
             <button
               onClick={() => importInputRef.current?.click()}

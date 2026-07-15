@@ -69,6 +69,21 @@ don't).
   lives as versioned TypeScript/JSON in the repo, not a database or CMS.
 - Before writing code against an open question in `OPEN_QUESTIONS.md`, check its
   "trigger" — most are deliberately deferred and shouldn't block MVP work.
+- Before non-trivial decisions, consult the relevant skill instead of exploring from
+  scratch — `graphify` for codebase/architecture questions, `impeccable` for
+  frontend/UI design decisions. A scoped skill query is cheaper (in tokens and time)
+  than ad hoc grepping or unguided design reasoning.
+
+### Git branching
+
+- `origin` has two long-lived branches: `main` and `development`. `development` is the
+  integration branch going forward — new work starts there, not on `main`.
+- Every new unit of work (feature/fix/task) gets its own branch, branched from
+  `development`.
+- Claude pushes that branch to origin but does **not** merge it — merging into
+  `development` and eventually `main` is done by the user, manually.
+- Claude does not push directly to `main` going forward, and does not open or merge
+  PRs, unless explicitly asked.
 
 ## graphify
 
