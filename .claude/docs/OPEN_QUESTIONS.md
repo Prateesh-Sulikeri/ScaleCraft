@@ -64,3 +64,15 @@ in `src/canvas/Canvas.tsx` as of milestone 1. xyflow's terms permit this without
 subscription for non-commercial projects — true of the closed beta right now. **Trigger:**
 re-check xyflow's current terms before any monetized/public launch; either the terms
 still cover it, a Pro subscription needs purchasing, or the attribution needs restoring.
+
+**Custom component contract authoring as a paid tier.** Custom, user-authored components
+(`src/content/components/custom.ts`) deliberately have no UI for declaring their own
+relational contract (see `ComponentRelations` in `content/components/types.ts`) — they
+fall back to the coarse category-level checks in `canvas/legal-edge-kinds.ts` instead.
+Floated as a possible future paid feature rather than something to build now: there's no
+monetization model, billing infra, or pricing decision anywhere in this project yet (see
+"Vercel plan timing" and "Public launch access model" above), and building the authoring
+UI ahead of that would be scope creep beyond what a learner customizing a component
+actually needs today. **Trigger:** if/when a monetization model exists at all, or if
+users start visibly running into the coarse-fallback ceiling often enough that it's a
+real, requested gap rather than a hypothetical one.

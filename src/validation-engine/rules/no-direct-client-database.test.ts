@@ -15,6 +15,7 @@ describe("noDirectClientDatabase", () => {
         { id: "e1", source: "client-1", target: "app-1", kind: "request-flow" },
         { id: "e2", source: "app-1", target: "db-1", kind: "request-flow" },
       ],
+      entryPointIds: [],
     };
 
     expect(runValidation(graph, [noDirectClientDatabase])).toHaveLength(0);
@@ -24,6 +25,7 @@ describe("noDirectClientDatabase", () => {
     const graph: ArchitectureGraph = {
       nodes: [client, db],
       edges: [{ id: "e1", source: "client-1", target: "db-1", kind: "request-flow" }],
+      entryPointIds: [],
     };
 
     const violations = runValidation(graph, [noDirectClientDatabase]);
@@ -32,12 +34,14 @@ describe("noDirectClientDatabase", () => {
     expect(violations[0].offendingNodeIds).toEqual(["client-1", "db-1"]);
   });
 
-  it("does not flag a non-request-flow edge from client to database", () => {
+  it("also flags a non-request-flow edge from client to database (evasion-proof)", () => {
     const graph: ArchitectureGraph = {
       nodes: [client, db],
       edges: [{ id: "e1", source: "client-1", target: "db-1", kind: "control" }],
+      entryPointIds: [],
     };
 
-    expect(runValidation(graph, [noDirectClientDatabase])).toHaveLength(0);
+    const violations = runValidation(graph, [noDirectClientDatabase]);
+    expect(violations).toHaveLength(1);
   });
 });

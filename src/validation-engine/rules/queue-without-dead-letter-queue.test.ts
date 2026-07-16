@@ -11,7 +11,7 @@ describe("queueWithoutDeadLetterQueue", () => {
       position: { x: 0, y: 0 },
       config: { deliveryGuarantee: "at-least-once" },
     };
-    const graph: ArchitectureGraph = { nodes: [queue], edges: [] };
+    const graph: ArchitectureGraph = { nodes: [queue], edges: [], entryPointIds: [] };
 
     const violations = runValidation(graph, [queueWithoutDeadLetterQueue]);
     expect(violations).toHaveLength(1);
@@ -30,6 +30,7 @@ describe("queueWithoutDeadLetterQueue", () => {
     const graph: ArchitectureGraph = {
       nodes: [queue, dlq],
       edges: [{ id: "e1", source: "q-1", target: "dlq-1", kind: "async" }],
+      entryPointIds: [],
     };
 
     expect(runValidation(graph, [queueWithoutDeadLetterQueue])).toHaveLength(0);
@@ -42,7 +43,7 @@ describe("queueWithoutDeadLetterQueue", () => {
       position: { x: 0, y: 0 },
       config: { deliveryGuarantee: "at-most-once" },
     };
-    const graph: ArchitectureGraph = { nodes: [queue], edges: [] };
+    const graph: ArchitectureGraph = { nodes: [queue], edges: [], entryPointIds: [] };
 
     expect(runValidation(graph, [queueWithoutDeadLetterQueue])).toHaveLength(0);
   });

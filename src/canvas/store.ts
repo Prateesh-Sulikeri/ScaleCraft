@@ -26,10 +26,31 @@ import { DEFAULT_ZONE_COLOR, DEFAULT_COMMENT_COLOR } from "./annotation-colors";
  * logic branches once instead of tripling itself per annotation type. */
 export type PlacementMode = "zone" | "comment" | "start" | null;
 
+/** Color + line pattern per kind (see globals.css's --edge-* tokens) — two
+ * redundant channels so kind is legible even for colorblind users or at
+ * small canvas scale, not color alone. Animation stays request-flow-only:
+ * it communicates "this is the live path," a real state distinction, not
+ * decoration (see DESIGN_LANGUAGE.md's motion principle). */
+const EDGE_COLOR_VAR: Record<EdgeKind, string> = {
+  "request-flow": "var(--edge-request-flow)",
+  control: "var(--edge-control)",
+  replication: "var(--edge-replication)",
+  async: "var(--edge-async)",
+};
+
+const EDGE_DASH_ARRAY: Partial<Record<EdgeKind, string>> = {
+  control: "2 3",
+  replication: "6 3",
+  async: "3 6",
+};
+
 function edgeStyle(kind: EdgeKind) {
   return {
     animated: kind === "request-flow",
-    style: kind !== "request-flow" ? { strokeDasharray: "4 4" } : undefined,
+    style: {
+      stroke: EDGE_COLOR_VAR[kind],
+      ...(EDGE_DASH_ARRAY[kind] ? { strokeDasharray: EDGE_DASH_ARRAY[kind] } : {}),
+    },
   };
 }
 
@@ -158,7 +179,14 @@ type CanvasStore = {
   closeAnnotationEditor: () => void;
   onNodesChange: (changes: NodeChange<AnyNodeType>[]) => void;
   onEdgesChange: (changes: EdgeChange<ArchitectureEdgeType>[]) => void;
-  onConnect: (connection: Connection) => void;
+  /** `kind` is optional so any direct caller (tests, etc.) still gets the
+   * old always-request-flow behavior — Canvas.tsx's onConnect wrapper is
+   * what actually computes a category-aware default via
+   * canvas/legal-edge-kinds.ts's pickDefaultKind before calling this,
+   * rather than this store method reaching into the component registry
+   * itself (which would import registry.ts, which itself imports this
+   * store for custom components — see Canvas.tsx's onConnect wrapper). */
+  onConnect: (connection: Connection, kind?: EdgeKind) => void;
   setEdgeKind: (edgeId: string, kind: EdgeKind) => void;
   setSelectedEdgeId: (id: string | null) => void;
   setSelectedNodeId: (id: string | null) => void;
@@ -384,14 +412,14 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     });
   },
 
-  onConnect: (connection) => {
+  onConnect: (connection, kind = "request-flow") => {
     set((state) => ({
       edges: rfAddEdge<ArchitectureEdgeType>(
         {
           ...connection,
           id: crypto.randomUUID(),
-          data: { kind: "request-flow" },
-          ...edgeStyle("request-flow"),
+          data: { kind },
+          ...edgeStyle(kind),
         },
         state.edges,
       ),
@@ -613,6 +641,13 @@ export function toArchitectureGraph(
   const componentNodes = nodes.filter((n): n is ComponentNodeType => n.type === "component");
   const componentIds = new Set(componentNodes.map((n) => n.id));
   const componentEdges = edges.filter((e) => componentIds.has(e.source) && componentIds.has(e.target));
+  // A Start marker's targetId is a canvas-only pointer, never a real edge
+  // (see the comment above) — surfaced separately so an orphan check can
+  // treat the node it points at as connected without needing a fake edge.
+  const entryPointIds = nodes
+    .filter((n): n is AnyNodeType & { type: "start"; data: StartNodeData } => n.type === "start")
+    .map((n) => n.data.targetId)
+    .filter((id): id is string => typeof id === "string" && componentIds.has(id));
   return {
     nodes: componentNodes.map((n) => ({
       id: n.id,
@@ -626,5 +661,6 @@ export function toArchitectureGraph(
       target: e.target,
       kind: e.data?.kind ?? "request-flow",
     })),
+    entryPointIds,
   };
 }

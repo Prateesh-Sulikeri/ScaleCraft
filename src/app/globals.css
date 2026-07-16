@@ -24,6 +24,19 @@
   --category-messaging: #ec4899; /* pink */
   --category-distributed-systems: #ef4444; /* red */
 
+  /* EdgeKind colors — identity of a connection, not a node, so this is a
+   * separate channel from category colors above rather than a collision
+   * with them (see DESIGN_LANGUAGE.md's two-channel discipline — the rule
+   * is "never collide on the same node," and an edge is never a node).
+   * Paired with a distinct line pattern per kind (see canvas/store.ts's
+   * edgeStyle()) as a second, redundant signal for colorblind legibility.
+   * First-pass default hues, not final — see
+   * .claude/docs/validation_agent_design.md, open question 1. */
+  --edge-request-flow: #22d3ee; /* cyan — solid + animated, the primary path */
+  --edge-control: #94a3b8; /* slate — muted, non-blocking signal */
+  --edge-replication: #14b8a6; /* teal — data-sync back-edge */
+  --edge-async: #d946ef; /* fuchsia — queued/event-driven */
+
   /* Validation state colors — status, layered as a ring/border, never a fill. */
   --state-valid: #22c55e;
   --state-warning: #f59e0b;
@@ -66,6 +79,11 @@
   --color-category-caching: var(--category-caching);
   --color-category-messaging: var(--category-messaging);
   --color-category-distributed-systems: var(--category-distributed-systems);
+
+  --color-edge-request-flow: var(--edge-request-flow);
+  --color-edge-control: var(--edge-control);
+  --color-edge-replication: var(--edge-replication);
+  --color-edge-async: var(--edge-async);
 
   --color-state-valid: var(--state-valid);
   --color-state-warning: var(--state-warning);

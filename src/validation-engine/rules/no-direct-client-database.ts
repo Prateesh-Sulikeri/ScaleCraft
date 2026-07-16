@@ -5,6 +5,15 @@ import type { ValidationRule } from "../types";
  * The exact example from INITIAL_THOUGHTS.md's "Validation Philosophy"
  * section — kept as the canonical reference implementation for what a rule
  * should look like.
+ *
+ * Deliberately checks ANY edge kind, not just "request-flow" — an earlier
+ * version filtered on `e.kind === "request-flow"`, which meant the same
+ * illegal connection could dodge this rule entirely by picking "control" or
+ * "async" instead (the exact evasion bug reported in milestone 5; see
+ * .claude/docs/validation_agent_design.md, section 3.4). There is no
+ * legitimate EdgeKind for a Client to reach a Database directly — even a
+ * "replication" edge would be a database-to-database concept, never
+ * client-to-database — so no kind filter belongs here at all.
  */
 export const noDirectClientDatabase: ValidationRule = {
   id: "no-direct-client-database",
@@ -20,12 +29,7 @@ export const noDirectClientDatabase: ValidationRule = {
     );
 
     return graph.edges
-      .filter(
-        (e) =>
-          e.kind === "request-flow" &&
-          clientIds.has(e.source) &&
-          databaseIds.has(e.target),
-      )
+      .filter((e) => clientIds.has(e.source) && databaseIds.has(e.target))
       .map((e) => ({
         offendingNodeIds: [e.source, e.target],
         offendingEdgeIds: [e.id],

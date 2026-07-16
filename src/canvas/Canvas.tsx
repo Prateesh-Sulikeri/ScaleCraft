@@ -19,11 +19,13 @@ import {
   getNodesBounds,
   getViewportForBounds,
   useReactFlow,
+  type Connection,
 } from "@xyflow/react";
 import { toJpeg, toPng } from "html-to-image";
 import { useTheme } from "next-themes";
 import { useHasMounted } from "@/lib/use-has-mounted";
 import { getComponent } from "@/content/components/registry";
+import { pickDefaultKind } from "./legal-edge-kinds";
 import { ComponentNode } from "./ComponentNode";
 import { ZoneNode } from "./ZoneNode";
 import { CommentNode } from "./CommentNode";
@@ -106,7 +108,26 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   const edges = useCanvasStore((s) => s.edges);
   const onNodesChange = useCanvasStore((s) => s.onNodesChange);
   const onEdgesChange = useCanvasStore((s) => s.onEdgesChange);
-  const onConnect = useCanvasStore((s) => s.onConnect);
+  const storeOnConnect = useCanvasStore((s) => s.onConnect);
+  /** Picks a category-aware default kind instead of always hardcoding
+   * request-flow — reconciles the connect gesture with
+   * legal-edge-kinds.ts's matrix (see .claude/docs/validation_agent_design.md,
+   * section 2.3): without this, a new edge into a pair where request-flow
+   * isn't legal would trip illegal-edge-kind.ts immediately, before the user
+   * has done anything. Falls back to the store's own "request-flow" default
+   * if either endpoint isn't a real component (e.g. mid-drag onto empty
+   * canvas never fires onConnect anyway, but this stays safe regardless). */
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      const sourceNode = storeNodes.find((n) => n.id === connection.source);
+      const targetNode = storeNodes.find((n) => n.id === connection.target);
+      const sourceDef = sourceNode?.type === "component" ? getComponent(sourceNode.data.componentId) : undefined;
+      const targetDef = targetNode?.type === "component" ? getComponent(targetNode.data.componentId) : undefined;
+      const kind = sourceDef && targetDef ? pickDefaultKind(sourceDef.category, targetDef.category) : undefined;
+      storeOnConnect(connection, kind);
+    },
+    [storeNodes, storeOnConnect],
+  );
   const addNode = useCanvasStore((s) => s.addNode);
   const addZone = useCanvasStore((s) => s.addZone);
   const addComment = useCanvasStore((s) => s.addComment);
@@ -265,7 +286,11 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
           sourceHandle: "start-source",
           target: (n as Extract<AnyNodeType, { type: "start" }>).data.targetId!,
           targetHandle: "start-target",
-          type: "straight",
+          // No explicit `type` — falls back to React Flow's default bezier
+          // edge, same as every real edge (none of them set `type` either).
+          // Previously hardcoded to "straight", which is exactly why this
+          // pointer looked visually distinct (sharp, fixed-angle) from
+          // every other connection on the canvas.
           selectable: false,
           deletable: false,
           focusable: false,

@@ -171,6 +171,18 @@ export function CreateComponentModal({ onClose, onSave, initialRecord }: CreateC
         </div>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-3 overflow-y-auto p-4">
+          {/* Honest scope-setting, not hedging — custom components genuinely
+           * get less validation than built-in ones (no per-component
+           * relational contract, no id-specific rules like the DLQ/read-replica
+           * checks), and that's worth surfacing rather than leaving users to
+           * discover it as an unexplained gap. See
+           * .claude/docs/validation_agent_design.md and OPEN_QUESTIONS.md's
+           * entry on custom-component contract authoring. */}
+          <p className="text-xs text-foreground/50">
+            Custom components get general validation only (connectivity, category
+            compatibility) — not the specific rules built-in components have.
+          </p>
+
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-foreground/60">Label</span>
             <input {...register("label")} placeholder="e.g. Rate Limiter" className={inputClass} />
