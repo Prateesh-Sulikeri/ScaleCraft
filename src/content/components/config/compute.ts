@@ -13,11 +13,20 @@ export default [
     ],
     summary: "Runs business logic and enforces access control",
     docs: "Runs application logic: authentication, authorization, and business rules. Should mediate all access to the database — clients should never reach it directly.",
+    // inputs include "data" (a Read Replica's "Read query" output targets
+    // compute) and "distributed-systems" (a Follower's "Reads" output does
+    // too) — both are pre-existing component ports that would otherwise be
+    // unsatisfiable, since nothing else in the registry could legally
+    // connect to compute. outputs include "control" so a compute component
+    // can register/coordinate with a Coordinator or Lock Service.
     relations: {
-      inputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
+      inputs: {
+        allowedCategories: ["networking", "compute", "data", "distributed-systems"],
+        allowedKinds: ["request-flow"],
+      },
       outputs: {
         allowedCategories: ["compute", "data", "caching", "messaging", "distributed-systems"],
-        allowedKinds: ["request-flow", "async"],
+        allowedKinds: ["request-flow", "async", "control"],
       },
     },
   },
@@ -35,8 +44,13 @@ export default [
     docs: "Pulls jobs off a queue and processes them outside the synchronous request/response cycle — the pattern that keeps slow work (sending email, resizing images, generating reports) from blocking a client's request.",
     // Primarily fed by a queue (async), but a direct compute->worker
     // invocation is also legitimate (request-flow), hence both kinds.
+    // inputs also include "data"/"distributed-systems" for the same reason
+    // as app-server's (Read Replica / Follower read responses).
     relations: {
-      inputs: { allowedCategories: ["messaging", "compute"], allowedKinds: ["async", "request-flow"] },
+      inputs: {
+        allowedCategories: ["messaging", "compute", "data", "distributed-systems"],
+        allowedKinds: ["async", "request-flow"],
+      },
       outputs: { allowedCategories: ["data", "caching", "compute", "messaging"], allowedKinds: ["request-flow", "async"] },
     },
   },
@@ -99,10 +113,13 @@ export default [
     // Never a direct target of raw networking (Client/Browser/LB) — see
     // load-balancer.ts's own outputs contract for the pairing this implies.
     relations: {
-      inputs: { allowedCategories: ["networking", "messaging", "compute"], allowedKinds: ["request-flow", "async"] },
+      inputs: {
+        allowedCategories: ["networking", "messaging", "compute", "data", "distributed-systems"],
+        allowedKinds: ["request-flow", "async"],
+      },
       outputs: {
         allowedCategories: ["compute", "data", "caching", "messaging", "distributed-systems"],
-        allowedKinds: ["request-flow", "async"],
+        allowedKinds: ["request-flow", "async", "control"],
       },
     },
   },
