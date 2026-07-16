@@ -11,7 +11,7 @@ describe("permissiveFirewall", () => {
       position: { x: 0, y: 0 },
       config: { defaultPolicy: "allow-all" },
     };
-    const graph: ArchitectureGraph = { nodes: [fw], edges: [] };
+    const graph: ArchitectureGraph = { nodes: [fw], edges: [], entryPointIds: [] };
 
     const violations = runValidation(graph, [permissiveFirewall]);
     expect(violations).toHaveLength(1);
@@ -32,7 +32,7 @@ describe("permissiveFirewall", () => {
       position: { x: 1, y: 0 },
       config: { defaultPolicy: "allow-listed" },
     };
-    const graph: ArchitectureGraph = { nodes: [denyAll, allowListed], edges: [] };
+    const graph: ArchitectureGraph = { nodes: [denyAll, allowListed], edges: [], entryPointIds: [] };
 
     expect(runValidation(graph, [permissiveFirewall])).toHaveLength(0);
   });

@@ -11,6 +11,7 @@ describe("singleInstanceLoadBalancer", () => {
     const graph: ArchitectureGraph = {
       nodes: [lb, app],
       edges: [{ id: "e1", source: "lb-1", target: "app-1", kind: "request-flow" }],
+      entryPointIds: [],
     };
 
     const violations = runValidation(graph, [singleInstanceLoadBalancer]);
@@ -24,6 +25,7 @@ describe("singleInstanceLoadBalancer", () => {
     const graph: ArchitectureGraph = {
       nodes: [lb, app],
       edges: [{ id: "e1", source: "lb-1", target: "app-1", kind: "request-flow" }],
+      entryPointIds: [],
     };
 
     expect(runValidation(graph, [singleInstanceLoadBalancer])).toHaveLength(0);
@@ -38,13 +40,14 @@ describe("singleInstanceLoadBalancer", () => {
         { id: "e1", source: "lb-1", target: "app-1", kind: "request-flow" },
         { id: "e2", source: "lb-1", target: "app-2", kind: "request-flow" },
       ],
+      entryPointIds: [],
     };
 
     expect(runValidation(graph, [singleInstanceLoadBalancer])).toHaveLength(0);
   });
 
   it("does not flag a Load Balancer with no outgoing edges (a different, unrelated problem)", () => {
-    const graph: ArchitectureGraph = { nodes: [lb], edges: [] };
+    const graph: ArchitectureGraph = { nodes: [lb], edges: [], entryPointIds: [] };
     expect(runValidation(graph, [singleInstanceLoadBalancer])).toHaveLength(0);
   });
 });

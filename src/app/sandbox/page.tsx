@@ -57,6 +57,7 @@ const seedGraph: ArchitectureGraph = {
     { id: "e2", source: "lb-1", target: "app-1", kind: "request-flow" },
     { id: "e3", source: "app-1", target: "db-1", kind: "request-flow" },
   ],
+  entryPointIds: [],
 };
 
 const mode = "sandbox" as const;
