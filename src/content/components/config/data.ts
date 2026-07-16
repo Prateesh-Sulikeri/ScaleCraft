@@ -15,14 +15,16 @@ export default [
     ],
     summary: "Durable, structured relational storage",
     docs: "Durable, structured, relational storage. Exposing this directly to clients bypasses the application server's authentication, authorization, and business logic.",
-    // inputs restricted to compute only — this already structurally
-    // reproduces no-direct-client-database.ts's exact check (any networking
-    // category, not just the literal "client" id, gets rejected), kept as a
-    // deliberate belt-and-suspenders overlap with that rule since it's
-    // explicitly the canonical reference example from INITIAL_THOUGHTS.md
-    // and worth a specific, named message in addition to this generic one.
+    // inputs restricted to compute (+ caching, for a cache-aside miss
+    // forwarding straight to the origin store) — the compute-only part
+    // already structurally reproduces no-direct-client-database.ts's exact
+    // check (any networking category, not just the literal "client" id,
+    // gets rejected), kept as a deliberate belt-and-suspenders overlap with
+    // that rule since it's explicitly the canonical reference example from
+    // INITIAL_THOUGHTS.md and worth a specific, named message in addition
+    // to this generic one.
     relations: {
-      inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
+      inputs: { allowedCategories: ["compute", "caching"], allowedKinds: ["request-flow"] },
       outputs: { allowedCategories: ["data"], allowedKinds: ["replication"] },
     },
   },
@@ -45,7 +47,7 @@ export default [
     summary: "Flexible-schema storage for high-scale workloads",
     docs: "Non-relational storage that trades some of a SQL database's consistency and query flexibility for horizontal scalability and a flexible schema. `model` determines the actual data shape and access pattern — a key-value store and a graph database solve very different problems.",
     relations: {
-      inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
+      inputs: { allowedCategories: ["compute", "caching"], allowedKinds: ["request-flow"] },
       outputs: { allowedCategories: ["data"], allowedKinds: ["replication"] },
     },
   },
