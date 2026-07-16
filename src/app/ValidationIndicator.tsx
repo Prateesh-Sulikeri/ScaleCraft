@@ -63,6 +63,14 @@ export function ValidationIndicator({ violations, isStale, onValidate }: Validat
       ? "border-state-valid text-state-valid"
       : "border-border text-foreground";
 
+  // Errors first, so the more urgent problems are the first thing hit
+  // while scrolling a long list, not buried after a run of warnings.
+  const sortedViolations = violations
+    ? [...violations].sort((a, b) => (a.severity === b.severity ? 0 : a.severity === "error" ? -1 : 1))
+    : [];
+  const errorCount = sortedViolations.filter((v) => v.severity === "error").length;
+  const warningCount = sortedViolations.length - errorCount;
+
   return (
     <div ref={containerRef} className="relative">
       <button
@@ -77,25 +85,51 @@ export function ValidationIndicator({ violations, isStale, onValidate }: Validat
       </button>
 
       {showDropdown && (
-        <div className="absolute right-0 z-30 mt-2 w-80 rounded-md border border-border bg-panel p-3 shadow-lg">
+        <div className="absolute right-0 z-30 mt-2 flex max-h-[70vh] w-96 flex-col rounded-md border border-border bg-panel shadow-lg">
           {violations === null || violations.length === 0 ? (
-            <p className="text-sm text-state-valid">No violations.</p>
+            <p className="p-3 text-sm text-state-valid">No violations.</p>
           ) : (
-            <ul className="space-y-3">
-              {violations.map((v, i) => (
-                <li key={i} className="rounded-md border border-border p-3">
-                  <p
-                    className="text-sm font-medium"
-                    style={{
-                      color: v.severity === "error" ? "var(--state-error)" : "var(--state-warning)",
-                    }}
-                  >
-                    {v.message}
-                  </p>
-                  <p className="mt-1 text-sm text-foreground/70">{v.explanation}</p>
-                </li>
-              ))}
-            </ul>
+            <>
+              {/* Count summary — always visible above the scroll region, so
+               * scale ("how many, how bad") is legible before scrolling
+               * through potentially dozens of cards. Sits outside the
+               * scrollable area on purpose, same reasoning as a table's
+               * fixed header row. */}
+              <div className="shrink-0 border-b border-border px-3 py-2 text-xs font-semibold tracking-wide text-foreground/60 uppercase">
+                {violations.length} {violations.length === 1 ? "issue" : "issues"}
+                {errorCount > 0 && warningCount > 0 && (
+                  <span className="normal-case">
+                    {" "}
+                    · <span style={{ color: "var(--state-error)" }}>{errorCount} error{errorCount === 1 ? "" : "s"}</span>{" "}
+                    · <span style={{ color: "var(--state-warning)" }}>{warningCount} warning{warningCount === 1 ? "" : "s"}</span>
+                  </span>
+                )}
+              </div>
+
+              {/* This is the one region that scrolls — capped by the
+               * container's own max-h-[70vh] rather than relying on
+               * ancestor bounds, since body/main are both overflow-hidden
+               * (see layout.tsx/sandbox/page.tsx) and would otherwise just
+               * clip an unbounded list instead of scrolling it. Every
+               * card's full message + explanation always renders in full —
+               * only scroll position changes, nothing is ever collapsed or
+               * truncated, per the "explanation always shown" rule. */}
+              <ul className="space-y-3 overflow-y-auto p-3">
+                {sortedViolations.map((v, i) => (
+                  <li key={i} className="rounded-md border border-border p-3">
+                    <p
+                      className="text-sm font-medium"
+                      style={{
+                        color: v.severity === "error" ? "var(--state-error)" : "var(--state-warning)",
+                      }}
+                    >
+                      {v.message}
+                    </p>
+                    <p className="mt-1 text-sm text-foreground/70">{v.explanation}</p>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
       )}
