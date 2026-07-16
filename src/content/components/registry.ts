@@ -19,9 +19,20 @@ import { toComponentDefinition } from "./custom";
  * Covers the full "Core Components" list from INITIAL_THOUGHTS.md.
  *
  * To add a built-in component: add one object to the array in the right
- * `./config/*.ts` file. Nothing else needs to change — `generateComponentRegistry`
- * picks it up automatically, and throws immediately on a bad icon key, an
- * empty enum, or a duplicate id.
+ * `./config/*.ts` file. `generateComponentRegistry` picks it up
+ * automatically, and throws immediately on a bad icon key, an empty enum,
+ * or a duplicate id.
+ *
+ * One thing does NOT happen automatically, though — you should also
+ * declare `relations` (see ./types.ts's `ComponentRelations`): which
+ * categories/kinds are legal for this component's inputs and outputs.
+ * Skipping it doesn't break anything (validation-engine/rules/
+ * component-relations.ts falls back to the coarse category-level matrix in
+ * canvas/legal-edge-kinds.ts for any component with no declared contract —
+ * the same fallback custom, user-authored components always use), but the
+ * new component won't get the precise, component-specific checking every
+ * other base-pack component has. See .claude/docs/validation_agent_design.md
+ * for the full rationale.
  */
 export const componentRegistry: ComponentDefinition[] = generateComponentRegistry([
   ...networkingSpecs,

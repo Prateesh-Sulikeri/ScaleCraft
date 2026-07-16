@@ -27,6 +27,7 @@ type ComponentDefinition = {
   defaultConfig: unknown;
   summary: string;             // one short line, shown directly on the canvas node
   docs: string;                // markdown, shown in the contextual docs panel
+  relations?: ComponentRelations; // this component's own valid connections — see below
 };
 ```
 
@@ -34,6 +35,18 @@ Registered once in a global component registry. Chapters reference components by
 opt a subset in — they never redefine a component. This is what makes "the same Cache
 component reused in the caching chapter and in the Instagram exercise" actually true
 rather than aspirational.
+
+**Every base-pack component should also declare `relations`** — which categories and
+`EdgeKind`s are legal for its inputs and outputs (e.g. a Load Balancer only accepts
+`request-flow` from `networking`, and only sends `request-flow` to `compute` — never the
+reverse). This is a component's own contract, authored once where the component itself is
+defined, checked by `validation-engine/rules/component-relations.ts`. It replaced an
+earlier design of several separate cross-cutting rules (adjacency, ordering, kind
+legality) that each had to *guess* at what a specific component should allow — see
+`.claude/docs/validation_agent_design.md` for the full history. A component with no
+declared `relations` (every custom, user-authored component, and any base-pack component
+someone forgot to contract) falls back to a coarser category-level compatibility table
+instead of getting nothing — see `canvas/legal-edge-kinds.ts`.
 
 ### Chapter Definition
 

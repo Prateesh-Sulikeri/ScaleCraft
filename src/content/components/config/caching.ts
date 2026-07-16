@@ -20,6 +20,13 @@ export default [
     ],
     summary: "Fast in-memory store for frequently read data",
     docs: "An in-memory store sitting in front of a slower system of record, absorbing repeat reads so they don't hit it every time. `evictionPolicy` decides what gets dropped when it fills up; `ttlSeconds` bounds how long a stale entry can survive.",
+    // Miss->origin can legitimately point at the backing data store
+    // directly, or back through compute if the app layer owns miss
+    // handling — both are real cache-aside variants, so both are allowed.
+    relations: {
+      inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
+      outputs: { allowedCategories: ["data", "compute"], allowedKinds: ["request-flow"] },
+    },
   },
   {
     id: "distributed-cache",
@@ -48,5 +55,9 @@ export default [
     ],
     summary: "A cache sharded and replicated across nodes",
     docs: "A cache whose data is partitioned and replicated across multiple nodes instead of living on one machine — survives a single node failing, at the cost of the same consistency-vs-latency tradeoff every distributed store faces.",
+    relations: {
+      inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
+      outputs: { allowedCategories: ["data", "compute"], allowedKinds: ["request-flow"] },
+    },
   },
 ] satisfies ComponentConfigSpec[];

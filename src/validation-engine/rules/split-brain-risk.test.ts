@@ -14,7 +14,7 @@ const coordinator = {
 
 describe("splitBrainRisk", () => {
   it("flags two Leaders with no Coordinator", () => {
-    const graph: ArchitectureGraph = { nodes: [leader1, leader2], edges: [] };
+    const graph: ArchitectureGraph = { nodes: [leader1, leader2], edges: [], entryPointIds: [] };
 
     const violations = runValidation(graph, [splitBrainRisk]);
     expect(violations).toHaveLength(1);
@@ -23,12 +23,12 @@ describe("splitBrainRisk", () => {
   });
 
   it("passes when a Coordinator is present", () => {
-    const graph: ArchitectureGraph = { nodes: [leader1, leader2, coordinator], edges: [] };
+    const graph: ArchitectureGraph = { nodes: [leader1, leader2, coordinator], edges: [], entryPointIds: [] };
     expect(runValidation(graph, [splitBrainRisk])).toHaveLength(0);
   });
 
   it("passes with a single Leader", () => {
-    const graph: ArchitectureGraph = { nodes: [leader1], edges: [] };
+    const graph: ArchitectureGraph = { nodes: [leader1], edges: [], entryPointIds: [] };
     expect(runValidation(graph, [splitBrainRisk])).toHaveLength(0);
   });
 });

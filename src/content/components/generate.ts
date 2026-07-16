@@ -79,6 +79,9 @@ export function generateComponentDefinition(spec: ComponentConfigSpec): Componen
     defaultConfig,
     summary: spec.summary,
     docs: spec.docs,
+    // Threaded through unchanged — same shape on both sides (see types.ts's
+    // ComponentRelations), no transformation needed.
+    relations: spec.relations,
   };
 }
 

@@ -13,7 +13,7 @@ const db = { id: "db-1", componentId: "sql-database", position: { x: 1, y: 0 }, 
 
 describe("orphanReadReplica", () => {
   it("flags a Read Replica with no incoming replication edge", () => {
-    const graph: ArchitectureGraph = { nodes: [replica], edges: [] };
+    const graph: ArchitectureGraph = { nodes: [replica], edges: [], entryPointIds: [] };
 
     const violations = runValidation(graph, [orphanReadReplica]);
     expect(violations).toHaveLength(1);
@@ -25,6 +25,7 @@ describe("orphanReadReplica", () => {
     const graph: ArchitectureGraph = {
       nodes: [replica, db],
       edges: [{ id: "e1", source: "db-1", target: "replica-1", kind: "replication" }],
+      entryPointIds: [],
     };
 
     expect(runValidation(graph, [orphanReadReplica])).toHaveLength(0);
@@ -34,6 +35,7 @@ describe("orphanReadReplica", () => {
     const graph: ArchitectureGraph = {
       nodes: [replica, db],
       edges: [{ id: "e1", source: "db-1", target: "replica-1", kind: "request-flow" }],
+      entryPointIds: [],
     };
 
     const violations = runValidation(graph, [orphanReadReplica]);

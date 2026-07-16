@@ -32,8 +32,15 @@ export type GraphEdge = {
 export type ArchitectureGraph = {
   nodes: GraphNode[];
   edges: GraphEdge[];
+  /** Component node ids treated as connected even with no incident edge —
+   * populated from Start markers' `targetId` (see canvas/store.ts's
+   * toArchitectureGraph), since a Start marker's pointer is canvas-only
+   * presentation, never a real GraphEdge. Without this, the node a Start
+   * marker points at would look orphaned to the validation engine despite
+   * being visibly connected on canvas. */
+  entryPointIds: string[];
 };
 
 export function emptyGraph(): ArchitectureGraph {
-  return { nodes: [], edges: [] };
+  return { nodes: [], edges: [], entryPointIds: [] };
 }
