@@ -10,6 +10,10 @@ const lb = { id: "lb-1", componentId: "load-balancer", position: { x: 3, y: 0 },
 const serverless = { id: "fn-1", componentId: "serverless-function", position: { x: 4, y: 0 }, config: {} };
 const client = { id: "client-1", componentId: "client", position: { x: 5, y: 0 }, config: {} };
 const db = { id: "db-1", componentId: "sql-database", position: { x: 6, y: 0 }, config: {} };
+const cache = { id: "cache-1", componentId: "cache", position: { x: 7, y: 0 }, config: {} };
+const readReplica = { id: "replica-1", componentId: "read-replica", position: { x: 8, y: 0 }, config: {} };
+const follower = { id: "follower-1", componentId: "follower", position: { x: 9, y: 0 }, config: {} };
+const coordinator = { id: "coord-1", componentId: "coordinator", position: { x: 10, y: 0 }, config: {} };
 
 describe("componentRelations — declared contracts", () => {
   it("flags a Browser wired straight into a Leader (Leader's own input contract rejects networking)", () => {
@@ -78,6 +82,61 @@ describe("componentRelations — declared contracts", () => {
     };
 
     expect(runValidation(graph, [componentRelations])).toHaveLength(1);
+  });
+});
+
+describe("componentRelations — regression tests for the reciprocal-contract bugs found via live testing", () => {
+  it("passes Cache -> SQL Database (cache-aside miss forwarded straight to the origin store)", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [cache, db],
+      edges: [{ id: "e1", source: "cache-1", target: "db-1", kind: "request-flow" }],
+      entryPointIds: [],
+    };
+
+    expect(runValidation(graph, [componentRelations])).toHaveLength(0);
+  });
+
+  it("passes Read Replica -> App Server (the replica's own 'Read query' output port)", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [readReplica, appServer],
+      edges: [{ id: "e1", source: "replica-1", target: "app-1", kind: "request-flow" }],
+      entryPointIds: [],
+    };
+
+    expect(runValidation(graph, [componentRelations])).toHaveLength(0);
+  });
+
+  it("passes Follower -> App Server (the follower's own 'Reads' output port)", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [follower, appServer],
+      edges: [{ id: "e1", source: "follower-1", target: "app-1", kind: "request-flow" }],
+      entryPointIds: [],
+    };
+
+    expect(runValidation(graph, [componentRelations])).toHaveLength(0);
+  });
+
+  it("passes App Server -> Coordinator (control) — Coordinator was previously unreachable by anything", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [appServer, coordinator],
+      edges: [{ id: "e1", source: "app-1", target: "coord-1", kind: "control" }],
+      entryPointIds: [],
+    };
+
+    expect(runValidation(graph, [componentRelations])).toHaveLength(0);
+  });
+
+  it("passes Coordinator -> Leader and Coordinator -> Follower (control, election management)", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [coordinator, leader, follower],
+      edges: [
+        { id: "e1", source: "coord-1", target: "leader-1", kind: "control" },
+        { id: "e2", source: "coord-1", target: "follower-1", kind: "control" },
+      ],
+      entryPointIds: [],
+    };
+
+    expect(runValidation(graph, [componentRelations])).toHaveLength(0);
   });
 });
 

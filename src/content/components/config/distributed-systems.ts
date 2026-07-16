@@ -19,11 +19,17 @@ export default [
     ],
     summary: "Manages consensus and coordination between nodes",
     docs: "Runs a consensus protocol so a group of nodes can agree on shared state — leader election, distributed locks, configuration — even when some nodes fail. `consensusProtocol` names the actual algorithm (Raft, Paxos, or ZAB, per ZooKeeper's implementation).",
-    // Only talks to other distributed-systems nodes via control signals —
-    // never reachable from networking directly, which is exactly what
-    // category-adjacency.ts used to check as a separate cross-cutting rule.
+    // Never reachable from networking directly — only compute (a service
+    // registering/participating in coordination) or other
+    // distributed-systems nodes, both via control signals. Originally
+    // accepted only "distributed-systems", but nothing in the registry
+    // outputs a "control"-kind edge from that category either — Coordinator
+    // was completely unreachable by anything, a more severe version of the
+    // same authoring-consistency bug as cache/read-replica/follower below.
+    // Compute (app-server/serverless-function) now declares "control" as a
+    // legal output kind specifically so this is satisfiable.
     relations: {
-      inputs: { allowedCategories: ["distributed-systems"], allowedKinds: ["control"] },
+      inputs: { allowedCategories: ["compute", "distributed-systems"], allowedKinds: ["control"] },
       outputs: { allowedCategories: ["distributed-systems"], allowedKinds: ["control"] },
     },
   },
@@ -51,8 +57,14 @@ export default [
     // straight from networking (Browser/Client). This is the exact
     // structural fix for the reported "Browser wired straight into a
     // Leader" bug, declared here instead of in a separate adjacency rule.
+    // Also accepts a control signal from a Coordinator (election
+    // management, per this component's own docs below) — distinct from the
+    // compute/request-flow writes path.
     relations: {
-      inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
+      inputs: {
+        allowedCategories: ["compute", "distributed-systems"],
+        allowedKinds: ["request-flow", "control"],
+      },
       outputs: { allowedCategories: ["distributed-systems"], allowedKinds: ["replication"] },
     },
   },
@@ -66,8 +78,11 @@ export default [
     fields: [{ kind: "boolean", name: "readOnly", label: "Read Only", default: true }],
     summary: "Replicates a leader's state; may serve reads",
     docs: "Stays in sync with a Leader via replication and can take over if the Leader fails. Whether it's allowed to serve reads directly (`readOnly`) is a real tradeoff — faster reads at the cost of potentially stale ones, since replication isn't instant.",
+    // Accepts "control" alongside "replication" — a Coordinator managing
+    // election/failover also needs to reach a Follower directly, not just
+    // the Leader.
     relations: {
-      inputs: { allowedCategories: ["distributed-systems"], allowedKinds: ["replication"] },
+      inputs: { allowedCategories: ["distributed-systems"], allowedKinds: ["replication", "control"] },
       outputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
     },
   },
