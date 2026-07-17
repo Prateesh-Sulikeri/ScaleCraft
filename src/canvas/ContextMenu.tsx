@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronRight, Copy, FileText, Flag, MessageSquare, RotateCw, Server, Trash2 } from "lucide-react";
+import { ChevronRight, Copy, FileText, Flag, Lock, MessageSquare, RotateCw, Server, Trash2, Unlock } from "lucide-react";
 import { useCanvasStore } from "./store";
 import { componentRegistry } from "@/content/components/registry";
 import { toComponentDefinition } from "@/content/components/custom";
@@ -137,6 +137,7 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
   const duplicateNode = useCanvasStore((s) => s.duplicateNode);
   const duplicateNodes = useCanvasStore((s) => s.duplicateNodes);
   const reverseEdge = useCanvasStore((s) => s.reverseEdge);
+  const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
   const openDocsWindow = useCanvasStore((s) => s.openDocsWindow);
   const addNode = useCanvasStore((s) => s.addNode);
   const addComment = useCanvasStore((s) => s.addComment);
@@ -171,13 +172,26 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
         className="fixed z-30 min-w-[180px] rounded-md border border-border bg-panel py-1 shadow-lg"
         style={{ left: target.x, top: target.y }}
       >
-        {target.type === "node" && (
-          <>
-            <MenuItem icon={Copy} label="Duplicate" onClick={act(() => duplicateNode(target.id))} />
-            <MenuItem icon={FileText} label="View docs" onClick={act(() => viewDocsForNode(target.id))} />
-            <MenuItem icon={Trash2} label="Delete" danger onClick={act(() => deleteNode(target.id))} />
-          </>
-        )}
+        {target.type === "node" && (() => {
+          const node = nodes.find((n) => n.id === target.id);
+          const isAnnotation = node?.type === "zone" || node?.type === "comment" || node?.type === "start";
+          const locked = isAnnotation && node.data.locked;
+          return (
+            <>
+              <MenuItem icon={Copy} label="Duplicate" onClick={act(() => duplicateNode(target.id))} />
+              {isAnnotation ? (
+                <MenuItem
+                  icon={locked ? Unlock : Lock}
+                  label={locked ? "Unlock" : "Lock"}
+                  onClick={act(() => toggleAnnotationLock(target.id))}
+                />
+              ) : (
+                <MenuItem icon={FileText} label="View docs" onClick={act(() => viewDocsForNode(target.id))} />
+              )}
+              <MenuItem icon={Trash2} label="Delete" danger onClick={act(() => deleteNode(target.id))} />
+            </>
+          );
+        })()}
 
         {target.type === "edge" && (
           <>
@@ -218,8 +232,11 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
             />
             <MenuItem
               icon={Flag}
-              label="Add start marker here"
-              onClick={act(() => addStartMarker(target.flowPosition))}
+              label="Add flag here"
+              onClick={act(() => {
+                const id = addStartMarker(target.flowPosition);
+                openAnnotationEditor(id, { x: target.x, y: target.y });
+              })}
             />
             <div className="my-1 border-t border-border" />
             <Flyout

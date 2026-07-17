@@ -23,6 +23,7 @@ export function NodeInspector() {
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
   const nodes = useCanvasStore((s) => s.nodes);
   const updateNodeConfig = useCanvasStore((s) => s.updateNodeConfig);
+  const updateNodeName = useCanvasStore((s) => s.updateNodeName);
 
   const selected = nodes.find((n) => n.id === selectedNodeId);
   // Zones aren't ComponentDefinitions (see types.ts) — no config/docs to
@@ -83,6 +84,17 @@ export function NodeInspector() {
                   View docs
                 </button>
               </div>
+
+              <label className="mt-3 block">
+                <span className="text-xs font-medium text-foreground/70">Instance name</span>
+                <input
+                  key={node.id}
+                  defaultValue={node.data.name ?? ""}
+                  onChange={(event) => updateNodeName(node.id, event.target.value)}
+                  placeholder={`e.g. ${definition.id}-1`}
+                  className="mt-1 w-full rounded border border-border bg-background px-2 py-1 font-mono text-sm outline-none placeholder:text-foreground/30 focus:border-foreground/40"
+                />
+              </label>
 
               <div className="mt-3 flex-1 overflow-y-auto">
                 <ConfigForm

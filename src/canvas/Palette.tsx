@@ -308,8 +308,8 @@ export function Palette() {
           />
           <ToolbarButton
             icon={Flag}
-            label={placementMode === "start" ? "Cancel" : "Add start"}
-            description="Add a start-here marker"
+            label={placementMode === "start" ? "Cancel" : "Add Flag"}
+            description="Add a labeled, recolorable flag pointing at a component"
             active={placementMode === "start"}
             onClick={() => togglePlacement("start")}
           />

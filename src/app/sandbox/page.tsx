@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Save, Upload } from "lucide-react";
+import { Redo2, Save, Undo2, Upload } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { NodeInspector } from "@/canvas/NodeInspector";
 import { DocsWindows } from "@/canvas/DocsWindows";
@@ -14,6 +14,8 @@ import { BoardMenu } from "@/app/BoardMenu";
 import { QuestionPanel } from "@/app/QuestionPanel";
 import { ModeBadge } from "@/app/ModeBadge";
 import { PageEnter } from "@/app/PageEnter";
+import { ShortcutsButton } from "@/app/ShortcutsButton";
+import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
 import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
@@ -68,6 +70,10 @@ export default function SandboxPage() {
   const loadGraph = useCanvasStore((s) => s.loadGraph);
   const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
   const loadCustomComponents = useCanvasStore((s) => s.loadCustomComponents);
+  const undo = useCanvasStore((s) => s.undo);
+  const redo = useCanvasStore((s) => s.redo);
+  const canUndo = useCanvasStore((s) => s.past.length > 0);
+  const canRedo = useCanvasStore((s) => s.future.length > 0);
 
   // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
   // the seed demo graph — this is what makes a refresh not lose work.
@@ -104,6 +110,8 @@ export default function SandboxPage() {
     setSaveLabel("Saved");
     setTimeout(() => setSaveLabel("Save"), 1500);
   };
+
+  useCanvasShortcuts(handleSave);
 
   const handleImportFile = async (file: File) => {
     setImportError(null);
@@ -183,9 +191,35 @@ export default function SandboxPage() {
           <ModeBadge mode={mode} />
         </div>
         <div className="flex items-center gap-2">
+          {/* One split button, not two separate ones — bg-panel on the
+           * shared container is what makes this actually match Save/Export/
+           * Board (the prior merged version omitted it and rendered
+           * transparent against the header, which read as "doesn't match"). */}
+          <div className="flex items-center overflow-hidden rounded-md border border-border bg-panel">
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              aria-label="Undo"
+              title="Undo (Ctrl+Z)"
+              className="flex items-center px-2.5 py-1.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <Undo2 size={14} />
+            </button>
+            <div className="h-4 w-px bg-border" />
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              aria-label="Redo"
+              title="Redo (Ctrl+Shift+Z)"
+              className="flex items-center px-2.5 py-1.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              <Redo2 size={14} />
+            </button>
+          </div>
           <div className="flex flex-col items-end">
             <button
               onClick={handleSave}
+              title="Save (Ctrl+S)"
               className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
             >
               <Save size={14} />
@@ -216,6 +250,7 @@ export default function SandboxPage() {
             }}
           />
           <ValidationIndicator violations={violations} isStale={isStale} onValidate={handleValidate} />
+          <ShortcutsButton />
           <ThemeToggle />
         </div>
       </header>

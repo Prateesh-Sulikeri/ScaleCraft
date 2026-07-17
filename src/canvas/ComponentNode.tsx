@@ -55,7 +55,17 @@ export function ComponentNode({ data }: NodeProps<ComponentNodeType>) {
         </div>
         <div className="min-w-0 pt-0.5">
           <div className="text-sm font-semibold leading-tight text-foreground">{definition.label}</div>
-          <div className="mt-0.5 text-xs leading-snug text-foreground/60">{definition.summary}</div>
+          {data.name?.trim() ? (
+            // The user's own instance label ("server-1-ind") — monospace to
+            // read as an identifier, distinct from the descriptive prose
+            // summary below it (same code-shaped-text convention as
+            // DESIGN_LANGUAGE.md's config-value typography).
+            <div className="mt-0.5 truncate font-mono text-[11px] leading-snug text-foreground/70">
+              {data.name}
+            </div>
+          ) : (
+            <div className="mt-0.5 text-xs leading-snug text-foreground/60">{definition.summary}</div>
+          )}
         </div>
       </div>
       {definition.outputs.length > 0 && <Handle type="source" position={Position.Right} />}
