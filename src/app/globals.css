@@ -56,10 +56,17 @@
 }
 
 .light {
-  --background: #ffffff;
+  /* Soft off-white, not literal #fff — dark mode's panel (#141414) is
+   * deliberately LIGHTER than its background (#0a0a0a), panels floating
+   * above the page. The previous light values had this backwards (a pure
+   * white #fff background with a slightly-gray #f5f5f5 panel sitting below
+   * it), which both read as a glare (background at max possible brightness)
+   * and was inconsistent with dark mode's own panel-above-background logic.
+   * Panel is now the brighter surface in both themes. */
+  --background: #f6f6f7;
   --foreground: #171717;
-  --panel: #f5f5f5;
-  --border: #e2e2e2;
+  --panel: #ffffff;
+  --border: #e3e3e6;
   --zone: #FF3483;
 
   --mode-sandbox: #0e7490;
@@ -199,4 +206,17 @@ body {
   outline-width: 1px;
   outline-color: color-mix(in srgb, var(--foreground) 60%, transparent);
   outline-offset: 10px;
+}
+
+/* Scrollable but no visible scrollbar track — used on CommentNode.tsx's
+ * textarea, which is small by design (see the compact default size) and
+ * overflows easily; a browser scrollbar there reads as visual clutter on
+ * such a small note, not a useful affordance (still scrollable via wheel
+ * or by resizing the note itself via NodeResizer). */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

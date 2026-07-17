@@ -9,6 +9,12 @@ export type ComponentNodeData = {
   componentId: string;
   config: unknown;
   validationState?: ValidationState;
+  /** A user-chosen instance label ("server-1-ind"), separate from the
+   * ComponentDefinition's fixed type label ("Application Server") — set via
+   * NodeInspector, shown on the canvas card alongside the type label when
+   * present. Also what disambiguates same-type nodes in the Start marker's
+   * target picker (see component-display-name.ts). */
+  name?: string;
 };
 export type ComponentNodeType = Node<ComponentNodeData, "component">;
 
@@ -30,6 +36,11 @@ export type ZoneNodeData = {
    * about what's actually in old persisted data. */
   color?: string;
   validationState?: ValidationState;
+  /** Disables dragging and hides the NodeResizer handles (see ZoneNode.tsx)
+   * — a diagram someone has finished arranging can be protected from
+   * accidental bumps. Toggled via the lock button (always visible) or the
+   * right-click context menu; label/color stay editable while locked. */
+  locked?: boolean;
 };
 export type ZoneNodeType = Node<ZoneNodeData, "zone">;
 
@@ -46,13 +57,17 @@ export type CommentNodeData = {
   height: number;
   /** Same optional/fallback reasoning as ZoneNodeData.color. */
   color?: string;
+  /** Same lock semantics as ZoneNodeData.locked. */
+  locked?: boolean;
 };
 export type CommentNodeType = Node<CommentNodeData, "comment">;
 
 /**
- * A fixed-size "entry point" marker (see StartNode.tsx) — points a reader at
- * where to start reading the diagram. `targetId` (a component node id, or
- * null/unset) is picked from an inline dropdown, not drawn by dragging a
+ * A "Flag" (see StartNode.tsx) — a labeled, user-colored marker pointing at
+ * a component, general-purpose (not only "start reading here" anymore —
+ * `color` lets one mean "known issue," another mean "verified path," etc).
+ * `targetId` (a component node id, or null/unset) is picked from a
+ * searchable popover (see StartTargetPicker.tsx), not drawn by dragging a
  * handle — a real draggable edge would imply this is a request-flow
  * connection, and would also only reach components with an existing target
  * handle (e.g. Client has none, since it never receives requests). The
@@ -63,6 +78,11 @@ export type CommentNodeType = Node<CommentNodeData, "comment">;
 export type StartNodeData = {
   label: string;
   targetId?: string | null;
+  /** Same optional/fallback reasoning as ZoneNodeData.color — falls back to
+   * DEFAULT_FLAG_COLOR at render time. */
+  color?: string;
+  /** Same lock semantics as ZoneNodeData.locked. */
+  locked?: boolean;
 };
 export type StartNodeType = Node<StartNodeData, "start">;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil } from "lucide-react";
+import { Lock, Pencil, Unlock } from "lucide-react";
 import { NodeResizer, type NodeProps } from "@xyflow/react";
 import { useCanvasStore } from "./store";
 import { DEFAULT_ZONE_COLOR } from "./annotation-colors";
@@ -22,8 +22,11 @@ import type { ZoneNodeType } from "./types";
  */
 export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
   const updateZone = useCanvasStore((s) => s.updateZone);
+  const resizeAnnotation = useCanvasStore((s) => s.resizeAnnotation);
+  const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
   const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
   const color = data.color ?? DEFAULT_ZONE_COLOR;
+  const locked = data.locked ?? false;
 
   return (
     <div
@@ -55,13 +58,27 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
         />
       </svg>
       <NodeResizer
-        isVisible={selected}
+        isVisible={selected && !locked}
         minWidth={200}
         minHeight={140}
-        onResize={(_, params) => updateZone(id, { width: params.width, height: params.height })}
+        onResize={(_, params) => resizeAnnotation(id, params.x, params.y, params.width, params.height)}
         lineStyle={{ borderColor: color }}
         handleStyle={{ backgroundColor: color, width: 8, height: 8, borderRadius: 2 }}
       />
+      {locked && (
+        // Persistent, not gated on `selected` — a locked zone should read as
+        // locked at a glance, not only when clicked. Floats just OUTSIDE the
+        // top-left corner (negative offset, mirroring the edit/lock-toggle
+        // buttons' own -right-1.5 -top-1.5 on the opposite corner) rather
+        // than inside it — an inside position sat directly on top of the
+        // label text's own start point and covered it.
+        <div
+          className="nodrag pointer-events-none absolute -left-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border border-border bg-panel text-foreground/50 shadow-sm"
+          aria-label="Locked"
+        >
+          <Lock size={11} />
+        </div>
+      )}
       <input
         value={data.label}
         onChange={(event) => updateZone(id, { label: event.target.value })}
@@ -84,20 +101,35 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
         </p>
       )}
       {selected && (
-        // Reopens the same color+label popup shown right after placement
-        // (see AnnotationEditor.tsx) — one discoverable way to change a
-        // zone's color, not a second, separate inline control.
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            openAnnotationEditor(id, { x: event.clientX, y: event.clientY });
-          }}
-          aria-label="Edit zone"
-          className="nodrag absolute -right-1.5 -top-1.5 z-10 rounded border border-border bg-panel p-1 text-foreground/60 shadow-sm hover:text-foreground"
-        >
-          <Pencil size={11} />
-        </button>
+        <div className="nodrag absolute -right-1.5 -top-1.5 z-10 flex gap-1">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              toggleAnnotationLock(id);
+            }}
+            aria-label={locked ? "Unlock zone" : "Lock zone"}
+            title={locked ? "Unlock zone" : "Lock zone"}
+            className="rounded border border-border bg-panel p-1 text-foreground/60 shadow-sm hover:text-foreground"
+          >
+            {locked ? <Unlock size={11} /> : <Lock size={11} />}
+          </button>
+          {/* Reopens the same color+label popup shown right after placement
+           * (see AnnotationEditor.tsx) — one discoverable way to change a
+           * zone's color, not a second, separate inline control. */}
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              openAnnotationEditor(id, { x: event.clientX, y: event.clientY });
+            }}
+            aria-label="Edit zone"
+            title="Edit zone"
+            className="rounded border border-border bg-panel p-1 text-foreground/60 shadow-sm hover:text-foreground"
+          >
+            <Pencil size={11} />
+          </button>
+        </div>
       )}
     </div>
   );

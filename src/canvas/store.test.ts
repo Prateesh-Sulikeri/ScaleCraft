@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { toArchitectureGraph, useCanvasStore } from "./store";
-import type { ComponentNodeType, ArchitectureEdgeType, ZoneNodeType } from "./types";
+import type { ComponentNodeType, ArchitectureEdgeType, ZoneNodeType, CommentNodeType } from "./types";
 
 describe("toArchitectureGraph", () => {
   it("translates RF-shaped nodes/edges to the domain ArchitectureGraph", () => {
@@ -254,5 +254,125 @@ describe("comment and start annotations", () => {
     const updatedStart = state.nodes.find((n) => n.id === start.id);
     expect(updatedComment?.type === "comment" && updatedComment.data.text).toBe("check the source");
     expect(updatedStart?.type === "start" && updatedStart.data.label).toBe("Entry point");
+  });
+});
+
+describe("general undo/redo history", () => {
+  it("undo reverts the last discrete action (addNode) and redo replays it", () => {
+    useCanvasStore.getState().loadCanvasState([], []);
+    const definition = { id: "client", defaultConfig: {} } as Parameters<
+      ReturnType<typeof useCanvasStore.getState>["addNode"]
+    >[0];
+
+    useCanvasStore.getState().addNode(definition, { x: 0, y: 0 });
+    expect(useCanvasStore.getState().nodes).toHaveLength(1);
+
+    useCanvasStore.getState().undo();
+    expect(useCanvasStore.getState().nodes).toHaveLength(0);
+    expect(useCanvasStore.getState().future).toHaveLength(1);
+
+    useCanvasStore.getState().redo();
+    expect(useCanvasStore.getState().nodes).toHaveLength(1);
+    expect(useCanvasStore.getState().future).toHaveLength(0);
+  });
+
+  it("coalesces rapid same-field edits (e.g. typing a zone label) into one undo step", () => {
+    useCanvasStore.getState().loadCanvasState([], []);
+    const zoneId = useCanvasStore.getState().addZone({ x: 0, y: 0 });
+    const pastAfterAdd = useCanvasStore.getState().past.length;
+
+    useCanvasStore.getState().updateZone(zoneId, { label: "B" });
+    useCanvasStore.getState().updateZone(zoneId, { label: "Ba" });
+    useCanvasStore.getState().updateZone(zoneId, { label: "Bac" });
+    useCanvasStore.getState().updateZone(zoneId, { label: "Back" });
+
+    // Four rapid calls to the same field only ever added ONE history entry
+    // on top of the add, not four — that's the coalescing window doing its
+    // job (see pushHistory in store.ts).
+    expect(useCanvasStore.getState().past.length).toBe(pastAfterAdd + 1);
+
+    useCanvasStore.getState().undo();
+    const zone = useCanvasStore.getState().nodes.find((n) => n.id === zoneId);
+    // Reverts the whole burst back to pre-edit ("" label), not one
+    // keystroke at a time.
+    expect(zone?.type === "zone" && zone.data.label).toBe("");
+  });
+
+  it("a new action after undo clears redo history", () => {
+    useCanvasStore.getState().loadCanvasState([], []);
+    useCanvasStore.getState().addZone({ x: 0, y: 0 });
+    useCanvasStore.getState().undo();
+    expect(useCanvasStore.getState().future.length).toBeGreaterThan(0);
+
+    useCanvasStore.getState().addComment({ x: 0, y: 0 });
+    expect(useCanvasStore.getState().future).toHaveLength(0);
+  });
+
+  it("undo on an empty history is a no-op", () => {
+    useCanvasStore.getState().loadCanvasState([], []);
+    // Draining any history left over from loadCanvasState itself.
+    while (useCanvasStore.getState().past.length > 0) useCanvasStore.getState().undo();
+    const before = useCanvasStore.getState();
+    useCanvasStore.getState().undo();
+    expect(useCanvasStore.getState().nodes).toBe(before.nodes);
+  });
+});
+
+describe("resizeAnnotation", () => {
+  it("updates position AND width/height together (the top/left-handle anchor fix)", () => {
+    const comment: CommentNodeType = {
+      id: "c1",
+      type: "comment",
+      position: { x: 100, y: 100 },
+      data: { text: "", width: 220, height: 140 },
+    };
+    useCanvasStore.getState().loadCanvasState([comment], []);
+
+    // Simulates dragging the top-left resize handle: xyflow's NodeResizer
+    // reports a new x/y (the anchor moves) alongside width/height.
+    useCanvasStore.getState().resizeAnnotation("c1", 40, 60, 280, 180);
+
+    const node = useCanvasStore.getState().nodes.find((n) => n.id === "c1");
+    expect(node?.position).toEqual({ x: 40, y: 60 });
+    expect(node?.type === "comment" && node.data.width).toBe(280);
+    expect(node?.type === "comment" && node.data.height).toBe(180);
+  });
+});
+
+describe("toggleAnnotationLock", () => {
+  it("flips locked on a zone and leaves other node types untouched", () => {
+    const zone: ZoneNodeType = {
+      id: "z1",
+      type: "zone",
+      position: { x: 0, y: 0 },
+      data: { label: "", width: 320, height: 220 },
+    };
+    useCanvasStore.getState().loadCanvasState([zone], []);
+
+    useCanvasStore.getState().toggleAnnotationLock("z1");
+    let node = useCanvasStore.getState().nodes.find((n) => n.id === "z1");
+    expect(node?.type === "zone" && node.data.locked).toBe(true);
+
+    useCanvasStore.getState().toggleAnnotationLock("z1");
+    node = useCanvasStore.getState().nodes.find((n) => n.id === "z1");
+    expect(node?.type === "zone" && node.data.locked).toBe(false);
+  });
+});
+
+describe("updateNodeName", () => {
+  it("sets a component's custom instance name without touching its config", () => {
+    const client: ComponentNodeType = {
+      id: "n1",
+      type: "component",
+      position: { x: 0, y: 0 },
+      data: { componentId: "client", config: { foo: "bar" } },
+    };
+    useCanvasStore.getState().loadCanvasState([client], []);
+
+    useCanvasStore.getState().updateNodeName("n1", "server-1-ind");
+
+    const node = useCanvasStore.getState().nodes.find((n) => n.id === "n1");
+    expect(node?.type === "component" && node.data.name).toBe("server-1-ind");
+    expect(node?.type === "component" && node.data.config).toEqual({ foo: "bar" });
   });
 });

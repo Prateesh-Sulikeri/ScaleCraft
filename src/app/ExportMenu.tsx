@@ -2,7 +2,7 @@
 
 import { useState, type RefObject } from "react";
 import { ChevronDown, Download } from "lucide-react";
-import { useCanvasStore } from "@/canvas/store";
+import { exportCanvasAsJson } from "@/canvas/export-json";
 import type { CanvasHandle } from "@/canvas/Canvas";
 
 type ExportMenuProps = {
@@ -32,16 +32,7 @@ export function ExportMenu({ canvasRef }: ExportMenuProps) {
   const [customColor, setCustomColor] = useState("#1a1a1a");
 
   const handleExportJson = () => {
-    const { nodes, edges } = useCanvasStore.getState();
-    const blob = new Blob([JSON.stringify({ nodes, edges }, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `scalecraft-canvas-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportCanvasAsJson();
     setOpen(false);
   };
 

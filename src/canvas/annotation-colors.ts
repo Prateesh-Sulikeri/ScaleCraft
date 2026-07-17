@@ -17,3 +17,9 @@ export const ANNOTATION_COLOR_PRESETS: { name: string; value: string }[] = [
 
 export const DEFAULT_ZONE_COLOR = "#ff3483";
 export const DEFAULT_COMMENT_COLOR = "#3b82f6";
+/** A Flag's (see StartNode.tsx) default color, user-recolorable per
+ * instance via the same ColorPicker — a flag isn't only "start reading
+ * here" anymore, so different colors can mark different things (e.g. red
+ * for "known issue", green for "verified path"). Gold by default: distinct
+ * from every category/state/mode hue and every other annotation default. */
+export const DEFAULT_FLAG_COLOR = "#eab308";
