@@ -18,7 +18,7 @@ import type {
   StartNodeData,
   ArchitectureEdgeType,
 } from "./types";
-import { DEFAULT_ZONE_COLOR, DEFAULT_COMMENT_COLOR } from "./annotation-colors";
+import { DEFAULT_ZONE_COLOR, DEFAULT_COMMENT_COLOR, DEFAULT_FLAG_COLOR } from "./annotation-colors";
 
 /** What the palette's "Add zone"/"Add comment"/"Add start" buttons put the
  * canvas into — one mutually-exclusive placement mode rather than three
@@ -71,6 +71,40 @@ export type PendingUndo = {
 };
 
 const UNDO_MERGE_WINDOW_MS = 200;
+
+/** A general-purpose undo/redo history stack, additive alongside
+ * `pendingUndo` above rather than replacing it — `pendingUndo` stays exactly
+ * as-is (it drives the delete-specific UndoToast), this separately backs
+ * Ctrl+Z/Ctrl+Shift+Z for every kind of edit (move, resize, type, add,
+ * connect, delete, ...). Each entry is a full nodes/edges snapshot rather
+ * than a diff — simpler and correct for a canvas this size, no risk of
+ * partial-patch drift.
+ *
+ * `key` is what makes continuous gestures (dragging a node, resizing an
+ * annotation, typing into a label) collapse into ONE history entry instead
+ * of one per animation frame / keystroke: calls sharing the same key within
+ * HISTORY_MERGE_WINDOW_MS of each other coalesce, keeping the *first* call's
+ * pre-edit snapshot rather than the latest one. Discrete actions (add a
+ * node, delete, connect, duplicate, ...) pass a fresh crypto.randomUUID() so
+ * they never coalesce with anything and always get their own undo step.
+ */
+type HistoryEntry = { nodes: AnyNodeType[]; edges: ArchitectureEdgeType[]; key: string; at: number };
+
+const HISTORY_MERGE_WINDOW_MS = 500;
+const MAX_HISTORY = 50;
+
+function pushHistory(
+  past: HistoryEntry[],
+  nodes: AnyNodeType[],
+  edges: ArchitectureEdgeType[],
+  key: string,
+): HistoryEntry[] {
+  const top = past[past.length - 1];
+  if (top && top.key === key && Date.now() - top.at < HISTORY_MERGE_WINDOW_MS) {
+    return [...past.slice(0, -1), { ...top, at: Date.now() }];
+  }
+  return [...past, { nodes, edges, key, at: Date.now() }].slice(-MAX_HISTORY);
+}
 
 function undoLabel(nodes: AnyNodeType[], edges: ArchitectureEdgeType[]): string {
   const nodeWord = nodes.length === 1 ? "item" : "items";
@@ -156,12 +190,27 @@ type CanvasStore = {
    * vs. plain-click split as addZone. */
   addComment: (position: XY, width?: number, height?: number) => string;
   updateComment: (nodeId: string, patch: Partial<CommentNodeData>) => void;
-  /** Fixed size, no drag-to-draw — a start marker never needs a drawn
-   * rectangle, only a drop point. */
-  addStartMarker: (position: XY) => void;
+  /** Flips `locked` on a zone/comment/flag — a locked annotation isn't
+   * draggable, and a locked zone/comment also hides its NodeResizer handles
+   * (see ZoneNode.tsx/CommentNode.tsx/StartNode.tsx), so it can't be bumped
+   * or resized by accident once a diagram is arranged. A no-op on any other
+   * node type. */
+  toggleAnnotationLock: (nodeId: string) => void;
+  /** Applies a NodeResizer result to a zone/comment — sets position AND
+   * width/height together in one update. Resizing from a top or left handle
+   * moves the node's anchor point (xyflow's NodeResizer reports the new x/y
+   * for exactly this reason); a version that only wrote width/height back
+   * (the original implementation) left the anchor stuck, so resizing from
+   * those handles grew the box in the wrong direction — the "weird
+   * movement" bug. */
+  resizeAnnotation: (nodeId: string, x: number, y: number, width: number, height: number) => void;
+  /** Fixed size, no drag-to-draw — a flag never needs a drawn rectangle,
+   * only a drop point. Returns the new node's id, same as addZone/addComment,
+   * so the caller can open its AnnotationEditor popup right after placing it. */
+  addStartMarker: (position: XY) => string;
   updateStartMarker: (nodeId: string, patch: Partial<StartNodeData>) => void;
   /** Which annotation the user is currently placing — set by the palette's
-   * "Add zone"/"Add comment"/"Add start" buttons, cleared on placement or
+   * "Add zone"/"Add comment"/"Add flag" buttons, cleared on placement or
    * Escape. See Canvas.tsx. */
   placementMode: PlacementMode;
   setPlacementMode: (mode: PlacementMode) => void;
@@ -202,6 +251,12 @@ type CanvasStore = {
   /** Config panel (milestone 2) writes here — kept separate from
    * onNodesChange since it's a data update, not a position/selection one. */
   updateNodeConfig: (nodeId: string, config: unknown) => void;
+  /** A user-chosen instance label ("server-1-ind"), distinct from the
+   * ComponentDefinition's fixed type label ("Application Server") — see
+   * ComponentNodeData. Optional; shown on the canvas card when set, and
+   * used to disambiguate same-type nodes in the Start marker's target
+   * picker (see component-display-name.ts). */
+  updateNodeName: (nodeId: string, name: string) => void;
   /** Explicit actions for the right-click context menu — a second path to
    * delete besides the deleteKeyCode shortcut, see EdgeInspector/ContextMenu. */
   deleteNode: (nodeId: string) => void;
@@ -215,6 +270,14 @@ type CanvasStore = {
   pendingUndo: PendingUndo | null;
   undoLastDelete: () => void;
   dismissUndo: () => void;
+  /** General undo/redo history — see the HistoryEntry comment above.
+   * Exposed as plain arrays (not a derived canUndo/canRedo boolean) so
+   * components select `past.length > 0` themselves rather than the store
+   * carrying redundant derived state that could drift out of sync. */
+  past: HistoryEntry[];
+  future: HistoryEntry[];
+  undo: () => void;
+  redo: () => void;
   /** Wipes the board — a no-op if it's already empty. Snapshots the prior
    * nodes/edges as a "replace"-mode pendingUndo first, so the same
    * UndoToast that covers delete also covers this. See BoardMenu.tsx. */
@@ -259,10 +322,12 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   placementMode: null,
   editingAnnotation: null,
   pendingUndo: null,
+  past: [],
+  future: [],
   customComponents: [],
 
   loadGraph: (graph) => {
-    set({
+    set((state) => ({
       nodes: graph.nodes.map((n) => ({
         id: n.id,
         type: "component",
@@ -278,16 +343,29 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       })),
       selectedEdgeId: null,
       selectedNodeId: null,
-    });
+      // Skipped when the board is already empty — the common case is
+      // seeding the initial demo graph on mount, which shouldn't be a step
+      // Ctrl+Z can walk back into.
+      past:
+        state.nodes.length === 0 && state.edges.length === 0
+          ? state.past
+          : pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
+    }));
   },
 
   loadCanvasState: (nodes, edges) => {
-    set({
+    set((state) => ({
       nodes: nodes.map((n) => ({ ...n, selected: false })),
       edges: edges.map((e) => ({ ...e, selected: false })),
       selectedEdgeId: null,
       selectedNodeId: null,
-    });
+      past:
+        state.nodes.length === 0 && state.edges.length === 0
+          ? state.past
+          : pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
+    }));
   },
 
   addNode: (definition, position) => {
@@ -297,7 +375,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       position,
       data: { componentId: definition.id, config: definition.defaultConfig },
     };
-    set((state) => ({ nodes: [...state.nodes, node] }));
+    set((state) => ({
+      nodes: [...state.nodes, node],
+      past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
+    }));
   },
 
   addZone: (position, width = 320, height = 220) => {
@@ -314,7 +396,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       // placeholder text does the same job without that risk.
       data: { label: "", width, height, color: DEFAULT_ZONE_COLOR },
     };
-    set((state) => ({ nodes: [...state.nodes, zone] }));
+    set((state) => ({
+      nodes: [...state.nodes, zone],
+      past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
+    }));
     return id;
   },
 
@@ -323,10 +409,12 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       nodes: state.nodes.map((n) =>
         n.id === nodeId && n.type === "zone" ? { ...n, data: { ...n.data, ...patch } } : n,
       ),
+      past: pushHistory(state.past, state.nodes, state.edges, `zone:${nodeId}`),
+      future: [],
     }));
   },
 
-  addComment: (position, width = 220, height = 140) => {
+  addComment: (position, width = 176, height = 60) => {
     const id = crypto.randomUUID();
     const comment: AnyNodeType = {
       id,
@@ -334,7 +422,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       position,
       data: { text: "", width, height, color: DEFAULT_COMMENT_COLOR },
     };
-    set((state) => ({ nodes: [...state.nodes, comment] }));
+    set((state) => ({
+      nodes: [...state.nodes, comment],
+      past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
+    }));
     return id;
   },
 
@@ -343,17 +435,57 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       nodes: state.nodes.map((n) =>
         n.id === nodeId && n.type === "comment" ? { ...n, data: { ...n.data, ...patch } } : n,
       ),
+      past: pushHistory(state.past, state.nodes, state.edges, `comment:${nodeId}`),
+      future: [],
+    }));
+  },
+
+  toggleAnnotationLock: (nodeId) => {
+    // Branched per literal node type, not a generic `||` guard — narrowing
+    // a discriminated union only works one member at a time (see
+    // AnnotationEditor.tsx's identical comment); spreading ZoneNodeData |
+    // CommentNodeData | StartNodeData back doesn't type-check against any
+    // one member alone.
+    set((state) => ({
+      nodes: state.nodes.map((n) => {
+        if (n.id !== nodeId) return n;
+        if (n.type === "zone") return { ...n, data: { ...n.data, locked: !n.data.locked } };
+        if (n.type === "comment") return { ...n, data: { ...n.data, locked: !n.data.locked } };
+        if (n.type === "start") return { ...n, data: { ...n.data, locked: !n.data.locked } };
+        return n;
+      }),
+      past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
+    }));
+  },
+
+  resizeAnnotation: (nodeId, x, y, width, height) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) => {
+        if (n.id !== nodeId) return n;
+        if (n.type === "zone") return { ...n, position: { x, y }, data: { ...n.data, width, height } };
+        if (n.type === "comment") return { ...n, position: { x, y }, data: { ...n.data, width, height } };
+        return n;
+      }),
+      past: pushHistory(state.past, state.nodes, state.edges, `resize:${nodeId}`),
+      future: [],
     }));
   },
 
   addStartMarker: (position) => {
+    const id = crypto.randomUUID();
     const marker: AnyNodeType = {
-      id: crypto.randomUUID(),
+      id,
       type: "start",
       position,
-      data: { label: "", targetId: null },
+      data: { label: "", targetId: null, color: DEFAULT_FLAG_COLOR },
     };
-    set((state) => ({ nodes: [...state.nodes, marker] }));
+    set((state) => ({
+      nodes: [...state.nodes, marker],
+      past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
+    }));
+    return id;
   },
 
   updateStartMarker: (nodeId, patch) => {
@@ -361,6 +493,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       nodes: state.nodes.map((n) =>
         n.id === nodeId && n.type === "start" ? { ...n, data: { ...n.data, ...patch } } : n,
       ),
+      past: pushHistory(state.past, state.nodes, state.edges, `start:${nodeId}`),
+      future: [],
     }));
   },
 
@@ -372,8 +506,18 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   onNodesChange: (changes) => {
     set((state) => {
       const removedIds = changes.filter((c) => c.type === "remove").map((c) => c.id);
+      const isDrag = changes.some((c) => c.type === "position");
+      // Same fixed key ("remove") as onEdgesChange below — deleting a
+      // connected node dispatches two separate calls (this one for the
+      // node, a separate onEdgesChange for its edge), and the shared key
+      // lets the merge-window coalescing in pushHistory collapse them into
+      // one undo step regardless of which fires first, mirroring the
+      // existing pendingUndo dedup logic just below.
+      const historyKey = removedIds.length > 0 ? "remove" : isDrag ? "move" : null;
+      const past = historyKey ? pushHistory(state.past, state.nodes, state.edges, historyKey) : state.past;
+      const future = historyKey ? [] : state.future;
       const nextNodes = applyNodeChanges(changes, state.nodes);
-      if (removedIds.length === 0) return { nodes: nextNodes };
+      if (removedIds.length === 0) return { nodes: nextNodes, past, future };
       const removedIdSet = new Set(removedIds);
       const removedNodes = state.nodes.filter((n) => removedIdSet.has(n.id));
       // Connected edges are removed via a separate onEdgesChange call, not
@@ -387,6 +531,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
             ? null
             : state.editingAnnotation,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
+        past,
+        future,
       };
     });
   },
@@ -394,6 +540,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   onEdgesChange: (changes) => {
     set((state) => {
       const removedIds = changes.filter((c) => c.type === "remove").map((c) => c.id);
+      const past =
+        removedIds.length > 0 ? pushHistory(state.past, state.nodes, state.edges, "remove") : state.past;
+      const future = removedIds.length > 0 ? [] : state.future;
       const nextEdges = applyEdgeChanges(changes, state.edges);
       if (removedIds.length === 0) return { edges: nextEdges };
       const removedIdSet = new Set(removedIds);
@@ -403,11 +552,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         state.pendingUndo &&
         Date.now() - state.pendingUndo.at < UNDO_MERGE_WINDOW_MS &&
         removedIds.every((id) => state.pendingUndo!.edges.some((e) => e.id === id));
-      if (alreadyCaptured) return { edges: nextEdges };
+      if (alreadyCaptured) return { edges: nextEdges, past, future };
       const removedEdges = state.edges.filter((e) => removedIdSet.has(e.id));
       return {
         edges: nextEdges,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, [], removedEdges),
+        past,
+        future,
       };
     });
   },
@@ -423,6 +574,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         },
         state.edges,
       ),
+      past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
     }));
   },
 
@@ -431,6 +584,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       edges: state.edges.map((e) =>
         e.id === edgeId ? { ...e, data: { kind }, ...edgeStyle(kind) } : e,
       ),
+      past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
     }));
   },
 
@@ -469,6 +624,18 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       nodes: state.nodes.map((n) =>
         n.id === nodeId && n.type === "component" ? { ...n, data: { ...n.data, config } } : n,
       ),
+      past: pushHistory(state.past, state.nodes, state.edges, `config:${nodeId}`),
+      future: [],
+    }));
+  },
+
+  updateNodeName: (nodeId, name) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId && n.type === "component" ? { ...n, data: { ...n.data, name } } : n,
+      ),
+      past: pushHistory(state.past, state.nodes, state.edges, `name:${nodeId}`),
+      future: [],
     }));
   },
 
@@ -486,6 +653,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
         editingAnnotation: state.editingAnnotation?.id === nodeId ? null : state.editingAnnotation,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
+        past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+        future: [],
       };
     });
   },
@@ -505,6 +674,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         editingAnnotation:
           state.editingAnnotation && idSet.has(state.editingAnnotation.id) ? null : state.editingAnnotation,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
+        past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+        future: [],
       };
     });
   },
@@ -516,6 +687,44 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         edges: state.edges.filter((e) => e.id !== edgeId),
         selectedEdgeId: state.selectedEdgeId === edgeId ? null : state.selectedEdgeId,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, [], removedEdges),
+        past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+        future: [],
+      };
+    });
+  },
+
+  undo: () => {
+    set((state) => {
+      if (state.past.length === 0) return {};
+      const entry = state.past[state.past.length - 1];
+      return {
+        nodes: entry.nodes,
+        edges: entry.edges,
+        past: state.past.slice(0, -1),
+        future: [...state.future, { nodes: state.nodes, edges: state.edges, key: entry.key, at: Date.now() }].slice(
+          -MAX_HISTORY,
+        ),
+        selectedNodeId: null,
+        selectedEdgeId: null,
+        editingAnnotation: null,
+      };
+    });
+  },
+
+  redo: () => {
+    set((state) => {
+      if (state.future.length === 0) return {};
+      const entry = state.future[state.future.length - 1];
+      return {
+        nodes: entry.nodes,
+        edges: entry.edges,
+        future: state.future.slice(0, -1),
+        past: [...state.past, { nodes: state.nodes, edges: state.edges, key: entry.key, at: Date.now() }].slice(
+          -MAX_HISTORY,
+        ),
+        selectedNodeId: null,
+        selectedEdgeId: null,
+        editingAnnotation: null,
       };
     });
   },
@@ -546,6 +755,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedEdgeId: null,
         editingAnnotation: null,
         pendingUndo: { nodes: state.nodes, edges: state.edges, label: "Board cleared", mode: "replace", at: Date.now() },
+        past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+        future: [],
       };
     });
   },
@@ -568,7 +779,11 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       position: { x: source.position.x + 32, y: source.position.y + 32 },
       selected: false,
     };
-    set((state) => ({ nodes: [...state.nodes, clone] }));
+    set((state) => ({
+      nodes: [...state.nodes, clone],
+      past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
+    }));
   },
 
   duplicateNodes: (nodeIds) => {
@@ -595,7 +810,12 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         source: idMap.get(e.source)!,
         target: idMap.get(e.target)!,
       }));
-    set((state) => ({ nodes: [...state.nodes, ...clones], edges: [...state.edges, ...clonedEdges] }));
+    set((state) => ({
+      nodes: [...state.nodes, ...clones],
+      edges: [...state.edges, ...clonedEdges],
+      past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
+    }));
   },
 
   reverseEdge: (edgeId) => {
@@ -603,6 +823,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       edges: state.edges.map((e) =>
         e.id === edgeId ? { ...e, source: e.target, target: e.source } : e,
       ),
+      past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+      future: [],
     }));
   },
 

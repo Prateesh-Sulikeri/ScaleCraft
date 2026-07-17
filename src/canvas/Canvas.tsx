@@ -46,7 +46,10 @@ const nodeTypes = { component: ComponentNode, zone: ZoneNode, comment: CommentNo
  * same-sized annotation on the click point. */
 const ANNOTATION_DEFAULTS = {
   zone: { width: 320, height: 220, minWidth: 120, minHeight: 80 },
-  comment: { width: 220, height: 140, minWidth: 140, minHeight: 90 },
+  // Compact by default — a comment is a short note, not a document; the
+  // original 220x140 default left most of the box empty for a typical
+  // one-line note. Still freely resizable up from here via NodeResizer.
+  comment: { width: 176, height: 60, minWidth: 100, minHeight: 32 },
 } as const;
 
 const PLACEMENT_HINT: Record<Exclude<PlacementMode, null>, string> = {
@@ -177,9 +180,15 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     if (!mode) return;
 
     if (mode === "start") {
+      // Centers on the click point — StartNode.tsx renders at a fixed
+      // w-[180px] with auto height; ~20px approximates half the card's
+      // rendered height at rest (label row + target chip).
       const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-      addStartMarker({ x: flowPos.x - 70, y: flowPos.y - 24 });
+      const newId = addStartMarker({ x: flowPos.x - 90, y: flowPos.y - 20 });
       setPlacementMode(null);
+      // Same "open the color/label popup right where it landed" convention
+      // as zone/comment below — a flag's headline customization is color.
+      openAnnotationEditor(newId, { x: event.clientX, y: event.clientY });
       return;
     }
 
@@ -260,10 +269,20 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
             // would — each branch has to narrow to exactly one member.
             const validationState = nodeStates[n.id];
             if (n.type === "component") return { ...n, data: { ...n.data, validationState } };
-            if (n.type === "zone") return { ...n, data: { ...n.data, validationState } };
+            if (n.type === "zone") return { ...n, data: { ...n.data, validationState }, draggable: !n.data.locked };
+            if (n.type === "comment") return { ...n, draggable: !n.data.locked };
+            if (n.type === "start") return { ...n, draggable: !n.data.locked };
             return n;
           })
-        : storeNodes,
+        : storeNodes.map((n): AnyNodeType => {
+            // Same locked -> non-draggable override as above, needed even
+            // when nodeStates is absent (e.g. before the first Validate
+            // click) so locking isn't validation-dependent.
+            if (n.type === "zone") return { ...n, draggable: !n.data.locked };
+            if (n.type === "comment") return { ...n, draggable: !n.data.locked };
+            if (n.type === "start") return { ...n, draggable: !n.data.locked };
+            return n;
+          }),
     [storeNodes, nodeStates],
   );
 
