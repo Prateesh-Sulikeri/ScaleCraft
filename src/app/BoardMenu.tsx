@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, RotateCcw, Trash2 } from "lucide-react";
+import { LayoutGrid, RotateCcw, Trash2 } from "lucide-react";
 import { useCanvasStore } from "@/canvas/store";
+import { Tooltip } from "@/app/Tooltip";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
 
 /**
  * Groups the board's two one-off destructive actions behind a dropdown —
- * same click-outside-backdrop convention as ExportMenu.tsx, so a second
+ * same click-outside-backdrop convention as ProjectMenu.tsx, so a second
  * dropdown-style header control doesn't introduce a third pattern. Both
  * actions go through store.ts's pendingUndo/UndoToast safety net rather
  * than a confirm() dialog, matching this app's existing aversion to modal
- * dialogs (see UndoToast.tsx's own doc comment).
+ * dialogs (see UndoToast.tsx's own doc comment). Icon-only trigger (Tooltip,
+ * not a text label) — matches every other header control now that the
+ * whole toolbar was made consistent in one pass.
  */
 export function BoardMenu() {
   const [open, setOpen] = useState(false);
@@ -47,13 +50,15 @@ export function BoardMenu() {
 
   return (
     <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
-      >
-        Board
-        <ChevronDown size={12} />
-      </button>
+      <Tooltip label="Board">
+        <button
+          onClick={() => setOpen((o) => !o)}
+          aria-label="Board"
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel text-foreground/70 hover:text-foreground"
+        >
+          <LayoutGrid size={16} />
+        </button>
+      </Tooltip>
 
       {open && (
         <>

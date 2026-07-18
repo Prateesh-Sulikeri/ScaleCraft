@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, ChevronDown, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { Tooltip } from "@/app/Tooltip";
 import type { ValidationViolation } from "@/validation-engine/types";
 
 type ValidationIndicatorProps = {
@@ -17,7 +18,10 @@ type ValidationIndicatorProps = {
  * "explanations are always shown on failure" rule in CLAUDE.md. Validation
  * results used to live in a QuestionPanel section; per direction, that
  * panel has no upside for holding them, so this is the only place they
- * appear now.
+ * appear now. Icon-only trigger (Tooltip, not a text label) — matches every
+ * other header control now that the whole toolbar was made consistent in
+ * one pass; the pass/fail color is still carried by the icon+border, same
+ * as before.
  */
 export function ValidationIndicator({ violations, isStale, onValidate }: ValidationIndicatorProps) {
   const [open, setOpen] = useState(false);
@@ -73,16 +77,17 @@ export function ValidationIndicator({ violations, isStale, onValidate }: Validat
 
   return (
     <div ref={containerRef} className="relative">
-      <button
-        onClick={handleClick}
-        className={`flex items-center gap-1.5 rounded-md border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border ${colorClass} ${
-          isStale ? "border-dashed opacity-70" : ""
-        }`}
-      >
-        {hasViolations ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
-        Validate
-        {violations !== null && <ChevronDown size={12} />}
-      </button>
+      <Tooltip label="Validate">
+        <button
+          onClick={handleClick}
+          aria-label="Validate"
+          className={`flex h-8 w-8 items-center justify-center rounded-md border bg-panel hover:bg-border ${colorClass} ${
+            isStale ? "border-dashed opacity-70" : ""
+          }`}
+        >
+          {hasViolations ? <XCircle size={16} /> : <CheckCircle2 size={16} />}
+        </button>
+      </Tooltip>
 
       {showDropdown && (
         <div className="absolute right-0 z-30 mt-2 flex max-h-[70vh] w-96 flex-col rounded-md border border-border bg-panel shadow-lg">

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Redo2, Save, Undo2, Upload } from "lucide-react";
+import { BookOpen, Check, Redo2, Save, Undo2 } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
@@ -10,7 +10,7 @@ import { Tooltip } from "@/app/Tooltip";
 import { UndoToast } from "@/app/UndoToast";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { ValidationIndicator } from "@/app/ValidationIndicator";
-import { ExportMenu } from "@/app/ExportMenu";
+import { ProjectMenu } from "@/app/ProjectMenu";
 import { BoardMenu } from "@/app/BoardMenu";
 import { QuestionPanel } from "@/app/QuestionPanel";
 import { ModeBadge } from "@/app/ModeBadge";
@@ -18,7 +18,7 @@ import { PageEnter } from "@/app/PageEnter";
 import { ShortcutsButton } from "@/app/ShortcutsButton";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
 import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
-import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
+import type { ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
 import { modeColorVar } from "@/lib/modes";
 import { runValidation } from "@/validation-engine/engine";
@@ -103,32 +103,21 @@ export default function SandboxPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [saveLabel, setSaveLabel] = useState<"Save" | "Saved">("Save");
-  const [importError, setImportError] = useState<string | null>(null);
-  const importInputRef = useRef<HTMLInputElement>(null);
+  // Icon-only header button (see Tooltip below) — the text label "Saved"
+  // that used to carry this feedback is gone, so a brief icon swap
+  // (Save -> Check, same 1.5s window as before) is what now communicates
+  // "it worked" without needing to hover the tooltip to see it.
+  const [justSaved, setJustSaved] = useState(false);
   const canvasRef = useRef<CanvasHandle>(null);
 
   const handleSave = async () => {
     const { nodes, edges } = useCanvasStore.getState();
     await db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
-    setSaveLabel("Saved");
-    setTimeout(() => setSaveLabel("Save"), 1500);
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 1500);
   };
 
   useCanvasShortcuts(handleSave);
-
-  const handleImportFile = async (file: File) => {
-    setImportError(null);
-    try {
-      const parsed = JSON.parse(await file.text());
-      if (!Array.isArray(parsed?.nodes) || !Array.isArray(parsed?.edges)) {
-        throw new Error("File is missing nodes/edges arrays.");
-      }
-      loadCanvasState(parsed.nodes as AnyNodeType[], parsed.edges as ArchitectureEdgeType[]);
-    } catch {
-      setImportError("Couldn't import that file — not a valid ScaleCraft canvas export.");
-    }
-  };
 
   // Validation is explicit, not live — per direction, an automatic
   // per-edit re-check felt noisy. `checkedGraphKey` is a snapshot of the
@@ -202,61 +191,43 @@ export default function SandboxPage() {
              * shared container is what makes this actually match Save/Export/
              * Board (the prior merged version omitted it and rendered
              * transparent against the header, which read as "doesn't match"). */}
-            <div className="flex items-center overflow-hidden rounded-md border border-border bg-panel">
-              <button
-                onClick={undo}
-                disabled={!canUndo}
-                aria-label="Undo"
-                title="Undo (Ctrl+Z)"
-                className="flex items-center px-2.5 py-1.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-              >
-                <Undo2 size={14} />
-              </button>
+            <div className="flex h-8 items-center overflow-hidden rounded-md border border-border bg-panel">
+              <Tooltip label="Undo (Ctrl+Z)">
+                <button
+                  onClick={undo}
+                  disabled={!canUndo}
+                  aria-label="Undo"
+                  className="flex h-full items-center px-2.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                >
+                  <Undo2 size={14} />
+                </button>
+              </Tooltip>
               <div className="h-4 w-px bg-border" />
-              <button
-                onClick={redo}
-                disabled={!canRedo}
-                aria-label="Redo"
-                title="Redo (Ctrl+Shift+Z)"
-                className="flex items-center px-2.5 py-1.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-              >
-                <Redo2 size={14} />
-              </button>
+              <Tooltip label="Redo (Ctrl+Shift+Z)">
+                <button
+                  onClick={redo}
+                  disabled={!canRedo}
+                  aria-label="Redo"
+                  className="flex h-full items-center px-2.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                >
+                  <Redo2 size={14} />
+                </button>
+              </Tooltip>
             </div>
-            <div className="flex flex-col items-end">
+            <ValidationIndicator violations={violations} isStale={isStale} onValidate={handleValidate} />
+            <Tooltip label="Save (Ctrl+S)">
               <button
                 onClick={handleSave}
-                title="Save (Ctrl+S)"
-                className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
+                aria-label="Save"
+                className={`flex h-8 w-8 items-center justify-center rounded-md border bg-panel hover:text-foreground ${
+                  justSaved ? "border-state-valid text-state-valid" : "border-border text-foreground/70"
+                }`}
               >
-                <Save size={14} />
-                {saveLabel}
+                {justSaved ? <Check size={16} /> : <Save size={16} />}
               </button>
-            </div>
-            <ExportMenu canvasRef={canvasRef} />
+            </Tooltip>
+            <ProjectMenu canvasRef={canvasRef} />
             <BoardMenu />
-            <div className="flex flex-col items-end">
-              <button
-                onClick={() => importInputRef.current?.click()}
-                className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
-              >
-                <Upload size={14} />
-                Import
-              </button>
-              {importError && <p className="mt-1 max-w-[220px] text-xs text-state-error">{importError}</p>}
-            </div>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleImportFile(file);
-                e.target.value = "";
-              }}
-            />
-            <ValidationIndicator violations={violations} isStale={isStale} onValidate={handleValidate} />
             <Tooltip label="Documentation">
               <button
                 onClick={toggleDocsPanel}
@@ -281,7 +252,18 @@ export default function SandboxPage() {
             <QuestionPanel intro="Drag components from the palette, connect them, then click Validate." />
 
             <div className="flex flex-1 flex-col">
-              <Canvas ref={canvasRef} nodeStates={nodeStates} />
+              <Canvas
+                ref={canvasRef}
+                nodeStates={nodeStates}
+                // Clicking blank canvas dismisses the last Validate run
+                // (the green/red ring on every node, and the header
+                // button's own color) — without this, a passing run had
+                // no way back to neutral short of editing the graph.
+                onCanvasPaneClick={() => {
+                  setViolations(null);
+                  setCheckedGraphKey(null);
+                }}
+              />
             </div>
           </>
         )}
