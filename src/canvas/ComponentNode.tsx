@@ -6,6 +6,7 @@ import { getComponent } from "@/content/components/registry";
 import { useCanvasStore } from "./store";
 import { categoryColorVar } from "./category-colors";
 import { iconMap } from "./icon-map";
+import { HIGHLIGHT_GOLD_RING, SELECTED_GLOW } from "./selection-style";
 import type { ComponentNodeType, ValidationState } from "./types";
 
 const MIN_WIDTH = 160;
@@ -39,6 +40,10 @@ const stateRingVar: Record<ValidationState, string> = {
  */
 export function ComponentNode({ id, data, selected }: NodeProps<ComponentNodeType>) {
   const resizeNode = useCanvasStore((s) => s.resizeNode);
+  // Only used to hide the resizer while a highlight pass is active (see
+  // below) — the gold ring itself comes from data.highlighted, already
+  // computed once in Canvas.tsx from this same store field.
+  const highlightActive = useCanvasStore((s) => s.highlight !== null);
   const definition = getComponent(data.componentId);
   if (!definition) return null;
 
@@ -48,17 +53,25 @@ export function ComponentNode({ id, data, selected }: NodeProps<ComponentNodeTyp
 
   return (
     <div
-      className="rounded-xl border border-border bg-panel px-3 py-2.5 shadow-sm transition-[outline-color] duration-150 ease-out"
+      className="rounded-xl border border-border bg-panel px-3 py-2.5 shadow-sm transition-[outline-color,box-shadow] duration-150 ease-out"
       style={{
         width: data.width ?? 200,
         height: data.height,
         minHeight: MIN_HEIGHT,
         outline: `2px solid ${ringColor}`,
         outlineOffset: "1px",
+        // Gold takes priority over the plain selection glow — a node can be
+        // both `selected` and part of the highlighted path at once, and the
+        // highlight is the more specific, more temporary state of the two.
+        boxShadow: data.highlighted ? HIGHLIGHT_GOLD_RING : selected ? SELECTED_GLOW : undefined,
       }}
     >
       <NodeResizer
-        isVisible={selected}
+        // Hidden for the whole duration of a Highlight Connections pass,
+        // even on an already-selected node — the resize handles otherwise
+        // sit on top of the highlighted path and clutter exactly the view
+        // this feature is meant to declutter.
+        isVisible={selected && !highlightActive}
         minWidth={MIN_WIDTH}
         minHeight={MIN_HEIGHT}
         onResize={(_, params) => resizeNode(id, params.x, params.y, params.width, params.height)}

@@ -4,6 +4,7 @@ import { Lock, Pencil, Unlock } from "lucide-react";
 import { NodeResizer, type NodeProps } from "@xyflow/react";
 import { useCanvasStore } from "./store";
 import { DEFAULT_ZONE_COLOR } from "./annotation-colors";
+import { HIGHLIGHT_GOLD, SELECTED_GLOW } from "./selection-style";
 import type { ZoneNodeType } from "./types";
 
 /**
@@ -25,13 +26,18 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
   const resizeNode = useCanvasStore((s) => s.resizeNode);
   const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
   const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
+  // Same declutter-during-highlight reasoning as ComponentNode.tsx — hides
+  // the resizer for the whole duration of any active highlight (Highlight
+  // Connections OR this zone's own Highlight Zone), not just while this
+  // particular zone is the one highlighted.
+  const highlightActive = useCanvasStore((s) => s.highlight !== null);
   const color = data.color ?? DEFAULT_ZONE_COLOR;
   const locked = data.locked ?? false;
 
   return (
     <div
-      style={{ width: data.width, height: data.height }}
-      className="relative rounded-lg bg-panel/20"
+      style={{ width: data.width, height: data.height, boxShadow: selected ? SELECTED_GLOW : undefined }}
+      className="relative rounded-lg bg-panel/20 transition-shadow duration-150 ease-out"
     >
       <svg
         width={data.width}
@@ -50,15 +56,19 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
           // at a glance when the zone's own color happens to be close to it;
           // softening it keeps the two channels (zone accent vs. validation
           // state) visually distinct even when adjacent, without touching
-          // the state ring's own color.
-          stroke={`color-mix(in srgb, ${color} 80%, transparent)`}
+          // the state ring's own color. Swaps to solid gold during this
+          // zone's own "Highlight Zone" pass — recoloring the zone's actual
+          // boundary reads more clearly than layering a separate ring on
+          // top of it (which SELECTED_GLOW already does for plain
+          // selection, see the outer div's boxShadow below).
+          stroke={data.highlighted ? HIGHLIGHT_GOLD : `color-mix(in srgb, ${color} 80%, transparent)`}
           strokeWidth={1.5}
           strokeDasharray="6 4"
           style={{ animation: "dashdraw 0.5s linear infinite" }}
         />
       </svg>
       <NodeResizer
-        isVisible={selected && !locked}
+        isVisible={selected && !locked && !highlightActive}
         minWidth={200}
         minHeight={140}
         onResize={(_, params) => resizeNode(id, params.x, params.y, params.width, params.height)}

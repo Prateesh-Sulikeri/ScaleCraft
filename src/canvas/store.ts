@@ -254,6 +254,23 @@ type CanvasStore = {
   configPopover: { nodeId: string; anchor: { x: number; y: number } } | null;
   openConfigPopover: (nodeId: string, anchor: { x: number; y: number }) => void;
   closeConfigPopover: () => void;
+  /** Drives the Phase 4 "Highlight Connections"/"Highlight Zone"
+   * context-menu actions — Canvas.tsx derives the highlighted node/edge id
+   * sets from this each render and dims everything else via node/edge
+   * `style.opacity`, rather than having every node subscribe to this
+   * directly (only a few nodes care at any one time). "connections" walks
+   * the graph from one component node to its direct neighbors;
+   * "zone" is spatial instead of graph-based — every node whose position
+   * falls inside the given zone's rectangle, plus every edge between two
+   * such nodes (see Canvas.tsx's highlightSets). Both variants share one
+   * `id` field (the origin node's id) so cleanup logic doesn't need to
+   * branch on `mode`. Cleared on pane click, Escape, right-clicking a
+   * different node (see Canvas.tsx), and on delete/undo/redo/clearBoard
+   * (mirrors configPopover's cleanup below) so it never points at a node
+   * that no longer exists. */
+  highlight: { mode: "connections" | "zone"; id: string } | null;
+  setHighlight: (highlight: { mode: "connections" | "zone"; id: string } | null) => void;
+  clearHighlight: () => void;
   onNodesChange: (changes: NodeChange<AnyNodeType>[]) => void;
   onEdgesChange: (changes: EdgeChange<ArchitectureEdgeType>[]) => void;
   /** `kind` is optional so any direct caller (tests, etc.) still gets the
@@ -363,6 +380,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   edges: [],
   selectedEdgeId: null,
   selectedNodeId: null,
+  highlight: null,
   // Starts minimized — the panel shouldn't claim canvas space until the
   // user actually opens a doc (openDocTab un-minimizes) or clicks the
   // toolbar toggle; nothing should default to open on a fresh load.
@@ -562,6 +580,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   openConfigPopover: (nodeId, anchor) => set({ configPopover: { nodeId, anchor } }),
   closeConfigPopover: () => set({ configPopover: null }),
 
+  setHighlight: (highlight) => set({ highlight }),
+  clearHighlight: () => set({ highlight: null }),
+
   onNodesChange: (changes) => {
     set((state) => {
       const removedIds = changes.filter((c) => c.type === "remove").map((c) => c.id);
@@ -591,6 +612,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
             : state.editingAnnotation,
         configPopover:
           state.configPopover && removedIdSet.has(state.configPopover.nodeId) ? null : state.configPopover,
+        highlight: state.highlight && removedIdSet.has(state.highlight.id) ? null : state.highlight,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
         past,
         future,
@@ -766,6 +788,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
         editingAnnotation: state.editingAnnotation?.id === nodeId ? null : state.editingAnnotation,
         configPopover: state.configPopover?.nodeId === nodeId ? null : state.configPopover,
+        highlight: state.highlight?.id === nodeId ? null : state.highlight,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
         past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
         future: [],
@@ -789,6 +812,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
           state.editingAnnotation && idSet.has(state.editingAnnotation.id) ? null : state.editingAnnotation,
         configPopover:
           state.configPopover && idSet.has(state.configPopover.nodeId) ? null : state.configPopover,
+        highlight: state.highlight && idSet.has(state.highlight.id) ? null : state.highlight,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
         past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
         future: [],
@@ -824,6 +848,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedEdgeId: null,
         editingAnnotation: null,
         configPopover: null,
+        highlight: null,
       };
     });
   },
@@ -843,6 +868,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedEdgeId: null,
         editingAnnotation: null,
         configPopover: null,
+        highlight: null,
       };
     });
   },
@@ -873,6 +899,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedEdgeId: null,
         editingAnnotation: null,
         configPopover: null,
+        highlight: null,
         pendingUndo: { nodes: state.nodes, edges: state.edges, label: "Board cleared", mode: "replace", at: Date.now() },
         past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
         future: [],

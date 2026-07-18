@@ -29,6 +29,15 @@ export type ComponentNodeData = {
    * into every node up front. */
   width?: number;
   height?: number;
+  /** Derived/display-only, same convention as validationState — computed
+   * fresh in Canvas.tsx from the store's `highlight` + edges/positions each
+   * render (see highlightSets there), never persisted. True when this node
+   * is part of the active "Highlight Connections" (a direct neighbor) or
+   * "Highlight Zone" (spatially inside the zone) pass — ComponentNode.tsx
+   * renders it as a gold ring instead of the plain selection glow. Every
+   * node type has this same field (see ZoneNodeData/CommentNodeData/
+   * StartNodeData below) since "Highlight Zone" can contain any of them. */
+  highlighted?: boolean;
 };
 export type ComponentNodeType = Node<ComponentNodeData, "component">;
 
@@ -55,6 +64,12 @@ export type ZoneNodeData = {
    * accidental bumps. Toggled via the lock button (always visible) or the
    * right-click context menu; label/color stay editable while locked. */
   locked?: boolean;
+  /** Same derived/display-only field as ComponentNodeData.highlighted — see
+   * that doc comment. A zone is "highlighted" when it's the origin of an
+   * active "Highlight Zone" pass (see ContextMenu.tsx); it never becomes
+   * highlighted as someone else's neighbor, since real edges only ever
+   * connect component nodes. */
+  highlighted?: boolean;
 };
 export type ZoneNodeType = Node<ZoneNodeData, "zone">;
 
@@ -73,6 +88,10 @@ export type CommentNodeData = {
   color?: string;
   /** Same lock semantics as ZoneNodeData.locked. */
   locked?: boolean;
+  /** Same derived/display-only field as ComponentNodeData.highlighted — true
+   * only when this comment sits spatially inside an active "Highlight Zone"
+   * pass (see ContextMenu.tsx/Canvas.tsx). */
+  highlighted?: boolean;
 };
 export type CommentNodeType = Node<CommentNodeData, "comment">;
 
@@ -97,6 +116,10 @@ export type StartNodeData = {
   color?: string;
   /** Same lock semantics as ZoneNodeData.locked. */
   locked?: boolean;
+  /** Same derived/display-only field as ComponentNodeData.highlighted — true
+   * only when this flag sits spatially inside an active "Highlight Zone"
+   * pass (see ContextMenu.tsx/Canvas.tsx). */
+  highlighted?: boolean;
 };
 export type StartNodeType = Node<StartNodeData, "start">;
 

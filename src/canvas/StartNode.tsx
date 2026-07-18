@@ -6,6 +6,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { useCanvasStore } from "./store";
 import { componentDisplayNames } from "./component-display-name";
 import { DEFAULT_FLAG_COLOR } from "./annotation-colors";
+import { HIGHLIGHT_GOLD, HIGHLIGHT_GOLD_RING, SELECTED_GLOW } from "./selection-style";
 import { StartTargetPicker } from "./StartTargetPicker";
 import type { ComponentNodeType, StartNodeType } from "./types";
 
@@ -53,9 +54,16 @@ export function StartNode({ id, data, selected }: NodeProps<StartNodeType>) {
         // Resting border matches every other card (border-border); only
         // shifts to this flag's own color on selection — same restrained
         // "state change, not decoration" posture as the rest of the canvas.
-        borderColor: selected ? `color-mix(in srgb, ${color} 65%, transparent)` : undefined,
+        // Gold (from an active "Highlight Zone" pass) takes priority over
+        // both, same as ComponentNode.tsx.
+        borderColor: data.highlighted
+          ? HIGHLIGHT_GOLD
+          : selected
+            ? `color-mix(in srgb, ${color} 65%, transparent)`
+            : undefined,
+        boxShadow: data.highlighted ? HIGHLIGHT_GOLD_RING : selected ? SELECTED_GLOW : undefined,
       }}
-      className="relative w-[180px] rounded-xl border border-border bg-panel px-3 py-2.5 shadow-sm transition-colors"
+      className="relative w-[180px] rounded-xl border border-border bg-panel px-3 py-2.5 shadow-sm transition-[border-color,box-shadow]"
     >
       <div className="flex items-center gap-2.5">
         <div

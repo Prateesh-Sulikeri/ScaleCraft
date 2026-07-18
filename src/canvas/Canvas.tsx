@@ -35,6 +35,7 @@ import { ContextMenu, type ContextMenuTarget } from "./ContextMenu";
 import { AnnotationEditor } from "./AnnotationEditor";
 import { NodeConfigPopover } from "./NodeConfigPopover";
 import { PALETTE_DRAG_TYPE } from "./Palette";
+import { HIGHLIGHT_GOLD } from "./selection-style";
 import { useCanvasStore, type PlacementMode } from "./store";
 import { isEditableTarget } from "./use-canvas-shortcuts";
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "./types";
@@ -72,13 +73,24 @@ type FlowCanvasProps = {
    * node data at render time only. Never written back into the store: the
    * store holds the graph a user is editing, not validation results. */
   nodeStates?: Record<string, ValidationState>;
+  /** Fires on top of Canvas's own pane-click handling (deselect/clear
+   * highlight) — lets sandbox/page.tsx also dismiss its last Validate run
+   * (nodeStates above, plus the header button's own pass/fail color) on the
+   * same click, since violations/checkedGraphKey live in page.tsx, not the
+   * store. Without an explicit way to dismiss it, a passing run's green
+   * ring had no path back to neutral short of editing the graph. Named
+   * distinctly from the `<ReactFlow onPaneClick>` prop below (a JSX
+   * attribute name, not a scope binding, so there's no actual collision —
+   * this is purely to keep the two from reading as the same thing at a
+   * glance). */
+  onCanvasPaneClick?: () => void;
 };
 
 const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas(
-  { nodeStates },
+  { nodeStates, onCanvasPaneClick },
   ref,
 ) {
-  const { screenToFlowPosition, getNodes } = useReactFlow();
+  const { screenToFlowPosition, getNodes, fitView } = useReactFlow();
 
   useImperativeHandle(ref, () => ({
     exportImage: async ({ format, backgroundColor }) => {
@@ -143,6 +155,20 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   const openConfigPopover = useCanvasStore((s) => s.openConfigPopover);
   const setSelectedEdgeId = useCanvasStore((s) => s.setSelectedEdgeId);
   const setSelectedNodeId = useCanvasStore((s) => s.setSelectedNodeId);
+  const highlight = useCanvasStore((s) => s.highlight);
+  const clearHighlight = useCanvasStore((s) => s.clearHighlight);
+
+  /** Phase 4 "Center View" — frames one node in the viewport without
+   * touching the rest of the graph's zoom/pan. Uses the `fitView` returned
+   * by useReactFlow() (an imperative function scoped to this call), not the
+   * declarative `fitView` prop on <ReactFlow> further down (that one only
+   * runs once, on mount, to frame the whole graph — no conflict). */
+  const centerOnNode = useCallback(
+    (nodeId: string) => {
+      fitView({ nodes: [{ id: nodeId }], duration: 300, maxZoom: 1.2 });
+    },
+    [fitView],
+  );
 
   const [menu, setMenu] = useState<ContextMenuTarget | null>(null);
   // Set on pointerdown on a handle, before any drag motion — disables
@@ -158,18 +184,25 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   const dragCleanupRef = useRef<(() => void) | null>(null);
 
   // Escape cancels placement — both before a drag has started (just exits
-  // the mode) and mid-drag (tears down the in-progress window listeners
-  // via the ref below, so nothing gets created).
+  // the mode) and mid-drag (tears down the in-progress window listeners via
+  // the ref below, so nothing gets created) — and, when no placement is in
+  // progress, clears an active Highlight Connections dim instead (see
+  // ContextMenu.tsx's "Highlight Connections" item). Always attached (not
+  // gated on placementMode being truthy, unlike before) so Escape can clear
+  // the highlight on its own.
   useEffect(() => {
-    if (!placementMode) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      dragCleanupRef.current?.();
-      setPlacementMode(null);
+      if (placementMode) {
+        dragCleanupRef.current?.();
+        setPlacementMode(null);
+        return;
+      }
+      if (highlight) clearHighlight();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [placementMode, setPlacementMode]);
+  }, [placementMode, setPlacementMode, highlight, clearHighlight]);
 
   // xyflow's hold-Space-to-pan (`panActivationKeyCode`, on by default) only
   // takes over a drag that starts on the blank pane — it has no awareness of
@@ -296,6 +329,63 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   const mounted = useHasMounted();
   const colorMode = mounted && resolvedTheme === "light" ? "light" : "dark";
 
+  // Phase 4 "Highlight Connections"/"Highlight Zone" — derives the
+  // highlighted node/edge id sets from the store's `highlight` each render,
+  // rather than having every node component subscribe to it directly (only
+  // a few nodes/edges care at any one time, most just need to dim). null
+  // means "no active highlight," not "highlight nothing."
+  //
+  // "connections" is graph-based: the origin component node plus every node
+  // directly joined to it by a real edge. "zone" is spatial instead: every
+  // node (any type) whose position falls inside the origin zone's own
+  // rectangle — this is what makes "Highlight Zone" actually usable, since
+  // xyflow doesn't reparent nodes dropped into a zone (see ZoneNodeData's
+  // doc comment), so graph traversal has nothing to walk. Either way, an
+  // edge only counts as highlighted when BOTH endpoints are in the set —
+  // an edge leaving the zone/neighborhood stays dimmed like everything else
+  // outside it.
+  const highlightSets = useMemo(() => {
+    if (!highlight) return null;
+    const connectedNodeIds = new Set<string>([highlight.id]);
+    if (highlight.mode === "connections") {
+      for (const e of edges) {
+        if (e.source === highlight.id || e.target === highlight.id) {
+          connectedNodeIds.add(e.source);
+          connectedNodeIds.add(e.target);
+        }
+      }
+    } else {
+      const zone = storeNodes.find(
+        (n): n is Extract<AnyNodeType, { type: "zone" }> => n.id === highlight.id && n.type === "zone",
+      );
+      if (!zone) return null;
+      const { x: zx, y: zy } = zone.position;
+      const { width: zw, height: zh } = zone.data;
+      for (const n of storeNodes) {
+        if (n.id === zone.id || n.type === "zone") continue;
+        const { x, y } = n.position;
+        if (x >= zx && x <= zx + zw && y >= zy && y <= zy + zh) connectedNodeIds.add(n.id);
+      }
+    }
+    const connectedEdgeIds = new Set<string>();
+    for (const e of edges) {
+      if (connectedNodeIds.has(e.source) && connectedNodeIds.has(e.target)) connectedEdgeIds.add(e.id);
+    }
+    return { connectedNodeIds, connectedEdgeIds };
+  }, [highlight, edges, storeNodes]);
+
+  const dimStyle = useCallback(
+    (id: string): React.CSSProperties => ({
+      opacity: highlightSets && !highlightSets.connectedNodeIds.has(id) ? 0.3 : 1,
+      transition: "opacity 150ms ease-out",
+    }),
+    [highlightSets],
+  );
+  const isHighlighted = useCallback(
+    (id: string) => highlightSets?.connectedNodeIds.has(id) ?? false,
+    [highlightSets],
+  );
+
   const nodes = useMemo(
     () =>
       nodeStates
@@ -308,23 +398,42 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
             // type/data correlation the same way spreading the full union
             // would — each branch has to narrow to exactly one member.
             const validationState = nodeStates[n.id];
-            if (n.type === "component") return { ...n, data: { ...n.data, validationState } };
+            const style = dimStyle(n.id);
+            const highlighted = isHighlighted(n.id);
+            if (n.type === "component")
+              return { ...n, data: { ...n.data, validationState, highlighted }, style };
             if (n.type === "zone")
-              return { ...n, data: { ...n.data, validationState }, draggable: !n.data.locked && !spaceHeld };
-            if (n.type === "comment") return { ...n, draggable: !n.data.locked && !spaceHeld };
-            if (n.type === "start") return { ...n, draggable: !n.data.locked && !spaceHeld };
+              return {
+                ...n,
+                data: { ...n.data, validationState, highlighted },
+                draggable: !n.data.locked && !spaceHeld,
+                style,
+              };
+            if (n.type === "comment")
+              return { ...n, data: { ...n.data, highlighted }, draggable: !n.data.locked && !spaceHeld, style };
+            if (n.type === "start")
+              return { ...n, data: { ...n.data, highlighted }, draggable: !n.data.locked && !spaceHeld, style };
+            // Unreachable — the four branches above already cover every
+            // member of AnyNodeType, so `n` is narrowed to `never` here.
+            // Just return it as-is (no `style` merge — spreading `never`
+            // is a TS error, and this line never actually executes).
             return n;
           })
         : storeNodes.map((n): AnyNodeType => {
             // Same locked -> non-draggable override as above, needed even
             // when nodeStates is absent (e.g. before the first Validate
             // click) so locking isn't validation-dependent.
-            if (n.type === "zone") return { ...n, draggable: !n.data.locked && !spaceHeld };
-            if (n.type === "comment") return { ...n, draggable: !n.data.locked && !spaceHeld };
-            if (n.type === "start") return { ...n, draggable: !n.data.locked && !spaceHeld };
-            return n;
+            const style = dimStyle(n.id);
+            const highlighted = isHighlighted(n.id);
+            if (n.type === "zone")
+              return { ...n, data: { ...n.data, highlighted }, draggable: !n.data.locked && !spaceHeld, style };
+            if (n.type === "comment")
+              return { ...n, data: { ...n.data, highlighted }, draggable: !n.data.locked && !spaceHeld, style };
+            if (n.type === "start")
+              return { ...n, data: { ...n.data, highlighted }, draggable: !n.data.locked && !spaceHeld, style };
+            return { ...n, data: { ...n.data, highlighted }, style };
           }),
-    [storeNodes, nodeStates, spaceHeld],
+    [storeNodes, nodeStates, spaceHeld, dimStyle, isHighlighted],
   );
 
   // A Start marker's pointer arrow (see StartNode.tsx) — derived purely from
@@ -366,7 +475,21 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       );
   }, [storeNodes]);
 
-  const displayEdges = useMemo(() => [...edges, ...pointerEdges], [edges, pointerEdges]);
+  const displayEdges = useMemo(
+    () =>
+      [...edges, ...pointerEdges].map((e) => {
+        if (!highlightSets) return e;
+        if (highlightSets.connectedEdgeIds.has(e.id)) {
+          // Same gold as ComponentNode's ring (HIGHLIGHT_GOLD) — a connected
+          // edge trades its own kind color for gold too, so the whole
+          // highlighted path (nodes + edges) reads as one continuous
+          // visual, not just a ring around each endpoint.
+          return { ...e, style: { ...e.style, stroke: HIGHLIGHT_GOLD, strokeWidth: 2.5 } };
+        }
+        return { ...e, style: { ...e.style, opacity: 0.15, transition: "opacity 150ms ease-out" } };
+      }),
+    [edges, pointerEdges, highlightSets],
+  );
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
@@ -412,9 +535,18 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         onPaneClick={() => {
           setSelectedEdgeId(null);
           setSelectedNodeId(null);
+          clearHighlight();
+          onCanvasPaneClick?.();
         }}
         onNodeContextMenu={(event, node) => {
           event.preventDefault();
+          // Right-clicking a different node than the one currently
+          // highlighted clears the old highlight — see the Phase 4
+          // "Highlight Connections" clear-triggers list in pending.md.
+          // Picking "Highlight Connections"/"Highlight Zone" from the menu
+          // that's about to open will set a fresh one right back if the
+          // user chooses to.
+          if (highlight && highlight.id !== node.id) clearHighlight();
           setMenu({ type: "node", id: node.id, x: event.clientX, y: event.clientY });
         }}
         onEdgeContextMenu={(event, edge) => {
@@ -444,6 +576,18 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         selectionOnDrag={!isConnecting}
         panOnDrag={[1]}
         nodesDraggable={!spaceHeld}
+        // xyflow's default (true) bumps a selected node's z-index by 1000
+        // above everything else — for a Zone, whose whole rectangle is one
+        // large, semi-opaque, pointer-interactive div, that meant a
+        // *selected* zone jumped on top of every component sitting inside
+        // it, silently swallowing clicks meant for those components (you'd
+        // have to click blank canvas or a different node first to
+        // deselect the zone before a contained node became clickable
+        // again). Zones are already pinned to zIndex: -1 at creation (see
+        // store.ts's addZone) specifically so they stay behind components;
+        // disabling this keeps that ordering permanent instead of letting
+        // selection override it.
+        elevateNodesOnSelect={false}
         proOptions={{ hideAttribution: true }}
         minZoom={0.25}
         fitView
@@ -453,7 +597,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         <Controls />
       </ReactFlow>
       <EdgeInspector />
-      <ContextMenu target={menu} onClose={() => setMenu(null)} />
+      <ContextMenu target={menu} onClose={() => setMenu(null)} centerOnNode={centerOnNode} />
       <AnnotationEditor />
       <NodeConfigPopover />
 
