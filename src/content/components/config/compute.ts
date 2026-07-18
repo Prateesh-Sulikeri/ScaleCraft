@@ -13,6 +13,7 @@ export default [
     ],
     summary: "Runs business logic and enforces access control",
     docs: "Runs application logic: authentication, authorization, and business rules. Should mediate all access to the database — clients should never reach it directly.",
+    docsFile: "/docs/app-server.md",
     // inputs include "data" (a Read Replica's "Read query" output targets
     // compute) and "distributed-systems" (a Follower's "Reads" output does
     // too) — both are pre-existing component ports that would otherwise be

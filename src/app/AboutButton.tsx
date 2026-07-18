@@ -19,12 +19,13 @@ const ABOUT_TEXT =
   "ScaleCraft is single-player, permanently — a self-paced course, not a shared workspace.";
 
 /**
- * Reuses DocsModal (see DocsWindows.tsx / ZoneNode.tsx's sibling docs-window
- * pattern) with static content instead of a component's registry docs — it's
- * already fully generic over title/docs, so no changes needed there. Local
- * state rather than the canvas store's docsWindows list: this isn't
- * component documentation and Home doesn't touch the canvas store at all.
- * Mounted on Home only, per the request.
+ * Reuses DocsModal (a generic floating title+text window, otherwise
+ * unrelated to the canvas's docked documentation panel — see
+ * docs-panel/DocsPanel.tsx) with static content instead of a component's
+ * registry docs — it's already fully generic over title/docs, so no changes
+ * needed there. Local state rather than the canvas store's docsPanel: this
+ * isn't component documentation and Home doesn't touch the canvas store at
+ * all. Mounted on Home only, per the request.
  */
 export function AboutButton() {
   const [open, setOpen] = useState(false);

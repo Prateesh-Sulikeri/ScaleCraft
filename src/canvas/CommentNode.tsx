@@ -4,6 +4,7 @@ import { Lock, Pencil, Unlock } from "lucide-react";
 import { NodeResizer, type NodeProps } from "@xyflow/react";
 import { useCanvasStore } from "./store";
 import { DEFAULT_COMMENT_COLOR } from "./annotation-colors";
+import { HIGHLIGHT_GOLD, SELECTED_GLOW } from "./selection-style";
 import type { CommentNodeType } from "./types";
 
 /**
@@ -22,9 +23,12 @@ import type { CommentNodeType } from "./types";
  */
 export function CommentNode({ id, data, selected }: NodeProps<CommentNodeType>) {
   const updateComment = useCanvasStore((s) => s.updateComment);
-  const resizeAnnotation = useCanvasStore((s) => s.resizeAnnotation);
+  const resizeNode = useCanvasStore((s) => s.resizeNode);
   const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
   const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
+  // Same declutter-during-highlight reasoning as ComponentNode.tsx/
+  // ZoneNode.tsx — see ZoneNode.tsx's comment on the identical field.
+  const highlightActive = useCanvasStore((s) => s.highlight !== null);
   const color = data.color ?? DEFAULT_COMMENT_COLOR;
   const locked = data.locked ?? false;
 
@@ -33,16 +37,23 @@ export function CommentNode({ id, data, selected }: NodeProps<CommentNodeType>) 
       style={{
         width: data.width,
         height: data.height,
-        borderColor: `color-mix(in srgb, ${color} 50%, transparent)`,
+        // Same border-recolor-over-separate-ring reasoning as ZoneNode.tsx
+        // — true only when this comment sits inside an active "Highlight
+        // Zone" pass (a comment is never a Highlight Connections member on
+        // its own — see ContextMenu.tsx's component-only gate).
+        borderColor: data.highlighted
+          ? HIGHLIGHT_GOLD
+          : `color-mix(in srgb, ${color} 50%, transparent)`,
         backgroundColor: `color-mix(in srgb, ${color} 5%, transparent)`,
+        boxShadow: selected ? SELECTED_GLOW : undefined,
       }}
-      className="relative flex flex-col rounded-lg border p-2 shadow-sm"
+      className="relative flex flex-col rounded-lg border p-2 shadow-sm transition-shadow duration-150 ease-out"
     >
       <NodeResizer
-        isVisible={selected && !locked}
+        isVisible={selected && !locked && !highlightActive}
         minWidth={100}
         minHeight={32}
-        onResize={(_, params) => resizeAnnotation(id, params.x, params.y, params.width, params.height)}
+        onResize={(_, params) => resizeNode(id, params.x, params.y, params.width, params.height)}
         lineStyle={{ borderColor: color }}
         handleStyle={{ backgroundColor: color, width: 8, height: 8, borderRadius: 2 }}
       />

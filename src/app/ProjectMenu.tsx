@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, type RefObject } from "react";
-import { ChevronDown, Download } from "lucide-react";
+import { useRef, useState, type RefObject } from "react";
+import { FolderOpen, Upload } from "lucide-react";
 import { exportCanvasAsJson } from "@/canvas/export-json";
+import { useCanvasStore } from "@/canvas/store";
+import { Tooltip } from "@/app/Tooltip";
 import type { CanvasHandle } from "@/canvas/Canvas";
+import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 
-type ExportMenuProps = {
+type ProjectMenuProps = {
   canvasRef: RefObject<CanvasHandle | null>;
 };
 
@@ -18,18 +21,39 @@ const BG_HEX: Record<Exclude<Background, "transparent" | "custom">, string> = {
 };
 
 /**
- * The header's Export control — was a single JSON-only button, now a
- * dropdown offering the raw JSON snapshot (unchanged) alongside a PNG/JPG
- * image render of the current graph. Follows the same backdrop
+ * The header's Import/Export control (Phase 5 of the UI overhaul, see
+ * .claude/docs/pending.md) — replaces ExportMenu.tsx, folding in Import
+ * (previously a plain button + hidden <input> inlined in sandbox/page.tsx)
+ * so Import/Export JSON/Export image all live behind one "Project" trigger
+ * instead of three separate header controls. Same backdrop
  * click-outside-to-close convention already used by ValidationIndicator/
- * ContextMenu, so opening a second dropdown-style control doesn't
- * introduce a third pattern.
+ * BoardMenu/ContextMenu, so this doesn't introduce a fourth pattern. The
+ * trigger itself is icon-only (Tooltip, not a text label) — matches every
+ * other header control (Docs/Shortcuts/Theme/Save/Board/Validate) now that
+ * the whole toolbar was made consistent in one pass.
  */
-export function ExportMenu({ canvasRef }: ExportMenuProps) {
+export function ProjectMenu({ canvasRef }: ProjectMenuProps) {
+  const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<ImageFormat>("png");
   const [background, setBackground] = useState<Background>("transparent");
   const [customColor, setCustomColor] = useState("#1a1a1a");
+  const [importError, setImportError] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = async (file: File) => {
+    setImportError(null);
+    try {
+      const parsed = JSON.parse(await file.text());
+      if (!Array.isArray(parsed?.nodes) || !Array.isArray(parsed?.edges)) {
+        throw new Error("File is missing nodes/edges arrays.");
+      }
+      loadCanvasState(parsed.nodes as AnyNodeType[], parsed.edges as ArchitectureEdgeType[]);
+      setOpen(false);
+    } catch {
+      setImportError("Couldn't import that file — not a valid ScaleCraft canvas export.");
+    }
+  };
 
   const handleExportJson = () => {
     exportCanvasAsJson();
@@ -53,25 +77,48 @@ export function ExportMenu({ canvasRef }: ExportMenuProps) {
 
   return (
     <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
-      >
-        <Download size={14} />
-        Export
-        <ChevronDown size={12} />
-      </button>
+      <Tooltip label="Project">
+        <button
+          onClick={() => setOpen((o) => !o)}
+          aria-label="Project"
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel text-foreground/70 hover:text-foreground"
+        >
+          <FolderOpen size={16} />
+        </button>
+      </Tooltip>
 
       {open && (
         <>
           <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
           <div className="absolute right-0 z-30 mt-2 w-64 rounded-md border border-border bg-panel p-3 shadow-lg">
             <button
-              onClick={handleExportJson}
-              className="w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-border"
+              onClick={() => importInputRef.current?.click()}
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-border"
             >
-              Export as JSON
+              <Upload size={14} />
+              Import Project
             </button>
+            {importError && <p className="mt-1 px-2 text-xs text-state-error">{importError}</p>}
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImportFile(file);
+                e.target.value = "";
+              }}
+            />
+
+            <div className="mt-3 border-t border-border pt-3">
+              <button
+                onClick={handleExportJson}
+                className="w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-border"
+              >
+                Export as JSON
+              </button>
+            </div>
 
             <div className="mt-3 border-t border-border pt-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-foreground/70">

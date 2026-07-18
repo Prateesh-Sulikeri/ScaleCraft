@@ -146,6 +146,7 @@ export default [
     ],
     summary: "Distributes requests across instances",
     docs: "Distributes incoming requests across multiple downstream instances to avoid overloading any single one.",
+    docsFile: "/docs/load-balancer.md",
     // Inputs restricted to networking (never compute) and outputs
     // restricted to compute (never back to networking) — this is what
     // makes a Serverless Function/App Server feeding INTO a Load Balancer

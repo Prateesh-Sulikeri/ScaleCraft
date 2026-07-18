@@ -11,10 +11,33 @@ export type ComponentNodeData = {
   validationState?: ValidationState;
   /** A user-chosen instance label ("server-1-ind"), separate from the
    * ComponentDefinition's fixed type label ("Application Server") — set via
-   * NodeInspector, shown on the canvas card alongside the type label when
+   * NodeConfigPopover, shown on the canvas card alongside the type label when
    * present. Also what disambiguates same-type nodes in the Start marker's
    * target picker (see component-display-name.ts). */
   name?: string;
+  /** A per-instance description, editable in NodeConfigPopover — pre-filled
+   * from `ComponentDefinition.summary` there (the popover's default text)
+   * until the user overrides it, but that seeding happens at render time in
+   * the popover itself, not here: undefined still means "using the
+   * definition's summary," not "blank." */
+  description?: string;
+  /** User-resized card dimensions (ComponentNode.tsx's NodeResizer, same
+   * store.ts action — resizeNode — as zone/comment). Undefined until the
+   * user actually drags a handle: width then falls back to the card's
+   * default 200px and height stays auto (content-driven), matching the
+   * card's pre-resize appearance exactly rather than baking a fixed height
+   * into every node up front. */
+  width?: number;
+  height?: number;
+  /** Derived/display-only, same convention as validationState — computed
+   * fresh in Canvas.tsx from the store's `highlight` + edges/positions each
+   * render (see highlightSets there), never persisted. True when this node
+   * is part of the active "Highlight Connections" (a direct neighbor) or
+   * "Highlight Zone" (spatially inside the zone) pass — ComponentNode.tsx
+   * renders it as a gold ring instead of the plain selection glow. Every
+   * node type has this same field (see ZoneNodeData/CommentNodeData/
+   * StartNodeData below) since "Highlight Zone" can contain any of them. */
+  highlighted?: boolean;
 };
 export type ComponentNodeType = Node<ComponentNodeData, "component">;
 
@@ -41,6 +64,12 @@ export type ZoneNodeData = {
    * accidental bumps. Toggled via the lock button (always visible) or the
    * right-click context menu; label/color stay editable while locked. */
   locked?: boolean;
+  /** Same derived/display-only field as ComponentNodeData.highlighted — see
+   * that doc comment. A zone is "highlighted" when it's the origin of an
+   * active "Highlight Zone" pass (see ContextMenu.tsx); it never becomes
+   * highlighted as someone else's neighbor, since real edges only ever
+   * connect component nodes. */
+  highlighted?: boolean;
 };
 export type ZoneNodeType = Node<ZoneNodeData, "zone">;
 
@@ -59,6 +88,10 @@ export type CommentNodeData = {
   color?: string;
   /** Same lock semantics as ZoneNodeData.locked. */
   locked?: boolean;
+  /** Same derived/display-only field as ComponentNodeData.highlighted — true
+   * only when this comment sits spatially inside an active "Highlight Zone"
+   * pass (see ContextMenu.tsx/Canvas.tsx). */
+  highlighted?: boolean;
 };
 export type CommentNodeType = Node<CommentNodeData, "comment">;
 
@@ -83,6 +116,10 @@ export type StartNodeData = {
   color?: string;
   /** Same lock semantics as ZoneNodeData.locked. */
   locked?: boolean;
+  /** Same derived/display-only field as ComponentNodeData.highlighted — true
+   * only when this flag sits spatially inside an active "Highlight Zone"
+   * pass (see ContextMenu.tsx/Canvas.tsx). */
+  highlighted?: boolean;
 };
 export type StartNodeType = Node<StartNodeData, "start">;
 

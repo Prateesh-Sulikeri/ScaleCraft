@@ -408,7 +408,7 @@ export function Palette() {
  * language (raised-panel, hairline-border, 6px radius, floating-menu
  * shadow — see DESIGN.md's "Dropdown / Context Menus"), not a new pattern —
  * a full-viewport click-catcher backdrop closes it on any outside click,
- * same as ExportMenu/ContextMenu. Deleting a custom component removes its
+ * same as ProjectMenu/ContextMenu. Deleting a custom component removes its
  * definition, not an instance, so this is deliberately a harder stop than
  * node/edge delete's toast-based undo: no confirm dialogs exist elsewhere in
  * this app, but nothing here is undoable after the fact (see

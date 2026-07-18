@@ -30,13 +30,15 @@ function defaultPosition(index: number) {
 }
 
 /**
- * Docs open as a small, moveable floating window rather than a full-screen
- * backdrop modal — no darkened overlay, the canvas stays fully interactive
- * around it (see Canvas.tsx/page.tsx: this is rendered independently of
- * node selection or any panel's collapsed state — see DocsWindows.tsx for
- * why that matters). Position and size are local state, not stored — they
- * change continuously during drag/resize, and only `minimized` (which
- * toggles rarely) needs to survive being read from outside this component.
+ * A small, moveable floating window rather than a full-screen backdrop
+ * modal — no darkened overlay, whatever's behind it stays fully
+ * interactive. Generic over title/docs; its only current caller is
+ * AboutButton.tsx (Home's static About dialog) — the canvas's own
+ * component documentation now lives in the docked docs-panel (see
+ * docs-panel/DocsPanel.tsx), not this component. Position and size are
+ * local state, not stored — they change continuously during drag/resize,
+ * and only `minimized` (which toggles rarely) needs to survive being read
+ * from outside this component.
  */
 export function DocsModal({ title, docs, index, minimized, onMinimizedChange, onClose }: DocsModalProps) {
   const [pos, setPos] = useState(() => defaultPosition(index));

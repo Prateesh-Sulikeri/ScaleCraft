@@ -2,14 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Redo2, Save, Undo2, Upload } from "lucide-react";
+import { BookOpen, Check, Redo2, Save, Undo2 } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
-import { NodeInspector } from "@/canvas/NodeInspector";
-import { DocsWindows } from "@/canvas/DocsWindows";
+import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
+import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
+import { Tooltip } from "@/app/Tooltip";
 import { UndoToast } from "@/app/UndoToast";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { ValidationIndicator } from "@/app/ValidationIndicator";
-import { ExportMenu } from "@/app/ExportMenu";
+import { ProjectMenu } from "@/app/ProjectMenu";
 import { BoardMenu } from "@/app/BoardMenu";
 import { QuestionPanel } from "@/app/QuestionPanel";
 import { ModeBadge } from "@/app/ModeBadge";
@@ -17,7 +18,7 @@ import { PageEnter } from "@/app/PageEnter";
 import { ShortcutsButton } from "@/app/ShortcutsButton";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
 import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
-import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
+import type { ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
 import { modeColorVar } from "@/lib/modes";
 import { runValidation } from "@/validation-engine/engine";
@@ -74,6 +75,9 @@ export default function SandboxPage() {
   const redo = useCanvasStore((s) => s.redo);
   const canUndo = useCanvasStore((s) => s.past.length > 0);
   const canRedo = useCanvasStore((s) => s.future.length > 0);
+  const docsPanelOpen = useCanvasStore((s) => !s.docsPanel.minimized || s.docsPanel.focusMode);
+  const toggleDocsPanel = useCanvasStore((s) => s.toggleDocsPanel);
+  const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
 
   // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
   // the seed demo graph — this is what makes a refresh not lose work.
@@ -99,32 +103,21 @@ export default function SandboxPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [saveLabel, setSaveLabel] = useState<"Save" | "Saved">("Save");
-  const [importError, setImportError] = useState<string | null>(null);
-  const importInputRef = useRef<HTMLInputElement>(null);
+  // Icon-only header button (see Tooltip below) — the text label "Saved"
+  // that used to carry this feedback is gone, so a brief icon swap
+  // (Save -> Check, same 1.5s window as before) is what now communicates
+  // "it worked" without needing to hover the tooltip to see it.
+  const [justSaved, setJustSaved] = useState(false);
   const canvasRef = useRef<CanvasHandle>(null);
 
   const handleSave = async () => {
     const { nodes, edges } = useCanvasStore.getState();
     await db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
-    setSaveLabel("Saved");
-    setTimeout(() => setSaveLabel("Save"), 1500);
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 1500);
   };
 
   useCanvasShortcuts(handleSave);
-
-  const handleImportFile = async (file: File) => {
-    setImportError(null);
-    try {
-      const parsed = JSON.parse(await file.text());
-      if (!Array.isArray(parsed?.nodes) || !Array.isArray(parsed?.edges)) {
-        throw new Error("File is missing nodes/edges arrays.");
-      }
-      loadCanvasState(parsed.nodes as AnyNodeType[], parsed.edges as ArchitectureEdgeType[]);
-    } catch {
-      setImportError("Couldn't import that file — not a valid ScaleCraft canvas export.");
-    }
-  };
 
   // Validation is explicit, not live — per direction, an automatic
   // per-edit re-check felt noisy. `checkedGraphKey` is a snapshot of the
@@ -163,109 +156,121 @@ export default function SandboxPage() {
 
   return (
     <PageEnter>
-      <header
-        style={{ borderBottomColor: modeColorVar[mode] }}
-        className="flex items-center justify-between border-b-2 px-6 py-3"
-      >
-        <div className="flex items-center gap-2.5">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 opacity-100 transition-opacity hover:opacity-70"
-          >
-            <div
-              aria-hidden="true"
-              style={{
-                width: 32,
-                height: 32,
-                backgroundColor: "var(--foreground)",
-                WebkitMaskImage: "url(/logo-mask.png)",
-                maskImage: "url(/logo-mask.png)",
-                WebkitMaskSize: "contain",
-                maskSize: "contain",
-                WebkitMaskRepeat: "no-repeat",
-                maskRepeat: "no-repeat",
-              }}
-            />
-            <h1 className="text-base font-semibold">ScaleCraft</h1>
-          </Link>
-          <ModeBadge mode={mode} />
-        </div>
-        <div className="flex items-center gap-2">
-          {/* One split button, not two separate ones — bg-panel on the
-           * shared container is what makes this actually match Save/Export/
-           * Board (the prior merged version omitted it and rendered
-           * transparent against the header, which read as "doesn't match"). */}
-          <div className="flex items-center overflow-hidden rounded-md border border-border bg-panel">
-            <button
-              onClick={undo}
-              disabled={!canUndo}
-              aria-label="Undo"
-              title="Undo (Ctrl+Z)"
-              className="flex items-center px-2.5 py-1.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+      {focusMode ? (
+        <FocusModeBar />
+      ) : (
+        <header
+          style={{ borderBottomColor: modeColorVar[mode] }}
+          className="flex items-center justify-between border-b-2 px-6 py-3"
+        >
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/"
+              className="flex items-center gap-2.5 opacity-100 transition-opacity hover:opacity-70"
             >
-              <Undo2 size={14} />
-            </button>
-            <div className="h-4 w-px bg-border" />
-            <button
-              onClick={redo}
-              disabled={!canRedo}
-              aria-label="Redo"
-              title="Redo (Ctrl+Shift+Z)"
-              className="flex items-center px-2.5 py-1.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-            >
-              <Redo2 size={14} />
-            </button>
+              <div
+                aria-hidden="true"
+                style={{
+                  width: 32,
+                  height: 32,
+                  backgroundColor: "var(--foreground)",
+                  WebkitMaskImage: "url(/logo-mask.png)",
+                  maskImage: "url(/logo-mask.png)",
+                  WebkitMaskSize: "contain",
+                  maskSize: "contain",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskRepeat: "no-repeat",
+                }}
+              />
+              <h1 className="text-base font-semibold">ScaleCraft</h1>
+            </Link>
+            <ModeBadge mode={mode} />
           </div>
-          <div className="flex flex-col items-end">
-            <button
-              onClick={handleSave}
-              title="Save (Ctrl+S)"
-              className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
-            >
-              <Save size={14} />
-              {saveLabel}
-            </button>
+          <div className="flex items-center gap-2">
+            {/* One split button, not two separate ones — bg-panel on the
+             * shared container is what makes this actually match Save/Export/
+             * Board (the prior merged version omitted it and rendered
+             * transparent against the header, which read as "doesn't match"). */}
+            <div className="flex h-8 items-center overflow-hidden rounded-md border border-border bg-panel">
+              <Tooltip label="Undo (Ctrl+Z)">
+                <button
+                  onClick={undo}
+                  disabled={!canUndo}
+                  aria-label="Undo"
+                  className="flex h-full items-center px-2.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                >
+                  <Undo2 size={14} />
+                </button>
+              </Tooltip>
+              <div className="h-4 w-px bg-border" />
+              <Tooltip label="Redo (Ctrl+Shift+Z)">
+                <button
+                  onClick={redo}
+                  disabled={!canRedo}
+                  aria-label="Redo"
+                  className="flex h-full items-center px-2.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                >
+                  <Redo2 size={14} />
+                </button>
+              </Tooltip>
+            </div>
+            <ValidationIndicator violations={violations} isStale={isStale} onValidate={handleValidate} />
+            <Tooltip label="Save (Ctrl+S)">
+              <button
+                onClick={handleSave}
+                aria-label="Save"
+                className={`flex h-8 w-8 items-center justify-center rounded-md border bg-panel hover:text-foreground ${
+                  justSaved ? "border-state-valid text-state-valid" : "border-border text-foreground/70"
+                }`}
+              >
+                {justSaved ? <Check size={16} /> : <Save size={16} />}
+              </button>
+            </Tooltip>
+            <ProjectMenu canvasRef={canvasRef} />
+            <BoardMenu />
+            <Tooltip label="Documentation">
+              <button
+                onClick={toggleDocsPanel}
+                aria-label={docsPanelOpen ? "Hide documentation panel" : "Show documentation panel"}
+                aria-pressed={docsPanelOpen}
+                className={`flex h-8 w-8 items-center justify-center rounded-md border border-border hover:text-foreground ${
+                  docsPanelOpen ? "bg-border text-foreground" : "bg-panel text-foreground/70"
+                }`}
+              >
+                <BookOpen size={16} />
+              </button>
+            </Tooltip>
+            <ShortcutsButton />
+            <ThemeToggle />
           </div>
-          <ExportMenu canvasRef={canvasRef} />
-          <BoardMenu />
-          <div className="flex flex-col items-end">
-            <button
-              onClick={() => importInputRef.current?.click()}
-              className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
-            >
-              <Upload size={14} />
-              Import
-            </button>
-            {importError && <p className="mt-1 max-w-[220px] text-xs text-state-error">{importError}</p>}
-          </div>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept="application/json"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleImportFile(file);
-              e.target.value = "";
-            }}
-          />
-          <ValidationIndicator violations={violations} isStale={isStale} onValidate={handleValidate} />
-          <ShortcutsButton />
-          <ThemeToggle />
-        </div>
-      </header>
+        </header>
+      )}
 
       <main className="flex min-h-0 flex-1 overflow-hidden">
-        <QuestionPanel intro="Drag components from the palette, connect them, then click Validate." />
+        {!focusMode && (
+          <>
+            <QuestionPanel intro="Drag components from the palette, connect them, then click Validate." />
 
-        <div className="flex flex-1 flex-col">
-          <Canvas ref={canvasRef} nodeStates={nodeStates} />
-        </div>
+            <div className="flex flex-1 flex-col">
+              <Canvas
+                ref={canvasRef}
+                nodeStates={nodeStates}
+                // Clicking blank canvas dismisses the last Validate run
+                // (the green/red ring on every node, and the header
+                // button's own color) — without this, a passing run had
+                // no way back to neutral short of editing the graph.
+                onCanvasPaneClick={() => {
+                  setViolations(null);
+                  setCheckedGraphKey(null);
+                }}
+              />
+            </div>
+          </>
+        )}
 
-        <NodeInspector />
+        {docsPanelOpen && <DocsPanel />}
       </main>
 
-      <DocsWindows />
       <UndoToast />
     </PageEnter>
   );
