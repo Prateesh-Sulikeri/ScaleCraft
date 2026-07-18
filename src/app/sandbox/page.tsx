@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Redo2, Save, Undo2, Upload } from "lucide-react";
+import { BookOpen, Redo2, Save, Undo2, Upload } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { NodeInspector } from "@/canvas/NodeInspector";
-import { DocsWindows } from "@/canvas/DocsWindows";
+import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
+import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
+import { Tooltip } from "@/app/Tooltip";
 import { UndoToast } from "@/app/UndoToast";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { ValidationIndicator } from "@/app/ValidationIndicator";
@@ -74,6 +76,9 @@ export default function SandboxPage() {
   const redo = useCanvasStore((s) => s.redo);
   const canUndo = useCanvasStore((s) => s.past.length > 0);
   const canRedo = useCanvasStore((s) => s.future.length > 0);
+  const docsPanelOpen = useCanvasStore((s) => !s.docsPanel.minimized || s.docsPanel.focusMode);
+  const toggleDocsPanel = useCanvasStore((s) => s.toggleDocsPanel);
+  const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
 
   // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
   // the seed demo graph — this is what makes a refresh not lose work.
@@ -163,109 +168,130 @@ export default function SandboxPage() {
 
   return (
     <PageEnter>
-      <header
-        style={{ borderBottomColor: modeColorVar[mode] }}
-        className="flex items-center justify-between border-b-2 px-6 py-3"
-      >
-        <div className="flex items-center gap-2.5">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 opacity-100 transition-opacity hover:opacity-70"
-          >
-            <div
-              aria-hidden="true"
-              style={{
-                width: 32,
-                height: 32,
-                backgroundColor: "var(--foreground)",
-                WebkitMaskImage: "url(/logo-mask.png)",
-                maskImage: "url(/logo-mask.png)",
-                WebkitMaskSize: "contain",
-                maskSize: "contain",
-                WebkitMaskRepeat: "no-repeat",
-                maskRepeat: "no-repeat",
+      {focusMode ? (
+        <FocusModeBar />
+      ) : (
+        <header
+          style={{ borderBottomColor: modeColorVar[mode] }}
+          className="flex items-center justify-between border-b-2 px-6 py-3"
+        >
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/"
+              className="flex items-center gap-2.5 opacity-100 transition-opacity hover:opacity-70"
+            >
+              <div
+                aria-hidden="true"
+                style={{
+                  width: 32,
+                  height: 32,
+                  backgroundColor: "var(--foreground)",
+                  WebkitMaskImage: "url(/logo-mask.png)",
+                  maskImage: "url(/logo-mask.png)",
+                  WebkitMaskSize: "contain",
+                  maskSize: "contain",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskRepeat: "no-repeat",
+                }}
+              />
+              <h1 className="text-base font-semibold">ScaleCraft</h1>
+            </Link>
+            <ModeBadge mode={mode} />
+          </div>
+          <div className="flex items-center gap-2">
+            {/* One split button, not two separate ones — bg-panel on the
+             * shared container is what makes this actually match Save/Export/
+             * Board (the prior merged version omitted it and rendered
+             * transparent against the header, which read as "doesn't match"). */}
+            <div className="flex items-center overflow-hidden rounded-md border border-border bg-panel">
+              <button
+                onClick={undo}
+                disabled={!canUndo}
+                aria-label="Undo"
+                title="Undo (Ctrl+Z)"
+                className="flex items-center px-2.5 py-1.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <Undo2 size={14} />
+              </button>
+              <div className="h-4 w-px bg-border" />
+              <button
+                onClick={redo}
+                disabled={!canRedo}
+                aria-label="Redo"
+                title="Redo (Ctrl+Shift+Z)"
+                className="flex items-center px-2.5 py-1.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <Redo2 size={14} />
+              </button>
+            </div>
+            <div className="flex flex-col items-end">
+              <button
+                onClick={handleSave}
+                title="Save (Ctrl+S)"
+                className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
+              >
+                <Save size={14} />
+                {saveLabel}
+              </button>
+            </div>
+            <ExportMenu canvasRef={canvasRef} />
+            <BoardMenu />
+            <div className="flex flex-col items-end">
+              <button
+                onClick={() => importInputRef.current?.click()}
+                className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
+              >
+                <Upload size={14} />
+                Import
+              </button>
+              {importError && <p className="mt-1 max-w-[220px] text-xs text-state-error">{importError}</p>}
+            </div>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImportFile(file);
+                e.target.value = "";
               }}
             />
-            <h1 className="text-base font-semibold">ScaleCraft</h1>
-          </Link>
-          <ModeBadge mode={mode} />
-        </div>
-        <div className="flex items-center gap-2">
-          {/* One split button, not two separate ones — bg-panel on the
-           * shared container is what makes this actually match Save/Export/
-           * Board (the prior merged version omitted it and rendered
-           * transparent against the header, which read as "doesn't match"). */}
-          <div className="flex items-center overflow-hidden rounded-md border border-border bg-panel">
-            <button
-              onClick={undo}
-              disabled={!canUndo}
-              aria-label="Undo"
-              title="Undo (Ctrl+Z)"
-              className="flex items-center px-2.5 py-1.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-            >
-              <Undo2 size={14} />
-            </button>
-            <div className="h-4 w-px bg-border" />
-            <button
-              onClick={redo}
-              disabled={!canRedo}
-              aria-label="Redo"
-              title="Redo (Ctrl+Shift+Z)"
-              className="flex items-center px-2.5 py-1.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-            >
-              <Redo2 size={14} />
-            </button>
+            <ValidationIndicator violations={violations} isStale={isStale} onValidate={handleValidate} />
+            <Tooltip label="Documentation">
+              <button
+                onClick={toggleDocsPanel}
+                aria-label={docsPanelOpen ? "Hide documentation panel" : "Show documentation panel"}
+                aria-pressed={docsPanelOpen}
+                className={`flex h-8 w-8 items-center justify-center rounded-md border border-border hover:text-foreground ${
+                  docsPanelOpen ? "bg-border text-foreground" : "bg-panel text-foreground/70"
+                }`}
+              >
+                <BookOpen size={16} />
+              </button>
+            </Tooltip>
+            <ShortcutsButton />
+            <ThemeToggle />
           </div>
-          <div className="flex flex-col items-end">
-            <button
-              onClick={handleSave}
-              title="Save (Ctrl+S)"
-              className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
-            >
-              <Save size={14} />
-              {saveLabel}
-            </button>
-          </div>
-          <ExportMenu canvasRef={canvasRef} />
-          <BoardMenu />
-          <div className="flex flex-col items-end">
-            <button
-              onClick={() => importInputRef.current?.click()}
-              className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium hover:bg-border"
-            >
-              <Upload size={14} />
-              Import
-            </button>
-            {importError && <p className="mt-1 max-w-[220px] text-xs text-state-error">{importError}</p>}
-          </div>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept="application/json"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleImportFile(file);
-              e.target.value = "";
-            }}
-          />
-          <ValidationIndicator violations={violations} isStale={isStale} onValidate={handleValidate} />
-          <ShortcutsButton />
-          <ThemeToggle />
-        </div>
-      </header>
+        </header>
+      )}
 
       <main className="flex min-h-0 flex-1 overflow-hidden">
-        <QuestionPanel intro="Drag components from the palette, connect them, then click Validate." />
+        {!focusMode && (
+          <>
+            <QuestionPanel intro="Drag components from the palette, connect them, then click Validate." />
 
-        <div className="flex flex-1 flex-col">
-          <Canvas ref={canvasRef} nodeStates={nodeStates} />
-        </div>
+            <div className="flex flex-1 flex-col">
+              <Canvas ref={canvasRef} nodeStates={nodeStates} />
+            </div>
 
-        <NodeInspector />
+            <NodeInspector />
+          </>
+        )}
+
+        {docsPanelOpen && <DocsPanel />}
       </main>
 
-      <DocsWindows />
       <UndoToast />
     </PageEnter>
   );

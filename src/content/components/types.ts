@@ -93,8 +93,21 @@ export type ComponentDefinition<Config = unknown> = {
    * under the label — a caption, not documentation. Keep it terse; the full
    * explanation belongs in `docs`, not here. */
   summary: string;
-  /** Markdown, shown in the contextual docs panel. */
+  /** Markdown, shown in the contextual docs panel. Ignored (as a fallback
+   * only — see below) once `docsFile` is set. */
   docs: string;
+  /** Optional path (under `public/`, e.g. "/docs/cache.md") to a longer,
+   * hand-authored Markdown file — fetched client-side by
+   * docs-panel/DocsTabContent.tsx and rendered instead of `docs` once it
+   * loads. `docs` still needs a real value even when this is set: it's the
+   * fallback shown while the fetch is in flight and if it 404s, and it's
+   * also what shows for every component that never gets a docsFile. Kept as
+   * a public/ static asset + runtime fetch rather than a bundler-level raw
+   * import specifically so authoring one is "drop an .md file in public/
+   * docs/" with no build step — this repo has no raw-text import loader
+   * configured, and `docs`/`docsFile` both need to reach client components
+   * (ComponentNode.tsx etc.), ruling out a Node `fs.readFileSync` approach. */
+  docsFile?: string;
   /** See `ComponentRelations` above. Omitted entirely (not just empty
    * fields) for any component with no declared contract — base-pack
    * components should populate this (see registry.ts); custom components
@@ -143,6 +156,8 @@ export type ComponentConfigSpec = {
   fields: ConfigFieldSpec[];
   summary: string;
   docs: string;
+  /** See `ComponentDefinition.docsFile` above — threaded through unchanged. */
+  docsFile?: string;
   /** See `ComponentRelations` above — threaded through unchanged into the
    * generated `ComponentDefinition` by generate.ts. Every base-pack
    * component (one object in a `config/*.ts` file) should populate this —

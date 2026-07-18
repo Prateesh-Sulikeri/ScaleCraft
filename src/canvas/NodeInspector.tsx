@@ -10,16 +10,16 @@ import { useResizableWidth } from "@/lib/use-resizable-width";
 /**
  * The right panel — see .claude/docs/MILESTONES.md milestone 2. Config (a
  * form derived from the component's configSchema) is its only body — Docs
- * opens as an independent floating window (see DocsWindows.tsx), not tied
- * to this panel or to node selection at all, so collapsing this sidebar or
- * deselecting a node no longer hides or closes a docs window someone left
- * open. "View docs" here just calls the same store action the right-click
- * context-menu shortcut uses.
+ * opens in the docked documentation panel (see docs-panel/DocsPanel.tsx),
+ * not tied to this panel or to node selection at all, so collapsing this
+ * sidebar or deselecting a node no longer hides or closes a doc tab someone
+ * left open. "Open Documentation" here just calls the same store action the
+ * right-click context-menu shortcut uses.
  */
 export function NodeInspector() {
   const [collapsed, setCollapsed] = useState(false);
   const { width, onMouseDown } = useResizableWidth(384, 280, 560, "left");
-  const openDocsWindow = useCanvasStore((s) => s.openDocsWindow);
+  const openDocTab = useCanvasStore((s) => s.openDocTab);
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
   const nodes = useCanvasStore((s) => s.nodes);
   const updateNodeConfig = useCanvasStore((s) => s.updateNodeConfig);
@@ -77,11 +77,11 @@ export function NodeInspector() {
                   {definition.label}
                 </h2>
                 <button
-                  onClick={() => openDocsWindow(definition.id)}
+                  onClick={() => openDocTab(definition.id)}
                   className="flex items-center gap-1 text-xs text-foreground/60 hover:text-foreground"
                 >
                   <FileText size={12} />
-                  View docs
+                  Open Documentation
                 </button>
               </div>
 

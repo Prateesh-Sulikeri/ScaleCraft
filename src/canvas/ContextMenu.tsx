@@ -138,7 +138,7 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
   const duplicateNodes = useCanvasStore((s) => s.duplicateNodes);
   const reverseEdge = useCanvasStore((s) => s.reverseEdge);
   const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
-  const openDocsWindow = useCanvasStore((s) => s.openDocsWindow);
+  const openDocTab = useCanvasStore((s) => s.openDocTab);
   const addNode = useCanvasStore((s) => s.addNode);
   const addComment = useCanvasStore((s) => s.addComment);
   const addStartMarker = useCanvasStore((s) => s.addStartMarker);
@@ -157,11 +157,11 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
     onClose();
   };
 
-  // Docs windows are keyed by componentId (see store.ts), not node id — the
+  // Docs tabs are keyed by componentId (see store.ts), not node id — the
   // menu only has the clicked node's id, so resolve it here.
   const viewDocsForNode = (nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
-    if (node?.type === "component") openDocsWindow(node.data.componentId);
+    if (node?.type === "component") openDocTab(node.data.componentId);
   };
 
   return (
@@ -186,7 +186,11 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
                   onClick={act(() => toggleAnnotationLock(target.id))}
                 />
               ) : (
-                <MenuItem icon={FileText} label="View docs" onClick={act(() => viewDocsForNode(target.id))} />
+                <MenuItem
+                  icon={FileText}
+                  label="Open Documentation"
+                  onClick={act(() => viewDocsForNode(target.id))}
+                />
               )}
               <MenuItem icon={Trash2} label="Delete" danger onClick={act(() => deleteNode(target.id))} />
             </>

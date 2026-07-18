@@ -150,20 +150,37 @@ function mergeIntoPendingUndo(
   return { nodes: newNodes, edges: newEdges, label: undoLabel(newNodes, newEdges), mode: "merge", at: Date.now() };
 }
 
-/** Keyed by componentId (not node id) — two node instances of the same
- * component share one docs window rather than opening a duplicate. Position
- * and size are deliberately NOT tracked here: they change continuously
- * during drag/resize, and routing that through the store would re-render
- * every subscriber on every pixel of movement. `minimized` toggles rarely
- * (an explicit click), so it's cheap to keep here — that's what lets
- * re-opening an already-open, minimized window restore it instead of
- * no-op'ing. See DocsWindows.tsx/DocsModal.tsx. */
-export type DocsWindowState = {
+/** One open documentation tab, keyed by componentId (not node id) — two node
+ * instances of the same component share one tab rather than opening a
+ * duplicate. `scrollTop` is written from an rAF-throttled onScroll handler
+ * (see docs-panel/DocsTabContent.tsx), not on every pixel — same "changes
+ * rarely enough to be cheap" reasoning that already applied to `minimized`
+ * below, just now covering a value that changes continuously while
+ * scrolling rather than on an explicit click, hence the throttle. This is
+ * what lets minimizing and restoring the panel bring back the exact same
+ * reading position instead of resetting to the top. */
+export type DocsTab = {
   componentId: string;
-  minimized: boolean;
+  scrollTop: number;
 };
 
-export const MAX_DOCS_WINDOWS = 4;
+export const MAX_DOCS_TABS = 8;
+
+/** The docked documentation panel's whole state — tabs, which one is
+ * active, minimized/focus-mode/width. Panel position/size are NOT
+ * per-window anymore (this isn't a floating window): `minimized` removes it
+ * from the layout entirely rather than collapsing it to a capsule, and
+ * `width` is the drag-resized panel width, committed on mouseup (see
+ * docs-panel/DocsPanel.tsx) so it survives a minimize/restore cycle. */
+export type DocsPanelState = {
+  tabs: DocsTab[];
+  activeTabId: string | null;
+  minimized: boolean;
+  width: number;
+  focusMode: boolean;
+};
+
+const DEFAULT_DOCS_PANEL_WIDTH = 420;
 
 type CanvasStore = {
   nodes: AnyNodeType[];
@@ -224,7 +241,7 @@ type CanvasStore = {
    * flow-space position — the popup is a fixed-position overlay, not a
    * canvas node. Living in the store (not local component state) is what
    * lets a deeply-nested node component (ZoneNode's edit button) trigger it
-   * directly, same reasoning as selectedNodeId/docsWindows. */
+   * directly, same reasoning as selectedNodeId/docsPanel. */
   editingAnnotation: { id: string; anchor: { x: number; y: number } } | null;
   openAnnotationEditor: (id: string, anchor: { x: number; y: number }) => void;
   closeAnnotationEditor: () => void;
@@ -241,15 +258,28 @@ type CanvasStore = {
   setEdgeKind: (edgeId: string, kind: EdgeKind) => void;
   setSelectedEdgeId: (id: string | null) => void;
   setSelectedNodeId: (id: string | null) => void;
-  /** Independent of node selection/inspector state entirely — a docs
-   * window stays open across deselecting a node, collapsing a panel, or
-   * selecting a different node. Ordered by open time; capped at
-   * MAX_DOCS_WINDOWS. See NodeInspector.tsx/ContextMenu.tsx for the two
-   * trigger points, and DocsWindows.tsx for where these actually render. */
-  docsWindows: DocsWindowState[];
-  openDocsWindow: (componentId: string) => void;
-  closeDocsWindow: (componentId: string) => void;
-  setDocsWindowMinimized: (componentId: string, minimized: boolean) => void;
+  /** Independent of node selection/inspector state entirely — the docs
+   * panel stays open across deselecting a node, collapsing another panel,
+   * or selecting a different node. Tabs ordered by open time; capped at
+   * MAX_DOCS_TABS. See NodeInspector.tsx/ContextMenu.tsx for the two
+   * trigger points, and docs-panel/DocsPanel.tsx for where this renders. */
+  docsPanel: DocsPanelState;
+  /** De-dupes by componentId (switches to the existing tab rather than
+   * opening a duplicate) and always un-minimizes — this single action is
+   * what makes reopening a doc from a node act as "restore." */
+  openDocTab: (componentId: string) => void;
+  /** Closing the active tab activates its left neighbor, or null if none
+   * remain. */
+  closeDocTab: (componentId: string) => void;
+  closeAllDocTabs: () => void;
+  setActiveDocTab: (componentId: string) => void;
+  setDocTabScroll: (componentId: string, scrollTop: number) => void;
+  setDocsPanelMinimized: (minimized: boolean) => void;
+  setDocsPanelWidth: (width: number) => void;
+  /** The toolbar Documentation button — flips `minimized`. */
+  toggleDocsPanel: () => void;
+  setFocusMode: (on: boolean) => void;
+  toggleFocusMode: () => void;
   /** Config panel (milestone 2) writes here — kept separate from
    * onNodesChange since it's a data update, not a position/selection one. */
   updateNodeConfig: (nodeId: string, config: unknown) => void;
@@ -320,7 +350,16 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   edges: [],
   selectedEdgeId: null,
   selectedNodeId: null,
-  docsWindows: [],
+  // Starts minimized — the panel shouldn't claim canvas space until the
+  // user actually opens a doc (openDocTab un-minimizes) or clicks the
+  // toolbar toggle; nothing should default to open on a fresh load.
+  docsPanel: {
+    tabs: [],
+    activeTabId: null,
+    minimized: true,
+    width: DEFAULT_DOCS_PANEL_WIDTH,
+    focusMode: false,
+  },
   placementMode: null,
   editingAnnotation: null,
   pendingUndo: null,
@@ -594,31 +633,73 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   setSelectedEdgeId: (id) => set({ selectedEdgeId: id }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
 
-  openDocsWindow: (componentId) => {
+  openDocTab: (componentId) => {
     set((state) => {
-      const existing = state.docsWindows.find((w) => w.componentId === componentId);
-      if (existing) {
-        // Already open — a repeat "View docs" click restores it if it was
-        // minimized, rather than doing nothing.
-        return {
-          docsWindows: state.docsWindows.map((w) =>
-            w.componentId === componentId ? { ...w, minimized: false } : w,
-          ),
-        };
-      }
-      if (state.docsWindows.length >= MAX_DOCS_WINDOWS) return {};
-      return { docsWindows: [...state.docsWindows, { componentId, minimized: false }] };
+      const exists = state.docsPanel.tabs.some((t) => t.componentId === componentId);
+      const atCap = state.docsPanel.tabs.length >= MAX_DOCS_TABS;
+      const tabs =
+        exists || atCap ? state.docsPanel.tabs : [...state.docsPanel.tabs, { componentId, scrollTop: 0 }];
+      return {
+        docsPanel: {
+          ...state.docsPanel,
+          tabs,
+          // Switches to it regardless of whether it already existed —
+          // "selecting an already-open document switches to that tab."
+          activeTabId: exists || !atCap ? componentId : state.docsPanel.activeTabId,
+          minimized: false,
+        },
+      };
     });
   },
 
-  closeDocsWindow: (componentId) => {
-    set((state) => ({ docsWindows: state.docsWindows.filter((w) => w.componentId !== componentId) }));
+  closeDocTab: (componentId) => {
+    set((state) => {
+      const index = state.docsPanel.tabs.findIndex((t) => t.componentId === componentId);
+      if (index === -1) return {};
+      const tabs = state.docsPanel.tabs.filter((t) => t.componentId !== componentId);
+      const wasActive = state.docsPanel.activeTabId === componentId;
+      const activeTabId = wasActive
+        ? (tabs[Math.max(0, index - 1)]?.componentId ?? null)
+        : state.docsPanel.activeTabId;
+      return { docsPanel: { ...state.docsPanel, tabs, activeTabId } };
+    });
   },
 
-  setDocsWindowMinimized: (componentId, minimized) => {
+  closeAllDocTabs: () => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, tabs: [], activeTabId: null } }));
+  },
+
+  setActiveDocTab: (componentId) => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, activeTabId: componentId } }));
+  },
+
+  setDocTabScroll: (componentId, scrollTop) => {
     set((state) => ({
-      docsWindows: state.docsWindows.map((w) => (w.componentId === componentId ? { ...w, minimized } : w)),
+      docsPanel: {
+        ...state.docsPanel,
+        tabs: state.docsPanel.tabs.map((t) => (t.componentId === componentId ? { ...t, scrollTop } : t)),
+      },
     }));
+  },
+
+  setDocsPanelMinimized: (minimized) => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, minimized } }));
+  },
+
+  setDocsPanelWidth: (width) => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, width } }));
+  },
+
+  toggleDocsPanel: () => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, minimized: !state.docsPanel.minimized } }));
+  },
+
+  setFocusMode: (on) => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, focusMode: on } }));
+  },
+
+  toggleFocusMode: () => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, focusMode: !state.docsPanel.focusMode } }));
   },
 
   updateNodeConfig: (nodeId, config) => {

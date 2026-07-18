@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { toArchitectureGraph, useCanvasStore } from "./store";
+import { beforeEach, describe, expect, it } from "vitest";
+import { MAX_DOCS_TABS, toArchitectureGraph, useCanvasStore } from "./store";
 import type { ComponentNodeType, ArchitectureEdgeType, ZoneNodeType, CommentNodeType } from "./types";
 
 describe("toArchitectureGraph", () => {
@@ -374,5 +374,141 @@ describe("updateNodeName", () => {
     const node = useCanvasStore.getState().nodes.find((n) => n.id === "n1");
     expect(node?.type === "component" && node.data.name).toBe("server-1-ind");
     expect(node?.type === "component" && node.data.config).toEqual({ foo: "bar" });
+  });
+});
+
+describe("docs panel", () => {
+  beforeEach(() => {
+    // No shared reset helper for docsPanel across the file (see other
+    // describe blocks' reliance on loadCanvasState for nodes/edges) — set
+    // it back to its initial shape directly so tests don't leak tabs into
+    // each other via the shared store singleton.
+    useCanvasStore.setState({
+      docsPanel: { tabs: [], activeTabId: null, minimized: false, width: 420, focusMode: false },
+    });
+  });
+
+  it("openDocTab opens a new tab and makes it active", () => {
+    useCanvasStore.getState().openDocTab("load-balancer");
+    const state = useCanvasStore.getState();
+    expect(state.docsPanel.tabs.map((t) => t.componentId)).toEqual(["load-balancer"]);
+    expect(state.docsPanel.activeTabId).toBe("load-balancer");
+  });
+
+  it("openDocTab de-dupes by componentId instead of opening a second tab", () => {
+    useCanvasStore.getState().openDocTab("load-balancer");
+    useCanvasStore.getState().openDocTab("sql-database");
+    useCanvasStore.getState().openDocTab("load-balancer");
+
+    const state = useCanvasStore.getState();
+    expect(state.docsPanel.tabs.map((t) => t.componentId)).toEqual(["load-balancer", "sql-database"]);
+    // Switches to the existing tab rather than duplicating it.
+    expect(state.docsPanel.activeTabId).toBe("load-balancer");
+  });
+
+  it("openDocTab restores the panel from minimized", () => {
+    useCanvasStore.getState().openDocTab("load-balancer");
+    useCanvasStore.getState().setDocsPanelMinimized(true);
+    expect(useCanvasStore.getState().docsPanel.minimized).toBe(true);
+
+    useCanvasStore.getState().openDocTab("sql-database");
+    expect(useCanvasStore.getState().docsPanel.minimized).toBe(false);
+  });
+
+  it("openDocTab is capped at MAX_DOCS_TABS", () => {
+    for (let i = 0; i < MAX_DOCS_TABS + 2; i++) {
+      useCanvasStore.getState().openDocTab(`component-${i}`);
+    }
+    expect(useCanvasStore.getState().docsPanel.tabs).toHaveLength(MAX_DOCS_TABS);
+  });
+
+  it("closeDocTab removes the tab and activates its left neighbor when it was active", () => {
+    useCanvasStore.getState().openDocTab("a");
+    useCanvasStore.getState().openDocTab("b");
+    useCanvasStore.getState().openDocTab("c");
+    useCanvasStore.getState().setActiveDocTab("b");
+
+    useCanvasStore.getState().closeDocTab("b");
+    const state = useCanvasStore.getState();
+    expect(state.docsPanel.tabs.map((t) => t.componentId)).toEqual(["a", "c"]);
+    expect(state.docsPanel.activeTabId).toBe("a");
+  });
+
+  it("closeDocTab on a non-active tab leaves the active tab untouched", () => {
+    useCanvasStore.getState().openDocTab("a");
+    useCanvasStore.getState().openDocTab("b");
+    useCanvasStore.getState().setActiveDocTab("b");
+
+    useCanvasStore.getState().closeDocTab("a");
+    const state = useCanvasStore.getState();
+    expect(state.docsPanel.tabs.map((t) => t.componentId)).toEqual(["b"]);
+    expect(state.docsPanel.activeTabId).toBe("b");
+  });
+
+  it("closeDocTab on the last remaining tab clears activeTabId", () => {
+    useCanvasStore.getState().openDocTab("a");
+    useCanvasStore.getState().closeDocTab("a");
+    const state = useCanvasStore.getState();
+    expect(state.docsPanel.tabs).toHaveLength(0);
+    expect(state.docsPanel.activeTabId).toBeNull();
+  });
+
+  it("closeAllDocTabs empties the tab list and clears activeTabId", () => {
+    useCanvasStore.getState().openDocTab("a");
+    useCanvasStore.getState().openDocTab("b");
+    useCanvasStore.getState().closeAllDocTabs();
+    const state = useCanvasStore.getState();
+    expect(state.docsPanel.tabs).toHaveLength(0);
+    expect(state.docsPanel.activeTabId).toBeNull();
+  });
+
+  it("setDocTabScroll updates only the matching tab's scrollTop", () => {
+    useCanvasStore.getState().openDocTab("a");
+    useCanvasStore.getState().openDocTab("b");
+
+    useCanvasStore.getState().setDocTabScroll("a", 240);
+    const state = useCanvasStore.getState();
+    expect(state.docsPanel.tabs.find((t) => t.componentId === "a")?.scrollTop).toBe(240);
+    expect(state.docsPanel.tabs.find((t) => t.componentId === "b")?.scrollTop).toBe(0);
+  });
+
+  it("minimize/restore preserves tabs, active tab, and scroll position", () => {
+    useCanvasStore.getState().openDocTab("a");
+    useCanvasStore.getState().openDocTab("b");
+    useCanvasStore.getState().setDocTabScroll("a", 150);
+    useCanvasStore.getState().setActiveDocTab("a");
+
+    useCanvasStore.getState().setDocsPanelMinimized(true);
+    let state = useCanvasStore.getState();
+    expect(state.docsPanel.minimized).toBe(true);
+    expect(state.docsPanel.tabs.find((t) => t.componentId === "a")?.scrollTop).toBe(150);
+
+    useCanvasStore.getState().setDocsPanelMinimized(false);
+    state = useCanvasStore.getState();
+    expect(state.docsPanel.minimized).toBe(false);
+    expect(state.docsPanel.activeTabId).toBe("a");
+    expect(state.docsPanel.tabs.find((t) => t.componentId === "a")?.scrollTop).toBe(150);
+  });
+
+  it("toggleDocsPanel flips minimized without touching tabs", () => {
+    useCanvasStore.getState().openDocTab("a");
+    useCanvasStore.getState().toggleDocsPanel();
+    expect(useCanvasStore.getState().docsPanel.minimized).toBe(true);
+    useCanvasStore.getState().toggleDocsPanel();
+    expect(useCanvasStore.getState().docsPanel.minimized).toBe(false);
+    expect(useCanvasStore.getState().docsPanel.tabs).toHaveLength(1);
+  });
+
+  it("toggleFocusMode flips focusMode", () => {
+    expect(useCanvasStore.getState().docsPanel.focusMode).toBe(false);
+    useCanvasStore.getState().toggleFocusMode();
+    expect(useCanvasStore.getState().docsPanel.focusMode).toBe(true);
+    useCanvasStore.getState().setFocusMode(false);
+    expect(useCanvasStore.getState().docsPanel.focusMode).toBe(false);
+  });
+
+  it("setDocsPanelWidth stores the committed width", () => {
+    useCanvasStore.getState().setDocsPanelWidth(500);
+    expect(useCanvasStore.getState().docsPanel.width).toBe(500);
   });
 });
