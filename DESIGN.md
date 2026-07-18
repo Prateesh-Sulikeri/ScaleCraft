@@ -96,23 +96,37 @@ Dark is the default posture, in the same way Figma, Excalidraw, and tldraw defau
 The palette is not a primary-plus-neutral system — it's six co-equal category identities layered against a three-color status vocabulary and a small neutral scaffold, plus one signature accent for the "mark zone" grouping feature.
 
 ### Category (Identity)
-- **Wire Blue** (#3b82f6): Networking components — Client, Load Balancer. Fills the icon badge and outlines the palette tile.
-- **Circuit Violet** (#8b5cf6): Compute components — Application Server.
-- **Ledger Green** (#22c55e): Data components — SQL Database.
-- **Cache Amber** (#f59e0b): Caching components (registry seed set — none shipped yet, token reserved).
-- **Signal Pink** (#ec4899): Messaging components (reserved).
-- **Fault Red** (#ef4444): Distributed-systems components (reserved).
+Each has an independent light-mode value (darker/more saturated, same hue family) — the
+dark-tuned hex collapses badge/icon contrast on a white surface, so light isn't a naive
+invert; see `src/app/globals.css`'s `.light` block.
+- **Wire Blue** (#3b82f6 dark / #1d4ed8 light): Networking components — Client, Load Balancer. Fills the icon badge and outlines the palette tile.
+- **Circuit Violet** (#8b5cf6 dark / #6d28d9 light): Compute components — Application Server.
+- **Ledger Green** (#22c55e dark / #15803d light): Data components — SQL Database.
+- **Cache Amber** (#f59e0b dark / #b45309 light): Caching components (registry seed set — none shipped yet, token reserved).
+- **Signal Pink** (#ec4899 dark / #be185d light): Messaging components (reserved).
+- **Fault Red** (#ef4444 dark / #b91c1c light): Distributed-systems components (reserved).
 
 ### Semantic (Validation State)
-- **Ledger Green** (#22c55e) — Valid: a whole-card outline ring when a rule is satisfied.
-- **Cache Amber** (#f59e0b) — Warning: same ring treatment, non-blocking issue.
-- **Fault Red** (#ef4444) — Error: same ring treatment, blocking issue; also the Validate button's failing state and the offending nodes' outline.
+Light values reuse the matching category's light value, preserving the intentional
+pixel-level coincidence described under Named Rules below.
+- **Ledger Green** (#22c55e dark / #15803d light) — Valid: a whole-card outline ring when a rule is satisfied.
+- **Cache Amber** (#f59e0b dark / #b45309 light) — Warning: same ring treatment, non-blocking issue.
+- **Fault Red** (#ef4444 dark / #b91c1c light) — Error: same ring treatment, blocking issue; also the Validate button's failing state and the offending nodes' outline.
+
+### Edge (Connection Identity)
+Also independently tuned per theme — the dark-tuned cyan `--edge-request-flow` (the
+primary "watch a request traverse the system" edge) measured ~1.7:1 against the light
+canvas, nearly invisible, before this pass.
+- **Signal Cyan** (#22d3ee dark / #0284a5 light): request-flow, the primary path.
+- **Slate** (#94a3b8 dark / #475569 light): control, a muted non-blocking signal.
+- **Teal** (#14b8a6 dark / #0f766e light): replication, a data-sync back-edge.
+- **Fuchsia** (#d946ef dark / #a21caf light): async, queued/event-driven.
 
 ### Neutral
 - **Near-Black Canvas** (#0a0a0a): the app background and canvas plane (dark theme).
 - **Raised Panel** (#141414): every panel, card, dropdown, and floating window surface — one step up from the canvas.
 - **Hairline Border** (#2a2a2a): all dividers, card borders, input borders.
-- **Ink** (#ededed): primary text. Light theme swaps these four to #ffffff / #f5f5f5 / #e2e2e2 / #171717 respectively — same roles, independently tuned, never a naive invert.
+- **Ink** (#ededed): primary text. Light theme swaps these four to #ffffff / #f5f5f5 / #d4d4d8 / #171717 respectively — same roles, independently tuned, never a naive invert.
 
 ### Accent
 - **Zone Magenta** (#ff3483): the one color outside the category/state system — a labeled grouping rectangle ("mark zone") uses it for an always-animated dashed border. It exists precisely because it doesn't collide with any category or state hue.

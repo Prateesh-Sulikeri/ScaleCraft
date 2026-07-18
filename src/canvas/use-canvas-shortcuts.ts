@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useCanvasStore } from "./store";
 import { exportCanvasAsJson } from "./export-json";
 
-function isEditableTarget(target: EventTarget | null): boolean {
+export function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;

@@ -28,9 +28,11 @@ export type PlacementMode = "zone" | "comment" | "start" | null;
 
 /** Color + line pattern per kind (see globals.css's --edge-* tokens) — two
  * redundant channels so kind is legible even for colorblind users or at
- * small canvas scale, not color alone. Animation stays request-flow-only:
- * it communicates "this is the live path," a real state distinction, not
- * decoration (see DESIGN_LANGUAGE.md's motion principle). */
+ * small canvas scale, not color alone. Every kind animates (see
+ * DESIGN.md's "Do reuse the dashdraw motion token for anything that should
+ * read as part of the live system") — a real connection is a real
+ * connection regardless of kind, so request-flow doesn't get a motion
+ * signal the other three don't. */
 const EDGE_COLOR_VAR: Record<EdgeKind, string> = {
   "request-flow": "var(--edge-request-flow)",
   control: "var(--edge-control)",
@@ -46,7 +48,7 @@ const EDGE_DASH_ARRAY: Partial<Record<EdgeKind, string>> = {
 
 function edgeStyle(kind: EdgeKind) {
   return {
-    animated: kind === "request-flow",
+    animated: true,
     style: {
       stroke: EDGE_COLOR_VAR[kind],
       ...(EDGE_DASH_ARRAY[kind] ? { strokeDasharray: EDGE_DASH_ARRAY[kind] } : {}),
