@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { BookOpen, Redo2, Save, Undo2, Upload } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
-import { NodeInspector } from "@/canvas/NodeInspector";
 import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
 import { Tooltip } from "@/app/Tooltip";
@@ -284,8 +283,6 @@ export default function SandboxPage() {
             <div className="flex flex-1 flex-col">
               <Canvas ref={canvasRef} nodeStates={nodeStates} />
             </div>
-
-            <NodeInspector />
           </>
         )}
 

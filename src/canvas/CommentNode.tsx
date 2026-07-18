@@ -22,7 +22,7 @@ import type { CommentNodeType } from "./types";
  */
 export function CommentNode({ id, data, selected }: NodeProps<CommentNodeType>) {
   const updateComment = useCanvasStore((s) => s.updateComment);
-  const resizeAnnotation = useCanvasStore((s) => s.resizeAnnotation);
+  const resizeNode = useCanvasStore((s) => s.resizeNode);
   const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
   const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
   const color = data.color ?? DEFAULT_COMMENT_COLOR;
@@ -42,7 +42,7 @@ export function CommentNode({ id, data, selected }: NodeProps<CommentNodeType>) 
         isVisible={selected && !locked}
         minWidth={100}
         minHeight={32}
-        onResize={(_, params) => resizeAnnotation(id, params.x, params.y, params.width, params.height)}
+        onResize={(_, params) => resizeNode(id, params.x, params.y, params.width, params.height)}
         lineStyle={{ borderColor: color }}
         handleStyle={{ backgroundColor: color, width: 8, height: 8, borderRadius: 2 }}
       />

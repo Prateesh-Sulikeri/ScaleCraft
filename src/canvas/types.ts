@@ -11,10 +11,24 @@ export type ComponentNodeData = {
   validationState?: ValidationState;
   /** A user-chosen instance label ("server-1-ind"), separate from the
    * ComponentDefinition's fixed type label ("Application Server") — set via
-   * NodeInspector, shown on the canvas card alongside the type label when
+   * NodeConfigPopover, shown on the canvas card alongside the type label when
    * present. Also what disambiguates same-type nodes in the Start marker's
    * target picker (see component-display-name.ts). */
   name?: string;
+  /** A per-instance description, editable in NodeConfigPopover — pre-filled
+   * from `ComponentDefinition.summary` there (the popover's default text)
+   * until the user overrides it, but that seeding happens at render time in
+   * the popover itself, not here: undefined still means "using the
+   * definition's summary," not "blank." */
+  description?: string;
+  /** User-resized card dimensions (ComponentNode.tsx's NodeResizer, same
+   * store.ts action — resizeNode — as zone/comment). Undefined until the
+   * user actually drags a handle: width then falls back to the card's
+   * default 200px and height stays auto (content-driven), matching the
+   * card's pre-resize appearance exactly rather than baking a fixed height
+   * into every node up front. */
+  width?: number;
+  height?: number;
 };
 export type ComponentNodeType = Node<ComponentNodeData, "component">;
 

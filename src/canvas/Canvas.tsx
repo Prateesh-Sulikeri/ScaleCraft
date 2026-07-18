@@ -33,6 +33,7 @@ import { StartNode } from "./StartNode";
 import { EdgeInspector } from "./EdgeInspector";
 import { ContextMenu, type ContextMenuTarget } from "./ContextMenu";
 import { AnnotationEditor } from "./AnnotationEditor";
+import { NodeConfigPopover } from "./NodeConfigPopover";
 import { PALETTE_DRAG_TYPE } from "./Palette";
 import { useCanvasStore, type PlacementMode } from "./store";
 import { isEditableTarget } from "./use-canvas-shortcuts";
@@ -139,6 +140,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   const placementMode = useCanvasStore((s) => s.placementMode);
   const setPlacementMode = useCanvasStore((s) => s.setPlacementMode);
   const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
+  const openConfigPopover = useCanvasStore((s) => s.openConfigPopover);
   const setSelectedEdgeId = useCanvasStore((s) => s.setSelectedEdgeId);
   const setSelectedNodeId = useCanvasStore((s) => s.setSelectedNodeId);
 
@@ -403,6 +405,10 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
           setSelectedNodeId(node.id);
           setSelectedEdgeId(null);
         }}
+        onNodeDoubleClick={(event, node) => {
+          if (node.type !== "component") return;
+          openConfigPopover(node.id, { x: event.clientX, y: event.clientY });
+        }}
         onPaneClick={() => {
           setSelectedEdgeId(null);
           setSelectedNodeId(null);
@@ -449,6 +455,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       <EdgeInspector />
       <ContextMenu target={menu} onClose={() => setMenu(null)} />
       <AnnotationEditor />
+      <NodeConfigPopover />
 
       {placementMode && (
         <>

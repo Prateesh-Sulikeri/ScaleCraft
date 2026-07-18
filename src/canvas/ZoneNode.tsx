@@ -22,7 +22,7 @@ import type { ZoneNodeType } from "./types";
  */
 export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
   const updateZone = useCanvasStore((s) => s.updateZone);
-  const resizeAnnotation = useCanvasStore((s) => s.resizeAnnotation);
+  const resizeNode = useCanvasStore((s) => s.resizeNode);
   const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
   const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
   const color = data.color ?? DEFAULT_ZONE_COLOR;
@@ -61,7 +61,7 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
         isVisible={selected && !locked}
         minWidth={200}
         minHeight={140}
-        onResize={(_, params) => resizeAnnotation(id, params.x, params.y, params.width, params.height)}
+        onResize={(_, params) => resizeNode(id, params.x, params.y, params.width, params.height)}
         lineStyle={{ borderColor: color }}
         handleStyle={{ backgroundColor: color, width: 8, height: 8, borderRadius: 2 }}
       />

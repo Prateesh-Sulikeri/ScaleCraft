@@ -15,15 +15,67 @@ cold session can pick any phase back up without re-deriving the plan.
   Documentation toggle button and "Open Documentation" context-menu item both wired up.
   A shared `Tooltip` component (`src/app/Tooltip.tsx`, matches `Palette.tsx`'s existing
   tooltip visual language) replaced native `title` attributes in this subsystem.
-- **Phases 2–5: not started.** Detailed below, in spec order (also the recommended
+- **Phase 2 — Inspector Redesign: DONE.** Permanent `NodeInspector.tsx` sidebar deleted;
+  replaced with `NodeConfigPopover.tsx`, a Radix Popover anchored to the node's own
+  live DOM rect (queried via React Flow's own `.react-flow__node[data-id]` convention,
+  not the click point) — opens beside the node with `side="right"`, Radix's
+  `avoidCollisions` flips/shifts it to stay on-screen near viewport edges. Live-update
+  (judgment call #4 decided as option (a): no Save/Cancel buffering, `ConfigForm`
+  unchanged). Two trigger points wired: double-click on a component node
+  (`Canvas.tsx`), and a new "Configure" item in `ContextMenu.tsx`. Store gained a
+  `configPopover: { nodeId, anchor } | null` slice mirroring `editingAnnotation`
+  exactly, including cleanup on delete/undo/redo. Along the way, also fixed a
+  pre-existing bug: `ContextMenu.tsx`'s outer panel had no viewport clamping (unlike
+  `Flyout`/`AnnotationEditor`) and could render partly off-screen when right-clicking a
+  node near the edge — now measures its actual rendered size in a `useLayoutEffect` and
+  clamps via direct DOM style mutation (not React state, to satisfy the
+  no-setState-in-effect lint rule) before paint.
+- **shadcn was NOT installed via the CLI, despite the spec mandating shadcn for Phase
+  2 — read this before assuming `components.json` exists for Phase 4/5.** The current
+  `npx shadcn@latest init` (v4.13.1, "Nova" preset system) is destructive by default:
+  verified in a scratch copy that it rewrites `globals.css` wholesale (OKLCH color
+  tokens replacing this repo's hand-tuned `--background`/`--foreground`/category
+  colors), adds a Geist font, and rewrites `layout.tsx`. That's incompatible with this
+  repo's existing dark-mode-first design system (`.claude/docs/DESIGN_LANGUAGE.md`).
+  Used the fallback pending.md's own Phase 2 plan already anticipated instead:
+  hand-rolled `@radix-ui/react-popover` + a hand-written `cn()` helper
+  (`src/lib/utils.ts`), with `src/components/ui/popover.tsx` styled to match this
+  repo's existing `bg-panel`/`border-border` conventions instead of shadcn's default
+  `bg-popover` tokens (which don't exist here). **Any later phase that wants another
+  shadcn component (Phase 5's `dropdown-menu`) needs the same hand-roll treatment** —
+  there's no `components.json`, and running `init` for real would still be destructive
+  unless shadcn ships a less invasive preset by then. Worth re-checking the CLI's
+  behavior before assuming this is permanent.
+- **Phase 3 — Node Redesign: DONE, but not as originally planned.** The spec's
+  Default/Configured config-state badge was tried, iterated on twice for being "too
+  visually loud" (amber → muted parallelogram → smaller/no-caps parallelogram), and
+  then dropped entirely per explicit user feedback ("I don't like the badges").
+  `src/canvas/config-state.ts` (the `getNodeConfigState` shape/shallow-diff
+  detector that drove it) is **deleted** — nothing else used it. **Current state**:
+  `ComponentNode.tsx` shows label + instance name (both together, not either/or, per
+  the original plan) + a one-line description (`data.description ?? definition.summary`
+  — always shown, every component, not just no-config ones). No config-state
+  indicator of any kind on the card. If a future badge attempt is ever revisited,
+  don't reuse `--state-warning`/full-saturation category color or all-caps — all
+  called out as "screaming" in review.
+- **Components are now resizable**, same mechanism as Zone/Comment — a user ask that
+  landed alongside Phase 3 review, not in the original spec. `store.ts`'s old
+  `resizeAnnotation` action (position + width/height together in one update, the
+  top/left-handle anchor fix) is renamed `resizeNode` and gained a `"component"`
+  branch — "annotation" was never accurate for what's really just "apply a
+  NodeResizer result," and covering a third node type made the misnomer worth fixing.
+  `ComponentNodeData` gained optional `width`/`height` (undefined until the user
+  actually drags a handle; width then defaults to the original fixed 200, height
+  stays auto/content-driven — an un-resized card is pixel-identical to before this
+  landed). `ComponentNode.tsx` renders a `NodeResizer` gated on `selected`,
+  `minWidth={160}`/`minHeight={60}`, styled with the node's own category color (same
+  `lineStyle`/`handleStyle` convention Zone/Comment use). Also added: a per-instance
+  `description` field (`ComponentNodeData.description`, `updateNodeDescription` in
+  store.ts) editable in `NodeConfigPopover.tsx`, seeded from `definition.summary` as
+  its default text — a second user ask from the same review round, not spec-driven
+  either.
+- **Phases 4–5: not started.** Detailed below, in spec order (also the recommended
   execution order — see "Sequencing" at the end).
-
-## Decisions already made that apply across all remaining phases
-
-- **shadcn/ui was deliberately deferred out of Phase 1**, specifically so Phase 2 (which
-  the spec explicitly mandates shadcn for) sets up `components.json` against a real
-  need instead of a tab strip. **Phase 2 is where shadcn gets installed.** If Phase 4 or
-  5 is tackled before Phase 2 for some reason, pull the shadcn bootstrap forward.
 - The spec's example category-color table (Infrastructure→Blue, Networking→Green,
   Database→Purple, Messaging→Orange) does **not** match this repo's real category
   system. Always use the existing `categoryColorVar`/`categoryLabel`/`categoryOrder`
@@ -219,6 +271,10 @@ No `centerOnNode`/`highlightConnections` concept exists anywhere yet — both ar
      the node case that calls `setHighlightedNodeId(target.id)`.
    - Only meaningful for component nodes with actual edges — consider a no-op or
      disabled state for an orphan node, though the spec doesn't require this explicitly.
+  - currently there is not way to distinguish between selected artifacts like components, zones, 
+    comments or flags from the ones that are not selected creating a confusion, on normal left click 
+    on a node highlight it a bit (we already have Highlight Connnections, this will just illuminate 
+    the current node making it clear that it was selected or clicked on)
 
 ### Verification
 
@@ -247,11 +303,14 @@ highlight.
 
 ### Plan
 
-1. If Phase 2 already ran, shadcn is installed — add `npx shadcn@latest add
-   dropdown-menu` and use it here instead of hand-rolling a third dropdown pattern
-   (optional cleanup, not spec-required, but a natural point to stop duplicating this
-   logic a third time). If Phase 2 hasn't run yet, hand-roll consistent with
-   `ExportMenu.tsx`'s existing pattern — don't block Phase 5 on shadcn.
+1. Phase 2 ran but did **not** install shadcn via the CLI (see "Decisions already made"
+   above — the current CLI's default preset rewrites `globals.css` destructively).
+   There's no `components.json`. Either hand-roll a dropdown consistent with
+   `ExportMenu.tsx`'s existing pattern (simplest, matches what Phase 2 did for
+   Popover), or re-check whether shadcn's CLI has a non-destructive path by the time
+   this phase is picked up and hand-copy just the `dropdown-menu` primitive
+   (`@radix-ui/react-dropdown-menu` + the same `cn()` helper) the way Phase 2 did for
+   Popover if so. Don't block Phase 5 on shadcn either way.
 2. **New component** `src/app/ProjectMenu.tsx` replacing `ExportMenu.tsx`, folding in
    the import handler currently inlined in `page.tsx`:
    - Import Project (moves `handleImportFile`/`importInputRef`/hidden `<input>`/
@@ -272,26 +331,9 @@ highlight.
 Single "Project" dropdown button in the toolbar; Import/Export JSON/Export image all
 still work exactly as before, just consolidated; no separate Import button remains.
 
----
-
-## Phase 6 - Highlighting of selected nodes 
-
-### Current state
-
-  - currently there is not way to distinguish between selected artifacts like components, zones, 
-    comments or flags from the ones that are not selected creating a confusion 
-  - In complex diagrams the input and output edges of a selected component are not very clear
-
-### Plan
-  - Upon selection of any artifact (Component, Edge, Zone, Comments or Flags) it should glow Golden 
-    (Golden such that it is visible in both dark and ligth themes)
-  - When a component is selected, highlight only its directly connected incoming and outgoing edges. 
-    Do not highlight any other components or indirectly connected edges.
-
 ## Sequencing
 
 Recommended order matches the spec's own numbering and its real dependency graph:
-**Phase 2 → Phase 3 → Phase 4 → Phase 5.** Phase 2 is the one prerequisite that
-matters (shadcn install; Phase 4's Configure item needs its store action). Phases 3
-and 5 have no hard dependency on each other or on 2/4 beyond the shadcn-install
-sequencing note above — either could jump the queue if there's a reason to.
+**Phase 2 → Phase 3 → Phase 4 → Phase 5.** Phases 2 and 3 are both done — Phase 4's
+Configure item needs `openConfigPopover` (from Phase 2), which now exists. Phase 5 has
+no hard dependency on 2/3/4 — could jump the queue if there's a reason to.

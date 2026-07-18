@@ -318,7 +318,7 @@ describe("general undo/redo history", () => {
   });
 });
 
-describe("resizeAnnotation", () => {
+describe("resizeNode", () => {
   it("updates position AND width/height together (the top/left-handle anchor fix)", () => {
     const comment: CommentNodeType = {
       id: "c1",
@@ -330,12 +330,29 @@ describe("resizeAnnotation", () => {
 
     // Simulates dragging the top-left resize handle: xyflow's NodeResizer
     // reports a new x/y (the anchor moves) alongside width/height.
-    useCanvasStore.getState().resizeAnnotation("c1", 40, 60, 280, 180);
+    useCanvasStore.getState().resizeNode("c1", 40, 60, 280, 180);
 
     const node = useCanvasStore.getState().nodes.find((n) => n.id === "c1");
     expect(node?.position).toEqual({ x: 40, y: 60 });
     expect(node?.type === "comment" && node.data.width).toBe(280);
     expect(node?.type === "comment" && node.data.height).toBe(180);
+  });
+
+  it("also resizes a component node", () => {
+    const client: ComponentNodeType = {
+      id: "n1",
+      type: "component",
+      position: { x: 0, y: 0 },
+      data: { componentId: "client", config: {} },
+    };
+    useCanvasStore.getState().loadCanvasState([client], []);
+
+    useCanvasStore.getState().resizeNode("n1", 10, 20, 260, 90);
+
+    const node = useCanvasStore.getState().nodes.find((n) => n.id === "n1");
+    expect(node?.position).toEqual({ x: 10, y: 20 });
+    expect(node?.type === "component" && node.data.width).toBe(260);
+    expect(node?.type === "component" && node.data.height).toBe(90);
   });
 });
 
@@ -373,6 +390,24 @@ describe("updateNodeName", () => {
 
     const node = useCanvasStore.getState().nodes.find((n) => n.id === "n1");
     expect(node?.type === "component" && node.data.name).toBe("server-1-ind");
+    expect(node?.type === "component" && node.data.config).toEqual({ foo: "bar" });
+  });
+});
+
+describe("updateNodeDescription", () => {
+  it("sets a component's custom description without touching its config", () => {
+    const client: ComponentNodeType = {
+      id: "n1",
+      type: "component",
+      position: { x: 0, y: 0 },
+      data: { componentId: "client", config: { foo: "bar" } },
+    };
+    useCanvasStore.getState().loadCanvasState([client], []);
+
+    useCanvasStore.getState().updateNodeDescription("n1", "Handles mobile traffic only");
+
+    const node = useCanvasStore.getState().nodes.find((n) => n.id === "n1");
+    expect(node?.type === "component" && node.data.description).toBe("Handles mobile traffic only");
     expect(node?.type === "component" && node.data.config).toEqual({ foo: "bar" });
   });
 });

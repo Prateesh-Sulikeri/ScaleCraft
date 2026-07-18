@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronRight, Copy, FileText, Flag, Lock, MessageSquare, RotateCw, Server, Trash2, Unlock } from "lucide-react";
+import { ChevronRight, Copy, FileText, Flag, Lock, MessageSquare, RotateCw, Server, Settings, Trash2, Unlock } from "lucide-react";
 import { useCanvasStore } from "./store";
 import { componentRegistry } from "@/content/components/registry";
 import { toComponentDefinition } from "@/content/components/custom";
@@ -143,12 +143,34 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
   const addComment = useCanvasStore((s) => s.addComment);
   const addStartMarker = useCanvasStore((s) => s.addStartMarker);
   const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
+  const openConfigPopover = useCanvasStore((s) => s.openConfigPopover);
   // Custom components (see CreateComponentModal.tsx) live in the store as
   // raw records, not the static registry array — combined here, same as
   // Palette.tsx, so a newly-created component shows up in this list
   // immediately too.
   const customComponents = useCanvasStore((s) => s.customComponents);
   const allComponents = [...componentRegistry, ...customComponents.map(toComponentDefinition)];
+
+  // Unlike Flyout (fixed FLYOUT_WIDTH, so it can flip with just the
+  // trigger row's rect), this panel's height varies a lot by target.type
+  // (node/edge/selection/pane each show a different item count) — real
+  // measurement after render, not an assumed size, is what's needed to
+  // keep it fully on-screen when the right-clicked target sits near a
+  // viewport edge. Mutates the element's own style directly (not React
+  // state) so clamping doesn't trigger a second render — it runs before
+  // paint (useLayoutEffect either way), so there's no visible jump from
+  // the unclamped position to the corrected one.
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!target || !el) return;
+    const margin = 8;
+    const left = Math.max(margin, Math.min(target.x, window.innerWidth - el.offsetWidth - margin));
+    const top = Math.max(margin, Math.min(target.y, window.innerHeight - el.offsetHeight - margin));
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+  }, [target]);
 
   if (!target) return null;
 
@@ -169,6 +191,7 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
       {/* Full-screen catcher to close the menu on the next click anywhere else. */}
       <div className="fixed inset-0 z-20" onClick={onClose} onContextMenu={(e) => e.preventDefault()} />
       <div
+        ref={menuRef}
         className="fixed z-30 min-w-[180px] rounded-md border border-border bg-panel py-1 shadow-lg"
         style={{ left: target.x, top: target.y }}
       >
@@ -186,11 +209,18 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
                   onClick={act(() => toggleAnnotationLock(target.id))}
                 />
               ) : (
-                <MenuItem
-                  icon={FileText}
-                  label="Open Documentation"
-                  onClick={act(() => viewDocsForNode(target.id))}
-                />
+                <>
+                  <MenuItem
+                    icon={Settings}
+                    label="Configure"
+                    onClick={act(() => openConfigPopover(target.id, { x: target.x, y: target.y }))}
+                  />
+                  <MenuItem
+                    icon={FileText}
+                    label="Open Documentation"
+                    onClick={act(() => viewDocsForNode(target.id))}
+                  />
+                </>
               )}
               <MenuItem icon={Trash2} label="Delete" danger onClick={act(() => deleteNode(target.id))} />
             </>

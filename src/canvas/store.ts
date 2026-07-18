@@ -215,14 +215,15 @@ type CanvasStore = {
    * or resized by accident once a diagram is arranged. A no-op on any other
    * node type. */
   toggleAnnotationLock: (nodeId: string) => void;
-  /** Applies a NodeResizer result to a zone/comment — sets position AND
-   * width/height together in one update. Resizing from a top or left handle
-   * moves the node's anchor point (xyflow's NodeResizer reports the new x/y
-   * for exactly this reason); a version that only wrote width/height back
-   * (the original implementation) left the anchor stuck, so resizing from
-   * those handles grew the box in the wrong direction — the "weird
-   * movement" bug. */
-  resizeAnnotation: (nodeId: string, x: number, y: number, width: number, height: number) => void;
+  /** Applies a NodeResizer result to a zone/comment/component — sets
+   * position AND width/height together in one update. Resizing from a top
+   * or left handle moves the node's anchor point (xyflow's NodeResizer
+   * reports the new x/y for exactly this reason); a version that only wrote
+   * width/height back (the original implementation) left the anchor stuck,
+   * so resizing from those handles grew the box in the wrong direction —
+   * the "weird movement" bug. Named for the mechanism (resize), not
+   * "annotation" — component nodes use this too, see ComponentNode.tsx. */
+  resizeNode: (nodeId: string, x: number, y: number, width: number, height: number) => void;
   /** Fixed size, no drag-to-draw — a flag never needs a drawn rectangle,
    * only a drop point. Returns the new node's id, same as addZone/addComment,
    * so the caller can open its AnnotationEditor popup right after placing it. */
@@ -245,6 +246,14 @@ type CanvasStore = {
   editingAnnotation: { id: string; anchor: { x: number; y: number } } | null;
   openAnnotationEditor: (id: string, anchor: { x: number; y: number }) => void;
   closeAnnotationEditor: () => void;
+  /** Drives NodeConfigPopover.tsx — the contextual popover that replaced
+   * NodeInspector's permanent sidebar (see .claude/docs/pending.md Phase 2).
+   * Mirrors editingAnnotation exactly: same anchor-point shape, same
+   * cleanup-on-delete/undo/redo handling below, just for a component node's
+   * name + config instead of a zone/comment/flag's color + label. */
+  configPopover: { nodeId: string; anchor: { x: number; y: number } } | null;
+  openConfigPopover: (nodeId: string, anchor: { x: number; y: number }) => void;
+  closeConfigPopover: () => void;
   onNodesChange: (changes: NodeChange<AnyNodeType>[]) => void;
   onEdgesChange: (changes: EdgeChange<ArchitectureEdgeType>[]) => void;
   /** `kind` is optional so any direct caller (tests, etc.) still gets the
@@ -261,7 +270,7 @@ type CanvasStore = {
   /** Independent of node selection/inspector state entirely — the docs
    * panel stays open across deselecting a node, collapsing another panel,
    * or selecting a different node. Tabs ordered by open time; capped at
-   * MAX_DOCS_TABS. See NodeInspector.tsx/ContextMenu.tsx for the two
+   * MAX_DOCS_TABS. See NodeConfigPopover.tsx/ContextMenu.tsx for the two
    * trigger points, and docs-panel/DocsPanel.tsx for where this renders. */
   docsPanel: DocsPanelState;
   /** De-dupes by componentId (switches to the existing tab rather than
@@ -289,6 +298,10 @@ type CanvasStore = {
    * used to disambiguate same-type nodes in the Start marker's target
    * picker (see component-display-name.ts). */
   updateNodeName: (nodeId: string, name: string) => void;
+  /** Per-instance description shown in NodeConfigPopover, seeded from
+   * `ComponentDefinition.summary` there but editable per node — see
+   * ComponentNodeData.description. */
+  updateNodeDescription: (nodeId: string, description: string) => void;
   /** Explicit actions for the right-click context menu — a second path to
    * delete besides the deleteKeyCode shortcut, see EdgeInspector/ContextMenu. */
   deleteNode: (nodeId: string) => void;
@@ -362,6 +375,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
   placementMode: null,
   editingAnnotation: null,
+  configPopover: null,
   pendingUndo: null,
   past: [],
   future: [],
@@ -500,12 +514,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     }));
   },
 
-  resizeAnnotation: (nodeId, x, y, width, height) => {
+  resizeNode: (nodeId, x, y, width, height) => {
     set((state) => ({
       nodes: state.nodes.map((n) => {
         if (n.id !== nodeId) return n;
         if (n.type === "zone") return { ...n, position: { x, y }, data: { ...n.data, width, height } };
         if (n.type === "comment") return { ...n, position: { x, y }, data: { ...n.data, width, height } };
+        if (n.type === "component") return { ...n, position: { x, y }, data: { ...n.data, width, height } };
         return n;
       }),
       past: pushHistory(state.past, state.nodes, state.edges, `resize:${nodeId}`),
@@ -544,6 +559,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   openAnnotationEditor: (id, anchor) => set({ editingAnnotation: { id, anchor } }),
   closeAnnotationEditor: () => set({ editingAnnotation: null }),
 
+  openConfigPopover: (nodeId, anchor) => set({ configPopover: { nodeId, anchor } }),
+  closeConfigPopover: () => set({ configPopover: null }),
+
   onNodesChange: (changes) => {
     set((state) => {
       const removedIds = changes.filter((c) => c.type === "remove").map((c) => c.id);
@@ -571,6 +589,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
           state.editingAnnotation && removedIdSet.has(state.editingAnnotation.id)
             ? null
             : state.editingAnnotation,
+        configPopover:
+          state.configPopover && removedIdSet.has(state.configPopover.nodeId) ? null : state.configPopover,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
         past,
         future,
@@ -722,6 +742,16 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     }));
   },
 
+  updateNodeDescription: (nodeId, description) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId && n.type === "component" ? { ...n, data: { ...n.data, description } } : n,
+      ),
+      past: pushHistory(state.past, state.nodes, state.edges, `description:${nodeId}`),
+      future: [],
+    }));
+  },
+
   deleteNode: (nodeId) => {
     set((state) => {
       const removedNodes = state.nodes.filter((n) => n.id === nodeId);
@@ -735,6 +765,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         edges: state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
         selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
         editingAnnotation: state.editingAnnotation?.id === nodeId ? null : state.editingAnnotation,
+        configPopover: state.configPopover?.nodeId === nodeId ? null : state.configPopover,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
         past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
         future: [],
@@ -756,6 +787,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedNodeId: state.selectedNodeId && idSet.has(state.selectedNodeId) ? null : state.selectedNodeId,
         editingAnnotation:
           state.editingAnnotation && idSet.has(state.editingAnnotation.id) ? null : state.editingAnnotation,
+        configPopover:
+          state.configPopover && idSet.has(state.configPopover.nodeId) ? null : state.configPopover,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
         past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
         future: [],
@@ -790,6 +823,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedNodeId: null,
         selectedEdgeId: null,
         editingAnnotation: null,
+        configPopover: null,
       };
     });
   },
@@ -808,6 +842,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedNodeId: null,
         selectedEdgeId: null,
         editingAnnotation: null,
+        configPopover: null,
       };
     });
   },
@@ -837,6 +872,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedNodeId: null,
         selectedEdgeId: null,
         editingAnnotation: null,
+        configPopover: null,
         pendingUndo: { nodes: state.nodes, edges: state.edges, label: "Board cleared", mode: "replace", at: Date.now() },
         past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
         future: [],
