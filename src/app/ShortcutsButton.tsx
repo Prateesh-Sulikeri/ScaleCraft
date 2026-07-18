@@ -24,7 +24,7 @@ const SHORTCUTS: { keys: string; label: string }[] = [
  * icon-only controls (ThemeToggle), rather than scattering shortcut hints
  * across each button's own title attribute with no single place to see them
  * all at once. Uses the same dropdown-plus-backdrop convention as
- * ExportMenu/BoardMenu (a short reference list, not long-form docs, so
+ * ProjectMenu/BoardMenu (a short reference list, not long-form docs, so
  * DocsModal's draggable window would be overkill here).
  */
 export function ShortcutsButton() {

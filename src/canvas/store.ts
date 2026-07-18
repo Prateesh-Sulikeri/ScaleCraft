@@ -150,20 +150,37 @@ function mergeIntoPendingUndo(
   return { nodes: newNodes, edges: newEdges, label: undoLabel(newNodes, newEdges), mode: "merge", at: Date.now() };
 }
 
-/** Keyed by componentId (not node id) — two node instances of the same
- * component share one docs window rather than opening a duplicate. Position
- * and size are deliberately NOT tracked here: they change continuously
- * during drag/resize, and routing that through the store would re-render
- * every subscriber on every pixel of movement. `minimized` toggles rarely
- * (an explicit click), so it's cheap to keep here — that's what lets
- * re-opening an already-open, minimized window restore it instead of
- * no-op'ing. See DocsWindows.tsx/DocsModal.tsx. */
-export type DocsWindowState = {
+/** One open documentation tab, keyed by componentId (not node id) — two node
+ * instances of the same component share one tab rather than opening a
+ * duplicate. `scrollTop` is written from an rAF-throttled onScroll handler
+ * (see docs-panel/DocsTabContent.tsx), not on every pixel — same "changes
+ * rarely enough to be cheap" reasoning that already applied to `minimized`
+ * below, just now covering a value that changes continuously while
+ * scrolling rather than on an explicit click, hence the throttle. This is
+ * what lets minimizing and restoring the panel bring back the exact same
+ * reading position instead of resetting to the top. */
+export type DocsTab = {
   componentId: string;
-  minimized: boolean;
+  scrollTop: number;
 };
 
-export const MAX_DOCS_WINDOWS = 4;
+export const MAX_DOCS_TABS = 8;
+
+/** The docked documentation panel's whole state — tabs, which one is
+ * active, minimized/focus-mode/width. Panel position/size are NOT
+ * per-window anymore (this isn't a floating window): `minimized` removes it
+ * from the layout entirely rather than collapsing it to a capsule, and
+ * `width` is the drag-resized panel width, committed on mouseup (see
+ * docs-panel/DocsPanel.tsx) so it survives a minimize/restore cycle. */
+export type DocsPanelState = {
+  tabs: DocsTab[];
+  activeTabId: string | null;
+  minimized: boolean;
+  width: number;
+  focusMode: boolean;
+};
+
+const DEFAULT_DOCS_PANEL_WIDTH = 420;
 
 type CanvasStore = {
   nodes: AnyNodeType[];
@@ -198,14 +215,15 @@ type CanvasStore = {
    * or resized by accident once a diagram is arranged. A no-op on any other
    * node type. */
   toggleAnnotationLock: (nodeId: string) => void;
-  /** Applies a NodeResizer result to a zone/comment — sets position AND
-   * width/height together in one update. Resizing from a top or left handle
-   * moves the node's anchor point (xyflow's NodeResizer reports the new x/y
-   * for exactly this reason); a version that only wrote width/height back
-   * (the original implementation) left the anchor stuck, so resizing from
-   * those handles grew the box in the wrong direction — the "weird
-   * movement" bug. */
-  resizeAnnotation: (nodeId: string, x: number, y: number, width: number, height: number) => void;
+  /** Applies a NodeResizer result to a zone/comment/component — sets
+   * position AND width/height together in one update. Resizing from a top
+   * or left handle moves the node's anchor point (xyflow's NodeResizer
+   * reports the new x/y for exactly this reason); a version that only wrote
+   * width/height back (the original implementation) left the anchor stuck,
+   * so resizing from those handles grew the box in the wrong direction —
+   * the "weird movement" bug. Named for the mechanism (resize), not
+   * "annotation" — component nodes use this too, see ComponentNode.tsx. */
+  resizeNode: (nodeId: string, x: number, y: number, width: number, height: number) => void;
   /** Fixed size, no drag-to-draw — a flag never needs a drawn rectangle,
    * only a drop point. Returns the new node's id, same as addZone/addComment,
    * so the caller can open its AnnotationEditor popup right after placing it. */
@@ -224,10 +242,35 @@ type CanvasStore = {
    * flow-space position — the popup is a fixed-position overlay, not a
    * canvas node. Living in the store (not local component state) is what
    * lets a deeply-nested node component (ZoneNode's edit button) trigger it
-   * directly, same reasoning as selectedNodeId/docsWindows. */
+   * directly, same reasoning as selectedNodeId/docsPanel. */
   editingAnnotation: { id: string; anchor: { x: number; y: number } } | null;
   openAnnotationEditor: (id: string, anchor: { x: number; y: number }) => void;
   closeAnnotationEditor: () => void;
+  /** Drives NodeConfigPopover.tsx — the contextual popover that replaced
+   * NodeInspector's permanent sidebar (see .claude/docs/pending.md Phase 2).
+   * Mirrors editingAnnotation exactly: same anchor-point shape, same
+   * cleanup-on-delete/undo/redo handling below, just for a component node's
+   * name + config instead of a zone/comment/flag's color + label. */
+  configPopover: { nodeId: string; anchor: { x: number; y: number } } | null;
+  openConfigPopover: (nodeId: string, anchor: { x: number; y: number }) => void;
+  closeConfigPopover: () => void;
+  /** Drives the Phase 4 "Highlight Connections"/"Highlight Zone"
+   * context-menu actions — Canvas.tsx derives the highlighted node/edge id
+   * sets from this each render and dims everything else via node/edge
+   * `style.opacity`, rather than having every node subscribe to this
+   * directly (only a few nodes care at any one time). "connections" walks
+   * the graph from one component node to its direct neighbors;
+   * "zone" is spatial instead of graph-based — every node whose position
+   * falls inside the given zone's rectangle, plus every edge between two
+   * such nodes (see Canvas.tsx's highlightSets). Both variants share one
+   * `id` field (the origin node's id) so cleanup logic doesn't need to
+   * branch on `mode`. Cleared on pane click, Escape, right-clicking a
+   * different node (see Canvas.tsx), and on delete/undo/redo/clearBoard
+   * (mirrors configPopover's cleanup below) so it never points at a node
+   * that no longer exists. */
+  highlight: { mode: "connections" | "zone"; id: string } | null;
+  setHighlight: (highlight: { mode: "connections" | "zone"; id: string } | null) => void;
+  clearHighlight: () => void;
   onNodesChange: (changes: NodeChange<AnyNodeType>[]) => void;
   onEdgesChange: (changes: EdgeChange<ArchitectureEdgeType>[]) => void;
   /** `kind` is optional so any direct caller (tests, etc.) still gets the
@@ -241,15 +284,28 @@ type CanvasStore = {
   setEdgeKind: (edgeId: string, kind: EdgeKind) => void;
   setSelectedEdgeId: (id: string | null) => void;
   setSelectedNodeId: (id: string | null) => void;
-  /** Independent of node selection/inspector state entirely — a docs
-   * window stays open across deselecting a node, collapsing a panel, or
-   * selecting a different node. Ordered by open time; capped at
-   * MAX_DOCS_WINDOWS. See NodeInspector.tsx/ContextMenu.tsx for the two
-   * trigger points, and DocsWindows.tsx for where these actually render. */
-  docsWindows: DocsWindowState[];
-  openDocsWindow: (componentId: string) => void;
-  closeDocsWindow: (componentId: string) => void;
-  setDocsWindowMinimized: (componentId: string, minimized: boolean) => void;
+  /** Independent of node selection/inspector state entirely — the docs
+   * panel stays open across deselecting a node, collapsing another panel,
+   * or selecting a different node. Tabs ordered by open time; capped at
+   * MAX_DOCS_TABS. See NodeConfigPopover.tsx/ContextMenu.tsx for the two
+   * trigger points, and docs-panel/DocsPanel.tsx for where this renders. */
+  docsPanel: DocsPanelState;
+  /** De-dupes by componentId (switches to the existing tab rather than
+   * opening a duplicate) and always un-minimizes — this single action is
+   * what makes reopening a doc from a node act as "restore." */
+  openDocTab: (componentId: string) => void;
+  /** Closing the active tab activates its left neighbor, or null if none
+   * remain. */
+  closeDocTab: (componentId: string) => void;
+  closeAllDocTabs: () => void;
+  setActiveDocTab: (componentId: string) => void;
+  setDocTabScroll: (componentId: string, scrollTop: number) => void;
+  setDocsPanelMinimized: (minimized: boolean) => void;
+  setDocsPanelWidth: (width: number) => void;
+  /** The toolbar Documentation button — flips `minimized`. */
+  toggleDocsPanel: () => void;
+  setFocusMode: (on: boolean) => void;
+  toggleFocusMode: () => void;
   /** Config panel (milestone 2) writes here — kept separate from
    * onNodesChange since it's a data update, not a position/selection one. */
   updateNodeConfig: (nodeId: string, config: unknown) => void;
@@ -259,6 +315,10 @@ type CanvasStore = {
    * used to disambiguate same-type nodes in the Start marker's target
    * picker (see component-display-name.ts). */
   updateNodeName: (nodeId: string, name: string) => void;
+  /** Per-instance description shown in NodeConfigPopover, seeded from
+   * `ComponentDefinition.summary` there but editable per node — see
+   * ComponentNodeData.description. */
+  updateNodeDescription: (nodeId: string, description: string) => void;
   /** Explicit actions for the right-click context menu — a second path to
    * delete besides the deleteKeyCode shortcut, see EdgeInspector/ContextMenu. */
   deleteNode: (nodeId: string) => void;
@@ -320,9 +380,20 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   edges: [],
   selectedEdgeId: null,
   selectedNodeId: null,
-  docsWindows: [],
+  highlight: null,
+  // Starts minimized — the panel shouldn't claim canvas space until the
+  // user actually opens a doc (openDocTab un-minimizes) or clicks the
+  // toolbar toggle; nothing should default to open on a fresh load.
+  docsPanel: {
+    tabs: [],
+    activeTabId: null,
+    minimized: true,
+    width: DEFAULT_DOCS_PANEL_WIDTH,
+    focusMode: false,
+  },
   placementMode: null,
   editingAnnotation: null,
+  configPopover: null,
   pendingUndo: null,
   past: [],
   future: [],
@@ -461,12 +532,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     }));
   },
 
-  resizeAnnotation: (nodeId, x, y, width, height) => {
+  resizeNode: (nodeId, x, y, width, height) => {
     set((state) => ({
       nodes: state.nodes.map((n) => {
         if (n.id !== nodeId) return n;
         if (n.type === "zone") return { ...n, position: { x, y }, data: { ...n.data, width, height } };
         if (n.type === "comment") return { ...n, position: { x, y }, data: { ...n.data, width, height } };
+        if (n.type === "component") return { ...n, position: { x, y }, data: { ...n.data, width, height } };
         return n;
       }),
       past: pushHistory(state.past, state.nodes, state.edges, `resize:${nodeId}`),
@@ -505,6 +577,12 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   openAnnotationEditor: (id, anchor) => set({ editingAnnotation: { id, anchor } }),
   closeAnnotationEditor: () => set({ editingAnnotation: null }),
 
+  openConfigPopover: (nodeId, anchor) => set({ configPopover: { nodeId, anchor } }),
+  closeConfigPopover: () => set({ configPopover: null }),
+
+  setHighlight: (highlight) => set({ highlight }),
+  clearHighlight: () => set({ highlight: null }),
+
   onNodesChange: (changes) => {
     set((state) => {
       const removedIds = changes.filter((c) => c.type === "remove").map((c) => c.id);
@@ -532,6 +610,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
           state.editingAnnotation && removedIdSet.has(state.editingAnnotation.id)
             ? null
             : state.editingAnnotation,
+        configPopover:
+          state.configPopover && removedIdSet.has(state.configPopover.nodeId) ? null : state.configPopover,
+        highlight: state.highlight && removedIdSet.has(state.highlight.id) ? null : state.highlight,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
         past,
         future,
@@ -594,31 +675,73 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   setSelectedEdgeId: (id) => set({ selectedEdgeId: id }),
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
 
-  openDocsWindow: (componentId) => {
+  openDocTab: (componentId) => {
     set((state) => {
-      const existing = state.docsWindows.find((w) => w.componentId === componentId);
-      if (existing) {
-        // Already open — a repeat "View docs" click restores it if it was
-        // minimized, rather than doing nothing.
-        return {
-          docsWindows: state.docsWindows.map((w) =>
-            w.componentId === componentId ? { ...w, minimized: false } : w,
-          ),
-        };
-      }
-      if (state.docsWindows.length >= MAX_DOCS_WINDOWS) return {};
-      return { docsWindows: [...state.docsWindows, { componentId, minimized: false }] };
+      const exists = state.docsPanel.tabs.some((t) => t.componentId === componentId);
+      const atCap = state.docsPanel.tabs.length >= MAX_DOCS_TABS;
+      const tabs =
+        exists || atCap ? state.docsPanel.tabs : [...state.docsPanel.tabs, { componentId, scrollTop: 0 }];
+      return {
+        docsPanel: {
+          ...state.docsPanel,
+          tabs,
+          // Switches to it regardless of whether it already existed —
+          // "selecting an already-open document switches to that tab."
+          activeTabId: exists || !atCap ? componentId : state.docsPanel.activeTabId,
+          minimized: false,
+        },
+      };
     });
   },
 
-  closeDocsWindow: (componentId) => {
-    set((state) => ({ docsWindows: state.docsWindows.filter((w) => w.componentId !== componentId) }));
+  closeDocTab: (componentId) => {
+    set((state) => {
+      const index = state.docsPanel.tabs.findIndex((t) => t.componentId === componentId);
+      if (index === -1) return {};
+      const tabs = state.docsPanel.tabs.filter((t) => t.componentId !== componentId);
+      const wasActive = state.docsPanel.activeTabId === componentId;
+      const activeTabId = wasActive
+        ? (tabs[Math.max(0, index - 1)]?.componentId ?? null)
+        : state.docsPanel.activeTabId;
+      return { docsPanel: { ...state.docsPanel, tabs, activeTabId } };
+    });
   },
 
-  setDocsWindowMinimized: (componentId, minimized) => {
+  closeAllDocTabs: () => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, tabs: [], activeTabId: null } }));
+  },
+
+  setActiveDocTab: (componentId) => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, activeTabId: componentId } }));
+  },
+
+  setDocTabScroll: (componentId, scrollTop) => {
     set((state) => ({
-      docsWindows: state.docsWindows.map((w) => (w.componentId === componentId ? { ...w, minimized } : w)),
+      docsPanel: {
+        ...state.docsPanel,
+        tabs: state.docsPanel.tabs.map((t) => (t.componentId === componentId ? { ...t, scrollTop } : t)),
+      },
     }));
+  },
+
+  setDocsPanelMinimized: (minimized) => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, minimized } }));
+  },
+
+  setDocsPanelWidth: (width) => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, width } }));
+  },
+
+  toggleDocsPanel: () => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, minimized: !state.docsPanel.minimized } }));
+  },
+
+  setFocusMode: (on) => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, focusMode: on } }));
+  },
+
+  toggleFocusMode: () => {
+    set((state) => ({ docsPanel: { ...state.docsPanel, focusMode: !state.docsPanel.focusMode } }));
   },
 
   updateNodeConfig: (nodeId, config) => {
@@ -641,6 +764,16 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     }));
   },
 
+  updateNodeDescription: (nodeId, description) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId && n.type === "component" ? { ...n, data: { ...n.data, description } } : n,
+      ),
+      past: pushHistory(state.past, state.nodes, state.edges, `description:${nodeId}`),
+      future: [],
+    }));
+  },
+
   deleteNode: (nodeId) => {
     set((state) => {
       const removedNodes = state.nodes.filter((n) => n.id === nodeId);
@@ -654,6 +787,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         edges: state.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
         selectedNodeId: state.selectedNodeId === nodeId ? null : state.selectedNodeId,
         editingAnnotation: state.editingAnnotation?.id === nodeId ? null : state.editingAnnotation,
+        configPopover: state.configPopover?.nodeId === nodeId ? null : state.configPopover,
+        highlight: state.highlight?.id === nodeId ? null : state.highlight,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
         past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
         future: [],
@@ -675,6 +810,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedNodeId: state.selectedNodeId && idSet.has(state.selectedNodeId) ? null : state.selectedNodeId,
         editingAnnotation:
           state.editingAnnotation && idSet.has(state.editingAnnotation.id) ? null : state.editingAnnotation,
+        configPopover:
+          state.configPopover && idSet.has(state.configPopover.nodeId) ? null : state.configPopover,
+        highlight: state.highlight && idSet.has(state.highlight.id) ? null : state.highlight,
         pendingUndo: mergeIntoPendingUndo(state.pendingUndo, removedNodes, removedEdges),
         past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
         future: [],
@@ -709,6 +847,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedNodeId: null,
         selectedEdgeId: null,
         editingAnnotation: null,
+        configPopover: null,
+        highlight: null,
       };
     });
   },
@@ -727,6 +867,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedNodeId: null,
         selectedEdgeId: null,
         editingAnnotation: null,
+        configPopover: null,
+        highlight: null,
       };
     });
   },
@@ -756,6 +898,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedNodeId: null,
         selectedEdgeId: null,
         editingAnnotation: null,
+        configPopover: null,
+        highlight: null,
         pendingUndo: { nodes: state.nodes, edges: state.edges, label: "Board cleared", mode: "replace", at: Date.now() },
         past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
         future: [],

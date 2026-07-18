@@ -1,8 +1,23 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronRight, Copy, FileText, Flag, Lock, MessageSquare, RotateCw, Server, Trash2, Unlock } from "lucide-react";
+import {
+  ChevronRight,
+  Copy,
+  FileText,
+  Flag,
+  Focus,
+  Frame,
+  Lock,
+  MessageSquare,
+  RotateCw,
+  Server,
+  Settings,
+  Trash2,
+  Unlock,
+  Waypoints,
+} from "lucide-react";
 import { useCanvasStore } from "./store";
 import { componentRegistry } from "@/content/components/registry";
 import { toComponentDefinition } from "@/content/components/custom";
@@ -20,6 +35,11 @@ export type ContextMenuTarget =
 type ContextMenuProps = {
   target: ContextMenuTarget | null;
   onClose: () => void;
+  /** Frames the given node in the viewport (xyflow's imperative `fitView`,
+   * scoped to one node) — lives in Canvas.tsx since that's where the
+   * `useReactFlow()` hook the action needs is already destructured, so it's
+   * passed down as a plain prop rather than duplicating the hook here. */
+  centerOnNode: (nodeId: string) => void;
 };
 
 function MenuItem({
@@ -129,7 +149,7 @@ function Flyout({
  * (onSelectionContextMenu, wired in Canvas.tsx) rather than reusing
  * onNodeContextMenu.
  */
-export function ContextMenu({ target, onClose }: ContextMenuProps) {
+export function ContextMenu({ target, onClose, centerOnNode }: ContextMenuProps) {
   const nodes = useCanvasStore((s) => s.nodes);
   const deleteNode = useCanvasStore((s) => s.deleteNode);
   const deleteNodes = useCanvasStore((s) => s.deleteNodes);
@@ -138,17 +158,40 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
   const duplicateNodes = useCanvasStore((s) => s.duplicateNodes);
   const reverseEdge = useCanvasStore((s) => s.reverseEdge);
   const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
-  const openDocsWindow = useCanvasStore((s) => s.openDocsWindow);
+  const openDocTab = useCanvasStore((s) => s.openDocTab);
   const addNode = useCanvasStore((s) => s.addNode);
   const addComment = useCanvasStore((s) => s.addComment);
   const addStartMarker = useCanvasStore((s) => s.addStartMarker);
   const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
+  const openConfigPopover = useCanvasStore((s) => s.openConfigPopover);
+  const setHighlight = useCanvasStore((s) => s.setHighlight);
   // Custom components (see CreateComponentModal.tsx) live in the store as
   // raw records, not the static registry array — combined here, same as
   // Palette.tsx, so a newly-created component shows up in this list
   // immediately too.
   const customComponents = useCanvasStore((s) => s.customComponents);
   const allComponents = [...componentRegistry, ...customComponents.map(toComponentDefinition)];
+
+  // Unlike Flyout (fixed FLYOUT_WIDTH, so it can flip with just the
+  // trigger row's rect), this panel's height varies a lot by target.type
+  // (node/edge/selection/pane each show a different item count) — real
+  // measurement after render, not an assumed size, is what's needed to
+  // keep it fully on-screen when the right-clicked target sits near a
+  // viewport edge. Mutates the element's own style directly (not React
+  // state) so clamping doesn't trigger a second render — it runs before
+  // paint (useLayoutEffect either way), so there's no visible jump from
+  // the unclamped position to the corrected one.
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!target || !el) return;
+    const margin = 8;
+    const left = Math.max(margin, Math.min(target.x, window.innerWidth - el.offsetWidth - margin));
+    const top = Math.max(margin, Math.min(target.y, window.innerHeight - el.offsetHeight - margin));
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+  }, [target]);
 
   if (!target) return null;
 
@@ -157,11 +200,11 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
     onClose();
   };
 
-  // Docs windows are keyed by componentId (see store.ts), not node id — the
+  // Docs tabs are keyed by componentId (see store.ts), not node id — the
   // menu only has the clicked node's id, so resolve it here.
   const viewDocsForNode = (nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
-    if (node?.type === "component") openDocsWindow(node.data.componentId);
+    if (node?.type === "component") openDocTab(node.data.componentId);
   };
 
   return (
@@ -169,6 +212,7 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
       {/* Full-screen catcher to close the menu on the next click anywhere else. */}
       <div className="fixed inset-0 z-20" onClick={onClose} onContextMenu={(e) => e.preventDefault()} />
       <div
+        ref={menuRef}
         className="fixed z-30 min-w-[180px] rounded-md border border-border bg-panel py-1 shadow-lg"
         style={{ left: target.x, top: target.y }}
       >
@@ -179,14 +223,49 @@ export function ContextMenu({ target, onClose }: ContextMenuProps) {
           return (
             <>
               <MenuItem icon={Copy} label="Duplicate" onClick={act(() => duplicateNode(target.id))} />
+              <MenuItem icon={Focus} label="Center View" onClick={act(() => centerOnNode(target.id))} />
               {isAnnotation ? (
-                <MenuItem
-                  icon={locked ? Unlock : Lock}
-                  label={locked ? "Unlock" : "Lock"}
-                  onClick={act(() => toggleAnnotationLock(target.id))}
-                />
+                <>
+                  <MenuItem
+                    icon={locked ? Unlock : Lock}
+                    label={locked ? "Unlock" : "Lock"}
+                    onClick={act(() => toggleAnnotationLock(target.id))}
+                  />
+                  {/* Zones only — spatial containment (see Canvas.tsx's
+                   * highlightSets "zone" branch) only makes sense for a
+                   * node with an area other nodes can sit inside; a comment
+                   * or flag is a point marker, nothing can be "inside" one. */}
+                  {node?.type === "zone" && (
+                    <MenuItem
+                      icon={Frame}
+                      label="Highlight Zone"
+                      onClick={act(() => setHighlight({ mode: "zone", id: target.id }))}
+                    />
+                  )}
+                </>
               ) : (
-                <MenuItem icon={FileText} label="View docs" onClick={act(() => viewDocsForNode(target.id))} />
+                <>
+                  <MenuItem
+                    icon={Settings}
+                    label="Configure"
+                    onClick={act(() => openConfigPopover(target.id, { x: target.x, y: target.y }))}
+                  />
+                  {/* Component nodes only — zones/comments/flags never
+                   * appear in the real domain graph's edges (see
+                   * store.ts's toArchitectureGraph), so highlighting one
+                   * would always dim the entire canvas with nothing to
+                   * spare. */}
+                  <MenuItem
+                    icon={Waypoints}
+                    label="Highlight Connections"
+                    onClick={act(() => setHighlight({ mode: "connections", id: target.id }))}
+                  />
+                  <MenuItem
+                    icon={FileText}
+                    label="Open Documentation"
+                    onClick={act(() => viewDocsForNode(target.id))}
+                  />
+                </>
               )}
               <MenuItem icon={Trash2} label="Delete" danger onClick={act(() => deleteNode(target.id))} />
             </>

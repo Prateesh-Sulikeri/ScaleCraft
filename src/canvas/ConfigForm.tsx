@@ -20,7 +20,7 @@ type ConfigFormProps = {
  * current components use (enum/number/boolean/string); a nested object or
  * array field would need a real recursive renderer — not needed yet.
  *
- * Mount this keyed by node id (see NodeInspector) so switching the selected
+ * Mount this keyed by node id (see NodeConfigPopover) so switching the selected
  * node gets a fresh form instead of stale defaultValues.
  */
 export function ConfigForm({ definition, value, onChange }: ConfigFormProps) {

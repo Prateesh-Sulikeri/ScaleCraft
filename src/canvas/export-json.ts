@@ -1,6 +1,6 @@
 import { useCanvasStore } from "./store";
 
-/** The canvas's raw JSON export — shared by ExportMenu's button and the
+/** The canvas's raw JSON export — shared by ProjectMenu's button and the
  * Ctrl/Cmd+E keyboard shortcut (see sandbox/page.tsx) so there's one
  * implementation of "what a JSON export actually is." */
 export function exportCanvasAsJson() {

@@ -15,6 +15,7 @@ export default [
     ],
     summary: "Durable, structured relational storage",
     docs: "Durable, structured, relational storage. Exposing this directly to clients bypasses the application server's authentication, authorization, and business logic.",
+    docsFile: "/docs/sql-database.md",
     // inputs restricted to compute (+ caching, for a cache-aside miss
     // forwarding straight to the origin store) — the compute-only part
     // already structurally reproduces no-direct-client-database.ts's exact
