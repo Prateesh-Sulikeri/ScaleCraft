@@ -66,10 +66,10 @@ the category/state channels above:
 | Building Blocks | Orange |
 | Real World Extraction | Indigo |
 
-Unlike category/state colors (currently one shared value across themes, a known gap —
-see "Theming" below), mode colors are tuned with separate dark/light values
-(`src/app/globals.css`'s `--mode-*` tokens): no single hue cleared 4.5:1 contrast against
-both panel backgrounds at once, verified with a WCAG contrast check.
+Like category/state colors (see "Theming" below), mode colors are tuned with separate
+dark/light values (`src/app/globals.css`'s `--mode-*` tokens): no single hue cleared
+4.5:1 contrast against both panel backgrounds at once, verified with a WCAG contrast
+check.
 
 ## Typography
 
@@ -83,8 +83,9 @@ both panel backgrounds at once, verified with a WCAG contrast check.
 
 Dark mode is the default (canvas/creative-tool convention — Figma, Excalidraw, tldraw
 all default or heavily favor dark), with full light mode support, not an afterthought.
-Category and state colors need independent light/dark values tuned for contrast in both
-— don't just invert.
+Category, state, and edge colors each have independent light/dark values tuned for
+contrast in both (`src/app/globals.css`'s `.light` block) — none of them are a naive
+invert of the dark value.
 
 ## Motion
 

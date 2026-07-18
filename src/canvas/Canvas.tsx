@@ -35,6 +35,7 @@ import { ContextMenu, type ContextMenuTarget } from "./ContextMenu";
 import { AnnotationEditor } from "./AnnotationEditor";
 import { PALETTE_DRAG_TYPE } from "./Palette";
 import { useCanvasStore, type PlacementMode } from "./store";
+import { isEditableTarget } from "./use-canvas-shortcuts";
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "./types";
 
 const nodeTypes = { component: ComponentNode, zone: ZoneNode, comment: CommentNode, start: StartNode };
@@ -168,6 +169,43 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [placementMode, setPlacementMode]);
 
+  // xyflow's hold-Space-to-pan (`panActivationKeyCode`, on by default) only
+  // takes over a drag that starts on the blank pane — it has no awareness of
+  // node/zone/comment/start dragging at all, and a node marked `draggable`
+  // always gets xyflow's own `nopan` class, which makes a mousedown on it
+  // start a node-move instead of falling through to the pane's pan handler.
+  // So without this, holding Space and dragging from on top of a node just
+  // moves that node — the cursor never even reaches "grabbing" because the
+  // pane itself never enters its `dragging` state. Tracking Space here and
+  // folding it into every node's `draggable` below (plus `nodesDraggable`
+  // for plain component nodes, which don't set an explicit per-node value)
+  // makes every node let go while Space is held, so the same drag pans the
+  // canvas — matching blank-canvas behavior instead of stopping short of it.
+  const [spaceHeld, setSpaceHeld] = useState(false);
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.code !== "Space" || event.repeat || isEditableTarget(event.target)) return;
+      setSpaceHeld(true);
+    }
+    function onKeyUp(event: KeyboardEvent) {
+      if (event.code !== "Space") return;
+      setSpaceHeld(false);
+    }
+    // Guards against a stuck "held" state if a keyup is missed (e.g.
+    // Alt-Tabbing away mid-hold never delivers one).
+    function onBlur() {
+      setSpaceHeld(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
+
   // Annotations don't just spawn in — clicking a palette "Add …" button arms
   // placement mode (crosshair cursor, see the overlay in the render below)
   // and this drags out the actual rectangle for the two resizable types
@@ -269,21 +307,22 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
             // would — each branch has to narrow to exactly one member.
             const validationState = nodeStates[n.id];
             if (n.type === "component") return { ...n, data: { ...n.data, validationState } };
-            if (n.type === "zone") return { ...n, data: { ...n.data, validationState }, draggable: !n.data.locked };
-            if (n.type === "comment") return { ...n, draggable: !n.data.locked };
-            if (n.type === "start") return { ...n, draggable: !n.data.locked };
+            if (n.type === "zone")
+              return { ...n, data: { ...n.data, validationState }, draggable: !n.data.locked && !spaceHeld };
+            if (n.type === "comment") return { ...n, draggable: !n.data.locked && !spaceHeld };
+            if (n.type === "start") return { ...n, draggable: !n.data.locked && !spaceHeld };
             return n;
           })
         : storeNodes.map((n): AnyNodeType => {
             // Same locked -> non-draggable override as above, needed even
             // when nodeStates is absent (e.g. before the first Validate
             // click) so locking isn't validation-dependent.
-            if (n.type === "zone") return { ...n, draggable: !n.data.locked };
-            if (n.type === "comment") return { ...n, draggable: !n.data.locked };
-            if (n.type === "start") return { ...n, draggable: !n.data.locked };
+            if (n.type === "zone") return { ...n, draggable: !n.data.locked && !spaceHeld };
+            if (n.type === "comment") return { ...n, draggable: !n.data.locked && !spaceHeld };
+            if (n.type === "start") return { ...n, draggable: !n.data.locked && !spaceHeld };
             return n;
           }),
-    [storeNodes, nodeStates],
+    [storeNodes, nodeStates, spaceHeld],
   );
 
   // A Start marker's pointer arrow (see StartNode.tsx) — derived purely from
@@ -398,6 +437,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         deleteKeyCode={["Backspace", "Delete"]}
         selectionOnDrag={!isConnecting}
         panOnDrag={[1]}
+        nodesDraggable={!spaceHeld}
         proOptions={{ hideAttribution: true }}
         minZoom={0.25}
         fitView
