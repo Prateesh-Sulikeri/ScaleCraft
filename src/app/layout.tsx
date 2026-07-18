@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
+import { ScreenSizeGate } from "./ScreenSizeGate";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -43,7 +44,7 @@ export default function RootLayout({
        * scrollbar. */}
       <body className="flex h-full flex-col overflow-hidden">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} themes={["dark", "light"]}>
-          {children}
+          <ScreenSizeGate>{children}</ScreenSizeGate>
         </ThemeProvider>
       </body>
     </html>

@@ -66,8 +66,45 @@
   --background: #f6f6f7;
   --foreground: #171717;
   --panel: #ffffff;
-  --border: #e3e3e6;
+  /* Darkened from #e3e3e6 (1.28:1 against --panel, effectively invisible) —
+   * hairline should still read as a line, not disappear into a near-white
+   * card on a near-white page. */
+  --border: #d4d4d8;
   --zone: #FF3483;
+
+  /* Category colors, independently tuned for light — see
+   * .claude/docs/DESIGN_LANGUAGE.md's "Theming" section: these were sharing
+   * one hex across both themes (a documented gap), which is fine against
+   * dark's near-black surfaces but collapses badge/icon contrast on white
+   * (e.g. data's #22c55e icon against its own 20%-tint badge measured
+   * ~1.9:1 in light vs ~5.7:1 in dark). Same hue family, darker/more
+   * saturated stop so the identity read stays intact. */
+  --category-networking: #1d4ed8;
+  --category-compute: #6d28d9;
+  --category-data: #15803d;
+  --category-caching: #b45309;
+  --category-messaging: #be185d;
+  --category-distributed-systems: #b91c1c;
+
+  /* Validation state ring colors, independently tuned for light for the
+   * same reason as category colors above — reuse the category light values
+   * for the three hues DESIGN.md pins together on purpose (Data<->Valid,
+   * Caching<->Warning, Distributed Systems<->Error), so the intentional
+   * pixel-level coincidence still holds in light mode. */
+  --state-valid: #15803d;
+  --state-warning: #b45309;
+  --state-error: #b91c1c;
+
+  /* Edge colors, independently tuned for light. --edge-request-flow is the
+   * primary "watch a request traverse the system" edge (DESIGN_LANGUAGE.md's
+   * Motion section) and measured ~1.7:1 against the light canvas with the
+   * shared dark-tuned cyan — nearly invisible. Darker/more saturated stops
+   * per hue restore legibility without reusing --mode-sandbox's light value
+   * (kept a shade brighter so the two channels stay visually distinct). */
+  --edge-request-flow: #0284a5;
+  --edge-control: #475569;
+  --edge-replication: #0f766e;
+  --edge-async: #a21caf;
 
   --mode-sandbox: #0e7490;
   --mode-building-blocks: #c2410c;
@@ -152,6 +189,25 @@ body {
   outline: 2px solid var(--foreground);
   outline-offset: 2px;
   transition: outline-color 150ms ease-out;
+}
+
+/* xyflow's built-in hold-Space-to-pan (`panActivationKeyCode`, default
+ * "Space" — no custom keydown handling of ours involved) toggles `draggable`/
+ * `dragging` classes on the ancestor `.react-flow__pane` div, which is what
+ * flips the cursor to grab/grabbing over blank canvas. But every node (and
+ * Zone/Comment/Start, which are also plain `.react-flow__node` elements
+ * under the hood) sets its own cursor via `.react-flow__node.selectable`
+ * (pointer) or `.draggable` (grab) — that never gets re-evaluated for the
+ * pane's space-held state, so hovering a node while panning stuck at the
+ * node's own pointer cursor instead of following the pane. Since the pane is
+ * an ancestor of every node (not a sibling), a descendant-selector override
+ * here wins on specificity (3 classes vs. the node rules' 2) regardless of
+ * source order, without tracking any extra state of our own. */
+.react-flow__pane.draggable .react-flow__node {
+  cursor: grab;
+}
+.react-flow__pane.dragging .react-flow__node {
+  cursor: grabbing;
 }
 
 /* React Flow ships its own chrome (Controls, Background, selection outlines)

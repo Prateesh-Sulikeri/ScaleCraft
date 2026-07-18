@@ -114,7 +114,7 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
     <div
       aria-disabled="true"
       style={{ width: NODE_WIDTH, height: NODE_HEIGHT }}
-      className="relative flex cursor-not-allowed flex-col justify-center gap-2 rounded-lg border border-border bg-panel px-5 opacity-50"
+      className="relative flex cursor-not-allowed flex-col justify-center gap-2 rounded-lg border border-border bg-panel px-5 opacity-70"
     >
       {body}
     </div>
