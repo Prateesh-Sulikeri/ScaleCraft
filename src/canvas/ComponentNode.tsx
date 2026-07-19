@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { Handle, NodeResizer, Position, type NodeProps } from "@xyflow/react";
 import { Server } from "lucide-react";
 import { getComponent } from "@/content/components/registry";
@@ -45,6 +46,43 @@ export function ComponentNode({ id, data, selected }: NodeProps<ComponentNodeTyp
   // computed once in Canvas.tsx from this same store field.
   const highlightActive = useCanvasStore((s) => s.highlight !== null);
   const definition = getComponent(data.componentId);
+
+  // Pre-resize (data.height undefined), the card auto-sizes to content and
+  // the description stays a single truncated line — the original compact
+  // default. Only once the user drags the resize handle does data.height
+  // become a real, externally-fixed number; from that point the description
+  // should use whatever space is actually left, cropping only if the text
+  // doesn't fit. A fixed line-clamp-N can't do that (N lines may be too many
+  // for a short resize or too few for a tall one), so once resized the
+  // description div becomes a flex-1 child of a now-fixed-height card, and a
+  // ResizeObserver measures its *actual* rendered height (a real number,
+  // fixed by the flex layout, not by the clamp itself) to compute exactly
+  // how many lines fit. Doing this in the auto-height default case instead
+  // would be circular — the clamp would determine the div's own height,
+  // which the observer would then read back as its input.
+  const isManuallyResized = typeof data.height === "number";
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  const [descriptionMaxLines, setDescriptionMaxLines] = useState(1);
+
+  useEffect(() => {
+    if (!isManuallyResized) return;
+    const el = descriptionRef.current;
+    if (!el) return;
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 15;
+    const observer = new ResizeObserver(([entry]) => {
+      // No Math.max(1, ...) floor here: an aggressively shrunk node can
+      // leave less than one line's worth of room (the header — icon/title/
+      // instance name — eats most of a near-minimum-height card). Forcing
+      // at least 1 line in that case rendered a sliver of text clipped
+      // mid-glyph with no ellipsis, which is worse than showing nothing.
+      // 0 is a valid, deliberate result: hide the description entirely.
+      const lines = Math.floor(entry.contentRect.height / lineHeight);
+      setDescriptionMaxLines(lines);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isManuallyResized]);
+
   if (!definition) return null;
 
   const Icon = iconMap[definition.icon] ?? Server;
@@ -53,7 +91,7 @@ export function ComponentNode({ id, data, selected }: NodeProps<ComponentNodeTyp
 
   return (
     <div
-      className="rounded-xl border border-border bg-panel px-3 py-2.5 shadow-sm transition-[outline-color,box-shadow] duration-150 ease-out"
+      className="flex flex-col overflow-hidden rounded-xl border border-border bg-panel px-3 py-2.5 shadow-sm transition-[outline-color,box-shadow] duration-150 ease-out"
       style={{
         width: data.width ?? 200,
         height: data.height,
@@ -90,28 +128,61 @@ export function ComponentNode({ id, data, selected }: NodeProps<ComponentNodeTyp
         isConnectable={false}
         style={{ opacity: 0, pointerEvents: "none" }}
       />
-      <div className="flex items-start gap-2.5">
+      <div className="flex min-h-0 flex-1 gap-2.5">
         <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+          className="flex h-8 w-8 shrink-0 items-center justify-center self-start rounded-lg"
           style={{ backgroundColor: `color-mix(in srgb, ${categoryColor} 20%, transparent)` }}
         >
           <Icon size={16} style={{ color: categoryColor }} />
         </div>
-        <div className="min-w-0 pt-0.5">
-          <div className="text-sm font-semibold leading-tight text-foreground">{definition.label}</div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col pt-0.5">
+          <div className="shrink-0 text-sm font-semibold leading-tight text-foreground">
+            {definition.label}
+          </div>
           {data.name?.trim() && (
             // The user's own instance label ("server-1-ind") — monospace to
             // read as an identifier, distinct from the label above it (same
             // code-shaped-text convention as DESIGN_LANGUAGE.md's
             // config-value typography). Shown alongside the label now, not
             // instead of it.
-            <div className="mt-0.5 truncate font-mono text-[11px] leading-snug text-foreground/70">
+            <div className="mt-0.5 shrink-0 truncate font-mono text-[11px] leading-snug text-foreground/70">
               {data.name}
             </div>
           )}
-          <div className="mt-1 truncate text-[11px] leading-snug text-foreground/50">
-            {data.description ?? definition.summary}
-          </div>
+          {isManuallyResized ? (
+            // Outer wrapper's height comes only from the flex-1 distribution
+            // of the now-fixed card height — never from its own content — so
+            // its `overflow-hidden` is a hard, unconditional clip boundary.
+            // The inner div is the one that actually applies
+            // `-webkit-line-clamp`, which sets ITS OWN preferred height from
+            // `descriptionMaxLines`; if that guess is ever stale by a frame
+            // (e.g. mid-drag, before the ResizeObserver below catches up),
+            // the inner div may ask for more height than is available, but
+            // the outer wrapper physically cannot show more than it was
+            // given. Without this split, the clamped text's self-imposed
+            // height could disagree with the flex-allocated space and spill
+            // past the card's rounded border — the exact glitch seen when
+            // `-webkit-line-clamp` lived directly on the flex-1 element.
+            <div ref={descriptionRef} className="mt-1 min-h-0 flex-1 overflow-hidden">
+              {descriptionMaxLines > 0 && (
+                <div
+                  className="break-words text-[11px] leading-snug text-foreground/50"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitBoxOrient: "vertical",
+                    WebkitLineClamp: descriptionMaxLines,
+                    overflow: "hidden",
+                  }}
+                >
+                  {data.description ?? definition.summary}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="mt-1 truncate text-[11px] leading-snug text-foreground/50">
+              {data.description ?? definition.summary}
+            </div>
+          )}
         </div>
       </div>
       {definition.outputs.length > 0 && <Handle type="source" position={Position.Right} />}
