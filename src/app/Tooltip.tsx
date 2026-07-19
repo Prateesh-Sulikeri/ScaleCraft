@@ -20,7 +20,11 @@ export function Tooltip({ label, children }: { label: string; children: ReactEle
   const show = () => {
     const rect = anchorRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setPos({ top: rect.bottom + 6, left: rect.left + rect.width / 2 });
+    const center = rect.left + rect.width / 2;
+    const margin = 8;
+    // Clamp to keep tooltip fully within viewport while centered on button
+    const left = Math.min(Math.max(center, 80 + margin), window.innerWidth - 80 - margin);
+    setPos({ top: rect.bottom + 6, left });
   };
   const hide = () => setPos(null);
 
@@ -36,7 +40,7 @@ export function Tooltip({ label, children }: { label: string; children: ReactEle
       {pos &&
         createPortal(
           <div
-            className="pointer-events-none fixed z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-panel px-2 py-1 text-xs text-foreground shadow-lg"
+            className="pointer-events-none fixed z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-panel px-2.5 py-1 text-xs text-foreground shadow-lg"
             style={{ top: pos.top, left: pos.left }}
           >
             {label}

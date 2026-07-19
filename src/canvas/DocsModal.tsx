@@ -106,7 +106,7 @@ export function DocsModal({ title, docs, index, minimized, onMinimizedChange, on
           if (!didDragRef.current) onMinimizedChange(false);
         }}
         style={{ left: pos.x, top: pos.y }}
-        className="fixed z-50 flex cursor-move items-center gap-2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs font-medium shadow-lg hover:bg-border"
+        className="fixed z-[var(--z-modal)] flex cursor-move items-center gap-2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs font-medium shadow-lg hover:bg-border"
       >
         <Maximize2 size={12} />
         {title}
@@ -117,7 +117,7 @@ export function DocsModal({ title, docs, index, minimized, onMinimizedChange, on
   return (
     <div
       style={{ left: pos.x, top: pos.y, width: size.width, height: size.height }}
-      className="fixed z-50 flex flex-col overflow-hidden rounded-lg border border-border bg-panel shadow-xl"
+      className="fixed z-[var(--z-modal)] flex flex-col overflow-hidden rounded-lg border border-border bg-panel shadow-xl"
     >
       <div
         onMouseDown={startDrag}

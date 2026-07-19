@@ -51,7 +51,7 @@ export function ModeBadge({ mode }: ModeBadgeProps) {
       {open && (
         <div
           style={{ borderTopColor: color, borderTopWidth: 2 }}
-          className="absolute left-0 z-30 mt-2 w-72 rounded-md border border-border bg-panel p-3 shadow-lg"
+          className="absolute left-0 z-[var(--z-dropdown)] mt-2 w-72 rounded-md border border-border bg-panel p-3 shadow-lg"
         >
           <p className="text-sm font-medium">{modeTagline[mode]}</p>
           <p className="mt-1.5 text-sm text-foreground/70">{modeDescription[mode]}</p>

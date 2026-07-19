@@ -35,7 +35,7 @@ export function EdgeInspector() {
     // bottom-right, not bottom-left — xyflow's own zoom/fit/lock Controls
     // panel (see Canvas.tsx) sits at its default bottom-left position, and
     // this floating picker would otherwise render right on top of it.
-    <div className="absolute bottom-4 right-4 z-10 max-w-xs rounded-md border border-border bg-panel px-3 py-2 shadow-sm">
+    <div className="absolute bottom-4 right-4 z-[var(--z-node-chrome)] max-w-xs rounded-md border border-border bg-panel px-3 py-2 shadow-sm">
       <label className="flex items-center gap-2 text-sm">
         <span className="text-foreground/60">Edge kind</span>
         <select

@@ -20,7 +20,7 @@ type LoadingTransitionProps = {
  */
 export function LoadingTransition({ label }: LoadingTransitionProps) {
   return createPortal(
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-background">
+    <div className="fixed inset-0 z-[var(--z-modal)] flex flex-col items-center justify-center gap-6 bg-background">
       <div
         aria-hidden="true"
         style={{

@@ -111,7 +111,30 @@
   --mode-real-world-extraction: #4338ca;
 }
 
+/* Z-Index scale — semantic stacking order for overlays. Each layer prevents
+ * clicks to lower layers via backdrop/catcher, so the hierarchy is strict:
+ * canvas content and node chrome < dropdown menus < modal backdrops < modal
+ * dialogs < toast notifications < tooltips. See .claude/docs/DESIGN.md for
+ * reasoning. Never add arbitrary z-index values; always use these tokens. */
+:root {
+  --z-node-chrome: 10; /* Lock/unlock, close buttons on nodes */
+  --z-dropdown-backdrop: 20; /* Full-screen catcher for menu dismissal */
+  --z-dropdown: 30; /* Dropdown menus, popovers (can close on backdrop) */
+  --z-modal-backdrop: 40; /* Prevents canvas interaction during modal */
+  --z-modal: 50; /* Modal dialogs, primary interaction surfaces */
+  --z-toast: 70; /* Toast notifications, temporary feedback (highest) */
+  --z-tooltip: 60; /* Tooltips, always visible but beneath toasts */
+}
+
 @theme inline {
+  --z-node-chrome: var(--z-node-chrome);
+  --z-dropdown-backdrop: var(--z-dropdown-backdrop);
+  --z-dropdown: var(--z-dropdown);
+  --z-modal-backdrop: var(--z-modal-backdrop);
+  --z-modal: var(--z-modal);
+  --z-toast: var(--z-toast);
+  --z-tooltip: var(--z-tooltip);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-panel: var(--panel);

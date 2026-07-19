@@ -67,9 +67,9 @@ export function StartTargetPicker({
 
   return createPortal(
     <>
-      <div className="fixed inset-0 z-40" onClick={onClose} onContextMenu={(e) => e.preventDefault()} />
+      <div className="fixed inset-0 z-[var(--z-modal-backdrop)]" onClick={onClose} onContextMenu={(e) => e.preventDefault()} />
       <div
-        className="fixed z-50 flex flex-col overflow-hidden rounded-lg border border-border bg-panel shadow-lg"
+        className="fixed z-[var(--z-modal)] flex flex-col overflow-hidden rounded-lg border border-border bg-panel shadow-lg"
         style={{ left, top, width: POPUP_WIDTH, maxHeight: POPUP_MAX_HEIGHT }}
         onClick={(event) => event.stopPropagation()}
       >

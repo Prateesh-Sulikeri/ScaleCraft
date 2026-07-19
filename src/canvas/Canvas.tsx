@@ -603,12 +603,12 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
 
       {placementMode && (
         <>
-          <div className="pointer-events-none absolute left-1/2 top-4 z-40 -translate-x-1/2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
+          <div className="pointer-events-none absolute left-1/2 top-4 z-[var(--z-modal-backdrop)] -translate-x-1/2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
             {PLACEMENT_HINT[placementMode]}
           </div>
           <div
             onMouseDown={startPlacementDrag}
-            className="absolute inset-0 z-30 cursor-crosshair"
+            className="absolute inset-0 z-[var(--z-modal-backdrop)] cursor-crosshair"
           />
         </>
       )}
@@ -621,7 +621,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
           // actually looks like once placed, not something the in-progress
           // drag needs to preempt.
           <div
-            className="pointer-events-none fixed z-50 rounded-lg border border-dashed bg-panel/20"
+            className="pointer-events-none fixed z-[var(--z-modal)] rounded-lg border border-dashed bg-panel/20"
             style={{
               left: previewRect.left,
               top: previewRect.top,

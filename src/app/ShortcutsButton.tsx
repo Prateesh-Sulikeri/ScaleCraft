@@ -7,7 +7,7 @@ import { Keyboard } from "lucide-react";
 // Same portaled hover-tooltip convention as Palette.tsx's ToolbarButton
 // (icon-only header buttons get a styled tooltip, not the plain native
 // `title` attribute — see that component's own doc comment for why).
-const TOOLTIP_WIDTH = 160;
+const TOOLTIP_WIDTH = 140;
 
 const SHORTCUTS: { keys: string; label: string }[] = [
   { keys: "Ctrl/Cmd+S", label: "Save" },
@@ -38,10 +38,8 @@ export function ShortcutsButton() {
     if (!rect) return;
     const center = rect.left + rect.width / 2;
     const margin = 8;
-    const left = Math.min(
-      Math.max(center, TOOLTIP_WIDTH / 2 + margin),
-      window.innerWidth - TOOLTIP_WIDTH / 2 - margin,
-    );
+    // Clamp to keep tooltip fully within viewport while centered on button
+    const left = Math.min(Math.max(center, TOOLTIP_WIDTH / 2 + margin), window.innerWidth - TOOLTIP_WIDTH / 2 - margin);
     setTooltipPos({ top: rect.bottom + 6, left });
   };
 
@@ -64,12 +62,11 @@ export function ShortcutsButton() {
       {tooltipPos &&
         createPortal(
           <div
-            className="pointer-events-none fixed z-50 rounded-md border border-border bg-panel px-2.5 py-1.5 shadow-lg"
+            className="pointer-events-none fixed z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-panel px-2.5 py-1.5 shadow-lg"
             style={{
               top: tooltipPos.top,
               left: tooltipPos.left,
               width: TOOLTIP_WIDTH,
-              transform: "translateX(-50%)",
             }}
           >
             <div className="text-xs font-semibold text-foreground">Keyboard shortcuts</div>
