@@ -125,7 +125,7 @@ function Flyout({
           <div
             onMouseEnter={cancelClose}
             onMouseLeave={scheduleClose}
-            className="fixed z-40 max-h-[70vh] min-w-[180px] overflow-y-auto rounded-md border border-border bg-panel py-1 shadow-lg"
+            className="fixed z-[var(--z-dropdown)] max-h-[70vh] min-w-[180px] overflow-y-auto rounded-md border border-border bg-panel py-1 shadow-lg"
             style={{ top: pos.top, left: pos.left, width: FLYOUT_WIDTH }}
           >
             {panel}
@@ -150,6 +150,11 @@ function Flyout({
  * onNodeContextMenu.
  */
 export function ContextMenu({ target, onClose, centerOnNode }: ContextMenuProps) {
+  // Pointer edges (flag arrows) should not have any context menu — they're
+  // visual indicators only, not interactive elements. Return null to prevent
+  // even an empty menu box from appearing.
+  if (target?.type === "edge" && target.id.startsWith("start-pointer:")) return null;
+
   const nodes = useCanvasStore((s) => s.nodes);
   const deleteNode = useCanvasStore((s) => s.deleteNode);
   const deleteNodes = useCanvasStore((s) => s.deleteNodes);
@@ -210,10 +215,10 @@ export function ContextMenu({ target, onClose, centerOnNode }: ContextMenuProps)
   return (
     <>
       {/* Full-screen catcher to close the menu on the next click anywhere else. */}
-      <div className="fixed inset-0 z-20" onClick={onClose} onContextMenu={(e) => e.preventDefault()} />
+      <div className="fixed inset-0 z-[var(--z-dropdown-backdrop)]" onClick={onClose} onContextMenu={(e) => e.preventDefault()} />
       <div
         ref={menuRef}
-        className="fixed z-30 min-w-[180px] rounded-md border border-border bg-panel py-1 shadow-lg"
+        className="fixed z-[var(--z-dropdown)] min-w-[180px] rounded-md border border-border bg-panel py-1 shadow-lg"
         style={{ left: target.x, top: target.y }}
       >
         {target.type === "node" && (() => {
@@ -272,7 +277,10 @@ export function ContextMenu({ target, onClose, centerOnNode }: ContextMenuProps)
           );
         })()}
 
-        {target.type === "edge" && (
+        {/* Real edges only (not pointer edges from flags to their targets) —
+         * flags/comments/zones are point markers with no direction. Pointer
+         * edges start with "start-pointer:" so we skip them here. */}
+        {target.type === "edge" && !target.id.startsWith("start-pointer:") && (
           <>
             <MenuItem
               icon={RotateCw}

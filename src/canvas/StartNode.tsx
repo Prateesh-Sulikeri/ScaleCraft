@@ -103,7 +103,7 @@ export function StartNode({ id, data, selected }: NodeProps<StartNodeType>) {
         // position previously sat directly on top of label text and covered
         // it (see ZoneNode.tsx's identical fix).
         <div
-          className="nodrag pointer-events-none absolute -left-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border border-border bg-panel text-foreground/50 shadow-sm"
+          className="nodrag pointer-events-none absolute -left-1.5 -top-1.5 z-[var(--z-node-chrome)] flex h-5 w-5 items-center justify-center rounded border border-border bg-panel text-foreground/50 shadow-sm"
           aria-label="Locked"
         >
           <Lock size={11} />
@@ -111,7 +111,7 @@ export function StartNode({ id, data, selected }: NodeProps<StartNodeType>) {
       )}
 
       {selected && (
-        <div className="nodrag absolute -right-1.5 -top-1.5 z-10 flex gap-1">
+        <div className="nodrag absolute -right-1.5 -top-1.5 z-[var(--z-node-chrome)] flex gap-1">
           <button
             type="button"
             onClick={(event) => {

@@ -42,6 +42,16 @@ don't).
 - `.claude/docs/MILESTONES.md` — the sequenced, currently-active roadmap from the
   scaffold to MVP. Check this before picking what to work on next.
 
+## Design & UX docs (live reference)
+
+- `DESIGN.md` (root) — the active, committed design system: color tokens, typography,
+  components, elevation/shadow, and do's/don'ts. This is the source of truth for what
+  the UI looks like, not DESIGN_LANGUAGE.md (which is historical). Updated inline as
+  design decisions land.
+- `.claude/docs/CRITIQUE.md` — latest design critique (Nielsen heuristics, priority
+  issues, persona red flags). Read this before making UI changes to understand known
+  friction points and recommended fixes.
+
 ## Non-negotiable product principles (from `INITIAL_THOUGHTS.md` and explicit product calls, do not relitigate casually)
 
 - Components are reused across every chapter and mode — never fork a component's
@@ -74,6 +84,21 @@ don't).
   frontend/UI design decisions. A scoped skill query is cheaper (in tokens and time)
   than ad hoc grepping or unguided design reasoning.
 
+### Design iteration workflow
+
+When working on UI/UX improvements:
+1. **Read the current state:** `DESIGN.md` (live design system) + `.claude/docs/CRITIQUE.md` (known issues)
+2. **Decide what to fix:** Pick from CRITIQUE.md's priority issues or use `/impeccable` to run a fresh audit
+3. **Choose a command:** Map the issue to an impeccable command:
+   - User education → `/impeccable onboard` (first-run flows, help panels)
+   - Labels/copy → `/impeccable clarify` (UX copy, tooltips)
+   - Spacing/layout → `/impeccable layout` (visual hierarchy, rhythm)
+   - Colors/contrast → `/impeccable audit` (a11y review) or `/impeccable colorize` (palette work)
+   - Animations/motion → `/impeccable animate` (purposeful motion)
+   - Polish/refinement → `/impeccable polish` (final pass before shipping)
+4. **After changes:** Update `DESIGN.md` inline, commit, and run `/impeccable critique` to verify improvements
+5. **Archive findings:** Critique snapshots auto-persist to `.impeccable/critique/` for trend tracking
+
 ### Git branching
 
 - `origin` has two long-lived branches: `main` and `development`. `development` is the
@@ -85,12 +110,31 @@ don't).
 - Claude does not push directly to `main` going forward, and does not open or merge
   PRs, unless explicitly asked.
 
+## Design tools
+
+**impeccable** (`~/.claude/skills/impeccable/`) — use for all UI/UX work:
+- Run `/impeccable critique` to score design against Nielsen heuristics and uncover issues
+- Run `/impeccable onboard`, `/impeccable clarify`, `/impeccable audit`, `/impeccable polish`, etc. to fix specific issues
+- Read `DESIGN.md` and `.claude/docs/CRITIQUE.md` before starting any design work
+- After shipping UI changes, re-run `/impeccable critique` to measure improvement
+
 ## graphify
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+This project has a live knowledge graph at `graphify-out/` with 758 nodes, 1214 edges, and 112 communities. Use it as the primary codebase navigation tool — it's AST-based (not AI-inferred), fast, and scoped to relevant context.
 
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+**Workflow:**
+1. **For architecture/design questions:** Run `graphify query "<question>"` first (e.g., "What are the main UI pages?" or "How does validation flow through the system?"). Returns a scoped subgraph, much smaller than raw grep or GRAPH_REPORT.md.
+2. **For relationships:** Run `graphify path "<A>" "<B>"` to trace how two concepts connect (e.g., "Store" → "Canvas" to see how state flows).
+3. **For focused concepts:** Run `graphify explain "<concept>"` to understand where a thing is defined and how it's used (e.g., "ValidationRule" or "ComponentNodeType").
+4. **After code changes:** Run `graphify update .` to sync the graph (AST-only, no cost). This keeps all queries fresh.
+
+**Avoid:**
+- Reading raw GRAPH_REPORT.md unless you need a complete architecture snapshot (2000+ lines).
+- Using grep/find for broad exploration — graphify is faster and more contextual.
+- Querying without scoping — "tell me about the app" → "tell me about the Canvas store" is better.
+
+**Files to trust:**
+- `graphify-out/graph.json` — the query engine (don't read directly; query it)
+- `graphify-out/graph.html` — visual explorer (open in browser for interactive browsing)
+- `graphify-out/GRAPH_REPORT.md` — fallback for full architecture review only
+- `.git/hooks/post-commit` + `post-checkout` — auto-update hooks (installed by `graphify hook install`)

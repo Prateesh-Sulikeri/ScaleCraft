@@ -161,8 +161,8 @@ export function CreateComponentModal({ onClose, onSave, initialRecord }: CreateC
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[440px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border bg-panel shadow-xl">
+      <div className="fixed inset-0 z-[var(--z-modal-backdrop)] bg-black/40" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 z-[var(--z-modal)] flex max-h-[85vh] w-[440px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border bg-panel shadow-xl">
         <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
           <h2 className="text-sm font-semibold">{initialRecord ? "Edit component" : "New component"}</h2>
           <button onClick={onClose} aria-label="Close" className="text-foreground/50 hover:text-foreground">

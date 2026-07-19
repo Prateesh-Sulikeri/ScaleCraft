@@ -83,7 +83,7 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
         // than inside it — an inside position sat directly on top of the
         // label text's own start point and covered it.
         <div
-          className="nodrag pointer-events-none absolute -left-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border border-border bg-panel text-foreground/50 shadow-sm"
+          className="nodrag pointer-events-none absolute -left-1.5 -top-1.5 z-[var(--z-node-chrome)] flex h-5 w-5 items-center justify-center rounded border border-border bg-panel text-foreground/50 shadow-sm"
           aria-label="Locked"
         >
           <Lock size={11} />
@@ -111,7 +111,7 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
         </p>
       )}
       {selected && (
-        <div className="nodrag absolute -right-1.5 -top-1.5 z-10 flex gap-1">
+        <div className="nodrag absolute -right-1.5 -top-1.5 z-[var(--z-node-chrome)] flex gap-1">
           <button
             type="button"
             onClick={(event) => {

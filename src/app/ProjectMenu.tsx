@@ -89,8 +89,8 @@ export function ProjectMenu({ canvasRef }: ProjectMenuProps) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-30 mt-2 w-64 rounded-md border border-border bg-panel p-3 shadow-lg">
+          <div className="fixed inset-0 z-[var(--z-dropdown-backdrop)]" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 z-[var(--z-dropdown)] mt-2 w-64 rounded-md border border-border bg-panel p-3 shadow-lg">
             <button
               onClick={() => importInputRef.current?.click()}
               className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-border"

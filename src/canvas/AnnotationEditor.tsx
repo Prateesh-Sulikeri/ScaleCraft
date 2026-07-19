@@ -89,9 +89,9 @@ export function AnnotationEditor() {
     <>
       {/* Full-screen catcher to close on the next click anywhere else —
        * same convention as ContextMenu.tsx. */}
-      <div className="fixed inset-0 z-40" onClick={closeAnnotationEditor} />
+      <div className="fixed inset-0 z-[var(--z-modal-backdrop)]" onClick={closeAnnotationEditor} />
       <div
-        className="fixed z-50 rounded-lg border border-border bg-panel p-3 shadow-lg"
+        className="fixed z-[var(--z-modal)] rounded-lg border border-border bg-panel p-3 shadow-lg"
         style={{ left, top, width: POPUP_WIDTH }}
         onClick={(event) => event.stopPropagation()}
       >

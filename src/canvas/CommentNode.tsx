@@ -63,14 +63,14 @@ export function CommentNode({ id, data, selected }: NodeProps<CommentNodeType>) 
         // on the opposite corner) — an inside position sat directly on top
         // of the textarea's own first line of text and covered it.
         <div
-          className="nodrag pointer-events-none absolute -left-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded border border-border bg-panel text-foreground/50 shadow-sm"
+          className="nodrag pointer-events-none absolute -left-1.5 -top-1.5 z-[var(--z-node-chrome)] flex h-5 w-5 items-center justify-center rounded border border-border bg-panel text-foreground/50 shadow-sm"
           aria-label="Locked"
         >
           <Lock size={11} />
         </div>
       )}
       {selected && (
-        <div className="nodrag absolute -right-1.5 -top-1.5 z-10 flex gap-1">
+        <div className="nodrag absolute -right-1.5 -top-1.5 z-[var(--z-node-chrome)] flex gap-1">
           <button
             type="button"
             onClick={(event) => {

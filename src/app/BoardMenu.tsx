@@ -62,8 +62,8 @@ export function BoardMenu() {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-30 mt-2 w-56 rounded-md border border-border bg-panel p-1 shadow-lg">
+          <div className="fixed inset-0 z-[var(--z-dropdown-backdrop)]" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 z-[var(--z-dropdown)] mt-2 w-56 rounded-md border border-border bg-panel p-1 shadow-lg">
             <button
               onClick={handleClear}
               disabled={isEmpty}

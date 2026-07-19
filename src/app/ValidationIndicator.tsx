@@ -90,7 +90,7 @@ export function ValidationIndicator({ violations, isStale, onValidate }: Validat
       </Tooltip>
 
       {showDropdown && (
-        <div className="absolute right-0 z-30 mt-2 flex max-h-[70vh] w-96 flex-col rounded-md border border-border bg-panel shadow-lg">
+        <div className="absolute right-0 z-[var(--z-dropdown)] mt-2 flex max-h-[70vh] w-96 flex-col rounded-md border border-border bg-panel shadow-lg">
           {violations === null || violations.length === 0 ? (
             <p className="p-3 text-sm text-state-valid">No violations.</p>
           ) : (
