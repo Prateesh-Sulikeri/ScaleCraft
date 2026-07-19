@@ -194,7 +194,78 @@ A small floating, draggable, resizable, minimizable window — not a full-screen
 ### Zone (signature component)
 A labeled, resizable grouping rectangle for visually clustering related nodes. Border is an animated dashed outline (`stroke-dasharray` + a moving dash offset) in zone-magenta, reusing the exact same keyframe the system already uses for animated request-flow edges — the zone reads as "part of the same live system" as everything else in motion, not a one-off effect invented for this one element. The animation is permanent, not a creation flourish; dragging a *new* zone into place shows a plain, unanimated dashed preview rectangle, and only the settled result is animated.
 
-## 6. Do's and Don'ts
+## 6. Accessibility
+
+ScaleCraft's design must be navigable by all users, regardless of ability. These are non-negotiable requirements, not "nice-to-haves."
+
+### Keyboard Navigation
+- Every interactive element must be keyboard-focusable with a visible focus indicator (≥2px outline).
+- Tab order must follow visual flow (left-to-right, top-to-bottom).
+- The primary workflow (canvas manipulation, validation, export) must be completable via keyboard alone.
+- Toolbar buttons must be discoverable without hover — either visible labels, a keyboard legend (Shift+?), or both.
+
+### Color Blindness Support
+Validation state colors (error red, warning amber) must not rely on hue alone. Pair them with a secondary visual signal:
+- **Error ring:** solid 2px outline + optional error glyph (✕ or !)
+- **Warning ring:** dashed or dotted outline + optional warning glyph (⚠ or ?)
+- Test with a colorblind simulator (Chrome DevTools, WebAIM, or Coblis) before shipping.
+- Ensure both themes maintain ≥4.5:1 contrast against their background (see Neutral colors).
+
+### ARIA and Screen Readers
+- All icon-only buttons must have descriptive `aria-label` attributes (e.g., "Save graph" not just "Save").
+- Tooltips are supplements, not the only affordance label — the button itself must announce its purpose.
+- Heading structure must be semantic (h1 for main title, h2 for sections); never skip levels for styling.
+- Dynamic content changes (validation results, save confirmation) must announce via `aria-live: polite` so screen readers notify users.
+- Form fields must have associated labels; never rely on placeholder text alone.
+
+### Motion and Reduced Motion
+- Every animation must respect the `prefers-reduced-motion: reduce` media query.
+- When animation is disabled, the state change must still be visible via instant color/opacity shift or a brief crossfade.
+- Motion-essential content (a request path moving along an edge) can animate, but must be pairable with a static equivalent (legend, static label) for users with motion sensitivity.
+
+### Zoom and Magnification
+- The interface must remain fully functional at up to 200% zoom in the browser.
+- Avoid fixed pixel sizes that cause layout breakage; use relative units (em, rem, %) wherever possible.
+- Don't hide critical controls or labels at high zoom.
+
+---
+
+## 7. User Education and Onboarding
+
+ScaleCraft's most distinctive feature is its two-channel color system (category + validation state). Users must understand it to use the app effectively. Education is not optional.
+
+### Legend / Help Panel
+Provide an accessible, discoverable legend showing:
+- **Category colors:** Blue = Networking, Violet = Compute, Green = Data, Amber = Caching, Pink = Messaging, Red = Distributed Systems
+- **Validation states:** Green ring = valid (passes all rules), Amber ring = warning (non-blocking issue), Red ring = error (blocking issue)
+- **Edge types:** Cyan = request-flow (primary path), Slate = control, Teal = replication, Fuchsia = async
+- **Mark zones:** Magenta dashed border = visual grouping (non-functional, for organization only)
+
+Make it accessible via:
+- A toolbar `?` or `Help` button that opens a lightweight floating panel (not a modal).
+- Inline tooltips on the first interaction with an unfamiliar element (first hover over a green node, show a micro-tooltip: "Data component — valid").
+- An in-app glossary (linked from DocsPanel) explaining each component type and edge type at the domain level.
+
+### First-Visit Onboarding
+For users visiting the Sandbox for the first time:
+- Show a **welcome carousel** (3–5 slides, dismissible) covering:
+  1. "Canvas basics: drag to place, click to inspect, right-click to edit"
+  2. "Color meanings: category identity (what it is) and validation state (is it valid?)"
+  3. "Validate button: checks your design against real-world rules and explains why"
+  4. "Export: save your work or share it"
+- Make it skippable (skip all, skip this step) so power users aren't blocked.
+- Don't gate the interface behind onboarding — show it modally on first load, but let users close it and start working immediately.
+- Persist "onboarding seen" flag per user in IndexedDB so it doesn't repeat.
+
+### Keyboard Shortcuts
+Make them discoverable without reading docs:
+- Publish a keyboard legend accessible via `Shift+?` or from the toolbar (e.g., a `Help` menu with "Keyboard Shortcuts" as one option).
+- Legend should show: Ctrl+Z (Undo), Ctrl+Shift+Z or Ctrl+Y (Redo), Ctrl+S (Save), Ctrl+/ (Help).
+- Consider a command palette (Ctrl+K or Cmd+K) for future power-user features (search components, run validation, export).
+
+---
+
+## 8. Do's and Don'ts
 
 ### Do:
 - **Do** treat category color and validation-state color as two channels that never occupy the same rendering surface on one node (see The Two-Channel Rule).
@@ -202,6 +273,9 @@ A labeled, resizable grouping rectangle for visually clustering related nodes. B
 - **Do** keep every button the same neutral shape and color, with the single deliberate exception of the Validate button's semantic state color.
 - **Do** favor a floating, dismissible window (see Docs Window) over a modal when the content is reference material the user wants to keep glancing at while they keep working.
 - **Do** wrap long labels across two lines rather than truncating with an ellipsis when there's vertical room (see Palette Tile).
+- **Do** require explicit confirmation (modal, toast with undo, or confirmation dialog) before destructive actions (delete node, delete edge, clear canvas).
+- **Do** add visible ARIA labels to every icon-only button; make tooltip text a supplement, not the source of truth.
+- **Do** pair validation state colors with a secondary visual signal (outline pattern, glyph) so colorblind users can distinguish error from warning.
 
 ### Don't:
 - **Don't** add idle animation, gamified particle effects, or celebratory confetti-style success states — direct language from the system's own design brief: "ScaleCraft is not intended to be a game."
@@ -210,3 +284,6 @@ A labeled, resizable grouping rectangle for visually clustering related nodes. B
 - **Don't** use `border-left`/`border-right` as a colored accent stripe anywhere in this system — category identity is communicated via icon-badge fill or a full 2px border, never a side stripe.
 - **Don't** default to a modal for anything that could be inline or a lightweight floating window instead (see Docs Window) — modals are a last resort here, not a first instinct.
 - **Don't** invent a new one-off animation for a new element — check whether `dashdraw` (or a real state-change transition) already covers the intent before adding motion.
+- **Don't** hide critical affordances behind icon-only buttons without a keyboard legend or visible label. Power users and accessibility-dependent users must be able to discover what's available.
+- **Don't** animate or highlight disabled UI elements in a way that suggests interactivity (e.g., animated dashed border on "coming soon" mode cards). Reserve `dashdraw` for interactive or state-signaling elements only.
+- **Don't** leave validation explanations only in code or documentation. They must surface in the UI when validation fails — the user sees "why" inline, not just "invalid."
