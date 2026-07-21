@@ -26,7 +26,7 @@ export type CanvasSave = {
  * MILESTONES.md milestone 8) actually need one. */
 export const SANDBOX_SAVE_ID = "sandbox";
 
-class ScaleCraftDB extends Dexie {
+export class ScaleCraftDB extends Dexie {
   saves!: EntityTable<CanvasSave, "id">;
   /** User-created components (see CreateComponentModal.tsx /
    * content/components/custom.ts) — plain records, not live ComponentDefinitions
