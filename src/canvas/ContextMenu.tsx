@@ -150,11 +150,6 @@ function Flyout({
  * onNodeContextMenu.
  */
 export function ContextMenu({ target, onClose, centerOnNode }: ContextMenuProps) {
-  // Pointer edges (flag arrows) should not have any context menu — they're
-  // visual indicators only, not interactive elements. Return null to prevent
-  // even an empty menu box from appearing.
-  if (target?.type === "edge" && target.id.startsWith("start-pointer:")) return null;
-
   const nodes = useCanvasStore((s) => s.nodes);
   const deleteNode = useCanvasStore((s) => s.deleteNode);
   const deleteNodes = useCanvasStore((s) => s.deleteNodes);
@@ -198,7 +193,10 @@ export function ContextMenu({ target, onClose, centerOnNode }: ContextMenuProps)
     el.style.top = `${top}px`;
   }, [target]);
 
-  if (!target) return null;
+  // Pointer edges (flag arrows) should not have any context menu — they're
+  // visual indicators only, not interactive elements. Return null to prevent
+  // even an empty menu box from appearing.
+  if (!target || (target.type === "edge" && target.id.startsWith("start-pointer:"))) return null;
 
   const act = (fn: () => void) => () => {
     fn();
