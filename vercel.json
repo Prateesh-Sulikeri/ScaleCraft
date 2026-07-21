@@ -1,0 +1,13 @@
+{
+  "buildCommand": "npm run typecheck && npm run lint && npm test && npm run build",
+  "outputDirectory": ".next",
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "development": true
+    }
+  }
+}
