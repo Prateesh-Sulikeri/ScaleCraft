@@ -1003,3 +1003,82 @@ committed or pushed). Milestone 5 (Stronger validation agent) is next per
 work — none of Groups 1-6 touch `src/validation-engine/`. The `--zone` custom-property
 value (`#ff3483` fallback, confirmed still present in `Canvas.tsx`'s preview-rect styling)
 remains unchanged and untouched by this round.
+
+## 2026-07-22 — Docs/housekeeping catch-up: curriculum design doc, NEXT_STEPS.md aggregation, branch-merge audit (logging-only session)
+
+This is a logging-agent entry (per CLAUDE.md's "spawn a subagent, don't self-report"
+convention), written after independently re-deriving repo state via `git log`,
+`git branch --merged/--no-merged`, and file inspection rather than trusting the task
+brief that seeded it. One correction to that brief below.
+
+**What landed since the last entry (all on `docs/curriculum-design`, branched off
+`development`):**
+- `900288e` — `CURRICULUM.md` added (curriculum educational design doc: Building
+  Blocks + RWE units). Confirmed present at repo root via `git show 900288e --stat`.
+- `412669f` — `NEXT_STEPS.md` added at repo root: an ordered aggregation of pending
+  work pulled from `MILESTONES.md`, `pending.md`, `user_exp.md`, `CRITIQUE.md`,
+  `UI_OVERHAUL_PART2_SPEC.md`, `OPEN_QUESTIONS.md`, `CURRICULUM.md`, and this log —
+  confirmed its stated compile date (2026-07-22) and step structure (Step 0 housekeeping
+  → Step 1 correctness/security fixes → UI overhaul → validation engine → UX fixes →
+  curriculum chapters → RWE → persistence → auth → simulation → beta polish) by reading
+  the file directly.
+- `c02f41f` — doc reorg: moved/added the UI overhaul spec and UX walkthrough materials
+  into `.claude/docs/`.
+- `207c513` — moved `NEXT_STEPS.md` from repo root into `.claude/docs/NEXT_STEPS.md`,
+  alongside the other planning docs. **This is the branch tip as of this entry.**
+  Confirmed the file now lives only at `.claude/docs/NEXT_STEPS.md` (root copy is gone;
+  `git status` shows it as deleted-and-recreated across the commit, not duplicated).
+
+**Working tree: clean.** `git status` on `docs/curriculum-design` at `207c513` reports
+"nothing to commit, working tree clean" and "up to date with 'origin/docs/curriculum-design'"
+— the branch is pushed.
+
+**Branch-merge audit (the fact NEXT_STEPS.md Step 0.2 hinges on) — independently checked
+via `git branch --merged`/`--no-merged` against both `main` and `development`, not
+assumed:**
+- `bug-fix-node-resize` and `docs/product-docs-and-review-notes` — **merged into
+  `development`** already (`--merged development` lists both; their tip commits
+  `014d47b`/`c9b69c9` are ancestors of `development`'s `6d25cc4`).
+- `fix/flows-workflow-tests` — **also merged into `development`** (`--merged development`
+  lists it; `git log development..fix/flows-workflow-tests` is empty). The task brief
+  that seeded this session listed it as still-pending; that's stale — it's already in.
+- `docs/curriculum-design` (this branch, tip `207c513`) — **not yet merged into
+  `development`** (`git log development..docs/curriculum-design` shows all 4 commits
+  above; `--no-merged development` lists it). This is the one unmerged branch
+  NEXT_STEPS.md Step 0.2 is actually waiting on.
+- **Unrelated divergence worth flagging:** local `main` and `development` have each
+  picked up commits the other lacks. `main` (`16dbcb9`, "Add comprehensive test
+  coverage for major workflows with CI/CD integration") is **not** an ancestor of
+  `development`, and conversely `development` has four commits (`6d25cc4`/`721a041`/
+  `c9b69c9`/`e874402`, the PR #19/#20 merges) that are **not** ancestors of `main`.
+  Additionally, local `main`'s `16dbcb9` is unpushed — `git branch -r --contains 16dbcb9`
+  returns nothing, and `git log origin/main..main` shows exactly that one commit (matches
+  `git branch -v`'s "ahead 1"). This divergence predates this session (nothing in this
+  round touched `main`) but isn't mentioned anywhere else and will need reconciling
+  before `docs/curriculum-design` → `development` → `main` promotion happens cleanly.
+
+**`.claude/docs/NEXT_STEPS.md` Step 0 status, checked item by item:**
+- 0.1 (commit the doc moves) — **done**, `207c513`.
+- 0.2 (user merges the pushed, unmerged branches) — **not yet done**. Per the audit
+  above, only `docs/curriculum-design` is actually still unmerged into `development`
+  (`fix/flows-workflow-tests` turned out already merged, contra the brief).
+- 0.3 (revive this log) — this entry.
+- 0.4 (`graphify update .` after each step) — the post-commit hook already fired on its
+  own: `~/.cache/graphify-rebuild.log` shows a `[graphify hook] ... file(s) changed -
+  rebuilding graph...` cycle completing at the same wall-clock minute as `207c513`
+  (labels file `graphify-out/.graphify_labels.json` mtime `15:09:14`, two seconds after
+  the commit's `15:09:12` timestamp) — no manual `graphify update .` needed for this
+  round. Node/edge/community counts have drifted upward since the `758 nodes / 1214
+  edges / 112 communities` figure quoted in root `CLAUDE.md` (the rebuild log's most
+  recent run reports `1002 nodes, 1496 edges, 133 communities`); that root doc is stale
+  but updating it is out of scope for this entry.
+
+**Next steps:** `.claude/docs/NEXT_STEPS.md` is now the master ordered task list going
+forward — read it before picking work, in preference to re-deriving priorities from
+scratch. With Step 0 effectively done (pending only the user's branch-merge action in
+0.2), **Step 1 (correctness & security quick fixes)** is next: Zod import validation in
+`ProjectMenu.tsx`, Mermaid `securityLevel: 'strict'`, the undo double-restore bug in
+`store.ts`, the `reverseEdge` handle-swap bug at `store.ts:967`, the validation staleness
+key in `sandbox/page.tsx`, and allowlist case normalization in `beta-allowlist.ts` — see
+`.claude/docs/NEXT_STEPS.md`'s Step 1 for the full attack order. None of these were
+touched or verified in this logging-only session.
