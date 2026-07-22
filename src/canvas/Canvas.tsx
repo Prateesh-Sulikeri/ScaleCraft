@@ -38,11 +38,9 @@ import { ContextMenu, type ContextMenuTarget } from "./ContextMenu";
 import { AnnotationEditor } from "./AnnotationEditor";
 import { NodeConfigPopover } from "./NodeConfigPopover";
 import { ComponentPicker } from "./ComponentPicker";
-import { RightClickCursorHint } from "./RightClickCursorHint";
 import { HIGHLIGHT_GOLD } from "./selection-style";
 import { useCanvasStore, type PlacementMode } from "./store";
 import { isEditableTarget } from "./use-canvas-shortcuts";
-import { useDismissedFlag } from "@/lib/use-dismissed-flag";
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "./types";
 
 const nodeTypes = { component: ComponentNode, zone: ZoneNode, comment: CommentNode, start: StartNode };
@@ -180,13 +178,6 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   );
 
   const [menu, setMenu] = useState<ContextMenuTarget | null>(null);
-  // Cursor-following "right-click to add" teaching graphic (see
-  // RightClickCursorHint.tsx) — shares the sandbox pill's dismiss flag
-  // (dismissing either hides both, since they teach the same gesture) and
-  // is suppressed whenever any other overlay is already up, so it never
-  // fights the picker/context-menu/placement-mode overlays for attention.
-  const [insertHintDismissed] = useDismissedFlag("sc-insert-hint-dismissed");
-  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
   // Set on pointerdown on a handle, before any drag motion — disables
   // selectionOnDrag for the gesture's whole duration so a connection drag
   // that passes over an intervening node never also starts a selection box.
@@ -551,29 +542,8 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     [edges, pointerEdges, highlightSets],
   );
 
-  const showCursorHint =
-    !insertHintDismissed && hoverPos && !menu && !placementMode && !pendingComponentPlacement && !componentPicker;
-
   return (
-    <div
-      // Plain `cursor: none` on this wrapper alone doesn't reach the actual
-      // pointer position — @xyflow/react's stylesheet sets an explicit
-      // `cursor: pointer`/`default` directly on .react-flow__pane and
-      // .react-flow__node (descendants covering almost the whole canvas),
-      // and an ancestor's inherited value never overrides a descendant's
-      // own explicit rule. `sc-hide-native-cursor` (globals.css) targets
-      // those rules directly with higher specificity, the same strategy
-      // already used there for the space-to-pan cursor override — a
-      // Tailwind arbitrary-variant class here does NOT work: the dev
-      // server's JIT scanner never generated CSS for it (verified via
-      // document.styleSheets — the class landed in the DOM with no
-      // matching rule anywhere), so a hand-written rule is what actually
-      // ships. RightClickCursorHint.tsx is meant to BE the pointer here,
-      // not a tooltip floating beside an unchanged native arrow.
-      className={`relative h-full w-full ${showCursorHint ? "sc-hide-native-cursor" : ""}`}
-      onMouseMove={(event) => setHoverPos({ x: event.clientX, y: event.clientY })}
-      onMouseLeave={() => setHoverPos(null)}
-    >
+    <div className="relative h-full w-full">
       <ReactFlow
         colorMode={colorMode}
         nodes={nodes}
@@ -659,7 +629,6 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       <AnnotationEditor />
       <NodeConfigPopover />
       <ComponentPicker />
-      {showCursorHint && <RightClickCursorHint pos={hoverPos} />}
 
       {placementMode && (
         <>
@@ -680,7 +649,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
           </div>
           <div
             onMouseDown={placeComponent}
-            className="absolute inset-0 z-[var(--z-modal-backdrop)] cursor-crosshair"
+            className="absolute inset-0 z-[var(--z-modal-backdrop)] cursor-pointer"
           />
         </>
       )}
