@@ -7,7 +7,8 @@ import { componentRegistry } from "@/content/components/registry";
 import type { ComponentDefinition } from "@/content/components/types";
 import { toComponentDefinition, type CustomComponentRecord } from "@/content/components/custom";
 import { db } from "@/persistence/db";
-import { categoryColorVar, categoryLabel, categoryOrder } from "./category-colors";
+import { categoryColorVar, categoryLabel } from "./category-colors";
+import { filterAndGroupComponents } from "./component-search";
 import { iconMap } from "./icon-map";
 import { useCanvasStore } from "./store";
 import { CreateComponentModal } from "./CreateComponentModal";
@@ -275,17 +276,7 @@ export function Palette() {
     [customComponents],
   );
 
-  const grouped = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const matches = q
-      ? allComponents.filter(
-          (d) => d.label.toLowerCase().includes(q) || d.summary.toLowerCase().includes(q),
-        )
-      : allComponents;
-    return categoryOrder
-      .map((category) => ({ category, items: matches.filter((d) => d.category === category) }))
-      .filter((g) => g.items.length > 0);
-  }, [query, allComponents]);
+  const grouped = useMemo(() => filterAndGroupComponents(allComponents, query), [query, allComponents]);
 
   return (
     <div className="flex h-full flex-col">
