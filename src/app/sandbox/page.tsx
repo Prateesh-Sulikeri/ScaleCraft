@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Check, MousePointerClick, Redo2, Save, Undo2, X } from "lucide-react";
+import { BookOpen, Check, MouseRight, Redo2, Save, Undo2, X } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
@@ -264,7 +264,7 @@ export default function SandboxPage() {
           <div className="relative flex flex-1 flex-col">
             {showInsertHint && (
               <div className="absolute left-1/2 top-4 z-[var(--z-dropdown)] flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
-                <MousePointerClick size={13} className="shrink-0 text-foreground/60" />
+                <MouseRight size={14} className="shrink-0 text-foreground/70" />
                 <span>Right-click the canvas or press / to add a component</span>
                 <button
                   type="button"
