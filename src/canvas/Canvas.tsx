@@ -34,6 +34,7 @@ import { EdgeInspector } from "./EdgeInspector";
 import { ContextMenu, type ContextMenuTarget } from "./ContextMenu";
 import { AnnotationEditor } from "./AnnotationEditor";
 import { NodeConfigPopover } from "./NodeConfigPopover";
+import { ComponentPicker } from "./ComponentPicker";
 import { PALETTE_DRAG_TYPE } from "./Palette";
 import { HIGHLIGHT_GOLD } from "./selection-style";
 import { useCanvasStore, type PlacementMode } from "./store";
@@ -157,6 +158,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   const setSelectedNodeId = useCanvasStore((s) => s.setSelectedNodeId);
   const highlight = useCanvasStore((s) => s.highlight);
   const clearHighlight = useCanvasStore((s) => s.clearHighlight);
+  const componentPicker = useCanvasStore((s) => s.componentPicker);
 
   /** Phase 4 "Center View" — frames one node in the viewport without
    * touching the rest of the graph's zoom/pan. Uses the `fitView` returned
@@ -193,6 +195,10 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      // The picker handles its own Escape (closes itself, no placement/
+      // highlight side effect) — bail here so this listener doesn't also
+      // clear an unrelated highlight underneath it while it's open.
+      if (componentPicker) return;
       if (placementMode) {
         dragCleanupRef.current?.();
         setPlacementMode(null);
@@ -202,7 +208,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [placementMode, setPlacementMode, highlight, clearHighlight]);
+  }, [placementMode, setPlacementMode, highlight, clearHighlight, componentPicker]);
 
   // xyflow's hold-Space-to-pan (`panActivationKeyCode`, on by default) only
   // takes over a drag that starts on the blank pane — it has no awareness of
@@ -600,6 +606,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       <ContextMenu target={menu} onClose={() => setMenu(null)} centerOnNode={centerOnNode} />
       <AnnotationEditor />
       <NodeConfigPopover />
+      <ComponentPicker />
 
       {placementMode && (
         <>

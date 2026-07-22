@@ -254,6 +254,15 @@ type CanvasStore = {
   configPopover: { nodeId: string; anchor: { x: number; y: number } } | null;
   openConfigPopover: (nodeId: string, anchor: { x: number; y: number }) => void;
   closeConfigPopover: () => void;
+  /** Drives ComponentPicker.tsx — mirrors configPopover's "X | null in the
+   * store" pattern so both the pane right-click handler (which has a real
+   * flow position) and the `/` keyboard shortcut (which fires outside
+   * ReactFlowProvider and can't compute one) share one trigger. `null`
+   * flowPosition means "insert at the viewport center" — resolved by the
+   * picker's mount point inside FlowCanvas, which has screenToFlowPosition. */
+  componentPicker: { flowPosition: XY | null } | null;
+  openComponentPicker: (flowPosition: XY | null) => void;
+  closeComponentPicker: () => void;
   /** Drives the Phase 4 "Highlight Connections"/"Highlight Zone"
    * context-menu actions — Canvas.tsx derives the highlighted node/edge id
    * sets from this each render and dims everything else via node/edge
@@ -394,6 +403,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   placementMode: null,
   editingAnnotation: null,
   configPopover: null,
+  componentPicker: null,
   pendingUndo: null,
   past: [],
   future: [],
@@ -416,6 +426,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       })),
       selectedEdgeId: null,
       selectedNodeId: null,
+      componentPicker: null,
       // Skipped when the board is already empty — the common case is
       // seeding the initial demo graph on mount, which shouldn't be a step
       // Ctrl+Z can walk back into.
@@ -433,6 +444,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       edges: edges.map((e) => ({ ...e, selected: false })),
       selectedEdgeId: null,
       selectedNodeId: null,
+      componentPicker: null,
       past:
         state.nodes.length === 0 && state.edges.length === 0
           ? state.past
@@ -579,6 +591,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
   openConfigPopover: (nodeId, anchor) => set({ configPopover: { nodeId, anchor } }),
   closeConfigPopover: () => set({ configPopover: null }),
+
+  openComponentPicker: (flowPosition) => set({ componentPicker: { flowPosition } }),
+  closeComponentPicker: () => set({ componentPicker: null }),
 
   setHighlight: (highlight) => set({ highlight }),
   clearHighlight: () => set({ highlight: null }),
@@ -848,6 +863,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedEdgeId: null,
         editingAnnotation: null,
         configPopover: null,
+        componentPicker: null,
         highlight: null,
         // A stale pendingUndo (e.g. from a delete this undo just reverted)
         // would otherwise let the "Undo delete" toast re-add nodes/edges
@@ -872,6 +888,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedEdgeId: null,
         editingAnnotation: null,
         configPopover: null,
+        componentPicker: null,
         highlight: null,
         pendingUndo: null,
       };
@@ -904,6 +921,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedEdgeId: null,
         editingAnnotation: null,
         configPopover: null,
+        componentPicker: null,
         highlight: null,
         pendingUndo: { nodes: state.nodes, edges: state.edges, label: "Board cleared", mode: "replace", at: Date.now() },
         past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
