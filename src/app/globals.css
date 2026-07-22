@@ -233,6 +233,19 @@ body {
   cursor: grabbing;
 }
 
+/* RightClickCursorHint.tsx replaces the native pointer with its own
+ * graphic while active (Canvas.tsx toggles this class on hover, gated on
+ * the discoverability hint not yet being dismissed) — a plain `cursor:
+ * none` on an ancestor isn't enough, same reasoning as the panning
+ * override just above: .react-flow__pane and .react-flow__node both set
+ * their own explicit cursor, so each needs its own higher-specificity rule
+ * here rather than relying on inheritance from a wrapper div. */
+.sc-hide-native-cursor .react-flow__pane,
+.sc-hide-native-cursor .react-flow__pane.selection,
+.sc-hide-native-cursor .react-flow__node {
+  cursor: none;
+}
+
 /* React Flow ships its own chrome (Controls, Background, selection outlines)
  * themed via the `colorMode` prop (see Canvas.tsx) — these overrides just
  * pull its panel styling onto our exact tokens instead of xyflow's own dark

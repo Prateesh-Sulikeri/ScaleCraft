@@ -556,7 +556,21 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
 
   return (
     <div
-      className="relative h-full w-full"
+      // Plain `cursor: none` on this wrapper alone doesn't reach the actual
+      // pointer position — @xyflow/react's stylesheet sets an explicit
+      // `cursor: pointer`/`default` directly on .react-flow__pane and
+      // .react-flow__node (descendants covering almost the whole canvas),
+      // and an ancestor's inherited value never overrides a descendant's
+      // own explicit rule. `sc-hide-native-cursor` (globals.css) targets
+      // those rules directly with higher specificity, the same strategy
+      // already used there for the space-to-pan cursor override — a
+      // Tailwind arbitrary-variant class here does NOT work: the dev
+      // server's JIT scanner never generated CSS for it (verified via
+      // document.styleSheets — the class landed in the DOM with no
+      // matching rule anywhere), so a hand-written rule is what actually
+      // ships. RightClickCursorHint.tsx is meant to BE the pointer here,
+      // not a tooltip floating beside an unchanged native arrow.
+      className={`relative h-full w-full ${showCursorHint ? "sc-hide-native-cursor" : ""}`}
       onMouseMove={(event) => setHoverPos({ x: event.clientX, y: event.clientY })}
       onMouseLeave={() => setHoverPos(null)}
     >
