@@ -26,6 +26,9 @@ import { useTheme } from "next-themes";
 import { useHasMounted } from "@/lib/use-has-mounted";
 import { getComponent } from "@/content/components/registry";
 import { pickDefaultKind } from "./legal-edge-kinds";
+import { categoryColorVar } from "./category-colors";
+import { iconMap } from "./icon-map";
+import { Server } from "lucide-react";
 import { ComponentNode } from "./ComponentNode";
 import { ZoneNode } from "./ZoneNode";
 import { CommentNode } from "./CommentNode";
@@ -34,7 +37,7 @@ import { EdgeInspector } from "./EdgeInspector";
 import { ContextMenu, type ContextMenuTarget } from "./ContextMenu";
 import { AnnotationEditor } from "./AnnotationEditor";
 import { NodeConfigPopover } from "./NodeConfigPopover";
-import { PALETTE_DRAG_TYPE } from "./Palette";
+import { ComponentPicker } from "./ComponentPicker";
 import { HIGHLIGHT_GOLD } from "./selection-style";
 import { useCanvasStore, type PlacementMode } from "./store";
 import { isEditableTarget } from "./use-canvas-shortcuts";
@@ -145,7 +148,6 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     },
     [storeNodes, storeOnConnect],
   );
-  const addNode = useCanvasStore((s) => s.addNode);
   const addZone = useCanvasStore((s) => s.addZone);
   const addComment = useCanvasStore((s) => s.addComment);
   const addStartMarker = useCanvasStore((s) => s.addStartMarker);
@@ -157,6 +159,11 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   const setSelectedNodeId = useCanvasStore((s) => s.setSelectedNodeId);
   const highlight = useCanvasStore((s) => s.highlight);
   const clearHighlight = useCanvasStore((s) => s.clearHighlight);
+  const componentPicker = useCanvasStore((s) => s.componentPicker);
+  const openComponentPicker = useCanvasStore((s) => s.openComponentPicker);
+  const pendingComponentPlacement = useCanvasStore((s) => s.pendingComponentPlacement);
+  const setPendingComponentPlacement = useCanvasStore((s) => s.setPendingComponentPlacement);
+  const addNode = useCanvasStore((s) => s.addNode);
 
   /** Phase 4 "Center View" — frames one node in the viewport without
    * touching the rest of the graph's zoom/pan. Uses the `fitView` returned
@@ -193,6 +200,14 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      // The picker handles its own Escape (closes itself, no placement/
+      // highlight side effect) — bail here so this listener doesn't also
+      // clear an unrelated highlight underneath it while it's open.
+      if (componentPicker) return;
+      if (pendingComponentPlacement) {
+        setPendingComponentPlacement(null);
+        return;
+      }
       if (placementMode) {
         dragCleanupRef.current?.();
         setPlacementMode(null);
@@ -202,7 +217,15 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [placementMode, setPlacementMode, highlight, clearHighlight]);
+  }, [
+    placementMode,
+    setPlacementMode,
+    highlight,
+    clearHighlight,
+    componentPicker,
+    pendingComponentPlacement,
+    setPendingComponentPlacement,
+  ]);
 
   // xyflow's hold-Space-to-pan (`panActivationKeyCode`, on by default) only
   // takes over a drag that starts on the blank pane — it has no awareness of
@@ -320,6 +343,34 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     dragCleanupRef.current = cleanup;
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+  };
+
+  // Picking a component from ComponentPicker.tsx arms this instead of
+  // inserting immediately at a guessed position (viewport center or the
+  // right-click point) — the user always confirms the exact landing spot
+  // with a real click, same "click to place" gesture "start" placement mode
+  // already uses above, just carrying a component payload instead of a
+  // fixed annotation type. Shift-click re-arms the same component so
+  // several of one kind can be dropped in a row without reopening the
+  // picker each time.
+  const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    if (!pendingComponentPlacement) {
+      setGhostPos(null);
+      return;
+    }
+    function onMove(event: MouseEvent) {
+      setGhostPos({ x: event.clientX, y: event.clientY });
+    }
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [pendingComponentPlacement]);
+
+  const placeComponent = (event: React.MouseEvent) => {
+    if (!pendingComponentPlacement) return;
+    const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    addNode(pendingComponentPlacement, flowPos);
+    if (!event.shiftKey) setPendingComponentPlacement(null);
   };
 
   // next-themes only knows the real theme after mount (it reads the class
@@ -491,25 +542,8 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     [edges, pointerEdges, highlightSets],
   );
 
-  const onDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-      const componentId = event.dataTransfer.getData(PALETTE_DRAG_TYPE);
-      const definition = getComponent(componentId);
-      if (!definition) return;
-      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-      addNode(definition, position);
-    },
-    [screenToFlowPosition, addNode],
-  );
-
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-  }, []);
-
   return (
-    <div className="relative h-full w-full" onDrop={onDrop} onDragOver={onDragOver}>
+    <div className="relative h-full w-full">
       <ReactFlow
         colorMode={colorMode}
         nodes={nodes}
@@ -564,13 +598,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         }}
         onPaneContextMenu={(event) => {
           event.preventDefault();
-          const mouseEvent = event as MouseEvent;
-          setMenu({
-            type: "pane",
-            flowPosition: screenToFlowPosition({ x: mouseEvent.clientX, y: mouseEvent.clientY }),
-            x: mouseEvent.clientX,
-            y: mouseEvent.clientY,
-          });
+          openComponentPicker();
         }}
         deleteKeyCode={["Backspace", "Delete"]}
         selectionOnDrag={!isConnecting}
@@ -600,6 +628,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       <ContextMenu target={menu} onClose={() => setMenu(null)} centerOnNode={centerOnNode} />
       <AnnotationEditor />
       <NodeConfigPopover />
+      <ComponentPicker />
 
       {placementMode && (
         <>
@@ -612,6 +641,44 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
           />
         </>
       )}
+
+      {pendingComponentPlacement && (
+        <>
+          <div className="pointer-events-none absolute left-1/2 top-4 z-[var(--z-modal-backdrop)] -translate-x-1/2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
+            Click to place {pendingComponentPlacement.label} · Hold Shift to place another · Esc to cancel
+          </div>
+          <div
+            onMouseDown={placeComponent}
+            className="absolute inset-0 z-[var(--z-modal-backdrop)] cursor-pointer"
+          />
+        </>
+      )}
+
+      {pendingComponentPlacement &&
+        ghostPos &&
+        createPortal(
+          // Follows the cursor so the user sees exactly what's about to
+          // land before committing to a spot — same tile look as the
+          // picker's own grid (ComponentPickerRow), just untethered.
+          <div
+            className="pointer-events-none fixed z-[var(--z-tooltip)] flex flex-col items-center gap-1"
+            style={{ left: ghostPos.x + 12, top: ghostPos.y + 12 }}
+          >
+            {(() => {
+              const Icon = iconMap[pendingComponentPlacement.icon] ?? Server;
+              const color = categoryColorVar[pendingComponentPlacement.category];
+              return (
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border-2 opacity-80"
+                  style={{ borderColor: color, backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)` }}
+                >
+                  <Icon size={20} style={{ color }} />
+                </div>
+              );
+            })()}
+          </div>,
+          document.body,
+        )}
 
       {previewRect &&
         createPortal(
