@@ -260,9 +260,29 @@ type CanvasStore = {
    * ReactFlowProvider and can't compute one) share one trigger. `null`
    * flowPosition means "insert at the viewport center" — resolved by the
    * picker's mount point inside FlowCanvas, which has screenToFlowPosition. */
-  componentPicker: { flowPosition: XY | null } | null;
-  openComponentPicker: (flowPosition: XY | null) => void;
+  /** Whether ComponentPicker.tsx is open. Used to be `{ flowPosition } |
+   * null`, keeping the right-click point to insert at directly — now that
+   * a selected component always arms click-to-place (see
+   * pendingComponentPlacement below) instead of inserting at a guessed
+   * position, the picker itself no longer needs a remembered position, so
+   * this collapsed to a plain boolean rather than carrying dead data. */
+  componentPicker: boolean;
+  openComponentPicker: () => void;
   closeComponentPicker: () => void;
+  /** Armed by picking a component from ComponentPicker.tsx — the component
+   * then "follows" a click-to-place gesture (crosshair cursor, see
+   * Canvas.tsx) instead of landing at a guessed position immediately, so
+   * the user always chooses exactly where it lands. Shift-click keeps this
+   * set for placing several of the same component in a row; a plain click
+   * clears it after one placement. Separate from `placementMode` above
+   * (zone/comment/start) rather than folded into that union — those three
+   * are a fixed drag-to-draw/click gesture set with no payload, while this
+   * one carries a full ComponentDefinition and has different semantics
+   * (multi-place via Shift), so merging them would mean every existing
+   * `placementMode === "..."` check also has to branch on a payload it
+   * never needs. */
+  pendingComponentPlacement: ComponentDefinition | null;
+  setPendingComponentPlacement: (definition: ComponentDefinition | null) => void;
   /** Drives the Phase 4 "Highlight Connections"/"Highlight Zone"
    * context-menu actions — Canvas.tsx derives the highlighted node/edge id
    * sets from this each render and dims everything else via node/edge
@@ -403,7 +423,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   placementMode: null,
   editingAnnotation: null,
   configPopover: null,
-  componentPicker: null,
+  componentPicker: false,
+  pendingComponentPlacement: null,
   pendingUndo: null,
   past: [],
   future: [],
@@ -426,7 +447,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       })),
       selectedEdgeId: null,
       selectedNodeId: null,
-      componentPicker: null,
+      componentPicker: false,
+      pendingComponentPlacement: null,
       // Skipped when the board is already empty — the common case is
       // seeding the initial demo graph on mount, which shouldn't be a step
       // Ctrl+Z can walk back into.
@@ -444,7 +466,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       edges: edges.map((e) => ({ ...e, selected: false })),
       selectedEdgeId: null,
       selectedNodeId: null,
-      componentPicker: null,
+      componentPicker: false,
+      pendingComponentPlacement: null,
       past:
         state.nodes.length === 0 && state.edges.length === 0
           ? state.past
@@ -592,8 +615,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   openConfigPopover: (nodeId, anchor) => set({ configPopover: { nodeId, anchor } }),
   closeConfigPopover: () => set({ configPopover: null }),
 
-  openComponentPicker: (flowPosition) => set({ componentPicker: { flowPosition } }),
-  closeComponentPicker: () => set({ componentPicker: null }),
+  openComponentPicker: () => set({ componentPicker: true }),
+  closeComponentPicker: () => set({ componentPicker: false }),
+
+  setPendingComponentPlacement: (definition) => set({ pendingComponentPlacement: definition }),
 
   setHighlight: (highlight) => set({ highlight }),
   clearHighlight: () => set({ highlight: null }),
@@ -863,7 +888,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedEdgeId: null,
         editingAnnotation: null,
         configPopover: null,
-        componentPicker: null,
+        componentPicker: false,
+        pendingComponentPlacement: null,
         highlight: null,
         // A stale pendingUndo (e.g. from a delete this undo just reverted)
         // would otherwise let the "Undo delete" toast re-add nodes/edges
@@ -888,7 +914,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedEdgeId: null,
         editingAnnotation: null,
         configPopover: null,
-        componentPicker: null,
+        componentPicker: false,
+        pendingComponentPlacement: null,
         highlight: null,
         pendingUndo: null,
       };
@@ -921,7 +948,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         selectedEdgeId: null,
         editingAnnotation: null,
         configPopover: null,
-        componentPicker: null,
+        componentPicker: false,
+        pendingComponentPlacement: null,
         highlight: null,
         pendingUndo: { nodes: state.nodes, edges: state.edges, label: "Board cleared", mode: "replace", at: Date.now() },
         past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),

@@ -38,7 +38,7 @@ export function useCanvasShortcuts(onSave: () => void) {
       // binds bare `/` to Quick Find.
       if (!mod && event.key === "/" && !isEditableTarget(event.target)) {
         event.preventDefault();
-        openComponentPicker(null);
+        openComponentPicker();
         return;
       }
 
