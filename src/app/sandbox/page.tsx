@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { BookOpen, Check, Redo2, Save, Undo2 } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
@@ -17,7 +17,7 @@ import { ModeBadge } from "@/app/ModeBadge";
 import { PageEnter } from "@/app/PageEnter";
 import { ShortcutsButton } from "@/app/ShortcutsButton";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
-import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
+import { useCanvasStore, toArchitectureGraph, architectureGraphTopologyKey } from "@/canvas/store";
 import type { ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
 import { modeColorVar } from "@/lib/modes";
@@ -127,13 +127,16 @@ export default function SandboxPage() {
   const [violations, setViolations] = useState<ValidationViolation[] | null>(null);
   const [checkedGraphKey, setCheckedGraphKey] = useState<string | null>(null);
 
-  const currentGraphKey = JSON.stringify(toArchitectureGraph(nodes, edges));
+  const currentGraphKey = useMemo(
+    () => architectureGraphTopologyKey(toArchitectureGraph(nodes, edges)),
+    [nodes, edges],
+  );
   const isStale = violations !== null && checkedGraphKey !== currentGraphKey;
 
   const handleValidate = () => {
     const graph = toArchitectureGraph(nodes, edges);
     setViolations(runValidation(graph, ruleRegistry));
-    setCheckedGraphKey(JSON.stringify(graph));
+    setCheckedGraphKey(architectureGraphTopologyKey(graph));
   };
 
   const nodeStates: Record<string, ValidationState> = {};

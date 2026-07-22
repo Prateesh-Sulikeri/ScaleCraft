@@ -849,6 +849,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         editingAnnotation: null,
         configPopover: null,
         highlight: null,
+        // A stale pendingUndo (e.g. from a delete this undo just reverted)
+        // would otherwise let the "Undo delete" toast re-add nodes/edges
+        // that this undo already restored — a silent double-restore.
+        pendingUndo: null,
       };
     });
   },
@@ -869,6 +873,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         editingAnnotation: null,
         configPopover: null,
         highlight: null,
+        pendingUndo: null,
       };
     });
   },
@@ -967,7 +972,9 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   reverseEdge: (edgeId) => {
     set((state) => ({
       edges: state.edges.map((e) =>
-        e.id === edgeId ? { ...e, source: e.target, target: e.source } : e,
+        e.id === edgeId
+          ? { ...e, source: e.target, target: e.source, sourceHandle: e.targetHandle, targetHandle: e.sourceHandle }
+          : e,
       ),
       past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
       future: [],
@@ -1031,4 +1038,19 @@ export function toArchitectureGraph(
     })),
     entryPointIds,
   };
+}
+
+/**
+ * A validation-staleness key for an ArchitectureGraph — deliberately omits
+ * `position` (see sandbox/page.tsx's checkedGraphKey/currentGraphKey), since
+ * dragging a node changes its position but not the topology validation
+ * actually checks. Without this, moving a node with zero edge/config changes
+ * would still mark existing results stale.
+ */
+export function architectureGraphTopologyKey(graph: ArchitectureGraph): string {
+  return JSON.stringify({
+    nodes: graph.nodes.map(({ id, componentId, config }) => ({ id, componentId, config })),
+    edges: graph.edges,
+    entryPointIds: graph.entryPointIds,
+  });
 }
