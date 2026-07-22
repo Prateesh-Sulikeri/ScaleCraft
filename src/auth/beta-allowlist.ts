@@ -8,5 +8,5 @@ export const BETA_ALLOWLIST: string[] = [
 ];
 
 export function isAllowedForBeta(email: string): boolean {
-  return BETA_ALLOWLIST.includes(email.toLowerCase());
+  return BETA_ALLOWLIST.some((allowed) => allowed.toLowerCase() === email.toLowerCase());
 }
