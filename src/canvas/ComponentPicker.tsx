@@ -190,37 +190,52 @@ export function ComponentPicker() {
     }
   };
 
-  const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      close();
-      return;
+  // A window-level listener, not a React onKeyDown on the dialog — the
+  // latter only fires when the event's focus target is a DESCENDANT of the
+  // dialog div. Double-clicking a plain (non-focusable) text node inside
+  // the dialog — a category heading, say — blurs the search input and
+  // moves document.activeElement to <body>, which is an ANCESTOR of the
+  // dialog, not a descendant, so a dialog-scoped onKeyDown silently stops
+  // receiving every keystroke including Escape. Window-level is
+  // focus-independent by construction, matching the same pattern
+  // Canvas.tsx's own Escape handling already uses.
+  useEffect(() => {
+    if (!isOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        close();
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActiveIndex((i) => Math.min(i + 1, flatCount - 1));
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActiveIndex((i) => Math.max(i - 1, 0));
+        return;
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        setActiveIndex(0);
+        return;
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        setActiveIndex(flatCount - 1);
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (flatCount > 0) activateItem(activeIndex);
+      }
     }
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, flatCount - 1));
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setActiveIndex((i) => Math.max(i - 1, 0));
-      return;
-    }
-    if (event.key === "Home") {
-      event.preventDefault();
-      setActiveIndex(0);
-      return;
-    }
-    if (event.key === "End") {
-      event.preventDefault();
-      setActiveIndex(flatCount - 1);
-      return;
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      if (flatCount > 0) activateItem(activeIndex);
-    }
-  };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, flatCount, activeIndex, filteredTools, flatComponentItems]);
 
   const handleSaveCustom = (record: CustomComponentRecord) => {
     void db.customComponents.put(record);
@@ -249,13 +264,21 @@ export function ComponentPicker() {
               onClick={close}
               onContextMenu={(e) => e.preventDefault()}
             />
-            <div className="fixed inset-0 z-[var(--z-modal)] grid place-items-center px-4">
+            {/* pointer-events-none here, re-enabled on the panel below — this
+             * centering wrapper spans the full viewport (needed for
+             * grid place-items-center), and without this it would sit on
+             * TOP of the backdrop above and silently swallow every click
+             * in the empty space around the panel (a click hits whichever
+             * element is topmost at that point; the backdrop below never
+             * sees it since these are siblings, not ancestor/descendant),
+             * making "click outside to close" a dead affordance everywhere
+             * except the few pixels the backdrop happens to show through. */}
+            <div className="pointer-events-none fixed inset-0 z-[var(--z-modal)] grid place-items-center px-4">
               <div
                 role="dialog"
                 aria-modal="true"
                 aria-label="Add a component"
-                onKeyDown={onKeyDown}
-                className="motion-reduce:transition-none flex max-h-[70vh] w-[640px] max-w-full flex-col rounded-md border border-border bg-panel shadow-lg transition-opacity duration-150"
+                className="motion-reduce:transition-none pointer-events-auto flex max-h-[70vh] w-[640px] max-w-full flex-col rounded-md border border-border bg-panel shadow-lg transition-opacity duration-150"
               >
                 <div className="border-b border-border p-3">
                   <div className="relative">

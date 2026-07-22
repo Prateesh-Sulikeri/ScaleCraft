@@ -38,9 +38,11 @@ import { ContextMenu, type ContextMenuTarget } from "./ContextMenu";
 import { AnnotationEditor } from "./AnnotationEditor";
 import { NodeConfigPopover } from "./NodeConfigPopover";
 import { ComponentPicker } from "./ComponentPicker";
+import { RightClickCursorHint } from "./RightClickCursorHint";
 import { HIGHLIGHT_GOLD } from "./selection-style";
 import { useCanvasStore, type PlacementMode } from "./store";
 import { isEditableTarget } from "./use-canvas-shortcuts";
+import { useDismissedFlag } from "@/lib/use-dismissed-flag";
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "./types";
 
 const nodeTypes = { component: ComponentNode, zone: ZoneNode, comment: CommentNode, start: StartNode };
@@ -178,6 +180,13 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   );
 
   const [menu, setMenu] = useState<ContextMenuTarget | null>(null);
+  // Cursor-following "right-click to add" teaching graphic (see
+  // RightClickCursorHint.tsx) — shares the sandbox pill's dismiss flag
+  // (dismissing either hides both, since they teach the same gesture) and
+  // is suppressed whenever any other overlay is already up, so it never
+  // fights the picker/context-menu/placement-mode overlays for attention.
+  const [insertHintDismissed] = useDismissedFlag("sc-insert-hint-dismissed");
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
   // Set on pointerdown on a handle, before any drag motion — disables
   // selectionOnDrag for the gesture's whole duration so a connection drag
   // that passes over an intervening node never also starts a selection box.
@@ -542,8 +551,15 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     [edges, pointerEdges, highlightSets],
   );
 
+  const showCursorHint =
+    !insertHintDismissed && hoverPos && !menu && !placementMode && !pendingComponentPlacement && !componentPicker;
+
   return (
-    <div className="relative h-full w-full">
+    <div
+      className="relative h-full w-full"
+      onMouseMove={(event) => setHoverPos({ x: event.clientX, y: event.clientY })}
+      onMouseLeave={() => setHoverPos(null)}
+    >
       <ReactFlow
         colorMode={colorMode}
         nodes={nodes}
@@ -629,6 +645,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       <AnnotationEditor />
       <NodeConfigPopover />
       <ComponentPicker />
+      {showCursorHint && <RightClickCursorHint pos={hoverPos} />}
 
       {placementMode && (
         <>
