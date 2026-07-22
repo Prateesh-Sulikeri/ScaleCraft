@@ -3,6 +3,7 @@
 import { useRef, useState, type RefObject } from "react";
 import { FolderOpen, Upload } from "lucide-react";
 import { exportCanvasAsJson } from "@/canvas/export-json";
+import { canvasImportSchema } from "@/canvas/import-schema";
 import { useCanvasStore } from "@/canvas/store";
 import { Tooltip } from "@/app/Tooltip";
 import type { CanvasHandle } from "@/canvas/Canvas";
@@ -44,10 +45,7 @@ export function ProjectMenu({ canvasRef }: ProjectMenuProps) {
   const handleImportFile = async (file: File) => {
     setImportError(null);
     try {
-      const parsed = JSON.parse(await file.text());
-      if (!Array.isArray(parsed?.nodes) || !Array.isArray(parsed?.edges)) {
-        throw new Error("File is missing nodes/edges arrays.");
-      }
+      const parsed = canvasImportSchema.parse(JSON.parse(await file.text()));
       loadCanvasState(parsed.nodes as AnyNodeType[], parsed.edges as ArchitectureEdgeType[]);
       setOpen(false);
     } catch {

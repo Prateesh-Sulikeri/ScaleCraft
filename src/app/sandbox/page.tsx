@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Check, Redo2, Save, Undo2 } from "lucide-react";
+import { BookOpen, Check, MouseRight, Redo2, Save, Undo2, X } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
@@ -12,12 +12,12 @@ import { ThemeToggle } from "@/app/ThemeToggle";
 import { ValidationIndicator } from "@/app/ValidationIndicator";
 import { ProjectMenu } from "@/app/ProjectMenu";
 import { BoardMenu } from "@/app/BoardMenu";
-import { QuestionPanel } from "@/app/QuestionPanel";
 import { ModeBadge } from "@/app/ModeBadge";
 import { PageEnter } from "@/app/PageEnter";
 import { ShortcutsButton } from "@/app/ShortcutsButton";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
-import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
+import { useDismissedFlag } from "@/lib/use-dismissed-flag";
+import { useCanvasStore, toArchitectureGraph, architectureGraphTopologyKey } from "@/canvas/store";
 import type { ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
 import { modeColorVar } from "@/lib/modes";
@@ -110,6 +110,16 @@ export default function SandboxPage() {
   const [justSaved, setJustSaved] = useState(false);
   const canvasRef = useRef<CanvasHandle>(null);
 
+  // The palette sidebar was the only always-visible insertion affordance;
+  // removing it (see .claude/docs/UI_OVERHAUL_PART2_SPEC.md) means a
+  // first-time user has no obvious next step without this. Gating on an
+  // empty canvas alone isn't enough — the seed demo graph means most users
+  // never actually see an empty board, so this shows regardless of node
+  // count until dismissed once (localStorage, not session state — a user
+  // who's already learned the gesture shouldn't see it again next visit).
+  const [hintDismissed, dismissHint] = useDismissedFlag("sc-insert-hint-dismissed");
+  const showInsertHint = !hintDismissed;
+
   const handleSave = async () => {
     const { nodes, edges } = useCanvasStore.getState();
     await db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
@@ -127,13 +137,16 @@ export default function SandboxPage() {
   const [violations, setViolations] = useState<ValidationViolation[] | null>(null);
   const [checkedGraphKey, setCheckedGraphKey] = useState<string | null>(null);
 
-  const currentGraphKey = JSON.stringify(toArchitectureGraph(nodes, edges));
+  const currentGraphKey = useMemo(
+    () => architectureGraphTopologyKey(toArchitectureGraph(nodes, edges)),
+    [nodes, edges],
+  );
   const isStale = violations !== null && checkedGraphKey !== currentGraphKey;
 
   const handleValidate = () => {
     const graph = toArchitectureGraph(nodes, edges);
     setViolations(runValidation(graph, ruleRegistry));
-    setCheckedGraphKey(JSON.stringify(graph));
+    setCheckedGraphKey(architectureGraphTopologyKey(graph));
   };
 
   const nodeStates: Record<string, ValidationState> = {};
@@ -248,24 +261,34 @@ export default function SandboxPage() {
 
       <main className="flex min-h-0 flex-1 overflow-hidden">
         {!focusMode && (
-          <>
-            <QuestionPanel intro="Drag components from the palette, connect them, then click Validate." />
-
-            <div className="flex flex-1 flex-col">
-              <Canvas
-                ref={canvasRef}
-                nodeStates={nodeStates}
-                // Clicking blank canvas dismisses the last Validate run
-                // (the green/red ring on every node, and the header
-                // button's own color) — without this, a passing run had
-                // no way back to neutral short of editing the graph.
-                onCanvasPaneClick={() => {
-                  setViolations(null);
-                  setCheckedGraphKey(null);
-                }}
-              />
-            </div>
-          </>
+          <div className="relative flex flex-1 flex-col">
+            {showInsertHint && (
+              <div className="absolute left-1/2 top-4 z-[var(--z-dropdown)] flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
+                <MouseRight size={14} className="shrink-0 text-foreground/70" />
+                <span>Right-click the canvas or press / to add a component</span>
+                <button
+                  type="button"
+                  onClick={dismissHint}
+                  aria-label="Dismiss hint"
+                  className="text-foreground/50 hover:text-foreground"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+            <Canvas
+              ref={canvasRef}
+              nodeStates={nodeStates}
+              // Clicking blank canvas dismisses the last Validate run
+              // (the green/red ring on every node, and the header
+              // button's own color) — without this, a passing run had
+              // no way back to neutral short of editing the graph.
+              onCanvasPaneClick={() => {
+                setViolations(null);
+                setCheckedGraphKey(null);
+              }}
+            />
+          </div>
         )}
 
         {docsPanelOpen && <DocsPanel />}

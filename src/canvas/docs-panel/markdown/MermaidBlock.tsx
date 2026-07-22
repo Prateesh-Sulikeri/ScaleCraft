@@ -20,7 +20,11 @@ export function MermaidBlock({ code }: { code: string }) {
   useEffect(() => {
     let cancelled = false;
     import("mermaid").then(async ({ default: mermaid }) => {
-      mermaid.initialize({ startOnLoad: false, theme: resolvedTheme === "light" ? "default" : "dark" });
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: resolvedTheme === "light" ? "default" : "dark",
+        securityLevel: "strict",
+      });
       try {
         const { svg: rendered } = await mermaid.render(idRef.current, code);
         if (cancelled) return;

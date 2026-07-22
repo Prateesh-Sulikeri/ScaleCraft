@@ -10,6 +10,7 @@ import { Keyboard } from "lucide-react";
 const TOOLTIP_WIDTH = 140;
 
 const SHORTCUTS: { keys: string; label: string }[] = [
+  { keys: "/", label: "Add component" },
   { keys: "Ctrl/Cmd+S", label: "Save" },
   { keys: "Ctrl/Cmd+Z", label: "Undo" },
   { keys: "Ctrl/Cmd+Shift+Z", label: "Redo" },

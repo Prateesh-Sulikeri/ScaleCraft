@@ -26,10 +26,22 @@ export function isEditableTarget(target: EventTarget | null): boolean {
 export function useCanvasShortcuts(onSave: () => void) {
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
+  const openComponentPicker = useCanvasStore((s) => s.openComponentPicker);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const mod = event.metaKey || event.ctrlKey;
+
+      // Checked before the `mod` early-return below — `/` is a bare
+      // (non-modified) shortcut, same class as Delete/Backspace, not a
+      // Ctrl/Cmd combo. preventDefault matters here specifically: Firefox
+      // binds bare `/` to Quick Find.
+      if (!mod && event.key === "/" && !isEditableTarget(event.target)) {
+        event.preventDefault();
+        openComponentPicker();
+        return;
+      }
+
       if (!mod) return;
       const key = event.key.toLowerCase();
 
@@ -59,5 +71,5 @@ export function useCanvasShortcuts(onSave: () => void) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onSave, undo, redo]);
+  }, [onSave, undo, redo, openComponentPicker]);
 }
