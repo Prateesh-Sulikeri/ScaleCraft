@@ -34,6 +34,13 @@ export function ComponentPickerCategoryNav({
         <button
           type="button"
           onClick={() => onJump(DECORATION_SECTION_ID)}
+          // See the matching comment in ComponentPickerResults.tsx: these
+          // rail buttons sit ahead of the results section in tab order and
+          // are just as reachable by Tab, so they need the same guard
+          // against the picker's window-level Enter/Space listener.
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+          }}
           title="Decoration"
           className="block w-full rounded px-2 py-1 text-left text-xs leading-tight text-foreground/70 hover:bg-border hover:text-foreground"
         >
@@ -45,6 +52,9 @@ export function ComponentPickerCategoryNav({
           key={category}
           type="button"
           onClick={() => onJump(categorySectionId(category), category)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+          }}
           title={categoryLabel[category]}
           className="block w-full rounded px-2 py-1 text-left text-xs leading-tight text-foreground/70 hover:bg-border hover:text-foreground"
         >

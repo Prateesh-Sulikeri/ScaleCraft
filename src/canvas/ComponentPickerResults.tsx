@@ -81,6 +81,17 @@ export function ComponentPickerResults({
             <button
               type="button"
               onClick={() => onToggleCategory(category)}
+              // The picker's window-level keydown listener (ComponentPicker.tsx)
+              // intercepts Enter/Space unconditionally to fire the roving
+              // activeIndex item, regardless of real DOM focus — this is the
+              // one native, always-present button in the results area that
+              // isn't part of that roving model, so Tab-then-Enter here must
+              // stop the event before it reaches that listener, or Enter
+              // silently activates a totally different (and invisible) item.
+              // The native button still handles its own onClick on Enter/Space.
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+              }}
               aria-expanded={expanded}
               className="flex w-full items-center gap-1 px-0.5 text-[11px] font-semibold tracking-wide text-foreground/70 uppercase hover:text-foreground"
             >
