@@ -9,13 +9,16 @@ import type { AppMode } from "@/lib/modes";
 
 export type ModeNodeData = {
   mode: AppMode;
-  /** Present only for modes with a real route today (just Sandbox) — its
-   * absence is what makes a node render disabled instead of navigating
-   * somewhere that 404s. */
+  /** Its absence is what makes a node render disabled instead of navigating
+   * somewhere that 404s — kept optional (rather than always required) so a
+   * future mode can still land on Home ahead of its route existing. */
   href?: string;
   /** Static placeholder; milestone 9 (persistence) is what makes this
-   * reflect a user's real per-chapter state. Omitted for Sandbox — it's
-   * freeform with no chapter to complete, so the vocabulary doesn't apply. */
+   * reflect a user's real per-chapter progress. Omitted for Sandbox (it's
+   * freeform, no chapter to complete) and for Building Blocks/RWE now that
+   * they route to a real (if still throwaway-content) chapter shell —
+   * there's no real progress to report yet, so a fake "in progress"/
+   * "complete" badge would be worse than none. */
   status?: "coming soon" | "in progress" | "complete";
 };
 export type ModeNodeType = Node<ModeNodeData, "mode">;
@@ -73,7 +76,9 @@ const nodes: (ModeNodeType | TitleNodeType)[] = [
       data:
         id === "sandbox"
           ? { mode: "sandbox", href: "/sandbox" }
-          : { mode: id, status: "coming soon" },
+          : id === "building-blocks"
+            ? { mode: "building-blocks", href: "/building-blocks" }
+            : { mode: "real-world-extraction", href: "/real-world-extraction" },
       draggable: false,
       focusable: false,
     }),

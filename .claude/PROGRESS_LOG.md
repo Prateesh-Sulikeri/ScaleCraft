@@ -1082,3 +1082,168 @@ scratch. With Step 0 effectively done (pending only the user's branch-merge acti
 key in `sandbox/page.tsx`, and allowlist case normalization in `beta-allowlist.ts` — see
 `.claude/docs/NEXT_STEPS.md`'s Step 1 for the full attack order. None of these were
 touched or verified in this logging-only session.
+
+## 2026-07-24 — UI Overhaul Part 2, Phases 3–5: picker-primary Sandbox, SidebarShell extraction, chapter shell (`feature/ui-overhaul-part2`)
+
+This is a logging-agent entry (per CLAUDE.md's "spawn a subagent, don't self-report"
+convention), written after independently re-deriving every claim below from `git log`,
+`git show --stat`, current file contents, and a real `typecheck`/`lint`/`test`/`build`
+run — not transcribed from the task brief that seeded it. Two separate pieces of
+prior-branch work land in this entry since neither was ever logged: Phase 3 (five
+commits, before this session) and Phases 4–5 (two commits, this session).
+
+**Branch context, confirmed via `git log --oneline`:** `feature/ui-overhaul-part2`
+branches off the `b0ac601`/Phase-1 and `05ff6a3`/Phase-2 commits (already on this branch
+tip before either logged round below), implementing `.claude/docs/UI_OVERHAUL_PART2_SPEC.md`.
+The prior PROGRESS_LOG entry (2026-07-22) predates all seven commits covered here.
+
+### Phase 3 — picker becomes primary in Sandbox (five commits, landed before this session, never logged)
+
+- **`a2c4846`** ("Make Component Picker primary in Sandbox; click-to-place, tree nav
+  (Phase 3)") — the core phase. Confirmed via `git show --stat`: `Palette.tsx` (-468
+  lines) and `QuestionPanel.tsx` (-78 lines) are deleted in this commit, both gone from
+  the working tree at current HEAD; `ContextMenu.tsx` shrinks by 183 lines (pane branch +
+  Flyout removed as dead code); `ComponentPicker.tsx` grows to 409 lines and is split
+  into four new sibling files (`ComponentPickerCategoryNav.tsx`,
+  `ComponentPickerResults.tsx`, `ComponentPickerRow.tsx`, `ComponentPickerTools.tsx`) —
+  all four confirmed present. `store.ts` and `use-canvas-shortcuts.ts` also touched;
+  two new files (`DeleteConfirmPopover.tsx`, `use-dismissed-flag.ts`) landed alongside.
+  `grep -rl "QuestionPanel\|Palette" src/` at current HEAD returns zero live
+  imports — the only hits are historical comments in `SidebarShell.tsx`,
+  `ValidationIndicator.tsx`, and `component-search.ts` narrating the old names, which is
+  consistent with a clean removal rather than dead references.
+  One oddity worth flagging: this same commit also adds `.claude/docs/CURRENT_TASK.md`
+  (454 lines, an operator-style "you are the Lead Staff Software Engineer..." task
+  brief), which is still present in the repo at HEAD and was never mentioned in any
+  commit message since. It reads like a session-scaffolding artifact that got swept into
+  the commit rather than deliberate spec content — not verified further, just flagged.
+- **`6248ce8`** — swaps a generic `MousePointerClick` icon for lucide's `MouseRight` in
+  the Sandbox discoverability hint. Confirmed: `sandbox/page.tsx` imports `MouseRight`
+  from `lucide-react` and renders it at the empty-canvas hint pill (`src/app/sandbox/page.tsx:5,267`).
+- **`a510fbd`** — two real bug fixes (Escape dead after a text selection breaks focus
+  containment; click-outside silently swallowed by a full-viewport centering wrapper
+  sitting over the backdrop) plus a new `RightClickCursorHint.tsx`. Diffstat confirmed:
+  `Canvas.tsx` +19, `ComponentPicker.tsx` +89/-slimmed, new `RightClickCursorHint.tsx`
+  (+32).
+- **`168ab81`** — reworks `RightClickCursorHint` into an actual cursor replacement
+  (centers on the pointer, hides the native cursor via a `globals.css` override
+  targeting `@xyflow/react`'s own explicit `.react-flow__pane`/`.react-flow__node`
+  cursor rules, plus a Turbopack CSS dev-cache gap that needed a `.next` wipe to even
+  show up in the served bundle).
+- **`18a7109`** ("Drop the custom cursor-replacement graphic...") — reverses `168ab81`
+  and most of `a510fbd`'s hint-graphic addition per explicit product direction after it
+  kept failing in the user's real browser despite passing scripted checks. Confirmed:
+  `RightClickCursorHint.tsx` is deleted (three-file diff, all removals:
+  `globals.css` -13, `Canvas.tsx` -35, `RightClickCursorHint.tsx` -33), and the file does
+  not exist at current HEAD. The Sandbox discoverability pill (`MouseRight` icon + text,
+  dismissible) from `6248ce8` survives untouched — confirmed still present in
+  `sandbox/page.tsx`. Net effect: component-placement mode now shows a plain
+  `cursor: pointer`; the zone/comment/flag placement overlay keeps its crosshair.
+
+None of Phase 3's own claimed browser verification was re-driven in this logging pass
+(no browser session active) — taken as reported, consistent with this log's established
+convention for that exact situation.
+
+### Phases 4–5 — SidebarShell extraction + chapter shell (two commits, this session)
+
+- **`7d63942`** ("Phase 4: extract SidebarShell...") — new `src/app/SidebarShell.tsx`
+  (69 lines, no other files touched, confirmed via `git show --stat`). Read in full:
+  it's a content-agnostic collapsible/resizable `<aside>` (Home link, collapse toggle,
+  `useResizableWidth(320, 220, 480, "right")`, opacity fade on collapse) taking
+  `children` instead of baking in Sandbox's old intro text + Palette. Its own docstring
+  claims this was pulled "verbatim (behavior-wise)" from the pre-Component-Picker
+  `QuestionPanel.tsx`, citing `git history at a2c4846~1` — checked directly:
+  `git show a2c4846~1:src/app/QuestionPanel.tsx` does exist and starts with the same
+  `Home`/`PanelLeftClose`/`PanelLeftOpen` imports and collapse/resize shape. Claim holds.
+- **`09717f0`** ("Phase 5: chapter shell...") — 11 files, +616/-1, confirmed via
+  `git show --stat`. Read all of the following directly at current HEAD, not just the
+  diff:
+  - `src/canvas/store.ts` — `availableComponentIds: string[] | null` slice (default
+    `null`, line 437) plus `setAvailableComponentIds` setter (line 633); comment above
+    the field ties it explicitly to `ChapterDefinition.availableComponentIds`, reset to
+    `null` on chapter unmount.
+  - `src/canvas/ComponentPicker.tsx` — reads `availableComponentIds` from the store and
+    passes it as `filterAndGroupComponents`'s existing (already-supported since Phase 1)
+    third argument — confirmed at lines 31/69-70. No forking of the component list, as
+    the commit message claims.
+  - `src/content/chapters/types.ts` — `ChapterDefinition` now has `title: string`
+    (required) and `group?: string` (optional), both present with docstrings explaining
+    Chapter-List display and one-level grouping. Mirrored into
+    `.claude/docs/ARCHITECTURE.md` (lines 57-58 there match verbatim) — confirmed, not
+    just claimed.
+  - `src/content/chapters/index.ts` — one dummy `ChapterDefinition` per mode
+    (`bb-dummy-1`, `rwe-dummy-1`) plus `getChaptersForMode()`. The file's own header
+    comment explicitly labels this "Throwaway placeholder content... NOT real curriculum
+    content" and points at `NEXT_STEPS.md` Step 5/6 for the real thing — the
+    known-limitation is stated in the code, not silently omitted.
+  - `src/chapters/ChapterList.tsx`, `QuestionPane.tsx`, `ChapterSidebar.tsx` — the
+    two-view sidebar. `ChapterSidebar` is a thin switch (List when nothing selected,
+    `QuestionPane` once a chapter is). `QuestionPane`'s `HintDisclosure` renders a
+    "Show hint" button and only swaps to the revealed markdown body after a per-hint
+    click (`revealedHintIds` Set, `onReveal` callback) — hints are never pre-expanded,
+    matching CLAUDE.md's hints-vs-explanations rule exactly, confirmed by reading the
+    component, not the commit message.
+  - `src/chapters/ChapterWorkspace.tsx` — shared body for both chapter routes. Its
+    docstring **states the starterGraph limitation explicitly**: "this component does
+    not load a chapter's starterGraph on select — selecting a chapter shows whatever's
+    currently on the canvas... Real per-chapter graph isolation/persistence is milestone
+    9 scope." Confirmed in code: the `useEffect` at lines 61-64 only calls
+    `setAvailableComponentIds`, nothing touches `nodes`/`edges` on chapter selection.
+    Also confirmed: `useCanvasShortcuts(() => {})` (line 78) — Ctrl+S is a literal no-op
+    in chapter mode, with a comment stating exactly that ("No chapter persistence yet
+    (milestone 9)").
+  - `src/app/building-blocks/page.tsx`, `src/app/real-world-extraction/page.tsx` — both
+    are thin 5-line wrappers rendering `<ChapterWorkspace mode="..."/>`, confirmed by
+    reading both files in full.
+
+**Verification claims independently re-checked, not just trusted:**
+- `npm run typecheck` (prefixed with the WSL nvm-PATH workaround already documented at
+  the top of this log) — clean, zero errors.
+- `npm run lint` — exactly one warning, in `CreateComponentModal.tsx:112` (React
+  Compiler "incompatible library" warning on `useForm()`'s `watch()`), matching the
+  "one pre-existing accepted lint warning" claim precisely. Zero errors.
+- `npm test -- --run` — **124 tests passing across 21 files**, matching the claimed
+  count exactly.
+- `npm run build` — succeeds; the route table it prints includes `○ /building-blocks`
+  and `○ /real-world-extraction` as new static routes alongside the existing `/`,
+  `/sandbox`, etc. — confirms the two routes actually build, not just typecheck.
+- The real-headless-Chromium verification pass (chapter list → select → question pane →
+  hint-hidden-until-reveal → required-components progress line → picker filtered while a
+  chapter is open → back-to-list → RWE renders its own chapter → Sandbox's picker
+  unfiltered after visiting a chapter route first → no stray left `<aside>` in Sandbox)
+  was **not re-driven in this logging pass** — no browser session was active, and the
+  no-root Playwright workaround (`apt-get download`/`dpkg-deb -x`/`LD_LIBRARY_PATH`,
+  documented at this log's 2026-07-13 entries) was not re-derived purely to re-confirm
+  what direct file inspection above already corroborates line-by-line. Taken as
+  reported, per this log's established convention for this exact situation.
+
+**Also confirmed, not part of either phase's own claims:**
+- Home (`src/app/HomeCanvas.tsx`) still does **not** link the Building Blocks/RWE mode
+  cards to the new routes — `ModeNodeData.href` is only set for `sandbox`
+  (`{ mode: "sandbox", href: "/sandbox" }`); the other two mode entries get no `href`,
+  and `ModeNode.tsx` renders `aria-disabled="true"` for hrefless modes. This is exactly
+  Phase 6's job (not started) and is consistent, not a gap in Phase 5.
+
+**Repo state:** `git status` shows a **not-fully-clean** working tree, but for a reason
+unrelated to any of the seven commits above: `public/logo-mark.png` and
+`public/logo-mask.png` are modified-but-unstaged (binary diffs, both now 44405 bytes;
+`git log` shows their last real commits are `ff082de`/`42302c8`, both long predating this
+branch). Nothing in Phases 3-5 touches either file per their diffstats, so this looks
+like a leftover local artifact (e.g. a build/dev-server write) rather than work from this
+round — flagged, not resolved. All seven commits themselves are committed and clean;
+local `HEAD` (`09717f0`) matches `origin/feature/ui-overhaul-part2` exactly (`git status`
+reports "up to date with 'origin/feature/ui-overhaul-part2'", confirmed by comparing
+`git rev-parse HEAD` and `git rev-parse origin/feature/ui-overhaul-part2` — identical).
+
+**Next steps:** Per `.claude/docs/UI_OVERHAUL_PART2_SPEC.md`, **Phase 6** is next and
+last for this spec — enable the Building Blocks/RWE cards on Home (wire real `href`s),
+update `DESIGN.md`, then run `/impeccable critique` per the design-iteration workflow to
+measure the overhaul's effect. Per `.claude/docs/NEXT_STEPS.md`'s Step 2 list this
+confirms Phases 1-5 are all done and only Phase 6 remains before Step 3 (Milestone 5:
+stronger validation agent) becomes unblocked — Step 3's own text notes it must land
+before real chapter content since chapter pass/fail depends on the validation engine's
+coverage. The two throwaway `ChapterDefinition`s added in Phase 5 are explicitly not to
+be extended in place; real curriculum content is `NEXT_STEPS.md` Steps 5/6, gated on
+Step 3 existing first (`validationRuleIds` needs a real rule registry to point at).
+
+---

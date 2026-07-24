@@ -54,6 +54,9 @@ instead of getting nothing — see `canvas/legal-edge-kinds.ts`.
 type ChapterDefinition = {
   id: string;
   mode: "building-blocks" | "real-world-extraction";  // sandbox has no chapter def
+  title: string;                     // short Chapter List display name
+  group?: string;                    // optional one-level Chapter List section
+  placeholder?: boolean;             // true = throwaway/dummy content, muted + captioned in Chapter List
   problemStatement: string;
   learningObjectives: string[];
   availableComponentIds: string[];   // subset of the global registry
