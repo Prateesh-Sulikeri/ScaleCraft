@@ -350,7 +350,7 @@ export function ComponentPicker() {
                   </div>
                 </div>
 
-                <p className="border-t border-border px-3 py-2 text-center text-[11px] text-foreground/50">
+                <p className="border-t border-border px-3 py-2 text-center text-xs text-foreground/50">
                   Tip: right-click the canvas or press / to add a component
                 </p>
               </div>

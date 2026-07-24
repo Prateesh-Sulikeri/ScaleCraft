@@ -27,13 +27,14 @@ export function ComponentPickerCategoryNav({
   return (
     <nav
       aria-label="Component categories"
-      className="w-24 shrink-0 space-y-0.5 overflow-y-auto border-r border-border p-2"
+      className="w-28 shrink-0 space-y-0.5 overflow-y-auto border-r border-border p-2"
     >
       {hasDecoration && (
         <button
           type="button"
           onClick={() => jumpTo(DECORATION_SECTION_ID)}
-          className="block w-full truncate rounded px-2 py-1 text-left text-xs text-foreground/70 hover:bg-border hover:text-foreground"
+          title="Decoration"
+          className="block w-full rounded px-2 py-1 text-left text-xs leading-tight text-foreground/70 hover:bg-border hover:text-foreground"
         >
           Decoration
         </button>
@@ -43,7 +44,8 @@ export function ComponentPickerCategoryNav({
           key={category}
           type="button"
           onClick={() => jumpTo(categorySectionId(category))}
-          className="block w-full truncate rounded px-2 py-1 text-left text-xs text-foreground/70 hover:bg-border hover:text-foreground"
+          title={categoryLabel[category]}
+          className="block w-full rounded px-2 py-1 text-left text-xs leading-tight text-foreground/70 hover:bg-border hover:text-foreground"
         >
           {categoryLabel[category]}
         </button>
