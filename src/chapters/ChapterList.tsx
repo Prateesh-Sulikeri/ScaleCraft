@@ -114,7 +114,7 @@ function ChapterRow({ chapter, onSelect }: { chapter: ChapterDefinition; onSelec
       >
         <span className="truncate">{chapter.title}</span>
         {chapter.placeholder && (
-          <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">
+          <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70">
             Draft
           </span>
         )}

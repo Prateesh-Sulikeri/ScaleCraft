@@ -218,16 +218,30 @@ export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
 
 /** Tells the user Ctrl+S did nothing on purpose, not silently — see the
  * comment above `saveNoticeAt`. Same fixed-bottom-center chrome as
- * UndoToast, no undo action (there's nothing to undo). */
+ * UndoToast, no undo action (there's nothing to undo). Fades/slides in the
+ * same way UndoToast does, but — unlike UndoToast — with an explicit
+ * `motion-reduce` opt-out to an instant appearance rather than inheriting
+ * that gap into a second toast. */
 function SaveNotice({ onDismiss }: { onDismiss: () => void }) {
+  const [visible, setVisible] = useState(false);
+
   useEffect(() => {
+    const raf = requestAnimationFrame(() => setVisible(true));
     const timeout = setTimeout(onDismiss, 3000);
-    return () => clearTimeout(timeout);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timeout);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-[var(--z-toast)] flex -translate-x-1/2 items-center gap-3 rounded-md border border-border bg-panel px-4 py-2.5 text-sm shadow-lg">
+    <div
+      className={`fixed bottom-4 left-1/2 z-[var(--z-toast)] flex items-center gap-3 rounded-md border border-border bg-panel px-4 py-2.5 text-sm shadow-lg transition-[transform,opacity] duration-150 ease-out motion-reduce:transition-none ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
+      style={{ transform: `translateX(-50%) translateY(${visible ? "0" : "0.5rem"})` }}
+    >
       <span>Chapter progress isn&apos;t saved yet — this lands with real persistence.</span>
       <button onClick={onDismiss} aria-label="Dismiss" className="text-foreground/40 hover:text-foreground">
         <X size={14} />
