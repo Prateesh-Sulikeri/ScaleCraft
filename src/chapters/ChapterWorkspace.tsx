@@ -22,7 +22,7 @@ import { getChaptersForMode } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import { modeColorVar } from "@/lib/modes";
 import { runValidation } from "@/validation-engine/engine";
-import { ruleRegistry } from "@/validation-engine/rules";
+import { getRules } from "@/validation-engine/rules";
 import type { ValidationViolation } from "@/validation-engine/types";
 
 type ChapterWorkspaceProps = {
@@ -92,9 +92,17 @@ export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
   );
   const isStale = violations !== null && checkedGraphKey !== currentGraphKey;
 
+  // Scoped to the open chapter's own validationRuleIds, not the full global
+  // registry — a chapter should only ever fail on what it's actually
+  // teaching (CLAUDE.md: "that's a config option or a validation rule
+  // scoped to that chapter"). Was previously wired to the full ruleRegistry
+  // as a placeholder because no rule was declared to scope by yet; now that
+  // the registry exists (NEXT_STEPS.md Step 3), this validates for real. No
+  // chapter open (Chapter List view) means nothing to validate against.
   const handleValidate = () => {
+    if (!selectedChapter) return;
     const graph = toArchitectureGraph(nodes, edges);
-    setViolations(runValidation(graph, ruleRegistry));
+    setViolations(runValidation(graph, getRules(selectedChapter.validationRuleIds)));
     setCheckedGraphKey(architectureGraphTopologyKey(graph));
   };
 

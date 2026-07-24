@@ -15,8 +15,9 @@ type QuestionPaneProps = {
   onNext?: () => void;
   /** Mirrors ChapterWorkspace's own Validate-button state (same shape as
    * sandbox/page.tsx) so this progress line reflects the last run without
-   * re-running anything itself — actual chapter-scoped rule filtering
-   * (validationRuleIds) is Step 3 in NEXT_STEPS.md, not this phase. */
+   * re-running anything itself. ChapterWorkspace now scopes the actual run
+   * to the open chapter's own validationRuleIds (NEXT_STEPS.md Step 3, done
+   * — see runValidation call site), not the full global registry. */
   violations: ValidationViolation[] | null;
   isStale: boolean;
 };

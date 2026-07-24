@@ -35,7 +35,11 @@ the differentiating product (chapters), not more sandbox polish.
    append a catch-up entry, and log after every step below.
 4. Run `graphify update .` after each step lands (hooks exist, but verify freshness).
 
-## Step 1 — Correctness & security quick fixes (pending.md P1/P2, ~1 day)
+## Step 1 — Correctness & security quick fixes (pending.md P1/P2, ~1 day) — done
+
+Confirmed 2026-07-24: all six items below are already implemented in the current code
+(not reflected here until now — nothing had checked this doc against reality since it
+was written).
 
 Order of attack per pending.md §"Suggested order":
 
@@ -53,7 +57,11 @@ Order of attack per pending.md §"Suggested order":
 6. **Allowlist case normalization** in `src/auth/beta-allowlist.ts` (tiny; must exist
    before Step 8 wires Clerk).
 
-## Step 2 — UI Overhaul Part 2 (approved spec, phases in its own order)
+## Step 2 — UI Overhaul Part 2 (approved spec, phases in its own order) — done
+
+All six phases landed (confirmed via git log through commit `9a739e3`), followed by two
+`/impeccable critique` rounds and fix passes. See `.claude/PROGRESS_LOG.md`'s 2026-07-24
+entries.
 
 Implement `.claude/docs/UI_OVERHAUL_PART2_SPEC.md` exactly, Phases 1–6, each
 independently shippable with its quality gates:
@@ -75,22 +83,36 @@ independently shippable with its quality gates:
 6. Phase 6 — enable the Building Blocks / RWE cards on Home; update `DESIGN.md`;
    log progress entries after Phases 3 and 5 per the spec.
 
-## Step 3 — Milestone 5: stronger validation agent
+## Step 3 — Milestone 5: stronger validation agent — done (2026-07-24)
 
-Must land before real chapter content (milestone ordering rationale: chapter pass/fail
-= "zero error violations", so the engine's blind spots become every chapter's blind
-spots).
+Was already far more complete than this doc reflected (see
+`.claude/docs/validation_agent_design.md`, "Track 1 — done"): the registry grew from 1
+rule to 10, and the flat category-matrix approach was superseded by components
+declaring their own `relations` contracts (`component-relations.ts`), which closes
+category-adjacency, direction, and edge-kind checks in one mechanism instead of three
+separate rules. Closed out this round:
 
-1. Broaden structural rule coverage: orphan/disconnected-component check,
-   category-adjacency sanity, edge-kind-agnostic versions of existing topology checks
-   (only `orphan-read-replica` keeps a kind-specific requirement).
-2. Verify the reported failure mode no longer reproduces: a visibly nonsensical graph
-   (disconnected Cron/CDN, Browser→Leader, kind-dodging edges) must report violations.
-3. **Defer** the LLM-assisted validation pass until after auth (Step 8) — cost caps
-   before shipping, per MILESTONES.md; keep it on the backlog (Step 10).
-4. Re-check the chapter-mode validation posture flagged in pending.md: validation is
-   manual-button-only today; decide whether chapter mode needs proactive re-validation
-   so "explanations always shown on failure" actually bites.
+1. ~~Broaden structural rule coverage~~ — done via `component-relations.ts`'s
+   per-component contracts (see design doc §2); `orphan-read-replica` keeping a
+   kind-specific requirement is intentional (a Read Replica needs a *replication* edge
+   specifically), not a gap.
+2. ~~Verify the reported failure mode~~ — done: `src/validation-engine/nonsensical-graph.test.ts`
+   (new) runs the full `ruleRegistry` against one graph combining disconnected Cron/CDN
+   orphans, a Browser→Leader category violation, and a kind-dodging edge (right
+   category, wrong `EdgeKind`) — all three shapes caught, plus every violation carries a
+   non-empty message and explanation.
+3. **Still deferred**, unchanged: LLM-assisted validation pass waits for auth (Step 8);
+   see design doc §4 for the full design (also blocked independently on Gemini
+   billing/access).
+4. Resolved: chapter mode stays manual-validate, matching Sandbox's own explicit
+   design call (live validation was tried and reverted in 2026-07-13 for being noisy).
+   "Explanations always shown on failure" already holds — `ValidationIndicator`
+   surfaces every violation's message+explanation unconditionally on click. The actual
+   gap found and fixed here: `ChapterWorkspace.tsx` was validating against the full
+   global `ruleRegistry` instead of the open chapter's own `validationRuleIds`
+   (`getRules(...)`, matching the engine's own documented contract) — a chapter could
+   fail on rules unrelated to what it teaches. Placeholder chapters intentionally keep
+   `validationRuleIds: []` (nothing to scope to yet); real scoping lands with Step 5.
 
 ## Step 4 — UX fixes on the new layout (critique P1s/P2s not covered by Step 2)
 
