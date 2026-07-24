@@ -9,20 +9,21 @@ import { categorySectionId, DECORATION_SECTION_ID } from "./ComponentPickerResul
  * category's section instead of hand-scrolling through the whole registry.
  * Purely a navigation aid: it doesn't filter, select, or participate in the
  * flat keyboard-nav array search/arrows/Enter already cover. Decoration is
- * listed first, matching ComponentPickerResults' render order.
+ * listed first, matching ComponentPickerResults' render order. `onJump`
+ * (owned by ComponentPicker.tsx) also expands the target category first if
+ * it's currently collapsed — jumping to a collapsed category must reveal
+ * it, not scroll to an empty spot.
  */
 export function ComponentPickerCategoryNav({
   categories,
   hasDecoration,
+  onJump,
 }: {
   categories: ComponentCategory[];
   hasDecoration: boolean;
+  onJump: (sectionId: string, category?: ComponentCategory) => void;
 }) {
   if (!hasDecoration && categories.length === 0) return null;
-
-  const jumpTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ block: "start" });
-  };
 
   return (
     <nav
@@ -32,7 +33,7 @@ export function ComponentPickerCategoryNav({
       {hasDecoration && (
         <button
           type="button"
-          onClick={() => jumpTo(DECORATION_SECTION_ID)}
+          onClick={() => onJump(DECORATION_SECTION_ID)}
           title="Decoration"
           className="block w-full rounded px-2 py-1 text-left text-xs leading-tight text-foreground/70 hover:bg-border hover:text-foreground"
         >
@@ -43,7 +44,7 @@ export function ComponentPickerCategoryNav({
         <button
           key={category}
           type="button"
-          onClick={() => jumpTo(categorySectionId(category))}
+          onClick={() => onJump(categorySectionId(category), category)}
           title={categoryLabel[category]}
           className="block w-full rounded px-2 py-1 text-left text-xs leading-tight text-foreground/70 hover:bg-border hover:text-foreground"
         >

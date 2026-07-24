@@ -1,6 +1,7 @@
 "use client";
 
-import type { ComponentDefinition } from "@/content/components/types";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import type { ComponentCategory, ComponentDefinition } from "@/content/components/types";
 import { categoryLabel } from "./category-colors";
 import type { ComponentGroup } from "./component-search";
 import { ComponentPickerRow } from "./ComponentPickerRow";
@@ -23,6 +24,8 @@ export function ComponentPickerResults({
   query,
   flatCount,
   groups,
+  collapsedCategories,
+  onToggleCategory,
   customIds,
   componentIndex,
   activeIndex,
@@ -37,6 +40,12 @@ export function ComponentPickerResults({
   query: string;
   flatCount: number;
   groups: ComponentGroup[];
+  /** Display-only — never affects which components are in `groups` or the
+   * flat keyboard-nav index; a collapsed category's items still exist, they
+   * just don't render until expanded (by this toggle, the category-jump
+   * rail, or arrow-key navigation reaching one, see ComponentPicker.tsx). */
+  collapsedCategories: Set<ComponentCategory>;
+  onToggleCategory: (category: ComponentCategory) => void;
   customIds: Set<string>;
   componentIndex: Map<string, number>;
   activeIndex: number;
@@ -65,33 +74,45 @@ export function ComponentPickerResults({
         />
       </div>
 
-      {groups.map(({ category, items }) => (
-        <div key={category} id={categorySectionId(category)}>
-          <h3 className="px-0.5 text-[11px] font-semibold uppercase tracking-wide text-foreground/70">
-            {categoryLabel[category]}
-          </h3>
-          <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-3">
-            {items.map((definition) => {
-              const isCustom = customIds.has(definition.id);
-              const index = componentIndex.get(definition.id) ?? -1;
-              return (
-                <ComponentPickerRow
-                  key={definition.id}
-                  id={`picker-item-${definition.id}`}
-                  definition={definition}
-                  active={index === activeIndex}
-                  isCustom={isCustom}
-                  onSelect={() => onSelectComponent(definition)}
-                  onActivate={() => onActivate(index)}
-                  onEdit={isCustom ? () => onEditCustom(definition) : undefined}
-                  onDelete={isCustom ? (event) => onDeleteCustom(definition, event) : undefined}
-                  ref={(el) => registerRef(definition.id, el)}
-                />
-              );
-            })}
+      {groups.map(({ category, items }) => {
+        const expanded = !collapsedCategories.has(category);
+        return (
+          <div key={category} id={categorySectionId(category)}>
+            <button
+              type="button"
+              onClick={() => onToggleCategory(category)}
+              aria-expanded={expanded}
+              className="flex w-full items-center gap-1 px-0.5 text-[11px] font-semibold tracking-wide text-foreground/70 uppercase hover:text-foreground"
+            >
+              {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+              {categoryLabel[category]}
+              <span className="font-normal normal-case text-foreground/40">({items.length})</span>
+            </button>
+            {expanded && (
+              <div className="mt-2 grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-3">
+                {items.map((definition) => {
+                  const isCustom = customIds.has(definition.id);
+                  const index = componentIndex.get(definition.id) ?? -1;
+                  return (
+                    <ComponentPickerRow
+                      key={definition.id}
+                      id={`picker-item-${definition.id}`}
+                      definition={definition}
+                      active={index === activeIndex}
+                      isCustom={isCustom}
+                      onSelect={() => onSelectComponent(definition)}
+                      onActivate={() => onActivate(index)}
+                      onEdit={isCustom ? () => onEditCustom(definition) : undefined}
+                      onDelete={isCustom ? (event) => onDeleteCustom(definition, event) : undefined}
+                      ref={(el) => registerRef(definition.id, el)}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </>
   );
 }

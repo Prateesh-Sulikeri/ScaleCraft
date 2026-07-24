@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Flag, MessageSquare, Plus, Search, SquareDashedBottom } from "lucide-react";
 import { componentRegistry } from "@/content/components/registry";
 import { toComponentDefinition, type CustomComponentRecord } from "@/content/components/custom";
-import type { ComponentDefinition } from "@/content/components/types";
+import type { ComponentCategory, ComponentDefinition } from "@/content/components/types";
 import { db } from "@/persistence/db";
 import { filterAndGroupComponents } from "./component-search";
 import { useCanvasStore } from "./store";
@@ -14,6 +14,20 @@ import { ComponentPickerResults } from "./ComponentPickerResults";
 import { ComponentPickerCategoryNav } from "./ComponentPickerCategoryNav";
 import { DeleteConfirmPopover } from "./DeleteConfirmPopover";
 import { CreateComponentModal } from "./CreateComponentModal";
+
+// Collapsed by default on a fresh, unfiltered open — Networking + Compute
+// (the two most fundamental categories) stay expanded, the rest start
+// collapsed so the default view isn't the full ~25-component registry at
+// once (2026-07-24 critique). Never applied while searching (see
+// `effectiveCollapsed` below) and never hides Tools/Decoration, which is a
+// small fixed set outside this scheme entirely.
+const DEFAULT_COLLAPSED_CATEGORIES: ComponentCategory[] = [
+  "data",
+  "caching",
+  "messaging",
+  "distributed-systems",
+];
+const EMPTY_COLLAPSED: Set<ComponentCategory> = new Set();
 
 /**
  * Centered command-palette-style dialog — the app's one component-insertion
@@ -38,6 +52,9 @@ export function ComponentPicker() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lastQuery, setLastQuery] = useState(query);
   const [wasOpen, setWasOpen] = useState(false);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<ComponentCategory>>(
+    () => new Set(DEFAULT_COLLAPSED_CATEGORIES),
+  );
   const [modal, setModal] = useState<{ mode: "create" } | { mode: "edit"; record: CustomComponentRecord } | null>(
     null,
   );
@@ -70,6 +87,17 @@ export function ComponentPicker() {
     [allComponents, query, availableComponentIds],
   );
   const flatComponentItems = useMemo(() => groups.flatMap((g) => g.items), [groups]);
+  // Aligned 1:1 with flatComponentItems (both derived from the same groups
+  // traversal order) — lets the auto-expand-on-navigate logic below look up
+  // which category a given flat index belongs to.
+  const flatComponentCategories = useMemo(
+    () => groups.flatMap((g) => g.items.map(() => g.category)),
+    [groups],
+  );
+  // Collapsing is a display-only affordance, never a filter — searching
+  // always shows every match regardless of collapse state, or a query that
+  // only matches inside a collapsed category would silently look empty.
+  const effectiveCollapsed = query.trim() ? EMPTY_COLLAPSED : collapsedCategories;
 
   const close = () => {
     closeComponentPicker();
@@ -149,6 +177,32 @@ export function ComponentPicker() {
 
   const flatCount = flatComponentItems.length + filteredTools.length;
 
+  const toggleCategory = (category: ComponentCategory) => {
+    setCollapsedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  };
+
+  // The category-jump rail must work on a collapsed category too — expand
+  // it, then scroll on the next frame so the section has actually mounted
+  // by the time scrollIntoView runs (expanding and scrolling in the same
+  // tick would target a section not yet in the DOM).
+  const jumpToCategory = (sectionId: string, category?: ComponentCategory) => {
+    if (category && collapsedCategories.has(category)) {
+      setCollapsedCategories((prev) => {
+        const next = new Set(prev);
+        next.delete(category);
+        return next;
+      });
+    }
+    requestAnimationFrame(() => {
+      document.getElementById(sectionId)?.scrollIntoView({ block: "start" });
+    });
+  };
+
   // Adjusting state during render (React's recommended pattern for
   // "reset state when a value changes") rather than an effect for both
   // resets below — a fresh open/search should show its reset state on the
@@ -159,11 +213,29 @@ export function ComponentPicker() {
       setQuery("");
       setLastQuery("");
       setActiveIndex(0);
+      setCollapsedCategories(new Set(DEFAULT_COLLAPSED_CATEGORIES));
     }
   }
   if (query !== lastQuery) {
     setLastQuery(query);
     setActiveIndex(0);
+  }
+
+  // Arrow-key navigation must reach every component regardless of collapse
+  // state (collapsing is display-only, see effectiveCollapsed above) — so
+  // if the active index lands on an item inside a still-collapsed category,
+  // expand it in this same render pass rather than one render later, or the
+  // highlighted item briefly has no rendered element to scroll to.
+  if (!query.trim()) {
+    const activeCategory =
+      activeIndex >= filteredTools.length
+        ? flatComponentCategories[activeIndex - filteredTools.length]
+        : undefined;
+    if (activeCategory && collapsedCategories.has(activeCategory)) {
+      const next = new Set(collapsedCategories);
+      next.delete(activeCategory);
+      setCollapsedCategories(next);
+    }
   }
 
   useEffect(() => {
@@ -309,6 +381,7 @@ export function ComponentPicker() {
                   <ComponentPickerCategoryNav
                     categories={groups.map((g) => g.category)}
                     hasDecoration={filteredTools.length > 0}
+                    onJump={jumpToCategory}
                   />
                   <div
                     id="component-picker-listbox"
@@ -320,6 +393,8 @@ export function ComponentPicker() {
                       query={query}
                       flatCount={flatCount}
                       groups={groups}
+                      collapsedCategories={effectiveCollapsed}
+                      onToggleCategory={toggleCategory}
                       customIds={customIds}
                       componentIndex={componentIndex}
                       activeIndex={activeIndex}
