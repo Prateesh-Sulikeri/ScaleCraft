@@ -283,6 +283,15 @@ type CanvasStore = {
    * never needs. */
   pendingComponentPlacement: ComponentDefinition | null;
   setPendingComponentPlacement: (definition: ComponentDefinition | null) => void;
+  /** Chapter-mode component filter, read by ComponentPicker via
+   * filterAndGroupComponents's third argument. `null` = no restriction
+   * (Sandbox never sets this). Set by ChapterWorkspace on mount from the
+   * active ChapterDefinition.availableComponentIds and reset to `null` on
+   * unmount — the store itself stays chapter-ignorant beyond holding this
+   * one field, per CLAUDE.md's "never fork a component per chapter" rule:
+   * chapters filter the shared registry, they don't get their own. */
+  availableComponentIds: string[] | null;
+  setAvailableComponentIds: (ids: string[] | null) => void;
   /** Drives the Phase 4 "Highlight Connections"/"Highlight Zone"
    * context-menu actions — Canvas.tsx derives the highlighted node/edge id
    * sets from this each render and dims everything else via node/edge
@@ -425,6 +434,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   configPopover: null,
   componentPicker: false,
   pendingComponentPlacement: null,
+  availableComponentIds: null,
   pendingUndo: null,
   past: [],
   future: [],
@@ -619,6 +629,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   closeComponentPicker: () => set({ componentPicker: false }),
 
   setPendingComponentPlacement: (definition) => set({ pendingComponentPlacement: definition }),
+
+  setAvailableComponentIds: (ids) => set({ availableComponentIds: ids }),
 
   setHighlight: (highlight) => set({ highlight }),
   clearHighlight: () => set({ highlight: null }),

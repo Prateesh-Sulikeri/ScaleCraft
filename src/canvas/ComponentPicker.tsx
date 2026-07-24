@@ -28,6 +28,7 @@ export function ComponentPicker() {
   const closeComponentPicker = useCanvasStore((s) => s.closeComponentPicker);
   const setPendingComponentPlacement = useCanvasStore((s) => s.setPendingComponentPlacement);
   const customComponents = useCanvasStore((s) => s.customComponents);
+  const availableComponentIds = useCanvasStore((s) => s.availableComponentIds);
   const upsertCustomComponent = useCanvasStore((s) => s.upsertCustomComponent);
   const deleteCustomComponent = useCanvasStore((s) => s.deleteCustomComponent);
   const nodes = useCanvasStore((s) => s.nodes);
@@ -64,7 +65,10 @@ export function ComponentPicker() {
     return counts;
   }, [nodes]);
 
-  const groups = useMemo(() => filterAndGroupComponents(allComponents, query), [allComponents, query]);
+  const groups = useMemo(
+    () => filterAndGroupComponents(allComponents, query, availableComponentIds),
+    [allComponents, query, availableComponentIds],
+  );
   const flatComponentItems = useMemo(() => groups.flatMap((g) => g.items), [groups]);
 
   const close = () => {

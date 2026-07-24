@@ -15,6 +15,16 @@ export type Hint = {
 export type ChapterDefinition = {
   id: string;
   mode: "building-blocks" | "real-world-extraction";
+  /** Short display name for the Chapter List row — distinct from
+   * problemStatement, which is the long-form prose shown in the Question
+   * Pane once selected. */
+  title: string;
+  /** Optional one-level nesting for the Chapter List (see
+   * .claude/docs/UI_OVERHAUL_PART2_SPEC.md §2.1) — chapters sharing a
+   * `group` render under one expandable/collapsible section; chapters with
+   * no group (or when no chapter in the mode declares one) render as a
+   * flat list. */
+  group?: string;
   problemStatement: string;
   learningObjectives: string[];
   availableComponentIds: string[];
