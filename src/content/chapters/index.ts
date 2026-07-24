@@ -14,6 +14,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     id: "bb-dummy-1",
     mode: "building-blocks",
     title: "Placeholder Chapter",
+    placeholder: true,
     problemStatement:
       "This is placeholder content for the first Building Blocks chapter — " +
       "real lesson content (starting with load balancing, per CURRICULUM.md) " +
@@ -35,6 +36,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     id: "rwe-dummy-1",
     mode: "real-world-extraction",
     title: "Placeholder Project",
+    placeholder: true,
     problemStatement:
       "This is placeholder content for the first Real World Extraction project " +
       "(bit.ly, per CURRICULUM.md's RWE-1) — real content lands in a later step. " +

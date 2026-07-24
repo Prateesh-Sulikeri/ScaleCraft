@@ -13,18 +13,26 @@ type ChapterListProps = {
  * View 1 of ChapterSidebar. Chapters sharing a `group` render under one
  * expandable/collapsible section; with no `group` declared anywhere in
  * `chapters` (today's dummy content, see src/content/chapters/index.ts),
- * renders as a flat list.
+ * renders as a flat list. Placeholder chapters (ChapterDefinition.placeholder)
+ * render muted with a "Draft" badge, and a caption below the whole list
+ * flags that more real content is coming — without this, a single dummy
+ * entry reads as finished curriculum, indistinguishable from a bug (see the
+ * 2026-07-24 critique's P1 finding).
  */
 export function ChapterList({ chapters, onSelect }: ChapterListProps) {
   const hasGroups = chapters.some((c) => c.group);
+  const hasPlaceholder = chapters.some((c) => c.placeholder);
 
   if (!hasGroups) {
     return (
-      <ul className="flex flex-col gap-1 p-3">
-        {chapters.map((c) => (
-          <ChapterRow key={c.id} chapter={c} onSelect={onSelect} />
-        ))}
-      </ul>
+      <div className="flex flex-col gap-1 p-3">
+        <ul className="flex flex-col gap-1">
+          {chapters.map((c) => (
+            <ChapterRow key={c.id} chapter={c} onSelect={onSelect} />
+          ))}
+        </ul>
+        {hasPlaceholder && <PlaceholderCaption />}
+      </div>
     );
   }
 
@@ -49,7 +57,16 @@ export function ChapterList({ chapters, onSelect }: ChapterListProps) {
           onSelect={onSelect}
         />
       ))}
+      {hasPlaceholder && <PlaceholderCaption />}
     </div>
+  );
+}
+
+function PlaceholderCaption() {
+  return (
+    <p className="px-2.5 pt-2 text-xs text-foreground/50">
+      Placeholder content — real chapters are coming soon.
+    </p>
   );
 }
 
@@ -91,9 +108,16 @@ function ChapterRow({ chapter, onSelect }: { chapter: ChapterDefinition; onSelec
       <button
         type="button"
         onClick={() => onSelect(chapter.id)}
-        className="w-full rounded-md border border-transparent px-2.5 py-2 text-left text-sm hover:border-border hover:bg-border/40"
+        className={`flex w-full items-center gap-2 rounded-md border border-transparent px-2.5 py-2 text-left text-sm hover:border-border hover:bg-border/40 ${
+          chapter.placeholder ? "text-foreground/60" : ""
+        }`}
       >
-        {chapter.title}
+        <span className="truncate">{chapter.title}</span>
+        {chapter.placeholder && (
+          <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">
+            Draft
+          </span>
+        )}
       </button>
     </li>
   );

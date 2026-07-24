@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Redo2, Undo2 } from "lucide-react";
+import { BookOpen, Redo2, Undo2, X } from "lucide-react";
 import { Canvas } from "@/canvas/Canvas";
 import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
@@ -73,9 +73,15 @@ export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
   const toggleDocsPanel = useCanvasStore((s) => s.toggleDocsPanel);
   const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
 
-  // No chapter persistence yet (milestone 9) — Ctrl+S is a no-op rather
-  // than silently writing to the Sandbox save slot.
-  useCanvasShortcuts(() => {});
+  // No chapter persistence yet (milestone 9) — Ctrl+S doesn't write
+  // anywhere, but it must say so rather than silently doing nothing (the
+  // 2026-07-24 critique's P2 finding: a user hitting Ctrl+S out of Sandbox
+  // muscle memory got zero feedback either way). Keyed by timestamp, same
+  // pattern as UndoToast, so pressing Ctrl+S again while the notice is
+  // still visible replays it instead of being swallowed by React bailing
+  // out of an unchanged-value state update.
+  const [saveNoticeAt, setSaveNoticeAt] = useState<number | null>(null);
+  useCanvasShortcuts(() => setSaveNoticeAt(Date.now()));
 
   const [violations, setViolations] = useState<ValidationViolation[] | null>(null);
   const [checkedGraphKey, setCheckedGraphKey] = useState<string | null>(null);
@@ -204,7 +210,28 @@ export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
         {docsPanelOpen && <DocsPanel />}
       </main>
 
+      {saveNoticeAt && <SaveNotice key={saveNoticeAt} onDismiss={() => setSaveNoticeAt(null)} />}
       <UndoToast />
     </PageEnter>
+  );
+}
+
+/** Tells the user Ctrl+S did nothing on purpose, not silently — see the
+ * comment above `saveNoticeAt`. Same fixed-bottom-center chrome as
+ * UndoToast, no undo action (there's nothing to undo). */
+function SaveNotice({ onDismiss }: { onDismiss: () => void }) {
+  useEffect(() => {
+    const timeout = setTimeout(onDismiss, 3000);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="fixed bottom-4 left-1/2 z-[var(--z-toast)] flex -translate-x-1/2 items-center gap-3 rounded-md border border-border bg-panel px-4 py-2.5 text-sm shadow-lg">
+      <span>Chapter progress isn&apos;t saved yet — this lands with real persistence.</span>
+      <button onClick={onDismiss} aria-label="Dismiss" className="text-foreground/40 hover:text-foreground">
+        <X size={14} />
+      </button>
+    </div>
   );
 }

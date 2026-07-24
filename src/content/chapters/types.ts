@@ -25,6 +25,12 @@ export type ChapterDefinition = {
    * no group (or when no chapter in the mode declares one) render as a
    * flat list. */
   group?: string;
+  /** True for throwaway/dummy content authored only to exercise the chapter
+   * shell (see Phase 5 of .claude/docs/UI_OVERHAUL_PART2_SPEC.md) —
+   * ChapterList visually mutes these rows and appends a "more coming soon"
+   * caption so they never read as finished curriculum. Omit (or false) for
+   * real chapters. */
+  placeholder?: boolean;
   problemStatement: string;
   learningObjectives: string[];
   availableComponentIds: string[];
