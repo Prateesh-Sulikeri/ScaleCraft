@@ -194,6 +194,12 @@ A small floating, draggable, resizable, minimizable window — not a full-screen
 ### Zone (signature component)
 A labeled, resizable grouping rectangle for visually clustering related nodes. Border is an animated dashed outline (`stroke-dasharray` + a moving dash offset) in zone-magenta, reusing the exact same keyframe the system already uses for animated request-flow edges — the zone reads as "part of the same live system" as everything else in motion, not a one-off effect invented for this one element. The animation is permanent, not a creation flourish; dragging a *new* zone into place shows a plain, unanimated dashed preview rectangle, and only the settled result is animated.
 
+### Component Picker (signature component)
+A centered, command-palette-style dialog (`src/canvas/ComponentPicker.tsx`) — the app's single component-insertion surface in Sandbox, replacing the old permanent Palette sidebar entirely. Reachable via `/` (anywhere outside a text field) or right-click on empty canvas. `~640px` wide, `max-h-[70vh]` with the results list scrolling internally, raised-panel background, hairline border, 6px radius, `floating-menu` shadow — the same visual language as every other dropdown/context menu, just centered and modal instead of anchored to a trigger. A search input (auto-focused on open) filters built-in and custom components by label/summary; results group by category behind a left-hand category-jump rail. It is the system's first true keyboard-navigable listbox (`role="listbox"`, `aria-activedescendant`): ArrowUp/Down and Home/End move one flat active index across the results (category grouping is visual only, not a separate keyboard stop), Enter inserts, Esc or a backdrop click closes. A trailing Tools row (Add zone / Add comment / Add flag / New component) replaces the old palette toolbar one-for-one, keyboard-reachable for the first time. Selecting a component arms a click-to-place cursor rather than inserting at a guessed position — the user always confirms the exact landing spot with a real click on the canvas.
+
+### Chapter Sidebar (signature component)
+Building Blocks and Real World Extraction's left panel (`src/chapters/ChapterSidebar.tsx`) — the one place left in the app with a permanent sidebar; Sandbox has none (see Component Picker above). Reuses `SidebarShell`'s chrome exactly: collapses to a 40px icon strip, 220–480px drag-resize, the same width-transition + opacity-fade pattern the old QuestionPanel established. The content slot switches between two views: a flat-or-grouped **Chapter List**, and, once a chapter is selected, a **Question Pane** — problem statement (rendered as Markdown), learning objectives, a required-components progress line, prev/next/back navigation, and hints. Hints render as individually-collapsed "Show hint" disclosures, never pre-expanded — the same never-auto-surfaced posture the system already applies to validation explanations, just covering a chapter's own scaffolding instead of a rule failure.
+
 ## 6. Accessibility
 
 ScaleCraft's design must be navigable by all users, regardless of ability. These are non-negotiable requirements, not "nice-to-haves."
@@ -276,6 +282,7 @@ Make them discoverable without reading docs:
 - **Do** require explicit confirmation (modal, toast with undo, or confirmation dialog) before destructive actions (delete node, delete edge, clear canvas).
 - **Do** add visible ARIA labels to every icon-only button; make tooltip text a supplement, not the source of truth.
 - **Do** pair validation state colors with a secondary visual signal (outline pattern, glyph) so colorblind users can distinguish error from warning.
+- **Do** keep chapter hints collapsed behind a deliberate per-hint reveal click (see Chapter Sidebar) — the same never-auto-surfaced posture already required of validation explanations, applied to hints too.
 
 ### Don't:
 - **Don't** add idle animation, gamified particle effects, or celebratory confetti-style success states — direct language from the system's own design brief: "ScaleCraft is not intended to be a game."
