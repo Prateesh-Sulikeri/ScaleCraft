@@ -51,7 +51,7 @@
    * 4.5:1 contrast against both panel backgrounds at once — verified with
    * a WCAG contrast check, not eyeballed. */
   --mode-sandbox: #06b6d4;
-  --mode-building-blocks: #f97316;
+  --mode-building-blocks: #0D9488;
   --mode-real-world-extraction: #818cf8;
 }
 
@@ -107,7 +107,7 @@
   --edge-async: #a21caf;
 
   --mode-sandbox: #0e7490;
-  --mode-building-blocks: #c2410c;
+  --mode-building-blocks: #0F766E;
   --mode-real-world-extraction: #4338ca;
 }
 

@@ -28,9 +28,9 @@ const nodeTypes = { mode: ModeNode, title: HomeTitleNode };
 
 const MODE_NODE_WIDTH = 260;
 const MODE_ROW = [
-  { id: "sandbox" as const, x: 0 },
-  { id: "building-blocks" as const, x: 320 },
-  { id: "real-world-extraction" as const, x: 640 },
+  { id: "building-blocks" as const, x: 0 },
+  { id: "real-world-extraction" as const, x: 320 },
+  { id: "sandbox" as const, x: 640 },
 ];
 const MODE_ROW_CENTER_X = (MODE_ROW[MODE_ROW.length - 1].x + MODE_NODE_WIDTH) / 2;
 
