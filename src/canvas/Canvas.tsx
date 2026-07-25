@@ -622,7 +622,10 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
       >
         <Background />
-        <Controls />
+        {/* bottom-right, not xyflow's bottom-left default — that corner is
+         * reserved app-wide for the persistent Release Notes button (see
+         * ReleaseNotesButton.tsx, mounted in the root layout). */}
+        <Controls position="bottom-right" />
       </ReactFlow>
       <EdgeInspector />
       <ContextMenu target={menu} onClose={() => setMenu(null)} centerOnNode={centerOnNode} />
