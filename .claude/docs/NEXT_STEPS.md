@@ -1,12 +1,22 @@
 # NEXT STEPS — everything pending, in execution order
 
-Compiled 2026-07-22 from every doc that tracks open work: `.claude/docs/MILESTONES.md`,
-`.claude/docs/pending.md` (code review 2026-07-21), `.claude/docs/user_exp.md` +
-`.claude/docs/CRITIQUE.md` (UX walkthrough 2026-07-22),
-`.claude/docs/UI_OVERHAUL_PART2_SPEC.md` (approved, not implemented),
-`.claude/docs/OPEN_QUESTIONS.md`, `.claude/docs/CURRICULUM.md`, and
-`.claude/PROGRESS_LOG.md` loose ends. Work top to bottom; items inside a step are also
-ordered. Check items off / delete them here as they land.
+Compiled 2026-07-22 from every doc that tracked open work at the time:
+`.claude/docs/MILESTONES.md`, `.claude/docs/pending.md` (then a code-review backlog,
+2026-07-21 — pending.md has since been pruned into a lighter session-task list, so its
+old P0/P1/P2 content no longer lives there; the items are preserved below instead),
+`.claude/docs/CRITIQUE.md` (UX walkthrough 2026-07-22; `user_exp.md`, the working copy of
+that walkthrough, has since been deleted as a redundant duplicate of the permanent
+`.impeccable/critique/` archive — see CRITIQUE.md for the current state),
+`.claude/docs/UI_OVERHAUL_PART2_SPEC.md` (approved, not implemented at the time — now
+fully shipped and deleted, see Step 2), `.claude/docs/OPEN_QUESTIONS.md`,
+`.claude/docs/CURRICULUM.md`, and `.claude/PROGRESS_LOG.md` loose ends. Work top to
+bottom; items inside a step are also ordered. Check items off / delete them here as they
+land.
+
+**Status as of 2026-07-26 (docs cleanup pass):** Steps 0–3 verified done in code (see
+each step's own status line). Step 4 is partially done — see its status line for the
+breakdown. Steps 5–10 and the backlog are unchanged/not started; `src/content/chapters/`
+still holds only placeholder `ChapterDefinition`s.
 
 **Why this order:** small correctness fixes first (cheap, and everything after builds on
 them) → the approved UI overhaul next (it *deletes* the Palette and QuestionPanel, so
@@ -19,21 +29,16 @@ the differentiating product (chapters), not more sandbox polish.
 
 ---
 
-## Step 0 — Repo & process housekeeping (do first, < 1 hour)
+## Step 0 — Repo & process housekeeping (do first, < 1 hour) — done
 
-1. Resolve the uncommitted working-tree churn on `development`: the deletions of
-   `.claude/docs/ScaleCraft_UI_Overhaul_Specification.md` and root `AGENTS.md`, and the
-   untracked `.claude/docs/AGENTS.md`, `.claude/docs/UI_OVERHAUL_PART2_SPEC.md`,
-   `.claude/docs/user_exp.md`, `.impeccable/critique/2026-07-22T…walkthrough.md` —
-   commit the doc moves/additions on a branch so the approved spec is actually in git
-   history before anyone implements from it.
-2. User merges the pushed, unmerged branches when satisfied:
-   `fix/flows-workflow-tests` (P0 CI fix — merge first),
-   `docs/curriculum-design` (CURRICULUM.md + this file).
-3. Revive the `PROGRESS_LOG.md` convention (pending.md flags it lapsed since
-   2026-07-15 while ~10 significant commits landed): spawn the logging subagent to
-   append a catch-up entry, and log after every step below.
-4. Run `graphify update .` after each step lands (hooks exist, but verify freshness).
+1. ~~Resolve the uncommitted working-tree churn~~ — done: the doc moves/additions landed
+   in commit `c02f41f`.
+2. ~~User merges the pushed, unmerged branches~~ — done: `fix/flows-workflow-tests` and
+   `docs/curriculum-design` no longer exist as branches (merged and cleaned up).
+3. Revive the `PROGRESS_LOG.md` convention — ongoing discipline, not a one-time task;
+   keep logging after significant sessions per `CLAUDE.md`.
+4. Run `graphify update .` after each step lands (hooks exist, but verify freshness) —
+   ongoing, same as above.
 
 ## Step 1 — Correctness & security quick fixes (pending.md P1/P2, ~1 day) — done
 
@@ -114,7 +119,20 @@ separate rules. Closed out this round:
    fail on rules unrelated to what it teaches. Placeholder chapters intentionally keep
    `validationRuleIds: []` (nothing to scope to yet); real scoping lands with Step 5.
 
-## Step 4 — UX fixes on the new layout (critique P1s/P2s not covered by Step 2)
+## Step 4 — UX fixes on the new layout (critique P1s/P2s not covered by Step 2) — partial
+
+**Status as of 2026-07-26** (per `.claude/docs/CRITIQUE.md`'s latest round, 33/40):
+item 6 (z-index/tooltip token sweep) is **done** — verified no raw `z-50`/`z-20`/`z-30`/
+`z-40` remain in `src/`, all migrated to the `--z-*` tokens, and only one `Tooltip.tsx`
+implementation exists. A separate, narrower `/impeccable clarify`/`polish`/`distill`
+round also landed on the Component Picker specifically (Draft badge on placeholder
+chapters, Ctrl+S toast, category-rail truncation fix, default-collapsed categories) —
+that work wasn't originally scoped here but overlaps items 3–4 below. Items 1, 2, and
+most of 3/4/5 are **still open** — onboarding/legend, loss guardrails (Clear-board
+confirm, dirty-dot, nav guard), stale-validation-results dimming, edge arrowheads, and
+Project/Board menu naming all remain unfixed per the latest critique. The Component
+Picker round also introduced one small regression (a keyboard-focus issue on the new
+category-toggle buttons) — see CRITIQUE.md's "New Priority Issue".
 
 Apply the 2026-07-22 walkthrough's recommended sequence, minus what Steps 1–2 already
 fixed (Esc, insertion discoverability):

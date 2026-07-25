@@ -6,18 +6,18 @@ All builds and deployments now require tests to pass. This document outlines the
 
 ## Test Coverage
 
-### Test Suite Composition
-- **Total Tests**: 118
-- **Pre-existing Unit Tests**: 89 (validation rules, store operations, persistence)
-- **Major Flow Tests**: 20 (new workflow integration tests)
-- **Current Pass Rate**: 109/118 (92%)
+### Test Suite Composition (verified 2026-07-26 via `npm test`)
+- **Total Tests**: 129, across 22 files
+- **Unit Tests**: 100 (validation rules, store operations, persistence, components)
+- **Major Flow Tests**: 29 (workflow integration tests, `src/flows/`)
+- **Current Pass Rate**: 129/129 (100%)
 
-### Major Flow Tests Created
+### Major Flow Tests
 
 The following test files cover all critical user workflows:
 
 1. **canvas-workflow.test.ts** (4 tests)
-   - Creating architectures by dragging components
+   - Creating architectures by inserting components via the Component Picker
    - Connecting nodes with edges
    - Deleting nodes and cascading edge cleanup
    - Multi-node operations
@@ -35,13 +35,13 @@ The following test files cover all critical user workflows:
    - Export/import as JSON format
    - Multi-slot saves for future chapters
 
-4. **annotation-workflow.test.ts** (8 tests)
+4. **annotation-workflow.test.ts** (9 tests)
    - Creating and managing zones for grouping
    - Adding and editing comments
    - Placing start markers
    - Ensuring annotations persist through save/load
 
-5. **config-workflow.test.ts** (5 tests)
+5. **config-workflow.test.ts** (7 tests)
    - Opening component inspector
    - Updating configuration values
    - Real-time validation changes
@@ -133,7 +133,7 @@ npm test  # Re-runs on file changes
 │ LOCAL:    npm run build                 │
 │           • TypeScript ✓                │
 │           • ESLint ✓                    │
-│           • Tests (118) ✓               │
+│           • Tests (129) ✓               │
 │           • Build ✓                     │
 ├─────────────────────────────────────────┤
 │ PR:       GitHub Actions CI             │
@@ -155,10 +155,10 @@ GitHub Actions Triggered
     ↓
   ├─ TypeScript Check
   ├─ ESLint Validation
-  ├─ All 118 Tests
-  │  ├─ 89 Unit Tests (validation, store, persistence)
-  │  ├─ 20 Major Flow Tests
-  │  └─ Result: 109 passing
+  ├─ All 129 Tests
+  │  ├─ 100 Unit Tests (validation, store, persistence)
+  │  ├─ 29 Major Flow Tests
+  │  └─ Result: 129 passing
   └─ Next.js Build
     ↓
 All Checks Pass?
@@ -189,8 +189,8 @@ npm test -- --watch
 
 ## Next Steps
 
-- [ ] Increase major flow test coverage to 100% passing
-- [ ] Add E2E tests for complete user workflows
+- [x] Increase major flow test coverage to 100% passing (129/129 as of 2026-07-26)
+- [ ] Add E2E tests for complete user workflows (Playwright, per [[TECH_STACK]])
 - [ ] Set up code coverage tracking (codecov)
 - [ ] Add performance benchmarks
 - [ ] Document test data fixtures for reuse
