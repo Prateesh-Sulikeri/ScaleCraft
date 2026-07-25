@@ -75,18 +75,18 @@ component. Learning complexity comes from composition, not new mechanics.
 
 ## 6. MVP v1 requirements (closed beta)
 
-| # | Requirement | Status (2026-07-21) |
+| # | Requirement | Status (2026-07-26) |
 |---|---|---|
 | 1 | Clerk auth with closed-beta email allowlist | Stubbed, not wired |
 | 2 | Canvas: place, connect, move, delete, configure components | **Done** |
-| 3 | Home / mode-select page with per-chapter progress | Skeleton done; progress static |
-| 4 | Two Building Blocks chapters, end-to-end | Not started |
-| 5 | One Real World Extraction chapter (bit.ly URL shortener) | Not started |
-| 6 | Validation engine with inline highlighting + explanations | Done (10 rules; coverage expanding per milestone 5) |
+| 3 | Home / mode-select page with per-chapter progress | Skeleton done (all 3 mode cards live); progress static |
+| 4 | Two Building Blocks chapters, end-to-end | Shell done (`ChapterWorkspace`, `/building-blocks` route); real chapter content not authored |
+| 5 | One Real World Extraction chapter (bit.ly URL shortener) | Shell done (`/real-world-extraction` route, same shell as above); real chapter content not authored |
+| 6 | Validation engine with inline highlighting + explanations | Done (11 rules; Track 1 of milestone 5's coverage expansion complete, component `relations` contracts) |
 | 7 | Per-component markdown docs, on demand | **Done** (docked docs panel, tabs) |
 | 8 | Sandbox mode with full registry, save/load | **Done** |
 | 9 | Persistence: local-first autosave + cloud sync per user | Manual save + import/export done; autosave and cloud sync pending |
-| 10 | Chapter starter graphs + internal reference solutions | Not started |
+| 10 | Chapter starter graphs + internal reference solutions | Not started (placeholder chapters only) |
 | 11 | Qualitative simulation (animated request token) | Tracer stubbed; no UI |
 
 **Definition of done for v1:** an invited beta user signs in, lands on Home
