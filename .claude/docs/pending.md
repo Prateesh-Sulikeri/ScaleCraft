@@ -12,6 +12,9 @@
 		5. Select a better font for the entire website, that suites both the themes, is not too stylish to read, easy to read & understand, nothing fancy. 
 		6. Each mode has its own canvas, they do not share content from each other (current bug: if I open building blocks there is an empty canvas, if I go to home, open sandbox where I had saved a design, do nothing, come back to home, go to building blocks again. I see the design that was present in sandbox loaded here) this is content leaking between phases. I do not want this
 		7. Expand to have Component, Unit and integration tests which will become part of CI pipeline
+		8. When docs is opened in focus mode and closed the diagram on the canvas gets shrinked (BUG FIX)
+		9. More support to keyboard shortcuts 
+		10. Component picket search bar to enable search by category eg: network should display all available network components 
 	
 	II. Design important modules:
 		1. Use the Fable credits we have to desing the AI validation engine we planned for, in detail
