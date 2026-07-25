@@ -1,26 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { BookOpen, Check, MouseRight, Redo2, Save, Undo2, X } from "lucide-react";
+import { MouseRight, X } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
-import { Tooltip } from "@/app/Tooltip";
 import { UndoToast } from "@/app/UndoToast";
-import { ThemeToggle } from "@/app/ThemeToggle";
-import { ValidationIndicator } from "@/app/ValidationIndicator";
-import { ProjectMenu } from "@/app/ProjectMenu";
-import { BoardMenu } from "@/app/BoardMenu";
-import { ModeBadge } from "@/app/ModeBadge";
+import { AppHeader } from "@/app/AppHeader";
 import { PageEnter } from "@/app/PageEnter";
-import { ShortcutsButton } from "@/app/ShortcutsButton";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
 import { useDismissedFlag } from "@/lib/use-dismissed-flag";
 import { useCanvasStore, toArchitectureGraph, architectureGraphTopologyKey } from "@/canvas/store";
 import type { ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
-import { modeColorVar } from "@/lib/modes";
 import { runValidation } from "@/validation-engine/engine";
 import { ruleRegistry } from "@/validation-engine/rules";
 import type { ValidationViolation } from "@/validation-engine/types";
@@ -172,91 +164,22 @@ export default function SandboxPage() {
       {focusMode ? (
         <FocusModeBar />
       ) : (
-        <header
-          style={{ borderBottomColor: modeColorVar[mode] }}
-          className="flex items-center justify-between border-b-2 px-6 py-3"
-        >
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/"
-              className="flex items-center gap-2.5 opacity-100 transition-opacity hover:opacity-70"
-            >
-              <div
-                aria-hidden="true"
-                style={{
-                  width: 32,
-                  height: 32,
-                  backgroundColor: "var(--foreground)",
-                  WebkitMaskImage: "url(/logo-mask.png)",
-                  maskImage: "url(/logo-mask.png)",
-                  WebkitMaskSize: "contain",
-                  maskSize: "contain",
-                  WebkitMaskRepeat: "no-repeat",
-                  maskRepeat: "no-repeat",
-                }}
-              />
-              <h1 className="text-base font-semibold">ScaleCraft</h1>
-            </Link>
-            <ModeBadge mode={mode} />
-          </div>
-          <div className="flex items-center gap-2">
-            {/* One split button, not two separate ones — bg-panel on the
-             * shared container is what makes this actually match Save/Export/
-             * Board (the prior merged version omitted it and rendered
-             * transparent against the header, which read as "doesn't match"). */}
-            <div className="flex h-8 items-center overflow-hidden rounded-md border border-border bg-panel">
-              <Tooltip label="Undo (Ctrl+Z)">
-                <button
-                  onClick={undo}
-                  disabled={!canUndo}
-                  aria-label="Undo"
-                  className="flex h-full items-center px-2.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-                >
-                  <Undo2 size={14} />
-                </button>
-              </Tooltip>
-              <div className="h-4 w-px bg-border" />
-              <Tooltip label="Redo (Ctrl+Shift+Z)">
-                <button
-                  onClick={redo}
-                  disabled={!canRedo}
-                  aria-label="Redo"
-                  className="flex h-full items-center px-2.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-                >
-                  <Redo2 size={14} />
-                </button>
-              </Tooltip>
-            </div>
-            <ValidationIndicator violations={violations} isStale={isStale} onValidate={handleValidate} />
-            <Tooltip label="Save (Ctrl+S)">
-              <button
-                onClick={handleSave}
-                aria-label="Save"
-                className={`flex h-8 w-8 items-center justify-center rounded-md border bg-panel hover:text-foreground ${
-                  justSaved ? "border-state-valid text-state-valid" : "border-border text-foreground/70"
-                }`}
-              >
-                {justSaved ? <Check size={16} /> : <Save size={16} />}
-              </button>
-            </Tooltip>
-            <ProjectMenu canvasRef={canvasRef} />
-            <BoardMenu />
-            <Tooltip label="Documentation">
-              <button
-                onClick={toggleDocsPanel}
-                aria-label={docsPanelOpen ? "Hide documentation panel" : "Show documentation panel"}
-                aria-pressed={docsPanelOpen}
-                className={`flex h-8 w-8 items-center justify-center rounded-md border border-border hover:text-foreground ${
-                  docsPanelOpen ? "bg-border text-foreground" : "bg-panel text-foreground/70"
-                }`}
-              >
-                <BookOpen size={16} />
-              </button>
-            </Tooltip>
-            <ShortcutsButton />
-            <ThemeToggle />
-          </div>
-        </header>
+        <AppHeader
+          mode={mode}
+          canvasRef={canvasRef}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          violations={violations}
+          isStale={isStale}
+          onValidate={handleValidate}
+          saveId={SANDBOX_SAVE_ID}
+          onSave={handleSave}
+          justSaved={justSaved}
+          docsPanelOpen={docsPanelOpen}
+          toggleDocsPanel={toggleDocsPanel}
+        />
       )}
 
       <main className="flex min-h-0 flex-1 overflow-hidden">

@@ -26,6 +26,13 @@ export type CanvasSave = {
  * MILESTONES.md milestone 8) actually need one. */
 export const SANDBOX_SAVE_ID = "sandbox";
 
+/** Per-chapter save slot (milestone 9 pulled forward for item I.3) — one
+ * attempt per chapter, namespaced so a chapter id can never collide with
+ * SANDBOX_SAVE_ID or another chapter's slot. */
+export function chapterSaveId(chapterId: string): string {
+  return `chapter:${chapterId}`;
+}
+
 export class ScaleCraftDB extends Dexie {
   saves!: EntityTable<CanvasSave, "id">;
   /** User-created components (see CreateComponentModal.tsx /
