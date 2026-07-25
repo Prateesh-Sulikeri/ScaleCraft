@@ -538,6 +538,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       id,
       type: "comment",
       position,
+      zIndex: -1,
       data: { text: "", width, height, color: DEFAULT_COMMENT_COLOR },
     };
     set((state) => ({
@@ -597,6 +598,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       id,
       type: "start",
       position,
+      zIndex: -1,
       data: { label: "", targetId: null, color: DEFAULT_FLAG_COLOR },
     };
     set((state) => ({

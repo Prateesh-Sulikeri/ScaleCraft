@@ -63,7 +63,7 @@ export function ShortcutsButton() {
       {tooltipPos &&
         createPortal(
           <div
-            className="pointer-events-none fixed z-50 -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-panel px-2.5 py-1.5 shadow-lg"
+            className="pointer-events-none fixed z-[var(--z-tooltip)] -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-panel px-2.5 py-1.5 shadow-lg"
             style={{
               top: tooltipPos.top,
               left: tooltipPos.left,
@@ -77,10 +77,10 @@ export function ShortcutsButton() {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-[var(--z-dropdown-backdrop)]" onClick={() => setOpen(false)} />
           {/* right-0, not left-0 — this button now sits at the far right of
            * the header, so a left-anchored panel would overflow off-screen. */}
-          <div className="absolute right-0 top-full z-30 mt-2 w-60 rounded-md border border-border bg-panel p-1 shadow-lg">
+          <div className="absolute right-0 top-full z-[var(--z-dropdown)] mt-2 w-60 rounded-md border border-border bg-panel p-1 shadow-lg">
             <p className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-foreground/60">
               Keyboard shortcuts
             </p>

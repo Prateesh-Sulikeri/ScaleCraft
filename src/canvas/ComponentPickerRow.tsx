@@ -54,7 +54,7 @@ export const ComponentPickerRow = forwardRef<
        * (arrow-key navigation) — a custom component's only edit/delete
        * entry points, so both input modes need a path to them. */}
       {isCustom && (
-        <div className={`absolute -right-1 -top-1 z-10 gap-0.5 ${active ? "flex" : "hidden group-hover/tile:flex"}`}>
+        <div className={`absolute -right-1 -top-1 z-[var(--z-node-chrome)] gap-0.5 ${active ? "flex" : "hidden group-hover/tile:flex"}`}>
           <button
             type="button"
             onMouseDown={(e) => e.stopPropagation()}
