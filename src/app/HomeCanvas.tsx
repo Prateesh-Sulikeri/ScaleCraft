@@ -120,7 +120,9 @@ export function HomeCanvas() {
           nodeTypes={nodeTypes}
           nodesConnectable={false}
           nodesDraggable={false}
-          panOnScroll
+          panOnScroll={false}
+          zoomOnScroll={false}
+          zoomOnPinch={false}
           translateExtent={HOME_TRANSLATE_EXTENT}
           proOptions={{ hideAttribution: true }}
           fitView
