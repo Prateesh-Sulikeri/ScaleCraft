@@ -22,7 +22,10 @@ export default function RootPage() {
         <ThemeToggle />
       </div>
 
-      <div className="absolute bottom-6 left-6 z-10">
+      {/* bottom-16, not bottom-6 — stacks above the global Release Notes
+       * button (ReleaseNotesButton.tsx, mounted in the root layout), which
+       * now owns bottom-6/left-6 on every page including this one. */}
+      <div className="absolute bottom-16 left-6 z-10">
         <AboutButton />
       </div>
     </main>
