@@ -632,24 +632,24 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
 
       {placementMode && (
         <>
-          <div className="pointer-events-none absolute left-1/2 top-4 z-[var(--z-modal-backdrop)] -translate-x-1/2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
+          <div className="pointer-events-none absolute left-1/2 top-4 z-[var(--z-canvas-overlay)] -translate-x-1/2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
             {PLACEMENT_HINT[placementMode]}
           </div>
           <div
             onMouseDown={startPlacementDrag}
-            className="absolute inset-0 z-[var(--z-modal-backdrop)] cursor-crosshair"
+            className="absolute inset-0 z-[var(--z-canvas-overlay)] cursor-crosshair"
           />
         </>
       )}
 
       {pendingComponentPlacement && (
         <>
-          <div className="pointer-events-none absolute left-1/2 top-4 z-[var(--z-modal-backdrop)] -translate-x-1/2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
+          <div className="pointer-events-none absolute left-1/2 top-4 z-[var(--z-canvas-overlay)] -translate-x-1/2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
             Click to place {pendingComponentPlacement.label} · Hold Shift to place another · Esc to cancel
           </div>
           <div
             onMouseDown={placeComponent}
-            className="absolute inset-0 z-[var(--z-modal-backdrop)] cursor-pointer"
+            className="absolute inset-0 z-[var(--z-canvas-overlay)] cursor-pointer"
           />
         </>
       )}
@@ -661,7 +661,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
           // land before committing to a spot — same tile look as the
           // picker's own grid (ComponentPickerRow), just untethered.
           <div
-            className="pointer-events-none fixed z-[var(--z-tooltip)] flex flex-col items-center gap-1"
+            className="pointer-events-none fixed z-[var(--z-canvas-overlay)] flex flex-col items-center gap-1"
             style={{ left: ghostPos.x + 12, top: ghostPos.y + 12 }}
           >
             {(() => {
@@ -688,7 +688,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
           // actually looks like once placed, not something the in-progress
           // drag needs to preempt.
           <div
-            className="pointer-events-none fixed z-[var(--z-modal)] rounded-lg border border-dashed bg-panel/20"
+            className="pointer-events-none fixed z-[var(--z-canvas-overlay)] rounded-lg border border-dashed bg-panel/20"
             style={{
               left: previewRect.left,
               top: previewRect.top,
