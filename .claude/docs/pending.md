@@ -12,7 +12,7 @@
 		5. Select a better font for the entire website, that suites both the themes, is not too stylish to read, easy to read & understand, nothing fancy. -- Completed (evaluated IBM Plex Sans / Public Sans / Source Sans 3 against Inter, kept Inter — already the deliberate, documented choice per DESIGN.md)
 		6. Each mode has its own canvas, they do not share content from each other (current bug: if I open building blocks there is an empty canvas, if I go to home, open sandbox where I had saved a design, do nothing, come back to home, go to building blocks again. I see the design that was present in sandbox loaded here) this is content leaking between phases. I do not want this -- Completed (gave Sandbox/Building Blocks/Real World Extraction each their own canvas store instance instead of one shared singleton, on branch fix/canvas-leak; also caught and fixed an adjacent in-mode leak where backing out of a selected chapter to the Chapter List didn't clear the canvas)
 		7. Expand to have Component, Unit and integration tests which will become part of CI pipeline
-		8. When docs is opened in focus mode and closed the diagram on the canvas gets shrinked (BUG FIX)
+		8. When docs is opened in focus mode and closed the diagram on the canvas gets shrinked (BUG FIX) -- Completed (focus mode now overlays the docs panel on top of Canvas instead of unmounting/resizing it, and Canvas re-fits its view on any real container resize instead of only once on mount — fixes both the shrink-on-exit and a clipping-into-the-docs-panel issue found while verifying it)
 		9. More support to keyboard shortcuts 
 		10. Component picket search bar to enable search by category eg: network should display all available network components 
 	

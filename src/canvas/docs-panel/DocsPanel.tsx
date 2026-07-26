@@ -8,12 +8,10 @@ import { DocsTabBar } from "./DocsTabBar";
 import { DocsTabContent } from "./DocsTabContent";
 
 /**
- * The docked documentation panel — a real flex sibling in page.tsx's
- * <main>, not a floating overlay (replaces the old DocsWindows.tsx).
- * Minimizing removes it from the layout entirely (page.tsx
- * conditionally renders it) rather than collapsing to a capsule; tabs,
- * active tab, and each tab's scroll position all live in the store, so
- * minimize/restore brings back exactly what was there.
+ * Docked documentation panel — a flex sibling of the canvas normally, but
+ * an `absolute inset-0` overlay on top of it in focus mode (never a flex-1
+ * sibling that displaces Canvas — that used to unmount/resize the ReactFlow
+ * instance and left it fit to a stale container size on exit).
  */
 export function DocsPanel() {
   const tabs = useCanvasStore((s) => s.docsPanel.tabs);
@@ -27,7 +25,11 @@ export function DocsPanel() {
   const { width, onMouseDown } = useResizableWidth(storedWidth, 320, 720, "left", setDocsPanelWidth);
 
   return (
-    <div className={`flex min-w-0 ${focusMode ? "flex-1" : "shrink-0"}`}>
+    <div
+      className={
+        focusMode ? "absolute inset-0 z-[var(--z-modal)] flex bg-background" : "flex min-w-0 shrink-0"
+      }
+    >
       {!focusMode && (
         <div
           onMouseDown={onMouseDown}
@@ -36,7 +38,11 @@ export function DocsPanel() {
       )}
       <aside
         style={{ width: focusMode ? "100%" : width }}
-        className="flex min-w-0 flex-1 shrink-0 flex-col overflow-hidden border-l border-border bg-background transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+        className={`flex min-w-0 flex-1 shrink-0 flex-col overflow-hidden bg-background ${
+          focusMode
+            ? ""
+            : "border-l border-border transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+        }`}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
           <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-foreground/60">
@@ -45,7 +51,7 @@ export function DocsPanel() {
           </span>
           {!focusMode && (
             <div className="flex items-center gap-1">
-              <Tooltip label="Focus notes mode">
+              <Tooltip label="Focus mode">
                 <button
                   onClick={toggleFocusMode}
                   aria-label="Enter focus notes mode"

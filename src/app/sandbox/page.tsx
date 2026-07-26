@@ -210,37 +210,36 @@ function SandboxPageContent() {
         />
       )}
 
-      <main className="flex min-h-0 flex-1 overflow-hidden">
-        {!focusMode && (
-          <div className="relative flex flex-1 flex-col">
-            {showInsertHint && (
-              <div className="absolute left-1/2 top-4 z-[var(--z-dropdown)] flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
-                <MouseRight size={14} className="shrink-0 text-foreground/70" />
-                <span>Right-click the canvas or press / to add a component</span>
-                <button
-                  type="button"
-                  onClick={dismissHint}
-                  aria-label="Dismiss hint"
-                  className="text-foreground/50 hover:text-foreground"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-            <Canvas
-              ref={canvasRef}
-              nodeStates={nodeStates}
-              // Clicking blank canvas dismisses the last Validate run
-              // (the green/red ring on every node, and the header
-              // button's own color) — without this, a passing run had
-              // no way back to neutral short of editing the graph.
-              onCanvasPaneClick={() => {
-                setViolations(null);
-                setCheckedGraphKey(null);
-              }}
-            />
-          </div>
-        )}
+      <main className="relative flex min-h-0 flex-1 overflow-hidden">
+        <div className="relative flex flex-1 flex-col">
+          {!focusMode && showInsertHint && (
+            <div className="absolute left-1/2 top-4 z-[var(--z-dropdown)] flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
+              <MouseRight size={14} className="shrink-0 text-foreground/70" />
+              <span>Right-click the canvas or press / to add a component</span>
+              <button
+                type="button"
+                onClick={dismissHint}
+                aria-label="Dismiss hint"
+                className="text-foreground/50 hover:text-foreground"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+          {/* Stays mounted across focus-mode toggles — see DocsPanel.tsx. */}
+          <Canvas
+            ref={canvasRef}
+            nodeStates={nodeStates}
+            // Clicking blank canvas dismisses the last Validate run
+            // (the green/red ring on every node, and the header
+            // button's own color) — without this, a passing run had
+            // no way back to neutral short of editing the graph.
+            onCanvasPaneClick={() => {
+              setViolations(null);
+              setCheckedGraphKey(null);
+            }}
+          />
+        </div>
 
         {docsPanelOpen && <DocsPanel />}
       </main>

@@ -263,24 +263,23 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
         />
       )}
 
-      <main className="flex min-h-0 flex-1 overflow-hidden">
+      <main className="relative flex min-h-0 flex-1 overflow-hidden">
         {!focusMode && (
-          <>
-            <SidebarShell>
-              <ChapterSidebar
-                chapters={chapters}
-                selectedChapterId={selectedChapterId}
-                onSelect={requestChapterChange}
-                onBack={() => requestChapterChange(null)}
-                violations={violations}
-                isStale={isStale}
-              />
-            </SidebarShell>
-            <div className="relative flex flex-1 flex-col">
-              <Canvas ref={canvasRef} nodeStates={nodeStates} />
-            </div>
-          </>
+          <SidebarShell>
+            <ChapterSidebar
+              chapters={chapters}
+              selectedChapterId={selectedChapterId}
+              onSelect={requestChapterChange}
+              onBack={() => requestChapterChange(null)}
+              violations={violations}
+              isStale={isStale}
+            />
+          </SidebarShell>
         )}
+        {/* Stays mounted across focus-mode toggles — see DocsPanel.tsx. */}
+        <div className="relative flex flex-1 flex-col">
+          <Canvas ref={canvasRef} nodeStates={nodeStates} />
+        </div>
 
         {docsPanelOpen && <DocsPanel />}
       </main>
