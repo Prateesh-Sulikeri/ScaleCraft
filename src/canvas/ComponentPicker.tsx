@@ -9,6 +9,7 @@ import type { ComponentCategory, ComponentDefinition } from "@/content/component
 import { db } from "@/persistence/db";
 import { filterAndGroupComponents } from "./component-search";
 import { useCanvasStore } from "./store";
+import { useCustomComponentsStore } from "./custom-components-store";
 import { type ToolAction } from "./ComponentPickerTools";
 import { ComponentPickerResults } from "./ComponentPickerResults";
 import { ComponentPickerCategoryNav } from "./ComponentPickerCategoryNav";
@@ -41,10 +42,10 @@ export function ComponentPicker() {
   const isOpen = useCanvasStore((s) => s.componentPicker);
   const closeComponentPicker = useCanvasStore((s) => s.closeComponentPicker);
   const setPendingComponentPlacement = useCanvasStore((s) => s.setPendingComponentPlacement);
-  const customComponents = useCanvasStore((s) => s.customComponents);
+  const customComponents = useCustomComponentsStore((s) => s.customComponents);
   const availableComponentIds = useCanvasStore((s) => s.availableComponentIds);
-  const upsertCustomComponent = useCanvasStore((s) => s.upsertCustomComponent);
-  const deleteCustomComponent = useCanvasStore((s) => s.deleteCustomComponent);
+  const upsertCustomComponent = useCustomComponentsStore((s) => s.upsertCustomComponent);
+  const deleteCustomComponent = useCustomComponentsStore((s) => s.deleteCustomComponent);
   const nodes = useCanvasStore((s) => s.nodes);
   const setPlacementMode = useCanvasStore((s) => s.setPlacementMode);
 

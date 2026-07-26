@@ -11,7 +11,13 @@ import { PageEnter } from "@/app/PageEnter";
 import { SidebarShell } from "@/app/SidebarShell";
 import { ChapterSidebar } from "./ChapterSidebar";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
-import { useCanvasStore, toArchitectureGraph, architectureGraphTopologyKey } from "@/canvas/store";
+import {
+  useCanvasStore,
+  useCanvasStoreApi,
+  CanvasStoreProvider,
+  toArchitectureGraph,
+  architectureGraphTopologyKey,
+} from "@/canvas/store";
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
 import { getChaptersForMode } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
@@ -33,16 +39,24 @@ type ChapterWorkspaceProps = {
  * "no chapter selected" (Chapter List view) disables those three controls
  * rather than acting on an ambiguous target.
  *
- * Known, deliberate limitation (still true after I.3): the canvas store is
- * a module singleton shared with Sandbox, and this component does not
- * isolate canvas state across a full mode switch — navigating from Sandbox
- * (or the other chapter mode) straight into the Chapter List view still
- * shows whatever was last on the canvas. That cross-mode leak is tracked
- * separately; this component only makes chapter-to-chapter switching
- * *within* chapter mode safe (real save/restore + a confirm before
- * discarding unsaved edits).
+ * Wrapped in its own CanvasStoreProvider (see canvas/store.ts) — building-
+ * blocks/page.tsx and real-world-extraction/page.tsx each mount a separate
+ * `<ChapterWorkspace>`, so each gets its own store instance, independent
+ * from Sandbox and from each other. This is what fixes the cross-mode
+ * canvas leak (.claude/docs/pending.md I.6): a full mode switch now tears
+ * down the previous mode's store instead of leaving its graph behind for
+ * the next mode to render.
  */
 export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
+  return (
+    <CanvasStoreProvider>
+      <ChapterWorkspaceContent mode={mode} />
+    </CanvasStoreProvider>
+  );
+}
+
+function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
+  const storeApi = useCanvasStoreApi();
   const chapters = useMemo(() => getChaptersForMode(mode), [mode]);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const selectedChapter = chapters.find((c) => c.id === selectedChapterId) ?? null;
@@ -87,11 +101,20 @@ export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
   const [loadedSnapshotKey, setLoadedSnapshotKey] = useState<string | null>(null);
 
   useEffect(() => {
-    // Nothing to load when backing out to the Chapter List — loadedSnapshotKey
-    // is left as whatever the last-selected chapter set it to, but isDirty
-    // below gates on selectedChapter being non-null, so the stale value is
-    // inert rather than needing an explicit (effect-body) reset.
-    if (!selectedChapter) return;
+    // Backing out to the Chapter List must actively clear the canvas, not
+    // just skip loading — otherwise whatever the last-selected chapter left
+    // in the store keeps rendering underneath the list view (the in-mode
+    // sibling of the cross-mode leak this store split fixed, see
+    // .claude/docs/pending.md I.6). loadCanvasState([], []) is a no-op on an
+    // already-empty canvas (pushHistory skips history entries when both are
+    // already empty, see store.ts), so this is harmless on first mount too.
+    // loadedSnapshotKey is deliberately left untouched — isDirty below
+    // already gates on selectedChapter being non-null, so its stale value
+    // stays inert without needing a reset here.
+    if (!selectedChapter) {
+      loadCanvasState([], []);
+      return;
+    }
     let cancelled = false;
     db.saves.get(chapterSaveId(selectedChapter.id)).then((save) => {
       if (cancelled) return;
@@ -102,7 +125,7 @@ export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
       } else {
         loadCanvasState([], []);
       }
-      const { nodes: loadedNodes, edges: loadedEdges } = useCanvasStore.getState();
+      const { nodes: loadedNodes, edges: loadedEdges } = storeApi.getState();
       setLoadedSnapshotKey(canvasStateKey(loadedNodes, loadedEdges));
     });
     return () => {
@@ -112,6 +135,29 @@ export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
     // loadCanvasState are stable store actions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChapter?.id]);
+
+  // Each mode's canvas store instance is created fresh on mount (see
+  // CanvasStoreProvider) and torn down on unmount — without this, leaving
+  // Building Blocks/Real World Extraction mid-edit without an explicit Save
+  // would silently lose progress instead of just fixing the cross-mode leak
+  // this store split was for. A ref (not selectedChapter itself) is what
+  // this reads, since the cleanup below only ever runs once, on full
+  // unmount, and needs whichever chapter was selected *at that moment* —
+  // not whatever it was when the effect first ran. Synced via its own
+  // effect (not written during render) per this project's react-hooks/refs
+  // lint rule (React Compiler).
+  const selectedChapterRef = useRef(selectedChapter);
+  useEffect(() => {
+    selectedChapterRef.current = selectedChapter;
+  });
+  useEffect(() => {
+    return () => {
+      const chapter = selectedChapterRef.current;
+      if (!chapter) return;
+      const { nodes, edges } = storeApi.getState();
+      void db.saves.put({ id: chapterSaveId(chapter.id), updatedAt: Date.now(), nodes, edges });
+    };
+  }, [storeApi]);
 
   const isDirty =
     selectedChapter !== null &&
@@ -142,7 +188,7 @@ export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
       setSaveNoticeAt(Date.now());
       return;
     }
-    const { nodes: liveNodes, edges: liveEdges } = useCanvasStore.getState();
+    const { nodes: liveNodes, edges: liveEdges } = storeApi.getState();
     await db.saves.put({
       id: chapterSaveId(selectedChapter.id),
       updatedAt: Date.now(),
