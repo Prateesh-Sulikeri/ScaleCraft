@@ -1,29 +1,30 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { BookOpen, Redo2, Undo2, X } from "lucide-react";
-import { Canvas } from "@/canvas/Canvas";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { X } from "lucide-react";
+import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
-import { Tooltip } from "@/app/Tooltip";
 import { UndoToast } from "@/app/UndoToast";
-import { ThemeToggle } from "@/app/ThemeToggle";
-import { ValidationIndicator } from "@/app/ValidationIndicator";
-import { ModeBadge } from "@/app/ModeBadge";
+import { AppHeader } from "@/app/AppHeader";
 import { PageEnter } from "@/app/PageEnter";
-import { ShortcutsButton } from "@/app/ShortcutsButton";
 import { SidebarShell } from "@/app/SidebarShell";
 import { ChapterSidebar } from "./ChapterSidebar";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
-import { useCanvasStore, toArchitectureGraph, architectureGraphTopologyKey } from "@/canvas/store";
-import type { ValidationState } from "@/canvas/types";
+import {
+  useCanvasStore,
+  useCanvasStoreApi,
+  CanvasStoreProvider,
+  toArchitectureGraph,
+  architectureGraphTopologyKey,
+} from "@/canvas/store";
+import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
 import { getChaptersForMode } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import { modeColorVar } from "@/lib/modes";
 import { runValidation } from "@/validation-engine/engine";
 import { getRules } from "@/validation-engine/rules";
 import type { ValidationViolation } from "@/validation-engine/types";
+import { chapterSaveId, db } from "@/persistence/db";
 
 type ChapterWorkspaceProps = {
   mode: ChapterDefinition["mode"];
@@ -32,21 +33,30 @@ type ChapterWorkspaceProps = {
 /**
  * Shared page body for both chapter modes (/building-blocks,
  * /real-world-extraction) — header + SidebarShell/ChapterSidebar + Canvas.
- * Header composition is intentionally copy-pasted from sandbox/page.tsx
- * rather than extracted into a shared component yet (see
- * .claude/docs/UI_OVERHAUL_PART2_SPEC.md §6.2) — chapter-mode Save/
- * persistence semantics will diverge at milestone 9, so abstracting the
- * header now would be premature.
+ * Header is now AppHeader (item I.3), shared with Sandbox — Save/Project/
+ * Board work here too, scoped to whichever chapter is selected via
+ * chapterSaveId (persistence/db.ts). Each chapter gets its own save slot;
+ * "no chapter selected" (Chapter List view) disables those three controls
+ * rather than acting on an ambiguous target.
  *
- * Known, deliberate limitation (see the spec's §5 "State synchronization"):
- * the canvas store is a module singleton shared with Sandbox, and this
- * component does not load a chapter's starterGraph on select — selecting a
- * chapter shows whatever's currently on the canvas (empty on a fresh visit,
- * or Sandbox's own graph if that was visited first in the same session).
- * Real per-chapter graph isolation/persistence is milestone 9 scope; this
- * shell only proves the sidebar/routing/component-filter mechanics.
+ * Wrapped in its own CanvasStoreProvider (see canvas/store.ts) — building-
+ * blocks/page.tsx and real-world-extraction/page.tsx each mount a separate
+ * `<ChapterWorkspace>`, so each gets its own store instance, independent
+ * from Sandbox and from each other. This is what fixes the cross-mode
+ * canvas leak (.claude/docs/pending.md I.6): a full mode switch now tears
+ * down the previous mode's store instead of leaving its graph behind for
+ * the next mode to render.
  */
 export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
+  return (
+    <CanvasStoreProvider>
+      <ChapterWorkspaceContent mode={mode} />
+    </CanvasStoreProvider>
+  );
+}
+
+function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
+  const storeApi = useCanvasStoreApi();
   const chapters = useMemo(() => getChaptersForMode(mode), [mode]);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const selectedChapter = chapters.find((c) => c.id === selectedChapterId) ?? null;
@@ -72,16 +82,125 @@ export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
   const docsPanelOpen = useCanvasStore((s) => !s.docsPanel.minimized || s.docsPanel.focusMode);
   const toggleDocsPanel = useCanvasStore((s) => s.toggleDocsPanel);
   const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
+  const loadGraph = useCanvasStore((s) => s.loadGraph);
+  const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
 
-  // No chapter persistence yet (milestone 9) — Ctrl+S doesn't write
-  // anywhere, but it must say so rather than silently doing nothing (the
-  // 2026-07-24 critique's P2 finding: a user hitting Ctrl+S out of Sandbox
-  // muscle memory got zero feedback either way). Keyed by timestamp, same
-  // pattern as UndoToast, so pressing Ctrl+S again while the notice is
-  // still visible replays it instead of being swallowed by React bailing
-  // out of an unchanged-value state update.
+  const canvasRef = useRef<CanvasHandle>(null);
+
+  // Icon-only header button (see AppHeader) — same 1.5s Save -> Check icon
+  // swap as Sandbox.
+  const [justSaved, setJustSaved] = useState(false);
+
+  // The graph exactly as it was loaded (saved attempt / starterGraph /
+  // empty) for whichever chapter is currently selected — compared against
+  // the live canvas to tell a genuine edit apart from just having switched
+  // chapters. Deliberately a full nodes+edges snapshot (position included),
+  // not architectureGraphTopologyKey below (that one intentionally drops
+  // position for validation-staleness purposes; an unsaved drag is still an
+  // edit worth warning about here).
+  const [loadedSnapshotKey, setLoadedSnapshotKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Backing out to the Chapter List must actively clear the canvas, not
+    // just skip loading — otherwise whatever the last-selected chapter left
+    // in the store keeps rendering underneath the list view (the in-mode
+    // sibling of the cross-mode leak this store split fixed, see
+    // .claude/docs/pending.md I.6). loadCanvasState([], []) is a no-op on an
+    // already-empty canvas (pushHistory skips history entries when both are
+    // already empty, see store.ts), so this is harmless on first mount too.
+    // loadedSnapshotKey is deliberately left untouched — isDirty below
+    // already gates on selectedChapter being non-null, so its stale value
+    // stays inert without needing a reset here.
+    if (!selectedChapter) {
+      loadCanvasState([], []);
+      return;
+    }
+    let cancelled = false;
+    db.saves.get(chapterSaveId(selectedChapter.id)).then((save) => {
+      if (cancelled) return;
+      if (save) {
+        loadCanvasState(save.nodes, save.edges);
+      } else if (selectedChapter.starterGraph) {
+        loadGraph(selectedChapter.starterGraph);
+      } else {
+        loadCanvasState([], []);
+      }
+      const { nodes: loadedNodes, edges: loadedEdges } = storeApi.getState();
+      setLoadedSnapshotKey(canvasStateKey(loadedNodes, loadedEdges));
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Re-run only when the selected chapter's identity changes — loadGraph/
+    // loadCanvasState are stable store actions.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedChapter?.id]);
+
+  // Each mode's canvas store instance is created fresh on mount (see
+  // CanvasStoreProvider) and torn down on unmount — without this, leaving
+  // Building Blocks/Real World Extraction mid-edit without an explicit Save
+  // would silently lose progress instead of just fixing the cross-mode leak
+  // this store split was for. A ref (not selectedChapter itself) is what
+  // this reads, since the cleanup below only ever runs once, on full
+  // unmount, and needs whichever chapter was selected *at that moment* —
+  // not whatever it was when the effect first ran. Synced via its own
+  // effect (not written during render) per this project's react-hooks/refs
+  // lint rule (React Compiler).
+  const selectedChapterRef = useRef(selectedChapter);
+  useEffect(() => {
+    selectedChapterRef.current = selectedChapter;
+  });
+  useEffect(() => {
+    return () => {
+      const chapter = selectedChapterRef.current;
+      if (!chapter) return;
+      const { nodes, edges } = storeApi.getState();
+      void db.saves.put({ id: chapterSaveId(chapter.id), updatedAt: Date.now(), nodes, edges });
+    };
+  }, [storeApi]);
+
+  const isDirty =
+    selectedChapter !== null &&
+    loadedSnapshotKey !== null &&
+    canvasStateKey(nodes, edges) !== loadedSnapshotKey;
+
+  // Switching chapters (or backing out to the Chapter List) while there are
+  // unsaved edits needs an explicit choice, not a silent discard — see
+  // SwitchChapterConfirmPopover below. `undefined` means no confirm is
+  // pending; `null` is itself a valid target (back to the Chapter List).
+  const [pendingChapterChange, setPendingChapterChange] = useState<string | null | undefined>(undefined);
+
+  const requestChapterChange = (newId: string | null) => {
+    if (newId === selectedChapterId) return;
+    if (isDirty) {
+      setPendingChapterChange(newId);
+    } else {
+      setSelectedChapterId(newId);
+    }
+  };
+
   const [saveNoticeAt, setSaveNoticeAt] = useState<number | null>(null);
-  useCanvasShortcuts(() => setSaveNoticeAt(Date.now()));
+
+  const handleSave = async () => {
+    if (!selectedChapter) {
+      // Nothing to save against yet — same honest-feedback pattern as
+      // before I.3, just narrowed to the one case that's still true.
+      setSaveNoticeAt(Date.now());
+      return;
+    }
+    const { nodes: liveNodes, edges: liveEdges } = storeApi.getState();
+    await db.saves.put({
+      id: chapterSaveId(selectedChapter.id),
+      updatedAt: Date.now(),
+      nodes: liveNodes,
+      edges: liveEdges,
+    });
+    setLoadedSnapshotKey(canvasStateKey(liveNodes, liveEdges));
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 1500);
+  };
+
+  useCanvasShortcuts(handleSave);
 
   const [violations, setViolations] = useState<ValidationViolation[] | null>(null);
   const [checkedGraphKey, setCheckedGraphKey] = useState<string | null>(null);
@@ -126,110 +245,130 @@ export function ChapterWorkspace({ mode }: ChapterWorkspaceProps) {
       {focusMode ? (
         <FocusModeBar />
       ) : (
-        <header
-          style={{ borderBottomColor: modeColorVar[mode] }}
-          className="flex items-center justify-between border-b-2 px-6 py-3"
-        >
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/"
-              className="flex items-center gap-2.5 opacity-100 transition-opacity hover:opacity-70"
-            >
-              <div
-                aria-hidden="true"
-                style={{
-                  width: 32,
-                  height: 32,
-                  backgroundColor: "var(--foreground)",
-                  WebkitMaskImage: "url(/logo-mask.png)",
-                  maskImage: "url(/logo-mask.png)",
-                  WebkitMaskSize: "contain",
-                  maskSize: "contain",
-                  WebkitMaskRepeat: "no-repeat",
-                  maskRepeat: "no-repeat",
-                }}
-              />
-              <h1 className="text-base font-semibold">ScaleCraft</h1>
-            </Link>
-            <ModeBadge mode={mode} />
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 items-center overflow-hidden rounded-md border border-border bg-panel">
-              <Tooltip label="Undo (Ctrl+Z)">
-                <button
-                  onClick={undo}
-                  disabled={!canUndo}
-                  aria-label="Undo"
-                  className="flex h-full items-center px-2.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-                >
-                  <Undo2 size={14} />
-                </button>
-              </Tooltip>
-              <div className="h-4 w-px bg-border" />
-              <Tooltip label="Redo (Ctrl+Shift+Z)">
-                <button
-                  onClick={redo}
-                  disabled={!canRedo}
-                  aria-label="Redo"
-                  className="flex h-full items-center px-2.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-                >
-                  <Redo2 size={14} />
-                </button>
-              </Tooltip>
-            </div>
-            <ValidationIndicator violations={violations} isStale={isStale} onValidate={handleValidate} />
-            <Tooltip label="Documentation">
-              <button
-                onClick={toggleDocsPanel}
-                aria-label={docsPanelOpen ? "Hide documentation panel" : "Show documentation panel"}
-                aria-pressed={docsPanelOpen}
-                className={`flex h-8 w-8 items-center justify-center rounded-md border border-border hover:text-foreground ${
-                  docsPanelOpen ? "bg-border text-foreground" : "bg-panel text-foreground/70"
-                }`}
-              >
-                <BookOpen size={16} />
-              </button>
-            </Tooltip>
-            <ShortcutsButton />
-            <ThemeToggle />
-          </div>
-        </header>
+        <AppHeader
+          mode={mode}
+          canvasRef={canvasRef}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          violations={violations}
+          isStale={isStale}
+          onValidate={handleValidate}
+          saveId={selectedChapter ? chapterSaveId(selectedChapter.id) : null}
+          onSave={handleSave}
+          justSaved={justSaved}
+          docsPanelOpen={docsPanelOpen}
+          toggleDocsPanel={toggleDocsPanel}
+        />
       )}
 
-      <main className="flex min-h-0 flex-1 overflow-hidden">
+      <main className="relative flex min-h-0 flex-1 overflow-hidden">
         {!focusMode && (
-          <>
-            <SidebarShell>
-              <ChapterSidebar
-                chapters={chapters}
-                selectedChapterId={selectedChapterId}
-                onSelect={setSelectedChapterId}
-                onBack={() => setSelectedChapterId(null)}
-                violations={violations}
-                isStale={isStale}
-              />
-            </SidebarShell>
-            <div className="relative flex flex-1 flex-col">
-              <Canvas nodeStates={nodeStates} />
-            </div>
-          </>
+          <SidebarShell>
+            <ChapterSidebar
+              chapters={chapters}
+              selectedChapterId={selectedChapterId}
+              onSelect={requestChapterChange}
+              onBack={() => requestChapterChange(null)}
+              violations={violations}
+              isStale={isStale}
+            />
+          </SidebarShell>
         )}
+        {/* Stays mounted across focus-mode toggles — see DocsPanel.tsx. */}
+        <div className="relative flex flex-1 flex-col">
+          <Canvas ref={canvasRef} nodeStates={nodeStates} />
+        </div>
 
         {docsPanelOpen && <DocsPanel />}
       </main>
 
+      {pendingChapterChange !== undefined && (
+        <SwitchChapterConfirmPopover
+          onCancel={() => setPendingChapterChange(undefined)}
+          onConfirm={() => {
+            setSelectedChapterId(pendingChapterChange);
+            setPendingChapterChange(undefined);
+          }}
+        />
+      )}
       {saveNoticeAt && <SaveNotice key={saveNoticeAt} onDismiss={() => setSaveNoticeAt(null)} />}
       <UndoToast />
     </PageEnter>
   );
 }
 
-/** Tells the user Ctrl+S did nothing on purpose, not silently — see the
- * comment above `saveNoticeAt`. Same fixed-bottom-center chrome as
- * UndoToast, no undo action (there's nothing to undo). Fades/slides in the
- * same way UndoToast does, but — unlike UndoToast — with an explicit
- * `motion-reduce` opt-out to an instant appearance rather than inheriting
- * that gap into a second toast. */
+/** Full nodes+edges identity for dirty-checking a chapter attempt against
+ * whatever was last loaded/saved — `selected` stripped since a selection
+ * change alone isn't an edit worth warning about (same normalization
+ * loadCanvasState itself applies when loading). */
+function canvasStateKey(nodes: AnyNodeType[], edges: ArchitectureEdgeType[]): string {
+  // JSON.stringify omits undefined-valued keys entirely, so this has the
+  // same effect as stripping `selected` — just without a destructure that
+  // trips no-unused-vars on the discarded key.
+  return JSON.stringify({
+    nodes: nodes.map((n) => ({ ...n, selected: undefined })),
+    edges: edges.map((e) => ({ ...e, selected: undefined })),
+  });
+}
+
+/**
+ * Reuses the app's one documented floating-menu visual language (see
+ * DeleteConfirmPopover.tsx: bg-panel/border-border/rounded-md/shadow-lg,
+ * backdrop click = Cancel) rather than introducing a new one — centered
+ * instead of anchored to a click position since there's no natural anchor
+ * point for a sidebar chapter switch. This is a genuine confirm dialog
+ * (the app otherwise prefers toasts/undo, see UndoToast.tsx), justified the
+ * same way DeleteConfirmPopover is: discarding an unsaved chapter attempt
+ * isn't undoable after the fact.
+ */
+function SwitchChapterConfirmPopover({
+  onCancel,
+  onConfirm,
+}: {
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[var(--z-modal-backdrop)] flex items-center justify-center"
+      onClick={onCancel}
+    >
+      <div
+        className="z-[var(--z-modal)] w-72 rounded-md border border-border bg-panel p-3 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-sm text-foreground">This chapter has unsaved changes.</p>
+        <p className="mt-1 text-xs text-foreground/60">
+          Switch anyway and discard them, or stay and save first?
+        </p>
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={onCancel}
+            className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm font-medium hover:bg-border"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm font-medium text-state-error hover:bg-border"
+          >
+            Discard &amp; Switch
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Tells the user Ctrl+S did nothing on purpose, not silently — narrowed by
+ * I.3 to the one case still true: no chapter selected, so there's nothing
+ * to save against yet. Same fixed-bottom-center chrome as UndoToast, no
+ * undo action (there's nothing to undo). Fades/slides in the same way
+ * UndoToast does, but — unlike UndoToast — with an explicit `motion-reduce`
+ * opt-out to an instant appearance rather than inheriting that gap into a
+ * second toast. */
 function SaveNotice({ onDismiss }: { onDismiss: () => void }) {
   const [visible, setVisible] = useState(false);
 
@@ -250,7 +389,7 @@ function SaveNotice({ onDismiss }: { onDismiss: () => void }) {
       }`}
       style={{ transform: `translateX(-50%) translateY(${visible ? "0" : "0.5rem"})` }}
     >
-      <span>Chapter progress isn&apos;t saved yet — this lands with real persistence.</span>
+      <span>Select a chapter to save its progress.</span>
       <button onClick={onDismiss} aria-label="Dismiss" className="text-foreground/40 hover:text-foreground">
         <X size={14} />
       </button>

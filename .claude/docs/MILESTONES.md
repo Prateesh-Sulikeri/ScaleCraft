@@ -92,9 +92,19 @@ unfinished at first rather than left for the end.
 **Done when (final state, after 10):** progress indicators reflect real saved state,
 not placeholders.
 
-## 5. Stronger validation agent
+## 5. Stronger validation agent — done (Track 1; Track 2 blocked)
 
-The rule-based engine (`src/validation-engine/`) currently has 6 hand-picked
+**Status:** Track 1 (structural rules + per-component `relations` contracts)
+shipped 2026-07-24 — the registry grew to 11 rules, and the flat
+category-matrix approach described below was superseded by components
+declaring their own connection contracts (`component-relations.ts`); see
+`.claude/docs/validation_agent_design.md` for the full design and history.
+Track 2 (LLM-assisted holistic critique) is designed but blocked on Gemini
+API access, not built. The section below is kept as the original problem
+statement/rationale — still accurate context, just not the current state of
+the rule count.
+
+The rule-based engine (`src/validation-engine/`) originally had 6 hand-picked
 structural/config rules — nowhere near the space of nonsensical architectures a user
 can actually build. Reported live: a graph with disconnected components (a Cron Job
 and a CDN wired to nothing), backwards/nonsensical data flow (a Browser connected
@@ -134,7 +144,7 @@ violations — no longer reproduces, and `INITIAL_THOUGHTS.md`'s "Validation Phi
 is actually true of what ships, not just true of the handful of rules that happen to be
 hand-written today.
 
-## 6. Chapter framework (shell)
+## 6. Chapter framework (shell) — done
 
 Generic chapter runtime, mode-aware from the start (`"building-blocks"` and
 `"real-world-extraction"` share this one implementation, not two): problem statement +
@@ -146,6 +156,12 @@ violations + all `requiredComponentIds` present and connected), hints panel that
 
 **Done when:** the shell runs correctly against one throwaway dummy `ChapterDefinition`
 — prove the mechanism before investing in real content.
+
+**Status:** done, shipped as part of the UI Overhaul Part 2 work (Phase 5).
+`ChapterWorkspace` + `ChapterSidebar` (list ⇄ question pane) live at
+`/building-blocks` and `/real-world-extraction`, each running against one
+placeholder `ChapterDefinition` (`src/content/chapters/index.ts`). Mechanism
+proven; real content is milestones 7/8, not yet authored.
 
 ## 7. First two Building Blocks chapters
 

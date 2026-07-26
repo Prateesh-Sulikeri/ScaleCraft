@@ -1,5 +1,5 @@
 import type { ComponentDefinition } from "@/content/components/types";
-import { categoryOrder } from "./category-colors";
+import { categoryLabel, categoryOrder } from "./category-colors";
 
 export interface ComponentGroup {
   category: ComponentDefinition["category"];
@@ -7,12 +7,14 @@ export interface ComponentGroup {
 }
 
 /**
- * Filters `all` by `query` (case-insensitive match on label or summary),
- * optionally restricts to `availableComponentIds` (chapter-mode filtering,
- * `null`/`undefined` = no restriction), then groups the result by category in
- * `categoryOrder`. Empty groups are dropped. Extracted from Palette's
- * `grouped` memo so the picker (and any future consumer) share one
- * implementation.
+ * Filters `all` by `query` — case-insensitive match on label, summary, OR
+ * the component's category display name (e.g. "network" matches every
+ * networking-category component, not just ones with "network" literally in
+ * their own label/summary) — optionally restricts to `availableComponentIds`
+ * (chapter-mode filtering, `null`/`undefined` = no restriction), then groups
+ * the result by category in `categoryOrder`. Empty groups are dropped.
+ * Extracted from Palette's `grouped` memo so the picker (and any future
+ * consumer) share one implementation.
  */
 export function filterAndGroupComponents(
   all: ComponentDefinition[],
@@ -24,7 +26,12 @@ export function filterAndGroupComponents(
 
   const q = query.trim().toLowerCase();
   const matches = q
-    ? inScope.filter((d) => d.label.toLowerCase().includes(q) || d.summary.toLowerCase().includes(q))
+    ? inScope.filter(
+        (d) =>
+          d.label.toLowerCase().includes(q) ||
+          d.summary.toLowerCase().includes(q) ||
+          categoryLabel[d.category].toLowerCase().includes(q),
+      )
     : inScope;
 
   return categoryOrder

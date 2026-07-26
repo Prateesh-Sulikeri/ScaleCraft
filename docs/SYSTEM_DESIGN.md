@@ -14,7 +14,9 @@ product must do see [PRD.md](./PRD.md); for stack/requirements see
 ┌────────────────────────────────────────────────────────────────┐
 │ Next.js app (client-heavy)                                     │
 │                                                                │
-│  app/            routes: / (Home) → /sandbox (canvas app)      │
+│  app/            routes: / (Home) → /sandbox, /building-blocks,│
+│                           /real-world-extraction (chapter mode │
+│                           routes share ChapterWorkspace)        │
 │    │                                                           │
 │  canvas/         React Flow wrapper + node types + panels      │
 │    │  Zustand store (nodes, edges, selection, undo, panels)    │
@@ -109,10 +111,16 @@ translation layer.
 
 ## 6. Home & routing
 
-`/` is the mode-select Home (React Flow-rendered mode cards; only Sandbox is
-live), `/sandbox` is the canvas app; chapter routes arrive with milestone 6.
-Theming via `next-themes` (`class` attribute, dark default, no OS link), with
-xyflow's separate `colorMode` chrome theming wired to the same source.
+`/` is the mode-select Home (React Flow-rendered mode cards; Sandbox,
+Building Blocks, and Real World Extraction are all live links). `/sandbox` is
+the free-build canvas app. `/building-blocks` and `/real-world-extraction`
+both render the shared `ChapterWorkspace` (chapter list ⇄ question pane +
+picker filtered to the chapter's `availableComponentIds`), currently running
+against one throwaway placeholder `ChapterDefinition` per mode — the shell
+(milestone 6) is done; real curriculum content (milestones 7/8) is not
+authored yet. Theming via `next-themes` (`class` attribute, dark default, no
+OS link), with xyflow's separate `colorMode` chrome theming wired to the same
+source.
 
 ## 7. Design decisions worth remembering (and their why)
 
@@ -134,8 +142,9 @@ xyflow's separate `colorMode` chrome theming wired to the same source.
 
 ## 8. Known gaps / open items
 
-Tracked in `.claude/docs/pending.md` (bugs, hardening) and
+Tracked in `.claude/docs/pending.md` (near-term backlog) and
 `.claude/docs/OPEN_QUESTIONS.md` (deliberate deferrals with triggers). The
-biggest structural gap vs. the PRD: the chapter framework (milestone 6) and
-chapter content (7–8) don't exist yet — everything above currently serves
-Sandbox only.
+biggest structural gap vs. the PRD: the chapter framework (milestone 6) shell
+is done, but real chapter content (milestones 7–8: two Building Blocks
+chapters + one Real World Extraction project) isn't authored yet — the
+placeholder chapters prove the mechanism, not the curriculum.

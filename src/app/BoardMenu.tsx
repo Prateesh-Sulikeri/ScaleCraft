@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import { LayoutGrid, RotateCcw, Trash2 } from "lucide-react";
 import { useCanvasStore } from "@/canvas/store";
 import { Tooltip } from "@/app/Tooltip";
-import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
+import { db } from "@/persistence/db";
+
+type BoardMenuProps = {
+  /** Which save slot "Restore last save" reads from (see persistence/db.ts's
+   * SANDBOX_SAVE_ID / chapterSaveId). `null` means there's no save target
+   * yet (e.g. chapter-mode's Chapter List view, nothing selected) — the
+   * whole control is disabled rather than acting on an ambiguous target. */
+  saveId: string | null;
+};
 
 /**
  * Groups the board's two one-off destructive actions behind a dropdown —
@@ -16,7 +24,7 @@ import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
  * not a text label) — matches every other header control now that the
  * whole toolbar was made consistent in one pass.
  */
-export function BoardMenu() {
+export function BoardMenu({ saveId }: BoardMenuProps) {
   const [open, setOpen] = useState(false);
   const [hasSave, setHasSave] = useState(false);
   const isEmpty = useCanvasStore((s) => s.nodes.length === 0 && s.edges.length === 0);
@@ -27,9 +35,9 @@ export function BoardMenu() {
   // Checked fresh each time the dropdown opens rather than once on mount —
   // a Save can happen at any point while this stays closed.
   useEffect(() => {
-    if (!open) return;
-    db.saves.get(SANDBOX_SAVE_ID).then((save) => setHasSave(!!save));
-  }, [open]);
+    if (!open || !saveId) return;
+    db.saves.get(saveId).then((save) => setHasSave(!!save));
+  }, [open, saveId]);
 
   const handleClear = () => {
     if (isEmpty) return;
@@ -38,7 +46,8 @@ export function BoardMenu() {
   };
 
   const handleRestore = async () => {
-    const save = await db.saves.get(SANDBOX_SAVE_ID);
+    if (!saveId) return;
+    const save = await db.saves.get(saveId);
     if (!save) {
       setHasSave(false);
       return;
@@ -50,11 +59,12 @@ export function BoardMenu() {
 
   return (
     <div className="relative">
-      <Tooltip label="Board">
+      <Tooltip label={saveId ? "Board" : "Select a chapter to enable Board actions"}>
         <button
           onClick={() => setOpen((o) => !o)}
+          disabled={!saveId}
           aria-label="Board"
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel text-foreground/70 hover:text-foreground"
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel text-foreground/70 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-foreground/70"
         >
           <LayoutGrid size={16} />
         </button>

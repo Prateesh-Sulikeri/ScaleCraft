@@ -1,26 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { BookOpen, Check, MouseRight, Redo2, Save, Undo2, X } from "lucide-react";
+import { MouseRight, X } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
-import { Tooltip } from "@/app/Tooltip";
 import { UndoToast } from "@/app/UndoToast";
-import { ThemeToggle } from "@/app/ThemeToggle";
-import { ValidationIndicator } from "@/app/ValidationIndicator";
-import { ProjectMenu } from "@/app/ProjectMenu";
-import { BoardMenu } from "@/app/BoardMenu";
-import { ModeBadge } from "@/app/ModeBadge";
+import { AppHeader } from "@/app/AppHeader";
 import { PageEnter } from "@/app/PageEnter";
-import { ShortcutsButton } from "@/app/ShortcutsButton";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
 import { useDismissedFlag } from "@/lib/use-dismissed-flag";
-import { useCanvasStore, toArchitectureGraph, architectureGraphTopologyKey } from "@/canvas/store";
+import {
+  useCanvasStore,
+  useCanvasStoreApi,
+  CanvasStoreProvider,
+  toArchitectureGraph,
+  architectureGraphTopologyKey,
+} from "@/canvas/store";
+import { useCustomComponentsStore } from "@/canvas/custom-components-store";
 import type { ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
-import { modeColorVar } from "@/lib/modes";
 import { runValidation } from "@/validation-engine/engine";
 import { ruleRegistry } from "@/validation-engine/rules";
 import type { ValidationViolation } from "@/validation-engine/types";
@@ -66,11 +65,20 @@ const seedGraph: ArchitectureGraph = {
 const mode = "sandbox" as const;
 
 export default function SandboxPage() {
+  return (
+    <CanvasStoreProvider>
+      <SandboxPageContent />
+    </CanvasStoreProvider>
+  );
+}
+
+function SandboxPageContent() {
+  const storeApi = useCanvasStoreApi();
   const nodes = useCanvasStore((s) => s.nodes);
   const edges = useCanvasStore((s) => s.edges);
   const loadGraph = useCanvasStore((s) => s.loadGraph);
   const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
-  const loadCustomComponents = useCanvasStore((s) => s.loadCustomComponents);
+  const loadCustomComponents = useCustomComponentsStore((s) => s.loadCustomComponents);
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
   const canUndo = useCanvasStore((s) => s.past.length > 0);
@@ -82,9 +90,9 @@ export default function SandboxPage() {
   // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
   // the seed demo graph — this is what makes a refresh not lose work.
   useEffect(() => {
-    if (useCanvasStore.getState().nodes.length > 0) return;
+    if (storeApi.getState().nodes.length > 0) return;
     db.saves.get(SANDBOX_SAVE_ID).then((save) => {
-      if (useCanvasStore.getState().nodes.length > 0) return;
+      if (storeApi.getState().nodes.length > 0) return;
       if (save) {
         loadCanvasState(save.nodes, save.edges);
       } else {
@@ -102,6 +110,18 @@ export default function SandboxPage() {
     db.customComponents.toArray().then(loadCustomComponents);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Each mode's canvas store instance is created fresh on mount (see
+  // CanvasStoreProvider) and torn down on unmount — without this, navigating
+  // away without an explicit Save would silently lose in-progress edits
+  // instead of just fixing the cross-mode leak this store split was for.
+  // Mirrors the Save button's own db.saves.put shape exactly.
+  useEffect(() => {
+    return () => {
+      const { nodes, edges } = storeApi.getState();
+      void db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
+    };
+  }, [storeApi]);
 
   // Icon-only header button (see Tooltip below) — the text label "Saved"
   // that used to carry this feedback is gone, so a brief icon swap
@@ -121,7 +141,7 @@ export default function SandboxPage() {
   const showInsertHint = !hintDismissed;
 
   const handleSave = async () => {
-    const { nodes, edges } = useCanvasStore.getState();
+    const { nodes, edges } = storeApi.getState();
     await db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
     setJustSaved(true);
     setTimeout(() => setJustSaved(false), 1500);
@@ -172,124 +192,54 @@ export default function SandboxPage() {
       {focusMode ? (
         <FocusModeBar />
       ) : (
-        <header
-          style={{ borderBottomColor: modeColorVar[mode] }}
-          className="flex items-center justify-between border-b-2 px-6 py-3"
-        >
-          <div className="flex items-center gap-2.5">
-            <Link
-              href="/"
-              className="flex items-center gap-2.5 opacity-100 transition-opacity hover:opacity-70"
-            >
-              <div
-                aria-hidden="true"
-                style={{
-                  width: 32,
-                  height: 32,
-                  backgroundColor: "var(--foreground)",
-                  WebkitMaskImage: "url(/logo-mask.png)",
-                  maskImage: "url(/logo-mask.png)",
-                  WebkitMaskSize: "contain",
-                  maskSize: "contain",
-                  WebkitMaskRepeat: "no-repeat",
-                  maskRepeat: "no-repeat",
-                }}
-              />
-              <h1 className="text-base font-semibold">ScaleCraft</h1>
-            </Link>
-            <ModeBadge mode={mode} />
-          </div>
-          <div className="flex items-center gap-2">
-            {/* One split button, not two separate ones — bg-panel on the
-             * shared container is what makes this actually match Save/Export/
-             * Board (the prior merged version omitted it and rendered
-             * transparent against the header, which read as "doesn't match"). */}
-            <div className="flex h-8 items-center overflow-hidden rounded-md border border-border bg-panel">
-              <Tooltip label="Undo (Ctrl+Z)">
-                <button
-                  onClick={undo}
-                  disabled={!canUndo}
-                  aria-label="Undo"
-                  className="flex h-full items-center px-2.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-                >
-                  <Undo2 size={14} />
-                </button>
-              </Tooltip>
-              <div className="h-4 w-px bg-border" />
-              <Tooltip label="Redo (Ctrl+Shift+Z)">
-                <button
-                  onClick={redo}
-                  disabled={!canRedo}
-                  aria-label="Redo"
-                  className="flex h-full items-center px-2.5 hover:bg-border disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-                >
-                  <Redo2 size={14} />
-                </button>
-              </Tooltip>
-            </div>
-            <ValidationIndicator violations={violations} isStale={isStale} onValidate={handleValidate} />
-            <Tooltip label="Save (Ctrl+S)">
-              <button
-                onClick={handleSave}
-                aria-label="Save"
-                className={`flex h-8 w-8 items-center justify-center rounded-md border bg-panel hover:text-foreground ${
-                  justSaved ? "border-state-valid text-state-valid" : "border-border text-foreground/70"
-                }`}
-              >
-                {justSaved ? <Check size={16} /> : <Save size={16} />}
-              </button>
-            </Tooltip>
-            <ProjectMenu canvasRef={canvasRef} />
-            <BoardMenu />
-            <Tooltip label="Documentation">
-              <button
-                onClick={toggleDocsPanel}
-                aria-label={docsPanelOpen ? "Hide documentation panel" : "Show documentation panel"}
-                aria-pressed={docsPanelOpen}
-                className={`flex h-8 w-8 items-center justify-center rounded-md border border-border hover:text-foreground ${
-                  docsPanelOpen ? "bg-border text-foreground" : "bg-panel text-foreground/70"
-                }`}
-              >
-                <BookOpen size={16} />
-              </button>
-            </Tooltip>
-            <ShortcutsButton />
-            <ThemeToggle />
-          </div>
-        </header>
+        <AppHeader
+          mode={mode}
+          canvasRef={canvasRef}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          violations={violations}
+          isStale={isStale}
+          onValidate={handleValidate}
+          saveId={SANDBOX_SAVE_ID}
+          onSave={handleSave}
+          justSaved={justSaved}
+          docsPanelOpen={docsPanelOpen}
+          toggleDocsPanel={toggleDocsPanel}
+        />
       )}
 
-      <main className="flex min-h-0 flex-1 overflow-hidden">
-        {!focusMode && (
-          <div className="relative flex flex-1 flex-col">
-            {showInsertHint && (
-              <div className="absolute left-1/2 top-4 z-[var(--z-dropdown)] flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
-                <MouseRight size={14} className="shrink-0 text-foreground/70" />
-                <span>Right-click the canvas or press / to add a component</span>
-                <button
-                  type="button"
-                  onClick={dismissHint}
-                  aria-label="Dismiss hint"
-                  className="text-foreground/50 hover:text-foreground"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-            <Canvas
-              ref={canvasRef}
-              nodeStates={nodeStates}
-              // Clicking blank canvas dismisses the last Validate run
-              // (the green/red ring on every node, and the header
-              // button's own color) — without this, a passing run had
-              // no way back to neutral short of editing the graph.
-              onCanvasPaneClick={() => {
-                setViolations(null);
-                setCheckedGraphKey(null);
-              }}
-            />
-          </div>
-        )}
+      <main className="relative flex min-h-0 flex-1 overflow-hidden">
+        <div className="relative flex flex-1 flex-col">
+          {!focusMode && showInsertHint && (
+            <div className="absolute left-1/2 top-4 z-[var(--z-dropdown)] flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
+              <MouseRight size={14} className="shrink-0 text-foreground/70" />
+              <span>Right-click the canvas or press / to add a component</span>
+              <button
+                type="button"
+                onClick={dismissHint}
+                aria-label="Dismiss hint"
+                className="text-foreground/50 hover:text-foreground"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+          {/* Stays mounted across focus-mode toggles — see DocsPanel.tsx. */}
+          <Canvas
+            ref={canvasRef}
+            nodeStates={nodeStates}
+            // Clicking blank canvas dismisses the last Validate run
+            // (the green/red ring on every node, and the header
+            // button's own color) — without this, a passing run had
+            // no way back to neutral short of editing the graph.
+            onCanvasPaneClick={() => {
+              setViolations(null);
+              setCheckedGraphKey(null);
+            }}
+          />
+        </div>
 
         {docsPanelOpen && <DocsPanel />}
       </main>
