@@ -27,6 +27,8 @@ export function useCanvasShortcuts(onSave: () => void) {
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
   const openComponentPicker = useCanvasStore((s) => s.openComponentPicker);
+  const nodes = useCanvasStore((s) => s.nodes);
+  const edges = useCanvasStore((s) => s.edges);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -52,7 +54,7 @@ export function useCanvasShortcuts(onSave: () => void) {
       }
       if (key === "e") {
         event.preventDefault();
-        exportCanvasAsJson();
+        exportCanvasAsJson(nodes, edges);
         return;
       }
       if (isEditableTarget(event.target)) return;
@@ -71,5 +73,5 @@ export function useCanvasShortcuts(onSave: () => void) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onSave, undo, redo, openComponentPicker]);
+  }, [onSave, undo, redo, openComponentPicker, nodes, edges]);
 }

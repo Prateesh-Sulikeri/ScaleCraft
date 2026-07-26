@@ -10,7 +10,14 @@ import { AppHeader } from "@/app/AppHeader";
 import { PageEnter } from "@/app/PageEnter";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
 import { useDismissedFlag } from "@/lib/use-dismissed-flag";
-import { useCanvasStore, toArchitectureGraph, architectureGraphTopologyKey } from "@/canvas/store";
+import {
+  useCanvasStore,
+  useCanvasStoreApi,
+  CanvasStoreProvider,
+  toArchitectureGraph,
+  architectureGraphTopologyKey,
+} from "@/canvas/store";
+import { useCustomComponentsStore } from "@/canvas/custom-components-store";
 import type { ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
 import { runValidation } from "@/validation-engine/engine";
@@ -58,11 +65,20 @@ const seedGraph: ArchitectureGraph = {
 const mode = "sandbox" as const;
 
 export default function SandboxPage() {
+  return (
+    <CanvasStoreProvider>
+      <SandboxPageContent />
+    </CanvasStoreProvider>
+  );
+}
+
+function SandboxPageContent() {
+  const storeApi = useCanvasStoreApi();
   const nodes = useCanvasStore((s) => s.nodes);
   const edges = useCanvasStore((s) => s.edges);
   const loadGraph = useCanvasStore((s) => s.loadGraph);
   const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
-  const loadCustomComponents = useCanvasStore((s) => s.loadCustomComponents);
+  const loadCustomComponents = useCustomComponentsStore((s) => s.loadCustomComponents);
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
   const canUndo = useCanvasStore((s) => s.past.length > 0);
@@ -74,9 +90,9 @@ export default function SandboxPage() {
   // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
   // the seed demo graph — this is what makes a refresh not lose work.
   useEffect(() => {
-    if (useCanvasStore.getState().nodes.length > 0) return;
+    if (storeApi.getState().nodes.length > 0) return;
     db.saves.get(SANDBOX_SAVE_ID).then((save) => {
-      if (useCanvasStore.getState().nodes.length > 0) return;
+      if (storeApi.getState().nodes.length > 0) return;
       if (save) {
         loadCanvasState(save.nodes, save.edges);
       } else {
@@ -94,6 +110,18 @@ export default function SandboxPage() {
     db.customComponents.toArray().then(loadCustomComponents);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Each mode's canvas store instance is created fresh on mount (see
+  // CanvasStoreProvider) and torn down on unmount — without this, navigating
+  // away without an explicit Save would silently lose in-progress edits
+  // instead of just fixing the cross-mode leak this store split was for.
+  // Mirrors the Save button's own db.saves.put shape exactly.
+  useEffect(() => {
+    return () => {
+      const { nodes, edges } = storeApi.getState();
+      void db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
+    };
+  }, [storeApi]);
 
   // Icon-only header button (see Tooltip below) — the text label "Saved"
   // that used to carry this feedback is gone, so a brief icon swap
@@ -113,7 +141,7 @@ export default function SandboxPage() {
   const showInsertHint = !hintDismissed;
 
   const handleSave = async () => {
-    const { nodes, edges } = useCanvasStore.getState();
+    const { nodes, edges } = storeApi.getState();
     await db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
     setJustSaved(true);
     setTimeout(() => setJustSaved(false), 1500);

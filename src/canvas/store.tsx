@@ -1,4 +1,8 @@
-import { create } from "zustand";
+"use client";
+
+import { createStore, type StoreApi } from "zustand/vanilla";
+import { useStore } from "zustand";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import {
   applyNodeChanges,
   applyEdgeChanges,
@@ -8,7 +12,6 @@ import {
   type Connection,
 } from "@xyflow/react";
 import type { ComponentDefinition } from "@/content/components/types";
-import type { CustomComponentRecord } from "@/content/components/custom";
 import type { ArchitectureGraph, EdgeKind, XY } from "@/lib/graph";
 import type {
   AnyNodeType,
@@ -393,27 +396,19 @@ type CanvasStore = {
    * set — a partial duplicate shouldn't invent a new external connection). */
   duplicateNodes: (nodeIds: string[]) => void;
   reverseEdge: (edgeId: string) => void;
-  /** User-created components (see CreateComponentModal.tsx) — the raw,
-   * editable records, not derived ComponentDefinitions. registry.ts's
-   * getComponent/getAllComponents build a real ComponentDefinition from a
-   * record on demand (via content/components/custom.ts's
-   * toComponentDefinition) — keeping the record as the source of truth
-   * here, rather than a derived definition, is what makes editing
-   * possible: a placed ComponentDefinition's live Zod configSchema can't be
-   * un-rendered back into editable field specs. This is in-memory state
-   * only — same convention as `nodes`/`edges`: the store doesn't do
-   * persistence I/O itself. CreateComponentModal's submit handler writes to
-   * src/persistence/db.ts's customComponents table AND calls
-   * upsertCustomComponent in the same handler; the Sandbox page loads from
-   * that table into here on mount (mirrors how it already restores a
-   * canvas save). */
-  customComponents: CustomComponentRecord[];
-  upsertCustomComponent: (record: CustomComponentRecord) => void;
-  deleteCustomComponent: (id: string) => void;
-  loadCustomComponents: (records: CustomComponentRecord[]) => void;
 };
 
-export const useCanvasStore = create<CanvasStore>((set, get) => ({
+/** One instance of everything above — nodes/edges plus every piece of
+ * transient canvas UI state (selection, popovers, undo/redo, docs panel).
+ * Deliberately NOT a module singleton: Sandbox, Building Blocks, and Real
+ * World Extraction each mount their own via CanvasStoreProvider below, so
+ * navigating between modes can never leave one mode's graph sitting in
+ * another's canvas (see .claude/docs/pending.md I.6). User-created custom
+ * components are the one piece of related state that's deliberately NOT
+ * part of this per-instance store — see custom-components-store.ts — since
+ * those are genuinely global (usable from every mode), not canvas content. */
+export function createCanvasStore(): StoreApi<CanvasStore> {
+  return createStore<CanvasStore>((set, get) => ({
   nodes: [],
   edges: [],
   selectedEdgeId: null,
@@ -438,7 +433,6 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   pendingUndo: null,
   past: [],
   future: [],
-  customComponents: [],
 
   loadGraph: (graph) => {
     set((state) => ({
@@ -1040,26 +1034,43 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       future: [],
     }));
   },
+  }));
+}
 
-  upsertCustomComponent: (record) => {
-    set((state) => {
-      const exists = state.customComponents.some((c) => c.id === record.id);
-      return {
-        customComponents: exists
-          ? state.customComponents.map((c) => (c.id === record.id ? record : c))
-          : [...state.customComponents, record],
-      };
-    });
-  },
+const CanvasStoreContext = createContext<StoreApi<CanvasStore> | null>(null);
 
-  deleteCustomComponent: (id) => {
-    set((state) => ({ customComponents: state.customComponents.filter((c) => c.id !== id) }));
-  },
+/** Mounted once per mode page (SandboxPage, ChapterWorkspace) — creates
+ * exactly one fresh store instance for the lifetime of that mount, via
+ * useState's lazy initializer so remounts (not re-renders) are what create
+ * a new one. That's the whole fix for I.6: leaving a mode unmounts its
+ * Provider, so returning to — or opening a different — mode always starts
+ * from a clean store instead of whatever the previous mode left behind. */
+export function CanvasStoreProvider({ children }: { children: ReactNode }) {
+  const [store] = useState(createCanvasStore);
+  return <CanvasStoreContext.Provider value={store}>{children}</CanvasStoreContext.Provider>;
+}
 
-  loadCustomComponents: (records) => {
-    set({ customComponents: records });
-  },
-}));
+function useCanvasStoreApiInternal(): StoreApi<CanvasStore> {
+  const api = useContext(CanvasStoreContext);
+  if (!api) throw new Error("useCanvasStore/useCanvasStoreApi must be used within a CanvasStoreProvider");
+  return api;
+}
+
+/** Drop-in replacement for the old `create()`-returned hook — same
+ * `useCanvasStore(selector)` call shape, so every existing selector call
+ * site across the app needs no change. Resolves to whichever mode's
+ * Provider currently wraps the calling component. */
+export function useCanvasStore<T>(selector: (state: CanvasStore) => T): T {
+  return useStore(useCanvasStoreApiInternal(), selector);
+}
+
+/** For the handful of call sites that need an imperative `.getState()` read
+ * (a mount-guard check, a Save handler) instead of a reactive selector —
+ * mirrors the old `useCanvasStore.getState()` static-access pattern, just
+ * resolved through context instead of a module singleton. */
+export function useCanvasStoreApi(): StoreApi<CanvasStore> {
+  return useCanvasStoreApiInternal();
+}
 
 /** Pure — the store's RF-shaped state translated to the domain graph the
  * validation engine (and, later, persistence) operate on. See

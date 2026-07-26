@@ -39,6 +39,8 @@ const BG_HEX: Record<Exclude<Background, "transparent" | "custom">, string> = {
  */
 export function ProjectMenu({ canvasRef, disabled = false }: ProjectMenuProps) {
   const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
+  const nodes = useCanvasStore((s) => s.nodes);
+  const edges = useCanvasStore((s) => s.edges);
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<ImageFormat>("png");
   const [background, setBackground] = useState<Background>("transparent");
@@ -58,7 +60,7 @@ export function ProjectMenu({ canvasRef, disabled = false }: ProjectMenuProps) {
   };
 
   const handleExportJson = () => {
-    exportCanvasAsJson();
+    exportCanvasAsJson(nodes, edges);
     setOpen(false);
   };
 
