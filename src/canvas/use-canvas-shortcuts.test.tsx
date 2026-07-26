@@ -1,4 +1,3 @@
-<<<<<<< fix/docs-focus-mode-canvas-shrink
 import { act, render, cleanup } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -111,7 +110,6 @@ describe("useCanvasShortcuts", () => {
   it("leaves Escape a no-op when not in focus mode", () => {
     keydown({ key: "Escape" });
     expect(storeApi.getState().docsPanel.focusMode).toBe(false);
-=======
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -319,6 +317,5 @@ describe("useCanvasShortcuts", () => {
     const { unmount } = renderHook(() => useCanvasShortcuts(onSave), { wrapper });
     unmount();
     expect(removeSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
->>>>>>> release/v1.0.0-qol-updates
   });
 });
