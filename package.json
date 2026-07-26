@@ -1,6 +1,6 @@
 {
   "name": "scalecraft",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.1-alpha.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,9 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:flows": "vitest run src/flows",
-    "test:coverage": "vitest run --coverage",
+    "test": "NODE_ENV=test vitest run",
+    "test:flows": "NODE_ENV=test vitest run src/flows",
+    "test:coverage": "NODE_ENV=test vitest run --coverage",
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"

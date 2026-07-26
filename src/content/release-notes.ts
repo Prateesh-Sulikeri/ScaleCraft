@@ -14,6 +14,13 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "1.0.1-alpha.0",
+    date: "2026-07-26",
+    highlights: [
+      "Fixed a build pipeline bug that was blocking deployments (test suite was picking up a production React build instead of the test build, failing hundreds of component tests).",
+    ],
+  },
+  {
     version: "1.0.0-alpha.0",
     date: "2026-07-25",
     highlights: [
