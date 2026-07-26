@@ -318,4 +318,3 @@ describe("useCanvasShortcuts", () => {
     unmount();
     expect(removeSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
   });
-});
