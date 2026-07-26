@@ -14,7 +14,7 @@
 		7. Expand to have Component, Unit and integration tests which will become part of CI pipeline -- Completed
 		8. When docs is opened in focus mode and closed the diagram on the canvas gets shrinked (BUG FIX) -- Completed (focus mode now overlays the docs panel on top of Canvas instead of unmounting/resizing it, and Canvas re-fits its view on any real container resize instead of only once on mount — fixes both the shrink-on-exit and a clipping-into-the-docs-panel issue found while verifying it)
 		9. More support to keyboard shortcuts -- Completed
-		10. Component picket search bar to enable search by category eg: network should display all available network components 
+		10. Component picket search bar to enable search by category eg: network should display all available network components -- Completed
 	
 	II. Design important modules:
 		1. Use the Fable credits we have to desing the AI validation engine we planned for, in detail

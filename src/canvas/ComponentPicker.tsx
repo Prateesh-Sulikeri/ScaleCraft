@@ -369,7 +369,7 @@ export function ComponentPicker() {
                       aria-activedescendant={activeId ? `picker-item-${activeId}` : undefined}
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search components..."
+                      placeholder="Search components or categories..."
                       className="w-full rounded-md border border-border bg-background py-1.5 pl-7 pr-2 text-sm outline-none focus:border-foreground/40"
                     />
                   </div>
