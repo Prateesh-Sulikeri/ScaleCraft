@@ -40,7 +40,7 @@ describe("ComponentPicker", () => {
   it("renders the dialog with a search input and the Decoration tools when open", () => {
     openPicker();
     expect(screen.getByRole("dialog", { name: "Add a component" })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Search components...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search components or categories...")).toBeInTheDocument();
     expect(screen.getByText("Add zone")).toBeInTheDocument();
     expect(screen.getByText("Add comment")).toBeInTheDocument();
     expect(screen.getByText("Add flag")).toBeInTheDocument();
@@ -57,20 +57,20 @@ describe("ComponentPicker", () => {
 
   it("typing in the search box filters to matching components only", () => {
     openPicker();
-    fireEvent.change(screen.getByPlaceholderText("Search components..."), { target: { value: "sql" } });
+    fireEvent.change(screen.getByPlaceholderText("Search components or categories..."), { target: { value: "sql" } });
     expect(screen.getByText("SQL Database")).toBeInTheDocument();
     expect(screen.queryByText("Client")).not.toBeInTheDocument();
   });
 
   it("shows the no-match message for a query with no results", () => {
     openPicker();
-    fireEvent.change(screen.getByPlaceholderText("Search components..."), { target: { value: "zzzznotreal" } });
+    fireEvent.change(screen.getByPlaceholderText("Search components or categories..."), { target: { value: "zzzznotreal" } });
     expect(screen.getByText(/No components match/)).toBeInTheDocument();
   });
 
   it("filters the Decoration tools by query too (label or description match)", () => {
     openPicker();
-    fireEvent.change(screen.getByPlaceholderText("Search components..."), { target: { value: "flag" } });
+    fireEvent.change(screen.getByPlaceholderText("Search components or categories..."), { target: { value: "flag" } });
     expect(screen.getByText("Add flag")).toBeInTheDocument();
     expect(screen.queryByText("Add zone")).not.toBeInTheDocument();
   });
