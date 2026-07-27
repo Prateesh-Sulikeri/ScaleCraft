@@ -263,7 +263,20 @@ until Phase 5.
 ---
 
 ## Phase 5 — Wire into ChapterWorkspace + Dexie v3 (`chapters/ChapterWorkspace.tsx`,
-## `persistence/db.ts` — modified)
+## `persistence/db.ts` — modified) — CODE DONE (2026-07-27), awaiting your
+## manual IndexedDB verification pass below before I call this fully closed
+
+**Status:** implemented on this branch, matches §9.5 as spec'd. `chapterOutcome`
+(a `ChapterOutcome | null`) replaces the old bare `violations` state in
+`ChapterWorkspaceContent`; `violations` is now derived from it
+(`chapterOutcome?.violations ?? null`) so `AppHeader`/`ChapterSidebar`/
+`QuestionPane` need no prop-shape changes yet — that's Phase 6's job. Dexie
+v3 adds `chapterProgress` (keyed on `chapterId`, so a re-pass just updates the
+existing row rather than duplicating). `typecheck`, `lint`, `test` (102 files
+/ 757 tests, all 10 existing rule suites unmodified), and `build` all ran
+clean. I did **not** drive the real-browser migration check myself — that's
+the one thing only a real browser/IndexedDB catches, and it's explicitly your
+pass per the "You verify" list below, not something I fake or skip past.
 
 **Scope:**
 - `ChapterWorkspace.tsx:221`'s `handleValidate` calls `evaluateChapter(graph,

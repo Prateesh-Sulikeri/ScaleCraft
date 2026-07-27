@@ -166,6 +166,7 @@ async function renderWorkspace() {
 
 beforeEach(async () => {
   await db.saves.clear();
+  await db.chapterProgress.clear();
   runValidationMock.mockReset();
   runValidationMock.mockReturnValue([]);
   getRulesMock.mockClear();
@@ -302,6 +303,50 @@ describe("ChapterWorkspace", () => {
       await waitFor(() => expect(screen.getByTestId("is-stale")).toHaveTextContent("true"));
       // Still 1 — going stale doesn't clear the last result, it just flags it.
       expect(screen.getByTestId("violations-count")).toHaveTextContent("1");
+    });
+  });
+
+  describe("chapter progress wiring", () => {
+    it("writes exactly one chapterProgress row with the matched blueprint id when validation passes", async () => {
+      const putSpy = vi.spyOn(db.chapterProgress, "put");
+      runValidationMock.mockReturnValue([]);
+
+      await renderWorkspace();
+      // Chapter Two has no required components and no blueprints declared,
+      // so with zero rule violations evaluateChapter passes trivially.
+      fireEvent.click(screen.getByText("Chapter Two"));
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Chapter Two" })).toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId("validate-btn"));
+
+      await waitFor(() => expect(putSpy).toHaveBeenCalledTimes(1));
+      expect(putSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ chapterId: "ch-2", matchedBlueprintId: null }),
+      );
+      const stored = await db.chapterProgress.get("ch-2");
+      expect(stored?.matchedBlueprintId).toBeNull();
+
+      putSpy.mockRestore();
+    });
+
+    it("writes nothing when validation fails", async () => {
+      const putSpy = vi.spyOn(db.chapterProgress, "put");
+      runValidationMock.mockReturnValue([]);
+
+      await renderWorkspace();
+      // Chapter One's starterGraph has only one of its two required
+      // components, and it's disconnected — evaluateChapter fails on that
+      // alone, independent of the (mocked, zero) rule violations.
+      fireEvent.click(screen.getByText("Chapter One"));
+      await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId("validate-btn"));
+
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+      expect(putSpy).not.toHaveBeenCalled();
+      expect(await db.chapterProgress.get("ch-1")).toBeUndefined();
+
+      putSpy.mockRestore();
     });
   });
 

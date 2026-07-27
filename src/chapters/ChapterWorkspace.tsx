@@ -21,9 +21,7 @@ import {
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
 import { getChaptersForMode } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import { runValidation } from "@/validation-engine/engine";
-import { getRules } from "@/validation-engine/rules";
-import type { ValidationViolation } from "@/validation-engine/types";
+import { evaluateChapter, type ChapterOutcome } from "@/validation-engine/chapter-outcome";
 import { chapterSaveId, db } from "@/persistence/db";
 
 type ChapterWorkspaceProps = {
@@ -202,8 +200,9 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
 
   useCanvasShortcuts(handleSave);
 
-  const [violations, setViolations] = useState<ValidationViolation[] | null>(null);
+  const [chapterOutcome, setChapterOutcome] = useState<ChapterOutcome | null>(null);
   const [checkedGraphKey, setCheckedGraphKey] = useState<string | null>(null);
+  const violations = chapterOutcome?.violations ?? null;
 
   const currentGraphKey = useMemo(
     () => architectureGraphTopologyKey(toArchitectureGraph(nodes, edges)),
@@ -214,15 +213,23 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
   // Scoped to the open chapter's own validationRuleIds, not the full global
   // registry — a chapter should only ever fail on what it's actually
   // teaching (CLAUDE.md: "that's a config option or a validation rule
-  // scoped to that chapter"). Was previously wired to the full ruleRegistry
-  // as a placeholder because no rule was declared to scope by yet; now that
-  // the registry exists (NEXT_STEPS.md Step 3), this validates for real. No
-  // chapter open (Chapter List view) means nothing to validate against.
+  // scoped to that chapter"). evaluateChapter (Phase 4) layers the required-
+  // component connectivity check and blueprint matching on top of the rule
+  // run — a like-for-like swap at this call site, not a parallel code path.
+  // No chapter open (Chapter List view) means nothing to validate against.
   const handleValidate = () => {
     if (!selectedChapter) return;
     const graph = toArchitectureGraph(nodes, edges);
-    setViolations(runValidation(graph, getRules(selectedChapter.validationRuleIds)));
+    const outcome = evaluateChapter(graph, selectedChapter);
+    setChapterOutcome(outcome);
     setCheckedGraphKey(architectureGraphTopologyKey(graph));
+    if (outcome.passed) {
+      void db.chapterProgress.put({
+        chapterId: selectedChapter.id,
+        completedAt: Date.now(),
+        matchedBlueprintId: outcome.matchedBlueprintId,
+      });
+    }
   };
 
   const nodeStates: Record<string, ValidationState> = {};
