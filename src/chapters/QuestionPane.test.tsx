@@ -16,6 +16,7 @@ function makeChapter(overrides: Partial<ChapterDefinition> = {}): ChapterDefinit
     availableComponentIds: [],
     requiredComponentIds: [],
     validationRuleIds: [],
+    blueprints: [],
     hints: [],
     readingLinks: [],
     ...overrides,

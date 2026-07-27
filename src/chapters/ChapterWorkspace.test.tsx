@@ -113,6 +113,7 @@ const chapterOne: ChapterDefinition = {
   availableComponentIds: ["client", "load-balancer"],
   requiredComponentIds: ["client", "load-balancer"],
   validationRuleIds: ["rule-a"],
+  blueprints: [],
   hints: [],
   readingLinks: [],
   starterGraph: {
@@ -131,6 +132,7 @@ const chapterTwo: ChapterDefinition = {
   availableComponentIds: ["client", "cache"],
   requiredComponentIds: [],
   validationRuleIds: [],
+  blueprints: [],
   hints: [],
   readingLinks: [],
 };

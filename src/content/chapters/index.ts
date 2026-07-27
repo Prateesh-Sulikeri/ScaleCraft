@@ -24,6 +24,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     availableComponentIds: ["client", "load-balancer", "app-server"],
     requiredComponentIds: ["client", "load-balancer", "app-server"],
     validationRuleIds: [],
+    blueprints: [],
     hints: [
       {
         id: "bb-dummy-1-hint-1",
@@ -45,6 +46,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     availableComponentIds: ["client", "load-balancer", "app-server", "sql-database", "cache"],
     requiredComponentIds: ["client", "app-server", "sql-database"],
     validationRuleIds: [],
+    blueprints: [],
     hints: [],
     readingLinks: [],
   },
