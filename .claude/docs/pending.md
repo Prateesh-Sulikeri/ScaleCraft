@@ -29,7 +29,16 @@ before I call that phase closed.
 
 ---
 
-## Phase 1 — Graph index (`src/validation-engine/graph-index.ts`, new)
+## Phase 1 — Graph index (`src/validation-engine/graph-index.ts`, new) — DONE (2026-07-27)
+
+**Status:** implemented on this branch, commit follows this doc update.
+`reachable()` memoizes by reference (stronger than the "value equality"
+fallback this doc allowed for — same Set instance returned on a repeat call
+with the same `from`/`kinds`), so no confirmation round-trip was needed.
+`typecheck`, `lint`, `test` (720/720, including all 10 existing rules'
+suites unmodified), and `build` all ran clean; `git diff
+release/2.0.0-validation-engine-overhaul...HEAD -- src/validation-engine/rules/`
+is empty, confirming zero changes to the existing rule files.
 
 **Scope:** `GraphIndex` type + `buildGraphIndex()`, per §9.1 — `nodeById`,
 `defById` (reuse `component-lookup.ts`, don't re-derive), `outEdges`/`inEdges`
