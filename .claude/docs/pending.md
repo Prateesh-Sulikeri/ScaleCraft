@@ -152,7 +152,17 @@ backtracking logic itself.
 
 ---
 
-## Phase 3 — Rule kinds + engine dispatch (`types.ts`, `engine.ts` — modified)
+## Phase 3 — Rule kinds + engine dispatch (`types.ts`, `engine.ts` — modified) — DONE (2026-07-27)
+
+**Status:** implemented on this branch. Matches §9.3/§9.4 as spec'd, no
+deviations. `ValidationViolation.severity` widened to `Severity` too (it has
+to be, to carry a `PatternRule`'s severity through) — no downstream code
+does an exhaustive switch over it today, so this didn't require touching
+`ValidationIndicator.tsx`/`QuestionPane.tsx`/etc.; they still just compare
+`=== "error"`, and Phase 6 is where `note` actually gets its own rendering.
+`typecheck`, `lint`, `test` (101 files / 745 tests, all 10 existing rule
+suites unmodified), and `build` all ran clean; the rules-directory diff
+against the release branch is still empty.
 
 **Scope:** `Severity = "error" | "warning" | "note"`, the `ImperativeRule` /
 `PatternRule` union, `engine.ts` builds the index once and dispatches on
