@@ -19,7 +19,10 @@ vi.mock("@/canvas/Canvas", async () => {
   const React = await import("react");
   const { useCanvasStore } = await import("@/canvas/store");
   return {
-    Canvas: React.forwardRef(function MockCanvas(_props: unknown, ref: React.Ref<unknown>) {
+    Canvas: React.forwardRef(function MockCanvas(
+      props: { nodeStates?: Record<string, string> },
+      ref: React.Ref<unknown>,
+    ) {
       // A test-only control standing in for a real user gesture on the
       // canvas (e.g. dropping a new component) — enough to dirty the store
       // and change the graph's topology deterministically, without
@@ -32,16 +35,23 @@ vi.mock("@/canvas/Canvas", async () => {
       const addNode = useCanvasStore((s) => s.addNode);
       React.useImperativeHandle(ref, () => ({}));
       return React.createElement(
-        "button",
-        {
-          "data-testid": "mutate-canvas-btn",
-          onClick: () =>
-            addNode(
-              { id: "test-added-component", defaultConfig: {} } as unknown as Parameters<typeof addNode>[0],
-              { x: 100, y: 100 },
-            ),
-        },
-        "mutate canvas",
+        React.Fragment,
+        null,
+        React.createElement(
+          "button",
+          {
+            "data-testid": "mutate-canvas-btn",
+            onClick: () =>
+              addNode(
+                { id: "test-added-component", defaultConfig: {} } as unknown as Parameters<typeof addNode>[0],
+                { x: 100, y: 100 },
+              ),
+          },
+          "mutate canvas",
+        ),
+        // Surfaces the per-node coloring ChapterWorkspace computes so tests
+        // can assert on it without rendering the real xyflow node chrome.
+        React.createElement("pre", { "data-testid": "node-states" }, JSON.stringify(props.nodeStates ?? {})),
       );
     }),
   };
@@ -236,7 +246,7 @@ describe("ChapterWorkspace", () => {
       expect(screen.getByTestId("violations-count")).toHaveTextContent("null");
     });
 
-    it("marks every present component node valid when validation passes with zero violations", async () => {
+    it("reports zero rule violations even when the chapter still fails on missing/disconnected required components", async () => {
       runValidationMock.mockReturnValue([]);
       await renderWorkspace();
       fireEvent.click(screen.getByText("Chapter One"));
@@ -246,6 +256,42 @@ describe("ChapterWorkspace", () => {
 
       await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
       expect(screen.getByTestId("is-stale")).toHaveTextContent("false");
+    });
+
+    it("does not mark a required-but-disconnected node valid just because there are zero rule violations", async () => {
+      // Chapter One's starterGraph is a single, disconnected Client node —
+      // present but not wired to anything — and load-balancer is missing
+      // entirely, so evaluateChapter fails even though runValidation itself
+      // (mocked here) reports nothing. Node coloring must reflect that
+      // failure, not paint the lone node green as if the chapter passed.
+      runValidationMock.mockReturnValue([]);
+      await renderWorkspace();
+      fireEvent.click(screen.getByText("Chapter One"));
+      await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId("validate-btn"));
+
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+      const nodeStates = JSON.parse(screen.getByTestId("node-states").textContent ?? "{}");
+      expect(nodeStates.n1).toBe("warning");
+      expect(Object.values(nodeStates)).not.toContain("valid");
+    });
+
+    it("marks every present component node valid once the chapter actually passes", async () => {
+      // Chapter Two has no required components and no blueprints, so with
+      // zero rule violations evaluateChapter passes outright — this is the
+      // one case that should still paint nodes green.
+      runValidationMock.mockReturnValue([]);
+      await renderWorkspace();
+      fireEvent.click(screen.getByText("Chapter Two"));
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Chapter Two" })).toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
+      fireEvent.click(screen.getByTestId("validate-btn"));
+
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+      const nodeStates = JSON.parse(screen.getByTestId("node-states").textContent ?? "{}");
+      expect(Object.values(nodeStates)).toEqual(["valid"]);
     });
 
     it("runs validation scoped to the selected chapter's own validationRuleIds and surfaces every violation, unconditionally", async () => {

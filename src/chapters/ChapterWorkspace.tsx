@@ -232,16 +232,32 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
     }
   };
 
+  // Keyed on the whole ChapterOutcome, not just rule violations — a graph
+  // with zero rule violations can still fail the chapter (a required
+  // component present but disconnected, or no blueprint matched), and
+  // painting every node green in that case would show a learner a false
+  // "this is right" signal on a canvas that's still failing overall.
   const nodeStates: Record<string, ValidationState> = {};
-  if (violations && !isStale) {
-    if (violations.length === 0) {
+  if (chapterOutcome && !isStale) {
+    if (chapterOutcome.passed) {
       for (const n of nodes) {
         if (n.type === "component") nodeStates[n.id] = "valid";
       }
     } else {
-      for (const v of violations) {
+      for (const v of chapterOutcome.violations) {
         for (const id of v.offendingNodeIds) {
           nodeStates[id] = v.severity === "error" ? "error" : "warning";
+        }
+      }
+      // Required components present on canvas but not connected — flag them
+      // too, so they don't render unstyled (or, before this fix, green)
+      // while still being the reason the chapter is failing.
+      if (chapterOutcome.disconnectedRequiredComponentIds.length > 0) {
+        const disconnectedIds = new Set(chapterOutcome.disconnectedRequiredComponentIds);
+        for (const n of nodes) {
+          if (n.type === "component" && disconnectedIds.has(n.data.componentId)) {
+            nodeStates[n.id] = "warning";
+          }
         }
       }
     }

@@ -435,6 +435,22 @@ per `CLAUDE.md` I don't merge my own branches. Everything above is
 committed locally on `feature/validation-pattern-engine`; pushing to origin
 is still your call to make, not something I do unprompted.
 
+**Post-Phase-7 fix (2026-07-27):** manual browser testing (golden path +
+negative flows, both scripted with throwaway Playwright specs and deleted
+after each run — never committed) surfaced a real bug: `ChapterWorkspace`'s
+`nodeStates` painted every present node green whenever *rule* violations
+were zero, even if the chapter still failed on a missing/disconnected
+required component or an unmatched blueprint — a learner could see a green
+node on a canvas that was still failing overall. Fixed in
+`ChapterWorkspace.tsx`: node coloring now keys off the whole
+`ChapterOutcome`, not just `violations` — "valid" only applies once
+`chapterOutcome.passed` is true; a required-but-disconnected node now
+renders `"warning"` instead. Two new tests in `ChapterWorkspace.test.tsx`
+pin this down directly (the mock `Canvas` now surfaces `nodeStates` as
+JSON for assertions). Re-verified in a real browser: the same disconnected-
+Client scenario now renders an amber border, not green. Full pipeline
+re-run clean after the fix (103 files / 772 tests).
+
 **Scope:**
 - Full pipeline run: `npm run typecheck && npm run lint && npm test && npm
   run build` — green, not "green last time I checked."
