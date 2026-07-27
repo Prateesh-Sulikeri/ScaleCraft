@@ -95,14 +95,32 @@ not placeholders.
 ## 5. Stronger validation agent — done (Track 1; Track 2 blocked)
 
 **Status:** Track 1 (structural rules + per-component `relations` contracts)
-shipped 2026-07-24 — the registry grew to 11 rules, and the flat
+shipped 2026-07-24 — the registry grew to 10 rules, and the flat
 category-matrix approach described below was superseded by components
 declaring their own connection contracts (`component-relations.ts`); see
 `.claude/docs/validation_agent_design.md` for the full design and history.
-Track 2 (LLM-assisted holistic critique) is designed but blocked on Gemini
-API access, not built. The section below is kept as the original problem
-statement/rationale — still accurate context, just not the current state of
-the rule count.
+The section below is kept as the original problem statement/rationale —
+still accurate context, just not the current state of the rule count.
+
+**Revised 2026-07-27 — the remaining tracks moved to `NEXT_STEPS.md` Step 4.5:**
+
+- **The LLM-assisted critique is no longer blocked.** Users bring their own API
+  key (any provider), called browser-direct, so there is nothing to meter — no
+  daily cap, no identity to count against, hence **no dependency on milestone 10's
+  auth**, and no dependence on Gemini specifically. It also no longer surfaces as
+  a `ValidationViolation`, and it is now available in Building Blocks rather than
+  scoped out of it. Design doc §4 records all three reversals with reasoning.
+- **A second problem surfaced that this milestone's framing missed:** enumerating
+  wrongness doesn't scale. `CURRICULUM.md` §12 budgets 5–10 rules per BB chapter
+  and 15–25 per RWE project — 250–400 hand-written rule files against today's 10.
+  The fix is to make rules declarative graph *patterns*, and to recognise
+  *rightness* via per-chapter blueprints rather than enumerating every way to be
+  wrong. Design doc §8–§9.
+- **Chapter success criteria were never implemented at all** — `hasErrors()` is
+  dead code, `requiredComponentIds` is checked for presence but never
+  connectivity, and `solutionGraph` is referenced nowhere in `src/`. Milestone 6's
+  "success criteria detection" therefore still has nothing behind it. Step 4.5
+  closes that, which is why it must land before milestone 7's real chapter content.
 
 The rule-based engine (`src/validation-engine/`) originally had 6 hand-picked
 structural/config rules — nowhere near the space of nonsensical architectures a user
