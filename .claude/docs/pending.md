@@ -201,7 +201,18 @@ If it doesn't, that's a real regression, not expected.
 ---
 
 ## Phase 4 — Blueprints + chapter outcome (`content/chapters/types.ts`,
-## `validation-engine/chapter-outcome.ts` — new)
+## `validation-engine/chapter-outcome.ts` — new) — DONE (2026-07-27)
+
+**Status:** implemented on this branch, matches §9.5 as spec'd, no
+deviations. All 9 spec'd test cases present in `chapter-outcome.test.ts`.
+`connectedNodeIds` exported from `orphan-component.ts` — the one line-level
+change that file needed, called out explicitly rather than folded into a
+"zero changes" claim (`orphan-component.ts` itself keeps zero behavior
+change, just a refactor-for-export). `solutionGraph` confirmed gone from
+`src/` via grep (zero matches). `typecheck`, `lint`, `test` (102 files / 754
+tests, all 10 existing rule suites unmodified), and `build` all ran clean;
+the rules-directory diff against the release branch is empty for the other
+9 rule files.
 
 **Scope:** `Blueprint` type (`id`, `label`, `require`, `forbid?`, `commentary`,
 `referenceGraph?`), `ChapterDefinition` gains `blueprints: Blueprint[]` and
