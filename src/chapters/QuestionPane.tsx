@@ -5,40 +5,54 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCanvasStore } from "@/canvas/store";
 import type { ComponentNodeType } from "@/canvas/types";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
+import { Debrief } from "./Debrief";
 import type { ChapterDefinition, Hint } from "@/content/chapters/types";
-import type { ValidationViolation } from "@/validation-engine/types";
+import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
 
 type QuestionPaneProps = {
   chapter: ChapterDefinition;
   onBack: () => void;
   onPrev?: () => void;
   onNext?: () => void;
-  /** Mirrors ChapterWorkspace's own Validate-button state (same shape as
-   * sandbox/page.tsx) so this progress line reflects the last run without
-   * re-running anything itself. ChapterWorkspace now scopes the actual run
-   * to the open chapter's own validationRuleIds (NEXT_STEPS.md Step 3, done
-   * — see runValidation call site), not the full global registry. */
-  violations: ValidationViolation[] | null;
+  /** Mirrors ChapterWorkspace's own last Validate-button result. `null`
+   * before the first click; `isStale` means the graph has since changed
+   * underneath it. ChapterWorkspace scopes the actual run to the open
+   * chapter's own validationRuleIds (evaluateChapter), not the full global
+   * registry. */
+  chapterOutcome: ChapterOutcome | null;
   isStale: boolean;
 };
 
 /**
  * View 2 of ChapterSidebar — problem statement, objectives, a required-
  * components progress line, opt-in hints (never pre-expanded, per
- * CLAUDE.md's "hints vs. explanations" rule), reading links, and
- * prev/next/back chapter navigation.
+ * CLAUDE.md's "hints vs. explanations" rule), reading links, a pull-only
+ * Debrief once passed, and prev/next/back chapter navigation.
  */
-export function QuestionPane({ chapter, onBack, onPrev, onNext, violations, isStale }: QuestionPaneProps) {
+export function QuestionPane({ chapter, onBack, onPrev, onNext, chapterOutcome, isStale }: QuestionPaneProps) {
   const nodes = useCanvasStore((s) => s.nodes);
   const [revealedHintIds, setRevealedHintIds] = useState<Set<string>>(new Set());
 
+  const outcome = isStale ? null : chapterOutcome;
+
+  // Before the first Validate click (or once results go stale), fall back to
+  // a live presence-only count from the canvas so this line isn't blank —
+  // once a fresh ChapterOutcome exists, it upgrades to "present AND
+  // connected" (§8.3), matching evaluateChapter's own pass criteria exactly
+  // instead of a looser presence-only approximation.
   const presentComponentIds = new Set(
     nodes.filter((n): n is ComponentNodeType => n.type === "component").map((n) => n.data.componentId),
   );
+  const requiredTotal = chapter.requiredComponentIds.length;
   const requiredPresentCount = chapter.requiredComponentIds.filter((id) => presentComponentIds.has(id)).length;
+  const requiredConnectedCount = outcome
+    ? requiredTotal - outcome.missingRequiredComponentIds.length - outcome.disconnectedRequiredComponentIds.length
+    : requiredPresentCount;
+  const requiredCountLabel = outcome ? "present and connected" : "present";
 
+  const violations = outcome?.violations ?? null;
   const validationSummary =
-    violations === null || isStale
+    violations === null
       ? "Not yet validated"
       : violations.length === 0
         ? "Last validated: passing"
@@ -96,11 +110,18 @@ export function QuestionPane({ chapter, onBack, onPrev, onNext, violations, isSt
           </div>
         )}
 
-        {chapter.requiredComponentIds.length > 0 && (
+        {requiredTotal > 0 && (
           <p className="mt-4 text-xs text-foreground/60">
-            {requiredPresentCount} / {chapter.requiredComponentIds.length} required components present ·{" "}
+            {requiredConnectedCount} / {requiredTotal} required components {requiredCountLabel} ·{" "}
             {validationSummary}
           </p>
+        )}
+
+        {/* Plain, not celebratory — this app isn't a game (CLAUDE.md). */}
+        {outcome?.passed && <p className="mt-2 text-xs text-state-valid">Chapter complete.</p>}
+
+        {outcome?.passed && (
+          <Debrief blueprints={chapter.blueprints} matchedBlueprintId={outcome.matchedBlueprintId} />
         )}
 
         {chapter.hints.length > 0 && (

@@ -24,7 +24,34 @@ export const chapterRegistry: ChapterDefinition[] = [
     availableComponentIds: ["client", "load-balancer", "app-server"],
     requiredComponentIds: ["client", "load-balancer", "app-server"],
     validationRuleIds: [],
-    blueprints: [],
+    // Throwaway, not real curriculum content — same convention as
+    // `placeholder: true` above. Exists purely so there's something concrete
+    // to click through end to end (QuestionPane's connected-count line, the
+    // pass state, the Debrief) before Step 5 authors real chapters with real
+    // blueprints. Step 5 replaces this, doesn't build on it.
+    blueprints: [
+      {
+        id: "bb-dummy-1-blueprint-throwaway",
+        label: "Client routed through a load balancer to an app server",
+        require: {
+          id: "bb-dummy-1-blueprint-throwaway",
+          nodes: [
+            { alias: "client", componentId: "client" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+          ],
+          edges: [
+            { from: "client", to: "lb" },
+            { from: "lb", to: "app" },
+          ],
+        },
+        commentary:
+          "**Throwaway fixture, not real curriculum content.** A client should " +
+          "never depend on a single app server directly — routing through a " +
+          "load balancer means a server can be replaced or scaled without the " +
+          "client ever noticing.",
+      },
+    ],
     hints: [
       {
         id: "bb-dummy-1-hint-1",

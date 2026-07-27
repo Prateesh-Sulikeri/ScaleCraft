@@ -326,7 +326,36 @@ only a real browser catches).
 ---
 
 ## Phase 6 — UI: QuestionPane, ValidationIndicator, Debrief + a throwaway
-## blueprint fixture for manual QA
+## blueprint fixture for manual QA — CODE DONE (2026-07-27), awaiting your
+## click-through pass below before I call this fully closed
+
+**Status:** implemented on this branch. Went with the doc's own default on
+the flagged judgment call — Debrief shows every declared blueprint, matched
+one badged "Your approach", not hidden. **One more judgment call, not
+pinned down by §8.4 either:** `referenceGraph` renders as a lightweight
+component-label edge list (`"Application Server → Cache"`), not a full
+React Flow canvas — pulling in a second, read-only canvas instance for a
+debrief aside felt disproportionate, and the text summary still shows the
+actual shape. Say now if you want a real mini-canvas render instead.
+`QuestionPane`'s required-components line now falls back to the old live
+presence-only count before the first Validate click (or once stale), then
+upgrades to `ChapterOutcome`-driven present-*and*-connected once a fresh
+result exists — otherwise the line would just read "Not yet validated" for
+something the user can see building in front of them pre-Validate.
+`ValidationIndicator` now sorts error → warning → note, and note-severity
+violations no longer count toward `hasViolations`/`isValid` at all (a
+graph with only notes now shows the valid checkmark, not the error X) —
+broader than literally just "excluded from the header counts," but the
+narrower reading left the icon contradicting the "notes don't block"
+framing. `typecheck`, `lint`, `test` (103 files / 770 tests, all 10
+existing rule suites unmodified), and `build` all ran clean. I also ran the
+existing `e2e/chapter-hints-validation.spec.ts` (still green — the
+Validate/hint invariants it guards are untouched) and took light/dark
+screenshots of the placeholder chapter's QuestionPane post-Validate to
+sanity-check no obvious layout break; I did **not** script a full
+drag-and-drop e2e build of the fixture blueprint's graph — that's exactly
+the click-through this section already asks you to run yourself, and
+scripting it would just be a worse version of your own pass.
 
 **Scope:**
 - `QuestionPane.tsx`: replace the presence-only "N / M required components

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Tooltip } from "@/app/Tooltip";
-import type { ValidationViolation } from "@/validation-engine/types";
+import type { Severity, ValidationViolation } from "@/validation-engine/types";
 
 type ValidationIndicatorProps = {
   violations: ValidationViolation[] | null;
@@ -58,22 +58,28 @@ export function ValidationIndicator({ violations, isStale, onValidate }: Validat
     }
   };
 
-  const hasViolations = violations !== null && !isStale && violations.length > 0;
-  const isValid = violations !== null && !isStale && violations.length === 0;
+  // Errors first, then warnings, notes last — the more urgent problems are
+  // the first thing hit while scrolling a long list, and informational
+  // notes trail behind anything that's actually blocking or worth a look.
+  const severityRank: Record<Severity, number> = { error: 0, warning: 1, note: 2 };
+  const sortedViolations = violations
+    ? [...violations].sort((a, b) => severityRank[a.severity] - severityRank[b.severity])
+    : [];
+  const errorCount = sortedViolations.filter((v) => v.severity === "error").length;
+  const warningCount = sortedViolations.filter((v) => v.severity === "warning").length;
+  const noteCount = sortedViolations.filter((v) => v.severity === "note").length;
+  // Notes are informational, not a blocking result — they never flip the
+  // icon to an error/warning state and never count toward "N issues".
+  const issueCount = errorCount + warningCount;
+
+  const hasViolations = violations !== null && !isStale && issueCount > 0;
+  const isValid = violations !== null && !isStale && issueCount === 0;
 
   const colorClass = hasViolations
     ? "border-state-error text-state-error"
     : isValid
       ? "border-state-valid text-state-valid"
       : "border-border text-foreground";
-
-  // Errors first, so the more urgent problems are the first thing hit
-  // while scrolling a long list, not buried after a run of warnings.
-  const sortedViolations = violations
-    ? [...violations].sort((a, b) => (a.severity === b.severity ? 0 : a.severity === "error" ? -1 : 1))
-    : [];
-  const errorCount = sortedViolations.filter((v) => v.severity === "error").length;
-  const warningCount = sortedViolations.length - errorCount;
 
   return (
     <div ref={containerRef} className="relative">
@@ -101,12 +107,25 @@ export function ValidationIndicator({ violations, isStale, onValidate }: Validat
                * scrollable area on purpose, same reasoning as a table's
                * fixed header row. */}
               <div className="shrink-0 border-b border-border px-3 py-2 text-xs font-semibold tracking-wide text-foreground/60 uppercase">
-                {violations.length} {violations.length === 1 ? "issue" : "issues"}
-                {errorCount > 0 && warningCount > 0 && (
-                  <span className="normal-case">
-                    {" "}
-                    · <span style={{ color: "var(--state-error)" }}>{errorCount} error{errorCount === 1 ? "" : "s"}</span>{" "}
-                    · <span style={{ color: "var(--state-warning)" }}>{warningCount} warning{warningCount === 1 ? "" : "s"}</span>
+                {issueCount > 0 && (
+                  <span>
+                    {issueCount} {issueCount === 1 ? "issue" : "issues"}
+                    {errorCount > 0 && warningCount > 0 && (
+                      <span className="normal-case">
+                        {" "}
+                        · <span style={{ color: "var(--state-error)" }}>{errorCount} error{errorCount === 1 ? "" : "s"}</span>{" "}
+                        · <span style={{ color: "var(--state-warning)" }}>{warningCount} warning{warningCount === 1 ? "" : "s"}</span>
+                      </span>
+                    )}
+                  </span>
+                )}
+                {issueCount > 0 && noteCount > 0 && " · "}
+                {/* Notes are informational, not blocking (§8.3) — kept out
+                 * of the issue/error/warning counts above, on their own
+                 * muted normal-case fragment so they never inflate them. */}
+                {noteCount > 0 && (
+                  <span className="normal-case text-foreground/50">
+                    {noteCount} {noteCount === 1 ? "note" : "notes"}
                   </span>
                 )}
               </div>
@@ -118,15 +137,22 @@ export function ValidationIndicator({ violations, isStale, onValidate }: Validat
                * clip an unbounded list instead of scrolling it. Every
                * card's full message + explanation always renders in full —
                * only scroll position changes, nothing is ever collapsed or
-               * truncated, per the "explanation always shown" rule. */}
+               * truncated, per the "explanation always shown" rule. Notes
+               * render in the same list (never hidden), just visibly muted
+               * instead of colored error/warning. */}
               <ul className="space-y-3 overflow-y-auto p-3">
                 {sortedViolations.map((v, i) => (
-                  <li key={i} className="rounded-md border border-border p-3">
+                  <li
+                    key={i}
+                    className={`rounded-md border p-3 ${v.severity === "note" ? "border-border/60" : "border-border"}`}
+                  >
                     <p
-                      className="text-sm font-medium"
-                      style={{
-                        color: v.severity === "error" ? "var(--state-error)" : "var(--state-warning)",
-                      }}
+                      className={`text-sm font-medium ${v.severity === "note" ? "text-foreground/60" : ""}`}
+                      style={
+                        v.severity === "note"
+                          ? undefined
+                          : { color: v.severity === "error" ? "var(--state-error)" : "var(--state-warning)" }
+                      }
                     >
                       {v.message}
                     </p>

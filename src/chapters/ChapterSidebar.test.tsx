@@ -4,6 +4,19 @@ import type { ComponentProps } from "react";
 import { ChapterSidebar } from "./ChapterSidebar";
 import { CanvasStoreProvider } from "@/canvas/store";
 import type { ChapterDefinition } from "@/content/chapters/types";
+import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
+
+function makeOutcome(overrides: Partial<ChapterOutcome> = {}): ChapterOutcome {
+  return {
+    passed: false,
+    matchedBlueprintId: null,
+    violations: [],
+    errorCount: 0,
+    missingRequiredComponentIds: [],
+    disconnectedRequiredComponentIds: [],
+    ...overrides,
+  };
+}
 
 function makeChapter(overrides: Partial<ChapterDefinition> = {}): ChapterDefinition {
   return {
@@ -38,7 +51,7 @@ function renderSidebar(props: Partial<ComponentProps<typeof ChapterSidebar>> = {
     selectedChapterId: null,
     onSelect: vi.fn(),
     onBack: vi.fn(),
-    violations: null,
+    chapterOutcome: null,
     isStale: false,
   };
   return render(
@@ -88,7 +101,7 @@ describe("ChapterSidebar", () => {
           selectedChapterId="a"
           onSelect={vi.fn()}
           onBack={vi.fn()}
-          violations={null}
+          chapterOutcome={null}
           isStale={false}
         />
       </CanvasStoreProvider>,
@@ -103,7 +116,7 @@ describe("ChapterSidebar", () => {
           selectedChapterId="c"
           onSelect={vi.fn()}
           onBack={vi.fn()}
-          violations={null}
+          chapterOutcome={null}
           isStale={false}
         />
       </CanvasStoreProvider>,
@@ -134,16 +147,19 @@ describe("ChapterSidebar", () => {
           selectedChapterId="a"
           onSelect={vi.fn()}
           onBack={vi.fn()}
-          violations={[
-            {
-              ruleId: "r1",
-              severity: "error",
-              message: "Bad",
-              explanation: "Because reasons.",
-              offendingNodeIds: [],
-              offendingEdgeIds: [],
-            },
-          ]}
+          chapterOutcome={makeOutcome({
+            violations: [
+              {
+                ruleId: "r1",
+                severity: "error",
+                message: "Bad",
+                explanation: "Because reasons.",
+                offendingNodeIds: [],
+                offendingEdgeIds: [],
+              },
+            ],
+            errorCount: 1,
+          })}
           isStale={true}
         />
       </CanvasStoreProvider>,

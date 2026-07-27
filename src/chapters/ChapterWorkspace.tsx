@@ -278,7 +278,7 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
               selectedChapterId={selectedChapterId}
               onSelect={requestChapterChange}
               onBack={() => requestChapterChange(null)}
-              violations={violations}
+              chapterOutcome={chapterOutcome}
               isStale={isStale}
             />
           </SidebarShell>
