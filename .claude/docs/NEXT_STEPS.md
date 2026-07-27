@@ -196,10 +196,11 @@ doesn't exist and a rule model that has to change underneath them.
 Numbered 4.5 rather than 5 so Steps 5–10 and their cross-references don't renumber.
 
 **Three branches, in order, each merged before the next is cut** (all off
-`release/v1.0.0-qol-updates`, per `CLAUDE.md`'s branching rules):
+`release/2.0.0-validation-engine-overhaul`, which is cut from `develop` and is the
+integration branch for this work, per `CLAUDE.md`'s branching rules):
 
-1. `docs/validation-engines-v2` — the design doc rewrite and this roadmap wiring.
-   **Done.** No code.
+1. `docs/planing-documentation` — the design doc rewrite, this roadmap wiring, and the
+   `2.0.0-alpha.0` version bump. **Done and merged; branch deleted.** No code.
 2. `feature/validation-pattern-engine` — Track 2. Graph index, pattern language and
    matcher, `PatternRule` alongside the existing imperative rules (which change zero
    lines), `note` severity, blueprints, `evaluateChapter`, Dexie v3 `chapterProgress`,
