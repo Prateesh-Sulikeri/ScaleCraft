@@ -418,7 +418,22 @@ yourself in both themes:**
 
 ---
 
-## Phase 7 — Hardening, full regression, docs sync
+## Phase 7 — Hardening, full regression, docs sync — DONE (2026-07-27)
+
+**Status:** `typecheck`, `lint`, `test` (103 files / 770 tests), `build`, and
+the full `e2e/` Playwright suite (3 specs) all green. The 9-of-10 rule-file
+zero-diff invariant holds across the whole branch
+(`git diff release/2.0.0-validation-engine-overhaul...HEAD --
+src/validation-engine/rules/{...9 files...}` empty); `orphan-component.ts`'s
+diff is exactly the one exported helper Phase 4 called out, nothing more.
+Doc sync done: `validation_agent_design.md`'s header/Rollout Status,
+`MILESTONES.md` milestone 5, and `NEXT_STEPS.md` (top status line, Step
+4.5's header/branch list/done-when bar) all now say "Track 2 implemented,
+pending merge" rather than "not built" or "done." Not emptying this file
+out yet, per its own convention — that's for once this actually merges, and
+per `CLAUDE.md` I don't merge my own branches. Everything above is
+committed locally on `feature/validation-pattern-engine`; pushing to origin
+is still your call to make, not something I do unprompted.
 
 **Scope:**
 - Full pipeline run: `npm run typecheck && npm run lint && npm test && npm

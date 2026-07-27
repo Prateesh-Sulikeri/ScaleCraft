@@ -1,9 +1,10 @@
 # Validation Engines Design: Rules, Patterns, Blueprints & AI Deep Check
 
 **Status:** Track 1 (structural rules + per-component relations) — implemented.
-Track 2 (pattern engine + blueprints + chapter mastery) — designed, specified in
-§9, not yet built. Track 3 (AI Deep Check) — designed, specified in §10, not yet
-built; unblocked by the BYO-API-key decision (§4).
+Track 2 (pattern engine + blueprints + chapter mastery) — implemented on
+`feature/validation-pattern-engine`, pending review/merge (§8, §9). Track 3
+(AI Deep Check) — designed, specified in §10, not yet built; unblocked by the
+BYO-API-key decision (§4).
 
 This doc is the **single source of truth** for both validation engines — the
 deterministic rule engine and the AI layer. It is the living reference: update it
@@ -904,10 +905,18 @@ Sandbox has no chapter and no blueprints, so it always runs the pre-pass shape.
    **done** (2026-07-24). Closes every case in milestone 5's "done when" bar,
    including the API Gateway case found during implementation that the original
    flat-matrix design didn't.
-2. **Track 2** — pattern engine + blueprints + chapter mastery (§8, §9).
-   Specified, not built. Branch: `feature/validation-pattern-engine`.
-   **Blocks `NEXT_STEPS.md` Step 5** — real Building Blocks chapters need
-   blueprints and a working mastery gate to be authored against.
+2. **Track 2** — pattern engine + blueprints + chapter mastery (§8, §9) —
+   **implemented** (2026-07-27) on `feature/validation-pattern-engine`,
+   pending manual review/merge per `CLAUDE.md`'s branching rules (Claude
+   opens and pushes the branch, never merges it). `GraphIndex`, the pattern
+   matcher, `PatternRule`/`Blueprint`, and `evaluateChapter` all shipped
+   additively — the 10 pre-existing rule files have zero line changes across
+   the whole branch except `orphan-component.ts`, which gained one exported
+   helper (`connectedNodeIds`) with no change to its own rule's behavior.
+   Once merged, **unblocks `NEXT_STEPS.md` Step 5** — real Building Blocks
+   chapters can now be authored against a working blueprint + mastery gate
+   instead of the dead `hasErrors()`/presence-only check this branch
+   replaced.
 3. **Track 3** — AI Deep Check (§4, §10). Specified, not built. Branch:
    `feature/ai-deep-check`, cut after Track 2 merges. No longer blocked on auth
    or on Gemini access — see §4.2 reversal 3.
