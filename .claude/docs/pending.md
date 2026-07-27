@@ -84,7 +84,22 @@ reviewing the diff/tests if you want eyes on it before Phase 2 starts.
 
 ---
 
-## Phase 2 — Pattern language and matcher (`src/validation-engine/pattern.ts`, new)
+## Phase 2 — Pattern language and matcher (`src/validation-engine/pattern.ts`, new) — DONE (2026-07-27)
+
+**Status:** implemented on this branch. One deliberate, additive deviation
+from §9.2's illustrative type: `GraphPattern` gained an optional `id?:
+string` field, since "console.warn the pattern id" needs *something* to
+name — the spec's shown type had no id anywhere on `GraphPattern`. Callers
+(a `PatternRule.forbid`, a `Blueprint.require` in Phase 4) should set it to
+their own rule/blueprint id. All 22 tests green, including every
+`ConfigPredicate` operator, `via: "direct"`/`"path"`, injective bindings,
+`absent` (both the negative-constraint and outer-alias-reference cases),
+the budget guard (verified it actually hits `MAX_MATCHES=200` on a dense
+60-node pathological graph and warns), determinism, and two composite
+curriculum-shaped patterns (cache-aside, hot-path-via-any-route).
+`typecheck`, `lint`, `test` (101 files / 742 tests, all 10 existing rule
+suites unmodified), and `build` all ran clean; the rules-directory diff
+against the release branch is still empty.
 
 **Scope:** `ConfigPredicate`, `PatternNode`, `PatternEdge`, `GraphPattern`,
 `Binding`, `matchPattern()`, `patternMatches()` — the backtracking search from
