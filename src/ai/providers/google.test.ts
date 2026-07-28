@@ -67,4 +67,15 @@ describe("googleProvider", () => {
       googleProvider.complete({ apiKey: "bad", model: "m", system: "s", user: "u" }),
     ).rejects.toMatchObject({ kind: "auth" });
   });
+
+  it("maps a non-JSON 200 response body to an unknown error instead of throwing raw", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("<html>not json</html>", { status: 200 })),
+    );
+
+    await expect(
+      googleProvider.complete({ apiKey: "k", model: "m", system: "s", user: "u" }),
+    ).rejects.toMatchObject({ kind: "unknown" });
+  });
 });

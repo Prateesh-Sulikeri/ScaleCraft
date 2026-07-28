@@ -52,8 +52,19 @@ export const googleProvider: AiProvider = {
       );
     }
 
-    const body = await response.json();
-    const text = body?.candidates?.[0]?.content?.parts?.[0]?.text;
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch (error) {
+      throw new AiProviderError(
+        "unknown",
+        "The provider returned a response that could not be parsed.",
+        { cause: error },
+      );
+    }
+    const text = (
+      body as { candidates?: { content?: { parts?: { text?: unknown }[] } }[] }
+    )?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (typeof text !== "string") {
       throw new AiProviderError("unknown", "The provider returned a response with no content.");
     }

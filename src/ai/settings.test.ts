@@ -10,6 +10,16 @@ describe("ai settings", () => {
     expect(settings.enabled).toBe(false);
   });
 
+  it("returns a fresh copy of the defaults each call, not a shared reference", async () => {
+    const first = await getAiSettings();
+    first.apiKey = "mutated-in-place";
+
+    const second = await getAiSettings();
+
+    expect(second.apiKey).toBe("");
+    expect(DEFAULT_AI_SETTINGS.apiKey).toBe("");
+  });
+
   it("round-trips saved settings", async () => {
     const settings: AiSettings = {
       id: "default",

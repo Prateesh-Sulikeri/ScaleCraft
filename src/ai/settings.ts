@@ -30,7 +30,10 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
 
 export async function getAiSettings(): Promise<AiSettings> {
   const existing = await db.aiSettings.get("default");
-  return existing ?? DEFAULT_AI_SETTINGS;
+  // A fresh copy, not the shared constant — a caller that mutates the
+  // returned draft in place (e.g. a settings-modal draft state) must never
+  // corrupt DEFAULT_AI_SETTINGS for the rest of the app's lifetime.
+  return existing ?? { ...DEFAULT_AI_SETTINGS };
 }
 
 export async function saveAiSettings(settings: AiSettings): Promise<void> {

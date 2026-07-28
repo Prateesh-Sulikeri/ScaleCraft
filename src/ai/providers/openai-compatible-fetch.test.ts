@@ -116,4 +116,40 @@ describe("chatCompletionsComplete", () => {
       }),
     ).rejects.toMatchObject({ kind: "unknown" });
   });
+
+  it("maps a non-JSON 200 response body to an unknown error instead of throwing raw", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("<html>not json</html>", { status: 200 })),
+    );
+
+    await expect(
+      chatCompletionsComplete({
+        baseUrl: "https://api.example.com/v1",
+        apiKey: "k",
+        model: "m",
+        system: "s",
+        user: "u",
+      }),
+    ).rejects.toMatchObject({ kind: "unknown" });
+  });
+
+  it("strips a trailing slash from baseUrl so the request URL has no double slash", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), {
+        status: 200,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await chatCompletionsComplete({
+      baseUrl: "https://api.example.com/v1/",
+      apiKey: "k",
+      model: "m",
+      system: "s",
+      user: "u",
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api.example.com/v1/chat/completions");
+  });
 });

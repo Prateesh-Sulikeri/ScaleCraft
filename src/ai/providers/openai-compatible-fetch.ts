@@ -10,9 +10,10 @@ export async function chatCompletionsComplete(opts: {
   user: string;
   signal?: AbortSignal;
 }): Promise<string> {
+  const baseUrl = opts.baseUrl.replace(/\/+$/, "");
   let response: Response;
   try {
-    response = await fetch(`${opts.baseUrl}/chat/completions`, {
+    response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -51,8 +52,18 @@ export async function chatCompletionsComplete(opts: {
     );
   }
 
-  const body = await response.json();
-  const content = body?.choices?.[0]?.message?.content;
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch (error) {
+    throw new AiProviderError(
+      "unknown",
+      "The provider returned a response that could not be parsed.",
+      { cause: error },
+    );
+  }
+  const content = (body as { choices?: { message?: { content?: unknown } }[] })?.choices?.[0]
+    ?.message?.content;
   if (typeof content !== "string") {
     throw new AiProviderError("unknown", "The provider returned a response with no content.");
   }
