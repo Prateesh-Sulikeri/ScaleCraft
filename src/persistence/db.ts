@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
+import type { AiSettings } from "@/ai/settings";
 
 /**
  * Local-first persistence — see .claude/docs/ARCHITECTURE.md "Persistence"
@@ -51,6 +52,9 @@ export class ScaleCraftDB extends Dexie {
    * toComponentDefinition rebuilds one at load time). */
   customComponents!: EntityTable<CustomComponentRecord, "id">;
   chapterProgress!: EntityTable<ChapterProgress, "chapterId">;
+  /** Single row, keyed `"default"` — see @/ai/settings.ts for the shape and
+   * the `enabled`-until-a-key-is-saved default. */
+  aiSettings!: EntityTable<AiSettings, "id">;
 
   constructor() {
     super("scalecraft");
@@ -68,6 +72,12 @@ export class ScaleCraftDB extends Dexie {
       saves: "id",
       customComponents: "id",
       chapterProgress: "chapterId",
+    });
+    this.version(4).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiSettings: "id",
     });
   }
 }

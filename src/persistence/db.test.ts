@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { db, SANDBOX_SAVE_ID, type CanvasSave, type ChapterProgress } from "./db";
 import type { ComponentNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
+import type { AiSettings } from "@/ai/settings";
 
 describe("persistence db", () => {
   it("round-trips a canvas save through IndexedDB", async () => {
@@ -60,6 +61,28 @@ describe("persistence db", () => {
     const updated: ChapterProgress = { ...progress, completedAt: progress.completedAt + 1000 };
     await db.chapterProgress.put(updated);
     restored = await db.chapterProgress.get("ch-1");
+    expect(restored).toEqual(updated);
+  });
+
+  it("round-trips an aiSettings record through IndexedDB (schema v4)", async () => {
+    const settings: AiSettings = {
+      id: "default",
+      enabled: true,
+      providerId: "anthropic",
+      model: "claude-opus-5",
+      apiKey: "sk-ant-test",
+      depth: "standard",
+      tone: "direct",
+      level: "intermediate",
+    };
+
+    await db.aiSettings.put(settings);
+    let restored = await db.aiSettings.get("default");
+    expect(restored).toEqual(settings);
+
+    const updated: AiSettings = { ...settings, tone: "socratic", enabled: false };
+    await db.aiSettings.put(updated);
+    restored = await db.aiSettings.get("default");
     expect(restored).toEqual(updated);
   });
 });
