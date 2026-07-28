@@ -24,6 +24,8 @@ import type { ChapterDefinition } from "@/content/chapters/types";
 import { evaluateChapter, type ChapterOutcome } from "@/validation-engine/chapter-outcome";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db } from "@/persistence/db";
+import { getComponent } from "@/content/components/registry";
+import type { DeepCheckContext } from "@/ai/prompt";
 
 type ChapterWorkspaceProps = {
   mode: ChapterDefinition["mode"];
@@ -203,6 +205,24 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
 
   const [chapterOutcome, setChapterOutcome] = useState<ChapterOutcome | null>(null);
   const [checkedGraphKey, setCheckedGraphKey] = useState<string | null>(null);
+
+  // Deep Check's spoiler gate (§10.6) keys off "has this chapter ever been
+  // passed" — chapterProgress row existence, not just chapterOutcome.passed
+  // from the current session's last Validate click. A returning learner who
+  // passed a chapter days ago and reopens it should get debrief framing
+  // immediately, before clicking Validate again this session.
+  const [passedChapterIds, setPassedChapterIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!selectedChapter) return;
+    let cancelled = false;
+    db.chapterProgress.get(selectedChapter.id).then((row) => {
+      if (cancelled || !row) return;
+      setPassedChapterIds((prev) => new Set(prev).add(selectedChapter.id));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedChapter]);
   // Real rule violations plus chapter-level "allowed but not correct"
   // reasons (missing/disconnected required component, blueprint mismatch),
   // merged so the header's Validation pane is the one place a learner looks
@@ -233,11 +253,15 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
     setChapterOutcome(outcome);
     setCheckedGraphKey(architectureGraphTopologyKey(graph));
     if (outcome.passed) {
-      void db.chapterProgress.put({
-        chapterId: selectedChapter.id,
-        completedAt: Date.now(),
-        matchedBlueprintId: outcome.matchedBlueprintId,
-      });
+      void db.chapterProgress
+        .put({
+          chapterId: selectedChapter.id,
+          completedAt: Date.now(),
+          matchedBlueprintId: outcome.matchedBlueprintId,
+        })
+        .then(() => {
+          setPassedChapterIds((prev) => new Set(prev).add(selectedChapter.id));
+        });
     }
   };
 
@@ -266,6 +290,34 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
     }
   }
 
+  const chapterPassed = selectedChapter !== null && passedChapterIds.has(selectedChapter.id);
+  // Blueprints only ever reach the payload once passed (the spoiler gate,
+  // §10.6, enforced by buildUserPayload — this ctx assembly just supplies
+  // what's true, the gate itself lives in ai/prompt.ts). No chapter open
+  // means the pre-pass Sandbox-equivalent shape.
+  const deepCheckCtx: DeepCheckContext = useMemo(() => {
+    const graph = toArchitectureGraph(nodes, edges);
+    const presentComponentIds = new Set(graph.nodes.map((n) => n.componentId));
+    const components = [...presentComponentIds]
+      .map((id) => getComponent(id))
+      .filter((c) => c !== undefined);
+    return {
+      graph,
+      components,
+      violations: violations ?? [],
+      passed: chapterPassed,
+      ...(selectedChapter
+        ? {
+            chapter: {
+              problemStatement: selectedChapter.problemStatement,
+              learningObjectives: selectedChapter.learningObjectives,
+            },
+            blueprints: selectedChapter.blueprints,
+          }
+        : {}),
+    };
+  }, [nodes, edges, violations, chapterPassed, selectedChapter]);
+
   return (
     <PageEnter>
       {focusMode ? (
@@ -286,6 +338,7 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
           justSaved={justSaved}
           docsPanelOpen={docsPanelOpen}
           toggleDocsPanel={toggleDocsPanel}
+          deepCheckCtx={deepCheckCtx}
         />
       )}
 

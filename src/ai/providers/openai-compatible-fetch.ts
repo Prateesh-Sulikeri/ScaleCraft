@@ -1,5 +1,18 @@
 import { AiProviderError } from "./types";
 
+/** Handles both observed error-body shapes: OpenAI's `{error:{message}}`
+ * and xAI's `{error:"..."}` (a bare string, not an object) — confirmed
+ * against the real xAI API, which returns *400*, not 401, for a bad key
+ * (`{"code":"invalid-argument","error":"Incorrect API key provided..."}"`). */
+function extractErrorMessage(body: unknown): string | undefined {
+  const error = (body as { error?: unknown } | null)?.error;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object" && typeof (error as { message?: unknown }).message === "string") {
+    return (error as { message: string }).message;
+  }
+  return undefined;
+}
+
 /** Shared request/response shape behind openai, xai, and openai-compatible —
  * all three speak the OpenAI chat-completions wire format. */
 export async function chatCompletionsComplete(opts: {
@@ -44,6 +57,17 @@ export async function chatCompletionsComplete(opts: {
         "The provider rate-limited this request.",
         { cause: response },
       );
+    }
+    // Some OpenAI-shaped providers (confirmed: xAI) report a bad key as a
+    // plain 400, not 401/403 — a bad key is the most likely failure by far
+    // (§10.1), so it must not fall through to a generic "unexpected error"
+    // just because the status code alone doesn't say "auth".
+    if (response.status === 400) {
+      const body = await response.json().catch(() => null);
+      const message = extractErrorMessage(body);
+      if (message && /api[ -]?key/i.test(message)) {
+        throw new AiProviderError("auth", message, { cause: response });
+      }
     }
     throw new AiProviderError(
       "unknown",

@@ -63,15 +63,25 @@ export type TestConnectionResult =
 /** One trivial round-trip, reusing the same adapter and error mapping
  * runDeepCheck uses — for Phase 5's Settings modal "Test Connection"
  * button. No schema, no real payload: just confirms the key/model/baseUrl
- * combination actually reaches the provider. */
+ * combination actually reaches the provider.
+ *
+ * The prompt must mention "JSON" explicitly: the openai/xai/openai-
+ * compatible adapters unconditionally send `response_format:
+ * {type:"json_object"}` (see openai-compatible-fetch.ts) regardless of
+ * whether a schema was requested, and OpenAI-shaped APIs (xAI mirrors
+ * OpenAI's own validation here) reject that request with a 400 unless the
+ * literal word "json" appears somewhere in the message content — a prompt
+ * that never mentions it, like a plain "Respond with only the word OK",
+ * fails with a real key on a real provider even though nothing is actually
+ * wrong with the key. */
 export async function testConnection(settings: AiSettings): Promise<TestConnectionResult> {
   const provider = getProvider(settings.providerId);
   try {
     await provider.complete({
       apiKey: settings.apiKey,
       model: settings.model,
-      system: "Respond with only the word OK.",
-      user: "OK?",
+      system: 'Respond with only this exact JSON object: {"ok": true}',
+      user: "Confirm the connection.",
       baseUrl: settings.baseUrl,
     });
     return { status: "ok" };

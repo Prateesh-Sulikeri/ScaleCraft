@@ -152,4 +152,49 @@ describe("chatCompletionsComplete", () => {
 
     expect(fetchMock.mock.calls[0][0]).toBe("https://api.example.com/v1/chat/completions");
   });
+
+  it("maps a 400 with xAI's bare-string bad-key body to kind 'auth' (confirmed against the real xAI API)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ code: "invalid-argument", error: "Incorrect API key provided." }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    await expect(
+      chatCompletionsComplete({ baseUrl: "https://api.x.ai/v1", apiKey: "bad", model: "m", system: "s", user: "u" }),
+    ).rejects.toMatchObject({ kind: "auth", message: "Incorrect API key provided." });
+  });
+
+  it("maps a 400 with OpenAI's nested-object bad-key body to kind 'auth'", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ error: { message: "Incorrect API key provided: sk-***.", type: "invalid_request_error" } }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    await expect(
+      chatCompletionsComplete({ baseUrl: "https://api.example.com/v1", apiKey: "bad", model: "m", system: "s", user: "u" }),
+    ).rejects.toMatchObject({ kind: "auth" });
+  });
+
+  it("leaves a 400 with an unrelated message as kind 'unknown', not auth", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: "model 'nonexistent' does not exist" }), { status: 400 }),
+      ),
+    );
+
+    await expect(
+      chatCompletionsComplete({ baseUrl: "https://api.example.com/v1", apiKey: "k", model: "m", system: "s", user: "u" }),
+    ).rejects.toMatchObject({ kind: "unknown" });
+  });
 });
