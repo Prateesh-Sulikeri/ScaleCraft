@@ -21,9 +21,8 @@ import {
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
 import { getChaptersForMode } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import { runValidation } from "@/validation-engine/engine";
-import { getRules } from "@/validation-engine/rules";
-import type { ValidationViolation } from "@/validation-engine/types";
+import { evaluateChapter, type ChapterOutcome } from "@/validation-engine/chapter-outcome";
+import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db } from "@/persistence/db";
 
 type ChapterWorkspaceProps = {
@@ -202,8 +201,17 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
 
   useCanvasShortcuts(handleSave);
 
-  const [violations, setViolations] = useState<ValidationViolation[] | null>(null);
+  const [chapterOutcome, setChapterOutcome] = useState<ChapterOutcome | null>(null);
   const [checkedGraphKey, setCheckedGraphKey] = useState<string | null>(null);
+  // Real rule violations plus chapter-level "allowed but not correct"
+  // reasons (missing/disconnected required component, blueprint mismatch),
+  // merged so the header's Validation pane is the one place a learner looks
+  // for "what's wrong and why" — see chapter-outcome-violations.ts.
+  const violations = useMemo(
+    () =>
+      chapterOutcome && selectedChapter ? chapterDisplayViolations(chapterOutcome, selectedChapter, nodes) : null,
+    [chapterOutcome, selectedChapter, nodes],
+  );
 
   const currentGraphKey = useMemo(
     () => architectureGraphTopologyKey(toArchitectureGraph(nodes, edges)),
@@ -214,25 +222,43 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
   // Scoped to the open chapter's own validationRuleIds, not the full global
   // registry — a chapter should only ever fail on what it's actually
   // teaching (CLAUDE.md: "that's a config option or a validation rule
-  // scoped to that chapter"). Was previously wired to the full ruleRegistry
-  // as a placeholder because no rule was declared to scope by yet; now that
-  // the registry exists (NEXT_STEPS.md Step 3), this validates for real. No
-  // chapter open (Chapter List view) means nothing to validate against.
+  // scoped to that chapter"). evaluateChapter (Phase 4) layers the required-
+  // component connectivity check and blueprint matching on top of the rule
+  // run — a like-for-like swap at this call site, not a parallel code path.
+  // No chapter open (Chapter List view) means nothing to validate against.
   const handleValidate = () => {
     if (!selectedChapter) return;
     const graph = toArchitectureGraph(nodes, edges);
-    setViolations(runValidation(graph, getRules(selectedChapter.validationRuleIds)));
+    const outcome = evaluateChapter(graph, selectedChapter);
+    setChapterOutcome(outcome);
     setCheckedGraphKey(architectureGraphTopologyKey(graph));
+    if (outcome.passed) {
+      void db.chapterProgress.put({
+        chapterId: selectedChapter.id,
+        completedAt: Date.now(),
+        matchedBlueprintId: outcome.matchedBlueprintId,
+      });
+    }
   };
 
+  // Keyed on the whole ChapterOutcome, not just rule violations — a graph
+  // with zero rule violations can still fail the chapter (a required
+  // component present but disconnected, or no blueprint matched), and
+  // painting every node green in that case would show a learner a false
+  // "this is right" signal on a canvas that's still failing overall.
   const nodeStates: Record<string, ValidationState> = {};
-  if (violations && !isStale) {
-    if (violations.length === 0) {
+  if (chapterOutcome && !isStale) {
+    if (chapterOutcome.passed) {
       for (const n of nodes) {
         if (n.type === "component") nodeStates[n.id] = "valid";
       }
     } else {
-      for (const v of violations) {
+      // `violations` (the merged, display-facing list — see
+      // chapter-outcome-violations.ts) already includes a
+      // disconnected-required-component entry with the real offending node
+      // ids, so this one loop covers both real rule violations and that
+      // chapter-level reason — no separate pass needed.
+      for (const v of violations ?? []) {
         for (const id of v.offendingNodeIds) {
           nodeStates[id] = v.severity === "error" ? "error" : "warning";
         }
@@ -271,7 +297,7 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
               selectedChapterId={selectedChapterId}
               onSelect={requestChapterChange}
               onBack={() => requestChapterChange(null)}
-              violations={violations}
+              chapterOutcome={chapterOutcome}
               isStale={isStale}
             />
           </SidebarShell>

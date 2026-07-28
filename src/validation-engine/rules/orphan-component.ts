@@ -2,6 +2,24 @@ import type { ArchitectureGraph } from "@/lib/graph";
 import type { ValidationRule } from "../types";
 
 /**
+ * The one definition of "connected" in the codebase — a node id with at
+ * least one incident edge, or in `entryPointIds` (a Start marker's pointer
+ * is canvas-only presentation, never a real edge). Exported so
+ * chapter-outcome.ts's required-component connectivity check (§8.3/§9.5)
+ * reuses this exact predicate instead of re-deriving a second one that
+ * could drift from it.
+ */
+export function connectedNodeIds(graph: ArchitectureGraph): Set<string> {
+  const connected = new Set<string>();
+  for (const e of graph.edges) {
+    connected.add(e.source);
+    connected.add(e.target);
+  }
+  for (const id of graph.entryPointIds) connected.add(id);
+  return connected;
+}
+
+/**
  * Category-agnostic on purpose — keys on "has any incident edge," never a
  * specific componentId, so a user-authored custom component (see
  * src/content/components/custom.ts) is covered automatically, unlike a rule
@@ -14,12 +32,7 @@ export const orphanComponent: ValidationRule = {
   id: "orphan-component",
   severity: "warning",
   match: (graph: ArchitectureGraph) => {
-    const connected = new Set<string>();
-    for (const e of graph.edges) {
-      connected.add(e.source);
-      connected.add(e.target);
-    }
-    for (const id of graph.entryPointIds) connected.add(id);
+    const connected = connectedNodeIds(graph);
 
     return graph.nodes
       .filter((n) => !connected.has(n.id))

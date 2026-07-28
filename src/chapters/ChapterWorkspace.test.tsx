@@ -19,7 +19,10 @@ vi.mock("@/canvas/Canvas", async () => {
   const React = await import("react");
   const { useCanvasStore } = await import("@/canvas/store");
   return {
-    Canvas: React.forwardRef(function MockCanvas(_props: unknown, ref: React.Ref<unknown>) {
+    Canvas: React.forwardRef(function MockCanvas(
+      props: { nodeStates?: Record<string, string> },
+      ref: React.Ref<unknown>,
+    ) {
       // A test-only control standing in for a real user gesture on the
       // canvas (e.g. dropping a new component) — enough to dirty the store
       // and change the graph's topology deterministically, without
@@ -32,16 +35,23 @@ vi.mock("@/canvas/Canvas", async () => {
       const addNode = useCanvasStore((s) => s.addNode);
       React.useImperativeHandle(ref, () => ({}));
       return React.createElement(
-        "button",
-        {
-          "data-testid": "mutate-canvas-btn",
-          onClick: () =>
-            addNode(
-              { id: "test-added-component", defaultConfig: {} } as unknown as Parameters<typeof addNode>[0],
-              { x: 100, y: 100 },
-            ),
-        },
-        "mutate canvas",
+        React.Fragment,
+        null,
+        React.createElement(
+          "button",
+          {
+            "data-testid": "mutate-canvas-btn",
+            onClick: () =>
+              addNode(
+                { id: "test-added-component", defaultConfig: {} } as unknown as Parameters<typeof addNode>[0],
+                { x: 100, y: 100 },
+              ),
+          },
+          "mutate canvas",
+        ),
+        // Surfaces the per-node coloring ChapterWorkspace computes so tests
+        // can assert on it without rendering the real xyflow node chrome.
+        React.createElement("pre", { "data-testid": "node-states" }, JSON.stringify(props.nodeStates ?? {})),
       );
     }),
   };
@@ -113,6 +123,7 @@ const chapterOne: ChapterDefinition = {
   availableComponentIds: ["client", "load-balancer"],
   requiredComponentIds: ["client", "load-balancer"],
   validationRuleIds: ["rule-a"],
+  blueprints: [],
   hints: [],
   readingLinks: [],
   starterGraph: {
@@ -131,6 +142,7 @@ const chapterTwo: ChapterDefinition = {
   availableComponentIds: ["client", "cache"],
   requiredComponentIds: [],
   validationRuleIds: [],
+  blueprints: [],
   hints: [],
   readingLinks: [],
 };
@@ -164,6 +176,7 @@ async function renderWorkspace() {
 
 beforeEach(async () => {
   await db.saves.clear();
+  await db.chapterProgress.clear();
   runValidationMock.mockReset();
   runValidationMock.mockReturnValue([]);
   getRulesMock.mockClear();
@@ -233,7 +246,14 @@ describe("ChapterWorkspace", () => {
       expect(screen.getByTestId("violations-count")).toHaveTextContent("null");
     });
 
-    it("marks every present component node valid when validation passes with zero violations", async () => {
+    it("surfaces missing/disconnected required components as synthetic violations, even when real rule violations are zero", async () => {
+      // Chapter One's starterGraph is a single, disconnected Client node —
+      // present but not wired to anything — and load-balancer is missing
+      // entirely. Real rule violations (mocked here) are zero, but the
+      // merged, display-facing violations list (see
+      // chapter-outcome-violations.ts) still surfaces both chapter-level
+      // reasons in the same header dropdown a learner already checks —
+      // "No violations" must never be shown when the chapter still fails.
       runValidationMock.mockReturnValue([]);
       await renderWorkspace();
       fireEvent.click(screen.getByText("Chapter One"));
@@ -241,8 +261,42 @@ describe("ChapterWorkspace", () => {
 
       fireEvent.click(screen.getByTestId("validate-btn"));
 
-      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("2"));
       expect(screen.getByTestId("is-stale")).toHaveTextContent("false");
+    });
+
+    it("does not mark a required-but-disconnected node valid just because there are zero rule violations", async () => {
+      // Same fixture as above — the disconnected Client node must ring as a
+      // real, blocking issue (error), not the muted "warning" this used to
+      // render as, and never green as if the chapter passed.
+      runValidationMock.mockReturnValue([]);
+      await renderWorkspace();
+      fireEvent.click(screen.getByText("Chapter One"));
+      await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId("validate-btn"));
+
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("2"));
+      const nodeStates = JSON.parse(screen.getByTestId("node-states").textContent ?? "{}");
+      expect(nodeStates.n1).toBe("error");
+      expect(Object.values(nodeStates)).not.toContain("valid");
+    });
+
+    it("marks every present component node valid once the chapter actually passes", async () => {
+      // Chapter Two has no required components and no blueprints, so with
+      // zero rule violations evaluateChapter passes outright — this is the
+      // one case that should still paint nodes green.
+      runValidationMock.mockReturnValue([]);
+      await renderWorkspace();
+      fireEvent.click(screen.getByText("Chapter Two"));
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Chapter Two" })).toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
+      fireEvent.click(screen.getByTestId("validate-btn"));
+
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+      const nodeStates = JSON.parse(screen.getByTestId("node-states").textContent ?? "{}");
+      expect(Object.values(nodeStates)).toEqual(["valid"]);
     });
 
     it("runs validation scoped to the selected chapter's own validationRuleIds and surfaces every violation, unconditionally", async () => {
@@ -271,8 +325,12 @@ describe("ChapterWorkspace", () => {
       // The violation reaches the header unconditionally — nothing in
       // ChapterWorkspace filters or hides it. (The actual explanation text
       // rendering lives in ValidationIndicator, outside this task's scope,
-      // but the wiring up to that point must not drop or gate it.)
-      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("1"));
+      // but the wiring up to that point must not drop or gate it.) Total is
+      // 3, not 1 — Chapter One's starterGraph is always missing
+      // load-balancer and has a disconnected Client, so the merged list
+      // (see chapter-outcome-violations.ts) adds those two chapter-level
+      // reasons on top of this one real rule violation.
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("3"));
       expect(screen.getByTestId("is-stale")).toHaveTextContent("false");
     });
 
@@ -292,14 +350,61 @@ describe("ChapterWorkspace", () => {
       fireEvent.click(screen.getByText("Chapter One"));
       await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
       fireEvent.click(screen.getByTestId("validate-btn"));
-      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("1"));
+      // 3, not 1 — see the comment in the previous test: Chapter One's
+      // starterGraph always contributes 2 chapter-level synthetic entries
+      // alongside this one real rule violation.
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("3"));
       expect(screen.getByTestId("is-stale")).toHaveTextContent("false");
 
       fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
 
       await waitFor(() => expect(screen.getByTestId("is-stale")).toHaveTextContent("true"));
-      // Still 1 — going stale doesn't clear the last result, it just flags it.
-      expect(screen.getByTestId("violations-count")).toHaveTextContent("1");
+      // Still 3 — going stale doesn't clear the last result, it just flags it.
+      expect(screen.getByTestId("violations-count")).toHaveTextContent("3");
+    });
+  });
+
+  describe("chapter progress wiring", () => {
+    it("writes exactly one chapterProgress row with the matched blueprint id when validation passes", async () => {
+      const putSpy = vi.spyOn(db.chapterProgress, "put");
+      runValidationMock.mockReturnValue([]);
+
+      await renderWorkspace();
+      // Chapter Two has no required components and no blueprints declared,
+      // so with zero rule violations evaluateChapter passes trivially.
+      fireEvent.click(screen.getByText("Chapter Two"));
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Chapter Two" })).toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId("validate-btn"));
+
+      await waitFor(() => expect(putSpy).toHaveBeenCalledTimes(1));
+      expect(putSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ chapterId: "ch-2", matchedBlueprintId: null }),
+      );
+      const stored = await db.chapterProgress.get("ch-2");
+      expect(stored?.matchedBlueprintId).toBeNull();
+
+      putSpy.mockRestore();
+    });
+
+    it("writes nothing when validation fails", async () => {
+      const putSpy = vi.spyOn(db.chapterProgress, "put");
+      runValidationMock.mockReturnValue([]);
+
+      await renderWorkspace();
+      // Chapter One's starterGraph has only one of its two required
+      // components, and it's disconnected — evaluateChapter fails on that
+      // alone, independent of the (mocked, zero) rule violations.
+      fireEvent.click(screen.getByText("Chapter One"));
+      await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId("validate-btn"));
+
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("2"));
+      expect(putSpy).not.toHaveBeenCalled();
+      expect(await db.chapterProgress.get("ch-1")).toBeUndefined();
+
+      putSpy.mockRestore();
     });
   });
 

@@ -798,7 +798,11 @@ to keep the RWE track from becoming a second linear corridor.)
 - **Exercise types are content patterns, not code:** Completion/Fix = `starterGraph`
   variants; Config = rules that read node `config`; prescriptive vs. anti-pattern
   posture = which `validationRuleIds` a chapter opts into (per-chapter rule scoping
-  already exists); trade-off "both valid, here's the cost" = `warning`-severity rules.
+  already exists) **for Building Blocks only** — Real World Extraction always runs
+  the full rule registry regardless of `validationRuleIds` (structurally enforced
+  in `evaluateChapter`, not left to per-project curation), since by RWE every
+  concept has already been taught and there's no teach-by-omission reason left to
+  scope down; trade-off "both valid, here's the cost" = `warning`-severity rules.
 - **Trace/predict exercises** need the milestone-11 simulator plus a one-question
   prompt shown before "Simulate" — the smallest new UI ask in this document.
 - **Quizzes** need a `quiz: QuizQuestion[]` field on `ChapterDefinition` and a

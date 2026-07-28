@@ -33,6 +33,16 @@ export function chapterSaveId(chapterId: string): string {
   return `chapter:${chapterId}`;
 }
 
+/** One row per completed chapter — written when evaluateChapter() first
+ * reports `passed: true` (see chapters/ChapterWorkspace.tsx). Records
+ * completion only; building the unlock graph from this is explicitly out of
+ * scope here (§8.6, deferred). */
+export type ChapterProgress = {
+  chapterId: string;
+  completedAt: number;
+  matchedBlueprintId: string | null;
+};
+
 export class ScaleCraftDB extends Dexie {
   saves!: EntityTable<CanvasSave, "id">;
   /** User-created components (see CreateComponentModal.tsx /
@@ -40,6 +50,7 @@ export class ScaleCraftDB extends Dexie {
    * (a Zod schema instance isn't structured-clone-safe for IndexedDB;
    * toComponentDefinition rebuilds one at load time). */
   customComponents!: EntityTable<CustomComponentRecord, "id">;
+  chapterProgress!: EntityTable<ChapterProgress, "chapterId">;
 
   constructor() {
     super("scalecraft");
@@ -52,6 +63,11 @@ export class ScaleCraftDB extends Dexie {
     this.version(2).stores({
       saves: "id",
       customComponents: "id",
+    });
+    this.version(3).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
     });
   }
 }

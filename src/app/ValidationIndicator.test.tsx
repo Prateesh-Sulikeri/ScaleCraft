@@ -77,6 +77,46 @@ describe("ValidationIndicator", () => {
     expect(screen.queryByText("No violations.")).not.toBeInTheDocument();
   });
 
+  describe("note-severity violations", () => {
+    it("keeps the valid (checkmark) state when only note-severity violations are present", () => {
+      const onValidate = vi.fn();
+      const violations = [makeViolation({ severity: "note", message: "Just so you know" })];
+      render(<ValidationIndicator violations={violations} isStale={false} onValidate={onValidate} />);
+
+      const button = screen.getByRole("button", { name: "Validate" });
+      expect(button.className).toContain("border-state-valid");
+      expect(button.className).not.toContain("border-state-error");
+    });
+
+    it("shows the note count separately from, and excluded from, the error/warning issue count", () => {
+      const onValidate = vi.fn();
+      const violations = [
+        makeViolation({ ruleId: "a", severity: "warning", message: "Warning message" }),
+        makeViolation({ ruleId: "b", severity: "note", message: "Note message" }),
+      ];
+      render(<ValidationIndicator violations={violations} isStale={false} onValidate={onValidate} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+
+      expect(screen.getByText("1 issue")).toBeInTheDocument();
+      expect(screen.getByText("1 note")).toBeInTheDocument();
+      // The note message still renders in full — informational, not hidden.
+      expect(screen.getByText("Note message")).toBeInTheDocument();
+    });
+
+    it("still shows the note itself, muted, even when it's the only violation", () => {
+      const onValidate = vi.fn();
+      const violations = [makeViolation({ severity: "note", message: "Solo note" })];
+      render(<ValidationIndicator violations={violations} isStale={false} onValidate={onValidate} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+
+      expect(screen.queryByText(/^\d+ issues?$/)).not.toBeInTheDocument();
+      expect(screen.getByText("1 note")).toBeInTheDocument();
+      expect(screen.getByText("Solo note")).toBeInTheDocument();
+    });
+  });
+
   it("closes the dropdown on an outside click but not on a react-flow node click", () => {
     render(
       <div>

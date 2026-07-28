@@ -92,7 +92,8 @@ unfinished at first rather than left for the end.
 **Done when (final state, after 10):** progress indicators reflect real saved state,
 not placeholders.
 
-## 5. Stronger validation agent — done (Track 1; Track 2 blocked)
+## 5. Stronger validation agent — Track 1 done; Track 2 implemented,
+## pending merge
 
 **Status:** Track 1 (structural rules + per-component `relations` contracts)
 shipped 2026-07-24 — the registry grew to 10 rules, and the flat
@@ -101,6 +102,15 @@ declaring their own connection contracts (`component-relations.ts`); see
 `.claude/docs/validation_agent_design.md` for the full design and history.
 The section below is kept as the original problem statement/rationale —
 still accurate context, just not the current state of the rule count.
+
+**Track 2 (pattern engine + blueprints + chapter mastery)** — implemented
+2026-07-27 on `feature/validation-pattern-engine` (design doc §8–§9): a
+`GraphIndex` + backtracking pattern matcher, `PatternRule`/`ImperativeRule`
+engine dispatch, `Blueprint`s on `ChapterDefinition` (`solutionGraph`
+removed, it was dead), and `evaluateChapter()` — the chapter pass/fail gate
+this milestone's "success criteria detection" never actually had before.
+Pending manual review/merge, not yet on `develop`. Once merged, unblocks
+`NEXT_STEPS.md` Step 5 (real Building Blocks chapters).
 
 **Revised 2026-07-27 — the remaining tracks moved to `NEXT_STEPS.md` Step 4.5:**
 

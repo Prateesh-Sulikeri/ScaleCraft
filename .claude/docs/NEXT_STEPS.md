@@ -15,10 +15,12 @@ land.
 
 **Status as of 2026-07-27:** Steps 0–3 verified done in code (see each step's own status
 line), with Step 3 now scoped down to Track 1 only. Step 4 is partially done — see its
-status line for the breakdown. **Step 4.5 is new** (validation engines v2): its docs
-branch is done, its two code branches are not started. Steps 5–10 and the backlog are
-unchanged/not started; `src/content/chapters/` still holds only placeholder
-`ChapterDefinition`s.
+status line for the breakdown. **Step 4.5** (validation engines v2): its docs branch is
+done, its Track 2 code branch (`feature/validation-pattern-engine`) is implemented and
+pending merge, its Track 3 code branch (`feature/ai-deep-check`) is not started. Steps
+5–10 and the backlog are unchanged/not started; `src/content/chapters/` still holds only
+placeholder `ChapterDefinition`s (plus one throwaway `Blueprint` fixture for manual QA,
+see Step 4.5).
 
 **Why this order:** small correctness fixes first (cheap, and everything after builds on
 them) → the approved UI overhaul next (it *deletes* the Palette and QuestionPanel, so
@@ -175,7 +177,8 @@ fixed (Esc, insertion discoverability):
    `EdgeInspector`'s z tier; `ZoneNode.tsx:109` 10px text onto the type ramp.
 7. Re-run `/impeccable critique` and archive the score (baseline: 29/40).
 
-## Step 4.5 — Validation engines v2: pattern engine, blueprints, AI Deep Check
+## Step 4.5 — Validation engines v2: pattern engine, blueprints, AI Deep Check —
+## Track 2 implemented, pending merge; Track 3 not started
 
 **Full design and implementation spec: `.claude/docs/validation_agent_design.md`** —
 §8 (blueprints and chapter mastery), §9 (deterministic engine), §10 (AI Deep Check).
@@ -201,11 +204,14 @@ integration branch for this work, per `CLAUDE.md`'s branching rules):
 
 1. `docs/planing-documentation` — the design doc rewrite, this roadmap wiring, and the
    `2.0.0-alpha.0` version bump. **Done and merged; branch deleted.** No code.
-2. `feature/validation-pattern-engine` — Track 2. Graph index, pattern language and
-   matcher, `PatternRule` alongside the existing imperative rules (which change zero
-   lines), `note` severity, blueprints, `evaluateChapter`, Dexie v3 `chapterProgress`,
-   and the QuestionPane/debrief UI. Design doc §9.
-3. `feature/ai-deep-check` — Track 3. BYO-API-key, browser-direct, multi-provider
+2. `feature/validation-pattern-engine` — Track 2. **Implemented, 2026-07-27,
+   pending manual review/merge.** Graph index, pattern language and matcher,
+   `PatternRule` alongside the existing imperative rules (which change zero
+   lines except one exported helper in `orphan-component.ts`), `note`
+   severity, blueprints, `evaluateChapter`, Dexie v3 `chapterProgress`, and
+   the QuestionPane/Debrief UI. Design doc §9.
+3. `feature/ai-deep-check` — Track 3. Not started; cut after Track 2 merges.
+   BYO-API-key, browser-direct, multi-provider
    (Anthropic / OpenAI / Gemini / xAI / OpenAI-compatible), Zod-validated structured
    output, its own slide-over panel, and a spoiler gate enforced by payload
    construction rather than by prompting. Design doc §10.
@@ -229,6 +235,10 @@ fails with an explanation on a broken one; required components are checked for
 connectivity, not just presence; a throwing rule can't kill a validation run; and Deep
 Check produces a schema-valid prose critique from a user-supplied key without ever
 touching pass/fail.
+
+**Track 2 portion of this bar is met** (2026-07-27, `chapter-outcome.test.ts` +
+manual click-through) — pending only the merge itself. Deep Check (Track 3) is
+still unbuilt, so Step 4.5 as a whole isn't done until that lands too.
 
 ## Step 5 — Milestone 7: first two Building Blocks chapters (real content)
 

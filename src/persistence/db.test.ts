@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { db, SANDBOX_SAVE_ID, type CanvasSave } from "./db";
+import { db, SANDBOX_SAVE_ID, type CanvasSave, type ChapterProgress } from "./db";
 import type { ComponentNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
 
@@ -44,5 +44,22 @@ describe("persistence db", () => {
     const restored = await db.customComponents.get("custom-1");
 
     expect(restored).toEqual(record);
+  });
+
+  it("round-trips a chapter progress record through IndexedDB (schema v3)", async () => {
+    const progress: ChapterProgress = {
+      chapterId: "ch-1",
+      completedAt: Date.now(),
+      matchedBlueprintId: "cache-aside",
+    };
+
+    await db.chapterProgress.put(progress);
+    let restored = await db.chapterProgress.get("ch-1");
+    expect(restored).toEqual(progress);
+
+    const updated: ChapterProgress = { ...progress, completedAt: progress.completedAt + 1000 };
+    await db.chapterProgress.put(updated);
+    restored = await db.chapterProgress.get("ch-1");
+    expect(restored).toEqual(updated);
   });
 });

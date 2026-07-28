@@ -23,7 +23,54 @@ export const chapterRegistry: ChapterDefinition[] = [
     learningObjectives: ["Placeholder objective — real objectives arrive with real content."],
     availableComponentIds: ["client", "load-balancer", "app-server"],
     requiredComponentIds: ["client", "load-balancer", "app-server"],
-    validationRuleIds: [],
+    // Scoped to the 4 general/structural rules only — not all 10, not none.
+    // These never reference a specific not-yet-taught component; they check
+    // whether the graph is coherent at all (nothing floating, no missing
+    // inputs, no bad cycles, edges respect each component's own declared
+    // legal connections), so they're safe at any curriculum stage. The 6
+    // domain-specific rules left out (no-direct-client-database,
+    // single-instance-load-balancer, permissive-firewall, split-brain-risk,
+    // queue-without-dead-letter-queue, orphan-read-replica) are each keyed
+    // to one specific component (database, firewall, queue, read-replica)
+    // not even in this chapter's palette (client/load-balancer/app-server)
+    // — turning those on would be pointless at best, premature at worst.
+    // This is what actually catches a malformed wiring *between components
+    // this chapter is already teaching* (e.g. a backwards Application
+    // Server -> Load Balancer edge) without rejecting on content the
+    // chapter hasn't introduced yet. Real per-chapter rule curation is
+    // still Step 5's job once this is real content, not a throwaway
+    // fixture — chapter-completion state (required components, blueprint
+    // match) is a separate mechanism, unaffected by this list either way —
+    // see chapter-outcome-violations.ts.
+    validationRuleIds: ["orphan-component", "missing-input-connection", "request-flow-cycle", "component-relations"],
+    // Throwaway, not real curriculum content — same convention as
+    // `placeholder: true` above. Exists purely so there's something concrete
+    // to click through end to end (QuestionPane's connected-count line, the
+    // pass state, the Debrief) before Step 5 authors real chapters with real
+    // blueprints. Step 5 replaces this, doesn't build on it.
+    blueprints: [
+      {
+        id: "bb-dummy-1-blueprint-throwaway",
+        label: "Client routed through a load balancer to an app server",
+        require: {
+          id: "bb-dummy-1-blueprint-throwaway",
+          nodes: [
+            { alias: "client", componentId: "client" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+          ],
+          edges: [
+            { from: "client", to: "lb" },
+            { from: "lb", to: "app" },
+          ],
+        },
+        commentary:
+          "**Throwaway fixture, not real curriculum content.** A client should " +
+          "never depend on a single app server directly — routing through a " +
+          "load balancer means a server can be replaced or scaled without the " +
+          "client ever noticing.",
+      },
+    ],
     hints: [
       {
         id: "bb-dummy-1-hint-1",
@@ -44,7 +91,10 @@ export const chapterRegistry: ChapterDefinition[] = [
     learningObjectives: ["Placeholder objective — real objectives arrive with real content."],
     availableComponentIds: ["client", "load-balancer", "app-server", "sql-database", "cache"],
     requiredComponentIds: ["client", "app-server", "sql-database"],
+    // Moot either way — real-world-extraction chapters always run the full
+    // rule registry regardless of this field (see chapter-outcome.ts).
     validationRuleIds: [],
+    blueprints: [],
     hints: [],
     readingLinks: [],
   },
