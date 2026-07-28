@@ -5,117 +5,45 @@ constraints) and §10 (implementation spec). This file is the phase-by-phase
 execution plan against that spec — not a parallel design doc. If the two ever
 disagree, §4/§10 win; fix this file, not the other way around.
 
-**Track 2 closed out, not repeated here.** All 7 of Track 2's phases (graph
-index, pattern matcher, engine dispatch, blueprints/chapter-outcome, Dexie v3,
-UI, hardening) are implemented and pushed on `feature/validation-pattern-engine`,
-awaiting your manual click-through + merge — per `CLAUDE.md` I don't merge my
-own branches. The full phase-by-phase record for that track lives in
-`.claude/PROGRESS_LOG.md` (2026-07-27 entries) and that branch's own git
-history, not duplicated here — matching this file's own convention of being a
-live task list for the *current* track, not an archive.
+**Track 2 is fully closed out — merged.** All 7 phases plus the post-Phase-7
+follow-up landed on `feature/validation-pattern-engine` and merged via
+**PR #47** into `release/2.0.0-validation-engine-overhaul` (merge commit
+`e1b36ff`). Full record: `.claude/PROGRESS_LOG.md`'s 2026-07-27 and 2026-07-28
+entries. Nothing outstanding on that track — not repeated here, matching this
+file's own convention of being a live task list for the *current* track, not
+an archive.
 
-**Post-Phase-7 follow-up (2026-07-28), landed on `feature/validation-pattern-engine`
-before merge — two real gaps found during your own manual click-through:**
+**Branch not yet cut.** Per `NEXT_STEPS.md` Step 4.5, `feature/ai-deep-check`
+is cut off `release/2.0.0-validation-engine-overhaul` — the sequencing
+question ("cut now or wait for Track 2 to merge") is resolved now that Track 2
+has merged, nothing blocks starting Phase 1.
 
-1. **RWE now always runs the full rule registry.** You compared the BB
-   placeholder chapter ("No violations" on a graph with a genuinely invalid
-   edge and a disconnected required Client) against Sandbox (correctly
-   flagged both) — root cause was `bb-dummy-1`'s `validationRuleIds: []`
-   (real content/rule-scoping is Step 5's job, not Track 2's), not an engine
-   bug. That surfaced a real product decision: per-chapter rule *curation*
-   only serves BB's teach-by-omission need; by RWE every concept is already
-   taught, so `evaluateChapter` now branches on `chapter.mode` —
-   `real-world-extraction` always runs `ruleRegistry` (full set), ignoring
-   `validationRuleIds` entirely; `building-blocks` keeps author-curated
-   scoping. Structurally enforced in `chapter-outcome.ts`, not left as an
-   authoring convention. Doc sync: `validation_agent_design.md` §9.5,
-   `ARCHITECTURE.md`'s `ChapterDefinition` snippet (also fixed stale
-   `solutionGraph`/missing `blueprints` there while touching it),
-   `CURRICULUM.md` §12.
-2. **The header's Validation pane now surfaces chapter-level failures too,
-   with specifics — not just QuestionPane text.** Went through three
-   iterations here, each caught by your own click-through, worth recording:
-   (a) first pass only fixed QuestionPane's summary line, still said
-   "passing" off `violations.length === 0` alone; (b) second pass fixed the
-   text but left it generic ("not a recognized correct design yet") and
-   still confined to QuestionPane, when you specifically wanted it in the
-   Validate dropdown *and* specific about *why*; (c) final: new
-   `src/chapters/chapter-outcome-violations.ts` (`chapterDisplayViolations`)
-   formats a missing required component, a disconnected required component
-   (with the real offending node id, so it rings on canvas — now `error`
-   severity, not the old muted `warning`), and a blueprint mismatch as
-   `ValidationViolation`-shaped entries, merged with the real rule
-   violations in `ChapterWorkspace.tsx` before reaching `AppHeader` →
-   `ValidationIndicator`. One surface, specific reasons, no more
-   contradicting "No violations" next to a chapter that's still failing.
-   **The one deliberate limit, not a gap:** the blueprint-mismatch entry
-   stays generic ("doesn't match a known correct approach yet") — naming
-   exactly what differs from the blueprint *is* the answer, which is a
-   hint's job (pull-only, never forced). Missing/disconnected components
-   aren't spoilers, so those get real specifics. `evaluateChapter`/
-   `ChapterOutcome` stayed untouched — this is presentation-layer merging,
-   not new engine logic. Doc sync: `validation_agent_design.md` §9.7.
+**ETA (given 2026-07-28), for planning only — see caveats below:**
 
-3. **`bb-dummy-1` scoped to 4 general/structural rules, not 0 and not all
-   10 — a real, live-debugged decision, not a guess.** Once (1) and (2)
-   landed, a lingering demo still passed with a genuinely backwards
-   Application Server → Load Balancer edge sitting in the graph. First
-   instinct — scope the placeholder to the full 10-rule registry, matching
-   Sandbox — was wrong and got reverted: it included
-   `component-relations`, which gives the exact same blunt, fully-detailed
-   rejection Sandbox gives with zero softening, and CLAUDE.md mandates a
-   rule's full explanation always show once it's in scope — there's no
-   "soft" version of a rule violation, so that reintroduced the premature,
-   Sandbox-style rejection point (1) exists to avoid. The actual resolution
-   splits the 10 rules by what they presuppose: `orphan-component`,
-   `missing-input-connection`, `request-flow-cycle`, and
-   `component-relations` never reference a specific not-yet-taught
-   component — they check whether the graph is coherent at all — so
-   they're safe at any curriculum stage and are now scoped into
-   `bb-dummy-1`. The other 6 (`no-direct-client-database`,
-   `single-instance-load-balancer`, `permissive-firewall`,
-   `split-brain-risk`, `queue-without-dead-letter-queue`,
-   `orphan-read-replica`) are each keyed to one specific component
-   (database, firewall, queue, read-replica) that may genuinely not be
-   introduced yet, so they stay out — none of those components are even in
-   this chapter's palette anyway. This is what actually catches a malformed
-   wiring *between components the chapter is already teaching* without
-   rejecting on content it hasn't introduced. A bigger, related question —
-   whether the 4 general rules should be force-on for every BB chapter
-   regardless of `validationRuleIds` (an engine-level change, not a content
-   one) — was surfaced but deliberately NOT decided here; flagging it as an
-   open question for whoever scopes Step 5's real chapters, not resolved by
-   this placeholder-content fix.
+| Phase | Agent build time | Your verification |
+|---|---|---|
+| 1 — Provider layer | 30–45 min | Optional: throwaway script vs. real xAI key |
+| 2 — Settings + Dexie v4 | 10–15 min | **Required**: confirm v3→v4 migration doesn't corrupt existing `saves`/`chapterProgress` |
+| 3 — Prompt/schema/spoiler gate | 30–45 min | None (no UI/network yet) |
+| 4 — Orchestration | 15–20 min | Optional: end-to-end script vs. live model |
+| 5 — UI (settings modal, button, panel) | 45–60 min | **Required, the real gate**: 6-point click-through incl. proving the spoiler gate withholds blueprints pre-pass |
+| 6 — Hardening/docs sync | 15–20 min | Final free-form click-through |
 
-Tests added: `chapter-outcome.test.ts` (RWE ignores `validationRuleIds`, BB
-still honors it — proves no accidental full-registry leak either direction),
-`chapter-outcome-violations.test.ts` (new — each synthetic entry's shape,
-severity, and the offending node id for the disconnected case; blueprint
-mismatch omitted once passed, once no blueprints declared, and correctly
-skipped when a missing/disconnected component is the real reason instead).
-`ChapterWorkspace.test.tsx`'s existing violations-count/node-coloring
-assertions updated to the new merged counts/severity (this was a deliberate
-behavior change, not a regression — the old numbers asserted the very gap
-being fixed). `QuestionPane.test.tsx` updated to point at "see Validate for
-details" instead of duplicating the specific wording twice. Point 3
-(`bb-dummy-1`'s rule scoping) is content-only, no new engine code, so it
-added no new tests of its own — it's exercised by the existing
-`content/chapters/index.test.ts` and by you clicking through the fixture
-directly.
-`typecheck && lint && test && build` run and confirmed green before this was
-called done (see commit for the exact numbers). Not pushed — per your own
-"ask before every git push" preference, that's still your call.
+- **Pure agent execution, back-to-back:** ~2.5–3.5 hours, based on Track 2's
+  own precedent (all 7 of its phases landed in under an hour of agent time in
+  one continuous session, 2026-07-27 22:07–23:00).
+- **Realistic wall-clock:** 1–3+ days — gated by Phase 2's migration check and
+  Phase 5's click-through, not by agent speed. Track 2's own precedent: even
+  after a "clean" fast implementation, your manual click-through the next day
+  (2026-07-28) surfaced 3 real gaps needing a follow-up round — budget for at
+  least one iteration pass after Phase 5, don't treat Phase 6 as pure
+  formality.
+- **Not baked into the numbers above:** §10.1's Anthropic `messages.parse()`
+  judgment call in Phase 1 needs your input before Phase 1 lands as planned —
+  if you push back on the default plan described there, that's rework on top
+  of the estimate, not inside it.
 
 ---
-
-**Why this branch, why now:** per `NEXT_STEPS.md` Step 4.5, this is the last
-piece before Step 4.5 as a whole is done and Step 5 (real Building Blocks
-chapters) can lean on a working Deep Check alongside the mastery gate.
-**Open sequencing question, not decided here:** `NEXT_STEPS.md` currently says
-`feature/ai-deep-check` gets cut *after* Track 2 merges into
-`release/2.0.0-validation-engine-overhaul`. Track 2 hasn't merged yet. Say the
-word on whether to cut the branch now (off the release branch, pre-merge) or
-wait — I won't assume either way.
 
 **Ground rules for every phase below:**
 
