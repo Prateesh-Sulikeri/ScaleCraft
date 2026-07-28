@@ -155,6 +155,36 @@ describe("QuestionPane", () => {
       expect(screen.getByText(/last validated: passing/i)).toBeInTheDocument();
     });
 
+    it("distinguishes 'allowed' from 'correct': zero violations but no blueprint matched must not read 'passing'", () => {
+      const bp: Blueprint = { id: "bp-1", label: "The taught approach", require: { nodes: [] }, commentary: "" };
+      const chapterWithBlueprint = makeChapter({ requiredComponentIds: ["client"], blueprints: [bp] });
+      renderQuestionPane({
+        chapter: chapterWithBlueprint,
+        nodes: [],
+        chapterOutcome: makeOutcome({ passed: false, matchedBlueprintId: null }),
+        isStale: false,
+      });
+
+      expect(screen.queryByText(/last validated: passing/i)).not.toBeInTheDocument();
+      const summary = screen.getByText(/not yet passing — see validate for details/i);
+      expect(summary).toBeInTheDocument();
+      expect(summary).toHaveClass("text-state-warning");
+    });
+
+    it("shows the same allowed-but-not-correct warning when zero violations but a required component is disconnected", () => {
+      renderQuestionPane({
+        chapter,
+        nodes: [],
+        chapterOutcome: makeOutcome({ passed: false, disconnectedRequiredComponentIds: ["client"] }),
+        isStale: false,
+      });
+
+      const summary = screen.getByText(/not yet passing — see validate for details/i);
+      expect(summary).toBeInTheDocument();
+      expect(summary).toHaveClass("text-state-warning");
+      expect(screen.queryByText(/last validated: passing/i)).not.toBeInTheDocument();
+    });
+
     it("pluralizes the issue count correctly for one issue", () => {
       const violations: ValidationViolation[] = [
         {
@@ -201,7 +231,7 @@ describe("QuestionPane", () => {
         { id: "n1", type: "component", position: { x: 0, y: 0 }, data: { componentId: "client", config: {} } },
       ];
       renderQuestionPane({ chapter, nodes, chapterOutcome: null });
-      expect(screen.getByText(/1 \/ 2 required components present ·/)).toBeInTheDocument();
+      expect(screen.getByText(/1 \/ 2 required components present$/)).toBeInTheDocument();
     });
 
     it("upgrades to a present-and-connected count once a fresh ChapterOutcome exists", () => {

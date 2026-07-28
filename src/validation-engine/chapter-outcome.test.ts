@@ -3,8 +3,11 @@ import type { ArchitectureGraph, GraphNode } from "@/lib/graph";
 import type { Blueprint, ChapterDefinition } from "@/content/chapters/types";
 import type { ValidationRule } from "./types";
 
-const { getRulesMock } = vi.hoisted(() => ({ getRulesMock: vi.fn() }));
-vi.mock("./rules", () => ({ getRules: getRulesMock }));
+const { getRulesMock, ruleRegistryMock } = vi.hoisted(() => ({
+  getRulesMock: vi.fn(),
+  ruleRegistryMock: [] as ValidationRule[],
+}));
+vi.mock("./rules", () => ({ getRules: getRulesMock, ruleRegistry: ruleRegistryMock }));
 
 import { evaluateChapter } from "./chapter-outcome";
 
@@ -160,5 +163,36 @@ describe("evaluateChapter", () => {
 
     expect(outcome.passed).toBe(false);
     expect(outcome.matchedBlueprintId).toBeNull();
+  });
+
+  describe("real-world-extraction always runs the full rule registry", () => {
+    it("ignores an empty validationRuleIds and still surfaces a violation from the full registry", () => {
+      getRulesMock.mockReturnValue([]); // proves the RWE branch bypasses getRules entirely
+      ruleRegistryMock.length = 0;
+      ruleRegistryMock.push(rule("r-orphan", "warning"));
+      const graph: ArchitectureGraph = { nodes: [node("n1", "load-balancer")], edges: [], entryPointIds: [] };
+
+      const outcome = evaluateChapter(
+        graph,
+        chapter({ mode: "real-world-extraction", validationRuleIds: [] }),
+      );
+
+      expect(outcome.violations).toHaveLength(1);
+      expect(outcome.violations[0].ruleId).toBe("r-orphan");
+    });
+
+    it("still honors an empty validationRuleIds for building-blocks (no accidental full-registry leak)", () => {
+      getRulesMock.mockReturnValue([]);
+      ruleRegistryMock.length = 0;
+      ruleRegistryMock.push(rule("r-orphan", "warning"));
+      const graph: ArchitectureGraph = { nodes: [node("n1", "load-balancer")], edges: [], entryPointIds: [] };
+
+      const outcome = evaluateChapter(
+        graph,
+        chapter({ mode: "building-blocks", validationRuleIds: [] }),
+      );
+
+      expect(outcome.violations).toHaveLength(0);
+    });
   });
 });

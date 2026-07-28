@@ -2,7 +2,7 @@ import type { ArchitectureGraph } from "@/lib/graph";
 import type { Blueprint, ChapterDefinition } from "@/content/chapters/types";
 import type { ValidationViolation } from "./types";
 import { runValidation } from "./engine";
-import { getRules } from "./rules";
+import { getRules, ruleRegistry } from "./rules";
 import { buildGraphIndex, type GraphIndex } from "./graph-index";
 import { patternMatches } from "./pattern";
 import { connectedNodeIds } from "./rules/orphan-component";
@@ -31,7 +31,16 @@ function blueprintMatches(index: GraphIndex, blueprint: Blueprint): boolean {
  * least one blueprint matched. `warning`/`note` violations never block.
  */
 export function evaluateChapter(graph: ArchitectureGraph, chapter: ChapterDefinition): ChapterOutcome {
-  const violations = runValidation(graph, getRules(chapter.validationRuleIds));
+  // Real World Extraction always runs the full rule registry, ignoring
+  // `validationRuleIds` — per CURRICULUM.md §9's difficulty curve, RWE's
+  // posture is "anti-pattern + warnings" over a large-to-full palette, every
+  // taught concept already applies uniformly by the time RWE starts, and
+  // curating a subset would just re-introduce BB's teach-by-omission
+  // scoping where it no longer serves a pedagogical purpose. Building
+  // Blocks keeps author-curated scoping — a chapter shouldn't flag concepts
+  // it hasn't taught yet.
+  const rules = chapter.mode === "real-world-extraction" ? ruleRegistry : getRules(chapter.validationRuleIds);
+  const violations = runValidation(graph, rules);
   const errorCount = violations.filter((v) => v.severity === "error").length;
 
   const connected = connectedNodeIds(graph);

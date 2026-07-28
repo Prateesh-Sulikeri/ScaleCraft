@@ -22,6 +22,7 @@ import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canva
 import { getChaptersForMode } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import { evaluateChapter, type ChapterOutcome } from "@/validation-engine/chapter-outcome";
+import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db } from "@/persistence/db";
 
 type ChapterWorkspaceProps = {
@@ -202,7 +203,15 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
 
   const [chapterOutcome, setChapterOutcome] = useState<ChapterOutcome | null>(null);
   const [checkedGraphKey, setCheckedGraphKey] = useState<string | null>(null);
-  const violations = chapterOutcome?.violations ?? null;
+  // Real rule violations plus chapter-level "allowed but not correct"
+  // reasons (missing/disconnected required component, blueprint mismatch),
+  // merged so the header's Validation pane is the one place a learner looks
+  // for "what's wrong and why" — see chapter-outcome-violations.ts.
+  const violations = useMemo(
+    () =>
+      chapterOutcome && selectedChapter ? chapterDisplayViolations(chapterOutcome, selectedChapter, nodes) : null,
+    [chapterOutcome, selectedChapter, nodes],
+  );
 
   const currentGraphKey = useMemo(
     () => architectureGraphTopologyKey(toArchitectureGraph(nodes, edges)),
@@ -244,20 +253,14 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
         if (n.type === "component") nodeStates[n.id] = "valid";
       }
     } else {
-      for (const v of chapterOutcome.violations) {
+      // `violations` (the merged, display-facing list — see
+      // chapter-outcome-violations.ts) already includes a
+      // disconnected-required-component entry with the real offending node
+      // ids, so this one loop covers both real rule violations and that
+      // chapter-level reason — no separate pass needed.
+      for (const v of violations ?? []) {
         for (const id of v.offendingNodeIds) {
           nodeStates[id] = v.severity === "error" ? "error" : "warning";
-        }
-      }
-      // Required components present on canvas but not connected — flag them
-      // too, so they don't render unstyled (or, before this fix, green)
-      // while still being the reason the chapter is failing.
-      if (chapterOutcome.disconnectedRequiredComponentIds.length > 0) {
-        const disconnectedIds = new Set(chapterOutcome.disconnectedRequiredComponentIds);
-        for (const n of nodes) {
-          if (n.type === "component" && disconnectedIds.has(n.data.componentId)) {
-            nodeStates[n.id] = "warning";
-          }
         }
       }
     }

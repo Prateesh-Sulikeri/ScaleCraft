@@ -51,12 +51,27 @@ export function QuestionPane({ chapter, onBack, onPrev, onNext, chapterOutcome, 
   const requiredCountLabel = outcome ? "present and connected" : "present";
 
   const violations = outcome?.violations ?? null;
+
+  // A graph can have zero rule violations and still not be *correct* for
+  // this chapter — a required component might be missing/disconnected, or
+  // present-and-connected but not matching any declared blueprint. Either
+  // way that's "allowed" (nothing caught as an anti-pattern), not "passing",
+  // and conflating the two is exactly the beginner confusion this line
+  // exists to avoid: a clean-looking canvas that never actually completes
+  // the chapter. The specific reason now renders in the header's Validation
+  // pane too (see chapter-outcome-violations.ts) — that's the one place to
+  // look for "why"; this line just needs to never say "passing" when it
+  // isn't, so it points there instead of duplicating the wording.
+  const allowedButNotCorrect = outcome !== null && !outcome.passed && outcome.violations.length === 0;
+
   const validationSummary =
-    violations === null
+    outcome === null
       ? "Not yet validated"
-      : violations.length === 0
+      : outcome.passed
         ? "Last validated: passing"
-        : `Last validated: ${violations.length} issue${violations.length === 1 ? "" : "s"}`;
+        : violations && violations.length > 0
+          ? `Last validated: ${violations.length} issue${violations.length === 1 ? "" : "s"}`
+          : "Last validated: not yet passing — see Validate for details";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -112,10 +127,16 @@ export function QuestionPane({ chapter, onBack, onPrev, onNext, chapterOutcome, 
 
         {requiredTotal > 0 && (
           <p className="mt-4 text-xs text-foreground/60">
-            {requiredConnectedCount} / {requiredTotal} required components {requiredCountLabel} ·{" "}
-            {validationSummary}
+            {requiredConnectedCount} / {requiredTotal} required components {requiredCountLabel}
           </p>
         )}
+
+        {/* Independent of the required-components line above — a blueprint
+         * mismatch can happen even when a chapter declares no required
+         * components at all, so this must not be nested inside that gate. */}
+        <p className={`mt-1 text-xs ${allowedButNotCorrect ? "text-state-warning" : "text-foreground/60"}`}>
+          {validationSummary}
+        </p>
 
         {/* Plain, not celebratory — this app isn't a game (CLAUDE.md). */}
         {outcome?.passed && <p className="mt-2 text-xs text-state-valid">Chapter complete.</p>}

@@ -57,6 +57,10 @@ export type ChapterDefinition = {
   learningObjectives: string[];
   availableComponentIds: string[];
   requiredComponentIds: string[];
+  /** Ignored for `mode: "real-world-extraction"` — evaluateChapter always
+   * runs the full rule registry there instead, regardless of what's listed
+   * here. See the comment on that branch in validation-engine/chapter-outcome.ts
+   * for why. Only building-blocks chapters actually curate a subset. */
   validationRuleIds: string[];
   /** At least one must match for the chapter to pass, unless the array is
    * empty — in which case rules alone decide (§8.3 point 4). See

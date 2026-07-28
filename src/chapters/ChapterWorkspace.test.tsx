@@ -246,7 +246,14 @@ describe("ChapterWorkspace", () => {
       expect(screen.getByTestId("violations-count")).toHaveTextContent("null");
     });
 
-    it("reports zero rule violations even when the chapter still fails on missing/disconnected required components", async () => {
+    it("surfaces missing/disconnected required components as synthetic violations, even when real rule violations are zero", async () => {
+      // Chapter One's starterGraph is a single, disconnected Client node —
+      // present but not wired to anything — and load-balancer is missing
+      // entirely. Real rule violations (mocked here) are zero, but the
+      // merged, display-facing violations list (see
+      // chapter-outcome-violations.ts) still surfaces both chapter-level
+      // reasons in the same header dropdown a learner already checks —
+      // "No violations" must never be shown when the chapter still fails.
       runValidationMock.mockReturnValue([]);
       await renderWorkspace();
       fireEvent.click(screen.getByText("Chapter One"));
@@ -254,16 +261,14 @@ describe("ChapterWorkspace", () => {
 
       fireEvent.click(screen.getByTestId("validate-btn"));
 
-      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("2"));
       expect(screen.getByTestId("is-stale")).toHaveTextContent("false");
     });
 
     it("does not mark a required-but-disconnected node valid just because there are zero rule violations", async () => {
-      // Chapter One's starterGraph is a single, disconnected Client node —
-      // present but not wired to anything — and load-balancer is missing
-      // entirely, so evaluateChapter fails even though runValidation itself
-      // (mocked here) reports nothing. Node coloring must reflect that
-      // failure, not paint the lone node green as if the chapter passed.
+      // Same fixture as above — the disconnected Client node must ring as a
+      // real, blocking issue (error), not the muted "warning" this used to
+      // render as, and never green as if the chapter passed.
       runValidationMock.mockReturnValue([]);
       await renderWorkspace();
       fireEvent.click(screen.getByText("Chapter One"));
@@ -271,9 +276,9 @@ describe("ChapterWorkspace", () => {
 
       fireEvent.click(screen.getByTestId("validate-btn"));
 
-      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("2"));
       const nodeStates = JSON.parse(screen.getByTestId("node-states").textContent ?? "{}");
-      expect(nodeStates.n1).toBe("warning");
+      expect(nodeStates.n1).toBe("error");
       expect(Object.values(nodeStates)).not.toContain("valid");
     });
 
@@ -320,8 +325,12 @@ describe("ChapterWorkspace", () => {
       // The violation reaches the header unconditionally — nothing in
       // ChapterWorkspace filters or hides it. (The actual explanation text
       // rendering lives in ValidationIndicator, outside this task's scope,
-      // but the wiring up to that point must not drop or gate it.)
-      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("1"));
+      // but the wiring up to that point must not drop or gate it.) Total is
+      // 3, not 1 — Chapter One's starterGraph is always missing
+      // load-balancer and has a disconnected Client, so the merged list
+      // (see chapter-outcome-violations.ts) adds those two chapter-level
+      // reasons on top of this one real rule violation.
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("3"));
       expect(screen.getByTestId("is-stale")).toHaveTextContent("false");
     });
 
@@ -341,14 +350,17 @@ describe("ChapterWorkspace", () => {
       fireEvent.click(screen.getByText("Chapter One"));
       await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
       fireEvent.click(screen.getByTestId("validate-btn"));
-      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("1"));
+      // 3, not 1 — see the comment in the previous test: Chapter One's
+      // starterGraph always contributes 2 chapter-level synthetic entries
+      // alongside this one real rule violation.
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("3"));
       expect(screen.getByTestId("is-stale")).toHaveTextContent("false");
 
       fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
 
       await waitFor(() => expect(screen.getByTestId("is-stale")).toHaveTextContent("true"));
-      // Still 1 — going stale doesn't clear the last result, it just flags it.
-      expect(screen.getByTestId("violations-count")).toHaveTextContent("1");
+      // Still 3 — going stale doesn't clear the last result, it just flags it.
+      expect(screen.getByTestId("violations-count")).toHaveTextContent("3");
     });
   });
 
@@ -388,7 +400,7 @@ describe("ChapterWorkspace", () => {
 
       fireEvent.click(screen.getByTestId("validate-btn"));
 
-      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("2"));
       expect(putSpy).not.toHaveBeenCalled();
       expect(await db.chapterProgress.get("ch-1")).toBeUndefined();
 

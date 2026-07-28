@@ -716,6 +716,24 @@ Pass criteria are §8.3. Reuse `orphan-component.ts`'s exact connectivity
 predicate — do not write a second one. Wire `ChapterWorkspace.tsx:221`
 (`handleValidate`) to call `evaluateChapter` rather than `runValidation` directly.
 
+**Post-implementation addendum (2026-07-28): RWE ignores `validationRuleIds`.**
+Manual QA surfaced live: a Building Blocks placeholder chapter with
+`validationRuleIds: []` (content not yet authored) showed "No violations" on a
+graph with a genuine invalid edge and a fully disconnected required
+component — correct per the per-chapter-subset mechanism, but confusing side
+by side with Sandbox (which runs the unscoped full registry and caught both).
+Discussion surfaced that per-chapter rule *curation* only serves a
+pedagogical purpose in Building Blocks (don't flag a concept not yet
+taught) — by the time a learner reaches Real World Extraction every concept
+has been taught (per CURRICULUM.md §9's difficulty curve, RWE's posture is
+uniformly "anti-pattern + warnings" over a large-to-full palette), so there's
+no teach-by-omission reason left to scope down. Decision: `evaluateChapter`
+now branches on `chapter.mode` — `real-world-extraction` always runs
+`ruleRegistry` (the full set), ignoring `validationRuleIds` entirely;
+`building-blocks` keeps the existing author-curated subset via `getRules()`.
+This is structurally enforced, not an authoring convention a Step 6 content
+author could get wrong.
+
 ### 9.6 Persistence
 
 Dexie **schema v3**, following the existing v2 convention of listing every table:
@@ -734,6 +752,26 @@ export type ChapterProgress = {
 
 - `QuestionPane.tsx` — extend the existing required-components counter to reflect
   `ChapterOutcome`: present *and connected*, plus a plain completion state.
+  **Post-implementation addendum (2026-07-28):** the validation-summary line
+  originally read "passing" off `violations.length === 0` alone, which is
+  wrong — a graph can have zero rule violations and still not pass the
+  chapter, either because a required component is missing/disconnected or
+  because it's present-and-connected but doesn't match any declared
+  blueprint. Either way the shape is "allowed" (nothing caught as an
+  anti-pattern), not "correct" (the thing this chapter is teaching), and
+  conflating the two reads as a false-clean state to exactly the beginner
+  this app is for. First fix attempt only caught the blueprint-mismatch
+  case; live click-through (2026-07-28) showed the disconnected-component
+  case still fell through to a plain, uncolored "not yet passing" — which is
+  the same conflation with a smaller blast radius, not actually fixed.
+  Corrected: the warning styling and the "no rule violations, but not a
+  recognized correct design yet" wording now apply uniformly to *any*
+  `!outcome.passed` state with zero rule violations, regardless of which of
+  the two reasons caused it — the required-components count line above it
+  already carries the specific reason when it's a missing/disconnected
+  component; this line's only job is making sure "no violations" is never
+  mistaken for "done." Never reveals *what's* wrong — that's still a hint's
+  job.
 - `ValidationIndicator.tsx` — render `note` in a muted style, excluded from the
   error/warning counts in the header row (`:103-112`). Notes are not issues.
 - **Debrief** — on `passed`, a pull-only affordance revealing each blueprint's

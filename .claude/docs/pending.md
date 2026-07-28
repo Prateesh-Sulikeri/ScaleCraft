@@ -1,488 +1,397 @@
-# Pending: Track 2 — Validation Pattern Engine (`feature/validation-pattern-engine`)
+# Pending: Track 3 — AI Deep Check (`feature/ai-deep-check`)
 
-**Full spec:** `.claude/docs/validation_agent_design.md` §8 (blueprints/mastery) and
-§9 (implementation spec). This file is the phase-by-phase execution plan against
-that spec — not a parallel design doc. If the two ever disagree, §8/§9 win; fix
-this file, not the other way around.
+**Full spec:** `.claude/docs/validation_agent_design.md` §4 (why/reversals/
+constraints) and §10 (implementation spec). This file is the phase-by-phase
+execution plan against that spec — not a parallel design doc. If the two ever
+disagree, §4/§10 win; fix this file, not the other way around.
 
-**Why this branch, why now:** per `.claude/docs/NEXT_STEPS.md` Step 4.5, this
-blocks Step 5 (real Building Blocks chapters) — there is currently no working
-chapter pass/fail gate (`hasErrors()` is dead code, `requiredComponentIds` checks
-presence only, `solutionGraph` is unused). Cut from
-`release/2.0.0-validation-engine-overhaul`, per `CLAUDE.md`'s branching rules.
+**Track 2 closed out, not repeated here.** All 7 of Track 2's phases (graph
+index, pattern matcher, engine dispatch, blueprints/chapter-outcome, Dexie v3,
+UI, hardening) are implemented and pushed on `feature/validation-pattern-engine`,
+awaiting your manual click-through + merge — per `CLAUDE.md` I don't merge my
+own branches. The full phase-by-phase record for that track lives in
+`.claude/PROGRESS_LOG.md` (2026-07-27 entries) and that branch's own git
+history, not duplicated here — matching this file's own convention of being a
+live task list for the *current* track, not an archive.
 
-**Ground rule for every phase below:** the 10 existing rule files
-(`src/validation-engine/rules/*.ts`, excluding this doc's new additions) must
-change **zero lines**. Each phase's "done when" includes re-running their
-existing test files unmodified and green — that's the concrete proof the
-"additive, not a rewrite" claim in §9 actually holds, not just an assertion.
+**Post-Phase-7 follow-up (2026-07-28), landed on `feature/validation-pattern-engine`
+before merge — two real gaps found during your own manual click-through:**
 
-**Testing split, throughout:** I run and report every automated check
-(`typecheck`, `lint`, `test`, `build`) before claiming a phase done — that's
-non-negotiable per `CLAUDE.md`'s pre-push CI section regardless. Real
-browser interaction is capped to the minimum needed to catch a genuinely
-visual bug (layout, theme, dropdown collision) — not a substitute for you
-driving it. Every phase that touches anything clickable ends with an exact,
-numbered **"You verify"** script: what to click, what you should see, what
-would mean something's wrong. Run those yourself and tell me what you saw
-before I call that phase closed.
+1. **RWE now always runs the full rule registry.** You compared the BB
+   placeholder chapter ("No violations" on a graph with a genuinely invalid
+   edge and a disconnected required Client) against Sandbox (correctly
+   flagged both) — root cause was `bb-dummy-1`'s `validationRuleIds: []`
+   (real content/rule-scoping is Step 5's job, not Track 2's), not an engine
+   bug. That surfaced a real product decision: per-chapter rule *curation*
+   only serves BB's teach-by-omission need; by RWE every concept is already
+   taught, so `evaluateChapter` now branches on `chapter.mode` —
+   `real-world-extraction` always runs `ruleRegistry` (full set), ignoring
+   `validationRuleIds` entirely; `building-blocks` keeps author-curated
+   scoping. Structurally enforced in `chapter-outcome.ts`, not left as an
+   authoring convention. Doc sync: `validation_agent_design.md` §9.5,
+   `ARCHITECTURE.md`'s `ChapterDefinition` snippet (also fixed stale
+   `solutionGraph`/missing `blueprints` there while touching it),
+   `CURRICULUM.md` §12.
+2. **The header's Validation pane now surfaces chapter-level failures too,
+   with specifics — not just QuestionPane text.** Went through three
+   iterations here, each caught by your own click-through, worth recording:
+   (a) first pass only fixed QuestionPane's summary line, still said
+   "passing" off `violations.length === 0` alone; (b) second pass fixed the
+   text but left it generic ("not a recognized correct design yet") and
+   still confined to QuestionPane, when you specifically wanted it in the
+   Validate dropdown *and* specific about *why*; (c) final: new
+   `src/chapters/chapter-outcome-violations.ts` (`chapterDisplayViolations`)
+   formats a missing required component, a disconnected required component
+   (with the real offending node id, so it rings on canvas — now `error`
+   severity, not the old muted `warning`), and a blueprint mismatch as
+   `ValidationViolation`-shaped entries, merged with the real rule
+   violations in `ChapterWorkspace.tsx` before reaching `AppHeader` →
+   `ValidationIndicator`. One surface, specific reasons, no more
+   contradicting "No violations" next to a chapter that's still failing.
+   **The one deliberate limit, not a gap:** the blueprint-mismatch entry
+   stays generic ("doesn't match a known correct approach yet") — naming
+   exactly what differs from the blueprint *is* the answer, which is a
+   hint's job (pull-only, never forced). Missing/disconnected components
+   aren't spoilers, so those get real specifics. `evaluateChapter`/
+   `ChapterOutcome` stayed untouched — this is presentation-layer merging,
+   not new engine logic. Doc sync: `validation_agent_design.md` §9.7.
 
----
+3. **`bb-dummy-1` scoped to 4 general/structural rules, not 0 and not all
+   10 — a real, live-debugged decision, not a guess.** Once (1) and (2)
+   landed, a lingering demo still passed with a genuinely backwards
+   Application Server → Load Balancer edge sitting in the graph. First
+   instinct — scope the placeholder to the full 10-rule registry, matching
+   Sandbox — was wrong and got reverted: it included
+   `component-relations`, which gives the exact same blunt, fully-detailed
+   rejection Sandbox gives with zero softening, and CLAUDE.md mandates a
+   rule's full explanation always show once it's in scope — there's no
+   "soft" version of a rule violation, so that reintroduced the premature,
+   Sandbox-style rejection point (1) exists to avoid. The actual resolution
+   splits the 10 rules by what they presuppose: `orphan-component`,
+   `missing-input-connection`, `request-flow-cycle`, and
+   `component-relations` never reference a specific not-yet-taught
+   component — they check whether the graph is coherent at all — so
+   they're safe at any curriculum stage and are now scoped into
+   `bb-dummy-1`. The other 6 (`no-direct-client-database`,
+   `single-instance-load-balancer`, `permissive-firewall`,
+   `split-brain-risk`, `queue-without-dead-letter-queue`,
+   `orphan-read-replica`) are each keyed to one specific component
+   (database, firewall, queue, read-replica) that may genuinely not be
+   introduced yet, so they stay out — none of those components are even in
+   this chapter's palette anyway. This is what actually catches a malformed
+   wiring *between components the chapter is already teaching* without
+   rejecting on content it hasn't introduced. A bigger, related question —
+   whether the 4 general rules should be force-on for every BB chapter
+   regardless of `validationRuleIds` (an engine-level change, not a content
+   one) — was surfaced but deliberately NOT decided here; flagging it as an
+   open question for whoever scopes Step 5's real chapters, not resolved by
+   this placeholder-content fix.
 
-## Phase 1 — Graph index (`src/validation-engine/graph-index.ts`, new) — DONE (2026-07-27)
-
-**Status:** implemented on this branch, commit follows this doc update.
-`reachable()` memoizes by reference (stronger than the "value equality"
-fallback this doc allowed for — same Set instance returned on a repeat call
-with the same `from`/`kinds`), so no confirmation round-trip was needed.
-`typecheck`, `lint`, `test` (720/720, including all 10 existing rules'
-suites unmodified), and `build` all ran clean; `git diff
-release/2.0.0-validation-engine-overhaul...HEAD -- src/validation-engine/rules/`
-is empty, confirming zero changes to the existing rule files.
-
-**Scope:** `GraphIndex` type + `buildGraphIndex()`, per §9.1 — `nodeById`,
-`defById` (reuse `component-lookup.ts`, don't re-derive), `outEdges`/`inEdges`
-maps, `entryPoints` set, and a memoized, **iterative** (never recursive)
-`reachable(from, kinds?)` BFS. Nothing calls this yet — purely additive, no
-existing file changes.
-
-**Why first:** every later phase (matcher, engine, chapter-outcome) takes a
-`GraphIndex` as input. Getting `reachable()` right in isolation, before the
-pattern matcher exists to obscure a bug in it, is the cheapest place to catch
-an off-by-one or a missed cycle-guard.
-
-**Not in scope yet:** wiring the index into any existing rule
-(`single-instance-load-balancer.ts` etc. keep their own `graph.nodes.find()`
-loops for now — §9.1 flags this as a "when convenient" cleanup, not required
-here).
-
-**Automated tests (mine), `graph-index.test.ts`:**
-1. `outEdges`/`inEdges` correctness on a 5-node graph with mixed edge kinds.
-2. `reachable()` direct neighbor, multi-hop, and unreachable-node cases.
-3. `reachable(from, ["request-flow"])` — kind-filtered traversal excludes a
-   path that only exists via a `control`/`async`/`replication` edge.
-4. `reachable()` on a graph containing a cycle terminates and returns the
-   correct reachable set (proves iterative BFS, not just "doesn't throw" —
-   assert a specific expected Set, not just that it completed).
-5. Calling `reachable()` twice with the same `from`/`kinds` returns
-   memoized-equal results (value equality; implementation may or may not
-   reuse the same Set instance — test the content, not identity, unless the
-   spec's "memoized" is read as instance-identity, in which case say so and
-   I'll confirm which before writing the test).
-6. `entryPoints` populated from `graph.entryPointIds` unchanged.
-7. A ~150-node synthetic graph (near `TRD.md`'s "low hundreds" bar) —
-   `buildGraphIndex` + a handful of `reachable()` calls complete well under a
-   loose ms budget (a sanity bound, not a strict perf test).
-
-**Done when:** all of the above green, `npm run typecheck && npm run lint`
-clean, and the existing 10 rules' test files still pass unmodified (nothing
-touches them yet, so this is really "still true," but confirmed by an actual
-run, not assumed).
-
-**You verify:** nothing — this phase has no UI surface. Skip straight to
-reviewing the diff/tests if you want eyes on it before Phase 2 starts.
-
----
-
-## Phase 2 — Pattern language and matcher (`src/validation-engine/pattern.ts`, new) — DONE (2026-07-27)
-
-**Status:** implemented on this branch. One deliberate, additive deviation
-from §9.2's illustrative type: `GraphPattern` gained an optional `id?:
-string` field, since "console.warn the pattern id" needs *something* to
-name — the spec's shown type had no id anywhere on `GraphPattern`. Callers
-(a `PatternRule.forbid`, a `Blueprint.require` in Phase 4) should set it to
-their own rule/blueprint id. All 22 tests green, including every
-`ConfigPredicate` operator, `via: "direct"`/`"path"`, injective bindings,
-`absent` (both the negative-constraint and outer-alias-reference cases),
-the budget guard (verified it actually hits `MAX_MATCHES=200` on a dense
-60-node pathological graph and warns), determinism, and two composite
-curriculum-shaped patterns (cache-aside, hot-path-via-any-route).
-`typecheck`, `lint`, `test` (101 files / 742 tests, all 10 existing rule
-suites unmodified), and `build` all ran clean; the rules-directory diff
-against the release branch is still empty.
-
-**Scope:** `ConfigPredicate`, `PatternNode`, `PatternEdge`, `GraphPattern`,
-`Binding`, `matchPattern()`, `patternMatches()` — the backtracking search from
-§9.2: selectivity ordering (`componentId` > `category` > unconstrained, then by
-edge-constraint count), `via: "direct"` (adjacency) vs. `via: "path"`
-(`reachable()`), **injective bindings** (no opt-out), `absent` sub-pattern
-rejection, and the `MAX_MATCHES = 200` / `MAX_STEPS = 50_000` budget guard
-with a `console.warn` on exhaustion. This is the highest-risk phase in the
-whole track — it's new algorithmic code, not a refactor of something that
-already works, so it gets the most test weight.
-
-**Automated tests (mine), `pattern.test.ts`:**
-1. Single-node match by `componentId`, by `category`, by both.
-2. Every `ConfigPredicate` operator (`eq`/`neq`/`gt`/`gte`/`lt`/`lte`/`in`)
-   against a node's config, independently.
-3. Two-node pattern with a `via: "direct"` edge, kind-constrained and
-   kind-unconstrained variants.
-4. `via: "path"` — a pattern matching across an intermediate node it never
-   names (proves it's using `reachable()`, not adjacency).
-5. **Injective bindings**, the one the spec calls out as non-negotiable: a
-   pattern requiring two distinct aliases bound to two distinct nodes, run
-   against a graph with only one candidate node — must produce zero matches,
-   not reuse that node for both aliases.
-6. `absent` sub-pattern: a pattern that matches without the negative
-   constraint, then confirm it's correctly rejected once the forbidden shape
-   is added to the graph; and confirm an `absent` block referencing an outer
-   alias resolves against the *current* binding, not in isolation.
-7. Budget guard: a deliberately pathological pattern/graph pair (e.g. a dense
-   near-complete graph against an under-constrained pattern) — assert it
-   returns within the step cap rather than hanging, and that `console.warn`
-   fires with the pattern id.
-8. Determinism: same pattern + same graph run twice returns the same binding
-   set (order-independent comparison is fine; just no flakiness).
-9. Two or three **composite, curriculum-shaped** patterns as end-to-end
-   sanity checks — e.g. a "cache-aside" shape (App Server → Cache direct,
-   App Server → Database direct) matched against a graph that has it and one
-   that doesn't; a "hot-path anti-pattern" using `via: "path"` (something
-   reaching a component it shouldn't via any route). These aren't shipped
-   rules yet (that's Step 5's job) — they exist here purely to prove the
-   matcher handles a shape resembling what real content will actually need,
-   not just synthetic unit cases.
-
-**Done when:** all of the above green, `typecheck`/`lint` clean, existing 10
-rules' tests still pass unmodified.
-
-**You verify:** nothing yet — still no UI surface. This is the phase I'd most
-want you to skim the actual matcher code for (not just trust the test count),
-since it's the piece most likely to need a second pair of eyes on the
-backtracking logic itself.
+Tests added: `chapter-outcome.test.ts` (RWE ignores `validationRuleIds`, BB
+still honors it — proves no accidental full-registry leak either direction),
+`chapter-outcome-violations.test.ts` (new — each synthetic entry's shape,
+severity, and the offending node id for the disconnected case; blueprint
+mismatch omitted once passed, once no blueprints declared, and correctly
+skipped when a missing/disconnected component is the real reason instead).
+`ChapterWorkspace.test.tsx`'s existing violations-count/node-coloring
+assertions updated to the new merged counts/severity (this was a deliberate
+behavior change, not a regression — the old numbers asserted the very gap
+being fixed). `QuestionPane.test.tsx` updated to point at "see Validate for
+details" instead of duplicating the specific wording twice. Point 3
+(`bb-dummy-1`'s rule scoping) is content-only, no new engine code, so it
+added no new tests of its own — it's exercised by the existing
+`content/chapters/index.test.ts` and by you clicking through the fixture
+directly.
+`typecheck && lint && test && build` run and confirmed green before this was
+called done (see commit for the exact numbers). Not pushed — per your own
+"ask before every git push" preference, that's still your call.
 
 ---
 
-## Phase 3 — Rule kinds + engine dispatch (`types.ts`, `engine.ts` — modified) — DONE (2026-07-27)
+**Why this branch, why now:** per `NEXT_STEPS.md` Step 4.5, this is the last
+piece before Step 4.5 as a whole is done and Step 5 (real Building Blocks
+chapters) can lean on a working Deep Check alongside the mastery gate.
+**Open sequencing question, not decided here:** `NEXT_STEPS.md` currently says
+`feature/ai-deep-check` gets cut *after* Track 2 merges into
+`release/2.0.0-validation-engine-overhaul`. Track 2 hasn't merged yet. Say the
+word on whether to cut the branch now (off the release branch, pre-merge) or
+wait — I won't assume either way.
 
-**Status:** implemented on this branch. Matches §9.3/§9.4 as spec'd, no
-deviations. `ValidationViolation.severity` widened to `Severity` too (it has
-to be, to carry a `PatternRule`'s severity through) — no downstream code
-does an exhaustive switch over it today, so this didn't require touching
-`ValidationIndicator.tsx`/`QuestionPane.tsx`/etc.; they still just compare
-`=== "error"`, and Phase 6 is where `note` actually gets its own rendering.
-`typecheck`, `lint`, `test` (101 files / 745 tests, all 10 existing rule
-suites unmodified), and `build` all ran clean; the rules-directory diff
-against the release branch is still empty.
+**Ground rules for every phase below:**
 
-**Scope:** `Severity = "error" | "warning" | "note"`, the `ImperativeRule` /
-`PatternRule` union, `engine.ts` builds the index once and dispatches on
-`kind` (absent/`"imperative"` → `.match`, `"pattern"` → the Phase 2 matcher),
-and **wraps every rule call in try/catch** — a throwing rule is skipped with
-a `console.error`, never surfaced to the learner, never kills the run.
+- **No server secret, ever.** Per §4.4, the key lives in the browser
+  (IndexedDB, entered via the Settings UI) and the provider is called
+  browser-direct. No Route Handler, no `NEXT_PUBLIC_*` env var, no server-side
+  fallback that reads a key from anywhere. If a `.env`/`.env.local` exists in
+  this repo with a real provider key in it, **no phase below wires the shipped
+  app to read it** — that would silently violate "optional and absent by
+  default" (§4.3) and the whole BYO-key-in-browser design (§4.4). Its only
+  legitimate use is a throwaway, uncommitted verification script (see Testing
+  split, below) — never a code path that ships.
+- **Never load-bearing for progression** (§4.3). AI output must never touch
+  `ChapterOutcome` or severity. This is checked structurally in Phase 6 (a
+  grep, not a promise), not just asserted in prose.
+- **Guardrails are structural, not prompted** (§4.5). Every phase that touches
+  model output validates it with Zod, filters node ids against the real graph,
+  and never partially renders on failure.
 
-**Automated tests (mine), extend `engine.test.ts`:**
-1. A deliberately throwing test rule mixed into the rule list — assert the
-   run completes, other rules' violations still appear, and `console.error`
-   was called (spy) with the rule's id.
-2. A test `PatternRule` (using Phase 2's matcher) produces violations with
-   `offendingNodeIds = Object.values(binding)` and `offendingEdgeIds`
-   resolved for `via: "direct"` constraints, per §9.3.
-3. One `runValidation` call mixing an `ImperativeRule` and a `PatternRule` —
-   confirm both contribute to the same `ValidationViolation[]` output shape,
-   nothing branches downstream on which kind produced a given violation.
-4. **Regression, not a new test:** run the full existing suite for all 10
-   shipped rules (`no-direct-client-database`, `single-instance-load-balancer`,
-   `permissive-firewall`, `split-brain-risk`, `queue-without-dead-letter-queue`,
-   `orphan-read-replica`, `orphan-component`, `request-flow-cycle`,
-   `missing-input-connection`, `component-relations`) unmodified and green —
-   this is the actual proof the union type is backward-compatible, not an
-   assumption from reading the diff.
-
-**Done when:** all of the above green, `typecheck`/`lint` clean, `npm run
-build` succeeds (first phase where a broken type in `engine.ts` could
-plausibly break the whole app, since every existing caller goes through it).
-
-**You verify:** nothing new to click — `runValidation`'s signature and every
-caller are unchanged, so Sandbox/chapter validation should look and behave
-identically to today. If you want a spot-check: open Sandbox, build any small
-graph, hit Validate — it should look pixel-identical to before this phase.
-If it doesn't, that's a real regression, not expected.
+**Testing split, throughout:** automated tests (`npm test`) never make a real
+network call — every provider adapter is mocked (fetch mocked for
+openai/xai/google/openai-compatible, the Anthropic SDK client mocked for
+anthropic). A real key (yours, in `.env`, for your own manual testing) is only
+ever exercised through a **throwaway script or a manual click-through**,
+deleted right after and never committed — same convention Track 2 used for
+its scripted-and-deleted Playwright specs. Given a live key will be sitting in
+the working tree throughout this track, every commit gets a `git status`/
+`git diff` sanity check first, not just the usual staged-files review.
 
 ---
 
-## Phase 4 — Blueprints + chapter outcome (`content/chapters/types.ts`,
-## `validation-engine/chapter-outcome.ts` — new) — DONE (2026-07-27)
+## Phase 1 — Provider layer (`src/ai/providers/`, new)
 
-**Status:** implemented on this branch, matches §9.5 as spec'd, no
-deviations. All 9 spec'd test cases present in `chapter-outcome.test.ts`.
-`connectedNodeIds` exported from `orphan-component.ts` — the one line-level
-change that file needed, called out explicitly rather than folded into a
-"zero changes" claim (`orphan-component.ts` itself keeps zero behavior
-change, just a refactor-for-export). `solutionGraph` confirmed gone from
-`src/` via grep (zero matches). `typecheck`, `lint`, `test` (102 files / 754
-tests, all 10 existing rule suites unmodified), and `build` all ran clean;
-the rules-directory diff against the release branch is empty for the other
-9 rule files.
+**Scope:** `AiProviderId` (`"anthropic" | "openai" | "google" | "xai" |
+"openai-compatible"`), the `AiProvider` interface (§10.1 — `id`, `label`,
+`defaultModel`, `suggestedModels`, `complete()`), and five adapters:
 
-**Scope:** `Blueprint` type (`id`, `label`, `require`, `forbid?`, `commentary`,
-`referenceGraph?`), `ChapterDefinition` gains `blueprints: Blueprint[]` and
-**loses `solutionGraph?`** (confirmed via grep: referenced nowhere in `src/`
-today except its own declaration — safe to delete outright, not deprecate).
-`evaluateChapter(graph, chapter): ChapterOutcome` implementing §8.3's four
-pass criteria. Per spec: **reuse `orphan-component.ts`'s exact connectivity
-predicate** for the "required component is connected" check — this likely
-means exporting that predicate (or a small shared helper) from
-`orphan-component.ts` rather than re-deriving it, so there is exactly one
-definition of "connected" in the codebase, not two that can drift apart.
+- **`anthropic`** — official `@anthropic-ai/sdk` (new dependency),
+  `dangerouslyAllowBrowser: true`. Defaults `claude-opus-5`, offers
+  `claude-sonnet-5`/`claude-haiku-4-5`. `max_tokens: 16000`, non-streaming.
+  **Verify the exact browser-opt-in option/header name against the installed
+  SDK version at implementation time** — don't trust this doc's name for it.
+  `temperature`/`top_p`/`top_k` are rejected on current Claude models, so
+  Tone stays a prompt-only modifier — no slider anywhere in Phase 5's UI.
+- **`openai`**, **`xai`**, **`openai-compatible`** — raw `fetch` against the
+  OpenAI-compatible chat-completions shape; `openai-compatible` exposes a
+  user-supplied `baseUrl` (Ollama/OpenRouter/self-hosted).
+- **`google`** — raw `fetch` against the Gemini `generateContent` endpoint.
 
-**Automated tests (mine), `chapter-outcome.test.ts`:**
-1. Zero-error, no-blueprints-declared chapter → passes (rules alone decide,
-   per §8.3 point 4's "or the chapter declares none" clause).
-2. A required component entirely missing from the canvas → fails,
-   `missingRequiredComponentIds` populated.
-3. A required component present but with zero incident edges and not an
-   entry point → fails, `disconnectedRequiredComponentIds` populated (not
-   `missingRequiredComponentIds` — these are distinct failure reasons and the
-   type keeps them separate on purpose).
-4. A required component present and connected only via an `entryPointIds`
-   marker (no real edge) → counts as connected, matching
-   `orphan-component.ts`'s own predicate exactly (this is the "why entry
-   points count" case §2.4/§8.3 both reference).
-5. One declared blueprint, graph contains it → passes,
-   `matchedBlueprintId` set to that blueprint's id.
-6. Two declared blueprints, only the second matches → passes with the
-   second's id (proves "at least one," not "the first").
-7. A single `error`-severity violation present → fails even when a blueprint
-   would otherwise match (errors are the hard gate; nothing overrides them).
-8. `warning` and `note` severity violations present, zero errors, blueprint
-   matches → still passes (§8.3: only error-severity blocks).
-9. Blueprint's own `forbid` patterns: a graph that satisfies `require` but
-   also matches one of the blueprint's `forbid` patterns → that blueprint
-   does not count as matched (test this explicitly — it's easy to
-   accidentally only check `require` and forget `forbid` exists on
-   `Blueprint` too).
+Every adapter maps a failure to a distinct, user-legible error kind (at least
+`auth`, `rate-limit`, `network`, `unknown`) — a bad key is the most likely
+failure by far and must never fail silently.
 
-**Done when:** all of the above green, `typecheck`/`lint` clean, and a repo
-grep confirms `solutionGraph` no longer appears anywhere in `src/` (docs
-mentions in `ARCHITECTURE.md`/`CURRICULUM.md`/etc. get a follow-up doc pass
-in Phase 7, not here).
+**Judgment call, flagging now rather than after the code lands:** §10.1 says
+Anthropic should use `client.messages.parse()` with a Zod `output_config` for
+schema-enforced JSON (reusing §10.4's schema), while `complete()`'s declared
+return type is uniform `Promise<string>`. Default plan: `complete()` takes an
+optional `schema` param; the anthropic adapter uses it via `messages.parse()`
+and stringifies the result back into that string return; other adapters
+ignore the param and rely on their own JSON mode. The one shared Zod-validate
+pass (Phase 3) then runs on every provider's output regardless, per the
+spec's own "validation runs on every provider regardless" line — redundant
+for Anthropic, but keeps one code path instead of a special case. Say now if
+you'd rather Anthropic skip the shared validation pass entirely.
 
-**You verify:** nothing yet — `evaluateChapter` isn't wired into any UI
-until Phase 5.
+**Automated tests, mocked only:**
+1. Each `fetch`-based adapter (openai/xai/google/openai-compatible): request
+   shape (URL, auth header, body) is correct; a successful response parses;
+   at least three distinct failure modes (401, 429, thrown/network error) map
+   to distinct, correctly-labeled `AiProviderError` kinds.
+2. `anthropic` adapter: SDK client constructed with the right options
+   (mocked client, not a real call); same error-kind mapping on a mocked SDK
+   throw.
+3. `openai-compatible`'s `baseUrl` actually changes the request URL.
+
+**Done when:** `typecheck`/`lint`/`test`/`build` clean. This phase only adds
+new files under `src/ai/` — nothing existing changes yet.
+
+**You verify:** no UI surface yet, but this is the cheapest point to sanity
+check your real xAI key against the live adapter — a throwaway Node script
+(not committed) calling the `xai` adapter's `complete()` directly. Catching a
+wrong endpoint/header here is much cheaper than after four more phases build
+on top of it.
 
 ---
 
-## Phase 5 — Wire into ChapterWorkspace + Dexie v3 (`chapters/ChapterWorkspace.tsx`,
-## `persistence/db.ts` — modified) — CODE DONE (2026-07-27), awaiting your
-## manual IndexedDB verification pass below before I call this fully closed
+## Phase 2 — Settings + Dexie v4 (`src/ai/settings.ts`, new;
+## `persistence/db.ts`, modified)
 
-**Status:** implemented on this branch, matches §9.5 as spec'd. `chapterOutcome`
-(a `ChapterOutcome | null`) replaces the old bare `violations` state in
-`ChapterWorkspaceContent`; `violations` is now derived from it
-(`chapterOutcome?.violations ?? null`) so `AppHeader`/`ChapterSidebar`/
-`QuestionPane` need no prop-shape changes yet — that's Phase 6's job. Dexie
-v3 adds `chapterProgress` (keyed on `chapterId`, so a re-pass just updates the
-existing row rather than duplicating). `typecheck`, `lint`, `test` (102 files
-/ 757 tests, all 10 existing rule suites unmodified), and `build` all ran
-clean. I did **not** drive the real-browser migration check myself — that's
-the one thing only a real browser/IndexedDB catches, and it's explicitly your
-pass per the "You verify" list below, not something I fake or skip past.
+**Scope:** `AiSettings` per §10.2 (`id: "default"`, `enabled`, `providerId`,
+`model`, `baseUrl?`, `apiKey`, `depth`, `tone`, `level`) with defaults
+(`enabled: false` until a key is actually saved). Dexie **schema v4**: add
+`aiSettings` table (keyed `"id"`), listing every existing table too, per the
+v1→v3 convention already in `db.ts`. `getAiSettings()`/`saveAiSettings()`
+helpers. No UI yet — pure data layer, same shape as Track 2's Phase 5.
+
+**Automated tests:** `db.test.ts` extended with an `aiSettings` round-trip
+(`put`/`get`/update) against `fake-indexeddb`, same pattern as the existing
+`saves`/`chapterProgress` tests.
+
+**Done when:** `typecheck`/`lint`/`test`/`build` clean.
+
+**You verify — real migration risk, same caution as Track 2's Phase 5:**
+1. Open the app on your existing v3 profile — confirm no Dexie version-conflict
+   console error.
+2. DevTools → Application → IndexedDB → `scalecraft` → confirm an
+   `aiSettings` object store now exists at version 4.
+3. Confirm your existing `saves`/`chapterProgress` data is untouched.
+
+---
+
+## Phase 3 — Prompt assembly, output schema, spoiler gate (`src/ai/prompt.ts`,
+## `src/ai/schema.ts`, new)
+
+**Scope:** `aiCritiqueSchema` exactly per §10.4 (`summary` max 600,
+`sections` max 6 each with `title` max 80/`body` max 1500/`relatedNodeIds`
+default `[]`, `tradeoffs` max 5 default `[]`). `parseAiResponse(raw, realNodeIds)`
+— strips a ` ```json ` fence, `JSON.parse`s, Zod-validates, filters
+`relatedNodeIds` against the real graph, returns a tagged
+success/failure result that **never throws and never partially renders**.
+`buildSystemPrompt(settings, ctx)` — the six non-overridable guardrails
+(§10.3), tone/depth/level modifiers, hard constraints **restated after** the
+payload placeholder so untrusted content in the middle is never the last
+word. `buildUserPayload(ctx)` — serialized graph with stable labels, docs for
+components actually present, this run's rule violations, the chapter's
+problem statement/objectives (chapter modes only), and — **only when
+`ctx.passed === true`** — blueprints and commentary.
+
+**This is the highest-weight phase in the track** — the spoiler gate (§10.6)
+lives entirely here, enforced by the payload builder simply never populating
+the blueprints field pre-pass, not by a prompt instruction to withhold them.
+Get this wrong and a pre-pass Building Blocks learner sees the answer.
+
+**Automated tests:**
+1. Every schema field's bound (max length/array size) accepted at the
+   boundary, rejected just past it.
+2. `parseAiResponse`: strips the fence correctly; rejects malformed JSON and
+   a response missing a required field (failure variant, never a throw);
+   filters out a `relatedNodeIds` entry not present in the supplied node-id
+   set while keeping the ones that are.
+3. `buildUserPayload({ passed: false, ... })` — assert the blueprints/
+   commentary **key is absent**, not an empty array (the spec's "simply
+   absent" is a literal claim, test it literally).
+4. `buildUserPayload({ passed: true, ... })` — blueprints/commentary present.
+5. `buildSystemPrompt` contains all six guardrail statements regardless of
+   tone/depth/level combination, and the hard-constraints restatement occurs
+   **after** the payload interpolation point (a string-position assertion).
+6. A custom component's user-authored `docs` string, once assembled into the
+   payload, is inert data only — confirm it can't be positioned in a way a
+   naive concatenation would read as an instruction boundary (structural
+   check per §4.5 — no test can prove model behavior, only prompt structure).
+
+**Done when:** `typecheck`/`lint`/`test`/`build` clean.
+
+**You verify:** nothing yet — not wired to a network call or UI until
+Phase 4/5.
+
+---
+
+## Phase 4 — Orchestration (`src/ai/run-deep-check.ts`, new)
+
+**Scope:** `runDeepCheck(ctx, settings, signal?)` ties Phases 1–3 together —
+resolves the adapter from `settings.providerId`, builds both prompt strings,
+calls `provider.complete()`, runs `parseAiResponse`, returns one tagged
+result (`{ status: "ok", critique } | { status: "error", kind, message }`) so
+Phase 5's UI only ever branches on one shape. `AbortSignal` threaded through
+for a cancel button. `testConnection(settings)` — a trivial one-line
+round-trip reusing the same adapter/error-mapping, for Phase 5's Settings
+modal.
+
+**Automated tests, mocked provider only:**
+1. Happy path: settings → assembled prompts → adapter called with them →
+   valid JSON → `status: "ok"` critique.
+2. Adapter auth failure → `status: "error", kind: "auth"`, provider-specific
+   message, not a generic string.
+3. Malformed JSON from the adapter → `status: "error"`, no partial critique
+   ever returned alongside it.
+4. `AbortSignal` fired mid-call → call cancels, no result forced through.
+5. `testConnection()` happy + auth-failure paths, reusing the same error
+   mapping rather than reimplementing it.
+
+**Done when:** `typecheck`/`lint`/`test`/`build` clean.
+
+**You verify:** the first point worth hitting your real xAI key end-to-end,
+outside the browser — a throwaway script exercising the full
+settings→prompt→provider→parse chain against a live model, before any UI
+exists to blame for a bad result. Deleted after, never committed.
+
+---
+
+## Phase 5 — UI: settings modal, Deep Check button, slide-over panel
+## (`AppHeader.tsx` modified; new components)
 
 **Scope:**
-- `ChapterWorkspace.tsx:221`'s `handleValidate` calls `evaluateChapter(graph,
-  selectedChapter)` instead of `runValidation(graph, getRules(...))` directly
-  — `evaluateChapter` internally resolves the chapter's `validationRuleIds`
-  and runs them, so this is a like-for-like swap at the call site, not a
-  parallel code path.
-- Dexie **schema v3**: add `chapterProgress` table (`ChapterProgress`:
-  `chapterId`, `completedAt`, `matchedBlueprintId`), listing every existing
-  table too per the v1→v2 convention already established in `db.ts`.
-- On a passing `evaluateChapter` result, write/update that chapter's
-  `chapterProgress` row (`completedAt: Date.now()`, `matchedBlueprintId` from
-  the outcome). **Explicitly not building the unlock graph** — §8.6 scopes
-  that out; this phase only records completion.
+- `AiSettingsModal` (new): provider/model select, masked API-key field,
+  depth/tone/level, `baseUrl` (openai-compatible only), a **Test Connection**
+  button (Phase 4's helper), and an explicit, unmissable line stating the key
+  is stored in this browser's IndexedDB and never sent to ScaleCraft's
+  servers (§10.2 — required, not optional copy).
+- **Deep Check** button in `AppHeader.tsx`, beside `ValidationIndicator`.
+  Since `AppHeader` is already the one header shared by Sandbox and both
+  chapter modes (confirmed in the current file), §10.5's "available in all
+  three modes" falls out for free — no per-mode wiring needed. Disabled with
+  a tooltip opening Settings when no key/`enabled: false`.
+- `DeepCheckPanel` (new, slide-over): renders an `ok` result via
+  `react-markdown` + `rehype-sanitize` (already dependencies) — prose, no
+  issue counts, no severity colors, visually distinct from the validation
+  dropdown per §4.2's first reversal. Loading state, a cancel button wired to
+  Phase 4's `AbortSignal`, and the plain "the model returned something
+  unusable" failure state.
+- Clicking a critique section selects its `relatedNodeIds` via the existing
+  canvas selection mechanism — **not** through `nodeStates`, which stays
+  reserved for validation state.
+- Ctx assembly at each call site: `sandbox/page.tsx` always builds the
+  pre-pass shape (no chapter, per §10.6's last line); `ChapterWorkspace.tsx`
+  builds ctx from the already-computed `ChapterOutcome` (problem statement,
+  objectives, and — only once `passed`— blueprints/commentary via Phase 3's
+  gate).
 
-**Automated tests (mine):**
-1. `db.test.ts` extended: a `chapterProgress` round-trip
-   (`put`/`get`/`update`) against `fake-indexeddb`, same pattern as the
-   existing `saves` round-trip test.
-2. A `ChapterWorkspace`-level test (or a focused test of whatever
-   `handleValidate` becomes) confirming a passing graph triggers exactly one
-   `chapterProgress` write with the right `matchedBlueprintId`, and a failing
-   graph writes nothing.
-3. Existing `ChapterWorkspace`/chapter-related tests (if any exist beyond
-   `content/chapters/index.test.ts`) still pass — confirm via a full `npm
-   test` run, not assumption.
+**Automated tests:** `AiSettingsModal` (render/save/test-connection states),
+`DeepCheckPanel` (loading/ok/error rendering; section-click fires the
+selection callback with the correctly filtered ids), `AppHeader`'s
+enabled/disabled Deep Check button logic.
 
-**Done when:** above green, `typecheck && lint && test && build` all clean
-(this is the phase most likely to touch a live Dexie migration, so `build`
-passing isn't enough on its own — see "You verify" below for the one thing
-only a real browser catches).
+**Done when:** `typecheck`/`lint`/`test`/`build` clean.
 
-**You verify — this phase has a real migration risk, worth your own pass:**
-1. `npm run dev`, open a chapter mode (`/building-blocks` or
-   `/real-world-extraction`) with an **existing** browser profile that
-   already has v2 data (any prior Sandbox save is enough) — confirm the app
-   loads with no console errors about a Dexie version conflict, and your
-   existing save is still intact (Sandbox still shows what you last saved
-   there).
-2. Open DevTools → Application → IndexedDB → `scalecraft` → confirm a
-   `chapterProgress` object store now exists at version 3.
-3. This phase alone won't yet make a real chapter "passable" (no real
-   blueprint exists until Phase 6's fixture) — so there's nothing to click
-   through to a pass state yet. Just confirm no migration error and no
-   regression to your existing Sandbox save.
-
----
-
-## Phase 6 — UI: QuestionPane, ValidationIndicator, Debrief + a throwaway
-## blueprint fixture for manual QA — CODE DONE (2026-07-27), awaiting your
-## click-through pass below before I call this fully closed
-
-**Status:** implemented on this branch. Went with the doc's own default on
-the flagged judgment call — Debrief shows every declared blueprint, matched
-one badged "Your approach", not hidden. **One more judgment call, not
-pinned down by §8.4 either:** `referenceGraph` renders as a lightweight
-component-label edge list (`"Application Server → Cache"`), not a full
-React Flow canvas — pulling in a second, read-only canvas instance for a
-debrief aside felt disproportionate, and the text summary still shows the
-actual shape. Say now if you want a real mini-canvas render instead.
-`QuestionPane`'s required-components line now falls back to the old live
-presence-only count before the first Validate click (or once stale), then
-upgrades to `ChapterOutcome`-driven present-*and*-connected once a fresh
-result exists — otherwise the line would just read "Not yet validated" for
-something the user can see building in front of them pre-Validate.
-`ValidationIndicator` now sorts error → warning → note, and note-severity
-violations no longer count toward `hasViolations`/`isValid` at all (a
-graph with only notes now shows the valid checkmark, not the error X) —
-broader than literally just "excluded from the header counts," but the
-narrower reading left the icon contradicting the "notes don't block"
-framing. `typecheck`, `lint`, `test` (103 files / 770 tests, all 10
-existing rule suites unmodified), and `build` all ran clean. I also ran the
-existing `e2e/chapter-hints-validation.spec.ts` (still green — the
-Validate/hint invariants it guards are untouched) and took light/dark
-screenshots of the placeholder chapter's QuestionPane post-Validate to
-sanity-check no obvious layout break; I did **not** script a full
-drag-and-drop e2e build of the fixture blueprint's graph — that's exactly
-the click-through this section already asks you to run yourself, and
-scripting it would just be a worse version of your own pass.
-
-**Scope:**
-- `QuestionPane.tsx`: replace the presence-only "N / M required components
-  present" counter with one driven by `ChapterOutcome` — present *and*
-  connected, plus a plain (non-celebratory, "not a game") completion line
-  once `passed` is true.
-- `ValidationIndicator.tsx`: render `note`-severity violations in a visibly
-  muted style, excluded from the error/warning counts in the header summary
-  row (today's `:103-112`), but still with full message+explanation shown —
-  notes are informational, not hidden.
-- New `Debrief` component: appears only once `evaluateChapter(...).passed`
-  is true, pull-only (a button/disclosure, never auto-opens), revealing
-  every declared blueprint's `label` + `commentary` + `referenceGraph`
-  (matched one visually distinguished from the others, not hidden — seeing
-  the alternate valid shapes is part of the payoff once you've already
-  earned it). **Flagging this as a judgment call, not something the spec
-  pins down exactly** — §8.4 says "reveal each blueprint's label/commentary/
-  referenceGraph" without saying whether that means only the matched one or
-  all of them; I'm defaulting to "all, matched one distinguished" since RWE's
-  whole point is multiple valid answers, but say now if you want it scoped
-  to just the matched blueprint.
-- **Temporary fixture, not real content:** extend the existing
-  `bb-dummy-1` placeholder chapter (`src/content/chapters/index.ts`) with one
-  real `Blueprint` (e.g. requiring Client → Load Balancer → App Server,
-  connected) purely so there's something concrete to click through end to
-  end before Step 5 authors real curriculum. Marked inline as throwaway,
-  same convention the file already uses for its `placeholder: true` chapters
-  — Step 5 replaces this, doesn't build on it.
-
-**Automated tests (mine):** component-level tests for the `QuestionPane`
-counter logic and `ValidationIndicator`'s note-exclusion, plus a `Debrief`
-render test (closed by default, opens on click, shows commentary text).
-`typecheck && lint && test && build` clean.
-
-**You verify — this is the phase with a real visual surface, run this
-yourself in both themes:**
-1. Go to `/building-blocks`, open the (now blueprint-backed) placeholder
-   chapter. Build **any wrong graph** (e.g. just a Client, nothing else) and
-   hit Validate — confirm: no Debrief affordance appears, the required-
-   components line shows the accurate present/connected count, and normal
-   error/warning violations still show message+explanation same as always.
-2. Build the graph the new fixture blueprint actually requires (Client → LB
-   → App Server, all connected) and hit Validate — confirm: it now reports
-   passing, a Debrief affordance appears, and clicking it — not
-   auto-opening — reveals the blueprint's commentary. Refresh the page and
-   confirm the Debrief does **not** auto-open on load even though the
-   chapter is already completed.
-3. Deliberately trigger a `note`-severity violation if the fixture has one
-   (or temporarily point one at the chapter's rule ids for this check only,
-   then revert) — confirm it renders visibly but muted, and does **not**
-   inflate the header's error/warning count.
-4. Toggle light/dark theme (the existing toggle) while the Debrief panel is
-   open — confirm it isn't unreadable or unstyled in either theme.
-5. Resize the window narrow (or use a laptop-width viewport) with the
-   Debrief panel open — confirm it doesn't overflow/collide with the canvas
-   or the validation dropdown the way a couple of past panels have (see
-   `CRITIQUE.md`'s tooltip/z-index history) — this is the one thing worth a
-   deliberate look given this app's track record on exactly this kind of
-   bug.
+**You verify — the real click-through, both themes:**
+1. Settings with no key saved — Deep Check disabled with a tooltip; the
+   storage disclosure is visible and honest.
+2. Paste your real xAI key, pick `xai`, hit Test Connection — a real
+   pass/fail, not a stub.
+3. Sandbox: build any graph, click Deep Check — slide-over opens with prose
+   (no issue-count/severity styling); a section referencing a node
+   highlights it via normal selection, not a colored validation ring.
+4. Building Blocks, on a chapter **not yet passed**: click Deep Check —
+   confirm the response never reveals or alludes to a blueprint's reference
+   shape. This is the actual spoiler-gate proof and the one check that
+   matters most in this phase.
+5. Pass that chapter, click Deep Check again — the response now compares
+   your design against the reference blueprints (debrief framing).
+6. Toggle light/dark with the panel open; resize narrow — no overflow/
+   z-index collision with the canvas or the `ValidationIndicator` dropdown
+   (the exact category of bug `CRITIQUE.md` has flagged before).
 
 ---
 
-## Phase 7 — Hardening, full regression, docs sync — DONE (2026-07-27)
-
-**Status:** `typecheck`, `lint`, `test` (103 files / 770 tests), `build`, and
-the full `e2e/` Playwright suite (3 specs) all green. The 9-of-10 rule-file
-zero-diff invariant holds across the whole branch
-(`git diff release/2.0.0-validation-engine-overhaul...HEAD --
-src/validation-engine/rules/{...9 files...}` empty); `orphan-component.ts`'s
-diff is exactly the one exported helper Phase 4 called out, nothing more.
-Doc sync done: `validation_agent_design.md`'s header/Rollout Status,
-`MILESTONES.md` milestone 5, and `NEXT_STEPS.md` (top status line, Step
-4.5's header/branch list/done-when bar) all now say "Track 2 implemented,
-pending merge" rather than "not built" or "done." Not emptying this file
-out yet, per its own convention — that's for once this actually merges, and
-per `CLAUDE.md` I don't merge my own branches. Everything above is
-committed locally on `feature/validation-pattern-engine`; pushing to origin
-is still your call to make, not something I do unprompted.
-
-**Post-Phase-7 fix (2026-07-27):** manual browser testing (golden path +
-negative flows, both scripted with throwaway Playwright specs and deleted
-after each run — never committed) surfaced a real bug: `ChapterWorkspace`'s
-`nodeStates` painted every present node green whenever *rule* violations
-were zero, even if the chapter still failed on a missing/disconnected
-required component or an unmatched blueprint — a learner could see a green
-node on a canvas that was still failing overall. Fixed in
-`ChapterWorkspace.tsx`: node coloring now keys off the whole
-`ChapterOutcome`, not just `violations` — "valid" only applies once
-`chapterOutcome.passed` is true; a required-but-disconnected node now
-renders `"warning"` instead. Two new tests in `ChapterWorkspace.test.tsx`
-pin this down directly (the mock `Canvas` now surfaces `nodeStates` as
-JSON for assertions). Re-verified in a real browser: the same disconnected-
-Client scenario now renders an amber border, not green. Full pipeline
-re-run clean after the fix (103 files / 772 tests).
+## Phase 6 — Hardening, full regression, docs sync
 
 **Scope:**
-- Full pipeline run: `npm run typecheck && npm run lint && npm test && npm
-  run build` — green, not "green last time I checked."
-- Confirm (grep, not memory) the 10 original rule files truly have zero line
-  changes across the whole branch (`git diff release/2.0.0-validation-engine-overhaul...HEAD -- src/validation-engine/rules/{no-direct-client-database,single-instance-load-balancer,permissive-firewall,split-brain-risk,queue-without-dead-letter-queue,orphan-read-replica,orphan-component,request-flow-cycle,missing-input-connection,component-relations}.ts` should be empty, **except** whatever
-  small export change Phase 4 needed from `orphan-component.ts` to share its
-  connectivity predicate — call that out explicitly if it happens, don't
-  let it hide inside a "zero changes" claim).
-- Doc sync: `validation_agent_design.md`'s Rollout Status (Track 2 → done),
-  `MILESTONES.md` milestone 5, `NEXT_STEPS.md` Step 4.5 — mark done, note
-  what shipped vs. what's still Track 3.
-- This file (`pending.md`) gets each phase's checkbox-equivalent marked, or
-  gets emptied out entirely once merged — matching this repo's existing
-  convention of pending.md being a live session-task list, not an archive.
+- Full pipeline: `npm run typecheck && npm run lint && npm test && npm run
+  build` — green, not "green last time."
+- **Grep-verified, not assumed:** no file under `src/ai/` imports from or
+  writes to `chapter-outcome.ts`'s pass/fail decision — the "never
+  load-bearing" constraint made structurally checkable, not just claimed.
+- **Key-leak check:** grep the actual diff (not just trust `.gitignore`) for
+  anything resembling a real provider key, given one sat in the working tree
+  for this whole track.
+- Doc sync: `validation_agent_design.md`'s Rollout Status (Track 3 → done),
+  `MILESTONES.md` milestone 5, `NEXT_STEPS.md` Step 4.5 → fully done (both
+  tracks landed).
+- This file gets emptied out once merged, matching its own live-task-list
+  convention.
 
-**Done when:** pipeline green, doc cross-references consistent, nothing left
-half-updated.
+**Done when:** pipeline green, docs consistent, key-leak grep clean.
 
-**You verify:** a final free-form click-through of both chapter modes and
-Sandbox on your own, since this is the "does the whole thing still feel
-right" pass, not a scripted one. If something feels off, that's the signal
-to hold the merge, not push through it.
+**You verify:** a final free-form click-through of all three modes — the
+"does it still feel right" bar, same as Track 2's Phase 7.
 
 ---
 
 ## Sequencing note
 
-Phases 1–4 are pure logic, no UI, and I'd expect to move through them fairly
-quickly with tests as the only gate. Phase 5 is the one with real migration
-risk (Dexie v3) — worth pausing there for your IndexedDB check before
-continuing. Phase 6 is the one actually worth your time clicking through.
-Each phase lands as its own commit on `feature/validation-pattern-engine`
-(not its own branch — this whole track is the one branch per
-`NEXT_STEPS.md`); I'll stop after each phase and report rather than
-batching multiple phases into one silent push.
+Phases 1–4 are pure logic (provider adapters, settings/persistence, prompt
+assembly, orchestration) — no UI, tests as the gate, real-key checks limited
+to throwaway scripts. Phase 2 is the one real Dexie-migration pause point.
+Phase 5 is the one actually worth your time clicking through, and the one
+where the spoiler gate gets its real proof. Each phase lands as its own
+commit on `feature/ai-deep-check` (one branch for the whole track, per
+`NEXT_STEPS.md`) — I'll stop after each phase and report rather than batching.
