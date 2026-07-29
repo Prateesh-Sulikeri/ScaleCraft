@@ -14,6 +14,14 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "2.0.0-alpha.0",
+    date: "2026-07-29",
+    highlights: [
+      "Validation now recognizes correct architectures, not just wrong ones — chapters have a real pass/fail gate driven by reference blueprints, plus a much broader library of structural checks for catching nonsensical designs (disconnected components, backwards data flow, and more).",
+      "New: Deep Check — an optional AI-powered design review. Bring your own API key from Anthropic, OpenAI, Google, xAI, or any OpenAI-compatible provider, save multiple named profiles, and get a trade-off-focused critique of your architecture. Your key stays in your browser and is never sent to our servers; Deep Check never decides pass/fail — that's still the deterministic validation engine's job.",
+    ],
+  },
+  {
     version: "1.0.1-alpha.0",
     date: "2026-07-26",
     highlights: [
