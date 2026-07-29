@@ -1,4 +1,17 @@
+import type { z } from "zod";
 import { AiProviderError } from "./types";
+
+/** `z.toJSONSchema()`'s output for `aiCritiqueSchema` already satisfies
+ * OpenAI's "strict" structured-outputs constraints unmodified (every
+ * property listed in `required`, `additionalProperties: false` at every
+ * object level — confirmed by inspecting the actual output, not assumed)
+ * except for the top-level `$schema` key, which providers don't expect
+ * inside a `json_schema.schema` body and which is dropped here. */
+function toResponseFormatSchema(schema: z.ZodType): Record<string, unknown> {
+  const json = schema.toJSONSchema() as Record<string, unknown>;
+  delete json.$schema;
+  return json;
+}
 
 /** Handles both observed error-body shapes: OpenAI's `{error:{message}}`
  * and xAI's `{error:"..."}` (a bare string, not an object) — confirmed
@@ -22,29 +35,65 @@ export async function chatCompletionsComplete(opts: {
   system: string;
   user: string;
   signal?: AbortSignal;
+  /** When present, sent as a real `json_schema` response_format (strict
+   * mode) instead of generic `json_object` mode — this is what actually
+   * closes the gap with Anthropic's API-level structured outputs (see
+   * anthropic.ts) rather than relying on the prompt's prose description
+   * alone. Confirmed against `aiCritiqueSchema`'s own toJSONSchema() output
+   * that its shape already satisfies strict mode's constraints (every
+   * property required, `additionalProperties: false` throughout). */
+  schema?: z.ZodType;
 }): Promise<string> {
   const baseUrl = opts.baseUrl.replace(/\/+$/, "");
-  let response: Response;
-  try {
-    response = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${opts.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: opts.model,
-        messages: [
-          { role: "system", content: opts.system },
-          { role: "user", content: opts.user },
-        ],
-        response_format: { type: "json_object" },
-      }),
-      signal: opts.signal,
+
+  function buildBody(useSchema: boolean): string {
+    return JSON.stringify({
+      model: opts.model,
+      messages: [
+        { role: "system", content: opts.system },
+        { role: "user", content: opts.user },
+      ],
+      response_format:
+        useSchema && opts.schema
+          ? {
+              type: "json_schema",
+              json_schema: {
+                name: "deep_check_critique",
+                strict: true,
+                schema: toResponseFormatSchema(opts.schema),
+              },
+            }
+          : { type: "json_object" },
     });
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") throw error;
-    throw new AiProviderError("network", "Could not reach the provider.", { cause: error });
+  }
+
+  async function doFetch(body: string): Promise<Response> {
+    try {
+      return await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${opts.apiKey}`,
+        },
+        body,
+        signal: opts.signal,
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") throw error;
+      throw new AiProviderError("network", "Could not reach the provider.", { cause: error });
+    }
+  }
+
+  let response = await doFetch(buildBody(true));
+
+  // Not every OpenAI-compatible endpoint supports strict json_schema mode
+  // (self-hosted servers reached via the Base URL field especially) — a
+  // rejection there isn't an auth or rate-limit problem, so fall back once
+  // to plain json_object mode rather than surfacing a hard failure. The
+  // prompt's own spelled-out shape (see prompt.ts) is the backstop for
+  // whatever provider ends up on this path.
+  if (!response.ok && opts.schema && ![401, 403, 429].includes(response.status)) {
+    response = await doFetch(buildBody(false));
   }
 
   if (!response.ok) {

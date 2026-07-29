@@ -21,6 +21,7 @@ export const openaiCompatibleProvider: AiProvider = {
       system: req.system,
       user: req.user,
       signal: req.signal,
+      schema: req.schema,
     });
   },
 };

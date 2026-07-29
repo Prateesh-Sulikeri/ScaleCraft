@@ -134,6 +134,29 @@ describe("buildSystemPrompt", () => {
     }
   });
 
+  it("spells out the literal required JSON field names, not just the word 'schema'", () => {
+    // Only the Anthropic adapter enforces output shape at the API level
+    // (see providers/types.ts). Every other adapter gets nothing but
+    // generic JSON-mode from the provider, so the field names must appear
+    // in the prompt text itself or the model has to guess them — this is
+    // exactly the bug a real Groq (openai-compatible) run surfaced.
+    const prompt = buildSystemPrompt(DEFAULT_AI_SETTINGS, baseCtx());
+    for (const key of ["summary", "sections", "tradeoffs", "relatedNodeIds", "decision", "cost", "benefit"]) {
+      expect(prompt).toContain(key);
+    }
+  });
+
+  it("states the non-empty-tradeoffs rule and a worked example, both before the payload and again in the closing reminder", () => {
+    // Written to fail against the pre-fix prompt, which never said anything
+    // about tradeoffs beyond the bare schema field name — the live symptom
+    // this was written to fix was the model silently omitting `tradeoffs`.
+    const prompt = buildSystemPrompt(DEFAULT_AI_SETTINGS, baseCtx());
+    expect(prompt).toContain("must contain at least one entry");
+    expect(prompt).toContain("Example of a well-formed response");
+    expect(prompt).toContain("`tradeoffs` must be");
+    expect(prompt).toContain("non-empty unless the graph is a single component");
+  });
+
   it("restates the hard constraints strictly after the payload interpolation point", () => {
     const prompt = buildSystemPrompt(DEFAULT_AI_SETTINGS, baseCtx());
     const payloadIndex = prompt.indexOf("<graph_data>");

@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { z } from "zod";
 import { chatCompletionsComplete } from "./openai-compatible-fetch";
+
+const testSchema = z.object({ summary: z.string() });
 
 describe("chatCompletionsComplete", () => {
   beforeEach(() => {
@@ -196,5 +199,74 @@ describe("chatCompletionsComplete", () => {
     await expect(
       chatCompletionsComplete({ baseUrl: "https://api.example.com/v1", apiKey: "k", model: "m", system: "s", user: "u" }),
     ).rejects.toMatchObject({ kind: "unknown" });
+  });
+
+  it("sends a strict json_schema response_format when a schema is provided, derived from the Zod schema", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ choices: [{ message: { content: "{}" } }] }), { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await chatCompletionsComplete({
+      baseUrl: "https://api.example.com/v1",
+      apiKey: "k",
+      model: "m",
+      system: "s",
+      user: "u",
+      schema: testSchema,
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.response_format.type).toBe("json_schema");
+    expect(body.response_format.json_schema.strict).toBe(true);
+    expect(body.response_format.json_schema.schema).toMatchObject({
+      type: "object",
+      properties: { summary: { type: "string" } },
+    });
+    // The $schema key is a JSON-Schema-tooling artifact, not something a
+    // provider's response_format body expects — must be dropped.
+    expect(body.response_format.json_schema.schema).not.toHaveProperty("$schema");
+  });
+
+  it("falls back to json_object mode and retries once when strict json_schema mode is rejected with a non-auth error", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "response_format not supported" }), { status: 400 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ choices: [{ message: { content: "recovered" } }] }), { status: 200 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await chatCompletionsComplete({
+      baseUrl: "https://api.example.com/v1",
+      apiKey: "k",
+      model: "m",
+      system: "s",
+      user: "u",
+      schema: testSchema,
+    });
+
+    expect(result).toBe("recovered");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const secondBody = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(secondBody.response_format).toEqual({ type: "json_object" });
+  });
+
+  it("does not retry when the schema-mode attempt fails with an auth error — a bad key won't be fixed by dropping the schema", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response("{}", { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      chatCompletionsComplete({
+        baseUrl: "https://api.example.com/v1",
+        apiKey: "bad",
+        model: "m",
+        system: "s",
+        user: "u",
+        schema: testSchema,
+      }),
+    ).rejects.toMatchObject({ kind: "auth" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
