@@ -1,6 +1,8 @@
 import Dexie, { type EntityTable } from "dexie";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
+import type { AiSettings } from "@/ai/settings";
+import type { AiCritique } from "@/ai/schema";
 
 /**
  * Local-first persistence — see .claude/docs/ARCHITECTURE.md "Persistence"
@@ -43,6 +45,39 @@ export type ChapterProgress = {
   matchedBlueprintId: string | null;
 };
 
+/** One row per completed Deep Check run, autosaved (see DeepCheckPanel.tsx)
+ * — `saveId` reuses the same slot key as CanvasSave/ChapterProgress
+ * (SANDBOX_SAVE_ID or chapterSaveId(id)) so a session's history is scoped to
+ * whichever board/chapter produced it, not a single global list. `id` is
+ * Dexie's auto-incrementing primary key (`++id` in the schema below), not a
+ * caller-supplied string like the other tables — there's no natural
+ * caller-known key for "the Nth review of this board." */
+export type DeepCheckSession = {
+  id?: number;
+  saveId: string;
+  createdAt: number;
+  critique: AiCritique;
+};
+
+/** One row per saved AI configuration (see @/ai/profiles.ts) — supersedes
+ * the single-row `aiSettings` table (schema v4-v5). `AiSettings`'s fields
+ * plus a user-facing `name` and timestamps; `id` is a real per-profile
+ * `crypto.randomUUID()`, not the old fixed `"default"` key. */
+export type AiProfile = AiSettings & {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+/** Single row, keyed `"default"` — which `aiProfiles` row Deep Check
+ * currently uses. `profileId: null` means no profile exists yet (fresh
+ * install, or every profile has been deleted). */
+export type AiActiveProfile = {
+  id: "default";
+  profileId: string | null;
+};
+
 export class ScaleCraftDB extends Dexie {
   saves!: EntityTable<CanvasSave, "id">;
   /** User-created components (see CreateComponentModal.tsx /
@@ -51,9 +86,16 @@ export class ScaleCraftDB extends Dexie {
    * toComponentDefinition rebuilds one at load time). */
   customComponents!: EntityTable<CustomComponentRecord, "id">;
   chapterProgress!: EntityTable<ChapterProgress, "chapterId">;
+  aiProfiles!: EntityTable<AiProfile, "id">;
+  aiActiveProfile!: EntityTable<AiActiveProfile, "id">;
+  deepCheckSessions!: EntityTable<DeepCheckSession, "id">;
 
-  constructor() {
-    super("scalecraft");
+  /** Name defaults to the real app database; overridable so tests can
+   * exercise the full version chain (including the v6 migration) against an
+   * isolated, uniquely-named IndexedDB database instead of the shared
+   * `"scalecraft"` one — see db.test.ts's migration tests. */
+  constructor(name: string = "scalecraft") {
+    super(name);
     this.version(1).stores({
       saves: "id",
     });
@@ -69,6 +111,62 @@ export class ScaleCraftDB extends Dexie {
       customComponents: "id",
       chapterProgress: "chapterId",
     });
+    this.version(4).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiSettings: "id",
+    });
+    this.version(5).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiSettings: "id",
+      // Compound index on [saveId+createdAt] so history queries (newest
+      // first, for a given board/chapter) don't need a full-table scan.
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+    });
+    // Multi-profile AI settings: `aiSettings` (single fixed-key row) is
+    // replaced by `aiProfiles` (many, real ids) + `aiActiveProfile` (which
+    // one is in use). `aiSettings: null` is Dexie's delete-this-store
+    // syntax. The upgrade callback below migrates a real prior
+    // configuration into the user's first profile before the old store is
+    // dropped — both the old and new stores are present in this version's
+    // transaction, per Dexie's own migrate-then-drop convention.
+    this.version(6)
+      .stores({
+        saves: "id",
+        customComponents: "id",
+        chapterProgress: "chapterId",
+        aiSettings: null,
+        aiProfiles: "id",
+        aiActiveProfile: "id",
+        deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+      })
+      .upgrade(async (trans) => {
+        const old = await trans.table("aiSettings").get("default");
+        // Only migrate a configuration the user actually set up — an
+        // untouched default (enabled: false, empty key) has nothing worth
+        // carrying forward, and should leave the same empty-profiles state
+        // a brand-new user gets.
+        if (!old || !old.enabled || !old.apiKey) return;
+        const now = Date.now();
+        const profile: AiProfile = {
+          id: crypto.randomUUID(),
+          name: "Default",
+          providerId: old.providerId,
+          model: old.model,
+          apiKey: old.apiKey,
+          depth: old.depth,
+          tone: old.tone,
+          level: old.level,
+          createdAt: now,
+          updatedAt: now,
+          ...(old.baseUrl ? { baseUrl: old.baseUrl } : {}),
+        };
+        await trans.table("aiProfiles").add(profile);
+        await trans.table("aiActiveProfile").put({ id: "default", profileId: profile.id });
+      });
   }
 }
 

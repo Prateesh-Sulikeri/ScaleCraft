@@ -23,6 +23,8 @@ import type { ArchitectureGraph } from "@/lib/graph";
 import { runValidation } from "@/validation-engine/engine";
 import { ruleRegistry } from "@/validation-engine/rules";
 import type { ValidationViolation } from "@/validation-engine/types";
+import { getComponent } from "@/content/components/registry";
+import type { DeepCheckContext } from "@/ai/prompt";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
 
 // Seeded once on first load so the canvas isn't empty — not a chapter
@@ -187,6 +189,19 @@ function SandboxPageContent() {
     }
   }
 
+  // Sandbox always builds the pre-pass shape — no chapter, no blueprints,
+  // per prompt.ts's own "Absent for Sandbox" doc comment (§10.6's last
+  // line). Recomputed on nodes/edges/violations, not currentGraphKey — this
+  // doesn't need to track staleness the way Validate's own result does.
+  const deepCheckCtx: DeepCheckContext = useMemo(() => {
+    const graph = toArchitectureGraph(nodes, edges);
+    const presentComponentIds = new Set(graph.nodes.map((n) => n.componentId));
+    const components = [...presentComponentIds]
+      .map((id) => getComponent(id))
+      .filter((c) => c !== undefined);
+    return { graph, components, violations: violations ?? [], passed: false };
+  }, [nodes, edges, violations]);
+
   return (
     <PageEnter>
       {focusMode ? (
@@ -207,6 +222,7 @@ function SandboxPageContent() {
           justSaved={justSaved}
           docsPanelOpen={docsPanelOpen}
           toggleDocsPanel={toggleDocsPanel}
+          deepCheckCtx={deepCheckCtx}
         />
       )}
 

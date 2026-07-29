@@ -1,121 +1,38 @@
-# Pending: Track 3 — AI Deep Check (`feature/ai-deep-check`)
+# Track 3 — AI Deep Check (`feature/ai-deep-check`) — Status: code-complete
 
 **Full spec:** `.claude/docs/validation_agent_design.md` §4 (why/reversals/
 constraints) and §10 (implementation spec). This file is the phase-by-phase
 execution plan against that spec — not a parallel design doc. If the two ever
 disagree, §4/§10 win; fix this file, not the other way around.
 
-**Track 2 closed out, not repeated here.** All 7 of Track 2's phases (graph
-index, pattern matcher, engine dispatch, blueprints/chapter-outcome, Dexie v3,
-UI, hardening) are implemented and pushed on `feature/validation-pattern-engine`,
-awaiting your manual click-through + merge — per `CLAUDE.md` I don't merge my
-own branches. The full phase-by-phase record for that track lives in
-`.claude/PROGRESS_LOG.md` (2026-07-27 entries) and that branch's own git
-history, not duplicated here — matching this file's own convention of being a
-live task list for the *current* track, not an archive.
+**All 6 phases below landed, plus a post-Phase-6 follow-up round** (multi-profile
+AI settings, a Help view, and a Cancel-run UX fix — see that section after
+Phase 6). Full pipeline (`typecheck`/`lint`/`test`/`build`) green, 912/912
+tests, the `chapter-outcome.ts` isolation grep and the key-leak grep both
+clean. `validation_agent_design.md`'s Rollout Status and §10.5,
+`NEXT_STEPS.md` Step 4.5 all synced to reflect this (see those files — not
+duplicated here). Remaining, not something an agent can do:
 
-**Post-Phase-7 follow-up (2026-07-28), landed on `feature/validation-pattern-engine`
-before merge — two real gaps found during your own manual click-through:**
+- **Your final free-form click-through** (all three modes, both themes) —
+  Phase 6's own "does it still feel right" bar, never satisfied by an
+  automated pipeline alone. Not confirmed done as of this doc-sync pass.
+- **The branch is still local-only, unpushed**, per this repo's "ask before
+  every push" convention — push and PR review are your call.
+- Once merged, this file gets emptied out per its own live-task-list
+  convention (see Track 2's precedent, one paragraph below) — not done yet
+  since the branch hasn't merged.
 
-1. **RWE now always runs the full rule registry.** You compared the BB
-   placeholder chapter ("No violations" on a graph with a genuinely invalid
-   edge and a disconnected required Client) against Sandbox (correctly
-   flagged both) — root cause was `bb-dummy-1`'s `validationRuleIds: []`
-   (real content/rule-scoping is Step 5's job, not Track 2's), not an engine
-   bug. That surfaced a real product decision: per-chapter rule *curation*
-   only serves BB's teach-by-omission need; by RWE every concept is already
-   taught, so `evaluateChapter` now branches on `chapter.mode` —
-   `real-world-extraction` always runs `ruleRegistry` (full set), ignoring
-   `validationRuleIds` entirely; `building-blocks` keeps author-curated
-   scoping. Structurally enforced in `chapter-outcome.ts`, not left as an
-   authoring convention. Doc sync: `validation_agent_design.md` §9.5,
-   `ARCHITECTURE.md`'s `ChapterDefinition` snippet (also fixed stale
-   `solutionGraph`/missing `blueprints` there while touching it),
-   `CURRICULUM.md` §12.
-2. **The header's Validation pane now surfaces chapter-level failures too,
-   with specifics — not just QuestionPane text.** Went through three
-   iterations here, each caught by your own click-through, worth recording:
-   (a) first pass only fixed QuestionPane's summary line, still said
-   "passing" off `violations.length === 0` alone; (b) second pass fixed the
-   text but left it generic ("not a recognized correct design yet") and
-   still confined to QuestionPane, when you specifically wanted it in the
-   Validate dropdown *and* specific about *why*; (c) final: new
-   `src/chapters/chapter-outcome-violations.ts` (`chapterDisplayViolations`)
-   formats a missing required component, a disconnected required component
-   (with the real offending node id, so it rings on canvas — now `error`
-   severity, not the old muted `warning`), and a blueprint mismatch as
-   `ValidationViolation`-shaped entries, merged with the real rule
-   violations in `ChapterWorkspace.tsx` before reaching `AppHeader` →
-   `ValidationIndicator`. One surface, specific reasons, no more
-   contradicting "No violations" next to a chapter that's still failing.
-   **The one deliberate limit, not a gap:** the blueprint-mismatch entry
-   stays generic ("doesn't match a known correct approach yet") — naming
-   exactly what differs from the blueprint *is* the answer, which is a
-   hint's job (pull-only, never forced). Missing/disconnected components
-   aren't spoilers, so those get real specifics. `evaluateChapter`/
-   `ChapterOutcome` stayed untouched — this is presentation-layer merging,
-   not new engine logic. Doc sync: `validation_agent_design.md` §9.7.
+**Track 2 is fully closed out — merged.** All 7 phases plus the post-Phase-7
+follow-up landed on `feature/validation-pattern-engine` and merged via
+**PR #47** into `release/2.0.0-validation-engine-overhaul` (merge commit
+`e1b36ff`). Full record: `.claude/PROGRESS_LOG.md`'s 2026-07-27 and 2026-07-28
+entries.
 
-3. **`bb-dummy-1` scoped to 4 general/structural rules, not 0 and not all
-   10 — a real, live-debugged decision, not a guess.** Once (1) and (2)
-   landed, a lingering demo still passed with a genuinely backwards
-   Application Server → Load Balancer edge sitting in the graph. First
-   instinct — scope the placeholder to the full 10-rule registry, matching
-   Sandbox — was wrong and got reverted: it included
-   `component-relations`, which gives the exact same blunt, fully-detailed
-   rejection Sandbox gives with zero softening, and CLAUDE.md mandates a
-   rule's full explanation always show once it's in scope — there's no
-   "soft" version of a rule violation, so that reintroduced the premature,
-   Sandbox-style rejection point (1) exists to avoid. The actual resolution
-   splits the 10 rules by what they presuppose: `orphan-component`,
-   `missing-input-connection`, `request-flow-cycle`, and
-   `component-relations` never reference a specific not-yet-taught
-   component — they check whether the graph is coherent at all — so
-   they're safe at any curriculum stage and are now scoped into
-   `bb-dummy-1`. The other 6 (`no-direct-client-database`,
-   `single-instance-load-balancer`, `permissive-firewall`,
-   `split-brain-risk`, `queue-without-dead-letter-queue`,
-   `orphan-read-replica`) are each keyed to one specific component
-   (database, firewall, queue, read-replica) that may genuinely not be
-   introduced yet, so they stay out — none of those components are even in
-   this chapter's palette anyway. This is what actually catches a malformed
-   wiring *between components the chapter is already teaching* without
-   rejecting on content it hasn't introduced. A bigger, related question —
-   whether the 4 general rules should be force-on for every BB chapter
-   regardless of `validationRuleIds` (an engine-level change, not a content
-   one) — was surfaced but deliberately NOT decided here; flagging it as an
-   open question for whoever scopes Step 5's real chapters, not resolved by
-   this placeholder-content fix.
-
-Tests added: `chapter-outcome.test.ts` (RWE ignores `validationRuleIds`, BB
-still honors it — proves no accidental full-registry leak either direction),
-`chapter-outcome-violations.test.ts` (new — each synthetic entry's shape,
-severity, and the offending node id for the disconnected case; blueprint
-mismatch omitted once passed, once no blueprints declared, and correctly
-skipped when a missing/disconnected component is the real reason instead).
-`ChapterWorkspace.test.tsx`'s existing violations-count/node-coloring
-assertions updated to the new merged counts/severity (this was a deliberate
-behavior change, not a regression — the old numbers asserted the very gap
-being fixed). `QuestionPane.test.tsx` updated to point at "see Validate for
-details" instead of duplicating the specific wording twice. Point 3
-(`bb-dummy-1`'s rule scoping) is content-only, no new engine code, so it
-added no new tests of its own — it's exercised by the existing
-`content/chapters/index.test.ts` and by you clicking through the fixture
-directly.
-`typecheck && lint && test && build` run and confirmed green before this was
-called done (see commit for the exact numbers). Not pushed — per your own
-"ask before every git push" preference, that's still your call.
+**The phase-by-phase plan below is kept as the execution record**, same
+convention Track 2's own pending.md content followed until its merge —
+not re-summarized here to avoid the record drifting from what's below.
 
 ---
-
-**Why this branch, why now:** per `NEXT_STEPS.md` Step 4.5, this is the last
-piece before Step 4.5 as a whole is done and Step 5 (real Building Blocks
-chapters) can lean on a working Deep Check alongside the mastery gate.
-**Open sequencing question, not decided here:** `NEXT_STEPS.md` currently says
-`feature/ai-deep-check` gets cut *after* Track 2 merges into
-`release/2.0.0-validation-engine-overhaul`. Track 2 hasn't merged yet. Say the
-word on whether to cut the branch now (off the release branch, pre-merge) or
-wait — I won't assume either way.
 
 **Ground rules for every phase below:**
 
@@ -362,7 +279,7 @@ enabled/disabled Deep Check button logic.
 
 ---
 
-## Phase 6 — Hardening, full regression, docs sync
+## Phase 6 — Hardening, full regression, docs sync — done
 
 **Scope:**
 - Full pipeline: `npm run typecheck && npm run lint && npm test && npm run
@@ -379,10 +296,57 @@ enabled/disabled Deep Check button logic.
 - This file gets emptied out once merged, matching its own live-task-list
   convention.
 
-**Done when:** pipeline green, docs consistent, key-leak grep clean.
+**Done when:** pipeline green, docs consistent, key-leak grep clean. **Done** —
+verified fresh, not carried over from an earlier pass: `typecheck`/`lint`
+(0 errors, 0 warnings — see the post-Phase-6 follow-up below for the two
+warnings that used to linger here)/`test` (912/912, 119 files)/`build` all
+clean; `git grep` for `chapter-outcome` under `src/ai/` returns nothing; a
+provider-key-shape grep across tracked files returns only test fixtures.
 
 **You verify:** a final free-form click-through of all three modes — the
-"does it still feel right" bar, same as Track 2's Phase 7.
+"does it still feel right" bar, same as Track 2's Phase 7. **Not yet done** —
+this is the one item in this whole track that stayed genuinely open after
+this doc-sync pass; nothing here substitutes for it.
+
+---
+
+## Post-Phase-6 follow-up — multi-profile AI settings, Help view, Cancel fix
+
+Landed after Phase 6's own audit came back clean, in response to explicit
+follow-up asks rather than anything in the original §10 spec:
+
+- **Multiple named AI profiles** replace the single fixed `AiSettings` row:
+  Dexie v6 (`aiProfiles` + `aiActiveProfile`, migrating any real prior
+  configuration into the user's first profile, seamlessly — covered by a real
+  version-upgrade test, not just inspection). `src/ai/profiles.ts` (pure
+  CRUD) + `AiProfilesView.tsx` (new: list/switch/edit, delete with an inline
+  confirm-then-~5s-undo flow, no native dialogs).
+- **Help view** (`?` icon in the panel header): what Deep Check does, why
+  BYO-key, the provider list rendered from the live registry, and a setup
+  guide link.
+- **Cancel, on the loading state, no longer closes the whole panel** — it
+  only aborts the in-flight request now, since a user cancelling a run may
+  just want to switch to Profiles/History/Help rather than lose the panel.
+- **The two React Compiler "incompatible library" warnings that used to show
+  up on every `lint` run** (`AiSettingsForm.tsx`, `CreateComponentModal.tsx`
+  — both from react-hook-form's `watch()` returning a function the compiler
+  can't verify is safe to memoize) are gone: both switched to `useWatch`.
+  Fixing `AiSettingsForm.tsx`'s case surfaced a real latent bug the warning
+  had been masking — a `useEffect` keyed on the watched `providerId` fired
+  once on mount (effects always do, regardless of deps), and for a profile
+  whose saved model was already legitimately outside the new provider's
+  suggested list, that stray mount-time pass silently overwrote it back to
+  the provider's default. Fixed by moving the logic into the Provider
+  `<select>`'s own `onChange` (via `register`'s `onChange` option) instead of
+  an effect — it only runs on a real, user-initiated provider switch now.
+- §10.5's disabled-button question (flagged after the original Phase 5 audit
+  — the shipped button was never HTML-`disabled`, unlike what §10.5 said) is
+  resolved by updating §10.5 to match the shipped, deliberate behavior rather
+  than changing the button.
+
+Full pipeline re-verified after this round too — see Phase 6's "Done when"
+line above, which reflects this round's state, not the original Phase 6
+commit's.
 
 ---
 

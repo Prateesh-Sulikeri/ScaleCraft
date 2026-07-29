@@ -7,11 +7,13 @@ import type { CanvasHandle } from "@/canvas/Canvas";
 import { Tooltip } from "@/app/Tooltip";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { ValidationIndicator } from "@/app/ValidationIndicator";
+import { DeepCheckButton } from "@/app/DeepCheckButton";
 import { ProjectMenu } from "@/app/ProjectMenu";
 import { BoardMenu } from "@/app/BoardMenu";
 import { ModeBadge } from "@/app/ModeBadge";
 import { ShortcutsButton } from "@/app/ShortcutsButton";
 import type { ValidationViolation } from "@/validation-engine/types";
+import type { DeepCheckContext } from "@/ai/prompt";
 import type { AppMode } from "@/lib/modes";
 import { modeColorVar } from "@/lib/modes";
 
@@ -33,6 +35,10 @@ type AppHeaderProps = {
   justSaved: boolean;
   docsPanelOpen: boolean;
   toggleDocsPanel: () => void;
+  /** Assembled by the caller (sandbox/page.tsx always builds the pre-pass
+   * shape; ChapterWorkspace.tsx builds it from the live ChapterOutcome) —
+   * see ai/prompt.ts's own doc comment for why this isn't resolved here. */
+  deepCheckCtx: DeepCheckContext;
 };
 
 /**
@@ -58,6 +64,7 @@ export function AppHeader({
   justSaved,
   docsPanelOpen,
   toggleDocsPanel,
+  deepCheckCtx,
 }: AppHeaderProps) {
   return (
     <header
@@ -113,6 +120,7 @@ export function AppHeader({
           </Tooltip>
         </div>
         <ValidationIndicator violations={violations} isStale={isStale} onValidate={onValidate} />
+        <DeepCheckButton ctx={deepCheckCtx} saveId={saveId} />
         <Tooltip label={saveId ? "Save (Ctrl+S)" : "Select a chapter to enable Save"}>
           <button
             onClick={onSave}

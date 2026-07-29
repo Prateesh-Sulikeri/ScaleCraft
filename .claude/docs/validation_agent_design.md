@@ -835,12 +835,18 @@ at implementation time rather than trusting anything written here. Every adapter
 must map an auth failure to a distinct, user-legible error: a bad key is the most
 likely failure by far, and failing silently would be the worst outcome.
 
-### 10.2 Settings — `src/ai/settings.ts` + Dexie v3 `aiSettings`
+### 10.2 Settings — `src/ai/settings.ts` + `src/ai/profiles.ts` + Dexie v6
+### `aiProfiles`/`aiActiveProfile`
+
+Superseded the original single fixed-row `aiSettings` (Dexie v3–v5) with **named,
+multiple profiles**, added post-Phase-6 per explicit product ask. `AiSettings`
+still names the resolved-config shape one Deep Check run needs — untouched by
+this change, since no provider/prompt/orchestration code ever read `.id` or
+`.enabled`:
 
 ```ts
+// src/ai/settings.ts — the resolved config for one run
 export type AiSettings = {
-  id: "default";
-  enabled: boolean;
   providerId: AiProviderId;
   model: string;
   baseUrl?: string;                                   // openai-compatible only
@@ -849,19 +855,43 @@ export type AiSettings = {
   tone: "direct" | "socratic" | "encouraging";
   level: "beginner" | "intermediate" | "advanced";
 };
+
+// src/persistence/db.ts — one row per saved configuration
+export type AiProfile = AiSettings & {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+};
 ```
 
-Three knobs plus provider/model, with strong defaults — deliberately not "many
-settings." The app's stated goals are best UX and *simple to use, simple to
-understand*, and a wall of AI knobs is where that goal dies. Further controls go
+`aiProfiles` (many rows) replaces `aiSettings` (one fixed row); `aiActiveProfile`
+(single row, keyed `"default"`, `{ id: "default", profileId: string | null }`)
+records which profile Deep Check currently uses. The Dexie v6 upgrade migrates a
+real prior `aiSettings` configuration into the user's first profile (name
+`"Default"`, auto-activated) — an untouched default (`enabled: false`/empty key)
+migrates nothing, same empty state a new user gets. `src/ai/profiles.ts` is pure
+CRUD (`listProfiles`/`getActiveProfile`/`setActiveProfileId`/`createProfile`/
+`updateProfile`/`deleteProfile`/`isProfileUsable`) — no undo/confirm logic, which
+lives entirely in `AiProfilesView.tsx` (inline confirm, then a ~5s inline undo
+window, before the delete actually commits).
+
+Three knobs plus provider/model *per profile*, with strong defaults — deliberately
+not "many settings." The app's stated goals are best UX and *simple to use, simple
+to understand*, and a wall of AI knobs is where that goal dies. Further controls go
 behind a disclosure later, driven by observed friction rather than anticipated
 need.
 
-The settings modal must include a **"Test connection"** button (one trivial
-round-trip, plainly reporting success or failure) and an honest one-line note
-that the key is stored in this browser's IndexedDB and never sent to ScaleCraft's
-servers (§4.4). The guardrail layer is not user-editable and is not surfaced as a
-setting.
+The profile editor (`AiSettingsForm.tsx`, embedded in `AiProfilesView.tsx`) must
+include a **"Test connection"** button (one trivial round-trip, plainly reporting
+success or failure) and an honest one-line note that the key is stored in this
+browser's IndexedDB and never sent to ScaleCraft's servers (§4.4). The guardrail
+layer is not user-editable and is not surfaced as a setting.
+
+A Help view (`?` icon, `DeepCheckPanel.tsx`) covers what Deep Check does, why a
+key is required, the supported-provider list (rendered from the `providers`
+registry, never hand-typed), and a link to a setup guide — currently a placeholder
+URL pending publication.
 
 ### 10.3 Prompt assembly — `src/ai/prompt.ts`
 
@@ -914,14 +944,26 @@ AI output never becomes a `ValidationViolation` and never touches `ChapterOutcom
 
 - A **Deep Check** button in the header beside `ValidationIndicator`. Never fires
   automatically (§4.3).
-- No key configured → disabled, with a tooltip that opens settings.
+- **No usable profile configured → the button stays clickable (never
+  HTML-`disabled`), opening the panel straight to its Profiles view instead
+  of running.** Revised from an earlier "disabled, with a tooltip that opens
+  settings" — a genuinely inert disabled button has nowhere to send that
+  click. The tooltip still communicates the state either way.
 - Results render in their own slide-over panel, visually distinct from the
   validation dropdown: prose, no issue counts, no severity colours. Reuse
   `react-markdown` + `rehype-sanitize` (already dependencies; `TRD.md` §6 requires
   sanitization).
 - Clicking a section selects its `relatedNodeIds` via existing canvas selection.
   Do **not** route through `nodeStates` — that channel means validation state.
+- Cancelling an in-flight run aborts the request but leaves the panel open —
+  distinct from the panel's own Close (X button/backdrop), which does close
+  it. Cancelling a run isn't the same as wanting the whole panel gone.
 - Available in all three modes (§4.2, reversal 2).
+- The panel also owns a Profiles view (§10.2 — create/edit/switch/delete
+  multiple named AI configurations, one active at a time) and a Help view
+  (what Deep Check does, why BYO-key, the supported-provider list, a setup
+  guide link) — both added post-Phase-6, folded in here rather than kept as a
+  separate addendum.
 
 ### 10.6 Spoiler gate
 
@@ -955,6 +997,11 @@ Sandbox has no chapter and no blueprints, so it always runs the pre-pass shape.
    chapters can now be authored against a working blueprint + mastery gate
    instead of the dead `hasErrors()`/presence-only check this branch
    replaced.
-3. **Track 3** — AI Deep Check (§4, §10). Specified, not built. Branch:
-   `feature/ai-deep-check`, cut after Track 2 merges. No longer blocked on auth
-   or on Gemini access — see §4.2 reversal 3.
+3. **Track 3** — AI Deep Check (§4, §10) — **code-complete**, all 6 phases plus
+   a post-Phase-6 follow-up round (multi-profile AI settings replacing the
+   single-config model in §10.2, a Help view, a Cancel-run UX fix). Branch:
+   `feature/ai-deep-check`, local-only (not pushed). Full pipeline green
+   (typecheck/lint/912 tests/build), the `chapter-outcome.ts` isolation grep
+   and key-leak grep both clean — see `.claude/docs/pending.md`'s status
+   header for the full record. Two things still open, both yours: the final
+   free-form click-through across all three modes, and the push/PR itself.
