@@ -15,11 +15,10 @@ land.
 
 **Status as of 2026-07-29:** Steps 0–3 verified done in code (see each step's own status
 line), with Step 3 now scoped down to Track 1 only. Step 4 is partially done — see its
-status line for the breakdown. **Step 4.5** (validation engines v2): its docs branch is
-done, its Track 2 code branch (`feature/validation-pattern-engine`) is implemented and
-pending merge, its Track 3 code branch (`feature/ai-deep-check`) is **code-complete**
-(all 6 phases plus a post-Phase-6 follow-up round — see that step's own status line),
-still local-only/unpushed pending your click-through. Steps 5–10 and the backlog are
+status line for the breakdown. **Step 4.5** (validation engines v2): both Track 2
+(`feature/validation-pattern-engine`, PR #47) and Track 3 (`feature/ai-deep-check`,
+PR #48) are **merged into `release/2.0.0-validation-engine-overhaul`** — not yet promoted
+to `develop`/`main` (no PR exists for that yet). Steps 5–10 and the backlog are
 unchanged/not started; `src/content/chapters/` still holds only placeholder
 `ChapterDefinition`s (plus one throwaway `Blueprint` fixture for manual QA, see
 Step 4.5).
@@ -180,8 +179,8 @@ fixed (Esc, insertion discoverability):
 7. Re-run `/impeccable critique` and archive the score (baseline: 29/40).
 
 ## Step 4.5 — Validation engines v2: pattern engine, blueprints, AI Deep Check —
-## Track 2 implemented, pending merge; Track 3 code-complete, pending your
-## click-through and merge
+## done — both tracks merged into release/2.0.0-validation-engine-overhaul,
+## pending promotion to develop/main
 
 **Full design and implementation spec: `.claude/docs/validation_agent_design.md`** —
 §8 (blueprints and chapter mastery), §9 (deterministic engine), §10 (AI Deep Check).
@@ -207,22 +206,26 @@ integration branch for this work, per `CLAUDE.md`'s branching rules):
 
 1. `docs/planing-documentation` — the design doc rewrite, this roadmap wiring, and the
    `2.0.0-alpha.0` version bump. **Done and merged; branch deleted.** No code.
-2. `feature/validation-pattern-engine` — Track 2. **Implemented, 2026-07-27,
-   pending manual review/merge.** Graph index, pattern language and matcher,
+2. `feature/validation-pattern-engine` — Track 2. **Merged** (PR #47, merge
+   commit `e1b36ff`, 2026-07-27/28). Graph index, pattern language and matcher,
    `PatternRule` alongside the existing imperative rules (which change zero
    lines except one exported helper in `orphan-component.ts`), `note`
    severity, blueprints, `evaluateChapter`, Dexie v3 `chapterProgress`, and
    the QuestionPane/Debrief UI. Design doc §9.
-3. `feature/ai-deep-check` — Track 3. **Code-complete** (2026-07-29), cut
-   directly off `release/2.0.0-validation-engine-overhaul` rather than waiting
-   on Track 2's merge (nothing about Track 3 depended on it). BYO-API-key,
-   browser-direct, multi-provider (Anthropic / OpenAI / Gemini / xAI /
-   OpenAI-compatible), Zod-validated structured output, its own slide-over
-   panel with a spoiler gate enforced by payload construction rather than by
-   prompting, plus a post-Phase-6 follow-up round (multi-profile AI settings,
-   a Help view, a Cancel-run fix). Design doc §10. Full pipeline green
-   (912/912 tests); still local-only, unpushed, and pending your final
-   click-through — see `.claude/docs/pending.md`'s status header.
+3. `feature/ai-deep-check` — Track 3. **Merged** (PR #48, merge commit
+   `e1bc04c`, 2026-07-29), cut directly off
+   `release/2.0.0-validation-engine-overhaul` rather than waiting on Track 2's
+   merge (nothing about Track 3 depended on it). BYO-API-key, browser-direct,
+   multi-provider (Anthropic / OpenAI / Gemini / xAI / OpenAI-compatible),
+   Zod-validated structured output, its own slide-over panel with a spoiler
+   gate enforced by payload construction rather than by prompting, plus a
+   post-Phase-6 follow-up round (multi-profile AI settings, a Help view, a
+   Cancel-run fix). Design doc §10. Full pipeline green (912/912 tests),
+   click-through done.
+
+Both tracks now live on `release/2.0.0-validation-engine-overhaul` — the
+remaining step is promoting that branch to `develop`, then `main`, each after
+its own validation. No PR exists for that promotion yet.
 
 **Three decisions worth knowing without opening the design doc**, because each reverses
 something a previous doc said:
@@ -244,13 +247,12 @@ connectivity, not just presence; a throwing rule can't kill a validation run; an
 Check produces a schema-valid prose critique from a user-supplied key without ever
 touching pass/fail.
 
-**Track 2 portion of this bar is met** (2026-07-27, `chapter-outcome.test.ts` +
-manual click-through) — pending only the merge itself. **Track 3's portion is
-also met in code** (2026-07-29) — Deep Check produces a schema-valid prose
-critique from a user-supplied key without ever touching pass/fail, verified
-by the `chapter-outcome.ts` isolation grep, not just tests. Step 4.5 as a
-whole is now blocked only on both branches' merges and your Track 3
-click-through, not on any unbuilt code.
+**Both tracks' portions of this bar are met, and both are merged** — Track 2
+(2026-07-27/28, `chapter-outcome.test.ts` + manual click-through, PR #47) and
+Track 3 (2026-07-29, Deep Check produces a schema-valid prose critique from a
+user-supplied key without ever touching pass/fail — verified by the
+`chapter-outcome.ts` isolation grep, not just tests — click-through done,
+PR #48). **Step 4.5 is done.** Next: Step 5 below, now unblocked.
 
 ## Step 5 — Milestone 7: first two Building Blocks chapters (real content)
 
