@@ -1,10 +1,9 @@
 # Validation Engines Design: Rules, Patterns, Blueprints & AI Deep Check
 
 **Status:** Track 1 (structural rules + per-component relations) — implemented.
-Track 2 (pattern engine + blueprints + chapter mastery) — implemented on
-`feature/validation-pattern-engine`, pending review/merge (§8, §9). Track 3
-(AI Deep Check) — designed, specified in §10, not yet built; unblocked by the
-BYO-API-key decision (§4).
+Track 2 (pattern engine + blueprints + chapter mastery, §8–§9) and Track 3 (AI
+Deep Check, §10) are both merged into `release/2.0.0-validation-engine-overhaul`
+(PR #47, PR #48) — not yet promoted to `develop`/`main`.
 
 This doc is the **single source of truth** for both validation engines — the
 deterministic rule engine and the AI layer. It is the living reference: update it
@@ -986,22 +985,23 @@ Sandbox has no chapter and no blueprints, so it always runs the pre-pass shape.
    including the API Gateway case found during implementation that the original
    flat-matrix design didn't.
 2. **Track 2** — pattern engine + blueprints + chapter mastery (§8, §9) —
-   **implemented** (2026-07-27) on `feature/validation-pattern-engine`,
-   pending manual review/merge per `CLAUDE.md`'s branching rules (Claude
-   opens and pushes the branch, never merges it). `GraphIndex`, the pattern
+   **merged** (PR #47, merge commit `e1b36ff`, 2026-07-27/28) into
+   `release/2.0.0-validation-engine-overhaul`. `GraphIndex`, the pattern
    matcher, `PatternRule`/`Blueprint`, and `evaluateChapter` all shipped
    additively — the 10 pre-existing rule files have zero line changes across
    the whole branch except `orphan-component.ts`, which gained one exported
    helper (`connectedNodeIds`) with no change to its own rule's behavior.
-   Once merged, **unblocks `NEXT_STEPS.md` Step 5** — real Building Blocks
-   chapters can now be authored against a working blueprint + mastery gate
-   instead of the dead `hasErrors()`/presence-only check this branch
-   replaced.
-3. **Track 3** — AI Deep Check (§4, §10) — **code-complete**, all 6 phases plus
-   a post-Phase-6 follow-up round (multi-profile AI settings replacing the
-   single-config model in §10.2, a Help view, a Cancel-run UX fix). Branch:
-   `feature/ai-deep-check`, local-only (not pushed). Full pipeline green
+   **Unblocks `NEXT_STEPS.md` Step 5** — real Building Blocks chapters can now
+   be authored against a working blueprint + mastery gate instead of the dead
+   `hasErrors()`/presence-only check this branch replaced.
+3. **Track 3** — AI Deep Check (§4, §10) — **merged** (PR #48, merge commit
+   `e1bc04c`, 2026-07-29) into `release/2.0.0-validation-engine-overhaul`, all
+   6 phases plus a post-Phase-6 follow-up round (multi-profile AI settings
+   replacing the single-config model in §10.2, a Help view, a Cancel-run UX
+   fix). Your free-form click-through is done; full pipeline green
    (typecheck/lint/912 tests/build), the `chapter-outcome.ts` isolation grep
-   and key-leak grep both clean — see `.claude/docs/pending.md`'s status
-   header for the full record. Two things still open, both yours: the final
-   free-form click-through across all three modes, and the push/PR itself.
+   and key-leak grep both clean.
+
+Both tracks now live on `release/2.0.0-validation-engine-overhaul`, not yet
+promoted to `develop`/`main` — no PR exists for that promotion yet. See
+`.claude/docs/pending.md` for what's next.
