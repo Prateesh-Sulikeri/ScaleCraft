@@ -57,7 +57,6 @@ describe("AppHeader", () => {
     expect(screen.getByRole("button", { name: "Redo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Validate" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Deep Check" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "AI Settings" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Project" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Board" })).toBeInTheDocument();

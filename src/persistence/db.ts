@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from "dexie";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
 import type { AiSettings } from "@/ai/settings";
+import type { AiCritique } from "@/ai/schema";
 
 /**
  * Local-first persistence — see .claude/docs/ARCHITECTURE.md "Persistence"
@@ -44,6 +45,20 @@ export type ChapterProgress = {
   matchedBlueprintId: string | null;
 };
 
+/** One row per completed Deep Check run, autosaved (see DeepCheckPanel.tsx)
+ * — `saveId` reuses the same slot key as CanvasSave/ChapterProgress
+ * (SANDBOX_SAVE_ID or chapterSaveId(id)) so a session's history is scoped to
+ * whichever board/chapter produced it, not a single global list. `id` is
+ * Dexie's auto-incrementing primary key (`++id` in the schema below), not a
+ * caller-supplied string like the other tables — there's no natural
+ * caller-known key for "the Nth review of this board." */
+export type DeepCheckSession = {
+  id?: number;
+  saveId: string;
+  createdAt: number;
+  critique: AiCritique;
+};
+
 export class ScaleCraftDB extends Dexie {
   saves!: EntityTable<CanvasSave, "id">;
   /** User-created components (see CreateComponentModal.tsx /
@@ -55,6 +70,7 @@ export class ScaleCraftDB extends Dexie {
   /** Single row, keyed `"default"` — see @/ai/settings.ts for the shape and
    * the `enabled`-until-a-key-is-saved default. */
   aiSettings!: EntityTable<AiSettings, "id">;
+  deepCheckSessions!: EntityTable<DeepCheckSession, "id">;
 
   constructor() {
     super("scalecraft");
@@ -78,6 +94,15 @@ export class ScaleCraftDB extends Dexie {
       customComponents: "id",
       chapterProgress: "chapterId",
       aiSettings: "id",
+    });
+    this.version(5).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiSettings: "id",
+      // Compound index on [saveId+createdAt] so history queries (newest
+      // first, for a given board/chapter) don't need a full-table scan.
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
     });
   }
 }

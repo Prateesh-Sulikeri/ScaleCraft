@@ -120,7 +120,7 @@ export function AppHeader({
           </Tooltip>
         </div>
         <ValidationIndicator violations={violations} isStale={isStale} onValidate={onValidate} />
-        <DeepCheckButton ctx={deepCheckCtx} />
+        <DeepCheckButton ctx={deepCheckCtx} saveId={saveId} />
         <Tooltip label={saveId ? "Save (Ctrl+S)" : "Select a chapter to enable Save"}>
           <button
             onClick={onSave}

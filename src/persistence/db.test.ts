@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { db, SANDBOX_SAVE_ID, type CanvasSave, type ChapterProgress } from "./db";
+import { db, SANDBOX_SAVE_ID, type CanvasSave, type ChapterProgress, type DeepCheckSession } from "./db";
 import type { ComponentNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
 import type { AiSettings } from "@/ai/settings";
@@ -84,5 +84,17 @@ describe("persistence db", () => {
     await db.aiSettings.put(updated);
     restored = await db.aiSettings.get("default");
     expect(restored).toEqual(updated);
+  });
+
+  it("round-trips a deepCheckSession through IndexedDB with an auto-assigned id (schema v5)", async () => {
+    const session: DeepCheckSession = {
+      saveId: SANDBOX_SAVE_ID,
+      createdAt: Date.now(),
+      critique: { summary: "s", sections: [], tradeoffs: [] },
+    };
+
+    const id = await db.deepCheckSessions.add(session);
+    const restored = await db.deepCheckSessions.get(id);
+    expect(restored).toEqual({ ...session, id });
   });
 });

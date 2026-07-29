@@ -24,6 +24,13 @@ vi.mock("@/ai/run-deep-check", () => ({
   testConnection: (...args: unknown[]) => testConnectionMock(...args),
 }));
 
+const saveSessionMock = vi.fn();
+vi.mock("@/persistence/deepCheckSessions", () => ({
+  saveSession: (...args: unknown[]) => saveSessionMock(...args),
+  listSessions: vi.fn().mockResolvedValue([]),
+  deleteSession: vi.fn(),
+}));
+
 const ctx: DeepCheckContext = {
   graph: {
     nodes: [{ id: "n1", componentId: "load-balancer", position: { x: 0, y: 0 }, config: {} }],
@@ -35,10 +42,10 @@ const ctx: DeepCheckContext = {
   passed: false,
 };
 
-function renderButton() {
+function renderButton(saveId: string | null = "sandbox") {
   render(
     <CanvasStoreProvider>
-      <DeepCheckButton ctx={ctx} />
+      <DeepCheckButton ctx={ctx} saveId={saveId} />
     </CanvasStoreProvider>,
   );
 }
@@ -49,9 +56,10 @@ describe("DeepCheckButton", () => {
     saveAiSettingsMock.mockReset();
     runDeepCheckMock.mockReset();
     testConnectionMock.mockReset();
+    saveSessionMock.mockReset().mockResolvedValue(undefined);
   });
 
-  it("opens Settings instead of running Deep Check when no key is configured", async () => {
+  it("opens the panel straight to Settings instead of running Deep Check when no key is configured", async () => {
     getAiSettingsMock.mockResolvedValue({ ...DEFAULT_AI_SETTINGS });
     renderButton();
     await waitFor(() => expect(getAiSettingsMock).toHaveBeenCalled());
@@ -83,15 +91,58 @@ describe("DeepCheckButton", () => {
     expect(runDeepCheckMock).toHaveBeenCalledWith(ctx, settings, expect.anything());
   });
 
-  it("opens Settings via the gear icon even when a key is already configured", async () => {
+  it("autosaves a successful run to the current saveId's session history", async () => {
+    const settings = { ...DEFAULT_AI_SETTINGS, enabled: true, apiKey: "sk-test" };
+    getAiSettingsMock.mockResolvedValue(settings);
+    const critique = { summary: "All good", sections: [], tradeoffs: [] };
+    runDeepCheckMock.mockResolvedValue({ status: "ok", critique });
+    renderButton("sandbox");
+    await waitFor(() => expect(getAiSettingsMock).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
+
+    await waitFor(() => expect(saveSessionMock).toHaveBeenCalledWith("sandbox", critique));
+  });
+
+  it("does not attempt to autosave when there is no saveId", async () => {
+    const settings = { ...DEFAULT_AI_SETTINGS, enabled: true, apiKey: "sk-test" };
+    getAiSettingsMock.mockResolvedValue(settings);
+    runDeepCheckMock.mockResolvedValue({
+      status: "ok",
+      critique: { summary: "All good", sections: [], tradeoffs: [] },
+    });
+    renderButton(null);
+    await waitFor(() => expect(getAiSettingsMock).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
+
+    await waitFor(() => expect(screen.getByText("All good")).toBeInTheDocument());
+    expect(saveSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("does not autosave an error result", async () => {
+    const settings = { ...DEFAULT_AI_SETTINGS, enabled: true, apiKey: "sk-test" };
+    getAiSettingsMock.mockResolvedValue(settings);
+    runDeepCheckMock.mockResolvedValue({ status: "error", kind: "unknown", message: "nope" });
+    renderButton("sandbox");
+    await waitFor(() => expect(getAiSettingsMock).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
+
+    await waitFor(() => expect(screen.getByText("nope")).toBeInTheDocument());
+    expect(saveSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("opens the panel's inline AI Settings view via its gear icon even when a key is already configured", async () => {
     getAiSettingsMock.mockResolvedValue({ ...DEFAULT_AI_SETTINGS, enabled: true, apiKey: "sk-test" });
+    runDeepCheckMock.mockReturnValue(new Promise(() => {})); // never resolves — panel stays open on the loading state underneath
     renderButton();
     await waitFor(() => expect(getAiSettingsMock).toHaveBeenCalled());
 
+    fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
     fireEvent.click(screen.getByRole("button", { name: "AI Settings" }));
 
-    expect(screen.getByText("AI Settings")).toBeInTheDocument();
-    expect(runDeepCheckMock).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Provider")).toBeInTheDocument();
   });
 
   it("Cancel aborts the in-flight request and closes the panel without forcing a result", async () => {
@@ -114,13 +165,13 @@ describe("DeepCheckButton", () => {
     expect(screen.queryByText("Reviewing your design…")).not.toBeInTheDocument();
   });
 
-  it("enables the Deep Check button after saving settings with a key from the modal", async () => {
+  it("enables Deep Check after saving settings from within the panel's inline settings view", async () => {
     getAiSettingsMock.mockResolvedValue({ ...DEFAULT_AI_SETTINGS });
     saveAiSettingsMock.mockResolvedValue(undefined);
     renderButton();
     await waitFor(() => expect(getAiSettingsMock).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByRole("button", { name: "AI Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
     fireEvent.change(await screen.findByLabelText("API Key"), { target: { value: "sk-new" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
