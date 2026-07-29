@@ -92,8 +92,8 @@ unfinished at first rather than left for the end.
 **Done when (final state, after 10):** progress indicators reflect real saved state,
 not placeholders.
 
-## 5. Stronger validation agent — Track 1 done; Track 2 implemented,
-## pending merge
+## 5. Stronger validation agent — Track 1 done; Track 2 implemented, pending
+## merge; Track 3 code-complete, pending your click-through and merge
 
 **Status:** Track 1 (structural rules + per-component `relations` contracts)
 shipped 2026-07-24 — the registry grew to 10 rules, and the flat
@@ -111,6 +111,14 @@ removed, it was dead), and `evaluateChapter()` — the chapter pass/fail gate
 this milestone's "success criteria detection" never actually had before.
 Pending manual review/merge, not yet on `develop`. Once merged, unblocks
 `NEXT_STEPS.md` Step 5 (real Building Blocks chapters).
+
+**Track 3 (AI Deep Check)** — code-complete 2026-07-29 on `feature/ai-deep-check`
+(design doc §10): multi-provider BYO-key adapters, prompt assembly with a
+structurally-enforced spoiler gate, orchestration, a slide-over panel with
+Profiles/History/Help views, and a post-completion follow-up round (multiple
+named AI profiles, replacing the original single-configuration model). Full
+pipeline green, local-only/unpushed pending your click-through and merge — see
+`.claude/docs/pending.md`'s status header and `NEXT_STEPS.md` Step 4.5.
 
 **Revised 2026-07-27 — the remaining tracks moved to `NEXT_STEPS.md` Step 4.5:**
 

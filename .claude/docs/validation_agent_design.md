@@ -944,14 +944,26 @@ AI output never becomes a `ValidationViolation` and never touches `ChapterOutcom
 
 - A **Deep Check** button in the header beside `ValidationIndicator`. Never fires
   automatically (§4.3).
-- No key configured → disabled, with a tooltip that opens settings.
+- **No usable profile configured → the button stays clickable (never
+  HTML-`disabled`), opening the panel straight to its Profiles view instead
+  of running.** Revised from an earlier "disabled, with a tooltip that opens
+  settings" — a genuinely inert disabled button has nowhere to send that
+  click. The tooltip still communicates the state either way.
 - Results render in their own slide-over panel, visually distinct from the
   validation dropdown: prose, no issue counts, no severity colours. Reuse
   `react-markdown` + `rehype-sanitize` (already dependencies; `TRD.md` §6 requires
   sanitization).
 - Clicking a section selects its `relatedNodeIds` via existing canvas selection.
   Do **not** route through `nodeStates` — that channel means validation state.
+- Cancelling an in-flight run aborts the request but leaves the panel open —
+  distinct from the panel's own Close (X button/backdrop), which does close
+  it. Cancelling a run isn't the same as wanting the whole panel gone.
 - Available in all three modes (§4.2, reversal 2).
+- The panel also owns a Profiles view (§10.2 — create/edit/switch/delete
+  multiple named AI configurations, one active at a time) and a Help view
+  (what Deep Check does, why BYO-key, the supported-provider list, a setup
+  guide link) — both added post-Phase-6, folded in here rather than kept as a
+  separate addendum.
 
 ### 10.6 Spoiler gate
 
@@ -985,6 +997,11 @@ Sandbox has no chapter and no blueprints, so it always runs the pre-pass shape.
    chapters can now be authored against a working blueprint + mastery gate
    instead of the dead `hasErrors()`/presence-only check this branch
    replaced.
-3. **Track 3** — AI Deep Check (§4, §10). Specified, not built. Branch:
-   `feature/ai-deep-check`, cut after Track 2 merges. No longer blocked on auth
-   or on Gemini access — see §4.2 reversal 3.
+3. **Track 3** — AI Deep Check (§4, §10) — **code-complete**, all 6 phases plus
+   a post-Phase-6 follow-up round (multi-profile AI settings replacing the
+   single-config model in §10.2, a Help view, a Cancel-run UX fix). Branch:
+   `feature/ai-deep-check`, local-only (not pushed). Full pipeline green
+   (typecheck/lint/912 tests/build), the `chapter-outcome.ts` isolation grep
+   and key-leak grep both clean — see `.claude/docs/pending.md`'s status
+   header for the full record. Two things still open, both yours: the final
+   free-form click-through across all three modes, and the push/PR itself.

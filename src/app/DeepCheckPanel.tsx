@@ -55,8 +55,8 @@ type DeepCheckPanelProps = {
   onClose: () => void;
   /** Cancel button on the loading state — aborts the in-flight request but
    * leaves the panel open (unlike `onClose`, the X button/backdrop click).
-   * A user cancelling a run may just want to switch to Settings/History/
-   * Help, or try again with different settings, not lose the panel
+   * A user cancelling a run may just want to switch to Profiles/History/
+   * Help, or try again with a different profile, not lose the panel
    * entirely. */
   onCancelRun: () => void;
   onSelectNode: (nodeId: string) => void;
@@ -226,7 +226,7 @@ export function DeepCheckPanel({
 /** Static onboarding content — what Deep Check does, why it needs your own
  * key, and which providers are supported. The provider list is rendered
  * from the real `providers` registry rather than hand-typed, so it can
- * never drift out of sync with what Settings actually offers. */
+ * never drift out of sync with what the Profiles view actually offers. */
 function HelpView() {
   return (
     <div className="flex flex-col gap-4 text-sm">

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { Lock } from "lucide-react";
 import { providers } from "@/ai/providers";
 import { testConnection } from "@/ai/run-deep-check";
@@ -48,7 +48,7 @@ type TestState = "idle" | "testing" | { status: "ok" } | { status: "error"; mess
  * `apiKey`, not a field this form manages directly.
  */
 export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormProps) {
-  const { register, handleSubmit, watch, getValues, setValue } = useForm<FormValues>({
+  const { register, control, handleSubmit, getValues, setValue } = useForm<FormValues>({
     defaultValues: {
       name: settings.name,
       providerId: settings.providerId,
@@ -71,22 +71,33 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
     () => !providers[settings.providerId].suggestedModels.includes(settings.model),
   );
 
-  const providerId = watch("providerId");
+  // useWatch, not form.watch() — the latter returns a plain function call
+  // React Compiler can't verify is safe to memoize (hence the "incompatible
+  // library" bailout warning this used to trigger); useWatch is a proper
+  // hook react-hook-form ships specifically for this.
+  const providerId = useWatch({ control, name: "providerId" });
+  const model = useWatch({ control, name: "model" });
 
-  useEffect(() => {
-    const suggested = providers[providerId].suggestedModels;
+  // Was a useEffect keyed on `providerId`, which ran a spurious extra pass
+  // on mount (effects always fire once after the first render regardless of
+  // deps) — for a profile whose saved model was already legitimately custom
+  // (not in the new provider's suggested list — the very state that mount
+  // started in), that stray pass would silently flip back out of custom
+  // mode and overwrite it with the provider's default. Driving this from
+  // the Provider select's own onChange fixes that: it only ever runs on a
+  // real, user-initiated provider switch, never on mount.
+  const handleProviderChange = (e: { target: { value: string } }) => {
+    const nextProviderId = e.target.value as AiProviderId;
+    const suggested = providers[nextProviderId].suggestedModels;
     if (suggested.length === 0) {
       setCustomModel(true);
       return;
     }
     if (!suggested.includes(getValues("model"))) {
       setCustomModel(false);
-      setValue("model", providers[providerId].defaultModel || suggested[0]);
+      setValue("model", providers[nextProviderId].defaultModel || suggested[0]);
     }
-    // Only re-derive when the provider changes — re-running on every model
-    // keystroke would fight the user's own typing in custom mode.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [providerId]);
+  };
 
   function toProfileDraft(values: FormValues): AiProfileDraft {
     return {
@@ -125,7 +136,11 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-foreground/60">Provider</span>
-        <select {...register("providerId")} aria-label="Provider" className={inputClass}>
+        <select
+          {...register("providerId", { onChange: handleProviderChange })}
+          aria-label="Provider"
+          className={inputClass}
+        >
           {providerOrder.map((id) => (
             <option key={id} value={id}>
               {providers[id].label}
@@ -140,7 +155,7 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
           <select
             aria-label="Model"
             className={inputClass}
-            value={customModel ? CUSTOM_MODEL_OPTION : watch("model")}
+            value={customModel ? CUSTOM_MODEL_OPTION : model}
             onChange={(e) => {
               if (e.target.value === CUSTOM_MODEL_OPTION) {
                 setCustomModel(true);

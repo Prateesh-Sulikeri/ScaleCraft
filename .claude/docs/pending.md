@@ -1,47 +1,36 @@
-# Pending: Track 3 — AI Deep Check (`feature/ai-deep-check`)
+# Track 3 — AI Deep Check (`feature/ai-deep-check`) — Status: code-complete
 
 **Full spec:** `.claude/docs/validation_agent_design.md` §4 (why/reversals/
 constraints) and §10 (implementation spec). This file is the phase-by-phase
 execution plan against that spec — not a parallel design doc. If the two ever
 disagree, §4/§10 win; fix this file, not the other way around.
 
+**All 6 phases below landed, plus a post-Phase-6 follow-up round** (multi-profile
+AI settings, a Help view, and a Cancel-run UX fix — see that section after
+Phase 6). Full pipeline (`typecheck`/`lint`/`test`/`build`) green, 912/912
+tests, the `chapter-outcome.ts` isolation grep and the key-leak grep both
+clean. `validation_agent_design.md`'s Rollout Status and §10.5,
+`NEXT_STEPS.md` Step 4.5 all synced to reflect this (see those files — not
+duplicated here). Remaining, not something an agent can do:
+
+- **Your final free-form click-through** (all three modes, both themes) —
+  Phase 6's own "does it still feel right" bar, never satisfied by an
+  automated pipeline alone. Not confirmed done as of this doc-sync pass.
+- **The branch is still local-only, unpushed**, per this repo's "ask before
+  every push" convention — push and PR review are your call.
+- Once merged, this file gets emptied out per its own live-task-list
+  convention (see Track 2's precedent, one paragraph below) — not done yet
+  since the branch hasn't merged.
+
 **Track 2 is fully closed out — merged.** All 7 phases plus the post-Phase-7
 follow-up landed on `feature/validation-pattern-engine` and merged via
 **PR #47** into `release/2.0.0-validation-engine-overhaul` (merge commit
 `e1b36ff`). Full record: `.claude/PROGRESS_LOG.md`'s 2026-07-27 and 2026-07-28
-entries. Nothing outstanding on that track — not repeated here, matching this
-file's own convention of being a live task list for the *current* track, not
-an archive.
+entries.
 
-**Branch not yet cut.** Per `NEXT_STEPS.md` Step 4.5, `feature/ai-deep-check`
-is cut off `release/2.0.0-validation-engine-overhaul` — the sequencing
-question ("cut now or wait for Track 2 to merge") is resolved now that Track 2
-has merged, nothing blocks starting Phase 1.
-
-**ETA (given 2026-07-28), for planning only — see caveats below:**
-
-| Phase | Agent build time | Your verification |
-|---|---|---|
-| 1 — Provider layer | 30–45 min | Optional: throwaway script vs. real xAI key |
-| 2 — Settings + Dexie v4 | 10–15 min | **Required**: confirm v3→v4 migration doesn't corrupt existing `saves`/`chapterProgress` |
-| 3 — Prompt/schema/spoiler gate | 30–45 min | None (no UI/network yet) |
-| 4 — Orchestration | 15–20 min | Optional: end-to-end script vs. live model |
-| 5 — UI (settings modal, button, panel) | 45–60 min | **Required, the real gate**: 6-point click-through incl. proving the spoiler gate withholds blueprints pre-pass |
-| 6 — Hardening/docs sync | 15–20 min | Final free-form click-through |
-
-- **Pure agent execution, back-to-back:** ~2.5–3.5 hours, based on Track 2's
-  own precedent (all 7 of its phases landed in under an hour of agent time in
-  one continuous session, 2026-07-27 22:07–23:00).
-- **Realistic wall-clock:** 1–3+ days — gated by Phase 2's migration check and
-  Phase 5's click-through, not by agent speed. Track 2's own precedent: even
-  after a "clean" fast implementation, your manual click-through the next day
-  (2026-07-28) surfaced 3 real gaps needing a follow-up round — budget for at
-  least one iteration pass after Phase 5, don't treat Phase 6 as pure
-  formality.
-- **Not baked into the numbers above:** §10.1's Anthropic `messages.parse()`
-  judgment call in Phase 1 needs your input before Phase 1 lands as planned —
-  if you push back on the default plan described there, that's rework on top
-  of the estimate, not inside it.
+**The phase-by-phase plan below is kept as the execution record**, same
+convention Track 2's own pending.md content followed until its merge —
+not re-summarized here to avoid the record drifting from what's below.
 
 ---
 
@@ -290,7 +279,7 @@ enabled/disabled Deep Check button logic.
 
 ---
 
-## Phase 6 — Hardening, full regression, docs sync
+## Phase 6 — Hardening, full regression, docs sync — done
 
 **Scope:**
 - Full pipeline: `npm run typecheck && npm run lint && npm test && npm run
@@ -307,10 +296,57 @@ enabled/disabled Deep Check button logic.
 - This file gets emptied out once merged, matching its own live-task-list
   convention.
 
-**Done when:** pipeline green, docs consistent, key-leak grep clean.
+**Done when:** pipeline green, docs consistent, key-leak grep clean. **Done** —
+verified fresh, not carried over from an earlier pass: `typecheck`/`lint`
+(0 errors, 0 warnings — see the post-Phase-6 follow-up below for the two
+warnings that used to linger here)/`test` (912/912, 119 files)/`build` all
+clean; `git grep` for `chapter-outcome` under `src/ai/` returns nothing; a
+provider-key-shape grep across tracked files returns only test fixtures.
 
 **You verify:** a final free-form click-through of all three modes — the
-"does it still feel right" bar, same as Track 2's Phase 7.
+"does it still feel right" bar, same as Track 2's Phase 7. **Not yet done** —
+this is the one item in this whole track that stayed genuinely open after
+this doc-sync pass; nothing here substitutes for it.
+
+---
+
+## Post-Phase-6 follow-up — multi-profile AI settings, Help view, Cancel fix
+
+Landed after Phase 6's own audit came back clean, in response to explicit
+follow-up asks rather than anything in the original §10 spec:
+
+- **Multiple named AI profiles** replace the single fixed `AiSettings` row:
+  Dexie v6 (`aiProfiles` + `aiActiveProfile`, migrating any real prior
+  configuration into the user's first profile, seamlessly — covered by a real
+  version-upgrade test, not just inspection). `src/ai/profiles.ts` (pure
+  CRUD) + `AiProfilesView.tsx` (new: list/switch/edit, delete with an inline
+  confirm-then-~5s-undo flow, no native dialogs).
+- **Help view** (`?` icon in the panel header): what Deep Check does, why
+  BYO-key, the provider list rendered from the live registry, and a setup
+  guide link.
+- **Cancel, on the loading state, no longer closes the whole panel** — it
+  only aborts the in-flight request now, since a user cancelling a run may
+  just want to switch to Profiles/History/Help rather than lose the panel.
+- **The two React Compiler "incompatible library" warnings that used to show
+  up on every `lint` run** (`AiSettingsForm.tsx`, `CreateComponentModal.tsx`
+  — both from react-hook-form's `watch()` returning a function the compiler
+  can't verify is safe to memoize) are gone: both switched to `useWatch`.
+  Fixing `AiSettingsForm.tsx`'s case surfaced a real latent bug the warning
+  had been masking — a `useEffect` keyed on the watched `providerId` fired
+  once on mount (effects always do, regardless of deps), and for a profile
+  whose saved model was already legitimately outside the new provider's
+  suggested list, that stray mount-time pass silently overwrote it back to
+  the provider's default. Fixed by moving the logic into the Provider
+  `<select>`'s own `onChange` (via `register`'s `onChange` option) instead of
+  an effect — it only runs on a real, user-initiated provider switch now.
+- §10.5's disabled-button question (flagged after the original Phase 5 audit
+  — the shipped button was never HTML-`disabled`, unlike what §10.5 said) is
+  resolved by updating §10.5 to match the shipped, deliberate behavior rather
+  than changing the button.
+
+Full pipeline re-verified after this round too — see Phase 6's "Done when"
+line above, which reflects this round's state, not the original Phase 6
+commit's.
 
 ---
 
