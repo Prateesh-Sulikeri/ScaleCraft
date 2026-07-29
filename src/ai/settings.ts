@@ -1,12 +1,12 @@
-import { db } from "@/persistence/db";
 import { providers, type AiProviderId } from "./providers";
 
 /** Per §10.2 — three knobs plus provider/model, deliberately not "many
- * settings." `enabled` stays false until a key is actually saved, so Deep
- * Check is absent by default rather than present-but-broken. */
+ * settings." The resolved config for one Deep Check run — used as-is by
+ * every provider/prompt/orchestration module, and as the field set an
+ * `AiProfile` (see @/ai/profiles.ts, @/persistence/db.ts) wraps with an id,
+ * a name, and timestamps. Carries no notion of "which profile" or "is this
+ * usable" itself — that's @/ai/profiles.ts's job now. */
 export type AiSettings = {
-  id: "default";
-  enabled: boolean;
   providerId: AiProviderId;
   model: string;
   /** openai-compatible only. */
@@ -17,9 +17,9 @@ export type AiSettings = {
   level: "beginner" | "intermediate" | "advanced";
 };
 
+/** Neutral starting point for a brand-new profile, and a safe fallback when
+ * no profile is configured yet. */
 export const DEFAULT_AI_SETTINGS: AiSettings = {
-  id: "default",
-  enabled: false,
   providerId: "anthropic",
   model: providers.anthropic.defaultModel,
   apiKey: "",
@@ -27,15 +27,3 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   tone: "direct",
   level: "intermediate",
 };
-
-export async function getAiSettings(): Promise<AiSettings> {
-  const existing = await db.aiSettings.get("default");
-  // A fresh copy, not the shared constant — a caller that mutates the
-  // returned draft in place (e.g. a settings-modal draft state) must never
-  // corrupt DEFAULT_AI_SETTINGS for the rest of the app's lifetime.
-  return existing ?? { ...DEFAULT_AI_SETTINGS };
-}
-
-export async function saveAiSettings(settings: AiSettings): Promise<void> {
-  await db.aiSettings.put(settings);
-}

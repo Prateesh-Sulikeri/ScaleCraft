@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AiSettingsForm } from "./AiSettingsForm";
 import { DEFAULT_AI_SETTINGS } from "@/ai/settings";
+import type { AiProfileDraft } from "@/ai/profiles";
+
+const DEFAULT_DRAFT: AiProfileDraft = { ...DEFAULT_AI_SETTINGS, name: "" };
 
 const testConnectionMock = vi.fn();
 vi.mock("@/ai/run-deep-check", () => ({
@@ -13,15 +16,16 @@ describe("AiSettingsForm", () => {
     testConnectionMock.mockReset();
   });
 
-  it("renders every field prefilled from the current settings, and the required storage disclosure", () => {
+  it("renders every field prefilled from the current draft, including its name", () => {
     render(
       <AiSettingsForm
-        settings={{ ...DEFAULT_AI_SETTINGS, providerId: "xai", model: "grok-4", apiKey: "sk-test" }}
+        settings={{ ...DEFAULT_DRAFT, name: "Work key", providerId: "xai", model: "grok-4", apiKey: "sk-test" }}
         onSave={vi.fn()}
         onCancel={vi.fn()}
       />,
     );
 
+    expect(screen.getByLabelText("Profile name")).toHaveValue("Work key");
     expect(screen.getByLabelText("Provider")).toHaveValue("xai");
     expect(screen.getByLabelText("Model")).toHaveValue("grok-4");
     expect(screen.getByLabelText("API Key")).toHaveValue("sk-test");
@@ -31,39 +35,40 @@ describe("AiSettingsForm", () => {
   });
 
   it("shows the Base URL field only for the openai-compatible provider", () => {
-    render(<AiSettingsForm settings={DEFAULT_AI_SETTINGS} onSave={vi.fn()} onCancel={vi.fn()} />);
+    render(<AiSettingsForm settings={DEFAULT_DRAFT} onSave={vi.fn()} onCancel={vi.fn()} />);
     expect(screen.queryByLabelText("Base URL")).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Provider"), { target: { value: "openai-compatible" } });
     expect(screen.getByLabelText("Base URL")).toBeInTheDocument();
   });
 
-  it("calls onSave with enabled:true once a non-empty key is entered", async () => {
+  it("calls onSave with the trimmed name and key", async () => {
     const onSave = vi.fn();
-    render(<AiSettingsForm settings={DEFAULT_AI_SETTINGS} onSave={onSave} onCancel={vi.fn()} />);
+    render(<AiSettingsForm settings={DEFAULT_DRAFT} onSave={onSave} onCancel={vi.fn()} />);
 
+    fireEvent.change(screen.getByLabelText("Profile name"), { target: { value: "  My Profile  " } });
     fireEvent.change(screen.getByLabelText("API Key"), { target: { value: "sk-live-123" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    const saved = onSave.mock.calls[0][0];
-    expect(saved.enabled).toBe(true);
+    const saved: AiProfileDraft = onSave.mock.calls[0][0];
+    expect(saved.name).toBe("My Profile");
     expect(saved.apiKey).toBe("sk-live-123");
   });
 
-  it("calls onSave with enabled:false when the key is left empty", async () => {
+  it("falls back to a default name when left blank", async () => {
     const onSave = vi.fn();
-    render(<AiSettingsForm settings={DEFAULT_AI_SETTINGS} onSave={onSave} onCancel={vi.fn()} />);
+    render(<AiSettingsForm settings={DEFAULT_DRAFT} onSave={onSave} onCancel={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    expect(onSave.mock.calls[0][0].enabled).toBe(false);
+    expect(onSave.mock.calls[0][0].name).toBe("Untitled profile");
   });
 
   it("calls onCancel when Cancel is clicked", () => {
     const onCancel = vi.fn();
-    render(<AiSettingsForm settings={DEFAULT_AI_SETTINGS} onSave={vi.fn()} onCancel={onCancel} />);
+    render(<AiSettingsForm settings={DEFAULT_DRAFT} onSave={vi.fn()} onCancel={onCancel} />);
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
@@ -71,11 +76,7 @@ describe("AiSettingsForm", () => {
   it("shows a success state on Test Connection", async () => {
     testConnectionMock.mockResolvedValue({ status: "ok" });
     render(
-      <AiSettingsForm
-        settings={{ ...DEFAULT_AI_SETTINGS, apiKey: "sk-test" }}
-        onSave={vi.fn()}
-        onCancel={vi.fn()}
-      />,
+      <AiSettingsForm settings={{ ...DEFAULT_DRAFT, apiKey: "sk-test" }} onSave={vi.fn()} onCancel={vi.fn()} />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Test Connection" }));
@@ -87,11 +88,7 @@ describe("AiSettingsForm", () => {
   it("shows the provider-specific error message on a failed Test Connection", async () => {
     testConnectionMock.mockResolvedValue({ status: "error", kind: "auth", message: "The API key was rejected." });
     render(
-      <AiSettingsForm
-        settings={{ ...DEFAULT_AI_SETTINGS, apiKey: "sk-bad" }}
-        onSave={vi.fn()}
-        onCancel={vi.fn()}
-      />,
+      <AiSettingsForm settings={{ ...DEFAULT_DRAFT, apiKey: "sk-bad" }} onSave={vi.fn()} onCancel={vi.fn()} />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Test Connection" }));

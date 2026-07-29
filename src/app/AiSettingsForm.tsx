@@ -6,11 +6,13 @@ import { Lock } from "lucide-react";
 import { providers } from "@/ai/providers";
 import { testConnection } from "@/ai/run-deep-check";
 import type { AiSettings } from "@/ai/settings";
+import type { AiProfileDraft } from "@/ai/profiles";
 import type { AiProviderId } from "@/ai/providers";
 
 const CUSTOM_MODEL_OPTION = "__custom__";
 
 type FormValues = {
+  name: string;
   providerId: AiProviderId;
   model: string;
   apiKey: string;
@@ -21,8 +23,8 @@ type FormValues = {
 };
 
 type AiSettingsFormProps = {
-  settings: AiSettings;
-  onSave: (settings: AiSettings) => void;
+  settings: AiProfileDraft;
+  onSave: (settings: AiProfileDraft) => void;
   onCancel: () => void;
 };
 
@@ -33,20 +35,22 @@ const providerOrder: AiProviderId[] = ["anthropic", "openai", "google", "xai", "
 type TestState = "idle" | "testing" | { status: "ok" } | { status: "error"; message: string };
 
 /**
- * Plain form, no positioning/backdrop of its own — embedded directly inside
- * DeepCheckPanel's settings view (toggled by its gear icon) rather than
- * floating as a standalone modal. Previously `AiSettingsModal`; split apart
- * per the explicit ask that AI Settings live inside the Deep Check pane
- * itself instead of a separate top-bar control. Field logic unchanged.
+ * Plain form, no positioning/backdrop of its own — embedded inside
+ * AiProfilesView.tsx's edit view (itself inside DeepCheckPanel's profiles
+ * view) rather than floating as a standalone modal. Previously
+ * `AiSettingsModal`, then a single always-open settings form; now a
+ * per-profile editor, one `AiProfile` in, one `AiProfileDraft` out — field
+ * logic otherwise unchanged.
  *
- * Provider/model/key + the three depth/tone/level knobs — deliberately not
- * "many settings" (§10.2). `enabled` isn't a field the user toggles
- * directly; it's derived from whether a key was actually entered at save
- * time, per "absent by default until a key is saved" (§4.3).
+ * A name plus provider/model/key and the three depth/tone/level knobs —
+ * deliberately not "many settings" (§10.2). Usability (does this profile
+ * have a usable key) is derived by the caller from the saved draft's
+ * `apiKey`, not a field this form manages directly.
  */
 export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormProps) {
   const { register, handleSubmit, watch, getValues, setValue } = useForm<FormValues>({
     defaultValues: {
+      name: settings.name,
       providerId: settings.providerId,
       model: settings.model,
       apiKey: settings.apiKey,
@@ -84,14 +88,12 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerId]);
 
-  function toAiSettings(values: FormValues): AiSettings {
-    const apiKey = values.apiKey.trim();
+  function toProfileDraft(values: FormValues): AiProfileDraft {
     return {
-      id: "default",
-      enabled: apiKey.length > 0,
+      name: values.name.trim() || "Untitled profile",
       providerId: values.providerId,
       model: values.model.trim() || providers[values.providerId].defaultModel,
-      apiKey,
+      apiKey: values.apiKey.trim(),
       depth: values.depth,
       tone: values.tone,
       level: values.level,
@@ -100,17 +102,27 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
   }
 
   const onSubmit = handleSubmit((values) => {
-    onSave(toAiSettings(values));
+    onSave(toProfileDraft(values));
   });
 
   const handleTestConnection = async () => {
     setTestState("testing");
-    const result = await testConnection(toAiSettings(getValues()));
+    const result = await testConnection(toProfileDraft(getValues()));
     setTestState(result.status === "ok" ? { status: "ok" } : { status: "error", message: result.message });
   };
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3">
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-foreground/60">Profile name</span>
+        <input
+          {...register("name")}
+          aria-label="Profile name"
+          placeholder="e.g. Work Anthropic key"
+          className={inputClass}
+        />
+      </label>
+
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-foreground/60">Provider</span>
         <select {...register("providerId")} aria-label="Provider" className={inputClass}>

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Tooltip } from "@/app/Tooltip";
 import { useCanvasStore } from "@/canvas/store";
-import { getAiSettings, saveAiSettings, DEFAULT_AI_SETTINGS, type AiSettings } from "@/ai/settings";
+import { getActiveProfile, isProfileUsable, type AiProfile } from "@/ai/profiles";
 import { runDeepCheck } from "@/ai/run-deep-check";
 import { saveSession } from "@/persistence/deepCheckSessions";
 import type { DeepCheckContext } from "@/ai/prompt";
@@ -31,13 +31,13 @@ type DeepCheckButtonProps = {
  * direction it now lives entirely inside the Deep Check panel instead, so
  * there is exactly one entry point into Deep Check from the header.
  *
- * The button is never HTML-`disabled`: per §10.5, with no key configured it
- * stays clickable but opens the panel straight to its settings view instead
- * of running Deep Check — a genuinely inert disabled button would have
- * nowhere for that click to go.
+ * The button is never HTML-`disabled`: per §10.5, with no usable profile
+ * configured it stays clickable but opens the panel straight to its
+ * profiles view instead of running Deep Check — a genuinely inert disabled
+ * button would have nowhere for that click to go.
  */
 export function DeepCheckButton({ ctx, saveId }: DeepCheckButtonProps) {
-  const [settings, setSettings] = useState<AiSettings | null>(null);
+  const [activeProfile, setActiveProfile] = useState<AiProfile | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [view, setView] = useState<DeepCheckView>("result");
   const [panelState, setPanelState] = useState<DeepCheckPanelState | null>(null);
@@ -48,22 +48,23 @@ export function DeepCheckButton({ ctx, saveId }: DeepCheckButtonProps) {
     // Same unmount-guard convention as sandbox/page.tsx's custom-components
     // load and ChapterWorkspace's chapterProgress load — without it, a
     // component that mounts and unmounts quickly (e.g. AppHeader's own
-    // focus-mode conditional render) can resolve setSettings after teardown.
+    // focus-mode conditional render) can resolve setActiveProfile after
+    // teardown.
     let cancelled = false;
-    getAiSettings().then((s) => {
-      if (!cancelled) setSettings(s);
+    getActiveProfile().then((p) => {
+      if (!cancelled) setActiveProfile(p);
     });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const runCheck = (activeSettings: AiSettings) => {
+  const runCheck = (profile: AiProfile) => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setView("result");
     setPanelState({ status: "loading" });
-    runDeepCheck(ctx, activeSettings, controller.signal)
+    runDeepCheck(ctx, profile, controller.signal)
       .then((result) => {
         setPanelState(result);
         // Autosave — see the "sessions" ask this was built for (2026-07-29
@@ -77,19 +78,20 @@ export function DeepCheckButton({ ctx, saveId }: DeepCheckButtonProps) {
         // runDeepCheck's contract: every non-abort failure resolves to a
         // tagged { status: "error" } result, never a rejection — so a
         // rejection here is always the abort path (see run-deep-check.ts's
-        // own doc comment). "No result forced through" means closing the
-        // panel, not surfacing an error for a cancellation the user asked for.
+        // own doc comment). "No result forced through" means falling back to
+        // the empty result state, not surfacing an error for a cancellation
+        // the user asked for.
         setPanelState(null);
       });
   };
 
   const handleDeepCheckClick = () => {
     setPanelOpen(true);
-    if (!settings?.enabled) {
-      setView("settings");
+    if (!isProfileUsable(activeProfile)) {
+      setView("profiles");
       return;
     }
-    runCheck(settings);
+    runCheck(activeProfile!);
   };
 
   const handleClosePanel = () => {
@@ -99,24 +101,29 @@ export function DeepCheckButton({ ctx, saveId }: DeepCheckButtonProps) {
     setView("result");
   };
 
-  const handleSaveSettings = async (next: AiSettings) => {
-    await saveAiSettings(next);
-    setSettings(next);
-    setView("result");
+  /** Loading state's own Cancel button — aborts the request but, unlike
+   * handleClosePanel, leaves the panel open. Cancelling a run isn't the
+   * same as wanting the whole panel gone: the user may just want to check
+   * Settings, History, or Help, or retry with a different profile. */
+  const handleCancelRun = () => {
+    abortControllerRef.current?.abort();
+    setPanelState(null);
   };
 
   const handleRun = () => {
-    if (settings?.enabled) runCheck(settings);
+    if (isProfileUsable(activeProfile)) runCheck(activeProfile!);
   };
+
+  const canRun = isProfileUsable(activeProfile);
 
   return (
     <>
-      <Tooltip label={settings?.enabled ? "Deep Check" : "Configure an AI provider to enable Deep Check"}>
+      <Tooltip label={canRun ? "Deep Check" : "Configure an AI provider to enable Deep Check"}>
         <button
           onClick={handleDeepCheckClick}
           aria-label="Deep Check"
           className={`flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel hover:text-foreground ${
-            settings?.enabled ? "text-foreground/70" : "text-foreground/30"
+            canRun ? "text-foreground/70" : "text-foreground/30"
           }`}
         >
           <Sparkles size={16} />
@@ -128,11 +135,13 @@ export function DeepCheckButton({ ctx, saveId }: DeepCheckButtonProps) {
           view={view}
           onViewChange={setView}
           state={panelState}
-          settings={settings ?? DEFAULT_AI_SETTINGS}
-          onSaveSettings={handleSaveSettings}
+          activeProfileId={activeProfile?.id ?? null}
+          canRun={canRun}
+          onActiveProfileChange={setActiveProfile}
           onRun={handleRun}
           saveId={saveId}
           onClose={handleClosePanel}
+          onCancelRun={handleCancelRun}
           onSelectNode={setSelectedNodeId}
         />
       )}

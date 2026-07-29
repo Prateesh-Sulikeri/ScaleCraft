@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { DeepCheckPanel, type DeepCheckView } from "./DeepCheckPanel";
-import { DEFAULT_AI_SETTINGS } from "@/ai/settings";
 import type { DeepCheckSession } from "@/persistence/db";
 
 const listSessionsMock = vi.fn();
@@ -16,16 +15,32 @@ vi.mock("@/ai/run-deep-check", () => ({
   testConnection: (...args: unknown[]) => testConnectionMock(...args),
 }));
 
+// AiProfilesView (rendered in the "profiles" view) fetches profiles on
+// mount — mocked here since this file's own tests only care about
+// DeepCheckPanel's wiring into it, not profile CRUD (covered by
+// AiProfilesView.test.tsx).
+const listProfilesMock = vi.fn();
+vi.mock("@/ai/profiles", () => ({
+  listProfiles: (...args: unknown[]) => listProfilesMock(...args),
+  createProfile: vi.fn(),
+  updateProfile: vi.fn(),
+  deleteProfile: vi.fn(),
+  setActiveProfileId: vi.fn(),
+  getActiveProfile: vi.fn(),
+}));
+
 function baseProps(overrides: Partial<React.ComponentProps<typeof DeepCheckPanel>> = {}) {
   return {
     view: "result" as DeepCheckView,
     onViewChange: vi.fn(),
     state: null,
-    settings: DEFAULT_AI_SETTINGS,
-    onSaveSettings: vi.fn(),
+    activeProfileId: null,
+    canRun: false,
+    onActiveProfileChange: vi.fn(),
     onRun: vi.fn(),
     saveId: "sandbox",
     onClose: vi.fn(),
+    onCancelRun: vi.fn(),
     onSelectNode: vi.fn(),
     ...overrides,
   };
@@ -35,6 +50,7 @@ describe("DeepCheckPanel", () => {
   beforeEach(() => {
     listSessionsMock.mockReset().mockResolvedValue([]);
     deleteSessionMock.mockReset();
+    listProfilesMock.mockReset().mockResolvedValue([]);
   });
 
   it("shows the Sparkles icon and 'Deep Check' title in the header", () => {
@@ -47,18 +63,21 @@ describe("DeepCheckPanel", () => {
     expect(screen.getByRole("separator", { name: "Resize Deep Check panel" })).toBeInTheDocument();
   });
 
-  it("renders a loading state with a cancel affordance wired to onClose", () => {
+  it("renders a loading state with a cancel affordance wired to onCancelRun, not onClose", () => {
     const onClose = vi.fn();
-    render(<DeepCheckPanel {...baseProps({ state: { status: "loading" }, onClose })} />);
+    const onCancelRun = vi.fn();
+    render(<DeepCheckPanel {...baseProps({ state: { status: "loading" }, onClose, onCancelRun })} />);
 
     expect(screen.getByText("Reviewing your design…")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onCancelRun).toHaveBeenCalledTimes(1);
+    // Cancelling the run must not also close the whole panel.
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("renders an empty result state with a Run Deep Check action when nothing has run yet", () => {
     const onRun = vi.fn();
-    render(<DeepCheckPanel {...baseProps({ state: null, settings: { ...DEFAULT_AI_SETTINGS, enabled: true }, onRun })} />);
+    render(<DeepCheckPanel {...baseProps({ state: null, canRun: true, onRun })} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Run Deep Check" }));
     expect(onRun).toHaveBeenCalledTimes(1);
@@ -155,21 +174,23 @@ describe("DeepCheckPanel", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("shows History and AI Settings icons only in the result view", () => {
+  it("shows History, AI Profiles, and Help icons only in the result view", () => {
     const { rerender } = render(<DeepCheckPanel {...baseProps({ view: "result" })} />);
     expect(screen.getByRole("button", { name: "History" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "AI Settings" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "AI Profiles" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Help" })).toBeInTheDocument();
 
-    rerender(<DeepCheckPanel {...baseProps({ view: "settings" })} />);
+    rerender(<DeepCheckPanel {...baseProps({ view: "profiles" })} />);
     expect(screen.queryByRole("button", { name: "History" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "AI Settings" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "AI Profiles" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Help" })).not.toBeInTheDocument();
   });
 
-  it("clicking the settings icon requests a view change to settings", () => {
+  it("clicking the profiles icon requests a view change to profiles", () => {
     const onViewChange = vi.fn();
     render(<DeepCheckPanel {...baseProps({ onViewChange })} />);
-    fireEvent.click(screen.getByRole("button", { name: "AI Settings" }));
-    expect(onViewChange).toHaveBeenCalledWith("settings");
+    fireEvent.click(screen.getByRole("button", { name: "AI Profiles" }));
+    expect(onViewChange).toHaveBeenCalledWith("profiles");
   });
 
   it("clicking the history icon requests a view change to history", () => {
@@ -179,24 +200,32 @@ describe("DeepCheckPanel", () => {
     expect(onViewChange).toHaveBeenCalledWith("history");
   });
 
-  it("renders the AI Settings form inline in the settings view, and Back returns to result", () => {
+  it("clicking the help icon requests a view change to help", () => {
     const onViewChange = vi.fn();
-    render(<DeepCheckPanel {...baseProps({ view: "settings", onViewChange })} />);
+    render(<DeepCheckPanel {...baseProps({ onViewChange })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Help" }));
+    expect(onViewChange).toHaveBeenCalledWith("help");
+  });
 
-    expect(screen.getByLabelText("Provider")).toBeInTheDocument();
+  it("renders AiProfilesView in the profiles view, and Back returns to result", async () => {
+    const onViewChange = vi.fn();
+    render(<DeepCheckPanel {...baseProps({ view: "profiles", onViewChange })} />);
+
+    expect(await screen.findByRole("button", { name: /New Profile/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Back to review" }));
     expect(onViewChange).toHaveBeenCalledWith("result");
   });
 
-  it("saving settings inline calls onSaveSettings with the new settings", async () => {
-    const onSaveSettings = vi.fn();
-    render(<DeepCheckPanel {...baseProps({ view: "settings", onSaveSettings })} />);
+  it("renders the Help view with what/why content, the provider list, and a guide link", () => {
+    render(<DeepCheckPanel {...baseProps({ view: "help" })} />);
 
-    fireEvent.change(screen.getByLabelText("API Key"), { target: { value: "sk-live-123" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    await waitFor(() => expect(onSaveSettings).toHaveBeenCalledTimes(1));
-    expect(onSaveSettings.mock.calls[0][0].apiKey).toBe("sk-live-123");
+    expect(screen.getByText(/What is Deep Check/)).toBeInTheDocument();
+    expect(screen.getByText(/bring your own API key/i)).toBeInTheDocument();
+    expect(screen.getByText("Anthropic")).toBeInTheDocument();
+    expect(screen.getByText("xAI")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /setup guide/i });
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
   });
 
   it("history view lists saved sessions for the current saveId, newest first as returned", async () => {

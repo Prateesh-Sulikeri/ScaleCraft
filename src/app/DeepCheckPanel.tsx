@@ -1,20 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ChevronLeft, History, Loader2, Settings, Sparkles, Trash2, X } from "lucide-react";
+import { ChevronLeft, HelpCircle, History, Loader2, Sparkles, Trash2, Users, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import type { DeepCheckResult } from "@/ai/run-deep-check";
 import type { AiCritique } from "@/ai/schema";
-import type { AiSettings } from "@/ai/settings";
+import type { AiProfile } from "@/ai/profiles";
+import { providers } from "@/ai/providers";
 import type { DeepCheckSession } from "@/persistence/db";
 import { deleteSession, listSessions } from "@/persistence/deepCheckSessions";
-import { AiSettingsForm } from "./AiSettingsForm";
+import { AiProfilesView } from "./AiProfilesView";
 import { Tooltip } from "./Tooltip";
 
 export type DeepCheckPanelState = { status: "loading" } | DeepCheckResult;
-export type DeepCheckView = "result" | "settings" | "history";
+export type DeepCheckView = "result" | "profiles" | "history" | "help";
+
+const DEEP_CHECK_GUIDE_URL =
+  "https://medium.com/@prateeshcodes/create-your-free-ai-api-key-with-groq-to-use-in-scalecraft-deep-checks-ae626d48b99d?sharedUserId=prateeshcodes";
 
 const MIN_WIDTH = 340;
 const MAX_WIDTH = 720;
@@ -25,16 +29,23 @@ type DeepCheckPanelProps = {
   view: DeepCheckView;
   onViewChange: (view: DeepCheckView) => void;
   /** Null before the first run of this panel session (e.g. opened straight
-   * to Settings because no key was configured yet) — distinct from an
-   * in-flight or completed run, which is why this isn't folded into
+   * to Profiles because no usable profile was configured yet) — distinct
+   * from an in-flight or completed run, which is why this isn't folded into
    * DeepCheckPanelState itself. */
   state: DeepCheckPanelState | null;
-  settings: AiSettings;
-  onSaveSettings: (settings: AiSettings) => void;
-  /** Lets the empty result state ("settings saved, nothing run yet") and a
-   * saved-session list start a real run without the panel needing its own
-   * copy of runDeepCheck's orchestration — that stays owned by
-   * DeepCheckButton. */
+  /** The profile Deep Check will run with, if any — drives the active
+   * marker in AiProfilesView and whether the empty result state's "Run Deep
+   * Check" button is enabled. */
+  activeProfileId: string | null;
+  canRun: boolean;
+  /** Fired by AiProfilesView after any mutation that could change the
+   * active profile (switch, create, edit of the active one, delete/undo) —
+   * always the freshly re-read profile, see AiProfilesView.tsx. */
+  onActiveProfileChange: (profile: AiProfile | null) => void;
+  /** Lets the empty result state ("a profile is configured, nothing run
+   * yet") and a saved-session list start a real run without the panel
+   * needing its own copy of runDeepCheck's orchestration — that stays owned
+   * by DeepCheckButton. */
   onRun: () => void;
   /** Scopes session history to the current board/chapter — the same slot
    * key CanvasSave/ChapterProgress already use. Null when there's no
@@ -42,6 +53,12 @@ type DeepCheckPanelProps = {
    * history is unavailable rather than silently global. */
   saveId: string | null;
   onClose: () => void;
+  /** Cancel button on the loading state — aborts the in-flight request but
+   * leaves the panel open (unlike `onClose`, the X button/backdrop click).
+   * A user cancelling a run may just want to switch to Settings/History/
+   * Help, or try again with different settings, not lose the panel
+   * entirely. */
+  onCancelRun: () => void;
   onSelectNode: (nodeId: string) => void;
 };
 
@@ -52,23 +69,25 @@ type DeepCheckPanelProps = {
  * z-modal/z-modal-backdrop (above ValidationIndicator's z-dropdown) so the
  * two can never stack ambiguously.
  *
- * Owns three views (`view` is lifted to DeepCheckButton, not local state,
- * because opening straight to "settings" — no key configured yet — has to
- * be decided at click time, before this component exists): the review
- * result (default), AI Settings (embedded inline per explicit product
- * direction — no more separate top-bar modal), and session History (every
- * successful run autosaves here, scoped to `saveId` — see
- * DeepCheckButton.tsx).
+ * Owns four views (`view` is lifted to DeepCheckButton, not local state,
+ * because opening straight to "profiles" — no usable profile configured yet
+ * — has to be decided at click time, before this component exists): the
+ * review result (default), AI Profiles (AiProfilesView.tsx, embedded inline
+ * per explicit product direction — no more separate top-bar modal), session
+ * History (every successful run autosaves here, scoped to `saveId` — see
+ * DeepCheckButton.tsx), and Help (static onboarding content).
  */
 export function DeepCheckPanel({
   view,
   onViewChange,
   state,
-  settings,
-  onSaveSettings,
+  activeProfileId,
+  canRun,
+  onActiveProfileChange,
   onRun,
   saveId,
   onClose,
+  onCancelRun,
   onSelectNode,
 }: DeepCheckPanelProps) {
   // Lazy initializer, not an effect + setState — this component only ever
@@ -131,12 +150,27 @@ export function DeepCheckPanel({
             )}
             <Sparkles size={15} className="shrink-0 text-foreground/60" aria-hidden="true" />
             <h2 className="text-sm font-semibold">
-              {view === "settings" ? "AI Settings" : view === "history" ? "Deep Check History" : "Deep Check"}
+              {view === "profiles"
+                ? "AI Profiles"
+                : view === "history"
+                  ? "Deep Check History"
+                  : view === "help"
+                    ? "Deep Check Help"
+                    : "Deep Check"}
             </h2>
           </div>
           <div className="flex items-center gap-1">
             {view === "result" && (
               <>
+                <Tooltip label="Help">
+                  <button
+                    onClick={() => onViewChange("help")}
+                    aria-label="Help"
+                    className="flex h-7 w-7 items-center justify-center rounded text-foreground/50 hover:text-foreground"
+                  >
+                    <HelpCircle size={15} />
+                  </button>
+                </Tooltip>
                 <Tooltip label="Deep Check History">
                   <button
                     onClick={() => onViewChange("history")}
@@ -146,13 +180,13 @@ export function DeepCheckPanel({
                     <History size={15} />
                   </button>
                 </Tooltip>
-                <Tooltip label="AI Settings">
+                <Tooltip label="AI Profiles">
                   <button
-                    onClick={() => onViewChange("settings")}
-                    aria-label="AI Settings"
+                    onClick={() => onViewChange("profiles")}
+                    aria-label="AI Profiles"
                     className="flex h-7 w-7 items-center justify-center rounded text-foreground/50 hover:text-foreground"
                   >
-                    <Settings size={15} />
+                    <Users size={15} />
                   </button>
                 </Tooltip>
               </>
@@ -170,14 +204,15 @@ export function DeepCheckPanel({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          {view === "settings" && (
-            <AiSettingsForm settings={settings} onSave={onSaveSettings} onCancel={() => onViewChange("result")} />
+          {view === "profiles" && (
+            <AiProfilesView activeProfileId={activeProfileId} onActiveProfileChange={onActiveProfileChange} />
           )}
           {view === "history" && <HistoryView saveId={saveId} onSelectNode={onSelectNode} />}
+          {view === "help" && <HelpView />}
           {view === "result" && (
             <>
-              {state === null && <EmptyResultState canRun={settings.enabled} onRun={onRun} />}
-              {state?.status === "loading" && <LoadingState onCancel={onClose} />}
+              {state === null && <EmptyResultState canRun={canRun} onRun={onRun} />}
+              {state?.status === "loading" && <LoadingState onCancel={onCancelRun} />}
               {state?.status === "error" && <ErrorState message={state.message} />}
               {state?.status === "ok" && <CritiqueView critique={state.critique} onSelectNode={onSelectNode} />}
             </>
@@ -185,6 +220,52 @@ export function DeepCheckPanel({
         </div>
       </div>
     </>
+  );
+}
+
+/** Static onboarding content — what Deep Check does, why it needs your own
+ * key, and which providers are supported. The provider list is rendered
+ * from the real `providers` registry rather than hand-typed, so it can
+ * never drift out of sync with what Settings actually offers. */
+function HelpView() {
+  return (
+    <div className="flex flex-col gap-4 text-sm">
+      <div className="flex flex-col gap-1.5">
+        <h3 className="text-sm font-semibold text-foreground">What is Deep Check?</h3>
+        <p className="text-foreground/70">
+          Deep Check sends your current design to an AI model for a system-design critique —
+          trade-offs, failure modes, and things worth reconsidering. It never decides whether a
+          chapter passes; that&apos;s always the deterministic validation engine.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <h3 className="text-sm font-semibold text-foreground">Why bring your own API key?</h3>
+        <p className="text-foreground/70">
+          ScaleCraft doesn&apos;t run or pay for AI calls on your behalf. Your key is stored only in
+          this browser&apos;s IndexedDB and sent directly to your chosen provider — never through
+          ScaleCraft&apos;s servers.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <h3 className="text-sm font-semibold text-foreground">Supported providers</h3>
+        <ul className="list-inside list-disc text-foreground/70">
+          {Object.values(providers).map((provider) => (
+            <li key={provider.id}>{provider.label}</li>
+          ))}
+        </ul>
+      </div>
+
+      <a
+        href={DEEP_CHECK_GUIDE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-sm font-medium text-foreground underline decoration-foreground/30 underline-offset-2 hover:decoration-foreground"
+      >
+        Read the setup guide →
+      </a>
+    </div>
   );
 }
 
