@@ -1,9 +1,14 @@
 # Release 3.0.0 — Learning Path Navigation Overhaul
 
-**Status:** planned, not started
+**Status:** in progress — Phases 0-2 done, Phase 3 next
 **Source spec:** `.claude/docs/pending.md`
 **Release branch:** `release/v3.0.0-chapter-content` (cut from `develop`)
 **Version target:** `3.0.0-alpha` (VERSION + package.json)
+**Working branch note:** all phases land on a single branch,
+`feature/curriculum-manifest`, rather than one branch per phase as originally
+planned below — a mid-Phase-0 call to keep review overhead down. The
+per-phase "Branch:" lines below are the original plan and no longer literal;
+each phase is still its own commit on that shared branch.
 **Scope:** UI/UX only. **No chapter content is authored in 3.0.0.** Real Building
 Blocks / RWE content starts at 3.1.0 and must plug into this model without another
 redesign.
@@ -408,9 +413,9 @@ them, manually, after review.** Ask before every push.
 
 ---
 
-### Phase 0 — Branch + version (≈10 min)
+### Phase 0 — Branch + version (≈10 min) — ✅ DONE
 
-**Branch:** `chore/release-3.0.0-scaffold`
+**Branch:** `chore/release-3.0.0-scaffold` (merged into `feature/curriculum-manifest`)
 
 1. Verify the tree is clean. Commit or stash the pending `.claude/docs/pending.md`
    modification first — it must not ride along in a feature branch.
@@ -421,10 +426,11 @@ them, manually, after review.** Ask before every push.
 5. Commit this plan document itself.
 
 **Done when:** both branches exist on origin, version is bumped, pipeline green.
+**Done:** commit `63a91a8`, pipeline green (typecheck/lint/test/build).
 
 ---
 
-### Phase 1 — Curriculum data model + manifest (≈1.5 h)
+### Phase 1 — Curriculum data model + manifest (≈1.5 h) — ✅ DONE
 
 **Branch:** `feature/curriculum-manifest`
 **Depends on:** Phase 0
@@ -442,10 +448,13 @@ data plus lookups plus tests.
   and let TS check it structurally — do not use `as` casts to silence shape errors.
 
 **Done when:** `manifest.test.ts` asserts all invariants from §3.3 and passes; pipeline green.
+**Done:** commit `9956f7d`. RWE-5's real gate is a "2-of-4" quorum which
+`prerequisiteSlugs: string[]` can't express — approximated as all four candidates
+with a comment, since nothing reads the field yet.
 
 ---
 
-### Phase 2 — Progress model: Dexie v7 + derivation + store (≈2 h)
+### Phase 2 — Progress model: Dexie v7 + derivation + store (≈2 h) — ✅ DONE
 
 **Branch:** `feature/curriculum-progress-model`
 **Depends on:** Phase 1
@@ -466,6 +475,7 @@ data plus lookups plus tests.
 
 **Done when:** status derivation and aggregation are unit-tested across all four
 branches; the store's Dexie round-trip is tested; pipeline green.
+**Done:** commit `187d31e`.
 
 ---
 
