@@ -1,14 +1,16 @@
 # Release 3.0.0 — Learning Path Navigation Overhaul
 
-**Status:** in progress — Phases 0-2 done, Phase 3 next
+**Status:** in progress — Phases 0-3 done, Phase 4 next
 **Source spec:** `.claude/docs/pending.md`
 **Release branch:** `release/v3.0.0-chapter-content` (cut from `develop`)
 **Version target:** `3.0.0-alpha` (VERSION + package.json)
-**Working branch note:** all phases land on a single branch,
-`feature/curriculum-manifest`, rather than one branch per phase as originally
-planned below — a mid-Phase-0 call to keep review overhead down. The
-per-phase "Branch:" lines below are the original plan and no longer literal;
-each phase is still its own commit on that shared branch.
+**Working branch note:** phases land on one shared branch at a time rather
+than one branch per phase as originally planned below — a mid-Phase-0 call
+to keep review overhead down. Phases 0-2 landed on `feature/curriculum-
+manifest`, which was merged into `release/v3.0.0-chapter-content`; Phase 3
+onward lands on `feature/learning-path-page`, cut fresh from the updated
+release branch. The per-phase "Branch:" lines below are the original plan
+and no longer literal.
 **Scope:** UI/UX only. **No chapter content is authored in 3.0.0.** Real Building
 Blocks / RWE content starts at 3.1.0 and must plug into this model without another
 redesign.
@@ -479,7 +481,7 @@ branches; the store's Dexie round-trip is tested; pipeline green.
 
 ---
 
-### Phase 3 — Learning Path UI (≈3 h, the largest phase)
+### Phase 3 — Learning Path UI (≈3 h, the largest phase) — ✅ DONE
 
 **Branch:** `feature/learning-path-page`
 **Depends on:** Phase 2
@@ -621,6 +623,9 @@ the page and should paint immediately. Use `useHasMounted()`
 **Done when:** both `/building-blocks` and `/real-world-extraction` render the full
 Learning Path with live progress, sections collapse, the PDF downloads, the manual
 toggle persists across a reload, and every component has a test. Pipeline green.
+**Done:** commit `d126533`. The manual toggle's Dexie round-trip is covered by
+progress-store.test.ts (Phase 2) and exercised again through ChapterRow's own
+tests; a real-browser reload check is still owed to Phase 7's manual checklist.
 
 ---
 
