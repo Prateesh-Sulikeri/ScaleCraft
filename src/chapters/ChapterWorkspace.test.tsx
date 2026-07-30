@@ -173,6 +173,16 @@ const entryTwo: CurriculumChapter = {
   chapterDefinitionId: "ch-2",
 };
 
+// ChapterSidebar (real, mounted by ChapterWorkspace) reads the manifest via
+// getCourse for its collapsible curriculum navigator — a minimal but
+// structurally real Course covering both entries above.
+const fakeCourse = {
+  id: "building-blocks" as const,
+  title: "Building Blocks",
+  subtitle: "Subtitle.",
+  sections: [{ id: "unit-1", label: "Unit 1", title: "Unit One", summary: "Summary.", chapters: [entryOne, entryTwo] }],
+};
+
 const findEntryMock = vi.fn((_mode: string, slug: string) =>
   slug === "slug-one" ? entryOne : slug === "slug-two" ? entryTwo : undefined,
 );
@@ -180,13 +190,10 @@ const adjacentAuthoredEntriesMock = vi.fn((...args: [string, string]) => {
   void args;
   return {} as { prev?: CurriculumChapter; next?: CurriculumChapter };
 });
-const slugForChapterDefinitionIdMock = vi.fn((id: string) =>
-  id === "ch-1" ? "slug-one" : id === "ch-2" ? "slug-two" : undefined,
-);
 vi.mock("@/curriculum", () => ({
+  getCourse: () => fakeCourse,
   findEntry: (mode: string, slug: string) => findEntryMock(mode, slug),
   adjacentAuthoredEntries: (mode: string, slug: string) => adjacentAuthoredEntriesMock(mode, slug),
-  slugForChapterDefinitionId: (id: string) => slugForChapterDefinitionIdMock(id),
 }));
 
 const markVisitedMock = vi.fn();
@@ -197,6 +204,8 @@ vi.mock("@/curriculum/progress-store", () => ({
     selector({
       markVisited: markVisitedMock,
       hydrate: hydrateProgressMock,
+      validationPassedDefinitionIds: new Set<string>(),
+      rowsBySlug: new Map(),
       recordValidationPass: recordValidationPassMock,
     }),
 }));
@@ -237,7 +246,6 @@ beforeEach(async () => {
   findEntryMock.mockClear();
   adjacentAuthoredEntriesMock.mockReset();
   adjacentAuthoredEntriesMock.mockReturnValue({});
-  slugForChapterDefinitionIdMock.mockClear();
   markVisitedMock.mockClear();
   hydrateProgressMock.mockClear();
   recordValidationPassMock.mockClear();

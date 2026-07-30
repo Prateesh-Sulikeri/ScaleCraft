@@ -1,61 +1,67 @@
 "use client";
 
-import { ChapterList } from "./ChapterList";
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { ChapterNavigator } from "./ChapterNavigator";
 import { QuestionPane } from "./QuestionPane";
-import type { ChapterDefinition } from "@/content/chapters/types";
+import { getCourse, findEntry, adjacentAuthoredEntries } from "@/curriculum";
+import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+import type { ProgressInputs } from "@/curriculum/progress";
+import { chapterRegistry } from "@/content/chapters";
+import type { CourseId } from "@/curriculum/types";
 import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
 
 type ChapterSidebarProps = {
-  chapters: ChapterDefinition[];
-  selectedChapterId: string | null;
-  onSelect: (id: string) => void;
-  onBack: () => void;
+  courseId: CourseId;
+  chapterSlug: string;
   chapterOutcome: ChapterOutcome | null;
   isStale: boolean;
-  /** Curriculum-order prev/next (src/curriculum's adjacentAuthoredEntries),
-   *  as opposed to index-adjacency within this mode's own ChapterDefinition
-   *  array below — see RELEASE_3.0.0_LEARNING_PATH.md Phase 4.3. When
-   *  provided (even with both entries undefined), takes over from the
-   *  chapters-array computation entirely. Phase 5 removes the fallback and
-   *  this override once the sidebar reads the curriculum manifest directly. */
-  navOverride?: { onPrev?: () => void; onNext?: () => void };
 };
 
 /**
- * The two-view switcher mounted inside SidebarShell — Chapter List when no
- * chapter is selected, Question Pane once one is. One implementation shared
- * by both /building-blocks and /real-world-extraction via ChapterWorkspace.
+ * The in-workspace sidebar — a collapsible curriculum navigator
+ * (ChapterNavigator) above the always-rendered QuestionPane. Since Phase 4
+ * made the workspace route-driven, there is always a chapter open; this
+ * replaces the old two-view ChapterList/QuestionPane switcher (see git
+ * history) entirely. Derives everything from `courseId` + `chapterSlug` —
+ * the curriculum manifest and progress store are the single source of
+ * truth (RELEASE_3.0.0_LEARNING_PATH.md Phase 5); this component is another
+ * *view* over them, same as the Learning Path, never a second writer.
  */
-export function ChapterSidebar({
-  chapters,
-  selectedChapterId,
-  onSelect,
-  onBack,
-  chapterOutcome,
-  isStale,
-  navOverride,
-}: ChapterSidebarProps) {
-  const selected = chapters.find((c) => c.id === selectedChapterId) ?? null;
+export function ChapterSidebar({ courseId, chapterSlug, chapterOutcome, isStale }: ChapterSidebarProps) {
+  const router = useRouter();
+  const course = getCourse(courseId);
 
-  if (!selected) {
-    return <ChapterList chapters={chapters} onSelect={onSelect} />;
-  }
+  // Guaranteed non-null by the route guard in practice ([chapterSlug]/
+  // page.tsx 404s first) — kept as a real lookup so a stale/bad slug
+  // degrades to `null` -> the defensive early return below.
+  const entry = findEntry(courseId, chapterSlug);
+  const chapter = entry?.chapterDefinitionId
+    ? (chapterRegistry.find((c) => c.id === entry.chapterDefinitionId) ?? null)
+    : null;
 
-  const index = chapters.findIndex((c) => c.id === selected.id);
-  const prev = index > 0 ? chapters[index - 1] : undefined;
-  const next = index < chapters.length - 1 ? chapters[index + 1] : undefined;
+  const { prev, next } = adjacentAuthoredEntries(courseId, chapterSlug);
 
-  const onPrev = navOverride ? navOverride.onPrev : prev ? () => onSelect(prev.id) : undefined;
-  const onNext = navOverride ? navOverride.onNext : next ? () => onSelect(next.id) : undefined;
+  const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
+  const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
+  const inputs: ProgressInputs = useMemo(
+    () => ({ validationPassedDefinitionIds, rowsBySlug }),
+    [validationPassedDefinitionIds, rowsBySlug],
+  );
+
+  if (!chapter) return null;
 
   return (
-    <QuestionPane
-      chapter={selected}
-      onBack={onBack}
-      onPrev={onPrev}
-      onNext={onNext}
-      chapterOutcome={chapterOutcome}
-      isStale={isStale}
-    />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <ChapterNavigator course={course} chapterSlug={chapterSlug} inputs={inputs} />
+      <QuestionPane
+        chapter={chapter}
+        onBack={() => router.push(`/${courseId}`)}
+        onPrev={prev ? () => router.push(`/${courseId}/${prev.slug}`) : undefined}
+        onNext={next ? () => router.push(`/${courseId}/${next.slug}`) : undefined}
+        chapterOutcome={chapterOutcome}
+        isStale={isStale}
+      />
+    </div>
   );
 }

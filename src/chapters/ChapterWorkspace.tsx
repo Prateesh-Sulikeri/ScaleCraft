@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
@@ -19,14 +18,14 @@ import {
   architectureGraphTopologyKey,
 } from "@/canvas/store";
 import type { ValidationState } from "@/canvas/types";
-import { getChaptersForMode, chapterRegistry } from "@/content/chapters";
+import { chapterRegistry } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import { evaluateChapter, type ChapterOutcome } from "@/validation-engine/chapter-outcome";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db } from "@/persistence/db";
 import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
-import { findEntry, adjacentAuthoredEntries, slugForChapterDefinitionId } from "@/curriculum";
+import { findEntry } from "@/curriculum";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 
 type ChapterWorkspaceProps = {
@@ -64,9 +63,7 @@ export function ChapterWorkspace({ mode, chapterSlug }: ChapterWorkspaceProps) {
 }
 
 function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
-  const router = useRouter();
   const storeApi = useCanvasStoreApi();
-  const chapters = useMemo(() => getChaptersForMode(mode), [mode]);
 
   // Guaranteed non-null by the route guard in practice; kept as a real
   // lookup (not a non-null assertion) so a bad slug degrades to `null` ->
@@ -292,10 +289,6 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     };
   }, [nodes, edges, violations, chapterPassed, chapter]);
 
-  // Curriculum-order adjacency (skips unauthored entries), not index
-  // adjacency within `chapters` — see RELEASE_3.0.0_LEARNING_PATH.md §4.3.
-  const { prev, next } = adjacentAuthoredEntries(mode, chapterSlug);
-
   // Route guard makes this unreachable in practice; a degrade, not a crash,
   // for a stale/bad slug.
   if (!chapter) return null;
@@ -328,19 +321,10 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
         {!focusMode && (
           <SidebarShell>
             <ChapterSidebar
-              chapters={chapters}
-              selectedChapterId={chapter.id}
-              onSelect={(id) => {
-                const slug = slugForChapterDefinitionId(id);
-                if (slug) router.push(`/${mode}/${slug}`);
-              }}
-              onBack={() => router.push(`/${mode}`)}
+              courseId={mode}
+              chapterSlug={chapterSlug}
               chapterOutcome={chapterOutcome}
               isStale={isStale}
-              navOverride={{
-                onPrev: prev ? () => router.push(`/${mode}/${prev.slug}`) : undefined,
-                onNext: next ? () => router.push(`/${mode}/${next.slug}`) : undefined,
-              }}
             />
           </SidebarShell>
         )}

@@ -107,7 +107,18 @@ export function QuestionPane({ chapter, onBack, onPrev, onNext, chapterOutcome, 
       </div>
 
       <div className="flex-1 p-3">
-        <h2 className="text-sm font-semibold">{chapter.title}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold">{chapter.title}</h2>
+          {/* Marks throwaway/dummy *content* — distinct from "unauthored"
+           * (the Learning Path's chapterDefinitionId: null), which never
+           * reaches this component at all — see the doc comment on
+           * ChapterDefinition.placeholder. */}
+          {chapter.placeholder && (
+            <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70">
+              Draft
+            </span>
+          )}
+        </div>
         <div className="mt-2">
           <MarkdownRenderer content={chapter.problemStatement} />
         </div>

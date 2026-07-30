@@ -2,8 +2,8 @@ import type { ChapterDefinition } from "./types";
 
 /**
  * Throwaway placeholder content — one dummy chapter per chapter mode, just
- * enough to exercise the Phase 5 shell (ChapterWorkspace/ChapterSidebar/
- * ChapterList/QuestionPane) end to end. This is NOT real curriculum
+ * enough to exercise the chapter shell (ChapterWorkspace/ChapterSidebar/
+ * ChapterNavigator/QuestionPane) end to end. This is NOT real curriculum
  * content: the actual Building Blocks / RWE chapters (per
  * .claude/docs/CURRICULUM.md) are Step 5/6 in .claude/docs/NEXT_STEPS.md,
  * authored once the stronger validation agent (Step 3) exists to back
