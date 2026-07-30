@@ -36,7 +36,7 @@ const TRANSITION_HOLD_MS = 1250;
  * doesn't also add its own non-actionable tab stop around this.
  */
 export function ModeNode({ data }: NodeProps<ModeNodeType>) {
-  const { mode, href, status } = data;
+  const { mode, href, status, progressLabel } = data;
   const color = modeColorVar[mode];
   const router = useRouter();
   const [navigating, setNavigating] = useState(false);
@@ -93,6 +93,10 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
         )}
       </div>
       <p className="text-sm text-foreground/70">{modeTagline[mode]}</p>
+      {/* Real per-course progress (src/curriculum) — small and muted, no
+       * bar: Home is a mode chooser, not a dashboard (that's the Learning
+       * Path's job). */}
+      {progressLabel && <p className="text-xs text-foreground/50">{progressLabel} chapters</p>}
     </>
   );
 
