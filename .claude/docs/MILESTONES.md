@@ -243,23 +243,24 @@ solutions, less restrictive validation" without needing a second framework. If i
 turns out they don't, that's the moment to revisit the data model, not after building
 more RWE content on a shaky foundation.
 
-## 9. Local-first persistence
+## 9. Local-first persistence — done
 
 Dexie/IndexedDB autosave + restore for sandbox saves and chapter attempts (both
 Building Blocks and RWE), per [[ARCHITECTURE]]'s "Persistence" section. No auth
 required for this layer — it works standalone. This is what upgrades the Home page's
 progress indicators (4) from placeholders to real state.
 
-**Partially pulled forward into milestone 2's follow-up round:** the core "a refresh
-doesn't lose work" primitive already exists — `src/persistence/db.ts` (Dexie, table
-`saves`) plus a manual Save/Export/Import in the header, restoring on load if a save
-is present. What's still deferred to this milestone proper: autosave-on-every-edit
-(today's is a manual button, not automatic), multi-slot saves for actual chapter
-attempts (the Dexie schema is keyed to allow this later, but there's only one fixed
-`"sandbox"` slot today), and the Home page wiring in (4).
+Pulled forward across milestone 2's follow-up round and a later fix: `src/persistence/
+db.ts` (Dexie, table `saves`, keyed per-chapter via `chapterSaveId`) plus a manual
+Save/Export/Import in the header, restoring on load if a save is present.
+Autosave-on-every-edit (`src/persistence/use-autosave.ts`, ~800ms debounce after the
+graph stops changing) was the last missing piece — closing/refreshing the tab without
+clicking Save used to lose work, since the only automatic write was on in-app unmount.
+It now runs alongside the manual Save button and the unmount cleanup for both Sandbox
+and every chapter attempt.
 
 **Done when:** autosave-on-every-edit works offline for both sandbox and chapter
-attempts, and Home reflects real state.
+attempts, and Home reflects real state. — Both true.
 
 ## 10. Auth + cloud sync — *external dependency, can start anytime*
 

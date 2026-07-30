@@ -1,10 +1,12 @@
 import "fake-indexeddb/auto";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { CurriculumChapter } from "@/curriculum/types";
 import type { ValidationViolation } from "@/validation-engine/types";
 import { db, chapterSaveId } from "@/persistence/db";
+import { AUTOSAVE_DEBOUNCE_MS } from "@/persistence/use-autosave";
 
 // ---------------------------------------------------------------------------
 // Mocks for everything ChapterWorkspace.tsx pulls in from OUTSIDE this task's
@@ -34,6 +36,7 @@ vi.mock("@/canvas/Canvas", async () => {
       // (see store.ts's toArchitectureGraph), so they'd never flip
       // isStale on their own.
       const addNode = useCanvasStore((s) => s.addNode);
+      const nodeCount = useCanvasStore((s) => s.nodes.length);
       React.useImperativeHandle(ref, () => ({}));
       return React.createElement(
         React.Fragment,
@@ -53,6 +56,10 @@ vi.mock("@/canvas/Canvas", async () => {
         // Surfaces the per-node coloring ChapterWorkspace computes so tests
         // can assert on it without rendering the real xyflow node chrome.
         React.createElement("pre", { "data-testid": "node-states" }, JSON.stringify(props.nodeStates ?? {})),
+        // Distinguishes "restored the save" from "fell back to starterGraph"
+        // in cases where both happen to satisfy the same required-component
+        // count text (e.g. an extra, non-required node added before saving).
+        React.createElement("span", { "data-testid": "node-count" }, String(nodeCount)),
       );
     }),
   };
@@ -494,5 +501,104 @@ describe("ChapterWorkspace", () => {
     const saved = await db.saves.get(chapterSaveId("ch-1"));
     // Starter node (n1) plus the node the mutate button added.
     expect(saved?.nodes.length).toBe(2);
+  });
+
+  it("restores an explicitly-saved attempt across a full unmount and fresh remount (close-and-reopen)", async () => {
+    // End-to-end regression for the reported "save, close the browser,
+    // reopen -> blank canvas" bug: draw, click Save, tear the whole
+    // workspace down (not just navigate — a real unmount, same as closing
+    // the tab), then mount a brand new instance for the same chapter, the
+    // way a fresh page load would.
+    const { unmount } = await renderWorkspace("slug-one");
+    await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
+    fireEvent.click(screen.getByTestId("save-btn"));
+    await waitFor(() => expect(screen.getByTestId("just-saved")).toHaveTextContent("true"));
+
+    await act(async () => {
+      unmount();
+    });
+
+    await renderWorkspace("slug-one");
+    await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
+    // starterGraph alone has 1 node; the saved attempt (starter node + the
+    // mutate button's added node) has 2 — this is what actually proves the
+    // fresh mount restored the save instead of silently falling back to
+    // starterGraph (both satisfy the same "1/2 required components" text).
+    expect(screen.getByTestId("node-count")).toHaveTextContent("2");
+
+    const saved = await db.saves.get(chapterSaveId("ch-1"));
+    expect(saved?.nodes.length).toBe(2);
+  });
+
+  it("restores the saved attempt across close-and-reopen under React.StrictMode (matches next dev)", async () => {
+    // The bug this guards: Next's dev server runs React.StrictMode, which
+    // double-invokes every effect on mount (mount -> cleanup -> mount) as a
+    // synchronous "phantom" cycle. The unmount-save effect a few lines up
+    // used to fire unconditionally on that phantom cleanup, writing
+    // whatever nodes/edges the store held AT THAT INSTANT — which is always
+    // [] on a phantom cleanup, since the async restore below hasn't had any
+    // chance to resolve yet. That silently overwrote a real prior save with
+    // an empty one on every single dev-mode chapter visit, independent of
+    // the autosave work in this file: a plain (non-StrictMode) render, like
+    // the "close-and-reopen" test above, never exercised this path at all.
+    const { unmount } = render(
+      <StrictMode>
+        <ChapterWorkspace mode="building-blocks" chapterSlug="slug-one" />
+      </StrictMode>,
+    );
+    await waitFor(() => expect(screen.getByTestId("app-header")).toBeInTheDocument());
+    // Wait for the starterGraph to actually finish loading (node-count
+    // becomes 1) before interacting — not just for the "N / 2 required
+    // components present" text, which reads "0 / 2" just as validly and so
+    // can pass BEFORE the async restore/starterGraph load resolves.
+    await waitFor(() => expect(screen.getByTestId("node-count")).toHaveTextContent("1"));
+
+    fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
+    fireEvent.click(screen.getByTestId("save-btn"));
+    await waitFor(() => expect(screen.getByTestId("just-saved")).toHaveTextContent("true"));
+    expect(screen.getByTestId("node-count")).toHaveTextContent("2");
+
+    await act(async () => {
+      unmount();
+    });
+
+    render(
+      <StrictMode>
+        <ChapterWorkspace mode="building-blocks" chapterSlug="slug-one" />
+      </StrictMode>,
+    );
+    await waitFor(() => expect(screen.getByTestId("app-header")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("node-count")).toHaveTextContent("2"));
+
+    // Give autosave's debounce a full window past the phantom mount/cleanup
+    // cycle to prove nothing subsequently clobbers the restored state back
+    // to empty.
+    await new Promise((r) => setTimeout(r, AUTOSAVE_DEBOUNCE_MS + 400));
+    expect(screen.getByTestId("node-count")).toHaveTextContent("2");
+
+    const saved = await db.saves.get(chapterSaveId("ch-1"));
+    expect(saved?.nodes.length).toBe(2);
+  });
+
+  it("autosaves an edit to the chapter's save slot without an explicit Save click or unmount", async () => {
+    // Regression test: before autosave-on-edit, closing/refreshing the tab
+    // without clicking Save or navigating in-app lost the in-progress
+    // attempt entirely (MILESTONES.md #9). Deliberately does NOT click
+    // save-btn and does NOT unmount — only the debounced autosave effect
+    // (src/persistence/use-autosave.ts) can produce this write.
+    await renderWorkspace("slug-one");
+    await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
+
+    await waitFor(
+      async () => {
+        const saved = await db.saves.get(chapterSaveId("ch-1"));
+        expect(saved?.nodes.length).toBe(2);
+      },
+      { timeout: 2000 },
+    );
   });
 });

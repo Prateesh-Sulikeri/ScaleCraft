@@ -6,10 +6,10 @@ import type { AiCritique } from "@/ai/schema";
 
 /**
  * Local-first persistence — see .claude/docs/ARCHITECTURE.md "Persistence"
- * and milestone 8 in MILESTONES.md. This pulls forward just the "a refresh
- * doesn't lose work" core: a manual Save writes here, and the app restores
- * from it on load. Full autosave-on-every-edit and cloud sync (milestone 9)
- * remain deferred.
+ * and milestones 8-9 in MILESTONES.md. A manual Save writes here, debounced
+ * autosave-on-edit (see persistence/use-autosave.ts) also writes here, and
+ * the app restores from it on load. Cloud sync (milestone 10) remains
+ * deferred.
  *
  * Stores the raw canvas state (nodes/edges as the canvas store holds them),
  * not the domain ArchitectureGraph — zones aren't part of ArchitectureGraph

@@ -23,6 +23,7 @@ import type { ChapterDefinition } from "@/content/chapters/types";
 import { evaluateChapter, type ChapterOutcome } from "@/validation-engine/chapter-outcome";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db } from "@/persistence/db";
+import { useAutosave } from "@/persistence/use-autosave";
 import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { findEntry } from "@/curriculum";
@@ -121,13 +122,47 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     void hydrateProgress();
   }, [hydrateProgress]);
 
+  // Gates every write to this chapter's save slot (autosave below AND the
+  // unmount-save further down) until the restore effect's async read has
+  // actually resolved. Tracked twice, deliberately: `hasLoadedInitialState`
+  // (state) drives useAutosave's `saveId` argument below, since that's a
+  // normal render-time value; `hasLoadedInitialStateRef` (ref) is what the
+  // unmount-save effect's cleanup closure reads, since a cleanup needs the
+  // CURRENT value at teardown time, not whatever was captured when that
+  // effect last (re-)ran — and reading a ref during render (to compute
+  // useAutosave's argument) isn't allowed (react-hooks/refs).
+  //
+  // Without this gate there's a real, previously-unnoticed data-loss bug:
+  // nodes/edges sit at [] the whole time the restore read is in flight, and
+  // neither writer effect can tell "not loaded yet" apart from "a genuinely
+  // empty board." Under React StrictMode (Next's dev-mode default), the
+  // unmount-save effect's cleanup ALWAYS fires once as part of the
+  // synchronous phantom mount/cleanup cycle — before the restore's async
+  // db.saves.get() has any chance to resolve — so without this guard it
+  // unconditionally wrote {nodes: [], edges: []} over the real save on
+  // every single dev-mode chapter visit. This is what a learner playing
+  // back "draw a design, Save, close the tab, reopen" was actually hitting.
+  // Confirmed via an integration test rendered in <StrictMode> before this
+  // gate existed; see use-autosave.ts's doc comment for the autosave side
+  // of the same race.
+  const [hasLoadedInitialState, setHasLoadedInitialState] = useState(false);
+  const hasLoadedInitialStateRef = useRef(false);
+
   useEffect(() => {
     // Route guard means `chapter` should already be non-null here; the
     // fallback exists only so a stale/bad slug degrades to an empty canvas
     // instead of crashing (see the defensive `if (!chapter) return null;`
     // at the bottom of this component).
     if (!chapter) {
-      loadCanvasState([], []);
+      // Deferred to a microtask, not called synchronously in the effect
+      // body, to avoid react-hooks/set-state-in-effect's cascading-render
+      // warning — mirrors the real branch below, where the equivalent
+      // calls are already inside a .then() for the same reason.
+      Promise.resolve().then(() => {
+        loadCanvasState([], []);
+        hasLoadedInitialStateRef.current = true;
+        setHasLoadedInitialState(true);
+      });
       return;
     }
     let cancelled = false;
@@ -140,6 +175,8 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
       } else {
         loadCanvasState([], []);
       }
+      hasLoadedInitialStateRef.current = true;
+      setHasLoadedInitialState(true);
     });
     return () => {
       cancelled = true;
@@ -149,13 +186,19 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapter?.id]);
 
+  // Autosave-on-edit (MILESTONES.md #9) — fires ~800ms after the graph
+  // stops changing, independent of the explicit Save button or the
+  // unmount cleanup below. null until the chapter resolves AND the initial
+  // restore above has actually completed (see hasLoadedInitialState).
+  useAutosave(hasLoadedInitialState && chapter?.id ? chapterSaveId(chapter.id) : null, nodes, edges);
+
   // Each chapter route mounts a fresh CanvasStoreProvider (key={chapterSlug}
   // on the route, see the [chapterSlug]/page.tsx guard), so within one
   // mount `chapter` never changes — closing over it directly here is safe
   // and doesn't need the ref indirection a changing value would require.
   useEffect(() => {
     return () => {
-      if (!chapter) return;
+      if (!chapter || !hasLoadedInitialStateRef.current) return;
       const { nodes, edges } = storeApi.getState();
       void db.saves.put({ id: chapterSaveId(chapter.id), updatedAt: Date.now(), nodes, edges });
     };
