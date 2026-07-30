@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { ChapterStatusIcon } from "./ChapterStatusIcon";
 import { DifficultyDots } from "./DifficultyDots";
-import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import type { CourseId, CurriculumChapter, ChapterStatus } from "@/curriculum/types";
 
@@ -67,7 +67,7 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
         </p>
         <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-foreground/50">
           <DifficultyDots difficulty={entry.difficulty} />
-          {entry.difficulty} · {entry.estimatedMinutes} min
+          {entry.difficulty}
         </p>
       </div>
       {!isAuthored && (
@@ -82,13 +82,13 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
     <div className={`flex items-center gap-2.5 px-4 py-2.5 transition-colors ${isAuthored ? "hover:bg-border/40" : ""}`}>
       {toggleButton}
       {isAuthored ? (
-        <HeldTransitionLink
-          href={`/${courseId}/${entry.slug}`}
-          label={`Opening ${entry.title}…`}
-          className="flex min-w-0 flex-1 items-center gap-2.5"
-        >
+        // Plain Link, not HeldTransitionLink — the destination is the
+        // lightweight Chapter Reader, not the canvas, so there's no heavy
+        // mount to mask behind a branded loading overlay (see
+        // DesignEditorCTA.tsx, which still holds for the canvas route).
+        <Link href={`/${courseId}/${entry.slug}/lesson`} className="flex min-w-0 flex-1 items-center gap-2.5">
           {mainContent}
-        </HeldTransitionLink>
+        </Link>
       ) : (
         <div className="flex min-w-0 flex-1 items-center gap-2.5">{mainContent}</div>
       )}

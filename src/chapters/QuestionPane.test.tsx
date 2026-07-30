@@ -66,8 +66,6 @@ function Harness({
   nodes,
   entry = makeEntry(),
   status = "NOT_STARTED",
-  prevHref,
-  nextHref,
   chapterOutcome = null,
   isStale = false,
 }: {
@@ -75,8 +73,6 @@ function Harness({
   nodes: ComponentNodeType[];
   entry?: CurriculumChapter;
   status?: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
-  prevHref?: string;
-  nextHref?: string;
   chapterOutcome?: ChapterOutcome | null;
   isStale?: boolean;
 }) {
@@ -87,8 +83,6 @@ function Harness({
       chapter={chapter}
       entry={entry}
       status={status}
-      prevHref={prevHref}
-      nextHref={nextHref}
       chapterOutcome={chapterOutcome}
       isStale={isStale}
     />
@@ -372,40 +366,14 @@ describe("QuestionPane", () => {
     expect(screen.queryByText(/further reading/i)).not.toBeInTheDocument();
   });
 
-  describe("navigation", () => {
-    it("disables Previous/Next when no href is supplied (first/last chapter)", () => {
-      renderQuestionPane({ chapter: makeChapter(), nodes: [] });
-      expect(screen.queryByRole("link", { name: /previous chapter/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole("link", { name: /next chapter/i })).not.toBeInTheDocument();
+  it("shows the entry's difficulty and the current status next to the title", () => {
+    renderQuestionPane({
+      chapter: makeChapter(),
+      nodes: [],
+      entry: makeEntry({ difficulty: "advanced" }),
+      status: "IN_PROGRESS",
     });
-
-    it("renders Previous/Next as real links to the adjacent chapter hrefs", () => {
-      renderQuestionPane({
-        chapter: makeChapter(),
-        nodes: [],
-        prevHref: "/building-blocks/1-1-vertical-vs-horizontal-scaling",
-        nextHref: "/building-blocks/1-3-caching",
-      });
-
-      expect(screen.getByRole("link", { name: /previous chapter/i })).toHaveAttribute(
-        "href",
-        "/building-blocks/1-1-vertical-vs-horizontal-scaling",
-      );
-      expect(screen.getByRole("link", { name: /next chapter/i })).toHaveAttribute(
-        "href",
-        "/building-blocks/1-3-caching",
-      );
-    });
-
-    it("shows the entry's difficulty and the current status next to the title", () => {
-      renderQuestionPane({
-        chapter: makeChapter(),
-        nodes: [],
-        entry: makeEntry({ difficulty: "advanced" }),
-        status: "IN_PROGRESS",
-      });
-      expect(screen.getByText("advanced")).toBeInTheDocument();
-      expect(screen.getByText("In progress")).toBeInTheDocument();
-    });
+    expect(screen.getByText("advanced")).toBeInTheDocument();
+    expect(screen.getByText("In progress")).toBeInTheDocument();
   });
 });

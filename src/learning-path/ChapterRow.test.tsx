@@ -37,7 +37,7 @@ beforeEach(async () => {
 describe("ChapterRow", () => {
   it("renders an authored chapter as a real link to its route", () => {
     render(<ChapterRow entry={entry()} courseId="building-blocks" status="NOT_STARTED" completedByValidation={false} />);
-    expect(screen.getByRole("link")).toHaveAttribute("href", "/building-blocks/1-2-load-balancing");
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/building-blocks/1-2-load-balancing/lesson");
   });
 
   it("renders an unauthored chapter as a non-interactive row with a chip, not a link", () => {

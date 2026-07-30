@@ -44,7 +44,7 @@ describe("LearningPath", () => {
     render(<LearningPath courseId="building-blocks" />);
     expect(screen.getByRole("link", { name: /load balancing/i })).toHaveAttribute(
       "href",
-      "/building-blocks/1-2-load-balancing",
+      "/building-blocks/1-2-load-balancing/lesson",
     );
     expect(screen.getAllByText("Coming soon").length).toBeGreaterThan(0);
   });

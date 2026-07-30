@@ -173,27 +173,11 @@ const entryTwo: CurriculumChapter = {
   chapterDefinitionId: "ch-2",
 };
 
-// ChapterSidebar (real, mounted by ChapterWorkspace) reads the manifest via
-// getCourse for its collapsible curriculum navigator — a minimal but
-// structurally real Course covering both entries above.
-const fakeCourse = {
-  id: "building-blocks" as const,
-  title: "Building Blocks",
-  subtitle: "Subtitle.",
-  sections: [{ id: "unit-1", label: "Unit 1", title: "Unit One", summary: "Summary.", chapters: [entryOne, entryTwo] }],
-};
-
 const findEntryMock = vi.fn((_mode: string, slug: string) =>
   slug === "slug-one" ? entryOne : slug === "slug-two" ? entryTwo : undefined,
 );
-const adjacentAuthoredEntriesMock = vi.fn((...args: [string, string]) => {
-  void args;
-  return {} as { prev?: CurriculumChapter; next?: CurriculumChapter };
-});
 vi.mock("@/curriculum", () => ({
-  getCourse: () => fakeCourse,
   findEntry: (mode: string, slug: string) => findEntryMock(mode, slug),
-  adjacentAuthoredEntries: (mode: string, slug: string) => adjacentAuthoredEntriesMock(mode, slug),
 }));
 
 const markVisitedMock = vi.fn();
@@ -244,8 +228,6 @@ beforeEach(async () => {
   runValidationMock.mockReturnValue([]);
   getRulesMock.mockClear();
   findEntryMock.mockClear();
-  adjacentAuthoredEntriesMock.mockReset();
-  adjacentAuthoredEntriesMock.mockReturnValue({});
   markVisitedMock.mockClear();
   hydrateProgressMock.mockClear();
   recordValidationPassMock.mockClear();
@@ -299,40 +281,17 @@ describe("ChapterWorkspace", () => {
   });
 
   describe("navigation", () => {
-    it("links to the Learning Path route via ChapterNavigator's 'View full Learning Path', held before navigating", async () => {
+    it("links back to the chapter's Reader via ChapterSidebar's 'Back to lesson', held before navigating", async () => {
       await renderWorkspace("slug-one");
       await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
       vi.useFakeTimers();
 
-      const link = screen.getByRole("link", { name: /view full learning path/i });
-      expect(link).toHaveAttribute("href", "/building-blocks");
+      const link = screen.getByRole("link", { name: /back to lesson/i });
+      expect(link).toHaveAttribute("href", "/building-blocks/slug-one/lesson");
       fireEvent.click(link, { button: 0 });
       expect(routerPushMock).not.toHaveBeenCalled();
       vi.advanceTimersByTime(1250);
-      expect(routerPushMock).toHaveBeenCalledWith("/building-blocks");
-      vi.useRealTimers();
-    });
-
-    it("disables Previous/Next when adjacentAuthoredEntries reports no neighbors", async () => {
-      adjacentAuthoredEntriesMock.mockReturnValue({});
-      await renderWorkspace("slug-one");
-      await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
-
-      expect(screen.queryByRole("link", { name: /previous chapter/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole("link", { name: /next chapter/i })).not.toBeInTheDocument();
-    });
-
-    it("navigates prev/next to the curriculum-adjacent authored slugs, not index-adjacent ones", async () => {
-      adjacentAuthoredEntriesMock.mockReturnValue({ prev: entryTwo, next: entryTwo });
-      await renderWorkspace("slug-one");
-      await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
-      vi.useFakeTimers();
-
-      const prevLink = screen.getByRole("link", { name: /previous chapter/i });
-      expect(prevLink).toHaveAttribute("href", "/building-blocks/slug-two");
-      fireEvent.click(prevLink, { button: 0 });
-      vi.advanceTimersByTime(1250);
-      expect(routerPushMock).toHaveBeenCalledWith("/building-blocks/slug-two");
+      expect(routerPushMock).toHaveBeenCalledWith("/building-blocks/slug-one/lesson");
       vi.useRealTimers();
     });
   });

@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCanvasStore } from "@/canvas/store";
 import type { ComponentNodeType } from "@/canvas/types";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import { Debrief } from "./Debrief";
-import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
 import { ChapterStatusIcon, chapterStatusLabel } from "@/learning-path/ChapterStatusIcon";
 import type { ChapterDefinition, Hint } from "@/content/chapters/types";
@@ -16,13 +14,10 @@ import type { ChapterStatus, CurriculumChapter } from "@/curriculum/types";
 type QuestionPaneProps = {
   chapter: ChapterDefinition;
   /** The Learning Path row backing this chapter — its difficulty renders
-   *  next to the title (item 5); "Back to Learning Path" itself now lives
-   *  solely in ChapterNavigator (its always-visible header link) so there
-   *  isn't a second, redundant one here. */
+   *  next to the title (item 5). Curriculum navigation itself lives only in
+   *  ChapterSidebar's "Back to lesson" link above this component, not here. */
   entry: CurriculumChapter;
   status: ChapterStatus;
-  prevHref?: string;
-  nextHref?: string;
   /** Mirrors ChapterWorkspace's own last Validate-button result. `null`
    * before the first click; `isStale` means the graph has since changed
    * underneath it. ChapterWorkspace scopes the actual run to the open
@@ -35,10 +30,10 @@ type QuestionPaneProps = {
 /**
  * View 2 of ChapterSidebar — problem statement, objectives, a required-
  * components progress line, opt-in hints (never pre-expanded, per
- * CLAUDE.md's "hints vs. explanations" rule), reading links, a pull-only
- * Debrief once passed, and prev/next chapter navigation.
+ * CLAUDE.md's "hints vs. explanations" rule), reading links, and a
+ * pull-only Debrief once passed.
  */
-export function QuestionPane({ chapter, entry, status, prevHref, nextHref, chapterOutcome, isStale }: QuestionPaneProps) {
+export function QuestionPane({ chapter, entry, status, chapterOutcome, isStale }: QuestionPaneProps) {
   const nodes = useCanvasStore((s) => s.nodes);
   const [revealedHintIds, setRevealedHintIds] = useState<Set<string>>(new Set());
 
@@ -84,37 +79,6 @@ export function QuestionPane({ chapter, entry, status, prevHref, nextHref, chapt
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="flex shrink-0 items-center justify-end gap-1 border-b border-border px-3 py-2">
-        {prevHref ? (
-          <HeldTransitionLink
-            href={prevHref}
-            label="Opening previous chapter…"
-            aria-label="Previous chapter"
-            className="rounded p-1 text-foreground/50 transition-colors hover:bg-border hover:text-foreground"
-          >
-            <ChevronLeft size={14} />
-          </HeldTransitionLink>
-        ) : (
-          <span aria-label="Previous chapter" className="pointer-events-none rounded p-1 text-foreground/50 opacity-30">
-            <ChevronLeft size={14} />
-          </span>
-        )}
-        {nextHref ? (
-          <HeldTransitionLink
-            href={nextHref}
-            label="Opening next chapter…"
-            aria-label="Next chapter"
-            className="rounded p-1 text-foreground/50 transition-colors hover:bg-border hover:text-foreground"
-          >
-            <ChevronRight size={14} />
-          </HeldTransitionLink>
-        ) : (
-          <span aria-label="Next chapter" className="pointer-events-none rounded p-1 text-foreground/50 opacity-30">
-            <ChevronRight size={14} />
-          </span>
-        )}
-      </div>
-
       <div className="flex-1 p-3">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold">{chapter.title}</h2>

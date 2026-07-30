@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { CanvasStoreProvider } from "@/canvas/store";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import type { Course, CurriculumChapter } from "@/curriculum/types";
+import type { CurriculumChapter } from "@/curriculum/types";
 import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
 
 function makeOutcome(overrides: Partial<ChapterOutcome> = {}): ChapterOutcome {
@@ -49,34 +49,14 @@ function makeEntry(overrides: Partial<CurriculumChapter> = {}): CurriculumChapte
 }
 
 const entryA = makeEntry({ slug: "a", title: "Alpha", chapterDefinitionId: "ch-1" });
-const entryB = makeEntry({ slug: "b", title: "Beta", chapterDefinitionId: null });
-const entryC = makeEntry({ slug: "c", title: "Gamma", chapterDefinitionId: "ch-3" });
-
-const course: Course = {
-  id: "building-blocks",
-  title: "Building Blocks",
-  subtitle: "Subtitle.",
-  sections: [{ id: "unit-1", label: "Unit 1", title: "Unit One", summary: "Summary.", chapters: [entryA, entryB, entryC] }],
-};
 
 vi.mock("@/content/chapters", () => ({
-  chapterRegistry: [
-    makeChapter({ id: "ch-1", title: "Chapter One" }),
-    makeChapter({ id: "ch-3", title: "Chapter Three" }),
-  ],
+  chapterRegistry: [makeChapter({ id: "ch-1", title: "Chapter One" })],
 }));
 
-const getCourseMock = vi.fn(() => course);
-const findEntryMock = vi.fn((_courseId: string, slug: string) =>
-  [entryA, entryB, entryC].find((e) => e.slug === slug),
-);
-const adjacentAuthoredEntriesMock = vi.fn(
-  () => ({}) as { prev?: CurriculumChapter; next?: CurriculumChapter },
-);
+const findEntryMock = vi.fn((_courseId: string, slug: string) => (slug === "a" ? entryA : undefined));
 vi.mock("@/curriculum", () => ({
-  getCourse: () => getCourseMock(),
   findEntry: (courseId: string, slug: string) => findEntryMock(courseId, slug),
-  adjacentAuthoredEntries: () => adjacentAuthoredEntriesMock(),
 }));
 
 vi.mock("@/curriculum/progress-store", () => ({
@@ -123,27 +103,6 @@ describe("ChapterSidebar", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("disables Previous/Next when adjacentAuthoredEntries reports no neighbors", () => {
-    adjacentAuthoredEntriesMock.mockReturnValue({});
-    renderSidebar();
-    expect(screen.queryByRole("link", { name: /previous chapter/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /next chapter/i })).not.toBeInTheDocument();
-  });
-
-  it("renders prev/next as links to the curriculum-adjacent authored slugs, held before navigating", () => {
-    vi.useFakeTimers();
-    adjacentAuthoredEntriesMock.mockReturnValue({ prev: entryC, next: entryC });
-    renderSidebar();
-
-    const prevLink = screen.getByRole("link", { name: /previous chapter/i });
-    expect(prevLink).toHaveAttribute("href", "/building-blocks/c");
-    fireEvent.click(prevLink, { button: 0 });
-    expect(routerPushMock).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(1250);
-    expect(routerPushMock).toHaveBeenCalledWith("/building-blocks/c");
-    vi.useRealTimers();
-  });
-
   it("shows QuestionPane's 'Not yet validated' when isStale is true even with prior violations", () => {
     renderSidebar({
       isStale: true,
@@ -164,49 +123,11 @@ describe("ChapterSidebar", () => {
     expect(screen.getByText(/not yet validated/i)).toBeInTheDocument();
   });
 
-  describe("curriculum navigator", () => {
-    it("is collapsed by default", () => {
-      renderSidebar();
-      expect(screen.queryByText("Alpha")).not.toBeInTheDocument();
-    });
-
-    it("expands to show every entry in the course, grouped by section", () => {
-      renderSidebar();
-      fireEvent.click(screen.getByRole("button", { name: /curriculum/i }));
-
-      expect(screen.getByText("Unit 1")).toBeInTheDocument();
-      expect(screen.getByText(/Alpha/)).toBeInTheDocument();
-      expect(screen.getByText(/Beta/)).toBeInTheDocument();
-      expect(screen.getByText(/Gamma/)).toBeInTheDocument();
-    });
-
-    it("renders unauthored entries as non-interactive, not links", () => {
-      renderSidebar();
-      fireEvent.click(screen.getByRole("button", { name: /curriculum/i }));
-
-      expect(screen.queryByRole("link", { name: /Beta/ })).not.toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /Gamma/ })).toHaveAttribute("href", "/building-blocks/c");
-    });
-
-    it("marks the current chapter's row via aria-current", () => {
-      renderSidebar();
-      fireEvent.click(screen.getByRole("button", { name: /curriculum/i }));
-
-      expect(screen.getByRole("link", { name: /Alpha/ })).toHaveAttribute("aria-current", "page");
-      expect(screen.getByRole("link", { name: /Gamma/ })).not.toHaveAttribute("aria-current");
-    });
-
-    it("links to the full Learning Path for this course, held before navigating", () => {
-      vi.useFakeTimers();
-      renderSidebar();
-      const link = screen.getByRole("link", { name: /view full learning path/i });
-      expect(link).toHaveAttribute("href", "/building-blocks");
-
-      fireEvent.click(link, { button: 0 });
-      expect(routerPushMock).not.toHaveBeenCalled();
-      vi.advanceTimersByTime(1250);
-      expect(routerPushMock).toHaveBeenCalledWith("/building-blocks");
-      vi.useRealTimers();
-    });
+  it("links back to the chapter's Reader, not a curriculum browser", () => {
+    renderSidebar();
+    const link = screen.getByRole("link", { name: /back to lesson/i });
+    expect(link).toHaveAttribute("href", "/building-blocks/a/lesson");
+    expect(screen.queryByRole("button", { name: /curriculum/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /learning path/i })).not.toBeInTheDocument();
   });
 });

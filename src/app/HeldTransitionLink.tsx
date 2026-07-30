@@ -9,7 +9,7 @@ import { LoadingTransition } from "./LoadingTransition";
 /** Same fixed hold as ModeNode.tsx's Home -> mode transition — deliberately
  *  not tied to actual route readiness (see LoadingTransition.tsx: prefetched
  *  routes would otherwise skip the overlay instead of holding it). */
-const TRANSITION_HOLD_MS = 1250;
+const TRANSITION_HOLD_MS = 700;
 
 type HeldTransitionLinkProps = {
   href: string;

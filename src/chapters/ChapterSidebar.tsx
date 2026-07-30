@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { ChapterNavigator } from "./ChapterNavigator";
+import { ChevronLeft } from "lucide-react";
+import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { QuestionPane } from "./QuestionPane";
-import { getCourse, findEntry, adjacentAuthoredEntries } from "@/curriculum";
+import { findEntry } from "@/curriculum";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { deriveStatus, type ProgressInputs } from "@/curriculum/progress";
 import { chapterRegistry } from "@/content/chapters";
@@ -18,18 +19,16 @@ type ChapterSidebarProps = {
 };
 
 /**
- * The in-workspace sidebar — a collapsible curriculum navigator
- * (ChapterNavigator) above the always-rendered QuestionPane. Since Phase 4
- * made the workspace route-driven, there is always a chapter open; this
- * replaces the old two-view ChapterList/QuestionPane switcher (see git
- * history) entirely. Derives everything from `courseId` + `chapterSlug` —
- * the curriculum manifest and progress store are the single source of
- * truth (RELEASE_3.0.0_LEARNING_PATH.md Phase 5); this component is another
- * *view* over them, same as the Learning Path, never a second writer.
+ * The in-workspace sidebar — a "Back to lesson" link above the
+ * always-rendered QuestionPane. The Design Editor's own route to a chapter
+ * is now reached exclusively through the Chapter Reader (`/<mode>/<slug>/
+ * lesson`'s Design Editor CTA), so this is the one way back out: no
+ * standalone curriculum browser or "View full Learning Path" link here
+ * anymore (that's the Reader's ReaderSidebar's job) — going back always
+ * means going back to the lesson this canvas belongs to, not jumping
+ * sideways to a different chapter or the full Learning Path.
  */
 export function ChapterSidebar({ courseId, chapterSlug, chapterOutcome, isStale }: ChapterSidebarProps) {
-  const course = getCourse(courseId);
-
   // Guaranteed non-null by the route guard in practice ([chapterSlug]/
   // page.tsx 404s first) — kept as a real lookup so a stale/bad slug
   // degrades to `null` -> the defensive early return below.
@@ -37,8 +36,6 @@ export function ChapterSidebar({ courseId, chapterSlug, chapterOutcome, isStale 
   const chapter = entry?.chapterDefinitionId
     ? (chapterRegistry.find((c) => c.id === entry.chapterDefinitionId) ?? null)
     : null;
-
-  const { prev, next } = adjacentAuthoredEntries(courseId, chapterSlug);
 
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
@@ -51,13 +48,20 @@ export function ChapterSidebar({ courseId, chapterSlug, chapterOutcome, isStale 
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <ChapterNavigator course={course} chapterSlug={chapterSlug} inputs={inputs} />
+      <div className="shrink-0 border-b border-border px-3 py-2">
+        <HeldTransitionLink
+          href={`/${courseId}/${chapterSlug}/lesson`}
+          label="Returning to the lesson…"
+          className="flex items-center gap-1 text-xs text-foreground/70 hover:text-foreground"
+        >
+          <ChevronLeft size={12} aria-hidden="true" />
+          Back to lesson
+        </HeldTransitionLink>
+      </div>
       <QuestionPane
         chapter={chapter}
         entry={entry}
         status={deriveStatus(entry, inputs)}
-        prevHref={prev ? `/${courseId}/${prev.slug}` : undefined}
-        nextHref={next ? `/${courseId}/${next.slug}` : undefined}
         chapterOutcome={chapterOutcome}
         isStale={isStale}
       />
