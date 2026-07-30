@@ -31,6 +31,32 @@ export type Blueprint = {
 };
 
 /**
+ * Manually authored per Building Blocks chapter, transcribed from
+ * CURRICULUM.md's own per-chapter "Assumes" / "New concepts" / "Prepares
+ * for" fields (plus any explicit simplification notes, e.g. 1.3's "a faster
+ * store exists and is two chapters away"). Lets Deep Check
+ * (.claude/docs/validation_agent_design.md §10) review a learner's build
+ * relative to their actual curriculum stage instead of as a production
+ * system. Real World Extraction chapters don't need this — by RWE every
+ * concept in the curriculum has already been taught (see the design doc's
+ * 2026-07-28 addendum on why `evaluateChapter` runs RWE unscoped; this is
+ * the AI-layer counterpart of that same principle).
+ */
+export type CurriculumContext = {
+  /** e.g. "Building Blocks, Unit 1: Scaling Compute — Chapter 1.2 of 22." */
+  position: string;
+  /** Concepts/components already taught in prior chapters — safe background
+   * Deep Check may assume without explaining from scratch. */
+  masteredConcepts: string[];
+  /** Concepts deliberately not yet taught. Never a gap to flag or push the
+   * learner toward as a fix — at most a brief "coming up later" pointer. */
+  notYetIntroducedConcepts: string[];
+  /** Intentional pedagogical simplifications at this stage — not omissions
+   * to call out. */
+  simplifications: string[];
+};
+
+/**
  * See .claude/docs/ARCHITECTURE.md ("Chapter Definition"). Sandbox mode has
  * no ChapterDefinition — it's the component registry with no constraints.
  */
@@ -65,4 +91,7 @@ export type ChapterDefinition = {
   /** Manual citations into the textbook — no content coupling, just links. */
   readingLinks: { label: string; url: string }[];
   starterGraph?: ArchitectureGraph;
+  /** Building Blocks only — see CurriculumContext's own doc comment. Absent
+   * for real-world-extraction and for not-yet-authored placeholder chapters. */
+  curriculumContext?: CurriculumContext;
 };

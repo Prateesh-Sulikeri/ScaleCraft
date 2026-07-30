@@ -78,6 +78,27 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
     readingLinks: [],
+    // Placeholder, same convention as the rest of this fixture — but real
+    // enough to exercise Deep Check's Building Blocks framing (§10.7) end
+    // to end. Approximates CURRICULUM.md's 1.2 Load Balancing entry, which
+    // this chapter stands in for per this file's own header comment.
+    curriculumContext: {
+      position: "Building Blocks, Unit 1: Scaling Compute — Chapter 1.2 of 22 (placeholder).",
+      masteredConcepts: [
+        "Client/server/database request flow (Unit 0)",
+        "Vertical vs. horizontal scaling, and the two-server problem it creates (1.1)",
+      ],
+      notYetIntroducedConcepts: [
+        "Statelessness and session externalization (1.3)",
+        "Distributed caching (2.2)",
+        "Read replicas and data-layer scaling (Unit 3)",
+        "Any queue/async/coordination concepts (Units 4-5)",
+      ],
+      simplifications: [
+        "One load balancer in front of two app servers is the whole lesson — no health-check tuning, no multi-region failover.",
+        "Balancing algorithm choice (round-robin vs. least-connections) is a config decision here, not a performance-tuning exercise.",
+      ],
+    },
     // A single unconnected node, not the solved blueprint — a starter graph
     // that already satisfied the required-components/blueprint check would
     // hand the exercise to the learner solved. Just enough that opening the
