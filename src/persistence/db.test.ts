@@ -1,7 +1,15 @@
 import "fake-indexeddb/auto";
 import Dexie from "dexie";
 import { describe, expect, it } from "vitest";
-import { db, ScaleCraftDB, SANDBOX_SAVE_ID, type CanvasSave, type ChapterProgress, type DeepCheckSession } from "./db";
+import {
+  db,
+  ScaleCraftDB,
+  SANDBOX_SAVE_ID,
+  type CanvasSave,
+  type ChapterProgress,
+  type CurriculumProgress,
+  type DeepCheckSession,
+} from "./db";
 import type { ComponentNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
 
@@ -95,6 +103,23 @@ describe("persistence db", () => {
 
     await db.aiActiveProfile.put({ id: "default", profileId: profile.id });
     expect(await db.aiActiveProfile.get("default")).toEqual({ id: "default", profileId: profile.id });
+  });
+
+  it("round-trips a curriculumProgress record through IndexedDB (schema v7)", async () => {
+    const progress: CurriculumProgress = {
+      slug: "1-2-load-balancing",
+      manuallyCompletedAt: null,
+      lastVisitedAt: Date.now(),
+    };
+
+    await db.curriculumProgress.put(progress);
+    let restored = await db.curriculumProgress.get("1-2-load-balancing");
+    expect(restored).toEqual(progress);
+
+    const updated: CurriculumProgress = { ...progress, manuallyCompletedAt: Date.now() };
+    await db.curriculumProgress.put(updated);
+    restored = await db.curriculumProgress.get("1-2-load-balancing");
+    expect(restored).toEqual(updated);
   });
 });
 
@@ -212,6 +237,69 @@ describe("scalecraft db v6 migration (aiSettings -> aiProfiles)", () => {
 
       expect(await upgraded.aiProfiles.toArray()).toEqual([]);
       expect(await upgraded.aiActiveProfile.get("default")).toBeUndefined();
+
+      upgraded.close();
+    });
+  });
+});
+
+/**
+ * The v7 bump only adds a new, empty table (no .upgrade() callback, unlike
+ * v6) — but "no migration logic" is itself a claim worth a real
+ * version-to-version test, not just trusting db.ts's own comment about it.
+ */
+describe("scalecraft db v7 migration (adds curriculumProgress)", () => {
+  function legacyV6Schema(name: string): Dexie {
+    const legacy = new Dexie(name);
+    legacy.version(1).stores({ saves: "id" });
+    legacy.version(2).stores({ saves: "id", customComponents: "id" });
+    legacy.version(3).stores({ saves: "id", customComponents: "id", chapterProgress: "chapterId" });
+    legacy.version(4).stores({ saves: "id", customComponents: "id", chapterProgress: "chapterId", aiSettings: "id" });
+    legacy.version(5).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiSettings: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+    });
+    legacy.version(6).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiSettings: null,
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+    });
+    return legacy;
+  }
+
+  async function withFreshDbName<T>(fn: (name: string) => Promise<T>): Promise<T> {
+    const name = `scalecraft-v7-migration-test-${crypto.randomUUID()}`;
+    try {
+      return await fn(name);
+    } finally {
+      await Dexie.delete(name);
+    }
+  }
+
+  it("opens a v6 database at v7 with chapterProgress rows intact and curriculumProgress present and empty", async () => {
+    await withFreshDbName(async (name) => {
+      const legacy = legacyV6Schema(name);
+      await legacy.open();
+      const existingProgress: ChapterProgress = {
+        chapterId: "bb-dummy-1",
+        completedAt: Date.now(),
+        matchedBlueprintId: null,
+      };
+      await legacy.table("chapterProgress").put(existingProgress);
+      legacy.close();
+
+      const upgraded = new ScaleCraftDB(name);
+      await upgraded.open();
+
+      expect(await upgraded.chapterProgress.get("bb-dummy-1")).toEqual(existingProgress);
+      expect(await upgraded.curriculumProgress.toArray()).toEqual([]);
 
       upgraded.close();
     });
