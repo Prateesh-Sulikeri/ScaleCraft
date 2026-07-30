@@ -34,25 +34,46 @@ here phase by phase for tracking.
 - [x] **Phase 4 — Reading progress + "On this page" TOC.** `ReadingProgress.tsx`
       (scroll of the article's own container, not window). `TableOfContents.tsx`
       (scrollspy via IntersectionObserver, matches rehype-slug heading ids).
-- [x] **Phase 5 — Design Editor CTA + live mini-canvas.** `MiniCanvasPreview.tsx`
-      (bare read-only ReactFlow over `chapter.starterGraph`, reusing Canvas.tsx's
-      `nodeTypes` and store.tsx's `edgeStyle` — both exported for this). `DesignEditorCTA.tsx`
-      wraps it with a "Begin exercise" button on `HeldTransitionLink` -> the
-      unchanged canvas route.
+- [x] **Phase 5 — Design Editor CTA.** `MiniCanvasPreview.tsx` (the live
+      read-only mini-canvas) was built, then cut per user decision after
+      review — it only ever rendered the placeholder chapters' one-node
+      starter graph, not enough payoff for the added surface (deleted, along
+      with the `nodeTypes`/`edgeStyle` exports it needed from Canvas.tsx/
+      store.tsx). `DesignEditorCTA.tsx` is now just a "Begin exercise" link
+      on `HeldTransitionLink` -> the unchanged canvas route.
 - [ ] **Phase 6 — Tests.** New tests for extract-headings, lessons loader,
       ChapterReader, ReaderSidebar/CurriculumSectionList, TableOfContents,
-      ReadingProgress, MiniCanvasPreview, DesignEditorCTA still to write.
-      `ChapterRow.test.tsx`/`LearningPath.test.tsx`/`ChapterSidebar.test.tsx`
-      href assertions were already updated as part of Phase 3 (existing
-      assertions on the old href, not new coverage) so the suite stayed
-      green through the implementation pass. No expected changes to
-      `ChapterWorkspace.test.tsx`/`QuestionPane.test.tsx`.
-- [ ] **Phase 7 — Docs.** Add a "Chapter Reader" entry to `DESIGN.md`. Clear this
-      file back to empty once everything above lands.
+      ReadingProgress, DesignEditorCTA still to write — plus the post-review
+      UX pass this covers too: ChapterSidebar's "Back to lesson" link,
+      ModeNode's per-mode held-transition scoping, ReaderSidebar's header
+      block, the CurriculumSectionList label/row alignment fix. None of this
+      has dedicated test coverage yet. `ChapterRow.test.tsx`/
+      `LearningPath.test.tsx`/`ChapterSidebar.test.tsx` href assertions were
+      already updated as part of Phase 3 (existing assertions on the old
+      href, not new coverage) so the suite stayed green through the
+      implementation pass. No expected changes to
+      `ChapterWorkspace.test.tsx`/`QuestionPane.test.tsx` beyond that.
+- [x] **Phase 7 — Docs.** "Chapter Reader" and "Chapter Sidebar" entries
+      landed in `DESIGN.md` (§5), plus the scrollbar/loading-transition
+      changes below. Only Phase 6 (tests) is left before this file clears.
+
+**Also landed this pass, outside the original 7 phases (user review
+feedback, not part of the original plan):** app-wide theme-aware custom
+scrollbars (`globals.css`); the Home -> Building Blocks/RWE held loading
+transition removed (kept for Sandbox only, which mounts a much heavier
+canvas — see `ModeNode.tsx`); the held-transition hold cut from 1250ms to
+700ms (`ModeNode.tsx` + `HeldTransitionLink.tsx`); ReaderSidebar's header
+block redesigned (ChevronLeft "back" affordance instead of a misleading
+ExternalLink icon, "Curriculum" promoted to a real heading paired with the
+course name); a section-label/row-title alignment fix in
+`CurriculumSectionList.tsx`. None of this has dedicated test coverage yet
+either — folded into Phase 6 above.
 
 **Verification:** `npm run typecheck && npm run lint && npm test && npm run build`
-must exit 0 before any push. Manual click-through of Learning Path -> Reader ->
-Begin exercise -> canvas -> question panel, both modes, once the dev server is up.
+exits 0 (re-verified before this session's push, commit `8e9c5aa`). Manual
+click-through of Learning Path -> Reader -> Begin exercise -> canvas ->
+question panel, both modes and both themes, once the dev server is up —
+not yet done as an explicit pass.
 
 ---
 
