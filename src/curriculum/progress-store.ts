@@ -33,6 +33,14 @@ type CurriculumProgressStore = {
    *  mirrors the existing db.chapterProgress.put into this store's memory
    *  so the sidebar/Learning Path update without a reload. */
   recordValidationPass: (chapterDefinitionId: string) => void;
+  /** Lets a learner redo a chapter that was already COMPLETED by validation.
+   *  Clears the manual flag *and* deletes the underlying db.chapterProgress
+   *  row (the validation-pass record itself) — clearing only the manual flag
+   *  would leave deriveStatus's OR immediately re-deriving COMPLETED from the
+   *  still-present validation-pass row. lastVisitedAt is left untouched, so
+   *  the chapter reverts to IN_PROGRESS (they've been there before), not
+   *  NOT_STARTED. */
+  resetChapter: (slug: string, chapterDefinitionId: string | null) => Promise<void>;
   /** Derived selector helper so callers never rebuild ProgressInputs by hand. */
   inputs: () => ProgressInputs;
 };
@@ -81,6 +89,19 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
     set((state) => ({
       validationPassedDefinitionIds: new Set(state.validationPassedDefinitionIds).add(chapterDefinitionId),
     }));
+  },
+
+  resetChapter: async (slug, chapterDefinitionId) => {
+    const row: CurriculumProgress = { ...existingRow(get().rowsBySlug, slug), manuallyCompletedAt: null };
+    await Promise.all([
+      db.curriculumProgress.put(row),
+      chapterDefinitionId ? db.chapterProgress.delete(chapterDefinitionId) : Promise.resolve(),
+    ]);
+    set((state) => {
+      const validationPassedDefinitionIds = new Set(state.validationPassedDefinitionIds);
+      if (chapterDefinitionId) validationPassedDefinitionIds.delete(chapterDefinitionId);
+      return { rowsBySlug: new Map(state.rowsBySlug).set(slug, row), validationPassedDefinitionIds };
+    });
   },
 
   inputs: () => {

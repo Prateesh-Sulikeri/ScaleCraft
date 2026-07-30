@@ -18,7 +18,7 @@ const NODE_HEIGHT = 150;
  * tried first, but Next.js prefetches viewport links by default, so an
  * already-prefetched route's "pending" window is often too short to ever
  * observe — the overlay would skip instead of holding for 2s). */
-const TRANSITION_HOLD_MS = 1250;
+const TRANSITION_HOLD_MS = 700;
 
 /**
  * A mode "slot" on Home's canvas. The border is an animated-dash SVG rect —
@@ -36,7 +36,7 @@ const TRANSITION_HOLD_MS = 1250;
  * doesn't also add its own non-actionable tab stop around this.
  */
 export function ModeNode({ data }: NodeProps<ModeNodeType>) {
-  const { mode, href, status } = data;
+  const { mode, href, status, progressLabel } = data;
   const color = modeColorVar[mode];
   const router = useRouter();
   const [navigating, setNavigating] = useState(false);
@@ -46,8 +46,15 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
   // branded hold-then-navigate treatment. The real <Link href> stays intact
   // throughout (native keyboard focus/activation, a real URL to open in a
   // new tab), this only changes what a plain click does with it.
+  //
+  // Sandbox alone keeps the held overlay — it mounts the heaviest canvas
+  // (component registry, full validation engine wiring, no chapter to scope
+  // it down), the actual case the overlay was built to mask. Building
+  // Blocks/Real World Extraction land on the Learning Path first now (a
+  // plain curriculum list, no canvas at all), too light to need a hold —
+  // so those two fall through to the native, unintercepted Link click.
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!href) return;
+    if (!href || mode !== "sandbox") return;
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     setNavigating(true);
@@ -93,6 +100,10 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
         )}
       </div>
       <p className="text-sm text-foreground/70">{modeTagline[mode]}</p>
+      {/* Real per-course progress (src/curriculum) — small and muted, no
+       * bar: Home is a mode chooser, not a dashboard (that's the Learning
+       * Path's job). */}
+      {progressLabel && <p className="text-xs text-foreground/50">{progressLabel} chapters</p>}
     </>
   );
 

@@ -6,6 +6,26 @@ import type { ChapterDefinition, Hint, Blueprint } from "@/content/chapters/type
 import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
 import type { ValidationViolation } from "@/validation-engine/types";
 import type { ComponentNodeType } from "@/canvas/types";
+import type { CurriculumChapter } from "@/curriculum/types";
+
+const push = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+}));
+
+function makeEntry(overrides: Partial<CurriculumChapter> = {}): CurriculumChapter {
+  return {
+    slug: "1-2-load-balancing",
+    number: "1.2",
+    title: "Load Balancing",
+    kind: "chapter",
+    chapterDefinitionId: "ch-1",
+    estimatedMinutes: 35,
+    difficulty: "foundational",
+    prerequisiteSlugs: [],
+    ...overrides,
+  };
+}
 
 function makeOutcome(overrides: Partial<ChapterOutcome> = {}): ChapterOutcome {
   return {
@@ -44,17 +64,15 @@ const hint: Hint = { id: "hint-1", body: "Try adding a load balancer." };
 function Harness({
   chapter,
   nodes,
-  onBack = vi.fn(),
-  onPrev,
-  onNext,
+  entry = makeEntry(),
+  status = "NOT_STARTED",
   chapterOutcome = null,
   isStale = false,
 }: {
   chapter: ChapterDefinition;
   nodes: ComponentNodeType[];
-  onBack?: () => void;
-  onPrev?: () => void;
-  onNext?: () => void;
+  entry?: CurriculumChapter;
+  status?: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
   chapterOutcome?: ChapterOutcome | null;
   isStale?: boolean;
 }) {
@@ -63,9 +81,8 @@ function Harness({
   return (
     <QuestionPane
       chapter={chapter}
-      onBack={onBack}
-      onPrev={onPrev}
-      onNext={onNext}
+      entry={entry}
+      status={status}
       chapterOutcome={chapterOutcome}
       isStale={isStale}
     />
@@ -349,34 +366,14 @@ describe("QuestionPane", () => {
     expect(screen.queryByText(/further reading/i)).not.toBeInTheDocument();
   });
 
-  describe("navigation", () => {
-    it("calls onBack when 'All chapters' is clicked", () => {
-      const onBack = vi.fn();
-      renderQuestionPane({ chapter: makeChapter(), nodes: [], onBack });
-      fireEvent.click(screen.getByRole("button", { name: /all chapters/i }));
-      expect(onBack).toHaveBeenCalledTimes(1);
+  it("shows the entry's difficulty and the current status next to the title", () => {
+    renderQuestionPane({
+      chapter: makeChapter(),
+      nodes: [],
+      entry: makeEntry({ difficulty: "advanced" }),
+      status: "IN_PROGRESS",
     });
-
-    it("disables Previous/Next when no handler is supplied (first/last chapter)", () => {
-      renderQuestionPane({ chapter: makeChapter(), nodes: [] });
-      expect(screen.getByRole("button", { name: /previous chapter/i })).toBeDisabled();
-      expect(screen.getByRole("button", { name: /next chapter/i })).toBeDisabled();
-    });
-
-    it("enables and wires Previous/Next when handlers are supplied", () => {
-      const onPrev = vi.fn();
-      const onNext = vi.fn();
-      renderQuestionPane({ chapter: makeChapter(), nodes: [], onPrev, onNext });
-
-      const prevBtn = screen.getByRole("button", { name: /previous chapter/i });
-      const nextBtn = screen.getByRole("button", { name: /next chapter/i });
-      expect(prevBtn).toBeEnabled();
-      expect(nextBtn).toBeEnabled();
-
-      fireEvent.click(prevBtn);
-      fireEvent.click(nextBtn);
-      expect(onPrev).toHaveBeenCalledTimes(1);
-      expect(onNext).toHaveBeenCalledTimes(1);
-    });
+    expect(screen.getByText("advanced")).toBeInTheDocument();
+    expect(screen.getByText("In progress")).toBeInTheDocument();
   });
 });

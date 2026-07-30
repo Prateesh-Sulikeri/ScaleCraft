@@ -1,10 +1,24 @@
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import "fake-indexeddb/auto";
+import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { HomeCanvas } from "./HomeCanvas";
+import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+import { db } from "@/persistence/db";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
+
+beforeEach(async () => {
+  useCurriculumProgressStore.setState({
+    hydrated: false,
+    hydrating: false,
+    validationPassedDefinitionIds: new Set(),
+    rowsBySlug: new Map(),
+  });
+  await db.curriculumProgress.clear();
+  await db.chapterProgress.clear();
+});
 
 beforeAll(() => {
   // jsdom has no ResizeObserver, and @xyflow/react needs one to ever mark a
@@ -76,5 +90,21 @@ describe("HomeCanvas", () => {
       "/real-world-extraction",
     );
     expect(await screen.findByRole("link", { name: /Sandbox/ })).toHaveAttribute("href", "/sandbox");
+  });
+
+  it("shows real per-course progress for Building Blocks/RWE, and none for Sandbox", async () => {
+    render(<HomeCanvas />);
+    // Default store state (before hydrate() resolves) is already the
+    // correct "not started" shape — no separate loading state to wait out.
+    expect(await screen.findByText("0 / 26 chapters")).toBeInTheDocument();
+    expect(await screen.findByText("0 / 5 chapters")).toBeInTheDocument();
+    expect(screen.queryByText(/^0 \/ 0 chapters/)).not.toBeInTheDocument();
+  });
+
+  it("reflects a completed chapter as real progress after hydrate resolves", async () => {
+    await db.chapterProgress.put({ chapterId: "bb-dummy-1", completedAt: Date.now(), matchedBlueprintId: null });
+    render(<HomeCanvas />);
+    expect(await screen.findByText("1 / 26 chapters")).toBeInTheDocument();
+    expect(await screen.findByText("in progress")).toBeInTheDocument();
   });
 });

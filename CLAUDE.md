@@ -171,3 +171,9 @@ This project has a live knowledge graph at `graphify-out/` with 758 nodes, 1214 
 - `graphify-out/graph.html` — visual explorer (open in browser for interactive browsing)
 - `graphify-out/GRAPH_REPORT.md` — fallback for full architecture review only
 - `.git/hooks/post-commit` + `post-checkout` — auto-update hooks (installed by `graphify hook install`)
+
+
+## Personal preference
+- when writing and content please do not use the em '—' using the norma '-' instead or all-together don't use it if possible
+- I have long lenghty comments, keep them short, bried to the point 
+- After finish a task perform only the normal CI pipeline verification, I will specifcally ask you to do an e-2-e test whenever I need you to. 

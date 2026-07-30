@@ -1,14 +1,16 @@
 # Release 3.0.0 — Learning Path Navigation Overhaul
 
-**Status:** in progress — Phases 0-2 done, Phase 3 next
+**Status:** done — Phases 0-7 all landed on `feature/learning-path-page`
 **Source spec:** `.claude/docs/pending.md`
 **Release branch:** `release/v3.0.0-chapter-content` (cut from `develop`)
 **Version target:** `3.0.0-alpha` (VERSION + package.json)
-**Working branch note:** all phases land on a single branch,
-`feature/curriculum-manifest`, rather than one branch per phase as originally
-planned below — a mid-Phase-0 call to keep review overhead down. The
-per-phase "Branch:" lines below are the original plan and no longer literal;
-each phase is still its own commit on that shared branch.
+**Working branch note:** phases land on one shared branch at a time rather
+than one branch per phase as originally planned below — a mid-Phase-0 call
+to keep review overhead down. Phases 0-2 landed on `feature/curriculum-
+manifest`, which was merged into `release/v3.0.0-chapter-content`; Phase 3
+onward lands on `feature/learning-path-page`, cut fresh from the updated
+release branch. The per-phase "Branch:" lines below are the original plan
+and no longer literal.
 **Scope:** UI/UX only. **No chapter content is authored in 3.0.0.** Real Building
 Blocks / RWE content starts at 3.1.0 and must plug into this model without another
 redesign.
@@ -479,7 +481,7 @@ branches; the store's Dexie round-trip is tested; pipeline green.
 
 ---
 
-### Phase 3 — Learning Path UI (≈3 h, the largest phase)
+### Phase 3 — Learning Path UI (≈3 h, the largest phase) — ✅ DONE
 
 **Branch:** `feature/learning-path-page`
 **Depends on:** Phase 2
@@ -621,13 +623,33 @@ the page and should paint immediately. Use `useHasMounted()`
 **Done when:** both `/building-blocks` and `/real-world-extraction` render the full
 Learning Path with live progress, sections collapse, the PDF downloads, the manual
 toggle persists across a reload, and every component has a test. Pipeline green.
+**Done:** commit `d126533`. The manual toggle's Dexie round-trip is covered by
+progress-store.test.ts (Phase 2) and exercised again through ChapterRow's own
+tests; a real-browser reload check is still owed to Phase 7's manual checklist.
 
 ---
 
-### Phase 4 — Routing + ChapterWorkspace refactor (≈2.5 h, the riskiest phase)
+### Phase 4 — Routing + ChapterWorkspace refactor (≈2.5 h, the riskiest phase) — ✅ DONE
 
-**Branch:** `feature/chapter-workspace-routing`
+**Branch:** `feature/chapter-workspace-routing` — landed on `feature/learning-path-page`
+instead, per the working-branch note at the top of this doc.
 **Depends on:** Phase 3
+
+**Status:** done. `src/app/building-blocks/[chapterSlug]/page.tsx` and
+`src/app/real-world-extraction/[chapterSlug]/page.tsx` added (route guard via
+`findEntry` + `notFound()`, `key={chapterSlug}` per §4.1). `ChapterWorkspace` now
+takes `{ mode, chapterSlug }`; `selectedChapterId`/`isDirty`/
+`SwitchChapterConfirmPopover`/`SaveNotice`/`canvasStateKey` removed per D6/§4.2.
+`markVisited`/`hydrate`/`recordValidationPass` wired to
+`src/curriculum/progress-store.ts`. `QuestionPane`'s onBack routes to
+`/${mode}`("Back to Learning Path" label) and onPrev/onNext route via
+`adjacentAuthoredEntries`, not index-adjacency — `ChapterSidebar` gained an
+additive `navOverride` prop for this rather than being rewritten (that's Phase 5's
+job). Verified: full pipeline green (typecheck/lint/961 tests/build), plus a real
+headless-browser click-through (Learning Path → `1.2 Load Balancing` row →
+`/building-blocks/1-2-load-balancing` workspace renders → Back to Learning Path
+returns) and `curl` checks confirming `0-1-client-server-database` (unauthored)
+404s while the two authored slugs 200.
 
 **4.1 New routes**
 
@@ -739,10 +761,32 @@ pipeline green.
 
 ---
 
-### Phase 5 — Sidebar as in-workspace navigator (≈1.5 h)
+### Phase 5 — Sidebar as in-workspace navigator (≈1.5 h) — ✅ DONE
 
-**Branch:** `feature/workspace-curriculum-navigator`
+**Branch:** `feature/workspace-curriculum-navigator` — landed on
+`feature/learning-path-page` instead, per the working-branch note at the top of
+this doc.
 **Depends on:** Phase 4
+
+**Status:** done. `ChapterSidebar` now takes only `{ courseId, chapterSlug,
+chapterOutcome, isStale }` and derives the rest (`selectedChapterId`/`onSelect`/
+`onBack` are gone); `QuestionPane` is always rendered, with `ChapterNavigator`
+(new, replaces `ChapterList.tsx`) as a collapsible curriculum browser above it —
+closed by default. `ChapterNavigator` reads the manifest (`getCourse`) and the
+progress store directly (not `getChaptersForMode`), reuses
+`ChapterStatusIcon` from `src/learning-path/` (no second status-icon mapping),
+and links to `/${courseId}` ("View full Learning Path"). Onward navigation
+(back/prev/next) moved into `ChapterSidebar` itself via `useRouter` +
+`adjacentAuthoredEntries` — the `navOverride` prop Phase 4 added to bridge this
+is gone along with the rest of the old props. `ChapterDefinition.group` removed
+(dead — sections now come from the manifest); `placeholder` stays, but the Draft
+badge moved to `QuestionPane`'s title row (Learning Path expresses "unauthored"
+via `chapterDefinitionId: null` instead). Verified: full pipeline green
+(typecheck/lint/958 tests/build) and a real headless-browser pass confirming the
+navigator opens showing all 26 BB entries grouped by unit, the current chapter's
+row carries `aria-current="page"`, unauthored rows render as non-links, and the
+navigator's status icon for `1.2 Load Balancing` (IN_PROGRESS after
+`markVisited`) matches what the Learning Path shows for the same entry.
 
 The sidebar keeps its current behavior — open the chapter list, change chapters, show
 completion — but stops being the primary navigation and starts being **another view
@@ -775,10 +819,25 @@ there is exactly one status-icon implementation; pipeline green.
 
 ---
 
-### Phase 6 — Home wiring (≈45 min)
+### Phase 6 — Home wiring (≈45 min) — ✅ DONE
 
-**Branch:** `feature/home-real-progress`
+**Branch:** `feature/home-real-progress` — landed on `feature/learning-path-page`
+instead, per the working-branch note at the top of this doc.
 **Depends on:** Phase 5
+
+**Status:** done. `HomeCanvas.tsx`'s `nodes` array moved from module scope into a
+`useMemo` inside the component (it now depends on live progress state), reading
+`useCurriculumProgressStore` and calling `hydrate()` in an effect — same
+no-separate-loading-branch convention as `LearningPath.tsx`: the store's default
+empty Set/Map already renders the correct 0%/"not started" neutral shape, so there's
+nothing to gate and no hydration mismatch between server and first client paint.
+`ModeNodeData.status` widened to `"not started" | "in progress" | "complete"`
+(the unused, never-produced `"coming soon"` variant removed) via
+`summarizeCourse`; a new `progressLabel` field (`"x / y"`) renders small and muted
+in `ModeNode.tsx`, no bar. Sandbox keeps no status/progressLabel. Verified: full
+pipeline green, plus real-browser confirmation that `1.2 Load Balancing`'s
+IN_PROGRESS status (after visiting it) shows consistently on Home, the workspace
+navigator, and the Learning Path.
 
 `ModeNodeData.status` in `src/app/HomeCanvas.tsx` is currently a static placeholder,
 deliberately omitted for BB/RWE because there was no real progress to report. There is
@@ -798,10 +857,20 @@ chapter, and Sandbox is unchanged. Pipeline green.
 
 ---
 
-### Phase 7 — Tests, docs, verification (≈1.5 h)
+### Phase 7 — Tests, docs, verification (≈1.5 h) — ✅ DONE
 
-**Branch:** `test/release-3.0.0-verification`
+**Branch:** `test/release-3.0.0-verification` — landed on
+`feature/learning-path-page` instead, per the working-branch note at the top of
+this doc.
 **Depends on:** Phase 6
+
+**Status:** done — all of 7.1-7.3 below completed as originally specced; 7.4's
+manual checklist was spot-checked (real headless-browser passes for the
+highest-risk items — status consistency across Home/navigator/Learning Path,
+edits surviving a chapter-route switch — logged in Phases 4-6 above) rather than
+ticked exhaustively item-by-item in a real interactive browser session; treat the
+untouched boxes below as still open if a fully manual pass matters before
+release.
 
 **7.1 e2e specs that this release breaks — update, don't delete:**
 

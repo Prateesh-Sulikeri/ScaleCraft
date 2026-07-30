@@ -19,7 +19,8 @@ import { test, expect } from "@playwright/test";
 test("a hint stays collapsed until revealed, and Validate always surfaces its result", async ({ page }) => {
   await page.goto("/building-blocks");
 
-  await page.getByRole("button", { name: "Placeholder Chapter" }).click();
+  await page.getByRole("link", { name: /1\.2.*Load Balancing/i }).click();
+  await page.waitForURL("**/building-blocks/1-2-load-balancing");
   await expect(page.getByText(/This is placeholder content for the first Building Blocks chapter/)).toBeVisible();
 
   // The hint's body text must not be in the DOM until explicitly revealed.

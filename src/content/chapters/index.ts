@@ -2,8 +2,8 @@ import type { ChapterDefinition } from "./types";
 
 /**
  * Throwaway placeholder content — one dummy chapter per chapter mode, just
- * enough to exercise the Phase 5 shell (ChapterWorkspace/ChapterSidebar/
- * ChapterList/QuestionPane) end to end. This is NOT real curriculum
+ * enough to exercise the chapter shell (ChapterWorkspace/ChapterSidebar/
+ * ChapterNavigator/QuestionPane) end to end. This is NOT real curriculum
  * content: the actual Building Blocks / RWE chapters (per
  * .claude/docs/CURRICULUM.md) are Step 5/6 in .claude/docs/NEXT_STEPS.md,
  * authored once the stronger validation agent (Step 3) exists to back
@@ -78,6 +78,15 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
     readingLinks: [],
+    // A single unconnected node, not the solved blueprint — a starter graph
+    // that already satisfied the required-components/blueprint check would
+    // hand the exercise to the learner solved. Just enough that opening the
+    // chapter for the first time doesn't drop the learner on a blank canvas.
+    starterGraph: {
+      nodes: [{ id: "bb-dummy-1-starter-client", componentId: "client", position: { x: 80, y: 120 }, config: {} }],
+      edges: [],
+      entryPointIds: [],
+    },
   },
   {
     id: "rwe-dummy-1",
@@ -97,6 +106,12 @@ export const chapterRegistry: ChapterDefinition[] = [
     blueprints: [],
     hints: [],
     readingLinks: [],
+    // Same reasoning as bb-dummy-1's starterGraph above.
+    starterGraph: {
+      nodes: [{ id: "rwe-dummy-1-starter-client", componentId: "client", position: { x: 80, y: 120 }, config: {} }],
+      edges: [],
+      entryPointIds: [],
+    },
   },
 ];
 

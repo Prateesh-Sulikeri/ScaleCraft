@@ -92,6 +92,14 @@ unfinished at first rather than left for the end.
 **Done when (final state, after 10):** progress indicators reflect real saved state,
 not placeholders.
 
+**Status:** done, ahead of its original "after 10" sequencing — local-first
+persistence (`src/curriculum/progress-store.ts`, Dexie-backed) turned out to be
+enough on its own, no auth required. `HomeCanvas` (`src/app/HomeCanvas.tsx`) derives
+each course's `ModeNodeData.status` (`"not started"` / `"in progress"` /
+`"complete"`) and an `"x / y"` chapter count from `summarizeCourse`, hydrating the
+same progress store the Learning Path and workspace navigator read — one model,
+three views. Sandbox keeps no status (freeform, nothing to complete).
+
 ## 5. Stronger validation agent — Track 1 done; Track 2 and Track 3 both
 ## merged into release/2.0.0-validation-engine-overhaul
 
@@ -194,11 +202,21 @@ violations + all `requiredComponentIds` present and connected), hints panel that
 **Done when:** the shell runs correctly against one throwaway dummy `ChapterDefinition`
 — prove the mechanism before investing in real content.
 
-**Status:** done, shipped as part of the UI Overhaul Part 2 work (Phase 5).
-`ChapterWorkspace` + `ChapterSidebar` (list ⇄ question pane) live at
-`/building-blocks` and `/real-world-extraction`, each running against one
-placeholder `ChapterDefinition` (`src/content/chapters/index.ts`). Mechanism
-proven; real content is milestones 7/8, not yet authored.
+**Status:** done, shipped as part of the UI Overhaul Part 2 work (Phase 5), then
+re-platformed onto route-based navigation by the Learning Path release
+(`.claude/docs/RELEASE_3.0.0_LEARNING_PATH.md`, Phases 3-5). The list⇄question-pane
+switcher described above no longer exists: `/building-blocks` and
+`/real-world-extraction` are now the **Learning Path** (`src/learning-path/`), a
+full-screen curriculum browser reading `src/curriculum/`'s manifest (26 BB + 5 RWE
+entries, only 2 backed by a real `ChapterDefinition` today); clicking an authored
+row navigates to `/<mode>/<chapterSlug>`, which renders `ChapterWorkspace` — the
+same shell this milestone proved, now route-driven instead of internal-state-driven.
+`ChapterSidebar` inside the workspace is a secondary, collapsible in-workspace
+navigator over the same progress store, not the primary selection surface anymore.
+Mechanism proven either way; **milestone 7 (real chapters) now plugs in by flipping
+a manifest entry's `chapterDefinitionId` from `null` to a real id** — the manifest
+row, route, and progress tracking already exist for every entry, authoring the
+`ChapterDefinition` is the only remaining step per chapter.
 
 ## 7. First two Building Blocks chapters
 

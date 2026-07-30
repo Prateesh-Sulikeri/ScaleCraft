@@ -34,22 +34,3 @@ const slugByChapterDefinitionId: ReadonlyMap<string, string> = new Map(
 export function slugForChapterDefinitionId(id: string): string | undefined {
   return slugByChapterDefinitionId.get(id);
 }
-
-/** Curriculum-order prev/next, skipping unauthored entries — the workspace's
- *  prev/next must never navigate to a route that has no lesson. */
-export function adjacentAuthoredEntries(
-  courseId: CourseId,
-  slug: string,
-): { prev?: CurriculumChapter; next?: CurriculumChapter } {
-  const entries = allEntries(getCourse(courseId));
-  const index = entries.findIndex((c) => c.slug === slug);
-  if (index === -1) return {};
-
-  const prev = entries
-    .slice(0, index)
-    .reverse()
-    .find((c) => c.chapterDefinitionId !== null);
-  const next = entries.slice(index + 1).find((c) => c.chapterDefinitionId !== null);
-
-  return { prev, next };
-}

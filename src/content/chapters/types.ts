@@ -41,17 +41,12 @@ export type ChapterDefinition = {
    * problemStatement, which is the long-form prose shown in the Question
    * Pane once selected. */
   title: string;
-  /** Optional one-level nesting for the Chapter List (see
-   * .claude/docs/UI_OVERHAUL_PART2_SPEC.md §2.1) — chapters sharing a
-   * `group` render under one expandable/collapsible section; chapters with
-   * no group (or when no chapter in the mode declares one) render as a
-   * flat list. */
-  group?: string;
   /** True for throwaway/dummy content authored only to exercise the chapter
-   * shell (see Phase 5 of .claude/docs/UI_OVERHAUL_PART2_SPEC.md) —
-   * ChapterList visually mutes these rows and appends a "more coming soon"
-   * caption so they never read as finished curriculum. Omit (or false) for
-   * real chapters. */
+   * shell — marks *content* as throwaway, a different fact from "unauthored"
+   * (src/curriculum's `chapterDefinitionId: null`, which is what the
+   * Learning Path reads). QuestionPane (src/chapters/QuestionPane.tsx) shows
+   * a Draft badge for these so they never read as finished curriculum.
+   * Omit (or false) for real chapters. */
   placeholder?: boolean;
   problemStatement: string;
   learningObjectives: string[];
