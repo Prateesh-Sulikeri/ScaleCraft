@@ -1,12 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { ChapterNavigator } from "./ChapterNavigator";
 import { QuestionPane } from "./QuestionPane";
 import { getCourse, findEntry, adjacentAuthoredEntries } from "@/curriculum";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
-import type { ProgressInputs } from "@/curriculum/progress";
+import { deriveStatus, type ProgressInputs } from "@/curriculum/progress";
 import { chapterRegistry } from "@/content/chapters";
 import type { CourseId } from "@/curriculum/types";
 import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
@@ -29,7 +28,6 @@ type ChapterSidebarProps = {
  * *view* over them, same as the Learning Path, never a second writer.
  */
 export function ChapterSidebar({ courseId, chapterSlug, chapterOutcome, isStale }: ChapterSidebarProps) {
-  const router = useRouter();
   const course = getCourse(courseId);
 
   // Guaranteed non-null by the route guard in practice ([chapterSlug]/
@@ -49,16 +47,17 @@ export function ChapterSidebar({ courseId, chapterSlug, chapterOutcome, isStale 
     [validationPassedDefinitionIds, rowsBySlug],
   );
 
-  if (!chapter) return null;
+  if (!chapter || !entry) return null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ChapterNavigator course={course} chapterSlug={chapterSlug} inputs={inputs} />
       <QuestionPane
         chapter={chapter}
-        onBack={() => router.push(`/${courseId}`)}
-        onPrev={prev ? () => router.push(`/${courseId}/${prev.slug}`) : undefined}
-        onNext={next ? () => router.push(`/${courseId}/${next.slug}`) : undefined}
+        entry={entry}
+        status={deriveStatus(entry, inputs)}
+        prevHref={prev ? `/${courseId}/${prev.slug}` : undefined}
+        nextHref={next ? `/${courseId}/${next.slug}` : undefined}
         chapterOutcome={chapterOutcome}
         isStale={isStale}
       />

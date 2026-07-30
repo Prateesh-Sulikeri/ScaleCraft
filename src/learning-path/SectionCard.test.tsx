@@ -1,11 +1,15 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { SectionCard } from "./SectionCard";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { db } from "@/persistence/db";
 import type { CurriculumSection } from "@/curriculum/types";
 import type { ProgressInputs } from "@/curriculum/progress";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 const section: CurriculumSection = {
   id: "bb-unit-1",

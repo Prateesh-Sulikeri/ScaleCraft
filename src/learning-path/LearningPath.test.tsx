@@ -1,9 +1,13 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { LearningPath } from "./LearningPath";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { db } from "@/persistence/db";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 beforeEach(async () => {
   useCurriculumProgressStore.setState({
@@ -42,7 +46,7 @@ describe("LearningPath", () => {
       "href",
       "/building-blocks/1-2-load-balancing",
     );
-    expect(screen.getAllByText("Not yet authored").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Coming soon").length).toBeGreaterThan(0);
   });
 
   it("includes a working Download Curriculum link", () => {

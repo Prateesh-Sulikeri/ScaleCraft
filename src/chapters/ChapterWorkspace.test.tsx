@@ -299,12 +299,18 @@ describe("ChapterWorkspace", () => {
   });
 
   describe("navigation", () => {
-    it("navigates to the Learning Path route on 'Back to Learning Path'", async () => {
+    it("links to the Learning Path route via ChapterNavigator's 'View full Learning Path', held before navigating", async () => {
       await renderWorkspace("slug-one");
       await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
+      vi.useFakeTimers();
 
-      fireEvent.click(screen.getByRole("button", { name: /back to learning path/i }));
+      const link = screen.getByRole("link", { name: /view full learning path/i });
+      expect(link).toHaveAttribute("href", "/building-blocks");
+      fireEvent.click(link, { button: 0 });
+      expect(routerPushMock).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1250);
       expect(routerPushMock).toHaveBeenCalledWith("/building-blocks");
+      vi.useRealTimers();
     });
 
     it("disables Previous/Next when adjacentAuthoredEntries reports no neighbors", async () => {
@@ -312,20 +318,22 @@ describe("ChapterWorkspace", () => {
       await renderWorkspace("slug-one");
       await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
 
-      expect(screen.getByRole("button", { name: /previous chapter/i })).toBeDisabled();
-      expect(screen.getByRole("button", { name: /next chapter/i })).toBeDisabled();
+      expect(screen.queryByRole("link", { name: /previous chapter/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: /next chapter/i })).not.toBeInTheDocument();
     });
 
     it("navigates prev/next to the curriculum-adjacent authored slugs, not index-adjacent ones", async () => {
       adjacentAuthoredEntriesMock.mockReturnValue({ prev: entryTwo, next: entryTwo });
       await renderWorkspace("slug-one");
       await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
+      vi.useFakeTimers();
 
-      fireEvent.click(screen.getByRole("button", { name: /previous chapter/i }));
+      const prevLink = screen.getByRole("link", { name: /previous chapter/i });
+      expect(prevLink).toHaveAttribute("href", "/building-blocks/slug-two");
+      fireEvent.click(prevLink, { button: 0 });
+      vi.advanceTimersByTime(1250);
       expect(routerPushMock).toHaveBeenCalledWith("/building-blocks/slug-two");
-
-      fireEvent.click(screen.getByRole("button", { name: /next chapter/i }));
-      expect(routerPushMock).toHaveBeenCalledWith("/building-blocks/slug-two");
+      vi.useRealTimers();
     });
   });
 

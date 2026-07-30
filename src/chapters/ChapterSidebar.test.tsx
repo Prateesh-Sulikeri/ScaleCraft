@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { CanvasStoreProvider } from "@/canvas/store";
 import type { ChapterDefinition } from "@/content/chapters/types";
@@ -91,6 +91,10 @@ vi.mock("next/navigation", () => ({
 
 const { ChapterSidebar } = await import("./ChapterSidebar");
 
+beforeEach(() => {
+  routerPushMock.mockClear();
+});
+
 function renderSidebar(overrides: { chapterOutcome?: ChapterOutcome | null; isStale?: boolean } = {}) {
   return render(
     <CanvasStoreProvider>
@@ -119,28 +123,25 @@ describe("ChapterSidebar", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("navigates to the course's Learning Path on 'Back to Learning Path'", () => {
-    renderSidebar();
-    fireEvent.click(screen.getByRole("button", { name: /back to learning path/i }));
-    expect(routerPushMock).toHaveBeenCalledWith("/building-blocks");
-  });
-
   it("disables Previous/Next when adjacentAuthoredEntries reports no neighbors", () => {
     adjacentAuthoredEntriesMock.mockReturnValue({});
     renderSidebar();
-    expect(screen.getByRole("button", { name: /previous chapter/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /next chapter/i })).toBeDisabled();
+    expect(screen.queryByRole("link", { name: /previous chapter/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /next chapter/i })).not.toBeInTheDocument();
   });
 
-  it("navigates prev/next to the curriculum-adjacent authored slugs", () => {
+  it("renders prev/next as links to the curriculum-adjacent authored slugs, held before navigating", () => {
+    vi.useFakeTimers();
     adjacentAuthoredEntriesMock.mockReturnValue({ prev: entryC, next: entryC });
     renderSidebar();
 
-    fireEvent.click(screen.getByRole("button", { name: /previous chapter/i }));
+    const prevLink = screen.getByRole("link", { name: /previous chapter/i });
+    expect(prevLink).toHaveAttribute("href", "/building-blocks/c");
+    fireEvent.click(prevLink, { button: 0 });
+    expect(routerPushMock).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1250);
     expect(routerPushMock).toHaveBeenCalledWith("/building-blocks/c");
-
-    fireEvent.click(screen.getByRole("button", { name: /next chapter/i }));
-    expect(routerPushMock).toHaveBeenCalledWith("/building-blocks/c");
+    vi.useRealTimers();
   });
 
   it("shows QuestionPane's 'Not yet validated' when isStale is true even with prior violations", () => {
@@ -195,12 +196,17 @@ describe("ChapterSidebar", () => {
       expect(screen.getByRole("link", { name: /Gamma/ })).not.toHaveAttribute("aria-current");
     });
 
-    it("links to the full Learning Path for this course", () => {
+    it("links to the full Learning Path for this course, held before navigating", () => {
+      vi.useFakeTimers();
       renderSidebar();
-      expect(screen.getByRole("link", { name: /view full learning path/i })).toHaveAttribute(
-        "href",
-        "/building-blocks",
-      );
+      const link = screen.getByRole("link", { name: /view full learning path/i });
+      expect(link).toHaveAttribute("href", "/building-blocks");
+
+      fireEvent.click(link, { button: 0 });
+      expect(routerPushMock).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1250);
+      expect(routerPushMock).toHaveBeenCalledWith("/building-blocks");
+      vi.useRealTimers();
     });
   });
 });

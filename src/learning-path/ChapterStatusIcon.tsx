@@ -18,3 +18,9 @@ export function ChapterStatusIcon({ status }: { status: ChapterStatus }) {
     </span>
   );
 }
+
+/** The same three labels CONFIG carries for aria-label, exposed for callers
+ *  that need the text itself (e.g. a status chip next to a chapter title). */
+export function chapterStatusLabel(status: ChapterStatus): string {
+  return CONFIG[status].label;
+}

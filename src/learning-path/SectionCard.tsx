@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, CheckCircle2 } from "lucide-react";
+import { ChevronRight, CheckCircle2 } from "lucide-react";
 import { ChapterRow } from "./ChapterRow";
 import { ProgressBar } from "./ProgressBar";
 import { summarizeSection, deriveStatus, type ProgressInputs } from "@/curriculum/progress";
@@ -29,13 +29,15 @@ export function SectionCard({ section, courseId, inputs }: SectionCardProps) {
         type="button"
         onClick={() => setExpanded((e) => !e)}
         aria-expanded={expanded}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left"
+        className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-border/30"
       >
-        {expanded ? (
-          <ChevronDown size={14} className="shrink-0 text-foreground/50" aria-hidden="true" />
-        ) : (
-          <ChevronRight size={14} className="shrink-0 text-foreground/50" aria-hidden="true" />
-        )}
+        <ChevronRight
+          size={14}
+          className={`shrink-0 text-foreground/50 transition-transform duration-200 motion-reduce:transition-none ${
+            expanded ? "rotate-90" : ""
+          }`}
+          aria-hidden="true"
+        />
         <span className="shrink-0 text-[11px] font-semibold tracking-wide text-foreground/60 uppercase">
           {section.label}
         </span>
@@ -53,7 +55,7 @@ export function SectionCard({ section, courseId, inputs }: SectionCardProps) {
       </button>
 
       {expanded && (
-        <div className="border-t border-border">
+        <div className="border-t border-border motion-safe:animate-[dropdown-enter_180ms_ease-out] motion-reduce:opacity-100">
           <div className="px-4 pt-3 pb-1 pl-[calc(14px+0.5rem)]">
             <p className="text-[15px] font-semibold text-foreground">{section.title}</p>
             <p className="mt-0.5 text-[13px] text-foreground/60">{section.summary}</p>

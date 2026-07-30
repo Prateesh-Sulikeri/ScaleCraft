@@ -203,6 +203,21 @@ body {
   }
 }
 
+/* Used by SectionCard.tsx and ChapterNavigator.tsx — a collapsible section's
+ * content fading/sliding into place the moment it mounts (expansion), rather
+ * than popping in instantly. A real state signal (this content just became
+ * visible), same rationale as page-enter above. */
+@keyframes dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* The browser default focus outline (near-black) is indistinguishable from
  * this app's dark-theme surfaces (#0a0a0a/#141414) — a keyboard-only user
  * could Tab through the whole header and never see where focus is. One

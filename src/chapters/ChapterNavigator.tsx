@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
+import { ChevronRight, ExternalLink } from "lucide-react";
+import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { ChapterStatusIcon } from "@/learning-path/ChapterStatusIcon";
 import { deriveStatus, type ProgressInputs } from "@/curriculum/progress";
 import type { ChapterStatus, Course, CourseId, CurriculumChapter } from "@/curriculum/types";
@@ -38,24 +38,25 @@ export function ChapterNavigator({ course, chapterSlug, inputs }: ChapterNavigat
           aria-expanded={open}
           className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-foreground/70 hover:text-foreground"
         >
-          {open ? (
-            <ChevronDown size={12} className="shrink-0" aria-hidden="true" />
-          ) : (
-            <ChevronRight size={12} className="shrink-0" aria-hidden="true" />
-          )}
+          <ChevronRight
+            size={12}
+            className={`shrink-0 transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
+            aria-hidden="true"
+          />
           Curriculum
         </button>
-        <Link
+        <HeldTransitionLink
           href={`/${course.id}`}
+          label="Returning to Learning Path…"
           className="flex shrink-0 items-center gap-1 text-xs text-foreground/50 hover:text-foreground"
         >
           View full Learning Path
           <ExternalLink size={11} aria-hidden="true" />
-        </Link>
+        </HeldTransitionLink>
       </div>
 
       {open && (
-        <div className="max-h-72 overflow-y-auto border-t border-border px-1 pb-2">
+        <div className="max-h-72 overflow-y-auto border-t border-border px-1 pb-2 motion-safe:animate-[dropdown-enter_180ms_ease-out] motion-reduce:opacity-100">
           {course.sections.map((section) => (
             <div key={section.id} className="pt-2">
               <p className="px-2.5 text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">
@@ -105,15 +106,16 @@ function ChapterNavigatorRow({
   return (
     <li>
       {isAuthored ? (
-        <Link
+        <HeldTransitionLink
           href={`/${courseId}/${entry.slug}`}
+          label={`Opening ${entry.title}…`}
           aria-current={isCurrent ? "page" : undefined}
-          className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 hover:bg-border/40 ${
+          className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 transition-colors hover:bg-border/40 ${
             isCurrent ? "bg-border/60" : ""
           }`}
         >
           {content}
-        </Link>
+        </HeldTransitionLink>
       ) : (
         <div className="flex items-center gap-2 px-2.5 py-1.5 opacity-60">{content}</div>
       )}
