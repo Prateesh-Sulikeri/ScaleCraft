@@ -1,6 +1,6 @@
 {
   "name": "scalecraft",
-  "version": "1.0.1-alpha.0",
+  "version": "2.1.0-alpha",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -16,6 +16,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
     "@clerk/nextjs": "^7.5.17",
     "@hookform/resolvers": "^5.4.0",
     "@neondatabase/serverless": "^1.1.0",

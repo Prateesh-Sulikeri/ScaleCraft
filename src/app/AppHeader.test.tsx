@@ -5,6 +5,14 @@ import type { RefObject } from "react";
 import { CanvasStoreProvider } from "@/canvas/store";
 import { AppHeader } from "./AppHeader";
 import type { CanvasHandle } from "@/canvas/Canvas";
+import type { DeepCheckContext } from "@/ai/prompt";
+
+const emptyDeepCheckCtx: DeepCheckContext = {
+  graph: { nodes: [], edges: [], entryPointIds: [] },
+  components: [],
+  violations: [],
+  passed: false,
+};
 
 function renderHeader(overrides: Partial<Parameters<typeof AppHeader>[0]> = {}) {
   const canvasRef = { current: null } as RefObject<CanvasHandle | null>;
@@ -31,6 +39,7 @@ function renderHeader(overrides: Partial<Parameters<typeof AppHeader>[0]> = {}) 
         justSaved={false}
         docsPanelOpen={false}
         toggleDocsPanel={toggleDocsPanel}
+        deepCheckCtx={emptyDeepCheckCtx}
         {...overrides}
       />
     </CanvasStoreProvider>,
@@ -47,6 +56,7 @@ describe("AppHeader", () => {
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Redo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Validate" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Deep Check" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Project" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Board" })).toBeInTheDocument();
@@ -119,6 +129,7 @@ describe("AppHeader", () => {
           justSaved={false}
           docsPanelOpen={false}
           toggleDocsPanel={vi.fn()}
+          deepCheckCtx={emptyDeepCheckCtx}
         />
       </CanvasStoreProvider>,
     );

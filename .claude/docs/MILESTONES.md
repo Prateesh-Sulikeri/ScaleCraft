@@ -92,17 +92,54 @@ unfinished at first rather than left for the end.
 **Done when (final state, after 10):** progress indicators reflect real saved state,
 not placeholders.
 
-## 5. Stronger validation agent — done (Track 1; Track 2 blocked)
+## 5. Stronger validation agent — Track 1 done; Track 2 and Track 3 both
+## merged into release/2.0.0-validation-engine-overhaul
 
 **Status:** Track 1 (structural rules + per-component `relations` contracts)
-shipped 2026-07-24 — the registry grew to 11 rules, and the flat
+shipped 2026-07-24 — the registry grew to 10 rules, and the flat
 category-matrix approach described below was superseded by components
 declaring their own connection contracts (`component-relations.ts`); see
 `.claude/docs/validation_agent_design.md` for the full design and history.
-Track 2 (LLM-assisted holistic critique) is designed but blocked on Gemini
-API access, not built. The section below is kept as the original problem
-statement/rationale — still accurate context, just not the current state of
-the rule count.
+The section below is kept as the original problem statement/rationale —
+still accurate context, just not the current state of the rule count.
+
+**Track 2 (pattern engine + blueprints + chapter mastery)** — implemented
+2026-07-27, **merged via PR #47** (merge commit `e1b36ff`, 2026-07-27/28) into
+`release/2.0.0-validation-engine-overhaul` (design doc §8–§9): a `GraphIndex` +
+backtracking pattern matcher, `PatternRule`/`ImperativeRule` engine dispatch,
+`Blueprint`s on `ChapterDefinition` (`solutionGraph` removed, it was dead),
+and `evaluateChapter()` — the chapter pass/fail gate this milestone's "success
+criteria detection" never actually had before. **Unblocks `NEXT_STEPS.md`
+Step 5** (real Building Blocks chapters).
+
+**Track 3 (AI Deep Check)** — **merged via PR #48** (merge commit `e1bc04c`,
+2026-07-29) into `release/2.0.0-validation-engine-overhaul` (design doc §10):
+multi-provider BYO-key adapters, prompt assembly with a structurally-enforced
+spoiler gate, orchestration, a slide-over panel with Profiles/History/Help
+views, and a post-completion follow-up round (multiple named AI profiles,
+replacing the original single-configuration model). Full pipeline green,
+click-through done. Both tracks now sit on `release/2.0.0-validation-engine-
+overhaul`, not yet promoted to `develop`/`main` — see `.claude/docs/pending.md`.
+
+**Revised 2026-07-27 — the remaining tracks moved to `NEXT_STEPS.md` Step 4.5:**
+
+- **The LLM-assisted critique is no longer blocked.** Users bring their own API
+  key (any provider), called browser-direct, so there is nothing to meter — no
+  daily cap, no identity to count against, hence **no dependency on milestone 10's
+  auth**, and no dependence on Gemini specifically. It also no longer surfaces as
+  a `ValidationViolation`, and it is now available in Building Blocks rather than
+  scoped out of it. Design doc §4 records all three reversals with reasoning.
+- **A second problem surfaced that this milestone's framing missed:** enumerating
+  wrongness doesn't scale. `CURRICULUM.md` §12 budgets 5–10 rules per BB chapter
+  and 15–25 per RWE project — 250–400 hand-written rule files against today's 10.
+  The fix is to make rules declarative graph *patterns*, and to recognise
+  *rightness* via per-chapter blueprints rather than enumerating every way to be
+  wrong. Design doc §8–§9.
+- **Chapter success criteria were never implemented at all** — `hasErrors()` is
+  dead code, `requiredComponentIds` is checked for presence but never
+  connectivity, and `solutionGraph` is referenced nowhere in `src/`. Milestone 6's
+  "success criteria detection" therefore still has nothing behind it. Step 4.5
+  closes that, which is why it must land before milestone 7's real chapter content.
 
 The rule-based engine (`src/validation-engine/`) originally had 6 hand-picked
 structural/config rules — nowhere near the space of nonsensical architectures a user

@@ -5,12 +5,12 @@ import { Megaphone, X } from "lucide-react";
 import { releaseNotes } from "@/content/release-notes";
 
 /**
- * Mounted once in the root layout (not per-page) so it's present no matter
- * which mode is active — Sandbox, Building Blocks, Real World Extraction, or
- * Home. Fixed bottom-left, the one screen corner not already claimed by
- * per-page chrome: react-flow's own zoom Controls were moved to
- * bottom-right in Canvas.tsx to free this spot, and Home's AboutButton
- * (page.tsx) was shifted up to stack above it rather than overlap.
+ * Mounted only on the Home page (page.tsx) — release notes are a landing-page
+ * affordance, not chrome that should follow the user into every mode. Fixed
+ * bottom-left, the one screen corner not already claimed by per-page chrome:
+ * react-flow's own zoom Controls were moved to bottom-right in Canvas.tsx to
+ * free this spot, and Home's AboutButton (page.tsx) is shifted up to stack
+ * above it rather than overlap.
  *
  * Same "modal with backdrop" convention as CreateComponentModal.tsx — a
  * short structured list (version + a few bullets), not long-form docs, so

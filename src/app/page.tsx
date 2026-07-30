@@ -1,6 +1,7 @@
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { HomeCanvas } from "@/app/HomeCanvas";
 import { AboutButton } from "@/app/AboutButton";
+import { ReleaseNotesButton } from "@/app/ReleaseNotesButton";
 
 // The mode-select landing page (milestone 4, .claude/docs/MILESTONES.md).
 // The ScaleCraft mark + "choose a mode" heading live inside HomeCanvas's own
@@ -22,12 +23,13 @@ export default function RootPage() {
         <ThemeToggle />
       </div>
 
-      {/* bottom-16, not bottom-6 — stacks above the global Release Notes
-       * button (ReleaseNotesButton.tsx, mounted in the root layout), which
-       * now owns bottom-6/left-6 on every page including this one. */}
+      {/* bottom-16, not bottom-6 — stacks above ReleaseNotesButton, which
+       * owns bottom-6/left-6 on this page only (see ReleaseNotesButton.tsx). */}
       <div className="absolute bottom-16 left-6 z-10">
         <AboutButton />
       </div>
+
+      <ReleaseNotesButton />
     </main>
   );
 }

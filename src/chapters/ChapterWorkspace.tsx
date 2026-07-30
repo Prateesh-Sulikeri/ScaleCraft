@@ -21,10 +21,11 @@ import {
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "@/canvas/types";
 import { getChaptersForMode } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import { runValidation } from "@/validation-engine/engine";
-import { getRules } from "@/validation-engine/rules";
-import type { ValidationViolation } from "@/validation-engine/types";
+import { evaluateChapter, type ChapterOutcome } from "@/validation-engine/chapter-outcome";
+import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db } from "@/persistence/db";
+import { getComponent } from "@/content/components/registry";
+import type { DeepCheckContext } from "@/ai/prompt";
 
 type ChapterWorkspaceProps = {
   mode: ChapterDefinition["mode"];
@@ -202,8 +203,35 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
 
   useCanvasShortcuts(handleSave);
 
-  const [violations, setViolations] = useState<ValidationViolation[] | null>(null);
+  const [chapterOutcome, setChapterOutcome] = useState<ChapterOutcome | null>(null);
   const [checkedGraphKey, setCheckedGraphKey] = useState<string | null>(null);
+
+  // Deep Check's spoiler gate (§10.6) keys off "has this chapter ever been
+  // passed" — chapterProgress row existence, not just chapterOutcome.passed
+  // from the current session's last Validate click. A returning learner who
+  // passed a chapter days ago and reopens it should get debrief framing
+  // immediately, before clicking Validate again this session.
+  const [passedChapterIds, setPassedChapterIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!selectedChapter) return;
+    let cancelled = false;
+    db.chapterProgress.get(selectedChapter.id).then((row) => {
+      if (cancelled || !row) return;
+      setPassedChapterIds((prev) => new Set(prev).add(selectedChapter.id));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedChapter]);
+  // Real rule violations plus chapter-level "allowed but not correct"
+  // reasons (missing/disconnected required component, blueprint mismatch),
+  // merged so the header's Validation pane is the one place a learner looks
+  // for "what's wrong and why" — see chapter-outcome-violations.ts.
+  const violations = useMemo(
+    () =>
+      chapterOutcome && selectedChapter ? chapterDisplayViolations(chapterOutcome, selectedChapter, nodes) : null,
+    [chapterOutcome, selectedChapter, nodes],
+  );
 
   const currentGraphKey = useMemo(
     () => architectureGraphTopologyKey(toArchitectureGraph(nodes, edges)),
@@ -214,31 +242,81 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
   // Scoped to the open chapter's own validationRuleIds, not the full global
   // registry — a chapter should only ever fail on what it's actually
   // teaching (CLAUDE.md: "that's a config option or a validation rule
-  // scoped to that chapter"). Was previously wired to the full ruleRegistry
-  // as a placeholder because no rule was declared to scope by yet; now that
-  // the registry exists (NEXT_STEPS.md Step 3), this validates for real. No
-  // chapter open (Chapter List view) means nothing to validate against.
+  // scoped to that chapter"). evaluateChapter (Phase 4) layers the required-
+  // component connectivity check and blueprint matching on top of the rule
+  // run — a like-for-like swap at this call site, not a parallel code path.
+  // No chapter open (Chapter List view) means nothing to validate against.
   const handleValidate = () => {
     if (!selectedChapter) return;
     const graph = toArchitectureGraph(nodes, edges);
-    setViolations(runValidation(graph, getRules(selectedChapter.validationRuleIds)));
+    const outcome = evaluateChapter(graph, selectedChapter);
+    setChapterOutcome(outcome);
     setCheckedGraphKey(architectureGraphTopologyKey(graph));
+    if (outcome.passed) {
+      void db.chapterProgress
+        .put({
+          chapterId: selectedChapter.id,
+          completedAt: Date.now(),
+          matchedBlueprintId: outcome.matchedBlueprintId,
+        })
+        .then(() => {
+          setPassedChapterIds((prev) => new Set(prev).add(selectedChapter.id));
+        });
+    }
   };
 
+  // Keyed on the whole ChapterOutcome, not just rule violations — a graph
+  // with zero rule violations can still fail the chapter (a required
+  // component present but disconnected, or no blueprint matched), and
+  // painting every node green in that case would show a learner a false
+  // "this is right" signal on a canvas that's still failing overall.
   const nodeStates: Record<string, ValidationState> = {};
-  if (violations && !isStale) {
-    if (violations.length === 0) {
+  if (chapterOutcome && !isStale) {
+    if (chapterOutcome.passed) {
       for (const n of nodes) {
         if (n.type === "component") nodeStates[n.id] = "valid";
       }
     } else {
-      for (const v of violations) {
+      // `violations` (the merged, display-facing list — see
+      // chapter-outcome-violations.ts) already includes a
+      // disconnected-required-component entry with the real offending node
+      // ids, so this one loop covers both real rule violations and that
+      // chapter-level reason — no separate pass needed.
+      for (const v of violations ?? []) {
         for (const id of v.offendingNodeIds) {
           nodeStates[id] = v.severity === "error" ? "error" : "warning";
         }
       }
     }
   }
+
+  const chapterPassed = selectedChapter !== null && passedChapterIds.has(selectedChapter.id);
+  // Blueprints only ever reach the payload once passed (the spoiler gate,
+  // §10.6, enforced by buildUserPayload — this ctx assembly just supplies
+  // what's true, the gate itself lives in ai/prompt.ts). No chapter open
+  // means the pre-pass Sandbox-equivalent shape.
+  const deepCheckCtx: DeepCheckContext = useMemo(() => {
+    const graph = toArchitectureGraph(nodes, edges);
+    const presentComponentIds = new Set(graph.nodes.map((n) => n.componentId));
+    const components = [...presentComponentIds]
+      .map((id) => getComponent(id))
+      .filter((c) => c !== undefined);
+    return {
+      graph,
+      components,
+      violations: violations ?? [],
+      passed: chapterPassed,
+      ...(selectedChapter
+        ? {
+            chapter: {
+              problemStatement: selectedChapter.problemStatement,
+              learningObjectives: selectedChapter.learningObjectives,
+            },
+            blueprints: selectedChapter.blueprints,
+          }
+        : {}),
+    };
+  }, [nodes, edges, violations, chapterPassed, selectedChapter]);
 
   return (
     <PageEnter>
@@ -260,6 +338,7 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
           justSaved={justSaved}
           docsPanelOpen={docsPanelOpen}
           toggleDocsPanel={toggleDocsPanel}
+          deepCheckCtx={deepCheckCtx}
         />
       )}
 
@@ -271,7 +350,7 @@ function ChapterWorkspaceContent({ mode }: ChapterWorkspaceProps) {
               selectedChapterId={selectedChapterId}
               onSelect={requestChapterChange}
               onBack={() => requestChapterChange(null)}
-              violations={violations}
+              chapterOutcome={chapterOutcome}
               isStale={isStale}
             />
           </SidebarShell>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { Plus, Server, Trash2, X } from "lucide-react";
 import { categoryLabel, categoryOrder } from "./category-colors";
 import { iconMap } from "./icon-map";
@@ -109,7 +109,11 @@ export function CreateComponentModal({ onClose, onSave, initialRecord }: CreateC
         },
   });
   const { fields, append, remove } = useFieldArray({ control, name: "fields" });
-  const selectedIcon = watch("icon");
+  // useWatch, not form.watch() — the latter returns a plain function call
+  // React Compiler can't verify is safe to memoize (the "incompatible
+  // library" bailout warning this used to trigger); useWatch is the proper
+  // hook react-hook-form ships specifically for this.
+  const selectedIcon = useWatch({ control, name: "icon" });
 
   const onSubmit = handleSubmit((values) => {
     const label = values.label.trim();

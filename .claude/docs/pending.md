@@ -1,58 +1,25 @@
-1. Today we are not going off the NEXT_STEPS.md tasks and focus on 3 things 
-	a. Polish and QOL updates.
-	b. Desining important modules.
-	c. Updating docs and cleanup code + review code.
-	
--> Starting with: 
-	I. Polish and QOL updates:
-		1. Starting with this code change we roll out in release versions. Check if any code change is pending (before doing any tasks this session check if any code / file / anything is pending to be checked in. If yes infrom me what is pending). We start with Alpha Version 1.0.0 where first number from the left is the major version, middle is minor & the last one is any bug-fix. Without manual code review nothing gets merged into development. -- Completed
-		2. I want to add a new button to the bottom left of the screen which is going to be present no matter what mode / screen we are in called release notes until we reach Beta version 1.0 This will open a on screen model covering the latest release features added. I want this to be updated with only the latest changes in a short description manner similar to how other websites have path notes / release note before every push. -- Completed
-		3. I see that not all buttons / options present in the top bar of sandbox are present in the other 2 modes. WE need to have it consistent  (reused) across all the modes. -- Completeds
-		4. Set it so that the home screen is not scrollable vertically or horizontally -- Completed
-		5. Select a better font for the entire website, that suites both the themes, is not too stylish to read, easy to read & understand, nothing fancy. -- Completed (evaluated IBM Plex Sans / Public Sans / Source Sans 3 against Inter, kept Inter — already the deliberate, documented choice per DESIGN.md)
-		6. Each mode has its own canvas, they do not share content from each other (current bug: if I open building blocks there is an empty canvas, if I go to home, open sandbox where I had saved a design, do nothing, come back to home, go to building blocks again. I see the design that was present in sandbox loaded here) this is content leaking between phases. I do not want this -- Completed (gave Sandbox/Building Blocks/Real World Extraction each their own canvas store instance instead of one shared singleton, on branch fix/canvas-leak; also caught and fixed an adjacent in-mode leak where backing out of a selected chapter to the Chapter List didn't clear the canvas)
-		7. Expand to have Component, Unit and integration tests which will become part of CI pipeline -- Completed
-		8. When docs is opened in focus mode and closed the diagram on the canvas gets shrinked (BUG FIX) -- Completed (focus mode now overlays the docs panel on top of Canvas instead of unmounting/resizing it, and Canvas re-fits its view on any real container resize instead of only once on mount — fixes both the shrink-on-exit and a clipping-into-the-docs-panel issue found while verifying it)
-		9. More support to keyboard shortcuts -- Completed
-		10. Component picket search bar to enable search by category eg: network should display all available network components -- Completed
-	
-	II. Design important modules:
-		1. Use the Fable credits we have to desing the AI validation engine we planned for, in detail
-		2. Use the Fable credits we have to understand the shortcommings of our current rule based validation engine and make it robust and scalable
-    3. Manual testing guidelines document, UAT testing confirmations guidelines docuemnt (and maintainace guide for both) for verifications before publish
-	
-	III. Updating docs and cleanup code + review code:
-		1. We start with cleaning up docs, remove any unwanted / depricated docs. Update all older docs that remain afterwards.
-		2. Same with code, have a quick pass to find any dead / unused code and safely remove it 
-		3. Creating and completing the new code review cycle throughly. 
-		
-	
-## GUIDELINES
-- Only work on ONE action item at a time.
-- Update Branch startegy moving forward not just for these tasks would be to have an integration branch with the release version & release name in the format: release/vReleaseVersion-releaseName eg: release/v1.0.0-qol-updates make this explicit in CLAUDE.md, all changes go in seperate branches and are merged in the integration branches for the release from which we will merge into developement which will be our preview (UAT) and then finally after all validations we move to prod which will be our main branch
-- Do not move to the next task until I explicitly approve.
-- At the end of every completed task, summarize:
-  - Files changed
-  - Why they changed
-  - Any risks introduced
-  - Suggested commit message
-- Do not make unrelated changes while implementing a task.
-- If you discover a bug outside the current task, note it separately instead of fixing it unless I approve.
+# Pending
 
+Currently empty — no track is in flight. This file is a live phase-by-phase
+execution plan for whatever track is *currently* being built, not an archive;
+each track's own detailed history lives in `.claude/PROGRESS_LOG.md` and that
+track's branch history instead.
 
-The branching strategy would be:
-main
-│
-├── Production
-│
-develop
-│
-├── Stable Preview / UAT
-│
-release/v1.0.0-qol-updates
-│
-├── feature/release-notes
-├── feature/shared-topbar
-├── fix/canvas-leak
-├── chore/font-update
-└── docs/testing-guide
+**Tracks 2 and 3 are both closed out — merged.**
+
+- **Track 2** (pattern engine, blueprints, chapter mastery) — merged via
+  **PR #47** into `release/2.0.0-validation-engine-overhaul` (merge commit
+  `e1b36ff`, 2026-07-27/28). Full record: `.claude/PROGRESS_LOG.md`'s
+  2026-07-27/28 entries.
+- **Track 3** (AI Deep Check, plus a post-completion multi-profile/Help/
+  Cancel-fix follow-up round) — merged via **PR #48** into
+  `release/2.0.0-validation-engine-overhaul` (merge commit `e1bc04c`,
+  2026-07-29). Full record: `.claude/PROGRESS_LOG.md`'s 2026-07-29 entries and
+  `feature/ai-deep-check`'s own git history.
+
+**Not yet done:** `release/2.0.0-validation-engine-overhaul` (now carrying
+both tracks) hasn't been promoted to `develop` or `main` yet — no PR exists
+for that promotion as of this note. That, and picking the next track
+(`NEXT_STEPS.md` Step 5 — the first two real Building Blocks chapters — is
+next in sequence now that chapter mastery and Deep Check both exist), are
+what determine what gets planned into this file next.
