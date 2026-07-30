@@ -12,6 +12,13 @@ type ChapterSidebarProps = {
   onBack: () => void;
   chapterOutcome: ChapterOutcome | null;
   isStale: boolean;
+  /** Curriculum-order prev/next (src/curriculum's adjacentAuthoredEntries),
+   *  as opposed to index-adjacency within this mode's own ChapterDefinition
+   *  array below — see RELEASE_3.0.0_LEARNING_PATH.md Phase 4.3. When
+   *  provided (even with both entries undefined), takes over from the
+   *  chapters-array computation entirely. Phase 5 removes the fallback and
+   *  this override once the sidebar reads the curriculum manifest directly. */
+  navOverride?: { onPrev?: () => void; onNext?: () => void };
 };
 
 /**
@@ -26,6 +33,7 @@ export function ChapterSidebar({
   onBack,
   chapterOutcome,
   isStale,
+  navOverride,
 }: ChapterSidebarProps) {
   const selected = chapters.find((c) => c.id === selectedChapterId) ?? null;
 
@@ -37,12 +45,15 @@ export function ChapterSidebar({
   const prev = index > 0 ? chapters[index - 1] : undefined;
   const next = index < chapters.length - 1 ? chapters[index + 1] : undefined;
 
+  const onPrev = navOverride ? navOverride.onPrev : prev ? () => onSelect(prev.id) : undefined;
+  const onNext = navOverride ? navOverride.onNext : next ? () => onSelect(next.id) : undefined;
+
   return (
     <QuestionPane
       chapter={selected}
       onBack={onBack}
-      onPrev={prev ? () => onSelect(prev.id) : undefined}
-      onNext={next ? () => onSelect(next.id) : undefined}
+      onPrev={onPrev}
+      onNext={onNext}
       chapterOutcome={chapterOutcome}
       isStale={isStale}
     />

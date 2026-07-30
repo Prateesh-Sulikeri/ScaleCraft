@@ -82,7 +82,7 @@ export function QuestionPane({ chapter, onBack, onPrev, onNext, chapterOutcome, 
           className="flex items-center gap-1 text-xs text-foreground/60 hover:text-foreground"
         >
           <ArrowLeft size={12} />
-          All chapters
+          Back to Learning Path
         </button>
         <div className="flex items-center gap-1">
           <button

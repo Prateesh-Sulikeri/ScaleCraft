@@ -350,10 +350,10 @@ describe("QuestionPane", () => {
   });
 
   describe("navigation", () => {
-    it("calls onBack when 'All chapters' is clicked", () => {
+    it("calls onBack when 'Back to Learning Path' is clicked", () => {
       const onBack = vi.fn();
       renderQuestionPane({ chapter: makeChapter(), nodes: [], onBack });
-      fireEvent.click(screen.getByRole("button", { name: /all chapters/i }));
+      fireEvent.click(screen.getByRole("button", { name: /back to learning path/i }));
       expect(onBack).toHaveBeenCalledTimes(1);
     });
 

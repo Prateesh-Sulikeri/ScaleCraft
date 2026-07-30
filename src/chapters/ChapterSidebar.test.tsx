@@ -66,20 +66,20 @@ describe("ChapterSidebar", () => {
     renderSidebar({ selectedChapterId: null });
     expect(screen.getByText("Alpha")).toBeInTheDocument();
     expect(screen.getByText("Beta")).toBeInTheDocument();
-    // QuestionPane's "All chapters" back link should not be present.
-    expect(screen.queryByRole("button", { name: /all chapters/i })).not.toBeInTheDocument();
+    // QuestionPane's "Back to Learning Path" back link should not be present.
+    expect(screen.queryByRole("button", { name: /back to learning path/i })).not.toBeInTheDocument();
   });
 
   it("renders the QuestionPane view for the selected chapter", () => {
     renderSidebar({ selectedChapterId: "b" });
     expect(screen.getByRole("heading", { name: "Beta" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /all chapters/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /back to learning path/i })).toBeInTheDocument();
   });
 
   it("falls back to the ChapterList view when selectedChapterId matches no chapter", () => {
     renderSidebar({ selectedChapterId: "does-not-exist" });
     expect(screen.getByText("Alpha")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /all chapters/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /back to learning path/i })).not.toBeInTheDocument();
   });
 
   it("wires prev/next to the chapter immediately before/after the selected one", () => {
@@ -131,10 +131,10 @@ describe("ChapterSidebar", () => {
     expect(onSelect).toHaveBeenCalledWith("a");
   });
 
-  it("forwards onBack from QuestionPane's 'All chapters' button", () => {
+  it("forwards onBack from QuestionPane's 'Back to Learning Path' button", () => {
     const onBack = vi.fn();
     renderSidebar({ selectedChapterId: "a", onBack });
-    fireEvent.click(screen.getByRole("button", { name: /all chapters/i }));
+    fireEvent.click(screen.getByRole("button", { name: /back to learning path/i }));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
