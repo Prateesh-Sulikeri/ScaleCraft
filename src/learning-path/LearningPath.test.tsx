@@ -40,11 +40,11 @@ describe("LearningPath", () => {
     expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(5);
   });
 
-  it("the authored 1.2 Load Balancing row is a real link to its route; an unauthored row is not", () => {
+  it("the authored 1.2 Load Balancing row is a real link to its workspace route; an unauthored row is not", () => {
     render(<LearningPath courseId="building-blocks" />);
     expect(screen.getByRole("link", { name: /load balancing/i })).toHaveAttribute(
       "href",
-      "/building-blocks/1-2-load-balancing/lesson",
+      "/building-blocks/1-2-load-balancing",
     );
     expect(screen.getAllByText("Coming soon").length).toBeGreaterThan(0);
   });

@@ -82,11 +82,7 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
     <div className={`flex items-center gap-2.5 px-4 py-2.5 transition-colors ${isAuthored ? "hover:bg-border/40" : ""}`}>
       {toggleButton}
       {isAuthored ? (
-        // Plain Link, not HeldTransitionLink — the destination is the
-        // lightweight Chapter Reader, not the canvas, so there's no heavy
-        // mount to mask behind a branded loading overlay (see
-        // DesignEditorCTA.tsx, which still holds for the canvas route).
-        <Link href={`/${courseId}/${entry.slug}/lesson`} className="flex min-w-0 flex-1 items-center gap-2.5">
+        <Link href={`/${courseId}/${entry.slug}`} className="flex min-w-0 flex-1 items-center gap-2.5">
           {mainContent}
         </Link>
       ) : (

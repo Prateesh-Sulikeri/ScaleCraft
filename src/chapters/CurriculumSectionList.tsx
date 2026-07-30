@@ -80,10 +80,8 @@ function CurriculumSectionListRow({
   return (
     <li>
       {isAuthored ? (
-        // Plain Link, not HeldTransitionLink — same reasoning as
-        // ChapterRow.tsx: the Reader is lightweight, no mount to mask.
         <Link
-          href={`/${courseId}/${entry.slug}/lesson`}
+          href={`/${courseId}/${entry.slug}`}
           aria-current={isCurrent ? "page" : undefined}
           className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 transition-colors hover:bg-border/40 ${
             isCurrent ? "bg-border/60" : ""
