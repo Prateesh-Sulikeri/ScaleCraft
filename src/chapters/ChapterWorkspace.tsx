@@ -280,8 +280,10 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
       ...(chapter
         ? {
             chapter: {
+              mode: chapter.mode,
               problemStatement: chapter.problemStatement,
               learningObjectives: chapter.learningObjectives,
+              curriculumContext: chapter.curriculumContext,
             },
             blueprints: chapter.blueprints,
           }

@@ -976,6 +976,61 @@ learner's design against the references and name what each approach trades away.
 
 Sandbox has no chapter and no blueprints, so it always runs the pre-pass shape.
 
+### 10.7 Curriculum-scoped framing for Building Blocks (added 2026-07-30)
+
+**Problem observed**: Deep Check used one persona — a Senior Staff Engineer
+doing a production-readiness critique — for every mode. That's right for RWE
+and Sandbox but wrong for Building Blocks: a BB chapter deliberately teaches
+one concept at a time against a restricted `availableComponentIds` palette,
+and a production-readiness lens routinely pushed the learner toward
+distributed-systems techniques the curriculum hadn't reached yet, undermining
+the pedagogy the constrained palette exists to protect.
+
+**Fix**: `ChapterDefinition` gains an optional, manually-authored
+`CurriculumContext` (`src/content/chapters/types.ts`) — position in the
+curriculum, concepts already mastered, concepts deliberately not yet
+introduced, and intentional pedagogical simplifications for this stage.
+Transcribed by the chapter author from `CURRICULUM.md`'s own per-chapter
+"Assumes" / "New concepts" / "Prepares for" fields — no new taxonomy, no
+automatic generation, matching how the product handles every other piece of
+curriculum content (versioned data, not inferred).
+
+`DeepCheckContext.chapter` (`src/ai/prompt.ts`) gains `mode` and
+`curriculumContext`. `buildSystemPrompt` branches on
+`ctx.chapter?.mode === "building-blocks"`:
+
+- **Persona**: swaps the Senior-Staff-Engineer role line for a guide/teacher
+  framing — reviewing a learner at a specific, early curriculum stage, not a
+  production system.
+- **Priorities** (BB only, replacing nothing — additive to the shared
+  guardrails): technical correctness for the concept(s) this chapter teaches;
+  clear, appropriately-pitched explanation; any example/analogy stays within
+  concepts already taught; judge whether the build demonstrates *this*
+  chapter's concept rather than general production readiness; judge whether
+  complexity matches this stage; a brief, encouraging forward pointer where
+  relevant, never framed as something missing.
+- **One new non-overridable guardrail, BB only**: never recommend advanced/
+  production-grade techniques or later-chapter concepts as if missing from
+  the design. The one exception is a genuine factual/technical error — still
+  corrected plainly, but any deeper fix needing a future concept is named
+  only as an optional "coming up later" pointer, never as incomplete work.
+  Restated in the closing reminder, same sandwich principle as every other
+  hard constraint (§10.3).
+- `curriculumContext`, when present, renders as its own `<curriculum_context>`
+  tag (`renderPayload`), parallel to and distinct from `<chapter_context>`.
+
+**RWE and Sandbox are untouched** — this is the AI-layer counterpart of the
+already-shipped deterministic-engine precedent (§9.5's 2026-07-28 addendum):
+by RWE every curriculum concept has been taught, so there's no teach-by-
+omission reason to scope the critique down; `evaluateChapter` already runs
+RWE against the full, unscoped rule registry for the same reason.
+
+**Scope of this change**: only the mechanism, exercised end-to-end on the
+placeholder `bb-dummy-1` chapter (`src/content/chapters/index.ts`) with a
+sample `curriculumContext` approximating CURRICULUM.md's real 1.2 Load
+Balancing entry. Authoring real `curriculumContext` for all 22 BB chapters is
+part of Step 5 (`NEXT_STEPS.md`) chapter authoring, not this change.
+
 ---
 
 ## Rollout Status
