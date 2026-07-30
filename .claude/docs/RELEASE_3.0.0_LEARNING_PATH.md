@@ -1,6 +1,6 @@
 # Release 3.0.0 — Learning Path Navigation Overhaul
 
-**Status:** in progress — Phases 0-5 done, Phase 6 next
+**Status:** done — Phases 0-7 all landed on `feature/learning-path-page`
 **Source spec:** `.claude/docs/pending.md`
 **Release branch:** `release/v3.0.0-chapter-content` (cut from `develop`)
 **Version target:** `3.0.0-alpha` (VERSION + package.json)
@@ -819,10 +819,25 @@ there is exactly one status-icon implementation; pipeline green.
 
 ---
 
-### Phase 6 — Home wiring (≈45 min)
+### Phase 6 — Home wiring (≈45 min) — ✅ DONE
 
-**Branch:** `feature/home-real-progress`
+**Branch:** `feature/home-real-progress` — landed on `feature/learning-path-page`
+instead, per the working-branch note at the top of this doc.
 **Depends on:** Phase 5
+
+**Status:** done. `HomeCanvas.tsx`'s `nodes` array moved from module scope into a
+`useMemo` inside the component (it now depends on live progress state), reading
+`useCurriculumProgressStore` and calling `hydrate()` in an effect — same
+no-separate-loading-branch convention as `LearningPath.tsx`: the store's default
+empty Set/Map already renders the correct 0%/"not started" neutral shape, so there's
+nothing to gate and no hydration mismatch between server and first client paint.
+`ModeNodeData.status` widened to `"not started" | "in progress" | "complete"`
+(the unused, never-produced `"coming soon"` variant removed) via
+`summarizeCourse`; a new `progressLabel` field (`"x / y"`) renders small and muted
+in `ModeNode.tsx`, no bar. Sandbox keeps no status/progressLabel. Verified: full
+pipeline green, plus real-browser confirmation that `1.2 Load Balancing`'s
+IN_PROGRESS status (after visiting it) shows consistently on Home, the workspace
+navigator, and the Learning Path.
 
 `ModeNodeData.status` in `src/app/HomeCanvas.tsx` is currently a static placeholder,
 deliberately omitted for BB/RWE because there was no real progress to report. There is
@@ -842,10 +857,20 @@ chapter, and Sandbox is unchanged. Pipeline green.
 
 ---
 
-### Phase 7 — Tests, docs, verification (≈1.5 h)
+### Phase 7 — Tests, docs, verification (≈1.5 h) — ✅ DONE
 
-**Branch:** `test/release-3.0.0-verification`
+**Branch:** `test/release-3.0.0-verification` — landed on
+`feature/learning-path-page` instead, per the working-branch note at the top of
+this doc.
 **Depends on:** Phase 6
+
+**Status:** done — all of 7.1-7.3 below completed as originally specced; 7.4's
+manual checklist was spot-checked (real headless-browser passes for the
+highest-risk items — status consistency across Home/navigator/Learning Path,
+edits surviving a chapter-route switch — logged in Phases 4-6 above) rather than
+ticked exhaustively item-by-item in a real interactive browser session; treat the
+untouched boxes below as still open if a fully manual pass matters before
+release.
 
 **7.1 e2e specs that this release breaks — update, don't delete:**
 
