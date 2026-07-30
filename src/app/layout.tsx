@@ -4,7 +4,6 @@ import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
 import { ScreenSizeGate } from "./ScreenSizeGate";
-import { ReleaseNotesButton } from "./ReleaseNotesButton";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -46,7 +45,6 @@ export default function RootLayout({
       <body className="flex h-full flex-col overflow-hidden">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} themes={["dark", "light"]}>
           <ScreenSizeGate>{children}</ScreenSizeGate>
-          <ReleaseNotesButton />
         </ThemeProvider>
       </body>
     </html>
