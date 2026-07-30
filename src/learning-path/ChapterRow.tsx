@@ -82,7 +82,7 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
     <div className={`flex items-center gap-2.5 px-4 py-2.5 transition-colors ${isAuthored ? "hover:bg-border/40" : ""}`}>
       {toggleButton}
       {isAuthored ? (
-        <Link href={`/${courseId}/${entry.slug}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+        <Link href={`/${courseId}/${entry.slug}/lesson`} className="flex min-w-0 flex-1 items-center gap-2.5">
           {mainContent}
         </Link>
       ) : (

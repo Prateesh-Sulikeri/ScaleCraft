@@ -41,10 +41,10 @@ test("an unauthored row is not a link and does not navigate on click", async ({ 
   await expect(page).toHaveURL(/\/building-blocks$/);
 });
 
-test("1.2 Load Balancing navigates to its chapter workspace route", async ({ page }) => {
+test("1.2 Load Balancing navigates to its chapter lesson (Chapter Reader) route", async ({ page }) => {
   await page.goto("/building-blocks");
   await page.getByRole("link", { name: /1\.2.*Load Balancing/i }).click();
-  await page.waitForURL("**/building-blocks/1-2-load-balancing");
+  await page.waitForURL("**/building-blocks/1-2-load-balancing/lesson");
   await expect(page.getByRole("heading", { name: "Placeholder Chapter" })).toBeVisible();
 });
 
