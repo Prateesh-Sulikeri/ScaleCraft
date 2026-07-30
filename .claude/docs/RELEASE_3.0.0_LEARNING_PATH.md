@@ -1,6 +1,6 @@
 # Release 3.0.0 — Learning Path Navigation Overhaul
 
-**Status:** in progress — Phases 0-3 done, Phase 4 next
+**Status:** in progress — Phases 0-4 done, Phase 5 next
 **Source spec:** `.claude/docs/pending.md`
 **Release branch:** `release/v3.0.0-chapter-content` (cut from `develop`)
 **Version target:** `3.0.0-alpha` (VERSION + package.json)
@@ -629,10 +629,27 @@ tests; a real-browser reload check is still owed to Phase 7's manual checklist.
 
 ---
 
-### Phase 4 — Routing + ChapterWorkspace refactor (≈2.5 h, the riskiest phase)
+### Phase 4 — Routing + ChapterWorkspace refactor (≈2.5 h, the riskiest phase) — ✅ DONE
 
-**Branch:** `feature/chapter-workspace-routing`
+**Branch:** `feature/chapter-workspace-routing` — landed on `feature/learning-path-page`
+instead, per the working-branch note at the top of this doc.
 **Depends on:** Phase 3
+
+**Status:** done. `src/app/building-blocks/[chapterSlug]/page.tsx` and
+`src/app/real-world-extraction/[chapterSlug]/page.tsx` added (route guard via
+`findEntry` + `notFound()`, `key={chapterSlug}` per §4.1). `ChapterWorkspace` now
+takes `{ mode, chapterSlug }`; `selectedChapterId`/`isDirty`/
+`SwitchChapterConfirmPopover`/`SaveNotice`/`canvasStateKey` removed per D6/§4.2.
+`markVisited`/`hydrate`/`recordValidationPass` wired to
+`src/curriculum/progress-store.ts`. `QuestionPane`'s onBack routes to
+`/${mode}`("Back to Learning Path" label) and onPrev/onNext route via
+`adjacentAuthoredEntries`, not index-adjacency — `ChapterSidebar` gained an
+additive `navOverride` prop for this rather than being rewritten (that's Phase 5's
+job). Verified: full pipeline green (typecheck/lint/961 tests/build), plus a real
+headless-browser click-through (Learning Path → `1.2 Load Balancing` row →
+`/building-blocks/1-2-load-balancing` workspace renders → Back to Learning Path
+returns) and `curl` checks confirming `0-1-client-server-database` (unauthored)
+404s while the two authored slugs 200.
 
 **4.1 New routes**
 
