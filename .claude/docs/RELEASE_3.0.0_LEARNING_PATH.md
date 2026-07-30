@@ -1,6 +1,6 @@
 # Release 3.0.0 — Learning Path Navigation Overhaul
 
-**Status:** in progress — Phases 0-4 done, Phase 5 next
+**Status:** in progress — Phases 0-5 done, Phase 6 next
 **Source spec:** `.claude/docs/pending.md`
 **Release branch:** `release/v3.0.0-chapter-content` (cut from `develop`)
 **Version target:** `3.0.0-alpha` (VERSION + package.json)
@@ -761,10 +761,32 @@ pipeline green.
 
 ---
 
-### Phase 5 — Sidebar as in-workspace navigator (≈1.5 h)
+### Phase 5 — Sidebar as in-workspace navigator (≈1.5 h) — ✅ DONE
 
-**Branch:** `feature/workspace-curriculum-navigator`
+**Branch:** `feature/workspace-curriculum-navigator` — landed on
+`feature/learning-path-page` instead, per the working-branch note at the top of
+this doc.
 **Depends on:** Phase 4
+
+**Status:** done. `ChapterSidebar` now takes only `{ courseId, chapterSlug,
+chapterOutcome, isStale }` and derives the rest (`selectedChapterId`/`onSelect`/
+`onBack` are gone); `QuestionPane` is always rendered, with `ChapterNavigator`
+(new, replaces `ChapterList.tsx`) as a collapsible curriculum browser above it —
+closed by default. `ChapterNavigator` reads the manifest (`getCourse`) and the
+progress store directly (not `getChaptersForMode`), reuses
+`ChapterStatusIcon` from `src/learning-path/` (no second status-icon mapping),
+and links to `/${courseId}` ("View full Learning Path"). Onward navigation
+(back/prev/next) moved into `ChapterSidebar` itself via `useRouter` +
+`adjacentAuthoredEntries` — the `navOverride` prop Phase 4 added to bridge this
+is gone along with the rest of the old props. `ChapterDefinition.group` removed
+(dead — sections now come from the manifest); `placeholder` stays, but the Draft
+badge moved to `QuestionPane`'s title row (Learning Path expresses "unauthored"
+via `chapterDefinitionId: null` instead). Verified: full pipeline green
+(typecheck/lint/958 tests/build) and a real headless-browser pass confirming the
+navigator opens showing all 26 BB entries grouped by unit, the current chapter's
+row carries `aria-current="page"`, unauthored rows render as non-links, and the
+navigator's status icon for `1.2 Load Balancing` (IN_PROGRESS after
+`markVisited`) matches what the Learning Path shows for the same entry.
 
 The sidebar keeps its current behavior — open the chapter list, change chapters, show
 completion — but stops being the primary navigation and starts being **another view
