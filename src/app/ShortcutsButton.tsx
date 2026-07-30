@@ -9,14 +9,23 @@ import { Keyboard } from "lucide-react";
 // `title` attribute — see that component's own doc comment for why).
 const TOOLTIP_WIDTH = 140;
 
+// Arrow-key nudge is xyflow's own built-in a11y feature (its NodeWrapper's
+// onKeyDown, active since Canvas.tsx never sets disableKeyboardA11y) — not
+// something this app implements. Listed here purely for discoverability,
+// same as Delete/Backspace below (xyflow's own deleteKeyCode handling).
 const SHORTCUTS: { keys: string; label: string }[] = [
   { keys: "/", label: "Add component" },
   { keys: "Ctrl/Cmd+S", label: "Save" },
   { keys: "Ctrl/Cmd+Z", label: "Undo" },
   { keys: "Ctrl/Cmd+Shift+Z", label: "Redo" },
   { keys: "Ctrl/Cmd+E", label: "Export JSON" },
+  { keys: "Ctrl/Cmd+D", label: "Duplicate selection" },
+  { keys: "Ctrl/Cmd+A", label: "Select all" },
+  { keys: "Arrow keys", label: "Nudge selected node(s)" },
+  { keys: "Shift+Arrow", label: "Nudge selected node(s) (4x)" },
   { keys: "Delete / Backspace", label: "Delete selection" },
   { keys: "Esc", label: "Cancel placement / close popovers" },
+  { keys: "Esc", label: "Exit focus notes mode" },
 ];
 
 /**

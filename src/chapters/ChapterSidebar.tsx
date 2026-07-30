@@ -3,14 +3,14 @@
 import { ChapterList } from "./ChapterList";
 import { QuestionPane } from "./QuestionPane";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import type { ValidationViolation } from "@/validation-engine/types";
+import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
 
 type ChapterSidebarProps = {
   chapters: ChapterDefinition[];
   selectedChapterId: string | null;
   onSelect: (id: string) => void;
   onBack: () => void;
-  violations: ValidationViolation[] | null;
+  chapterOutcome: ChapterOutcome | null;
   isStale: boolean;
 };
 
@@ -24,7 +24,7 @@ export function ChapterSidebar({
   selectedChapterId,
   onSelect,
   onBack,
-  violations,
+  chapterOutcome,
   isStale,
 }: ChapterSidebarProps) {
   const selected = chapters.find((c) => c.id === selectedChapterId) ?? null;
@@ -43,7 +43,7 @@ export function ChapterSidebar({
       onBack={onBack}
       onPrev={prev ? () => onSelect(prev.id) : undefined}
       onNext={next ? () => onSelect(next.id) : undefined}
-      violations={violations}
+      chapterOutcome={chapterOutcome}
       isStale={isStale}
     />
   );

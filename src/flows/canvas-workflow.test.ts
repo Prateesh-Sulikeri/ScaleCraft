@@ -1,5 +1,5 @@
 import { beforeEach, describe, it, expect } from "vitest";
-import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
+import { createCanvasStore, toArchitectureGraph } from "@/canvas/store";
 import { getComponent } from "@/content/components/registry";
 
 function component(id: string) {
@@ -8,89 +8,91 @@ function component(id: string) {
   return def;
 }
 
+let store: ReturnType<typeof createCanvasStore>;
+
 describe("Canvas workflow — drag, connect, delete", () => {
   beforeEach(() => {
-    useCanvasStore.getState().clearBoard();
+    store = createCanvasStore();
   });
 
   it("creates a basic architecture: Client → LoadBalancer → AppServer → Database", () => {
-    useCanvasStore.getState().addNode(component("client"), { x: 0, y: 0 });
-    useCanvasStore.getState().addNode(component("load-balancer"), { x: 300, y: 0 });
-    useCanvasStore.getState().addNode(component("app-server"), { x: 600, y: 0 });
-    useCanvasStore.getState().addNode(component("sql-database"), { x: 900, y: 0 });
+    store.getState().addNode(component("client"), { x: 0, y: 0 });
+    store.getState().addNode(component("load-balancer"), { x: 300, y: 0 });
+    store.getState().addNode(component("app-server"), { x: 600, y: 0 });
+    store.getState().addNode(component("sql-database"), { x: 900, y: 0 });
 
-    const nodes = useCanvasStore.getState().nodes;
+    const nodes = store.getState().nodes;
     expect(nodes).toHaveLength(4);
 
-    useCanvasStore.getState().onConnect(
+    store.getState().onConnect(
       { source: nodes[0].id, target: nodes[1].id, sourceHandle: null, targetHandle: null },
       "request-flow",
     );
-    useCanvasStore.getState().onConnect(
+    store.getState().onConnect(
       { source: nodes[1].id, target: nodes[2].id, sourceHandle: null, targetHandle: null },
       "request-flow",
     );
-    useCanvasStore.getState().onConnect(
+    store.getState().onConnect(
       { source: nodes[2].id, target: nodes[3].id, sourceHandle: null, targetHandle: null },
       "request-flow",
     );
 
-    const graph = toArchitectureGraph(useCanvasStore.getState().nodes, useCanvasStore.getState().edges);
+    const graph = toArchitectureGraph(store.getState().nodes, store.getState().edges);
     expect(graph.nodes).toHaveLength(4);
     expect(graph.edges).toHaveLength(3);
     expect(graph.edges.every((e) => e.kind === "request-flow")).toBe(true);
   });
 
   it("supports edge kind changes", () => {
-    useCanvasStore.getState().addNode(component("sql-database"), { x: 0, y: 0 });
-    useCanvasStore.getState().addNode(component("read-replica"), { x: 300, y: 0 });
+    store.getState().addNode(component("sql-database"), { x: 0, y: 0 });
+    store.getState().addNode(component("read-replica"), { x: 300, y: 0 });
 
-    const nodes = useCanvasStore.getState().nodes;
-    useCanvasStore
+    const nodes = store.getState().nodes;
+    store
       .getState()
       .onConnect({ source: nodes[0].id, target: nodes[1].id, sourceHandle: null, targetHandle: null }, "request-flow");
-    const edge = useCanvasStore.getState().edges[0];
+    const edge = store.getState().edges[0];
     expect(edge.data?.kind).toBe("request-flow");
 
-    useCanvasStore.getState().setEdgeKind(edge.id, "replication");
-    const updated = useCanvasStore.getState().edges.find((e) => e.id === edge.id);
+    store.getState().setEdgeKind(edge.id, "replication");
+    const updated = store.getState().edges.find((e) => e.id === edge.id);
     expect(updated?.data?.kind).toBe("replication");
   });
 
   it("deletes nodes and their connected edges", () => {
-    useCanvasStore.getState().addNode(component("client"), { x: 0, y: 0 });
-    useCanvasStore.getState().addNode(component("app-server"), { x: 300, y: 0 });
-    useCanvasStore.getState().addNode(component("sql-database"), { x: 600, y: 0 });
+    store.getState().addNode(component("client"), { x: 0, y: 0 });
+    store.getState().addNode(component("app-server"), { x: 300, y: 0 });
+    store.getState().addNode(component("sql-database"), { x: 600, y: 0 });
 
-    const nodes = useCanvasStore.getState().nodes;
-    useCanvasStore
+    const nodes = store.getState().nodes;
+    store
       .getState()
       .onConnect({ source: nodes[0].id, target: nodes[1].id, sourceHandle: null, targetHandle: null }, "request-flow");
-    useCanvasStore
+    store
       .getState()
       .onConnect({ source: nodes[1].id, target: nodes[2].id, sourceHandle: null, targetHandle: null }, "request-flow");
 
-    expect(useCanvasStore.getState().edges).toHaveLength(2);
+    expect(store.getState().edges).toHaveLength(2);
 
-    useCanvasStore.getState().deleteNode(nodes[1].id);
+    store.getState().deleteNode(nodes[1].id);
 
-    expect(useCanvasStore.getState().nodes).toHaveLength(2);
-    expect(useCanvasStore.getState().edges).toHaveLength(0);
+    expect(store.getState().nodes).toHaveLength(2);
+    expect(store.getState().edges).toHaveLength(0);
   });
 
   it("supports undo/redo", () => {
-    useCanvasStore.getState().addNode(component("client"), { x: 0, y: 0 });
-    useCanvasStore.getState().addNode(component("app-server"), { x: 300, y: 0 });
+    store.getState().addNode(component("client"), { x: 0, y: 0 });
+    store.getState().addNode(component("app-server"), { x: 300, y: 0 });
 
-    const nodes = useCanvasStore.getState().nodes;
-    useCanvasStore
+    const nodes = store.getState().nodes;
+    store
       .getState()
       .onConnect({ source: nodes[0].id, target: nodes[1].id, sourceHandle: null, targetHandle: null }, "request-flow");
 
-    useCanvasStore.getState().undo();
-    expect(useCanvasStore.getState().edges).toHaveLength(0);
+    store.getState().undo();
+    expect(store.getState().edges).toHaveLength(0);
 
-    useCanvasStore.getState().redo();
-    expect(useCanvasStore.getState().edges).toHaveLength(1);
+    store.getState().redo();
+    expect(store.getState().edges).toHaveLength(1);
   });
 });

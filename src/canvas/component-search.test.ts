@@ -33,6 +33,22 @@ describe("filterAndGroupComponents", () => {
     expect(groups.flatMap((g) => g.items.map((d) => d.id))).toEqual(["db-1"]);
   });
 
+  it("matches every component in a category by the category's display name", () => {
+    // "Load Balancer" / "Distributes traffic across servers" contain neither
+    // "network" nor "networking" — this only matches because its category
+    // ("networking") displays as "Networking".
+    const groups = filterAndGroupComponents(fixtures, "network");
+    expect(groups).toHaveLength(1);
+    expect(groups[0].category).toBe("networking");
+    expect(groups[0].items.map((d) => d.id)).toEqual(["lb-1"]);
+  });
+
+  it("matches a category display name that's two words (distributed systems)", () => {
+    const withDistSys = [...fixtures, def("dist-1", "distributed-systems", "Message Queue", "Async delivery")];
+    const groups = filterAndGroupComponents(withDistSys, "distributed");
+    expect(groups.flatMap((g) => g.items.map((d) => d.id))).toEqual(["dist-1"]);
+  });
+
   it("returns no groups when nothing matches", () => {
     expect(filterAndGroupComponents(fixtures, "nonexistent-xyz")).toEqual([]);
   });

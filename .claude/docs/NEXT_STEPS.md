@@ -1,39 +1,51 @@
 # NEXT STEPS — everything pending, in execution order
 
-Compiled 2026-07-22 from every doc that tracks open work: `.claude/docs/MILESTONES.md`,
-`.claude/docs/pending.md` (code review 2026-07-21), `.claude/docs/user_exp.md` +
-`.claude/docs/CRITIQUE.md` (UX walkthrough 2026-07-22),
-`.claude/docs/UI_OVERHAUL_PART2_SPEC.md` (approved, not implemented),
-`.claude/docs/OPEN_QUESTIONS.md`, `.claude/docs/CURRICULUM.md`, and
-`.claude/PROGRESS_LOG.md` loose ends. Work top to bottom; items inside a step are also
-ordered. Check items off / delete them here as they land.
+Compiled 2026-07-22 from every doc that tracked open work at the time:
+`.claude/docs/MILESTONES.md`, `.claude/docs/pending.md` (then a code-review backlog,
+2026-07-21 — pending.md has since been pruned into a lighter session-task list, so its
+old P0/P1/P2 content no longer lives there; the items are preserved below instead),
+`.claude/docs/CRITIQUE.md` (UX walkthrough 2026-07-22; `user_exp.md`, the working copy of
+that walkthrough, has since been deleted as a redundant duplicate of the permanent
+`.impeccable/critique/` archive — see CRITIQUE.md for the current state),
+`.claude/docs/UI_OVERHAUL_PART2_SPEC.md` (approved, not implemented at the time — now
+fully shipped and deleted, see Step 2), `.claude/docs/OPEN_QUESTIONS.md`,
+`.claude/docs/CURRICULUM.md`, and `.claude/PROGRESS_LOG.md` loose ends. Work top to
+bottom; items inside a step are also ordered. Check items off / delete them here as they
+land.
+
+**Status as of 2026-07-29:** Steps 0–3 verified done in code (see each step's own status
+line), with Step 3 now scoped down to Track 1 only. Step 4 is partially done — see its
+status line for the breakdown. **Step 4.5** (validation engines v2): both Track 2
+(`feature/validation-pattern-engine`, PR #47) and Track 3 (`feature/ai-deep-check`,
+PR #48) are **merged into `release/2.0.0-validation-engine-overhaul`** — not yet promoted
+to `develop`/`main` (no PR exists for that yet). Steps 5–10 and the backlog are
+unchanged/not started; `src/content/chapters/` still holds only placeholder
+`ChapterDefinition`s (plus one throwaway `Blueprint` fixture for manual QA, see
+Step 4.5).
 
 **Why this order:** small correctness fixes first (cheap, and everything after builds on
 them) → the approved UI overhaul next (it *deletes* the Palette and QuestionPanel, so
 polishing those first would be wasted work, and its Phase 5 ships milestone 6's chapter
 shell) → stronger validation (milestone 5 must be trustworthy before chapter pass/fail
-depends on it) → UX fixes applied to the *new* layout → then the content milestones
-(7 → 8) per the curriculum, then persistence → auth → simulation → beta. This resolves
+depends on it) → UX fixes applied to the *new* layout → **validation engines v2 (4.5),
+because chapter pass/fail doesn't actually exist yet and rule authoring doesn't scale to
+the curriculum's own budget** → then the content milestones (7 → 8) per the curriculum,
+then persistence → auth → simulation → beta. This resolves
 pending.md's "product-thesis drift" warning: after steps 1–2, all remaining work is on
 the differentiating product (chapters), not more sandbox polish.
 
 ---
 
-## Step 0 — Repo & process housekeeping (do first, < 1 hour)
+## Step 0 — Repo & process housekeeping (do first, < 1 hour) — done
 
-1. Resolve the uncommitted working-tree churn on `development`: the deletions of
-   `.claude/docs/ScaleCraft_UI_Overhaul_Specification.md` and root `AGENTS.md`, and the
-   untracked `.claude/docs/AGENTS.md`, `.claude/docs/UI_OVERHAUL_PART2_SPEC.md`,
-   `.claude/docs/user_exp.md`, `.impeccable/critique/2026-07-22T…walkthrough.md` —
-   commit the doc moves/additions on a branch so the approved spec is actually in git
-   history before anyone implements from it.
-2. User merges the pushed, unmerged branches when satisfied:
-   `fix/flows-workflow-tests` (P0 CI fix — merge first),
-   `docs/curriculum-design` (CURRICULUM.md + this file).
-3. Revive the `PROGRESS_LOG.md` convention (pending.md flags it lapsed since
-   2026-07-15 while ~10 significant commits landed): spawn the logging subagent to
-   append a catch-up entry, and log after every step below.
-4. Run `graphify update .` after each step lands (hooks exist, but verify freshness).
+1. ~~Resolve the uncommitted working-tree churn~~ — done: the doc moves/additions landed
+   in commit `c02f41f`.
+2. ~~User merges the pushed, unmerged branches~~ — done: `fix/flows-workflow-tests` and
+   `docs/curriculum-design` no longer exist as branches (merged and cleaned up).
+3. Revive the `PROGRESS_LOG.md` convention — ongoing discipline, not a one-time task;
+   keep logging after significant sessions per `CLAUDE.md`.
+4. Run `graphify update .` after each step lands (hooks exist, but verify freshness) —
+   ongoing, same as above.
 
 ## Step 1 — Correctness & security quick fixes (pending.md P1/P2, ~1 day) — done
 
@@ -83,7 +95,14 @@ independently shippable with its quality gates:
 6. Phase 6 — enable the Building Blocks / RWE cards on Home; update `DESIGN.md`;
    log progress entries after Phases 3 and 5 per the spec.
 
-## Step 3 — Milestone 5: stronger validation agent — done (2026-07-24)
+## Step 3 — Milestone 5: stronger validation agent (Track 1) — done (2026-07-24)
+
+**Scope note (added 2026-07-27):** "done" here means **Track 1 only** — structural
+rules plus per-component `relations` contracts. Two things that were folded under
+milestone 5 are not done and now live in **Step 4.5**: the LLM-assisted pass (Track 3,
+no longer waiting on auth — see below) and the rule-authoring scalability problem
+(Track 2), which `CURRICULUM.md` §12's 250–400-rule budget makes urgent before any real
+chapter content is authored.
 
 Was already far more complete than this doc reflected (see
 `.claude/docs/validation_agent_design.md`, "Track 1 — done"): the registry grew from 1
@@ -101,9 +120,12 @@ separate rules. Closed out this round:
    orphans, a Browser→Leader category violation, and a kind-dodging edge (right
    category, wrong `EdgeKind`) — all three shapes caught, plus every violation carries a
    non-empty message and explanation.
-3. **Still deferred**, unchanged: LLM-assisted validation pass waits for auth (Step 8);
-   see design doc §4 for the full design (also blocked independently on Gemini
-   billing/access).
+3. ~~**Still deferred**: LLM-assisted validation pass waits for auth (Step 8); also
+   blocked independently on Gemini billing/access.~~ — **superseded 2026-07-27.** Both
+   blockers are gone: users bring their own API key, so there is nothing to meter (no
+   daily cap, no identity, no auth dependency) and no dependence on any one provider.
+   Moved to **Step 4.5**; see design doc §4 for the redesign and the three reversals it
+   records.
 4. Resolved: chapter mode stays manual-validate, matching Sandbox's own explicit
    design call (live validation was tried and reverted in 2026-07-13 for being noisy).
    "Explanations always shown on failure" already holds — `ValidationIndicator`
@@ -114,7 +136,20 @@ separate rules. Closed out this round:
    fail on rules unrelated to what it teaches. Placeholder chapters intentionally keep
    `validationRuleIds: []` (nothing to scope to yet); real scoping lands with Step 5.
 
-## Step 4 — UX fixes on the new layout (critique P1s/P2s not covered by Step 2)
+## Step 4 — UX fixes on the new layout (critique P1s/P2s not covered by Step 2) — partial
+
+**Status as of 2026-07-26** (per `.claude/docs/CRITIQUE.md`'s latest round, 33/40):
+item 6 (z-index/tooltip token sweep) is **done** — verified no raw `z-50`/`z-20`/`z-30`/
+`z-40` remain in `src/`, all migrated to the `--z-*` tokens, and only one `Tooltip.tsx`
+implementation exists. A separate, narrower `/impeccable clarify`/`polish`/`distill`
+round also landed on the Component Picker specifically (Draft badge on placeholder
+chapters, Ctrl+S toast, category-rail truncation fix, default-collapsed categories) —
+that work wasn't originally scoped here but overlaps items 3–4 below. Items 1, 2, and
+most of 3/4/5 are **still open** — onboarding/legend, loss guardrails (Clear-board
+confirm, dirty-dot, nav guard), stale-validation-results dimming, edge arrowheads, and
+Project/Board menu naming all remain unfixed per the latest critique. The Component
+Picker round also introduced one small regression (a keyboard-focus issue on the new
+category-toggle buttons) — see CRITIQUE.md's "New Priority Issue".
 
 Apply the 2026-07-22 walkthrough's recommended sequence, minus what Steps 1–2 already
 fixed (Esc, insertion discoverability):
@@ -142,6 +177,82 @@ fixed (Esc, insertion discoverability):
    capture-phase listener, per pending.md's own recommendation); reclassify
    `EdgeInspector`'s z tier; `ZoneNode.tsx:109` 10px text onto the type ramp.
 7. Re-run `/impeccable critique` and archive the score (baseline: 29/40).
+
+## Step 4.5 — Validation engines v2: pattern engine, blueprints, AI Deep Check —
+## done — both tracks merged into release/2.0.0-validation-engine-overhaul,
+## pending promotion to develop/main
+
+**Full design and implementation spec: `.claude/docs/validation_agent_design.md`** —
+§8 (blueprints and chapter mastery), §9 (deterministic engine), §10 (AI Deep Check).
+That doc is the single source of truth for both engines; this entry is a pointer and a
+justification for the position in the sequence.
+
+**Why it sits here, between Step 4 and Step 5.** Step 5 authors the first real Building
+Blocks chapters, and it cannot be done well until two things exist that don't today.
+First, **chapter mastery has never been implemented**: `hasErrors()` is dead code,
+`requiredComponentIds` is only rendered as a presence counter (`QuestionPane.tsx:38`,
+never connectivity), and `solutionGraph` is declared on `ChapterDefinition` and
+referenced nowhere in `src/`. There is no pass/fail gate to author chapters against.
+Second, **rule authoring doesn't scale**: `CURRICULUM.md` §12 budgets 5–10 rules per BB
+chapter and 15–25 per RWE project — 250–400 hand-written TypeScript rule files against
+today's 10. Writing real chapters first would mean writing them against a gate that
+doesn't exist and a rule model that has to change underneath them.
+
+Numbered 4.5 rather than 5 so Steps 5–10 and their cross-references don't renumber.
+
+**Three branches, in order, each merged before the next is cut** (all off
+`release/2.0.0-validation-engine-overhaul`, which is cut from `develop` and is the
+integration branch for this work, per `CLAUDE.md`'s branching rules):
+
+1. `docs/planing-documentation` — the design doc rewrite, this roadmap wiring, and the
+   `2.0.0-alpha.0` version bump. **Done and merged; branch deleted.** No code.
+2. `feature/validation-pattern-engine` — Track 2. **Merged** (PR #47, merge
+   commit `e1b36ff`, 2026-07-27/28). Graph index, pattern language and matcher,
+   `PatternRule` alongside the existing imperative rules (which change zero
+   lines except one exported helper in `orphan-component.ts`), `note`
+   severity, blueprints, `evaluateChapter`, Dexie v3 `chapterProgress`, and
+   the QuestionPane/Debrief UI. Design doc §9.
+3. `feature/ai-deep-check` — Track 3. **Merged** (PR #48, merge commit
+   `e1bc04c`, 2026-07-29), cut directly off
+   `release/2.0.0-validation-engine-overhaul` rather than waiting on Track 2's
+   merge (nothing about Track 3 depended on it). BYO-API-key, browser-direct,
+   multi-provider (Anthropic / OpenAI / Gemini / xAI / OpenAI-compatible),
+   Zod-validated structured output, its own slide-over panel with a spoiler
+   gate enforced by payload construction rather than by prompting, plus a
+   post-Phase-6 follow-up round (multi-profile AI settings, a Help view, a
+   Cancel-run fix). Design doc §10. Full pipeline green (912/912 tests),
+   click-through done.
+
+Both tracks now live on `release/2.0.0-validation-engine-overhaul` — the
+remaining step is promoting that branch to `develop`, then `main`, each after
+its own validation. No PR exists for that promotion yet.
+
+**Three decisions worth knowing without opening the design doc**, because each reverses
+something a previous doc said:
+
+- **AI findings are not `ValidationViolation`s.** A staff-engineer trade-off discussion
+  rendered inside a panel headed "N issues" reads as *failing* a correct design. Own
+  artifact, own surface. (§4.2, reversal 1)
+- **Deep Check is on in Building Blocks.** The old "BB is off, a blueprint diff is
+  sufficient there" call rested on a diff that was never built, and conflates *did you
+  build a correct shape* with *why this shape and not the other one* — the second being
+  the whole retention argument. (§4.2, reversal 2)
+- **BYO keys replace metering.** No daily cap, no per-user identity, no Clerk
+  dependency, no Gemini blocker. This is what unblocks the track from Step 8.
+  (§4.2, reversal 3)
+
+**Done when:** a chapter with an authored blueprint passes on a containing graph and
+fails with an explanation on a broken one; required components are checked for
+connectivity, not just presence; a throwing rule can't kill a validation run; and Deep
+Check produces a schema-valid prose critique from a user-supplied key without ever
+touching pass/fail.
+
+**Both tracks' portions of this bar are met, and both are merged** — Track 2
+(2026-07-27/28, `chapter-outcome.test.ts` + manual click-through, PR #47) and
+Track 3 (2026-07-29, Deep Check produces a schema-valid prose critique from a
+user-supplied key without ever touching pass/fail — verified by the
+`chapter-outcome.ts` isolation grep, not just tests — click-through done,
+PR #48). **Step 4.5 is done.** Next: Step 5 below, now unblocked.
 
 ## Step 5 — Milestone 7: first two Building Blocks chapters (real content)
 

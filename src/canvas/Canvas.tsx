@@ -177,6 +177,36 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     [fitView],
   );
 
+  // The declarative `fitView` prop below only ever runs once, on mount —
+  // xyflow doesn't auto-refit when its container resizes, and doesn't
+  // clip its own overflow either (no `overflow: hidden` in its base
+  // stylesheet), so a resize with no refit left the graph painted at its
+  // old scale/position, overflowing past the container's new edge into
+  // whatever sits next to it (the docs panel, when opening/closing it or
+  // toggling focus mode resizes this wrapper). Re-fitting on every real
+  // resize keeps the view honest instead. Debounced so a panel-width drag
+  // (many resize events in a row) settles once, not on every frame.
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    let isFirstObservation = true;
+    let debounceId: ReturnType<typeof setTimeout>;
+    const observer = new ResizeObserver(() => {
+      if (isFirstObservation) {
+        isFirstObservation = false;
+        return;
+      }
+      clearTimeout(debounceId);
+      debounceId = setTimeout(() => fitView({ padding: 0.1, maxZoom: 1, duration: 200 }), 120);
+    });
+    observer.observe(el);
+    return () => {
+      clearTimeout(debounceId);
+      observer.disconnect();
+    };
+  }, [fitView]);
+
   const [menu, setMenu] = useState<ContextMenuTarget | null>(null);
   // Set on pointerdown on a handle, before any drag motion — disables
   // selectionOnDrag for the gesture's whole duration so a connection drag
@@ -543,7 +573,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   );
 
   return (
-    <div className="relative h-full w-full">
+    <div ref={wrapperRef} className="relative h-full w-full">
       <ReactFlow
         colorMode={colorMode}
         nodes={nodes}
@@ -622,7 +652,10 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
       >
         <Background />
-        <Controls />
+        {/* bottom-right, not xyflow's bottom-left default — that corner is
+         * reserved app-wide for the persistent Release Notes button (see
+         * ReleaseNotesButton.tsx, mounted in the root layout). */}
+        <Controls position="bottom-right" />
       </ReactFlow>
       <EdgeInspector />
       <ContextMenu target={menu} onClose={() => setMenu(null)} centerOnNode={centerOnNode} />

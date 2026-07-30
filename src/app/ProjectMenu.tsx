@@ -11,6 +11,10 @@ import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 
 type ProjectMenuProps = {
   canvasRef: RefObject<CanvasHandle | null>;
+  /** Disabled in chapter mode's Chapter List view (nothing selected to
+   * import/export against). Defaults to enabled — Sandbox always has a
+   * target. */
+  disabled?: boolean;
 };
 
 type ImageFormat = "png" | "jpg";
@@ -33,8 +37,10 @@ const BG_HEX: Record<Exclude<Background, "transparent" | "custom">, string> = {
  * other header control (Docs/Shortcuts/Theme/Save/Board/Validate) now that
  * the whole toolbar was made consistent in one pass.
  */
-export function ProjectMenu({ canvasRef }: ProjectMenuProps) {
+export function ProjectMenu({ canvasRef, disabled = false }: ProjectMenuProps) {
   const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
+  const nodes = useCanvasStore((s) => s.nodes);
+  const edges = useCanvasStore((s) => s.edges);
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<ImageFormat>("png");
   const [background, setBackground] = useState<Background>("transparent");
@@ -54,7 +60,7 @@ export function ProjectMenu({ canvasRef }: ProjectMenuProps) {
   };
 
   const handleExportJson = () => {
-    exportCanvasAsJson();
+    exportCanvasAsJson(nodes, edges);
     setOpen(false);
   };
 
@@ -75,17 +81,18 @@ export function ProjectMenu({ canvasRef }: ProjectMenuProps) {
 
   return (
     <div className="relative">
-      <Tooltip label="Project">
+      <Tooltip label={disabled ? "Select a chapter to enable Project actions" : "Project"}>
         <button
           onClick={() => setOpen((o) => !o)}
+          disabled={disabled}
           aria-label="Project"
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel text-foreground/70 hover:text-foreground"
+          className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel text-foreground/70 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-foreground/70"
         >
           <FolderOpen size={16} />
         </button>
       </Tooltip>
 
-      {open && (
+      {open && !disabled && (
         <>
           <div className="fixed inset-0 z-[var(--z-dropdown-backdrop)]" onClick={() => setOpen(false)} />
           <div className="absolute right-0 z-[var(--z-dropdown)] mt-2 w-64 rounded-md border border-border bg-panel p-3 shadow-lg">

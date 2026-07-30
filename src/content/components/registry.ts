@@ -6,7 +6,7 @@ import cachingSpecs from "./config/caching";
 import messagingSpecs from "./config/messaging";
 import distributedSystemsSpecs from "./config/distributed-systems";
 import { generateComponentRegistry } from "./generate";
-import { useCanvasStore } from "@/canvas/store";
+import { useCustomComponentsStore } from "@/canvas/custom-components-store";
 import { toComponentDefinition } from "./custom";
 
 /**
@@ -45,24 +45,25 @@ export const componentRegistry: ComponentDefinition[] = generateComponentRegistr
 
 /**
  * Every user-created custom component (see CreateComponentModal.tsx) lives
- * in the canvas store as a raw, editable CustomComponentRecord — not a
- * ComponentDefinition — so it can be edited/deleted later (a live Zod
- * configSchema can't be un-rendered back into editable field specs, see
- * store.ts's comment on `customComponents`). `getAllComponents` builds a
- * real ComponentDefinition from each record on demand and merges both lists
- * so Palette/ContextMenu show one combined, reactive list. A plain
- * `useCanvasStore.getState()` snapshot read (not the `useCanvasStore()`
- * hook) is safe here: a custom component is always registered before it's
- * ever placed on canvas, so `getComponent` doesn't need to be reactive to
- * find one — it just needs the current list at call time.
+ * in the global custom-components store (see custom-components-store.ts) as
+ * a raw, editable CustomComponentRecord — not a ComponentDefinition — so it
+ * can be edited/deleted later (a live Zod configSchema can't be un-rendered
+ * back into editable field specs). `getAllComponents` builds a real
+ * ComponentDefinition from each record on demand and merges both lists so
+ * Palette/ContextMenu show one combined, reactive list. A plain
+ * `useCustomComponentsStore.getState()` snapshot read (not the
+ * `useCustomComponentsStore()` hook) is safe here: a custom component is
+ * always registered before it's ever placed on canvas, so `getComponent`
+ * doesn't need to be reactive to find one — it just needs the current list
+ * at call time.
  */
 export function getAllComponents(): ComponentDefinition[] {
-  return [...componentRegistry, ...useCanvasStore.getState().customComponents.map(toComponentDefinition)];
+  return [...componentRegistry, ...useCustomComponentsStore.getState().customComponents.map(toComponentDefinition)];
 }
 
 export function getComponent(id: string): ComponentDefinition | undefined {
   const builtin = componentRegistry.find((c) => c.id === id);
   if (builtin) return builtin;
-  const record = useCanvasStore.getState().customComponents.find((c) => c.id === id);
+  const record = useCustomComponentsStore.getState().customComponents.find((c) => c.id === id);
   return record ? toComponentDefinition(record) : undefined;
 }

@@ -2,13 +2,14 @@
 
 Status: living checklist of what exists today vs. what's planned, at feature
 granularity. Roadmap sequencing lives in `.claude/docs/MILESTONES.md`; product
-requirements in [PRD.md](./PRD.md). Last audited 2026-07-21 against `main`.
+requirements in [PRD.md](./PRD.md). Last audited 2026-07-26 against `main`.
 
 ## Shipped (live in the app today)
 
 ### Canvas & editing
-- Drag components from a searchable, category-grouped palette onto the canvas
-  (27 built-in components across 6 categories).
+- Insert components via the Component Picker (`/` or right-click canvas) —
+  searchable, category-grouped, keyboard-navigable (27 built-in components
+  across 6 categories, see "Component insertion & chapter shell" below).
 - Move, connect, box-select, multi-select, delete (keyboard + right-click).
 - Four edge kinds (request-flow / control / replication / async) with
   distinct color + dash pattern, changeable via edge inspector; reverse
@@ -35,8 +36,9 @@ requirements in [PRD.md](./PRD.md). Last audited 2026-07-21 against `main`.
 - Rendered and configured identically to built-ins; persist locally.
 
 ### Validation
-- Explicit Validate action; 10 rules (structural + config-aware), each with a
-  short message and an always-shown architectural explanation.
+- Explicit Validate action; 11 rules (structural + config-aware, including
+  per-component `relations` contracts), each with a short message and an
+  always-shown architectural explanation.
 - Offending nodes ring-highlighted (error red / warning amber); passing runs
   ring everything green; results marked stale after edits, dismissed by
   clicking blank canvas.
@@ -55,25 +57,41 @@ requirements in [PRD.md](./PRD.md). Last audited 2026-07-21 against `main`.
 - Export/import project JSON; export canvas as PNG/JPG with background
   options.
 
+### Component insertion & chapter shell
+- **Component Picker** (`/` or right-click canvas) — centered, keyboard-first
+  search/browse/insert, category rail with collapse/expand, replaces the old
+  always-visible Palette sidebar entirely in Sandbox.
+- **Chapter framework shell** (milestone 6, done) — `ChapterWorkspace` +
+  `ChapterSidebar` (list ⇄ question pane), `/building-blocks` and
+  `/real-world-extraction` routes live, component picker filtered to a
+  chapter's `availableComponentIds`. Runs against one throwaway placeholder
+  `ChapterDefinition` per mode (`src/content/chapters/index.ts`) — the shell
+  is proven, real curriculum content is not authored yet (see Planned below).
+
 ### App shell
-- Home mode-select page (Sandbox live; Building Blocks / RWE cards shown as
-  coming); About panel; loading transition.
+- Home mode-select page (Sandbox, Building Blocks, and Real World Extraction
+  cards all live links); About panel; loading transition.
 - Dark/light themes, fully tokenized; reduced-motion support.
 
+### Test coverage & CI
+- 129 tests (Vitest) across validation rules, store operations, persistence,
+  and major user-flow suites — all passing. CI (`test-and-build.yml`) and
+  Vercel's build command both gate on typecheck + lint + tests + build.
+
 ## In progress / partially shipped
-- **Test coverage + CI** — workflow exists; the `src/flows/` suite is
-  currently red (see `.claude/docs/pending.md`, P0).
-- **Validation coverage (milestone 5)** — orphan, cycle, missing-input, and
-  relations rules landed; LLM-assisted holistic critique still a spike.
+- **Validation coverage (milestone 5, Track 1 done)** — orphan, cycle,
+  missing-input, and per-component `relations` contracts landed (11 rules
+  registered); LLM-assisted holistic critique (Track 2) still blocked on
+  Gemini API access, not built.
 - **Persistence (milestone 9)** — manual save shipped; autosave-on-every-edit
   and multi-slot saves pending.
 
 ## Planned (not started)
-- **Chapter framework** (milestone 6): problem statement + objectives panel,
-  chapter-constrained palette, required-component tracking, success
-  detection, opt-in hints panel.
-- **Two Building Blocks chapters** (7): networking/load-balancing, caching.
-- **One Real World Extraction chapter** (8): bit.ly URL shortener.
+- **Two Building Blocks chapters** (7): real content (problem statements,
+  starter graphs, chapter-scoped validation rules) for networking/
+  load-balancing and caching — the shell exists (see above), content doesn't.
+- **One Real World Extraction chapter** (8): bit.ly URL shortener, same
+  shell-exists/content-doesn't status.
 - **Auth + cloud sync** (10): Clerk closed-beta allowlist, Postgres sync,
   cross-device continuity, real Home progress indicators.
 - **Qualitative simulation** (11): animated request token tracing the graph.

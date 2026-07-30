@@ -61,11 +61,16 @@ type ChapterDefinition = {
   learningObjectives: string[];
   availableComponentIds: string[];   // subset of the global registry
   requiredComponentIds: string[];    // must appear for success
-  validationRuleIds: string[];       // subset of the global rule registry, see below
+  // Subset of the global rule registry — building-blocks only. Ignored for
+  // mode: "real-world-extraction", which always runs the full registry
+  // regardless of this field (see validation_agent_design.md §9.5 and
+  // validation-engine/chapter-outcome.ts) — RWE's anti-pattern posture
+  // applies every taught concept uniformly, there's nothing left to scope.
+  validationRuleIds: string[];
+  blueprints: Blueprint[];           // known-good graph patterns; see validation_agent_design.md §8
   hints: Hint[];                     // never auto-surfaced — see "Hints vs. explanations" below
   readingLinks: { label: string; url: string }[]; // manual citations into the textbook — no content coupling, just links
   starterGraph?: ArchitectureGraph;  // pre-saved JSON, loaded on chapter start
-  solutionGraph?: ArchitectureGraph; // reference graph, used for internal QA / optional "reveal" hint
 };
 ```
 

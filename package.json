@@ -1,6 +1,6 @@
 {
   "name": "scalecraft",
-  "version": "0.1.0",
+  "version": "2.1.0-alpha",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,12 +8,15 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:flows": "vitest run src/flows",
+    "test": "NODE_ENV=test vitest run",
+    "test:flows": "NODE_ENV=test vitest run src/flows",
+    "test:coverage": "NODE_ENV=test vitest run --coverage",
+    "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
     "@clerk/nextjs": "^7.5.17",
     "@hookform/resolvers": "^5.4.0",
     "@neondatabase/serverless": "^1.1.0",
@@ -52,13 +55,17 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.3",
+    "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.1.1",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "unified": "^11.0.5",
     "vitest": "^4.1.10"
   }
 }

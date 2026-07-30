@@ -99,16 +99,49 @@ When working on UI/UX improvements:
 4. **After changes:** Update `DESIGN.md` inline, commit, and run `/impeccable critique` to verify improvements
 5. **Archive findings:** Critique snapshots auto-persist to `.impeccable/critique/` for trend tracking
 
+### Release process & versioning
+
+- Current version lives in `VERSION` (mirrored in `package.json`). We are on the
+  **Alpha 1.0.0** line: `major.minor.patch`, where major = breaking/large milestone,
+  minor = feature additions, patch = bug fixes. Stays "Alpha" until we reach Beta 1.0.
+- Before starting any session's work, verify the working tree is clean (`git status`)
+  and report anything pending — nothing should be mid-flight and unreviewed going in.
+- **Nothing merges into `develop` without manual code review.** Claude never merges its
+  own branches; it opens the branch, pushes it, and stops.
+
 ### Git branching
 
-- `origin` has two long-lived branches: `main` and `development`. `development` is the
-  integration branch going forward — new work starts there, not on `main`.
-- Every new unit of work (feature/fix/task) gets its own branch, branched from
-  `development`.
-- Claude pushes that branch to origin but does **not** merge it — merging into
-  `development` and eventually `main` is done by the user, manually.
-- Claude does not push directly to `main` going forward, and does not open or merge
-  PRs, unless explicitly asked.
+- `origin` has two long-lived branches: `main` (production) and `develop` (stable
+  preview / UAT). `develop` is the integration branch going forward — new work starts
+  there, not on `main`.
+- Work for a given release lands on a release integration branch cut from `develop`,
+  named `release/vMAJOR.MINOR.PATCH-release-name` (e.g. `release/v1.0.0-qol-updates`).
+- Every individual unit of work (feature/fix/chore/docs) gets its own branch, branched
+  from the current release branch, named `<type>/<short-description>` — e.g.
+  `feature/release-notes`, `fix/canvas-leak`, `chore/font-update`, `docs/testing-guide`.
+- Flow: `type/*` branches merge into the `release/*` branch → `release/*` merges into
+  `develop` (UAT) → `develop` merges into `main` (production), only after validation.
+- Claude pushes branches to origin but does **not** merge any of them — merging at any
+  level (`type/*` → `release/*`, `release/*` → `develop`, `develop` → `main`) is done by
+  the user, manually, after manual code review.
+- Claude does not push directly to `main` or `develop` going forward, and does not open
+  or merge PRs, unless explicitly asked.
+
+### Pre-push CI verification (non-negotiable)
+
+- **Every change, before it is pushed, must be verified locally against the same
+  pipeline CI runs**: `npm run typecheck && npm run lint && npm test && npm run build`.
+  This includes merge/conflict resolutions, not just new feature work — a resolution
+  that "looks" merged (no `<<<<<<<` markers left) can still be semantically broken
+  (duplicate blocks, stale test expectations against changed behavior on the other
+  side) in ways only the actual pipeline catches.
+- This was learned the hard way: a merge conflict in a test file was resolved by
+  stripping the conflict marker lines without reconciling the two sides, then pushed
+  straight to origin — it broke `tsc` (`TS1185: Merge conflict marker encountered`)
+  and would have failed again on structurally invalid TS even after that. Both times
+  the break reached the Vercel deployment before anyone ran the pipeline locally.
+- Do not push (or tell the user something is "fixed") on the strength of a diff
+  looking plausible. Run the pipeline, see it exit 0, then push.
 
 ## Design tools
 
