@@ -78,6 +78,25 @@ export type AiActiveProfile = {
   profileId: string | null;
 };
 
+/** Learner-owned curriculum state, keyed by curriculum slug
+ * (src/curriculum/manifest.ts). Deliberately SEPARATE from `chapterProgress`:
+ * that table records what the *validation engine* proved (keyed by
+ * ChapterDefinition id); this one records what the *learner* did (an explicit
+ * manual completion, and when they last opened the chapter). Two distinct
+ * facts with two distinct writers — ChapterStatus is derived from both by
+ * curriculum/progress.ts's deriveStatus, which is the single place the two
+ * are ever combined. Keyed by slug rather than definition id because an
+ * unauthored chapter has no definition id but can still be manually marked
+ * complete (a learner who read the chapter in the PDF). */
+export type CurriculumProgress = {
+  slug: string;
+  /** Learner's explicit "Mark complete" toggle. null = not manually completed. */
+  manuallyCompletedAt: number | null;
+  /** Last time the learner opened this chapter's workspace. Drives
+   * IN_PROGRESS, and is what a future "Resume where I left off" will read. */
+  lastVisitedAt: number | null;
+};
+
 export class ScaleCraftDB extends Dexie {
   saves!: EntityTable<CanvasSave, "id">;
   /** User-created components (see CreateComponentModal.tsx /
@@ -89,6 +108,7 @@ export class ScaleCraftDB extends Dexie {
   aiProfiles!: EntityTable<AiProfile, "id">;
   aiActiveProfile!: EntityTable<AiActiveProfile, "id">;
   deepCheckSessions!: EntityTable<DeepCheckSession, "id">;
+  curriculumProgress!: EntityTable<CurriculumProgress, "slug">;
 
   /** Name defaults to the real app database; overridable so tests can
    * exercise the full version chain (including the v6 migration) against an
@@ -167,6 +187,19 @@ export class ScaleCraftDB extends Dexie {
         await trans.table("aiProfiles").add(profile);
         await trans.table("aiActiveProfile").put({ id: "default", profileId: profile.id });
       });
+    // A new, empty table — no .upgrade() needed. Existing chapterProgress
+    // rows (the validation-pass record) keep working untouched; this is a
+    // second, additive fact, not a replacement (see CurriculumProgress
+    // above).
+    this.version(7).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+      curriculumProgress: "slug",
+    });
   }
 }
 
