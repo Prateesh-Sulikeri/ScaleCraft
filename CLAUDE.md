@@ -68,7 +68,12 @@ don't).
   closer to a self-paced course than a shared workspace. Never let persistence or graph
   state design pay a tax for eventual collaborative editing — it isn't coming.
 - Not a game: no scoring theatrics, no decorative animation. Motion communicates state
-  only.
+  only. The one exception: chapter exams (`.claude/docs/QUIZ_FRAMEWORK.md` §1) show a
+  real score, pass/fail line, and attempt count against an 80% threshold — that's
+  completion-gating information, not theater, and it renders with no points, streaks,
+  badges, or celebration animation. Confirmed with the user (2026-07-31 pivot from an
+  earlier unlimited-retry/no-scoring model, see `.claude/docs/pending-quiz-ui.md`
+  addendum).
 
 ## Working conventions for this repo
 

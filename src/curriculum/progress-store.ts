@@ -1,15 +1,18 @@
 import { create } from "zustand";
-import { db, type CurriculumProgress } from "@/persistence/db";
+import { db, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
 import type { ProgressInputs } from "./progress";
 
-function withCorrectQuestionId(
-  map: Map<string, Set<string>>,
-  chapterDefinitionId: string,
-  questionId: string,
-): Map<string, Set<string>> {
+/** Replace-by-attemptNumber — mirrors Dexie's own replace-by-key `put`. */
+function withExamAttempt(
+  map: Map<string, ExamAttempt[]>,
+  attempt: ExamAttempt,
+): Map<string, ExamAttempt[]> {
   const next = new Map(map);
-  const existing = next.get(chapterDefinitionId) ?? new Set<string>();
-  next.set(chapterDefinitionId, new Set(existing).add(questionId));
+  const existing = next.get(attempt.chapterDefinitionId) ?? [];
+  next.set(
+    attempt.chapterDefinitionId,
+    [...existing.filter((a) => a.attemptNumber !== attempt.attemptNumber), attempt],
+  );
   return next;
 }
 
@@ -30,9 +33,9 @@ type CurriculumProgressStore = {
   hydrating: boolean;
   validationPassedDefinitionIds: Set<string>;
   rowsBySlug: Map<string, CurriculumProgress>;
-  /** Question ids ever answered correctly, by chapterDefinitionId. Mastery,
-   *  once earned, is never removed except by resetChapter. */
-  correctQuestionIdsByDefinition: Map<string, Set<string>>;
+  /** Submitted exam attempts, by chapterDefinitionId — up to
+   *  MAX_EXAM_ATTEMPTS entries per chapter, cleared only by resetChapter. */
+  examAttemptsByDefinition: Map<string, ExamAttempt[]>;
 
   /** Reads all three Dexie tables into memory. Idempotent, safe to call from
    *  every mounting surface — bails if already hydrated or in flight. */
@@ -47,19 +50,19 @@ type CurriculumProgressStore = {
    *  mirrors the existing db.chapterProgress.put into this store's memory
    *  so the sidebar/Learning Path update without a reload. */
   recordValidationPass: (chapterDefinitionId: string) => void;
-  /** Called by QuizQuestionCard on first-ever correct answer to a question.
-   *  Dexie put + in-memory update in the same action, new Map/Set instances
-   *  (see store-level doc comment). Idempotent — answering an already-
-   *  mastered question again just overwrites answeredCorrectlyAt. */
-  recordQuizCorrect: (chapterDefinitionId: string, questionId: string) => Promise<void>;
+  /** Called by QuizLauncher when an exam is submitted. Dexie put +
+   *  in-memory update in the same action, new Map instance (see store-level
+   *  doc comment), replace-by-attemptNumber semantics matching Dexie's own
+   *  replace-by-key `put`. */
+  recordExamAttempt: (attempt: ExamAttempt) => Promise<void>;
   /** Lets a learner redo a chapter that was already COMPLETED by validation.
    *  Clears the manual flag *and* deletes the underlying db.chapterProgress
    *  row (the validation-pass record itself) — clearing only the manual flag
    *  would leave deriveStatus's OR immediately re-deriving COMPLETED from the
    *  still-present validation-pass row. Also deletes the chapter's
-   *  quizProgress rows — redo means redo, mastery included. lastVisitedAt is
-   *  left untouched, so the chapter reverts to IN_PROGRESS (they've been
-   *  there before), not NOT_STARTED. */
+   *  examAttempts rows — redo means redo, a fresh MAX_EXAM_ATTEMPTS included.
+   *  lastVisitedAt is left untouched, so the chapter reverts to IN_PROGRESS
+   *  (they've been there before), not NOT_STARTED. */
   resetChapter: (slug: string, chapterDefinitionId: string | null) => Promise<void>;
   /** Derived selector helper so callers never rebuild ProgressInputs by hand. */
   inputs: () => ProgressInputs;
@@ -74,30 +77,26 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   hydrating: false,
   validationPassedDefinitionIds: new Set(),
   rowsBySlug: new Map(),
-  correctQuestionIdsByDefinition: new Map(),
+  examAttemptsByDefinition: new Map(),
 
   hydrate: async () => {
     if (get().hydrated || get().hydrating) return;
     set({ hydrating: true });
-    const [chapterProgressRows, curriculumProgressRows, quizProgressRows] = await Promise.all([
+    const [chapterProgressRows, curriculumProgressRows, examAttemptRows] = await Promise.all([
       db.chapterProgress.toArray(),
       db.curriculumProgress.toArray(),
-      db.quizProgress.toArray(),
+      db.examAttempts.toArray(),
     ]);
-    let correctQuestionIdsByDefinition = new Map<string, Set<string>>();
-    for (const row of quizProgressRows) {
-      correctQuestionIdsByDefinition = withCorrectQuestionId(
-        correctQuestionIdsByDefinition,
-        row.chapterDefinitionId,
-        row.questionId,
-      );
+    let examAttemptsByDefinition = new Map<string, ExamAttempt[]>();
+    for (const attempt of examAttemptRows) {
+      examAttemptsByDefinition = withExamAttempt(examAttemptsByDefinition, attempt);
     }
     set({
       hydrated: true,
       hydrating: false,
       validationPassedDefinitionIds: new Set(chapterProgressRows.map((r) => r.chapterId)),
       rowsBySlug: new Map(curriculumProgressRows.map((r) => [r.slug, r])),
-      correctQuestionIdsByDefinition,
+      examAttemptsByDefinition,
     });
   },
 
@@ -122,14 +121,10 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
     }));
   },
 
-  recordQuizCorrect: async (chapterDefinitionId, questionId) => {
-    await db.quizProgress.put({ chapterDefinitionId, questionId, answeredCorrectlyAt: Date.now() });
+  recordExamAttempt: async (attempt) => {
+    await db.examAttempts.put(attempt);
     set((state) => ({
-      correctQuestionIdsByDefinition: withCorrectQuestionId(
-        state.correctQuestionIdsByDefinition,
-        chapterDefinitionId,
-        questionId,
-      ),
+      examAttemptsByDefinition: withExamAttempt(state.examAttemptsByDefinition, attempt),
     }));
   },
 
@@ -139,24 +134,24 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
       db.curriculumProgress.put(row),
       chapterDefinitionId ? db.chapterProgress.delete(chapterDefinitionId) : Promise.resolve(),
       chapterDefinitionId
-        ? db.quizProgress.where("chapterDefinitionId").equals(chapterDefinitionId).delete()
+        ? db.examAttempts.where("chapterDefinitionId").equals(chapterDefinitionId).delete()
         : Promise.resolve(),
     ]);
     set((state) => {
       const validationPassedDefinitionIds = new Set(state.validationPassedDefinitionIds);
       if (chapterDefinitionId) validationPassedDefinitionIds.delete(chapterDefinitionId);
-      const correctQuestionIdsByDefinition = new Map(state.correctQuestionIdsByDefinition);
-      if (chapterDefinitionId) correctQuestionIdsByDefinition.delete(chapterDefinitionId);
+      const examAttemptsByDefinition = new Map(state.examAttemptsByDefinition);
+      if (chapterDefinitionId) examAttemptsByDefinition.delete(chapterDefinitionId);
       return {
         rowsBySlug: new Map(state.rowsBySlug).set(slug, row),
         validationPassedDefinitionIds,
-        correctQuestionIdsByDefinition,
+        examAttemptsByDefinition,
       };
     });
   },
 
   inputs: () => {
-    const { validationPassedDefinitionIds, rowsBySlug, correctQuestionIdsByDefinition } = get();
-    return { validationPassedDefinitionIds, rowsBySlug, correctQuestionIdsByDefinition };
+    const { validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition } = get();
+    return { validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition };
   },
 }));

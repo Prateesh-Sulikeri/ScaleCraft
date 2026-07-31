@@ -43,7 +43,7 @@ function inputs(overrides: Partial<ProgressInputs> = {}): ProgressInputs {
   return {
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(),
-    correctQuestionIdsByDefinition: new Map(),
+    examAttemptsByDefinition: new Map(),
     ...overrides,
   };
 }
@@ -92,27 +92,40 @@ describe("deriveStatus", () => {
     expect(deriveStatus(entry, inputs({ validationPassedDefinitionIds }))).toBe("NOT_STARTED");
   });
 
-  it("validation pass alone is IN_PROGRESS (not COMPLETED) when the definition has a quiz not yet fully mastered", () => {
+  it("validation pass alone is IN_PROGRESS (not COMPLETED) when the definition has a quiz not yet passed", () => {
     const entry = chapter({ chapterDefinitionId: "with-quiz-def" });
     const rowsBySlug = new Map([["test-slug", row({ lastVisitedAt: Date.now() })]]);
     const result = deriveStatus(
       entry,
       inputs({
         validationPassedDefinitionIds: new Set(["with-quiz-def"]),
-        correctQuestionIdsByDefinition: new Map([["with-quiz-def", new Set(["q1"])]]),
+        examAttemptsByDefinition: new Map([
+          [
+            "with-quiz-def",
+            [{ chapterDefinitionId: "with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [] }],
+          ],
+        ]),
         rowsBySlug,
       }),
     );
     expect(result).toBe("IN_PROGRESS");
   });
 
-  it("COMPLETED once validation passes and every quiz question has been mastered at least once", () => {
+  it("COMPLETED once validation passes and the best exam attempt meets EXAM_PASS_THRESHOLD", () => {
     const entry = chapter({ chapterDefinitionId: "with-quiz-def" });
     const result = deriveStatus(
       entry,
       inputs({
         validationPassedDefinitionIds: new Set(["with-quiz-def"]),
-        correctQuestionIdsByDefinition: new Map([["with-quiz-def", new Set(["q1", "q2"])]]),
+        examAttemptsByDefinition: new Map([
+          [
+            "with-quiz-def",
+            [
+              { chapterDefinitionId: "with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [] },
+              { chapterDefinitionId: "with-quiz-def", attemptNumber: 2, submittedAt: Date.now(), score: 90, answers: [] },
+            ],
+          ],
+        ]),
       }),
     );
     expect(result).toBe("COMPLETED");

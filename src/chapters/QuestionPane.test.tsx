@@ -72,7 +72,7 @@ function makeQuestion(overrides: Partial<QuizQuestion> = {}): QuizQuestion {
 }
 
 beforeEach(() => {
-  useCurriculumProgressStore.setState({ correctQuestionIdsByDefinition: new Map() });
+  useCurriculumProgressStore.setState({ examAttemptsByDefinition: new Map() });
 });
 
 /** Seeds the shared canvas store with component nodes before rendering
@@ -327,18 +327,26 @@ describe("QuestionPane", () => {
     });
   });
 
-  describe("'Knowledge check remaining' note (Phase 4)", () => {
-    it("shows the note when the build passed but the chapter's quiz isn't fully mastered", () => {
+  describe("'Knowledge check remaining' note (exam-mode)", () => {
+    it("shows the note when the build passed but the chapter's exam isn't passed yet", () => {
       const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" }), makeQuestion({ id: "q2" })] });
-      useCurriculumProgressStore.setState({ correctQuestionIdsByDefinition: new Map([["ch-1", new Set(["q1"])]]) });
+      useCurriculumProgressStore.setState({
+        examAttemptsByDefinition: new Map([
+          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [] }]],
+        ]),
+      });
       renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
 
       expect(screen.getByText("Knowledge check remaining.")).toBeInTheDocument();
     });
 
-    it("omits the note once every quiz question is mastered", () => {
+    it("omits the note once the exam is passed", () => {
       const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" })] });
-      useCurriculumProgressStore.setState({ correctQuestionIdsByDefinition: new Map([["ch-1", new Set(["q1"])]]) });
+      useCurriculumProgressStore.setState({
+        examAttemptsByDefinition: new Map([
+          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 80, answers: [] }]],
+        ]),
+      });
       renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
 
       expect(screen.queryByText("Knowledge check remaining.")).not.toBeInTheDocument();

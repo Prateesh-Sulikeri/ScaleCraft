@@ -85,7 +85,7 @@ export function HomeCanvas() {
   const hydrate = useCurriculumProgressStore((s) => s.hydrate);
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
-  const correctQuestionIdsByDefinition = useCurriculumProgressStore((s) => s.correctQuestionIdsByDefinition);
+  const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
 
   useEffect(() => {
     void hydrate();
@@ -97,8 +97,8 @@ export function HomeCanvas() {
   // no separate loading branch to gate and no hydration mismatch to guard
   // against between the server-rendered shell and the first client paint.
   const inputs: ProgressInputs = useMemo(
-    () => ({ validationPassedDefinitionIds, rowsBySlug, correctQuestionIdsByDefinition }),
-    [validationPassedDefinitionIds, rowsBySlug, correctQuestionIdsByDefinition],
+    () => ({ validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition }),
+    [validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition],
   );
 
   // Static layout (positions), dynamic data (status/progressLabel) — three

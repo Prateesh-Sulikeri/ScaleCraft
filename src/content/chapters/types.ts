@@ -135,6 +135,6 @@ export type ChapterDefinition = {
    * for real-world-extraction and for not-yet-authored placeholder chapters. */
   curriculumContext?: CurriculumContext;
   /** Absent means the chapter has no quiz — checkpoints never have one. See
-   * .claude/docs/QUIZ_FRAMEWORK.md and the Reader's QuizSection. */
+   * .claude/docs/QUIZ_FRAMEWORK.md and the Reader's QuizLauncher. */
   quiz?: QuizQuestion[];
 };

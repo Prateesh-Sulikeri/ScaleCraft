@@ -141,7 +141,7 @@ describe("CurriculumSectionList - Data Structure", () => {
   it("validates progress inputs structure", () => {
     const inputs: ProgressInputs = {
       validationPassedDefinitionIds: new Set(["def-1", "def-2"]),
-      correctQuestionIdsByDefinition: new Map(),
+      examAttemptsByDefinition: new Map(),
       rowsBySlug: new Map([
         [
           "ch-1",

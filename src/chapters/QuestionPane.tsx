@@ -5,6 +5,7 @@ import { useCanvasStore } from "@/canvas/store";
 import type { ComponentNodeType } from "@/canvas/types";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+import { examPassed } from "@/curriculum/progress";
 import { Debrief } from "./Debrief";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
 import { ChapterStatusIcon, chapterStatusLabel } from "@/learning-path/ChapterStatusIcon";
@@ -36,17 +37,17 @@ type QuestionPaneProps = {
  */
 export function QuestionPane({ chapter, entry, status, chapterOutcome, isStale }: QuestionPaneProps) {
   const nodes = useCanvasStore((s) => s.nodes);
-  const correctQuestionIdsByDefinition = useCurriculumProgressStore((s) => s.correctQuestionIdsByDefinition);
+  const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
   const [revealedHintIds, setRevealedHintIds] = useState<Set<string>>(new Set());
 
   const outcome = isStale ? null : chapterOutcome;
 
-  // Build passed but the chapter's quiz (Reader-only, see QuizSection) isn't
-  // fully mastered yet — copy only, no badge, no nagging (Phase 4). Mirrors
-  // deriveStatus's own COMPLETED-requires-quiz rule so this note and the
-  // status chip above never disagree.
-  const masteredIds = correctQuestionIdsByDefinition.get(chapter.id) ?? new Set<string>();
-  const quizRemaining = !!outcome?.passed && !!chapter.quiz?.length && !chapter.quiz.every((q) => masteredIds.has(q.id));
+  // Build passed but the chapter's exam (Reader-only, see QuizLauncher) isn't
+  // passed yet — copy only, no badge, no nagging. Mirrors deriveStatus's own
+  // COMPLETED-requires-exam-pass rule so this note and the status chip above
+  // never disagree.
+  const attempts = examAttemptsByDefinition.get(chapter.id) ?? [];
+  const quizRemaining = !!outcome?.passed && !!chapter.quiz?.length && !examPassed(attempts);
 
   // Before the first Validate click (or once results go stale), fall back to
   // a live presence-only count from the canvas so this line isn't blank —

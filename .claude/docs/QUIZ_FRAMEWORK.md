@@ -27,8 +27,13 @@ vocabulary drill.
 3. **Wrong options are real positions.** Distractors are things a reasonable engineer
    might actually believe, each wrong for an articulable reason. No joke options, no
    "all of the above."
-4. **No scoring theater.** Unlimited retries; mastery = each question eventually
-   answered correctly; no points, percentages, streaks, or timers anywhere.
+4. **Scored, not gamified.** Delivery is a full-screen exam: submit once at the end,
+   scored against an 80% pass threshold, up to 3 attempts, best score wins (see
+   `.claude/docs/pending-quiz-ui.md` addendum, 2026-07-31 - this superseded an
+   earlier unlimited-retry/no-scoring inline model). A visible score and pass/fail
+   line is not scoring *theater* - there are still no points, streaks, badges, or
+   celebration animation; the score exists to gate completion honestly, not to
+   entertain.
 5. **Progressively harder.** Each bank ramps: comprehension first, then application,
    then judgment (the hardest questions have more than one defensible-sounding
    option and the explanation is the real payload).

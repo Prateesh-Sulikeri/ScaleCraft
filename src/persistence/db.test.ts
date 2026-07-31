@@ -9,7 +9,7 @@ import {
   type ChapterProgress,
   type CurriculumProgress,
   type DeepCheckSession,
-  type QuizProgress,
+  type ExamAttempt,
 } from "./db";
 import type { ComponentNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
@@ -123,19 +123,21 @@ describe("persistence db", () => {
     expect(restored).toEqual(updated);
   });
 
-  it("round-trips a quizProgress record through IndexedDB keyed by the compound primary key (schema v8)", async () => {
-    const progress: QuizProgress = {
+  it("round-trips an examAttempts record through IndexedDB keyed by the compound primary key (schema v9)", async () => {
+    const attempt: ExamAttempt = {
       chapterDefinitionId: "bb-dummy-1",
-      questionId: "q1",
-      answeredCorrectlyAt: Date.now(),
+      attemptNumber: 1,
+      submittedAt: Date.now(),
+      score: 100,
+      answers: [{ questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true }],
     };
 
-    await db.quizProgress.put(progress);
-    const restored = await db.quizProgress.get(["bb-dummy-1", "q1"]);
-    expect(restored).toEqual(progress);
+    await db.examAttempts.put(attempt);
+    const restored = await db.examAttempts.get(["bb-dummy-1", 1]);
+    expect(restored).toEqual(attempt);
 
-    const rowsForDefinition = await db.quizProgress.where("chapterDefinitionId").equals("bb-dummy-1").toArray();
-    expect(rowsForDefinition).toEqual([progress]);
+    const rowsForDefinition = await db.examAttempts.where("chapterDefinitionId").equals("bb-dummy-1").toArray();
+    expect(rowsForDefinition).toEqual([attempt]);
   });
 });
 
@@ -323,11 +325,14 @@ describe("scalecraft db v7 migration (adds curriculumProgress)", () => {
 });
 
 /**
- * The v8 bump only adds a new, empty table (same additive pattern as v7) —
- * a real version-to-version test again, not just trusting db.ts's comment.
+ * The v9 bump is the second store-drop-and-replace bump (after v6's
+ * aiSettings -> aiProfiles) — quizProgress rows from a real v8 install must
+ * really disappear, not just go untyped, and examAttempts must come up
+ * present and empty with no upgrade callback (the exam-mode pivot carries
+ * nothing forward — see .claude/docs/pending-quiz-ui.md addendum).
  */
-describe("scalecraft db v8 migration (adds quizProgress)", () => {
-  function legacyV7Schema(name: string): Dexie {
+describe("scalecraft db v9 migration (quizProgress -> examAttempts)", () => {
+  function legacyV8Schema(name: string): Dexie {
     const legacy = new Dexie(name);
     legacy.version(1).stores({ saves: "id" });
     legacy.version(2).stores({ saves: "id", customComponents: "id" });
@@ -358,11 +363,21 @@ describe("scalecraft db v8 migration (adds quizProgress)", () => {
       deepCheckSessions: "++id, saveId, [saveId+createdAt]",
       curriculumProgress: "slug",
     });
+    legacy.version(8).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+      curriculumProgress: "slug",
+      quizProgress: "[chapterDefinitionId+questionId], chapterDefinitionId",
+    });
     return legacy;
   }
 
   async function withFreshDbName<T>(fn: (name: string) => Promise<T>): Promise<T> {
-    const name = `scalecraft-v8-migration-test-${crypto.randomUUID()}`;
+    const name = `scalecraft-v9-migration-test-${crypto.randomUUID()}`;
     try {
       return await fn(name);
     } finally {
@@ -370,9 +385,9 @@ describe("scalecraft db v8 migration (adds quizProgress)", () => {
     }
   }
 
-  it("opens a v7 database at v8 with curriculumProgress rows intact and quizProgress present and empty", async () => {
+  it("opens a v8 database at v9 with curriculumProgress rows intact, quizProgress gone, and examAttempts present and empty", async () => {
     await withFreshDbName(async (name) => {
-      const legacy = legacyV7Schema(name);
+      const legacy = legacyV8Schema(name);
       await legacy.open();
       const existingProgress: CurriculumProgress = {
         slug: "1-2-load-balancing",
@@ -380,13 +395,19 @@ describe("scalecraft db v8 migration (adds quizProgress)", () => {
         lastVisitedAt: Date.now(),
       };
       await legacy.table("curriculumProgress").put(existingProgress);
+      await legacy.table("quizProgress").put({
+        chapterDefinitionId: "bb-dummy-1",
+        questionId: "q1",
+        answeredCorrectlyAt: Date.now(),
+      });
       legacy.close();
 
       const upgraded = new ScaleCraftDB(name);
       await upgraded.open();
 
       expect(await upgraded.curriculumProgress.get("1-2-load-balancing")).toEqual(existingProgress);
-      expect(await upgraded.quizProgress.toArray()).toEqual([]);
+      expect(await upgraded.examAttempts.toArray()).toEqual([]);
+      expect((upgraded as unknown as Record<string, unknown>).quizProgress).toBeUndefined();
 
       upgraded.close();
     });

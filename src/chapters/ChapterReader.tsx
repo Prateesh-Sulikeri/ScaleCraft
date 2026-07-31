@@ -7,7 +7,7 @@ import { ReaderSidebar } from "./ReaderSidebar";
 import { ReadingProgress } from "./ReadingProgress";
 import { TableOfContents } from "./TableOfContents";
 import { DesignEditorCTA } from "./DesignEditorCTA";
-import { QuizSection } from "./quiz/QuizSection";
+import { QuizLauncher } from "./quiz/QuizLauncher";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
 import { getCourse, findEntry } from "@/curriculum";
@@ -80,7 +80,7 @@ export function ChapterReader({ mode, chapterSlug, markdown, headings }: Chapter
               <MarkdownRenderer content={markdown} />
             </div>
 
-            <QuizSection chapter={chapter} />
+            <QuizLauncher chapter={chapter} />
 
             <DesignEditorCTA mode={mode} chapterSlug={chapterSlug} />
           </div>

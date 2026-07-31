@@ -29,15 +29,15 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
   const hydrate = useCurriculumProgressStore((s) => s.hydrate);
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
-  const correctQuestionIdsByDefinition = useCurriculumProgressStore((s) => s.correctQuestionIdsByDefinition);
+  const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
 
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
 
   const inputs: ProgressInputs = useMemo(
-    () => ({ validationPassedDefinitionIds, rowsBySlug, correctQuestionIdsByDefinition }),
-    [validationPassedDefinitionIds, rowsBySlug, correctQuestionIdsByDefinition],
+    () => ({ validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition }),
+    [validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition],
   );
   const summary = useMemo(() => summarizeCourse(course, inputs), [course, inputs]);
 

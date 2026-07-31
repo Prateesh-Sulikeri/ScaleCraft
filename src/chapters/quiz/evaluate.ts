@@ -10,8 +10,8 @@ export type QuizAnswer =
 export type EvaluationResult = { correct: boolean };
 
 /** Pure and unit-testable — no React, no store. Assumes `answer.kind` matches
- * `question.kind` (the caller, QuizQuestionCard, only ever constructs the
- * matching answer shape for the question it's rendering). */
+ * `question.kind` (the caller, exam/exam-attempt.ts's buildAttempt, only
+ * ever evaluates an answer against the question it belongs to). */
 export function evaluateAnswer(question: QuizQuestion, answer: QuizAnswer): EvaluationResult {
   switch (answer.kind) {
     case "single":

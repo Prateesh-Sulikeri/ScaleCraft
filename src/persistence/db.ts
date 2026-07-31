@@ -3,6 +3,7 @@ import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
 import type { AiSettings } from "@/ai/settings";
 import type { AiCritique } from "@/ai/schema";
+import type { QuizAnswer } from "@/chapters/quiz/evaluate";
 
 /**
  * Local-first persistence — see .claude/docs/ARCHITECTURE.md "Persistence"
@@ -97,14 +98,29 @@ export type CurriculumProgress = {
   lastVisitedAt: number | null;
 };
 
-/** One row per quiz question the learner has ever answered correctly —
- * mastery, once earned, is never un-earned (see QUIZ_FRAMEWORK.md §1).
- * Keyed by [chapterDefinitionId+questionId] since question ids are only
- * unique within their chapter. */
-export type QuizProgress = {
-  chapterDefinitionId: string;
+/** One answered (or left-blank) question within a submitted exam attempt.
+ * `answer: null` distinguishes "left blank at submit" (scored incorrect, but
+ * rendered as "Not answered" rather than "Wrong") from an actual wrong
+ * guess. */
+export type ExamQuestionAnswer = {
   questionId: string;
-  answeredCorrectlyAt: number;
+  answer: QuizAnswer | null;
+  correct: boolean;
+};
+
+/** One row per submitted exam attempt — up to MAX_EXAM_ATTEMPTS per chapter
+ * (see curriculum/progress.ts). Keyed by [chapterDefinitionId+attemptNumber]
+ * since attempt numbers are only unique within their chapter. Replaces the
+ * old per-question `QuizProgress` mastery model (schema v8) — the exam-mode
+ * pivot scores a submitted attempt, it doesn't track individual question
+ * mastery over time (see .claude/docs/pending-quiz-ui.md addendum). */
+export type ExamAttempt = {
+  chapterDefinitionId: string;
+  attemptNumber: 1 | 2 | 3;
+  submittedAt: number;
+  /** 0-100, rounded — same convention as ProgressSummary.percent. */
+  score: number;
+  answers: ExamQuestionAnswer[];
 };
 
 export class ScaleCraftDB extends Dexie {
@@ -121,7 +137,7 @@ export class ScaleCraftDB extends Dexie {
   curriculumProgress!: EntityTable<CurriculumProgress, "slug">;
   /** Compound primary key — no single field identifies a row, so this is a
    * plain Table rather than an EntityTable. */
-  quizProgress!: Table<QuizProgress, [string, string]>;
+  examAttempts!: Table<ExamAttempt, [string, number]>;
 
   /** Name defaults to the real app database; overridable so tests can
    * exercise the full version chain (including the v6 migration) against an
@@ -225,6 +241,23 @@ export class ScaleCraftDB extends Dexie {
       deepCheckSessions: "++id, saveId, [saveId+createdAt]",
       curriculumProgress: "slug",
       quizProgress: "[chapterDefinitionId+questionId], chapterDefinitionId",
+    });
+    // The exam-mode pivot (.claude/docs/pending-quiz-ui.md addendum) drops
+    // the per-question mastery model outright — no real user data exists yet
+    // (pre-beta) and the model it backed no longer exists — and replaces it
+    // with per-attempt scoring. `quizProgress: null` is Dexie's
+    // delete-this-store syntax (same as v6's `aiSettings: null`); no upgrade
+    // callback, since there is nothing worth carrying forward.
+    this.version(9).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+      curriculumProgress: "slug",
+      quizProgress: null,
+      examAttempts: "[chapterDefinitionId+attemptNumber], chapterDefinitionId",
     });
   }
 }

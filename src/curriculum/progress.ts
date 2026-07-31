@@ -1,4 +1,4 @@
-import type { CurriculumProgress } from "@/persistence/db";
+import type { CurriculumProgress, ExamAttempt } from "@/persistence/db";
 import { chapterRegistry } from "@/content/chapters";
 import type { ChapterStatus, Course, CurriculumChapter, CurriculumSection } from "./types";
 import { allEntries } from "./index";
@@ -11,16 +11,34 @@ export type ProgressInputs = {
   validationPassedDefinitionIds: ReadonlySet<string>;
   /** Curriculum rows by slug (db.curriculumProgress). */
   rowsBySlug: ReadonlyMap<string, CurriculumProgress>;
-  /** Quiz question ids ever answered correctly, by chapterDefinitionId
-   *  (db.quizProgress). */
-  correctQuestionIdsByDefinition: ReadonlyMap<string, ReadonlySet<string>>;
+  /** Submitted exam attempts, by chapterDefinitionId (db.examAttempts). */
+  examAttemptsByDefinition: ReadonlyMap<string, readonly ExamAttempt[]>;
 };
+
+export const EXAM_PASS_THRESHOLD = 80;
+export const MAX_EXAM_ATTEMPTS = 3;
+
+/** 0 for a chapter with no attempts yet. */
+export function bestExamScore(attempts: readonly ExamAttempt[]): number {
+  return attempts.reduce((best, a) => Math.max(best, a.score), 0);
+}
+
+export function examPassed(attempts: readonly ExamAttempt[]): boolean {
+  return bestExamScore(attempts) >= EXAM_PASS_THRESHOLD;
+}
+
+/** Passing locks further attempts immediately; otherwise exhausting
+ *  MAX_EXAM_ATTEMPTS without passing locks to "view your best attempt." */
+export function examLocked(attempts: readonly ExamAttempt[]): boolean {
+  return examPassed(attempts) || attempts.length >= MAX_EXAM_ATTEMPTS;
+}
 
 /** COMPLETED wins over IN_PROGRESS wins over NOT_STARTED. A manual override
  *  is always sufficient on its own — decision D1. A validation pass is
  *  sufficient only when the chapter's definition has no quiz; when it does,
- *  COMPLETED additionally requires every quiz question mastered at least
- *  once (see .claude/docs/pending-quiz-ui.md Phase 2). */
+ *  COMPLETED additionally requires the best exam attempt to meet
+ *  EXAM_PASS_THRESHOLD (best-score-wins, not last-attempt-wins — see
+ *  .claude/docs/pending-quiz-ui.md addendum). */
 export function deriveStatus(entry: CurriculumChapter, inputs: ProgressInputs): ChapterStatus {
   const row = inputs.rowsBySlug.get(entry.slug);
 
@@ -29,8 +47,8 @@ export function deriveStatus(entry: CurriculumChapter, inputs: ProgressInputs): 
     const definition = chapterRegistry.find((c) => c.id === entry.chapterDefinitionId);
     const quiz = definition?.quiz;
     if (!quiz || quiz.length === 0) return "COMPLETED";
-    const correctIds = inputs.correctQuestionIdsByDefinition.get(entry.chapterDefinitionId) ?? new Set();
-    if (quiz.every((q) => correctIds.has(q.id))) return "COMPLETED";
+    const attempts = inputs.examAttemptsByDefinition.get(entry.chapterDefinitionId) ?? [];
+    if (examPassed(attempts)) return "COMPLETED";
   }
   if (row?.lastVisitedAt != null) return "IN_PROGRESS";
   return "NOT_STARTED";

@@ -1401,8 +1401,11 @@ live in [[QUIZ_FRAMEWORK]]. Contract points the curriculum owns:
 
 - Chapter quizzes attach at beat 15; checkpoints have none (the build is the
   assessment); RWE projects use post-success retrospective quizzes.
-- Mastery per chapter = exercise pass + every quiz question eventually answered
-  correctly (unlimited retries, explanation on every attempt, no scores).
+- Mastery per chapter = exercise pass + best exam attempt at or above the 80% pass
+  threshold, up to 3 attempts (full-screen exam delivery, scored at submit, every
+  option's explanation revealed on the results screen - see [[QUIZ_FRAMEWORK]] §1
+  and `.claude/docs/pending-quiz-ui.md` addendum; supersedes an earlier unlimited-
+  retry/no-scoring inline model).
 - Quiz content must draw only on the chapter + its prerequisite chain (§18.2
   applies to questions too).
 

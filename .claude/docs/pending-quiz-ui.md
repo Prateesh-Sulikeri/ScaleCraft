@@ -210,9 +210,15 @@ Phases 1-6 above shipped an inline "Knowledge Check": per-question immediate fee
 unlimited retries, no scores - matching QUIZ_FRAMEWORK.md's original v1.0 philosophy.
 After reviewing the live UI, the user deliberately pivoted away from that model entirely
 to a full-screen, proctored-style exam. **Confirmed via direct Q&A this session - not a
-misunderstanding, do not revert to the inline model without asking first.** This
-addendum is the pickup point for whoever implements the pivot next; nothing below has
-been built yet.
+misunderstanding, do not revert to the inline model without asking first.**
+
+**Status: implemented (2026-07-31, branch `feature/quiz-exam-mode`).** Everything below
+has been built: db.ts v9, progress-store.ts/progress.ts's exam gating, `src/chapters/
+exam/` (exam-attempt, exam-fullscreen, ExamShell, ExamQuestionNav, ExamQuestionBody,
+ExamConfirmSubmitDialog, ExamResults), `QuizLauncher.tsx` (replacing `QuizSection.tsx`/
+`QuizQuestionCard.tsx`, both deleted), Reader integration, the dev-lab fixup, the full
+test plan below, and the doc edits. Full pipeline (typecheck/lint/test/build) green.
+Not yet pushed - awaiting user go-ahead per CLAUDE.md's push-confirmation rule.
 
 ### What changes
 
