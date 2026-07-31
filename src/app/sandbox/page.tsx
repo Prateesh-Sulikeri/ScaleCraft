@@ -26,6 +26,7 @@ import type { ValidationViolation } from "@/validation-engine/types";
 import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
+import { useAutosave } from "@/persistence/use-autosave";
 
 // Seeded once on first load so the canvas isn't empty — not a chapter
 // starterGraph (those arrive with the chapter framework, milestone 5), just
@@ -89,6 +90,22 @@ function SandboxPageContent() {
   const toggleDocsPanel = useCanvasStore((s) => s.toggleDocsPanel);
   const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
 
+  // Gates every write to the sandbox save slot (autosave AND the
+  // unmount-save further down) until this restore read has actually
+  // resolved — see the identical, more-detailed comment in
+  // ChapterWorkspace.tsx. In short: under React StrictMode (Next's dev-mode
+  // default), the unmount-save effect's cleanup fires once synchronously as
+  // part of the phantom mount/cleanup cycle, before this read has any
+  // chance to resolve — without this guard it unconditionally overwrote a
+  // real save with {nodes: [], edges: []} on every dev-mode Sandbox visit.
+  // Tracked twice: `hasLoadedInitialState` (state) drives useAutosave's
+  // `saveId` argument below (a normal render-time value); `...Ref` (ref) is
+  // what the unmount-save cleanup reads, since a cleanup needs the current
+  // value at teardown time and reading a ref during render isn't allowed
+  // (react-hooks/refs).
+  const [hasLoadedInitialState, setHasLoadedInitialState] = useState(false);
+  const hasLoadedInitialStateRef = useRef(false);
+
   // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
   // the seed demo graph — this is what makes a refresh not lose work.
   useEffect(() => {
@@ -100,6 +117,8 @@ function SandboxPageContent() {
       } else {
         loadGraph(seedGraph);
       }
+      hasLoadedInitialStateRef.current = true;
+      setHasLoadedInitialState(true);
     });
     // Runs once on mount; loadGraph/loadCanvasState are stable store actions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -113,6 +132,12 @@ function SandboxPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Autosave-on-edit (MILESTONES.md #9) — fires ~800ms after the graph
+  // stops changing, independent of the explicit Save button or the
+  // unmount cleanup below. null until the restore above has actually
+  // completed (see hasLoadedInitialState).
+  useAutosave(hasLoadedInitialState ? SANDBOX_SAVE_ID : null, nodes, edges);
+
   // Each mode's canvas store instance is created fresh on mount (see
   // CanvasStoreProvider) and torn down on unmount — without this, navigating
   // away without an explicit Save would silently lose in-progress edits
@@ -120,6 +145,7 @@ function SandboxPageContent() {
   // Mirrors the Save button's own db.saves.put shape exactly.
   useEffect(() => {
     return () => {
+      if (!hasLoadedInitialStateRef.current) return;
       const { nodes, edges } = storeApi.getState();
       void db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
     };
