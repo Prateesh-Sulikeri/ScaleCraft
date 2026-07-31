@@ -39,9 +39,10 @@ export function ChapterSidebar({ courseId, chapterSlug, chapterOutcome, isStale 
 
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
+  const correctQuestionIdsByDefinition = useCurriculumProgressStore((s) => s.correctQuestionIdsByDefinition);
   const inputs: ProgressInputs = useMemo(
-    () => ({ validationPassedDefinitionIds, rowsBySlug }),
-    [validationPassedDefinitionIds, rowsBySlug],
+    () => ({ validationPassedDefinitionIds, rowsBySlug, correctQuestionIdsByDefinition }),
+    [validationPassedDefinitionIds, rowsBySlug, correctQuestionIdsByDefinition],
   );
 
   if (!chapter || !entry) return null;

@@ -12,19 +12,22 @@ beforeEach(async () => {
     hydrating: false,
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(),
+    correctQuestionIdsByDefinition: new Map(),
   });
   await db.curriculumProgress.clear();
   await db.chapterProgress.clear();
+  await db.quizProgress.clear();
 });
 
 describe("curriculum progress store", () => {
-  it("hydrate() reads both Dexie tables into memory", async () => {
+  it("hydrate() reads all three Dexie tables into memory", async () => {
     await db.chapterProgress.put({ chapterId: "bb-dummy-1", completedAt: Date.now(), matchedBlueprintId: null });
     await db.curriculumProgress.put({
       slug: "1-2-load-balancing",
       manuallyCompletedAt: null,
       lastVisitedAt: Date.now(),
     });
+    await db.quizProgress.put({ chapterDefinitionId: "bb-dummy-1", questionId: "q1", answeredCorrectlyAt: Date.now() });
 
     await useCurriculumProgressStore.getState().hydrate();
 
@@ -32,6 +35,7 @@ describe("curriculum progress store", () => {
     expect(state.hydrated).toBe(true);
     expect(state.validationPassedDefinitionIds.has("bb-dummy-1")).toBe(true);
     expect(state.rowsBySlug.get("1-2-load-balancing")?.lastVisitedAt).toBeTypeOf("number");
+    expect(state.correctQuestionIdsByDefinition.get("bb-dummy-1")?.has("q1")).toBe(true);
   });
 
   it("hydrate() is idempotent — a second call does not re-read or clear state", async () => {
@@ -83,5 +87,45 @@ describe("curriculum progress store", () => {
     const inputs = useCurriculumProgressStore.getState().inputs();
     expect(inputs.validationPassedDefinitionIds.has("bb-dummy-1")).toBe(true);
     expect(inputs.rowsBySlug).toBeInstanceOf(Map);
+    expect(inputs.correctQuestionIdsByDefinition).toBeInstanceOf(Map);
+  });
+
+  it("recordQuizCorrect writes to Dexie and memory, keyed by [chapterDefinitionId+questionId]", async () => {
+    await useCurriculumProgressStore.getState().recordQuizCorrect("bb-dummy-1", "q1");
+
+    expect(useCurriculumProgressStore.getState().correctQuestionIdsByDefinition.get("bb-dummy-1")?.has("q1")).toBe(
+      true,
+    );
+    const persisted = await db.quizProgress.get(["bb-dummy-1", "q1"]);
+    expect(persisted?.answeredCorrectlyAt).toBeTypeOf("number");
+  });
+
+  it("recordQuizCorrect for a second question keeps the first question's mastery", async () => {
+    await useCurriculumProgressStore.getState().recordQuizCorrect("bb-dummy-1", "q1");
+    await useCurriculumProgressStore.getState().recordQuizCorrect("bb-dummy-1", "q2");
+
+    const mastered = useCurriculumProgressStore.getState().correctQuestionIdsByDefinition.get("bb-dummy-1");
+    expect(mastered?.has("q1")).toBe(true);
+    expect(mastered?.has("q2")).toBe(true);
+  });
+
+  it("resetChapter deletes the chapter's quizProgress rows, in Dexie and memory", async () => {
+    await useCurriculumProgressStore.getState().recordQuizCorrect("bb-dummy-1", "q1");
+    useCurriculumProgressStore.getState().recordValidationPass("bb-dummy-1");
+
+    await useCurriculumProgressStore.getState().resetChapter("1-2-load-balancing", "bb-dummy-1");
+
+    expect(useCurriculumProgressStore.getState().correctQuestionIdsByDefinition.get("bb-dummy-1")).toBeUndefined();
+    expect(await db.quizProgress.get(["bb-dummy-1", "q1"])).toBeUndefined();
+  });
+
+  it("resetChapter with a null chapterDefinitionId does not touch quizProgress", async () => {
+    await useCurriculumProgressStore.getState().recordQuizCorrect("bb-dummy-1", "q1");
+
+    await useCurriculumProgressStore.getState().resetChapter("some-slug", null);
+
+    expect(useCurriculumProgressStore.getState().correctQuestionIdsByDefinition.get("bb-dummy-1")?.has("q1")).toBe(
+      true,
+    );
   });
 });

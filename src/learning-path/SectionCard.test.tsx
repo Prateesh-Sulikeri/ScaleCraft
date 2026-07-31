@@ -43,7 +43,12 @@ const section: CurriculumSection = {
 };
 
 function inputs(overrides: Partial<ProgressInputs> = {}): ProgressInputs {
-  return { validationPassedDefinitionIds: new Set(), rowsBySlug: new Map(), ...overrides };
+  return {
+    validationPassedDefinitionIds: new Set(),
+    rowsBySlug: new Map(),
+    correctQuestionIdsByDefinition: new Map(),
+    ...overrides,
+  };
 }
 
 beforeEach(async () => {
@@ -52,6 +57,7 @@ beforeEach(async () => {
     hydrating: false,
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(),
+    correctQuestionIdsByDefinition: new Map(),
   });
   await db.curriculumProgress.clear();
 });

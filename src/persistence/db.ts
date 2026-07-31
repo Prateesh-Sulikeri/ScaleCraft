@@ -1,4 +1,4 @@
-import Dexie, { type EntityTable } from "dexie";
+import Dexie, { type EntityTable, type Table } from "dexie";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
 import type { AiSettings } from "@/ai/settings";
@@ -97,6 +97,16 @@ export type CurriculumProgress = {
   lastVisitedAt: number | null;
 };
 
+/** One row per quiz question the learner has ever answered correctly —
+ * mastery, once earned, is never un-earned (see QUIZ_FRAMEWORK.md §1).
+ * Keyed by [chapterDefinitionId+questionId] since question ids are only
+ * unique within their chapter. */
+export type QuizProgress = {
+  chapterDefinitionId: string;
+  questionId: string;
+  answeredCorrectlyAt: number;
+};
+
 export class ScaleCraftDB extends Dexie {
   saves!: EntityTable<CanvasSave, "id">;
   /** User-created components (see CreateComponentModal.tsx /
@@ -109,6 +119,9 @@ export class ScaleCraftDB extends Dexie {
   aiActiveProfile!: EntityTable<AiActiveProfile, "id">;
   deepCheckSessions!: EntityTable<DeepCheckSession, "id">;
   curriculumProgress!: EntityTable<CurriculumProgress, "slug">;
+  /** Compound primary key — no single field identifies a row, so this is a
+   * plain Table rather than an EntityTable. */
+  quizProgress!: Table<QuizProgress, [string, string]>;
 
   /** Name defaults to the real app database; overridable so tests can
    * exercise the full version chain (including the v6 migration) against an
@@ -199,6 +212,19 @@ export class ScaleCraftDB extends Dexie {
       aiActiveProfile: "id",
       deepCheckSessions: "++id, saveId, [saveId+createdAt]",
       curriculumProgress: "slug",
+    });
+    // Another new, empty table — same additive pattern as v7. The secondary
+    // (non-unique) chapterDefinitionId index lets resetChapter delete every
+    // question row for a chapter without a full-table scan.
+    this.version(8).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+      curriculumProgress: "slug",
+      quizProgress: "[chapterDefinitionId+questionId], chapterDefinitionId",
     });
   }
 }

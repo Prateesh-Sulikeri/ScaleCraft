@@ -9,6 +9,7 @@ import {
   type ChapterProgress,
   type CurriculumProgress,
   type DeepCheckSession,
+  type QuizProgress,
 } from "./db";
 import type { ComponentNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
@@ -120,6 +121,21 @@ describe("persistence db", () => {
     await db.curriculumProgress.put(updated);
     restored = await db.curriculumProgress.get("1-2-load-balancing");
     expect(restored).toEqual(updated);
+  });
+
+  it("round-trips a quizProgress record through IndexedDB keyed by the compound primary key (schema v8)", async () => {
+    const progress: QuizProgress = {
+      chapterDefinitionId: "bb-dummy-1",
+      questionId: "q1",
+      answeredCorrectlyAt: Date.now(),
+    };
+
+    await db.quizProgress.put(progress);
+    const restored = await db.quizProgress.get(["bb-dummy-1", "q1"]);
+    expect(restored).toEqual(progress);
+
+    const rowsForDefinition = await db.quizProgress.where("chapterDefinitionId").equals("bb-dummy-1").toArray();
+    expect(rowsForDefinition).toEqual([progress]);
   });
 });
 
@@ -300,6 +316,77 @@ describe("scalecraft db v7 migration (adds curriculumProgress)", () => {
 
       expect(await upgraded.chapterProgress.get("bb-dummy-1")).toEqual(existingProgress);
       expect(await upgraded.curriculumProgress.toArray()).toEqual([]);
+
+      upgraded.close();
+    });
+  });
+});
+
+/**
+ * The v8 bump only adds a new, empty table (same additive pattern as v7) —
+ * a real version-to-version test again, not just trusting db.ts's comment.
+ */
+describe("scalecraft db v8 migration (adds quizProgress)", () => {
+  function legacyV7Schema(name: string): Dexie {
+    const legacy = new Dexie(name);
+    legacy.version(1).stores({ saves: "id" });
+    legacy.version(2).stores({ saves: "id", customComponents: "id" });
+    legacy.version(3).stores({ saves: "id", customComponents: "id", chapterProgress: "chapterId" });
+    legacy.version(4).stores({ saves: "id", customComponents: "id", chapterProgress: "chapterId", aiSettings: "id" });
+    legacy.version(5).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiSettings: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+    });
+    legacy.version(6).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiSettings: null,
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+    });
+    legacy.version(7).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+      curriculumProgress: "slug",
+    });
+    return legacy;
+  }
+
+  async function withFreshDbName<T>(fn: (name: string) => Promise<T>): Promise<T> {
+    const name = `scalecraft-v8-migration-test-${crypto.randomUUID()}`;
+    try {
+      return await fn(name);
+    } finally {
+      await Dexie.delete(name);
+    }
+  }
+
+  it("opens a v7 database at v8 with curriculumProgress rows intact and quizProgress present and empty", async () => {
+    await withFreshDbName(async (name) => {
+      const legacy = legacyV7Schema(name);
+      await legacy.open();
+      const existingProgress: CurriculumProgress = {
+        slug: "1-2-load-balancing",
+        manuallyCompletedAt: null,
+        lastVisitedAt: Date.now(),
+      };
+      await legacy.table("curriculumProgress").put(existingProgress);
+      legacy.close();
+
+      const upgraded = new ScaleCraftDB(name);
+      await upgraded.open();
+
+      expect(await upgraded.curriculumProgress.get("1-2-load-balancing")).toEqual(existingProgress);
+      expect(await upgraded.quizProgress.toArray()).toEqual([]);
 
       upgraded.close();
     });

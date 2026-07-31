@@ -1,4 +1,5 @@
 import type { CurriculumProgress } from "@/persistence/db";
+import { chapterRegistry } from "@/content/chapters";
 import type { ChapterStatus, Course, CurriculumChapter, CurriculumSection } from "./types";
 import { allEntries } from "./index";
 
@@ -10,17 +11,26 @@ export type ProgressInputs = {
   validationPassedDefinitionIds: ReadonlySet<string>;
   /** Curriculum rows by slug (db.curriculumProgress). */
   rowsBySlug: ReadonlyMap<string, CurriculumProgress>;
+  /** Quiz question ids ever answered correctly, by chapterDefinitionId
+   *  (db.quizProgress). */
+  correctQuestionIdsByDefinition: ReadonlyMap<string, ReadonlySet<string>>;
 };
 
 /** COMPLETED wins over IN_PROGRESS wins over NOT_STARTED. A manual override
- *  and a validation pass are both sufficient, never required together —
- *  decision D1. */
+ *  is always sufficient on its own — decision D1. A validation pass is
+ *  sufficient only when the chapter's definition has no quiz; when it does,
+ *  COMPLETED additionally requires every quiz question mastered at least
+ *  once (see .claude/docs/pending-quiz-ui.md Phase 2). */
 export function deriveStatus(entry: CurriculumChapter, inputs: ProgressInputs): ChapterStatus {
   const row = inputs.rowsBySlug.get(entry.slug);
 
   if (row?.manuallyCompletedAt != null) return "COMPLETED";
   if (entry.chapterDefinitionId != null && inputs.validationPassedDefinitionIds.has(entry.chapterDefinitionId)) {
-    return "COMPLETED";
+    const definition = chapterRegistry.find((c) => c.id === entry.chapterDefinitionId);
+    const quiz = definition?.quiz;
+    if (!quiz || quiz.length === 0) return "COMPLETED";
+    const correctIds = inputs.correctQuestionIdsByDefinition.get(entry.chapterDefinitionId) ?? new Set();
+    if (quiz.every((q) => correctIds.has(q.id))) return "COMPLETED";
   }
   if (row?.lastVisitedAt != null) return "IN_PROGRESS";
   return "NOT_STARTED";

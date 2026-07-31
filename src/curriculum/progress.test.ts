@@ -1,7 +1,28 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { deriveStatus, summarizeEntries, summarizeSection, summarizeCourse, type ProgressInputs } from "./progress";
 import type { CurriculumChapter, CurriculumSection, Course } from "./types";
 import type { CurriculumProgress } from "@/persistence/db";
+import type { ChapterDefinition } from "@/content/chapters/types";
+
+// Fixed, test-only registry — deriveStatus looks up a definition by id to
+// check for a quiz. bb-dummy-1/a/b/c mirror real ids with no quiz (so
+// existing validation-only COMPLETED behavior is unaffected); with-quiz-def
+// is the only entry the quiz-gating tests below actually exercise.
+vi.mock("@/content/chapters", () => ({
+  chapterRegistry: [
+    { id: "bb-dummy-1" },
+    { id: "a" },
+    { id: "b" },
+    { id: "c" },
+    {
+      id: "with-quiz-def",
+      quiz: [
+        { id: "q1", kind: "single", difficulty: 1, prompt: "p1", options: [{ id: "o1", label: "l", explanationMd: "e", correct: true }] },
+        { id: "q2", kind: "single", difficulty: 1, prompt: "p2", options: [{ id: "o1", label: "l", explanationMd: "e", correct: true }] },
+      ],
+    },
+  ] satisfies Partial<ChapterDefinition>[],
+}));
 
 function chapter(overrides: Partial<CurriculumChapter> = {}): CurriculumChapter {
   return {
@@ -22,6 +43,7 @@ function inputs(overrides: Partial<ProgressInputs> = {}): ProgressInputs {
   return {
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(),
+    correctQuestionIdsByDefinition: new Map(),
     ...overrides,
   };
 }
@@ -68,6 +90,32 @@ describe("deriveStatus", () => {
     const entry = chapter({ chapterDefinitionId: null });
     const validationPassedDefinitionIds = new Set(["bb-dummy-1"]);
     expect(deriveStatus(entry, inputs({ validationPassedDefinitionIds }))).toBe("NOT_STARTED");
+  });
+
+  it("validation pass alone is IN_PROGRESS (not COMPLETED) when the definition has a quiz not yet fully mastered", () => {
+    const entry = chapter({ chapterDefinitionId: "with-quiz-def" });
+    const rowsBySlug = new Map([["test-slug", row({ lastVisitedAt: Date.now() })]]);
+    const result = deriveStatus(
+      entry,
+      inputs({
+        validationPassedDefinitionIds: new Set(["with-quiz-def"]),
+        correctQuestionIdsByDefinition: new Map([["with-quiz-def", new Set(["q1"])]]),
+        rowsBySlug,
+      }),
+    );
+    expect(result).toBe("IN_PROGRESS");
+  });
+
+  it("COMPLETED once validation passes and every quiz question has been mastered at least once", () => {
+    const entry = chapter({ chapterDefinitionId: "with-quiz-def" });
+    const result = deriveStatus(
+      entry,
+      inputs({
+        validationPassedDefinitionIds: new Set(["with-quiz-def"]),
+        correctQuestionIdsByDefinition: new Map([["with-quiz-def", new Set(["q1", "q2"])]]),
+      }),
+    );
+    expect(result).toBe("COMPLETED");
   });
 });
 
