@@ -21,30 +21,30 @@ beforeEach(async () => {
 });
 
 describe("LearningPath", () => {
-  it("renders Building Blocks' 7 sections and all 26 chapter rows", () => {
+  it("renders Building Blocks' 10 sections and all 47 chapter rows", () => {
     render(<LearningPath courseId="building-blocks" />);
     expect(screen.getByRole("heading", { level: 1, name: "Building Blocks" })).toBeInTheDocument();
 
-    const sectionToggles = screen.getAllByRole("button", { name: /^unit /i });
-    expect(sectionToggles).toHaveLength(7);
+    const sectionToggles = screen.getAllByRole("button", { name: /^(part|group) /i });
+    expect(sectionToggles).toHaveLength(10);
 
     // Every section defaults expanded (D5) — every chapter's status icon is
-    // present, one per curriculum entry (26 for BB).
-    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(26);
+    // present, one per curriculum entry (47 for BB).
+    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(47);
   });
 
-  it("renders Real World Extraction's 3 sections and all 5 chapter rows", () => {
+  it("renders Real World Extraction's 5 sections and all 32 chapter rows", () => {
     render(<LearningPath courseId="real-world-extraction" />);
     expect(screen.getByRole("heading", { level: 1, name: "Real World Extraction" })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /^tier /i })).toHaveLength(3);
-    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(5);
+    expect(screen.getAllByRole("button", { name: /^tier /i })).toHaveLength(5);
+    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(32);
   });
 
-  it("the authored 1.2 Load Balancing row is a real link to its lesson (Chapter Reader) route; an unauthored row is not", () => {
+  it("the authored Load Balancer row is a real link to its lesson (Chapter Reader) route; an unauthored row is not", () => {
     render(<LearningPath courseId="building-blocks" />);
-    expect(screen.getByRole("link", { name: /load balancing/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /load balancer/i })).toHaveAttribute(
       "href",
-      "/building-blocks/1-2-load-balancing/lesson",
+      "/building-blocks/3-4-load-balancer/lesson",
     );
     expect(screen.getAllByText("Coming soon").length).toBeGreaterThan(0);
   });

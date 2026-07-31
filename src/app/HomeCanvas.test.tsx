@@ -96,15 +96,15 @@ describe("HomeCanvas", () => {
     render(<HomeCanvas />);
     // Default store state (before hydrate() resolves) is already the
     // correct "not started" shape — no separate loading state to wait out.
-    expect(await screen.findByText("0 / 26 chapters")).toBeInTheDocument();
-    expect(await screen.findByText("0 / 5 chapters")).toBeInTheDocument();
+    expect(await screen.findByText("0 / 47 chapters")).toBeInTheDocument();
+    expect(await screen.findByText("0 / 32 chapters")).toBeInTheDocument();
     expect(screen.queryByText(/^0 \/ 0 chapters/)).not.toBeInTheDocument();
   });
 
   it("reflects a completed chapter as real progress after hydrate resolves", async () => {
     await db.chapterProgress.put({ chapterId: "bb-dummy-1", completedAt: Date.now(), matchedBlueprintId: null });
     render(<HomeCanvas />);
-    expect(await screen.findByText("1 / 26 chapters")).toBeInTheDocument();
+    expect(await screen.findByText("1 / 47 chapters")).toBeInTheDocument();
     expect(await screen.findByText("in progress")).toBeInTheDocument();
   });
 });

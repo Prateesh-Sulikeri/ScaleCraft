@@ -80,19 +80,19 @@ export const chapterRegistry: ChapterDefinition[] = [
     readingLinks: [],
     // Placeholder, same convention as the rest of this fixture — but real
     // enough to exercise Deep Check's Building Blocks framing (§10.7) end
-    // to end. Approximates CURRICULUM.md's 1.2 Load Balancing entry, which
+    // to end. Approximates CURRICULUM.md's 3.4 Load Balancer entry, which
     // this chapter stands in for per this file's own header comment.
     curriculumContext: {
-      position: "Building Blocks, Unit 1: Scaling Compute — Chapter 1.2 of 22 (placeholder).",
+      position: "Building Blocks, Group A: Core Infrastructure — Chapter 3.4 of 44 (placeholder).",
       masteredConcepts: [
-        "Client/server/database request flow (Unit 0)",
-        "Vertical vs. horizontal scaling, and the two-server problem it creates (1.1)",
+        "Networking fundamentals and the trust perimeter (3.1)",
+        "DNS resolution and the reverse proxy's single-front-door pattern (3.2-3.3)",
       ],
       notYetIntroducedConcepts: [
-        "Statelessness and session externalization (1.3)",
-        "Distributed caching (2.2)",
-        "Read replicas and data-layer scaling (Unit 3)",
-        "Any queue/async/coordination concepts (Units 4-5)",
+        "Statelessness and session externalization (Group B)",
+        "Distributed caching (Group D)",
+        "Read replicas and data-layer scaling (Group C)",
+        "Any queue/async/coordination concepts (Groups E-G)",
       ],
       simplifications: [
         "One load balancer in front of two app servers is the whole lesson — no health-check tuning, no multi-region failover.",
@@ -115,9 +115,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     title: "Placeholder Project",
     placeholder: true,
     problemStatement:
-      "This is placeholder content for the first Real World Extraction project " +
-      "(bit.ly, per CURRICULUM.md's RWE-1) — real content lands in a later step. " +
-      "For now, this exists only to prove the chapter shell works in this mode too.",
+      "This is placeholder content for Real World Extraction Tier 1's Bitly project " +
+      "(per CURRICULUM.md §15.2) — real content lands in a later step. For now, this " +
+      "exists only to prove the chapter shell works in this mode too.",
     learningObjectives: ["Placeholder objective — real objectives arrive with real content."],
     availableComponentIds: ["client", "load-balancer", "app-server", "sql-database", "cache"],
     requiredComponentIds: ["client", "app-server", "sql-database"],

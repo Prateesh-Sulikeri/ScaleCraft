@@ -19,9 +19,14 @@ import { test, expect } from "@playwright/test";
 test("a hint stays collapsed until revealed, and Validate always surfaces its result", async ({ page }) => {
   await page.goto("/building-blocks");
 
-  await page.getByRole("link", { name: /1\.2.*Load Balancing/i }).click();
-  await page.waitForURL("**/building-blocks/1-2-load-balancing");
-  await expect(page.getByText(/This is placeholder content for the first Building Blocks chapter/)).toBeVisible();
+  await page.getByRole("link", { name: /3\.4.*Load Balancer/i }).click();
+  await page.waitForURL("**/building-blocks/3-4-load-balancer/lesson");
+  await expect(page.getByText(/This is placeholder lesson content for the first Building Blocks chapter/)).toBeVisible();
+
+  // Hints/Validate live on the Design Editor workspace, not the Reader
+  // page (RELEASE_3.0.0_LEARNING_PATH.md Phase 4) — follow the CTA through.
+  await page.getByRole("link", { name: /begin exercise/i }).click();
+  await page.waitForURL("**/building-blocks/3-4-load-balancer");
 
   // The hint's body text must not be in the DOM until explicitly revealed.
   const hintBody = "This is a placeholder hint";

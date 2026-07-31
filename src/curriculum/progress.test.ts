@@ -13,6 +13,7 @@ function chapter(overrides: Partial<CurriculumChapter> = {}): CurriculumChapter 
     estimatedMinutes: 20,
     difficulty: "foundational",
     prerequisiteSlugs: [],
+    domain: null,
     ...overrides,
   };
 }

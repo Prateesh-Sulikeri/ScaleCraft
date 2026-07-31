@@ -34,12 +34,12 @@ describe("curriculum manifest invariants", () => {
     }
   });
 
-  it("has 26 Building Blocks entries", () => {
-    expect(allEntries(courses["building-blocks"])).toHaveLength(26);
+  it("has 47 Building Blocks entries", () => {
+    expect(allEntries(courses["building-blocks"])).toHaveLength(47);
   });
 
-  it("has 5 Real World Extraction entries", () => {
-    expect(allEntries(courses["real-world-extraction"])).toHaveLength(5);
+  it("has 32 Real World Extraction entries", () => {
+    expect(allEntries(courses["real-world-extraction"])).toHaveLength(32);
   });
 
   it("has every prerequisiteSlugs entry reference a real slug", () => {
@@ -50,6 +50,15 @@ describe("curriculum manifest invariants", () => {
           expect(allSlugs.has(prereq)).toBe(true);
         }
       }
+    }
+  });
+
+  it("has a domain iff the entry is Real World Extraction", () => {
+    for (const entry of allEntries(courses["building-blocks"])) {
+      expect(entry.domain).toBeNull();
+    }
+    for (const entry of allEntries(courses["real-world-extraction"])) {
+      expect(entry.domain).toEqual(expect.any(String));
     }
   });
 });

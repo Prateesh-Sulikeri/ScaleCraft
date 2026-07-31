@@ -20,6 +20,7 @@ function entry(overrides: Partial<CurriculumChapter> = {}): CurriculumChapter {
     estimatedMinutes: 35,
     difficulty: "foundational",
     prerequisiteSlugs: [],
+    domain: null,
     ...overrides,
   };
 }
@@ -38,6 +39,23 @@ describe("ChapterRow", () => {
   it("renders an authored chapter as a real link to its lesson (Chapter Reader) route", () => {
     render(<ChapterRow entry={entry()} courseId="building-blocks" status="NOT_STARTED" completedByValidation={false} />);
     expect(screen.getByRole("link")).toHaveAttribute("href", "/building-blocks/1-2-load-balancing/lesson");
+  });
+
+  it("renders a domain chip for RWE entries, and nothing for entries with no domain", () => {
+    const { rerender } = render(
+      <ChapterRow
+        entry={entry({ domain: "Messaging" })}
+        courseId="building-blocks"
+        status="NOT_STARTED"
+        completedByValidation={false}
+      />,
+    );
+    expect(screen.getByText("Messaging")).toBeInTheDocument();
+
+    rerender(
+      <ChapterRow entry={entry({ domain: null })} courseId="building-blocks" status="NOT_STARTED" completedByValidation={false} />,
+    );
+    expect(screen.queryByText("Messaging")).not.toBeInTheDocument();
   });
 
   it("renders an unauthored chapter as a non-interactive row with a chip, not a link", () => {
