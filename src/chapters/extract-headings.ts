@@ -38,3 +38,14 @@ export function extractHeadings(markdown: string): ExtractedHeading[] {
 
   return headings;
 }
+
+/**
+ * Appends a synthetic "Knowledge check" entry pointing at QuizSection's own
+ * `id="knowledge-check"` anchor — that heading lives in JSX, not the lesson
+ * markdown, so extractHeadings never sees it. Level 2, matching the lesson's
+ * other top-level sections; TableOfContents already filters to level >= 2.
+ */
+export function appendKnowledgeCheckHeading(headings: ExtractedHeading[], hasQuiz: boolean): ExtractedHeading[] {
+  if (!hasQuiz) return headings;
+  return [...headings, { id: "knowledge-check", text: "Knowledge check", level: 2 }];
+}

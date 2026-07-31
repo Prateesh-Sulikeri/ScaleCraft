@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useCanvasStore } from "@/canvas/store";
 import type { ComponentNodeType } from "@/canvas/types";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
+import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { Debrief } from "./Debrief";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
 import { ChapterStatusIcon, chapterStatusLabel } from "@/learning-path/ChapterStatusIcon";
@@ -35,9 +36,17 @@ type QuestionPaneProps = {
  */
 export function QuestionPane({ chapter, entry, status, chapterOutcome, isStale }: QuestionPaneProps) {
   const nodes = useCanvasStore((s) => s.nodes);
+  const correctQuestionIdsByDefinition = useCurriculumProgressStore((s) => s.correctQuestionIdsByDefinition);
   const [revealedHintIds, setRevealedHintIds] = useState<Set<string>>(new Set());
 
   const outcome = isStale ? null : chapterOutcome;
+
+  // Build passed but the chapter's quiz (Reader-only, see QuizSection) isn't
+  // fully mastered yet — copy only, no badge, no nagging (Phase 4). Mirrors
+  // deriveStatus's own COMPLETED-requires-quiz rule so this note and the
+  // status chip above never disagree.
+  const masteredIds = correctQuestionIdsByDefinition.get(chapter.id) ?? new Set<string>();
+  const quizRemaining = !!outcome?.passed && !!chapter.quiz?.length && !chapter.quiz.every((q) => masteredIds.has(q.id));
 
   // Before the first Validate click (or once results go stale), fall back to
   // a live presence-only count from the canvas so this line isn't blank —
@@ -134,6 +143,10 @@ export function QuestionPane({ chapter, entry, status, chapterOutcome, isStale }
 
         {/* Plain, not celebratory — this app isn't a game (CLAUDE.md). */}
         {outcome?.passed && <p className="mt-2 text-xs text-state-valid">Chapter complete.</p>}
+
+        {/* Copy only — no badge, no nagging. Points at the Reader's own
+         * Knowledge check section rather than duplicating it here. */}
+        {quizRemaining && <p className="mt-1 text-xs text-foreground/60">Knowledge check remaining.</p>}
 
         {outcome?.passed && (
           <Debrief blueprints={chapter.blueprints} matchedBlueprintId={outcome.matchedBlueprintId} />

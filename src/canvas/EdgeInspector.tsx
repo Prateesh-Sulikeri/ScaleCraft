@@ -1,19 +1,8 @@
 "use client";
 
 import { useCanvasStore } from "./store";
+import { EDGE_KINDS, EDGE_KIND_CAPTIONS } from "./edge-styles";
 import type { EdgeKind } from "@/lib/graph";
-
-const EDGE_KINDS: EdgeKind[] = ["request-flow", "control", "replication", "async"];
-
-// Always-visible, not a dynamic hint — this is what the currently selected
-// kind means, not a nudge toward help someone didn't ask for. See
-// .claude/docs/ARCHITECTURE.md ("Architecture Graph") for the full model.
-const EDGE_KIND_CAPTIONS: Record<EdgeKind, string> = {
-  "request-flow": "Client-facing request path — the only kind checked for cycles.",
-  control: "Non-blocking control signal, e.g. a health check or heartbeat.",
-  replication: "Data replicated between instances (a legitimate back-edge).",
-  async: "Asynchronous messaging — queues, events, fire-and-forget.",
-};
 
 /**
  * "Pick an edge kind on connect" (see .claude/docs/MILESTONES.md, milestone 1) is

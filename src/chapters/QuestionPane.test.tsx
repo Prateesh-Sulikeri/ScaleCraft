@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { QuestionPane } from "./QuestionPane";
 import { CanvasStoreProvider, useCanvasStoreApi } from "@/canvas/store";
-import type { ChapterDefinition, Hint, Blueprint } from "@/content/chapters/types";
+import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+import type { ChapterDefinition, Hint, Blueprint, QuizQuestion } from "@/content/chapters/types";
 import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
 import type { ValidationViolation } from "@/validation-engine/types";
 import type { ComponentNodeType } from "@/canvas/types";
@@ -58,6 +59,21 @@ function makeChapter(overrides: Partial<ChapterDefinition> = {}): ChapterDefinit
 }
 
 const hint: Hint = { id: "hint-1", body: "Try adding a load balancer." };
+
+function makeQuestion(overrides: Partial<QuizQuestion> = {}): QuizQuestion {
+  return {
+    id: "q1",
+    kind: "single",
+    difficulty: 1,
+    prompt: "What is a load balancer for?",
+    options: [{ id: "a", label: "Distributes traffic", explanationMd: "Correct.", correct: true }],
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  useCurriculumProgressStore.setState({ correctQuestionIdsByDefinition: new Map() });
+});
 
 /** Seeds the shared canvas store with component nodes before rendering
  * QuestionPane inside it — QuestionPane reads `nodes` via useCanvasStore to
@@ -308,6 +324,38 @@ describe("QuestionPane", () => {
       renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
       expect(screen.getByText(/chapter complete/i)).toBeInTheDocument();
       expect(screen.queryByText(/debrief/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("'Knowledge check remaining' note (Phase 4)", () => {
+    it("shows the note when the build passed but the chapter's quiz isn't fully mastered", () => {
+      const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" }), makeQuestion({ id: "q2" })] });
+      useCurriculumProgressStore.setState({ correctQuestionIdsByDefinition: new Map([["ch-1", new Set(["q1"])]]) });
+      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
+
+      expect(screen.getByText("Knowledge check remaining.")).toBeInTheDocument();
+    });
+
+    it("omits the note once every quiz question is mastered", () => {
+      const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" })] });
+      useCurriculumProgressStore.setState({ correctQuestionIdsByDefinition: new Map([["ch-1", new Set(["q1"])]]) });
+      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
+
+      expect(screen.queryByText("Knowledge check remaining.")).not.toBeInTheDocument();
+    });
+
+    it("omits the note when the chapter has no quiz at all", () => {
+      const chapter = makeChapter({ id: "ch-1", quiz: undefined });
+      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
+
+      expect(screen.queryByText("Knowledge check remaining.")).not.toBeInTheDocument();
+    });
+
+    it("omits the note when the build hasn't passed, even with an unmastered quiz", () => {
+      const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" })] });
+      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: false }) });
+
+      expect(screen.queryByText("Knowledge check remaining.")).not.toBeInTheDocument();
     });
   });
 

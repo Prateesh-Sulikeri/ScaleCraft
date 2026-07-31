@@ -26,7 +26,8 @@ describe("DiagramQuestion", () => {
 
     render(<DiagramQuestion question={question} selectedId={null} onSelect={vi.fn()} disabled={false} revealed={false} />);
 
-    expect(screen.getByText(/client.*load balancer/i)).toBeInTheDocument();
+    expect(screen.getByText("Client")).toBeInTheDocument();
+    expect(screen.getByText("Load Balancer")).toBeInTheDocument();
     expect(screen.getByLabelText("Requests fail")).toBeInTheDocument();
     expect(screen.getByLabelText("Nothing changes")).toBeInTheDocument();
   });

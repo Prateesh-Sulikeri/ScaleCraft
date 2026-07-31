@@ -5,12 +5,14 @@ import type { ChapterDefinition, QuizQuestion } from "@/content/chapters/types";
 
 const recordQuizCorrect = vi.fn().mockResolvedValue(undefined);
 let correctQuestionIdsByDefinition = new Map<string, Set<string>>();
+let validationPassedDefinitionIds = new Set<string>();
 
 vi.mock("@/curriculum/progress-store", () => ({
   useCurriculumProgressStore: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({
       correctQuestionIdsByDefinition,
       recordQuizCorrect,
+      validationPassedDefinitionIds,
     }),
 }));
 
@@ -87,5 +89,41 @@ describe("QuizSection", () => {
     render(<QuizSection chapter={makeChapter({ id: "ch-1", quiz })} />);
 
     expect(screen.queryByText(/all questions answered/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the Draft badge next to the heading for placeholder chapters", () => {
+    correctQuestionIdsByDefinition = new Map();
+    render(<QuizSection chapter={makeChapter({ quiz: [makeQuestion()], placeholder: true })} />);
+    expect(screen.getByText("Draft")).toBeInTheDocument();
+  });
+
+  it("omits the Draft badge for real chapters", () => {
+    render(<QuizSection chapter={makeChapter({ quiz: [makeQuestion()] })} />);
+    expect(screen.queryByText("Draft")).not.toBeInTheDocument();
+  });
+
+  describe("Real World Extraction gating (Phase 6)", () => {
+    it("renders nothing until the project's Phase B validation pass is recorded", () => {
+      validationPassedDefinitionIds = new Set();
+      const { container } = render(
+        <QuizSection chapter={makeChapter({ id: "rwe-1", mode: "real-world-extraction", quiz: [makeQuestion()] })} />,
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it("renders once the chapter's id is in validationPassedDefinitionIds", () => {
+      validationPassedDefinitionIds = new Set(["rwe-1"]);
+      render(
+        <QuizSection chapter={makeChapter({ id: "rwe-1", mode: "real-world-extraction", quiz: [makeQuestion()] })} />,
+      );
+      expect(screen.getByRole("heading", { name: "Knowledge check" })).toBeInTheDocument();
+      validationPassedDefinitionIds = new Set();
+    });
+
+    it("building-blocks chapters are never gated by validationPassedDefinitionIds", () => {
+      validationPassedDefinitionIds = new Set();
+      render(<QuizSection chapter={makeChapter({ id: "bb-1", mode: "building-blocks", quiz: [makeQuestion()] })} />);
+      expect(screen.getByRole("heading", { name: "Knowledge check" })).toBeInTheDocument();
+    });
   });
 });

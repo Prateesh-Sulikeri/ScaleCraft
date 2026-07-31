@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractHeadings } from "./extract-headings";
+import { extractHeadings, appendKnowledgeCheckHeading } from "./extract-headings";
 
 describe("extractHeadings", () => {
   it("extracts all heading levels including h1", () => {
@@ -151,5 +151,25 @@ Final heading.`;
     expect(texts).toContain("Second Section");
     expect(texts).toContain("Another H1");
     expect(texts).not.toContain("This should not be extracted");
+  });
+});
+
+describe("appendKnowledgeCheckHeading", () => {
+  it("appends a level-2 'Knowledge check' entry pointing at #knowledge-check when hasQuiz is true", () => {
+    const headings = extractHeadings("## Intro");
+    const result = appendKnowledgeCheckHeading(headings, true);
+    expect(result).toEqual([
+      { id: "intro", text: "Intro", level: 2 },
+      { id: "knowledge-check", text: "Knowledge check", level: 2 },
+    ]);
+  });
+
+  it("leaves the headings untouched when hasQuiz is false", () => {
+    const headings = extractHeadings("## Intro");
+    expect(appendKnowledgeCheckHeading(headings, false)).toBe(headings);
+  });
+
+  it("appends to an empty headings array when hasQuiz is true", () => {
+    expect(appendKnowledgeCheckHeading([], true)).toEqual([{ id: "knowledge-check", text: "Knowledge check", level: 2 }]);
   });
 });

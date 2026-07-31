@@ -7,12 +7,13 @@ import { ReaderSidebar } from "./ReaderSidebar";
 import { ReadingProgress } from "./ReadingProgress";
 import { TableOfContents } from "./TableOfContents";
 import { DesignEditorCTA } from "./DesignEditorCTA";
+import { QuizSection } from "./quiz/QuizSection";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
 import { getCourse, findEntry } from "@/curriculum";
 import { chapterRegistry } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import type { ExtractedHeading } from "./extract-headings";
+import { appendKnowledgeCheckHeading, type ExtractedHeading } from "./extract-headings";
 
 type ChapterReaderProps = {
   mode: ChapterDefinition["mode"];
@@ -46,6 +47,8 @@ export function ChapterReader({ mode, chapterSlug, markdown, headings }: Chapter
 
   if (!chapter || !entry) return null;
 
+  const tocHeadings = appendKnowledgeCheckHeading(headings, !!chapter.quiz?.length);
+
   return (
     <PageEnter>
       <main className="relative flex min-h-0 flex-1 overflow-hidden">
@@ -77,6 +80,8 @@ export function ChapterReader({ mode, chapterSlug, markdown, headings }: Chapter
               <MarkdownRenderer content={markdown} />
             </div>
 
+            <QuizSection chapter={chapter} />
+
             <DesignEditorCTA mode={mode} chapterSlug={chapterSlug} />
           </div>
         </div>
@@ -86,7 +91,7 @@ export function ChapterReader({ mode, chapterSlug, markdown, headings }: Chapter
             <p className="text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">On this page</p>
             <ThemeToggle />
           </div>
-          <TableOfContents headings={headings} targetRef={articleRef} />
+          <TableOfContents headings={tocHeadings} targetRef={articleRef} />
         </aside>
       </main>
     </PageEnter>

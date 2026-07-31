@@ -62,7 +62,11 @@ vi.mock("@/curriculum", () => ({
 
 vi.mock("@/curriculum/progress-store", () => ({
   useCurriculumProgressStore: (selector: (s: Record<string, unknown>) => unknown) =>
-    selector({ validationPassedDefinitionIds: new Set<string>(), rowsBySlug: new Map() }),
+    selector({
+      validationPassedDefinitionIds: new Set<string>(),
+      rowsBySlug: new Map(),
+      correctQuestionIdsByDefinition: new Map<string, Set<string>>(),
+    }),
 }));
 
 const routerPushMock = vi.fn();
