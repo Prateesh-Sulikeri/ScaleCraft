@@ -9,6 +9,46 @@ export type Hint = {
   body: string;
 };
 
+export type QuizQuestionKind =
+  | "single"
+  | "multi"
+  | "matching"
+  | "ordering"
+  | "diagram"
+  | "estimate";
+
+export type QuizOption = {
+  /** Stable within the question — persistence key for matching/ordering. */
+  id: string;
+  /** Markdown. */
+  label: string;
+  /** Markdown. Shown after any attempt, always — chosen or not, right or
+   * wrong. A bare "wrong" is a bug. See .claude/docs/QUIZ_FRAMEWORK.md §1. */
+  explanationMd: string;
+  correct: boolean;
+};
+
+/**
+ * See .claude/docs/QUIZ_FRAMEWORK.md §2. Question `id` is a persistence key
+ * (§17) — never reuse across authoring changes, or mastery history silently
+ * points at the wrong question.
+ */
+export type QuizQuestion = {
+  id: string;
+  kind: QuizQuestionKind;
+  /** Ramp position, not a score (§1 point 4 — no scoring theater). */
+  difficulty: 1 | 2 | 3;
+  /** Markdown. */
+  prompt: string;
+  /** kind "diagram" only — rendered read-only, never used for matching. */
+  graph?: ArchitectureGraph;
+  options: QuizOption[];
+  /** kind "ordering" only — the correct sequence of option ids. */
+  correctOrder?: string[];
+  /** kind "matching" only — pairs of [leftLabel, correctOptionId]. */
+  pairs?: [string, string][];
+};
+
 /**
  * A known-good design for a chapter, authored as a graph *pattern* rather
  * than a concrete graph — see .claude/docs/validation_agent_design.md §8.2.
@@ -94,4 +134,7 @@ export type ChapterDefinition = {
   /** Building Blocks only — see CurriculumContext's own doc comment. Absent
    * for real-world-extraction and for not-yet-authored placeholder chapters. */
   curriculumContext?: CurriculumContext;
+  /** Absent means the chapter has no quiz — checkpoints never have one. See
+   * .claude/docs/QUIZ_FRAMEWORK.md and the Reader's QuizSection. */
+  quiz?: QuizQuestion[];
 };
