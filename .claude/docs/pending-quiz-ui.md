@@ -203,3 +203,229 @@ moves to the result region on submit (a11y), `prefers-reduced-motion` respected
    dependencies; confirm before building if drag feels required.
 3. Phase 4: exact copy for the "Knowledge check remaining" sidebar note - run
    through `/impeccable clarify`.
+
+## Addendum (2026-07-31) - Exam pivot supersedes Phases 4-6's delivery UI
+
+Phases 1-6 above shipped an inline "Knowledge Check": per-question immediate feedback,
+unlimited retries, no scores - matching QUIZ_FRAMEWORK.md's original v1.0 philosophy.
+After reviewing the live UI, the user deliberately pivoted away from that model entirely
+to a full-screen, proctored-style exam. **Confirmed via direct Q&A this session - not a
+misunderstanding, do not revert to the inline model without asking first.** This
+addendum is the pickup point for whoever implements the pivot next; nothing below has
+been built yet.
+
+### What changes
+
+Not an inline quiz - a "Take the quiz" launcher (same slot in the Reader, before
+`DesignEditorCTA`, unchanged placement) opens a full-screen exam:
+
+1. Real Fullscreen API (`element.requestFullscreen()`), best-effort, with a CSS
+   `fixed inset-0` fallback if unsupported/denied. Be honest in the UI and in DESIGN.md
+   that this is NOT anti-cheat - browsers don't allow preventing Escape-exit or
+   detecting tab-switches from a normal page. "Proctored" means full-screen, focused,
+   distraction-free presentation only.
+2. Question navigation: skip, back, forward. Answer state must survive navigating away
+   and back (today's per-question local state resets on unmount - this is a real change,
+   not just new chrome).
+3. Submit-all-at-the-end, not per-question. Unanswered questions at submit: a styled
+   confirm dialog ("N unanswered - submit anyway?"), then allow, scoring unanswered as
+   incorrect.
+4. Results screen: score/percentage shown prominently, plus a full per-question review
+   (your answer, correct answer, every option's explanation) - reuses "every option
+   always explains," just deferred to this end screen instead of per-question-immediately.
+5. Up to 3 attempts per chapter. Passing (>=80%) on any attempt immediately locks
+   further attempts ("Take the quiz" becomes "View your result"). Exhausting 3 attempts
+   without passing also locks to "view your best attempt's summary."
+6. 80% pass threshold displayed upfront, before starting, plus attempts-used/best-score
+   once attempts exist.
+7. Chapter COMPLETED requires the existing build-validation pass AND best exam score
+   >= 80% (chapters with no `quiz` array stay ungated on quiz, same as today) -
+   replaces the "every quiz question ever answered correctly" mastery check.
+
+### What survives unchanged
+
+- `QuizQuestion`/`QuizOption`/`ChapterDefinition.quiz` schema (Phase 1) - the pivot only
+  changes how questions are answered/scored/persisted, not their shape.
+- `evaluate.ts`'s `QuizAnswer` type and `evaluateAnswer()` - pure, reused as-is for exam
+  scoring.
+- The six kind-body input components (Phase 3: `SingleChoice`, `MultiChoice`,
+  `EstimateChoice`, `Ordering`, `Matching`, `DiagramQuestion`) - pure, controlled,
+  `disabled`/`revealed`-gated; fully reusable unchanged inside the exam shell (mid-exam:
+  `disabled=false revealed=false`; on results: `disabled=true revealed=true`).
+- `ReadOnlyGraphSummary.tsx` + `src/canvas/edge-styles.ts` (Phase 5's category-color +
+  edge-kind styling) - unchanged, still used by `DiagramQuestion`.
+- `extract-headings.ts`'s `appendKnowledgeCheckHeading` - unchanged; the
+  `id="knowledge-check"` anchor just moves from the old `QuizSection`'s heading to the
+  new launcher's heading.
+- The Dexie migration *pattern* (compound-key table + secondary index + progress-store
+  selector + `deriveStatus` gating) - the pattern survives; `quizProgress`'s specific
+  schema does not (see below).
+
+### What gets replaced/removed
+
+- `src/chapters/quiz/QuizSection.tsx` + `.test.tsx` -> replaced by a new
+  `QuizLauncher.tsx`.
+- `src/chapters/quiz/QuizQuestionCard.tsx` + `.test.tsx` -> removed; its per-question
+  immediate-submit/retry state machine doesn't fit "navigate freely, submit once at the
+  end."
+- `quizProgress` Dexie table + `correctQuestionIdsByDefinition` (progress-store) +
+  `recordQuizCorrect` action -> dropped outright (Dexie `tableName: null`, precedent
+  already exists in `db.ts`'s v6 migration) since no real user data exists yet
+  (pre-beta) and the mastery model they backed no longer exists.
+- `/src/app/dev/diagram-question-lab/DiagramQuestionLabContent.tsx` - needs updating
+  once `QuizQuestionCard` is gone (its fixtures are all `kind: "diagram"`, so it can
+  render `DiagramQuestion` directly with `disabled={false} revealed={true}`, no
+  submit/review cycle).
+- The RWE-gating rule just added to `QuizSection` (render nothing for `mode:
+  "real-world-extraction"` chapters until `validationPassedDefinitionIds.has(chapter.id)`)
+  moves verbatim to `QuizLauncher`.
+
+### New engineering surface (design for the implementer)
+
+**1. Persistence - `src/persistence/db.ts`, Dexie v9.** Remove the `QuizProgress`
+type/table. Add:
+
+```ts
+export type ExamQuestionAnswer = { questionId: string; answer: QuizAnswer | null; correct: boolean };
+
+export type ExamAttempt = {
+  chapterDefinitionId: string;
+  attemptNumber: 1 | 2 | 3;
+  submittedAt: number;
+  score: number; // 0-100, rounded - same convention as ProgressSummary.percent
+  answers: ExamQuestionAnswer[];
+};
+```
+
+`examAttempts` table: compound key `[chapterDefinitionId+attemptNumber]`, secondary
+index `chapterDefinitionId` (mirrors `quizProgress`'s own shape exactly, so
+`resetChapter` can delete a chapter's attempts without a full scan). `answer:
+QuizAnswer | null` distinguishes "left blank at submit" (scored incorrect, but rendered
+as "Not answered" not "Wrong") from an actual wrong guess.
+
+```ts
+this.version(9).stores({
+  // ...all 8 prior tables, unchanged...
+  quizProgress: null, // dropped - no upgrade callback needed, no real data exists yet
+  examAttempts: "[chapterDefinitionId+attemptNumber], chapterDefinitionId",
+});
+```
+
+**2. Store + status derivation.** `src/curriculum/progress-store.ts`: remove
+`correctQuestionIdsByDefinition`/`recordQuizCorrect`; add `examAttemptsByDefinition:
+Map<string, ExamAttempt[]>` and `recordExamAttempt(chapterDefinitionId, attempt)`
+(Dexie `put` + memory update, replace-by-`attemptNumber` semantics matching Dexie's own
+replace-by-key `put`). `resetChapter` deletes `examAttempts` rows for the chapter
+instead of `quizProgress` rows - "redo means redo, attempts included, so a redo gives a
+learner a fresh 3 attempts."
+
+`src/curriculum/progress.ts`: `ProgressInputs.correctQuestionIdsByDefinition` ->
+`examAttemptsByDefinition: ReadonlyMap<string, readonly ExamAttempt[]>`. New pure
+helpers:
+
+```ts
+export const EXAM_PASS_THRESHOLD = 80;
+export const MAX_EXAM_ATTEMPTS = 3;
+export function bestExamScore(attempts: readonly ExamAttempt[]): number; // 0 for empty
+export function examPassed(attempts): boolean; // bestExamScore >= EXAM_PASS_THRESHOLD
+export function examLocked(attempts): boolean; // examPassed || attempts.length >= MAX_EXAM_ATTEMPTS
+```
+
+`deriveStatus`'s quiz-gating block becomes: `!quiz?.length ? COMPLETED :
+examPassed(attempts) ? COMPLETED : ...` (best-score-wins, not last-attempt-wins).
+
+Four other files hand-build `ProgressInputs` for their own `useMemo` deps and need the
+same field rename: `src/app/HomeCanvas.tsx`, `src/chapters/ReaderSidebar.tsx`,
+`src/chapters/ChapterSidebar.tsx`, `src/learning-path/LearningPath.tsx`.
+
+**3. Exam shell - new `src/chapters/exam/` folder.**
+
+- `exam-attempt.ts` (pure): `buildAttempt(chapter, answersByQuestionId, attemptNumber)
+  -> ExamAttempt`, iterates `chapter.quiz`, calls `evaluateAnswer` per answered
+  question, scores unanswered as incorrect with `answer: null`, computes rounded
+  percentage score.
+- `exam-fullscreen.ts`: isolates all direct Fullscreen API calls so components stay
+  mockable in tests (jsdom has no real Fullscreen API). `requestFullscreenBestEffort(el):
+  Promise<boolean>` (swallows any failure/unsupported case), `exitFullscreenIfActive(el)`.
+- `ExamShell.tsx`: portaled (`createPortal(..., document.body)`), `role="dialog"
+  aria-modal`, reusing `z-[var(--z-modal-backdrop)]`/`z-[var(--z-modal)]` tiers and the
+  window-level-`keydown` rationale already documented in `src/canvas/ComponentPicker.tsx`
+  (a dialog-scoped `onKeyDown` stops receiving events once a click moves
+  `document.activeElement` to `<body>`). Owns the lifted `answersByQuestionId:
+  Record<string, QuizAnswer>` state (the actual fix for "navigate away and back loses
+  your answer") plus `currentIndex`. Props: `{ chapter, attemptNumber, onSubmitted,
+  onExit }` - Dexie/store-agnostic, unit-testable with plain props.
+- `ExamQuestionNav.tsx`: progress dots/"Question X of N", Back/Skip/Next.
+- `ExamQuestionBody.tsx`: renders the current question's kind-body component
+  (`disabled=false revealed=false`), converting the lifted `QuizAnswer` to/from each
+  kind-body's own prop shape.
+- `ExamConfirmSubmitDialog.tsx`: styled in-app dialog (not native `window.confirm`,
+  matching the existing `DeleteConfirmPopover.tsx` precedent) - "N unanswered - submit
+  anyway?".
+- `ExamResults.tsx`: `{ chapter, attempt, onReturn }` - score banner + pass/fail +
+  per-question review reusing every kind-body component with `disabled=true
+  revealed=true` (free "every option explains" reuse) plus a Correct/Incorrect/
+  Not-answered chip per question.
+
+**4. `QuizLauncher.tsx` (replaces `QuizSection.tsx`).** Same slot/anchor/Draft-badge/
+RWE-gating as today's `QuizSection`. Always shows `"{quiz.length} questions · 80% to
+pass"` upfront. Four states: never attempted -> "Take the quiz"; attempts remain, not
+passed -> "Attempt N of 3 used · Best score X%" + "Take the quiz"; passed -> "Passed ·
+X%" + "View your result"; exhausted without passing -> "3 of 3 attempts used · Best
+score X%" + "View your best attempt". Owns `view: null | "exam" | "results"` and is the
+only caller of `recordExamAttempt`.
+
+### Doc edits needed (deferred to the implementation session)
+
+- **QUIZ_FRAMEWORK.md §1** point 4 - rewrite "no scoring theater" framing to describe
+  the scored/attempt-capped/threshold model; keep points 1-3/5/6 (reasoning over
+  recall, every answer explains, wrong options are real positions, progressively
+  harder, scope-honest) as still-valid *authoring* rules, unaffected by the *delivery*
+  pivot.
+- **Root CLAUDE.md** "Non-negotiable product principles" - add one carve-out sentence
+  after the "not a game" rule, modeled on DESIGN.md's existing "Progress-Is-Not-
+  Validation Rule" exception pattern (state the rule -> the one exception -> why,
+  "confirmed with the user").
+- **CURRICULUM.md** §22 (assessment contract) and §5.3 beat 15 - update mastery/
+  completion wording to the score-threshold model; beat *ordering* itself stays
+  unchanged.
+- **DESIGN.md** - replace the "Knowledge Check (quiz)" section (added this session, now
+  describing a design that's being replaced) with the launcher/exam-shell/results
+  visual spec, incl. the honest "not real anti-cheat" framing; update the one
+  "Knowledge check remaining" sentence in "Chapter Sidebar" to score-based gating
+  language.
+
+### Test plan for the implementation session
+
+- New: `exam-attempt.test.ts` (pure scoring, per-kind, unanswered-as-incorrect, score
+  rounding, `total === 0` guard), `exam-fullscreen.test.ts` (mocked Fullscreen API),
+  `ExamShell.test.tsx` (answer state survives navigation - the core bug-fix
+  requirement; arrow-key nav; unanswered-confirm dialog; well-formed `onSubmitted`
+  payload), `ExamResults.test.tsx` (score + full per-question review, at least one
+  non-`single` kind), `ExamConfirmSubmitDialog.test.tsx`, `QuizLauncher.test.tsx` (all
+  four states + RWE gating ported from the deleted `QuizSection.test.tsx`).
+- Updated: `db.test.ts` (v9 chain - `quizProgress` gone, `examAttempts` present/empty,
+  no upgrade callback to test), `progress-store.test.ts` (attempt-cap, resetChapter
+  clears attempts), `progress.test.ts` (`deriveStatus` matrix rebuilt around
+  `examAttemptsByDefinition`, best-score-wins not last-attempt-wins), `QuestionPane.
+  test.tsx`/`ChapterSidebar.test.tsx`/`ChapterWorkspace.test.tsx`/
+  `CurriculumSectionList.test.tsx`/`SectionCard.test.tsx` (mechanical field rename in
+  mocks/fixtures).
+- Deleted: `QuizSection.test.tsx`, `QuizQuestionCard.test.tsx` (superseded).
+
+### Suggested implementation order
+
+Schema (db.ts v9) and store/derivation (progress-store.ts, progress.ts) land together
+first - this repo's own convention is small independently-shippable phases, but steps
+1-2 here leave the app non-compiling if split, since `progress-store.ts` can't drop
+`correctQuestionIdsByDefinition` without `db.ts`'s table already being gone. Then: pure
+exam scoring (`exam-attempt.ts`, testable standalone) -> exam-taking components
+bottom-up (`ExamQuestionBody`/`ExamQuestionNav`/`ExamConfirmSubmitDialog`/
+`exam-fullscreen` -> `ExamShell`) -> `ExamResults.tsx` -> `QuizLauncher.tsx` -> Reader
+integration + dev-lab-page fixup + deletions -> docs -> full pipeline
+(`typecheck && lint && test && build`) green before any push.
+
+One branch for the whole pivot (`feature/quiz-exam-mode` or similar, off whatever branch
+`feature/quiz-components` has landed on by then) rather than the original phase-per-
+branch cadence - unlike Phases 1-6 (each independently shippable), this pivot's steps 1-2
+alone leave the app in a broken intermediate state if merged separately.
