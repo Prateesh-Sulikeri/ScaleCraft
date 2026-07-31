@@ -43,6 +43,14 @@ All formats are auto-gradeable (no free-text grading in scope). Target schema on
 `ChapterDefinition` (the one schema ask, shared with staged chapters -
 [[CURRICULUM]] §21.1):
 
+> **Superseded by code (2026-07-31):** the snippet below is the original schema
+> sketch. The shipped `QuizQuestion`/`QuizOption` types
+> (`src/content/chapters/types.ts`) add a stable `id` to each option and use typed
+> `correctOrder: string[]` / `pairs: [string, string][]` (referencing option ids)
+> for `ordering`/`matching`, instead of the `label = "item -> match"` string
+> convention sketched here. That code is authoritative for the shape; author
+> matching/ordering questions against the typed fields, not this snippet.
+
 ```ts
 type QuizQuestion = {
   id: string;
