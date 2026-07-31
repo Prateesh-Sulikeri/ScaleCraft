@@ -165,6 +165,7 @@ const entryOne: CurriculumChapter = {
   estimatedMinutes: 20,
   difficulty: "foundational",
   prerequisiteSlugs: [],
+  domain: null,
 };
 const entryTwo: CurriculumChapter = {
   ...entryOne,

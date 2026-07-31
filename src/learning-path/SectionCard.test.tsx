@@ -26,6 +26,7 @@ const section: CurriculumSection = {
       estimatedMinutes: 20,
       difficulty: "foundational",
       prerequisiteSlugs: [],
+      domain: null,
     },
     {
       slug: "1-2-load-balancing",
@@ -36,6 +37,7 @@ const section: CurriculumSection = {
       estimatedMinutes: 35,
       difficulty: "foundational",
       prerequisiteSlugs: ["1-1-vertical-vs-horizontal-scaling"],
+      domain: null,
     },
   ],
 };

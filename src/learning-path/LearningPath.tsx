@@ -11,9 +11,9 @@ import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import type { CourseId } from "@/curriculum/types";
 
 /** How far down (px) the page must scroll before the "back to top" button
- *  appears — small enough that a learner scanning Unit 6 (a 26-row page)
- *  never has to scroll all the way back up by hand, but not so eager it
- *  shows up on a page that barely scrolls at all. */
+ *  appears — small enough that a learner scanning Real World Extraction's
+ *  32-row page never has to scroll all the way back up by hand, but not so
+ *  eager it shows up on a page that barely scrolls at all. */
 const SCROLL_TOP_THRESHOLD = 400;
 
 /**

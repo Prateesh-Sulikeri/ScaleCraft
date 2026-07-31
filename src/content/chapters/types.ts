@@ -43,7 +43,7 @@ export type Blueprint = {
  * the AI-layer counterpart of that same principle).
  */
 export type CurriculumContext = {
-  /** e.g. "Building Blocks, Unit 1: Scaling Compute — Chapter 1.2 of 22." */
+  /** e.g. "Building Blocks, Group A: Core Infrastructure — Chapter 3.4 of 44." */
   position: string;
   /** Concepts/components already taught in prior chapters — safe background
    * Deep Check may assume without explaining from scratch. */

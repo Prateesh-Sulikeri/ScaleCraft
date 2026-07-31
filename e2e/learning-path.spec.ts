@@ -9,42 +9,42 @@ import { test, expect } from "@playwright/test";
  * can't — real navigation and persistence across a reload.
  */
 
-test("renders all 7 sections and 26 chapter rows for Building Blocks", async ({ page }) => {
+test("renders all 10 sections and 47 chapter rows for Building Blocks", async ({ page }) => {
   await page.goto("/building-blocks");
   await expect(page.getByRole("heading", { level: 1, name: "Building Blocks" })).toBeVisible();
 
-  const sectionToggles = page.getByRole("button", { name: /^unit /i });
-  await expect(sectionToggles).toHaveCount(7);
+  const sectionToggles = page.getByRole("button", { name: /^(part|group) /i });
+  await expect(sectionToggles).toHaveCount(10);
 
   const rows = page.getByRole("img", { name: /completed|in progress|not started/i });
-  await expect(rows).toHaveCount(26);
+  await expect(rows).toHaveCount(47);
 });
 
 test("a section collapses and expands", async ({ page }) => {
   await page.goto("/building-blocks");
-  const unit0Toggle = page.getByRole("button", { name: /unit 0/i });
+  const part0Toggle = page.getByRole("button", { name: /part 0/i });
 
-  await expect(page.getByText("Client, Server, Database")).toBeVisible();
-  await unit0Toggle.click();
-  await expect(page.getByText("Client, Server, Database")).toBeHidden();
-  await unit0Toggle.click();
-  await expect(page.getByText("Client, Server, Database")).toBeVisible();
+  await expect(page.getByText("Welcome to ScaleCraft")).toBeVisible();
+  await part0Toggle.click();
+  await expect(page.getByText("Welcome to ScaleCraft")).toBeHidden();
+  await part0Toggle.click();
+  await expect(page.getByText("Welcome to ScaleCraft")).toBeVisible();
 });
 
 test("an unauthored row is not a link and does not navigate on click", async ({ page }) => {
   await page.goto("/building-blocks");
-  const row = page.getByText("Client, Server, Database");
+  const row = page.getByText("Welcome to ScaleCraft");
   await expect(row).toBeVisible();
-  await expect(page.getByRole("link", { name: /Client, Server, Database/i })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Welcome to ScaleCraft/i })).toHaveCount(0);
 
   await row.click();
   await expect(page).toHaveURL(/\/building-blocks$/);
 });
 
-test("1.2 Load Balancing navigates to its chapter lesson (Chapter Reader) route", async ({ page }) => {
+test("3.4 Load Balancer navigates to its chapter lesson (Chapter Reader) route", async ({ page }) => {
   await page.goto("/building-blocks");
-  await page.getByRole("link", { name: /1\.2.*Load Balancing/i }).click();
-  await page.waitForURL("**/building-blocks/1-2-load-balancing/lesson");
+  await page.getByRole("link", { name: /3\.4.*Load Balancer/i }).click();
+  await page.waitForURL("**/building-blocks/3-4-load-balancer/lesson");
   await expect(page.getByRole("heading", { name: "Placeholder Chapter" })).toBeVisible();
 });
 
@@ -52,15 +52,15 @@ test("the manual complete toggle flips a row to COMPLETED, bumps overall percent
   page,
 }) => {
   await page.goto("/real-world-extraction");
-  const row = page.locator("li").filter({ hasText: "bit.ly" });
+  const row = page.locator("li").filter({ hasText: "Bitly" });
   const toggle = row.getByRole("button", { name: /mark.*complete/i });
 
-  await expect(page.getByText("0 / 5 chapters", { exact: false })).toBeVisible();
+  await expect(page.getByText("0 / 32 chapters", { exact: false })).toBeVisible();
   await toggle.click();
-  await expect(page.getByText("1 / 5 chapters", { exact: false })).toBeVisible();
+  await expect(page.getByText("1 / 32 chapters", { exact: false })).toBeVisible();
 
   await page.reload();
-  await expect(page.getByText("1 / 5 chapters", { exact: false })).toBeVisible();
+  await expect(page.getByText("1 / 32 chapters", { exact: false })).toBeVisible();
   await expect(row.getByRole("button", { name: /mark.*incomplete/i })).toBeVisible();
 });
 

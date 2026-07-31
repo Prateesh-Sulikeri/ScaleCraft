@@ -44,6 +44,7 @@ function makeEntry(overrides: Partial<CurriculumChapter> = {}): CurriculumChapte
     estimatedMinutes: 10,
     difficulty: "foundational",
     prerequisiteSlugs: [],
+    domain: null,
     ...overrides,
   };
 }

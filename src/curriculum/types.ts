@@ -11,14 +11,15 @@ export type Difficulty = "foundational" | "intermediate" | "advanced";
 /** One row in the Learning Path. This is the curriculum *map* — a stable,
  *  content-free entry that exists whether or not a lesson has been authored.
  *  Distinct from ChapterDefinition (src/content/chapters/types.ts), which is
- *  the authored lesson itself. The manifest lists all 31 entries; only 2 have
- *  a ChapterDefinition today. */
+ *  the authored lesson itself. The manifest lists all 79 entries (47
+ *  Building Blocks + 32 Real World Extraction); only 2 have a
+ *  ChapterDefinition today. */
 export type CurriculumChapter = {
   /** Stable, URL-safe, globally unique. ALSO the route segment:
    *  /building-blocks/<slug>. Never change one after release — it is a
    *  persistence key (see CurriculumProgress) and a bookmarkable URL. */
   slug: string;
-  /** Display number from CURRICULUM.md §13, e.g. "1.2". `null` for checkpoints. */
+  /** Display number from CURRICULUM.md §14/§23, e.g. "1.2". `null` for checkpoints. */
   number: string | null;
   title: string;
   kind: "chapter" | "checkpoint";
@@ -29,15 +30,20 @@ export type CurriculumChapter = {
   estimatedMinutes: number;
   difficulty: Difficulty;
   /** Future: slugs that must be COMPLETED before this unlocks. Populated now
-   *  (strictly-sequential within a section, per CURRICULUM.md §10) but NOT
+   *  (strictly-sequential within a section, per CURRICULUM.md §17) but NOT
    *  enforced in 3.0.0 — nothing reads it yet. */
   prerequisiteSlugs: string[];
+  /** RWE-only domain chip (e.g. "Messaging", "Location & mobility") per
+   *  CURRICULUM.md §15.2's roster table. `null` for every Building Blocks
+   *  entry — domain groups only exist to help learners follow an RWE thread
+   *  vertically across tiers. */
+  domain: string | null;
 };
 
 export type CurriculumSection = {
-  /** e.g. "bb-unit-1", "rwe-tier-2". */
+  /** e.g. "bb-group-a", "rwe-tier-2". */
   id: string;
-  /** Short eyebrow label, e.g. "Unit 1", "Tier 2". */
+  /** Short eyebrow label, e.g. "Group A", "Tier 2". */
   label: string;
   /** e.g. "Scaling Compute", "Photo & Log Systems". */
   title: string;

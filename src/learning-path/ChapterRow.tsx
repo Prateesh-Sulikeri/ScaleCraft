@@ -68,6 +68,12 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
         <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-foreground/50">
           <DifficultyDots difficulty={entry.difficulty} />
           {entry.difficulty}
+          {entry.domain && (
+            <>
+              <span aria-hidden="true">&middot;</span>
+              <span>{entry.domain}</span>
+            </>
+          )}
         </p>
       </div>
       {!isAuthored && (

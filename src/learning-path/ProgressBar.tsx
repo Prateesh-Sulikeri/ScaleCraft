@@ -3,7 +3,7 @@ export type ProgressBarProps = {
   percent: number;
   /** "sm" for sections, "md" for the course header. */
   size?: "sm" | "md";
-  /** Required, for aria-label — e.g. "Unit 1 progress: 50%". */
+  /** Required, for aria-label — e.g. "Group A progress: 50%". */
   label: string;
   /** CSS color value for the fill. Omit for the deliberately neutral default
    *  (DESIGN.md: a progress bar is not a validation result, so it never uses
