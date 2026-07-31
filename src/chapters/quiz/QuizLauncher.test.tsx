@@ -83,12 +83,12 @@ describe("QuizLauncher", () => {
     expect(screen.queryByText(/attempt/i)).not.toBeInTheDocument();
   });
 
-  it("state 2: attempts remain, not passed -> attempt count + best score + 'Take the quiz'", () => {
+  it("state 2: attempted, not passed -> attempt count + best score + 'Retake the quiz'", () => {
     examAttemptsByDefinition = new Map([["ch-1", [attempt({ attemptNumber: 1, score: 40 })]]]);
     render(<QuizLauncher chapter={makeChapter({ quiz: [makeQuestion()] })} />);
 
-    expect(screen.getByText("Attempt 1 of 3 used · Best score 40%")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Take the quiz" })).toBeInTheDocument();
+    expect(screen.getByText("Attempt 1 · Best score 40%")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retake the quiz" })).toBeInTheDocument();
   });
 
   it("state 3: passed -> 'Passed · X%' + 'View your result', locked", () => {
@@ -99,7 +99,7 @@ describe("QuizLauncher", () => {
     expect(screen.getByRole("button", { name: "View your result" })).toBeInTheDocument();
   });
 
-  it("state 4: exhausted without passing -> attempts-used + best score + 'View your best attempt'", () => {
+  it("state 4: many attempts without passing -> attempt count + best score + 'Retake the quiz', still unlocked", () => {
     examAttemptsByDefinition = new Map([
       [
         "ch-1",
@@ -112,8 +112,8 @@ describe("QuizLauncher", () => {
     ]);
     render(<QuizLauncher chapter={makeChapter({ quiz: [makeQuestion()] })} />);
 
-    expect(screen.getByText("3 of 3 attempts used · Best score 60%")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View your best attempt" })).toBeInTheDocument();
+    expect(screen.getByText("Attempt 3 · Best score 60%")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Retake the quiz" })).toBeInTheDocument();
   });
 
   it("shows the Draft badge for placeholder chapters", () => {

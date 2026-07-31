@@ -33,8 +33,8 @@ type CurriculumProgressStore = {
   hydrating: boolean;
   validationPassedDefinitionIds: Set<string>;
   rowsBySlug: Map<string, CurriculumProgress>;
-  /** Submitted exam attempts, by chapterDefinitionId — up to
-   *  MAX_EXAM_ATTEMPTS entries per chapter, cleared only by resetChapter. */
+  /** Submitted exam attempts, by chapterDefinitionId — unlimited entries per
+   *  chapter until passed, cleared only by resetChapter. */
   examAttemptsByDefinition: Map<string, ExamAttempt[]>;
 
   /** Reads all three Dexie tables into memory. Idempotent, safe to call from
@@ -60,7 +60,7 @@ type CurriculumProgressStore = {
    *  row (the validation-pass record itself) — clearing only the manual flag
    *  would leave deriveStatus's OR immediately re-deriving COMPLETED from the
    *  still-present validation-pass row. Also deletes the chapter's
-   *  examAttempts rows — redo means redo, a fresh MAX_EXAM_ATTEMPTS included.
+   *  examAttempts rows — redo means redo, a fresh set of attempts included.
    *  lastVisitedAt is left untouched, so the chapter reverts to IN_PROGRESS
    *  (they've been there before), not NOT_STARTED. */
   resetChapter: (slug: string, chapterDefinitionId: string | null) => Promise<void>;

@@ -108,7 +108,7 @@ export type ExamQuestionAnswer = {
   correct: boolean;
 };
 
-/** One row per submitted exam attempt — up to MAX_EXAM_ATTEMPTS per chapter
+/** One row per submitted exam attempt — unlimited per chapter until passed
  * (see curriculum/progress.ts). Keyed by [chapterDefinitionId+attemptNumber]
  * since attempt numbers are only unique within their chapter. Replaces the
  * old per-question `QuizProgress` mastery model (schema v8) — the exam-mode
@@ -116,7 +116,7 @@ export type ExamQuestionAnswer = {
  * mastery over time (see .claude/docs/pending-quiz-ui.md addendum). */
 export type ExamAttempt = {
   chapterDefinitionId: string;
-  attemptNumber: 1 | 2 | 3;
+  attemptNumber: number;
   submittedAt: number;
   /** 0-100, rounded — same convention as ProgressSummary.percent. */
   score: number;

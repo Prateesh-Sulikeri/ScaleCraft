@@ -12,7 +12,7 @@ import { evaluateAnswer, type QuizAnswer } from "../quiz/evaluate";
 export function buildAttempt(
   chapter: ChapterDefinition,
   answersByQuestionId: Record<string, QuizAnswer>,
-  attemptNumber: 1 | 2 | 3,
+  attemptNumber: number,
 ): ExamAttempt {
   const quiz = chapter.quiz ?? [];
   const answers: ExamQuestionAnswer[] = quiz.map((question) => {

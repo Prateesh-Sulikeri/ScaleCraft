@@ -15,9 +15,11 @@ beforeEach(async () => {
     hydrating: false,
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(),
+    examAttemptsByDefinition: new Map(),
   });
   await db.curriculumProgress.clear();
   await db.chapterProgress.clear();
+  await db.examAttempts.clear();
 });
 
 beforeAll(() => {

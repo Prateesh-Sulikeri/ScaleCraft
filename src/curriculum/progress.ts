@@ -16,7 +16,6 @@ export type ProgressInputs = {
 };
 
 export const EXAM_PASS_THRESHOLD = 80;
-export const MAX_EXAM_ATTEMPTS = 3;
 
 /** 0 for a chapter with no attempts yet. */
 export function bestExamScore(attempts: readonly ExamAttempt[]): number {
@@ -27,10 +26,9 @@ export function examPassed(attempts: readonly ExamAttempt[]): boolean {
   return bestExamScore(attempts) >= EXAM_PASS_THRESHOLD;
 }
 
-/** Passing locks further attempts immediately; otherwise exhausting
- *  MAX_EXAM_ATTEMPTS without passing locks to "view your best attempt." */
+/** Unlimited retries — passing is the only thing that locks the exam. */
 export function examLocked(attempts: readonly ExamAttempt[]): boolean {
-  return examPassed(attempts) || attempts.length >= MAX_EXAM_ATTEMPTS;
+  return examPassed(attempts);
 }
 
 /** COMPLETED wins over IN_PROGRESS wins over NOT_STARTED. A manual override

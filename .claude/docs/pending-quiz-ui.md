@@ -435,3 +435,14 @@ One branch for the whole pivot (`feature/quiz-exam-mode` or similar, off whateve
 `feature/quiz-components` has landed on by then) rather than the original phase-per-
 branch cadence - unlike Phases 1-6 (each independently shippable), this pivot's steps 1-2
 alone leave the app in a broken intermediate state if merged separately.
+
+## Addendum (2026-07-31) - Unlimited attempts supersedes the 3-attempt cap
+
+The 3-attempt cap above (§"What changes" point 5, `MAX_EXAM_ATTEMPTS = 3`) is removed.
+Attempts are now unlimited until the learner passes (>=80%). `examLocked` is now just
+`examPassed` - passing is the only thing that locks the exam to view-only. Wrong
+answers no longer cost anything; the learner can retake as many times as needed.
+`QuizLauncher` drops the "N of 3 attempts used" copy in favor of "Attempt N · Best
+score X%" while unlocked, and "Retake the quiz" replaces "Take the quiz" once at least
+one attempt exists. `attemptNumber` is typed `number` (was `1 | 2 | 3`) throughout
+(`ExamAttempt`, `buildAttempt`, `ExamShell`).

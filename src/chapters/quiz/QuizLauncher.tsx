@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
-import { bestExamScore, examLocked, examPassed, EXAM_PASS_THRESHOLD, MAX_EXAM_ATTEMPTS } from "@/curriculum/progress";
+import { bestExamScore, examLocked, examPassed, EXAM_PASS_THRESHOLD } from "@/curriculum/progress";
 import { ExamShell } from "../exam/ExamShell";
 import { ExamResults } from "../exam/ExamResults";
 import type { ChapterDefinition } from "@/content/chapters/types";
@@ -22,9 +22,10 @@ type QuizLauncherProps = {
  *
  * Owns the exam lifecycle end to end: launches the full-screen ExamShell,
  * is the only caller of recordExamAttempt on submit, and shows ExamResults
- * either right after submitting or via "View your result" /
- * "View your best attempt" once attempts exist. See
- * .claude/docs/pending-quiz-ui.md addendum for the four-state design.
+ * either right after submitting or via "Retake the quiz" (attempted, not yet
+ * passed) / "View your result" (passed, locked) once attempts exist. Passing
+ * is the only thing that locks the exam - unlimited attempts otherwise. See
+ * .claude/docs/pending-quiz-ui.md addendum for the state design.
  */
 export function QuizLauncher({ chapter }: QuizLauncherProps) {
   const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
@@ -42,7 +43,7 @@ export function QuizLauncher({ chapter }: QuizLauncherProps) {
   const passed = examPassed(attempts);
   const locked = examLocked(attempts);
   const bestAttempt = attempts.reduce<ExamAttempt | null>((acc, a) => (!acc || a.score > acc.score ? a : acc), null);
-  const nextAttemptNumber = (attempts.length + 1) as 1 | 2 | 3;
+  const nextAttemptNumber = attempts.length + 1;
 
   async function handleSubmitted(attempt: ExamAttempt) {
     await recordExamAttempt(attempt);
@@ -77,11 +78,7 @@ export function QuizLauncher({ chapter }: QuizLauncherProps) {
 
       {attempts.length > 0 && (
         <p className="mt-1 text-xs text-foreground/60">
-          {passed
-            ? `Passed · ${best}%`
-            : locked
-              ? `${MAX_EXAM_ATTEMPTS} of ${MAX_EXAM_ATTEMPTS} attempts used · Best score ${best}%`
-              : `Attempt ${attempts.length} of ${MAX_EXAM_ATTEMPTS} used · Best score ${best}%`}
+          {passed ? `Passed · ${best}%` : `Attempt ${attempts.length} · Best score ${best}%`}
         </p>
       )}
 
@@ -90,7 +87,7 @@ export function QuizLauncher({ chapter }: QuizLauncherProps) {
         onClick={locked ? handleViewResult : () => setView("exam")}
         className="mt-3 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-border/40"
       >
-        {locked ? (passed ? "View your result" : "View your best attempt") : "Take the quiz"}
+        {locked ? "View your result" : attempts.length > 0 ? "Retake the quiz" : "Take the quiz"}
       </button>
 
       {view === "exam" && (

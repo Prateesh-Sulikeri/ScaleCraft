@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { ThemeToggle } from "@/app/ThemeToggle";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { ExamAttempt } from "@/persistence/db";
@@ -16,7 +17,7 @@ import { ExamConfirmSubmitDialog } from "./ExamConfirmSubmitDialog";
 
 type ExamShellProps = {
   chapter: ChapterDefinition;
-  attemptNumber: 1 | 2 | 3;
+  attemptNumber: number;
   onSubmitted: (attempt: ExamAttempt) => void;
   onExit: () => void;
 };
@@ -125,14 +126,17 @@ export function ExamShell({ chapter, attemptNumber, onSubmitted, onExit }: ExamS
     >
       <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-3">
         <p className="text-sm font-medium text-foreground">{chapter.title} — exam</p>
-        <button
-          type="button"
-          onClick={handleExit}
-          aria-label="Exit exam"
-          className="rounded-md p-1.5 text-foreground/60 hover:bg-border/40 hover:text-foreground"
-        >
-          <X size={16} />
-        </button>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={handleExit}
+            aria-label="Exit exam"
+            className="rounded-md p-1.5 text-foreground/60 hover:bg-border/40 hover:text-foreground"
+          >
+            <X size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-8">
