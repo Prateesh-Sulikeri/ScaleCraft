@@ -37,6 +37,7 @@ describe("CurriculumSectionList - Data Structure", () => {
               estimatedMinutes: 10,
               difficulty: "foundational",
               prerequisiteSlugs: [],
+              domain: null,
             },
           ],
         },
@@ -58,6 +59,7 @@ describe("CurriculumSectionList - Data Structure", () => {
       estimatedMinutes: 10,
       difficulty: "foundational",
       prerequisiteSlugs: [],
+      domain: null,
     };
 
     expect(chapter.chapterDefinitionId).not.toBeNull();
@@ -73,6 +75,7 @@ describe("CurriculumSectionList - Data Structure", () => {
       estimatedMinutes: 15,
       difficulty: "intermediate",
       prerequisiteSlugs: [],
+      domain: null,
     };
 
     expect(chapter.chapterDefinitionId).toBeNull();
@@ -88,6 +91,7 @@ describe("CurriculumSectionList - Data Structure", () => {
       estimatedMinutes: 10,
       difficulty: "foundational",
       prerequisiteSlugs: [],
+      domain: null,
     };
 
     const unnumbered: CurriculumChapter = {
@@ -99,6 +103,7 @@ describe("CurriculumSectionList - Data Structure", () => {
       estimatedMinutes: 5,
       difficulty: "foundational",
       prerequisiteSlugs: [],
+      domain: null,
     };
 
     expect(numbered.number).toBe("1.1");
@@ -162,6 +167,7 @@ describe("CurriculumSectionList - Data Structure", () => {
       estimatedMinutes: 15,
       difficulty: "intermediate",
       prerequisiteSlugs: [],
+      domain: null,
     };
 
     const expectedPath = `/building-blocks/${chapter.slug}`;

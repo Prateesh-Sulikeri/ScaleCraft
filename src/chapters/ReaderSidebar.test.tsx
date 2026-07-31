@@ -36,6 +36,7 @@ describe("ReaderSidebar - Data & Structure", () => {
               estimatedMinutes: 10,
               difficulty: "foundational",
               prerequisiteSlugs: [],
+              domain: null,
             },
           ],
         },
@@ -90,6 +91,7 @@ describe("ReaderSidebar - Data & Structure", () => {
               estimatedMinutes: 10,
               difficulty: "foundational",
               prerequisiteSlugs: [],
+              domain: null,
             },
             {
               slug: "ch-2",
@@ -100,6 +102,7 @@ describe("ReaderSidebar - Data & Structure", () => {
               estimatedMinutes: 15,
               difficulty: "intermediate",
               prerequisiteSlugs: [],
+              domain: null,
             },
           ],
         },
