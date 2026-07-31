@@ -81,7 +81,7 @@ function CurriculumSectionListRow({
     <li>
       {isAuthored ? (
         <Link
-          href={`/${courseId}/${entry.slug}`}
+          href={`/${courseId}/${entry.slug}/lesson`}
           aria-current={isCurrent ? "page" : undefined}
           className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 transition-colors hover:bg-border/40 ${
             isCurrent ? "bg-border/60" : ""
