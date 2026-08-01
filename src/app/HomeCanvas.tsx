@@ -24,37 +24,43 @@ export type ModeNodeData = {
    * complete, so no status to report. */
   status?: "not started" | "in progress" | "complete";
   /** "x / y" chapters, e.g. "7 / 26" — shown small and muted alongside
-   * `status`. Home is a mode chooser, not a dashboard, so no progress bar
-   * here (that's the Learning Path's job). Always set together with
-   * `status`. */
+   * `status`. Always set together with `status`. */
   progressLabel?: string;
+  /** 0-100, drives ModeNode's course-level ProgressBar (DESIGN.md's
+   * Progress-Is-Not-Validation exception: a *course*-level bar may use the
+   * mode's own identity color, unlike section-level bars elsewhere in the
+   * app). Omitted for Sandbox alongside `status`, for the same reason. */
+  percent?: number;
 };
 export type ModeNodeType = Node<ModeNodeData, "mode">;
 export type TitleNodeType = Node<Record<string, never>, "title">;
 
 const nodeTypes = { mode: ModeNode, title: HomeTitleNode };
 
-const MODE_NODE_WIDTH = 260;
+const MODE_NODE_WIDTH = 300;
 const MODE_ROW = [
   { id: "building-blocks" as const, x: 0, href: "/building-blocks" },
-  { id: "real-world-extraction" as const, x: 320, href: "/real-world-extraction" },
-  { id: "sandbox" as const, x: 640, href: "/sandbox" },
+  { id: "real-world-extraction" as const, x: 336, href: "/real-world-extraction" },
+  { id: "sandbox" as const, x: 672, href: "/sandbox" },
 ];
 const MODE_ROW_CENTER_X = (MODE_ROW[MODE_ROW.length - 1].x + MODE_NODE_WIDTH) / 2;
 
-function courseProgress(courseId: CourseId, inputs: ProgressInputs): Pick<ModeNodeData, "status" | "progressLabel"> {
+function courseProgress(
+  courseId: CourseId,
+  inputs: ProgressInputs,
+): Pick<ModeNodeData, "status" | "progressLabel" | "percent"> {
   const summary = summarizeCourse(getCourse(courseId), inputs);
   const status = summary.percent === 0 ? "not started" : summary.percent === 100 ? "complete" : "in progress";
-  return { status, progressLabel: `${summary.completed} / ${summary.total}` };
+  return { status, progressLabel: `${summary.completed} / ${summary.total}`, percent: summary.percent };
 }
 
-// Content spans roughly x:[0,900] y:[-200,150] (mode row + title, see layout
+// Content spans roughly x:[0,972] y:[-160,280] (mode row + title, see layout
 // below); this pads that out so panning still feels free without letting a
 // user scroll into empty space indefinitely — this is a fixed, small
 // composition, not an open canvas like Sandbox's.
 const HOME_TRANSLATE_EXTENT: [[number, number], [number, number]] = [
-  [-350, -550],
-  [1250, 500],
+  [-350, -510],
+  [1322, 630],
 ];
 
 /**
@@ -121,7 +127,7 @@ export function HomeCanvas() {
       {
         id: "title",
         type: "title",
-        position: { x: MODE_ROW_CENTER_X - HOME_TITLE_NODE_WIDTH / 2, y: -200 },
+        position: { x: MODE_ROW_CENTER_X - HOME_TITLE_NODE_WIDTH / 2, y: -160 },
         draggable: false,
         focusable: false,
         selectable: false,

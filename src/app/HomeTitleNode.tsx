@@ -21,13 +21,13 @@ const NODE_WIDTH = 420;
  */
 export function HomeTitleNode() {
   return (
-    <div style={{ width: NODE_WIDTH }} className="flex flex-col items-center gap-3">
+    <div style={{ width: NODE_WIDTH }} className="flex flex-col items-center gap-4">
       <div className="flex items-center gap-3">
         <div
           aria-hidden="true"
           style={{
-            width: 44,
-            height: 44,
+            width: 38,
+            height: 38,
             backgroundColor: "var(--foreground)",
             WebkitMaskImage: "url(/logo-mask.png)",
             maskImage: "url(/logo-mask.png)",
@@ -37,9 +37,17 @@ export function HomeTitleNode() {
             maskRepeat: "no-repeat",
           }}
         />
-        <span className="text-5xl font-semibold tracking-tight">ScaleCraft</span>
+        <span className="text-4xl font-semibold tracking-tight">ScaleCraft</span>
       </div>
-      <h2 className="text-md text-foreground/60">Design real systems. Understand every trade-off.</h2>
+      <h2 className="text-sm text-foreground/50">Design real systems. Understand every trade-off.</h2>
+
+      {/* A restrained blueprint measurement line under the hero, echoing the
+       * dimension-line divider on each mode card below - decorative only. */}
+      <div aria-hidden="true" className="flex w-40 items-center gap-1.5 pt-1">
+        <span className="h-1.5 w-px bg-[color:var(--border)]" />
+        <span className="h-px flex-1 bg-[color:var(--border)]" />
+        <span className="h-1.5 w-px bg-[color:var(--border)]" />
+      </div>
     </div>
   );
 }
