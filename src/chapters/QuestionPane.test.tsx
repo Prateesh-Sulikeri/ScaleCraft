@@ -1,11 +1,33 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { QuestionPane } from "./QuestionPane";
 import { CanvasStoreProvider, useCanvasStoreApi } from "@/canvas/store";
-import type { ChapterDefinition, Hint, Blueprint } from "@/content/chapters/types";
+import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+import type { ChapterDefinition, Hint, Blueprint, QuizQuestion } from "@/content/chapters/types";
 import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
 import type { ValidationViolation } from "@/validation-engine/types";
 import type { ComponentNodeType } from "@/canvas/types";
+import type { CurriculumChapter } from "@/curriculum/types";
+
+const push = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+}));
+
+function makeEntry(overrides: Partial<CurriculumChapter> = {}): CurriculumChapter {
+  return {
+    slug: "1-2-load-balancing",
+    number: "1.2",
+    title: "Load Balancing",
+    kind: "chapter",
+    chapterDefinitionId: "ch-1",
+    estimatedMinutes: 35,
+    difficulty: "foundational",
+    prerequisiteSlugs: [],
+    domain: null,
+    ...overrides,
+  };
+}
 
 function makeOutcome(overrides: Partial<ChapterOutcome> = {}): ChapterOutcome {
   return {
@@ -38,23 +60,36 @@ function makeChapter(overrides: Partial<ChapterDefinition> = {}): ChapterDefinit
 
 const hint: Hint = { id: "hint-1", body: "Try adding a load balancer." };
 
+function makeQuestion(overrides: Partial<QuizQuestion> = {}): QuizQuestion {
+  return {
+    id: "q1",
+    kind: "single",
+    difficulty: 1,
+    prompt: "What is a load balancer for?",
+    options: [{ id: "a", label: "Distributes traffic", explanationMd: "Correct.", correct: true }],
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  useCurriculumProgressStore.setState({ examAttemptsByDefinition: new Map() });
+});
+
 /** Seeds the shared canvas store with component nodes before rendering
  * QuestionPane inside it — QuestionPane reads `nodes` via useCanvasStore to
  * compute the required-components progress line. */
 function Harness({
   chapter,
   nodes,
-  onBack = vi.fn(),
-  onPrev,
-  onNext,
+  entry = makeEntry(),
+  status = "NOT_STARTED",
   chapterOutcome = null,
   isStale = false,
 }: {
   chapter: ChapterDefinition;
   nodes: ComponentNodeType[];
-  onBack?: () => void;
-  onPrev?: () => void;
-  onNext?: () => void;
+  entry?: CurriculumChapter;
+  status?: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
   chapterOutcome?: ChapterOutcome | null;
   isStale?: boolean;
 }) {
@@ -63,9 +98,8 @@ function Harness({
   return (
     <QuestionPane
       chapter={chapter}
-      onBack={onBack}
-      onPrev={onPrev}
-      onNext={onNext}
+      entry={entry}
+      status={status}
       chapterOutcome={chapterOutcome}
       isStale={isStale}
     />
@@ -293,6 +327,46 @@ describe("QuestionPane", () => {
     });
   });
 
+  describe("'Knowledge check remaining' note (exam-mode)", () => {
+    it("shows the note when the build passed but the chapter's exam isn't passed yet", () => {
+      const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" }), makeQuestion({ id: "q2" })] });
+      useCurriculumProgressStore.setState({
+        examAttemptsByDefinition: new Map([
+          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [] }]],
+        ]),
+      });
+      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
+
+      expect(screen.getByText("Knowledge check remaining.")).toBeInTheDocument();
+    });
+
+    it("omits the note once the exam is passed", () => {
+      const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" })] });
+      useCurriculumProgressStore.setState({
+        examAttemptsByDefinition: new Map([
+          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 80, answers: [] }]],
+        ]),
+      });
+      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
+
+      expect(screen.queryByText("Knowledge check remaining.")).not.toBeInTheDocument();
+    });
+
+    it("omits the note when the chapter has no quiz at all", () => {
+      const chapter = makeChapter({ id: "ch-1", quiz: undefined });
+      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
+
+      expect(screen.queryByText("Knowledge check remaining.")).not.toBeInTheDocument();
+    });
+
+    it("omits the note when the build hasn't passed, even with an unmastered quiz", () => {
+      const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" })] });
+      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: false }) });
+
+      expect(screen.queryByText("Knowledge check remaining.")).not.toBeInTheDocument();
+    });
+  });
+
   describe("hints (never auto-surfaced)", () => {
     it("renders a 'Show hint' disclosure, not the hint body, until the user reveals it", () => {
       renderQuestionPane({ chapter: makeChapter({ hints: [hint] }), nodes: [] });
@@ -349,34 +423,14 @@ describe("QuestionPane", () => {
     expect(screen.queryByText(/further reading/i)).not.toBeInTheDocument();
   });
 
-  describe("navigation", () => {
-    it("calls onBack when 'All chapters' is clicked", () => {
-      const onBack = vi.fn();
-      renderQuestionPane({ chapter: makeChapter(), nodes: [], onBack });
-      fireEvent.click(screen.getByRole("button", { name: /all chapters/i }));
-      expect(onBack).toHaveBeenCalledTimes(1);
+  it("shows the entry's difficulty and the current status next to the title", () => {
+    renderQuestionPane({
+      chapter: makeChapter(),
+      nodes: [],
+      entry: makeEntry({ difficulty: "advanced" }),
+      status: "IN_PROGRESS",
     });
-
-    it("disables Previous/Next when no handler is supplied (first/last chapter)", () => {
-      renderQuestionPane({ chapter: makeChapter(), nodes: [] });
-      expect(screen.getByRole("button", { name: /previous chapter/i })).toBeDisabled();
-      expect(screen.getByRole("button", { name: /next chapter/i })).toBeDisabled();
-    });
-
-    it("enables and wires Previous/Next when handlers are supplied", () => {
-      const onPrev = vi.fn();
-      const onNext = vi.fn();
-      renderQuestionPane({ chapter: makeChapter(), nodes: [], onPrev, onNext });
-
-      const prevBtn = screen.getByRole("button", { name: /previous chapter/i });
-      const nextBtn = screen.getByRole("button", { name: /next chapter/i });
-      expect(prevBtn).toBeEnabled();
-      expect(nextBtn).toBeEnabled();
-
-      fireEvent.click(prevBtn);
-      fireEvent.click(nextBtn);
-      expect(onPrev).toHaveBeenCalledTimes(1);
-      expect(onNext).toHaveBeenCalledTimes(1);
-    });
+    expect(screen.getByText("advanced")).toBeInTheDocument();
+    expect(screen.getByText("In progress")).toBeInTheDocument();
   });
 });

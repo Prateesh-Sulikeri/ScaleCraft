@@ -1,5 +1,5 @@
-import { ChapterWorkspace } from "@/chapters/ChapterWorkspace";
+import { LearningPath } from "@/learning-path/LearningPath";
 
 export default function RealWorldExtractionPage() {
-  return <ChapterWorkspace mode="real-world-extraction" />;
+  return <LearningPath courseId="real-world-extraction" />;
 }

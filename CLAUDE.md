@@ -68,7 +68,12 @@ don't).
   closer to a self-paced course than a shared workspace. Never let persistence or graph
   state design pay a tax for eventual collaborative editing — it isn't coming.
 - Not a game: no scoring theatrics, no decorative animation. Motion communicates state
-  only.
+  only. The one exception: chapter exams (`.claude/docs/QUIZ_FRAMEWORK.md` §1) show a
+  real score, pass/fail line, and attempt count against an 80% threshold — that's
+  completion-gating information, not theater, and it renders with no points, streaks,
+  badges, or celebration animation. Confirmed with the user (2026-07-31 pivot from an
+  earlier unlimited-retry/no-scoring model, see `.claude/docs/pending-quiz-ui.md`
+  addendum).
 
 ## Working conventions for this repo
 
@@ -171,3 +176,9 @@ This project has a live knowledge graph at `graphify-out/` with 758 nodes, 1214 
 - `graphify-out/graph.html` — visual explorer (open in browser for interactive browsing)
 - `graphify-out/GRAPH_REPORT.md` — fallback for full architecture review only
 - `.git/hooks/post-commit` + `post-checkout` — auto-update hooks (installed by `graphify hook install`)
+
+
+## Personal preference
+- when writing and content please do not use the em '—' using the norma '-' instead or all-together don't use it if possible
+- I have long lenghty comments, keep them short, bried to the point 
+- After finish a task perform only the normal CI pipeline verification, I will specifcally ask you to do an e-2-e test whenever I need you to. 

@@ -2,8 +2,8 @@ import type { ChapterDefinition } from "./types";
 
 /**
  * Throwaway placeholder content — one dummy chapter per chapter mode, just
- * enough to exercise the Phase 5 shell (ChapterWorkspace/ChapterSidebar/
- * ChapterList/QuestionPane) end to end. This is NOT real curriculum
+ * enough to exercise the chapter shell (ChapterWorkspace/ChapterSidebar/
+ * ChapterNavigator/QuestionPane) end to end. This is NOT real curriculum
  * content: the actual Building Blocks / RWE chapters (per
  * .claude/docs/CURRICULUM.md) are Step 5/6 in .claude/docs/NEXT_STEPS.md,
  * authored once the stronger validation agent (Step 3) exists to back
@@ -78,6 +78,36 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
     readingLinks: [],
+    // Placeholder, same convention as the rest of this fixture — but real
+    // enough to exercise Deep Check's Building Blocks framing (§10.7) end
+    // to end. Approximates CURRICULUM.md's 3.4 Load Balancer entry, which
+    // this chapter stands in for per this file's own header comment.
+    curriculumContext: {
+      position: "Building Blocks, Group A: Core Infrastructure — Chapter 3.4 of 44 (placeholder).",
+      masteredConcepts: [
+        "Networking fundamentals and the trust perimeter (3.1)",
+        "DNS resolution and the reverse proxy's single-front-door pattern (3.2-3.3)",
+      ],
+      notYetIntroducedConcepts: [
+        "Statelessness and session externalization (Group B)",
+        "Distributed caching (Group D)",
+        "Read replicas and data-layer scaling (Group C)",
+        "Any queue/async/coordination concepts (Groups E-G)",
+      ],
+      simplifications: [
+        "One load balancer in front of two app servers is the whole lesson — no health-check tuning, no multi-region failover.",
+        "Balancing algorithm choice (round-robin vs. least-connections) is a config decision here, not a performance-tuning exercise.",
+      ],
+    },
+    // A single unconnected node, not the solved blueprint — a starter graph
+    // that already satisfied the required-components/blueprint check would
+    // hand the exercise to the learner solved. Just enough that opening the
+    // chapter for the first time doesn't drop the learner on a blank canvas.
+    starterGraph: {
+      nodes: [{ id: "bb-dummy-1-starter-client", componentId: "client", position: { x: 80, y: 120 }, config: {} }],
+      edges: [],
+      entryPointIds: [],
+    },
   },
   {
     id: "rwe-dummy-1",
@@ -85,9 +115,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     title: "Placeholder Project",
     placeholder: true,
     problemStatement:
-      "This is placeholder content for the first Real World Extraction project " +
-      "(bit.ly, per CURRICULUM.md's RWE-1) — real content lands in a later step. " +
-      "For now, this exists only to prove the chapter shell works in this mode too.",
+      "This is placeholder content for Real World Extraction Tier 1's Bitly project " +
+      "(per CURRICULUM.md §15.2) — real content lands in a later step. For now, this " +
+      "exists only to prove the chapter shell works in this mode too.",
     learningObjectives: ["Placeholder objective — real objectives arrive with real content."],
     availableComponentIds: ["client", "load-balancer", "app-server", "sql-database", "cache"],
     requiredComponentIds: ["client", "app-server", "sql-database"],
@@ -97,6 +127,12 @@ export const chapterRegistry: ChapterDefinition[] = [
     blueprints: [],
     hints: [],
     readingLinks: [],
+    // Same reasoning as bb-dummy-1's starterGraph above.
+    starterGraph: {
+      nodes: [{ id: "rwe-dummy-1-starter-client", componentId: "client", position: { x: 80, y: 120 }, config: {} }],
+      edges: [],
+      entryPointIds: [],
+    },
   },
 ];
 

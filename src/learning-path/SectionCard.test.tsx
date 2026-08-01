@@ -1,0 +1,91 @@
+import "fake-indexeddb/auto";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { SectionCard } from "./SectionCard";
+import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+import { db } from "@/persistence/db";
+import type { CurriculumSection } from "@/curriculum/types";
+import type { ProgressInputs } from "@/curriculum/progress";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+const section: CurriculumSection = {
+  id: "bb-unit-1",
+  label: "Unit 1",
+  title: "Scaling Compute",
+  summary: "Test summary for scaling compute.",
+  chapters: [
+    {
+      slug: "1-1-vertical-vs-horizontal-scaling",
+      number: "1.1",
+      title: "Vertical vs. Horizontal Scaling",
+      kind: "chapter",
+      chapterDefinitionId: null,
+      estimatedMinutes: 20,
+      difficulty: "foundational",
+      prerequisiteSlugs: [],
+      domain: null,
+    },
+    {
+      slug: "1-2-load-balancing",
+      number: "1.2",
+      title: "Load Balancing",
+      kind: "chapter",
+      chapterDefinitionId: "bb-dummy-1",
+      estimatedMinutes: 35,
+      difficulty: "foundational",
+      prerequisiteSlugs: ["1-1-vertical-vs-horizontal-scaling"],
+      domain: null,
+    },
+  ],
+};
+
+function inputs(overrides: Partial<ProgressInputs> = {}): ProgressInputs {
+  return {
+    validationPassedDefinitionIds: new Set(),
+    rowsBySlug: new Map(),
+    examAttemptsByDefinition: new Map(),
+    ...overrides,
+  };
+}
+
+beforeEach(async () => {
+  useCurriculumProgressStore.setState({
+    hydrated: false,
+    hydrating: false,
+    validationPassedDefinitionIds: new Set(),
+    rowsBySlug: new Map(),
+    examAttemptsByDefinition: new Map(),
+  });
+  await db.curriculumProgress.clear();
+});
+
+describe("SectionCard", () => {
+  it("defaults to expanded, showing the full title/summary and every chapter row", () => {
+    render(<SectionCard section={section} courseId="building-blocks" inputs={inputs()} />);
+    expect(screen.getByRole("button", { name: /unit 1/i })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Scaling Compute")).toBeInTheDocument();
+    expect(screen.getByText("Test summary for scaling compute.")).toBeInTheDocument();
+    expect(screen.getByText("Vertical vs. Horizontal Scaling")).toBeInTheDocument();
+    expect(screen.getByText("Load Balancing")).toBeInTheDocument();
+  });
+
+  it("collapses on click, hiding the title/summary and chapter rows but keeping the header line", () => {
+    render(<SectionCard section={section} courseId="building-blocks" inputs={inputs()} />);
+    fireEvent.click(screen.getByRole("button", { name: /unit 1/i }));
+
+    expect(screen.getByRole("button", { name: /unit 1/i })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Scaling Compute")).not.toBeInTheDocument();
+    expect(screen.queryByText("Load Balancing")).not.toBeInTheDocument();
+  });
+
+  it("shows the section's own progress count, derived from its chapters", () => {
+    const validationPassedDefinitionIds = new Set(["bb-dummy-1"]);
+    render(
+      <SectionCard section={section} courseId="building-blocks" inputs={inputs({ validationPassedDefinitionIds })} />,
+    );
+    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+  });
+});

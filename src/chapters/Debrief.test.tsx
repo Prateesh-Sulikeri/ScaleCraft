@@ -64,6 +64,7 @@ describe("Debrief", () => {
     render(<Debrief blueprints={[cacheAside]} matchedBlueprintId={null} />);
     fireEvent.click(screen.getByRole("button", { name: /debrief/i }));
 
-    expect(screen.getByText(/Application Server.*Cache/)).toBeInTheDocument();
+    expect(screen.getByText("Application Server")).toBeInTheDocument();
+    expect(screen.getByText("Cache")).toBeInTheDocument();
   });
 });

@@ -1,9 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
-import type { ComponentProps } from "react";
-import { ChapterSidebar } from "./ChapterSidebar";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 import { CanvasStoreProvider } from "@/canvas/store";
 import type { ChapterDefinition } from "@/content/chapters/types";
+import type { CurriculumChapter } from "@/curriculum/types";
 import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
 
 function makeOutcome(overrides: Partial<ChapterOutcome> = {}): ChapterOutcome {
@@ -35,135 +34,105 @@ function makeChapter(overrides: Partial<ChapterDefinition> = {}): ChapterDefinit
   };
 }
 
-const chapters = [
-  makeChapter({ id: "a", title: "Alpha" }),
-  makeChapter({ id: "b", title: "Beta" }),
-  makeChapter({ id: "c", title: "Gamma" }),
-];
-
-// QuestionPane (rendered once a chapter is selected) reads from the canvas
-// store via useCanvasStore, so every render needs a real provider — a
-// deliberately thin wrapper, not a mock, since exercising the real
-// ChapterList <-> QuestionPane switch is the point of this component.
-function renderSidebar(props: Partial<ComponentProps<typeof ChapterSidebar>> = {}) {
-  const defaults: ComponentProps<typeof ChapterSidebar> = {
-    chapters,
-    selectedChapterId: null,
-    onSelect: vi.fn(),
-    onBack: vi.fn(),
-    chapterOutcome: null,
-    isStale: false,
+function makeEntry(overrides: Partial<CurriculumChapter> = {}): CurriculumChapter {
+  return {
+    slug: "a",
+    number: "1.1",
+    title: "Alpha",
+    kind: "chapter",
+    chapterDefinitionId: "ch-1",
+    estimatedMinutes: 10,
+    difficulty: "foundational",
+    prerequisiteSlugs: [],
+    domain: null,
+    ...overrides,
   };
+}
+
+const entryA = makeEntry({ slug: "a", title: "Alpha", chapterDefinitionId: "ch-1" });
+
+vi.mock("@/content/chapters", () => ({
+  chapterRegistry: [makeChapter({ id: "ch-1", title: "Chapter One" })],
+}));
+
+const findEntryMock = vi.fn((_courseId: string, slug: string) => (slug === "a" ? entryA : undefined));
+vi.mock("@/curriculum", () => ({
+  findEntry: (courseId: string, slug: string) => findEntryMock(courseId, slug),
+}));
+
+vi.mock("@/curriculum/progress-store", () => ({
+  useCurriculumProgressStore: (selector: (s: Record<string, unknown>) => unknown) =>
+    selector({
+      validationPassedDefinitionIds: new Set<string>(),
+      rowsBySlug: new Map(),
+      examAttemptsByDefinition: new Map(),
+    }),
+}));
+
+const routerPushMock = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: routerPushMock }),
+}));
+
+const { ChapterSidebar } = await import("./ChapterSidebar");
+
+beforeEach(() => {
+  routerPushMock.mockClear();
+});
+
+function renderSidebar(overrides: { chapterOutcome?: ChapterOutcome | null; isStale?: boolean } = {}) {
   return render(
     <CanvasStoreProvider>
-      <ChapterSidebar {...defaults} {...props} />
+      <ChapterSidebar
+        courseId="building-blocks"
+        chapterSlug="a"
+        chapterOutcome={overrides.chapterOutcome ?? null}
+        isStale={overrides.isStale ?? false}
+      />
     </CanvasStoreProvider>,
   );
 }
 
 describe("ChapterSidebar", () => {
-  it("renders the ChapterList view when no chapter is selected", () => {
-    renderSidebar({ selectedChapterId: null });
-    expect(screen.getByText("Alpha")).toBeInTheDocument();
-    expect(screen.getByText("Beta")).toBeInTheDocument();
-    // QuestionPane's "All chapters" back link should not be present.
-    expect(screen.queryByRole("button", { name: /all chapters/i })).not.toBeInTheDocument();
+  it("renders QuestionPane for the chapter the route slug resolves to", () => {
+    renderSidebar();
+    expect(screen.getByRole("heading", { name: "Chapter One" })).toBeInTheDocument();
   });
 
-  it("renders the QuestionPane view for the selected chapter", () => {
-    renderSidebar({ selectedChapterId: "b" });
-    expect(screen.getByRole("heading", { name: "Beta" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /all chapters/i })).toBeInTheDocument();
-  });
-
-  it("falls back to the ChapterList view when selectedChapterId matches no chapter", () => {
-    renderSidebar({ selectedChapterId: "does-not-exist" });
-    expect(screen.getByText("Alpha")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /all chapters/i })).not.toBeInTheDocument();
-  });
-
-  it("wires prev/next to the chapter immediately before/after the selected one", () => {
-    const onSelect = vi.fn();
-    renderSidebar({ selectedChapterId: "b", onSelect });
-
-    fireEvent.click(screen.getByRole("button", { name: /previous chapter/i }));
-    expect(onSelect).toHaveBeenCalledWith("a");
-
-    fireEvent.click(screen.getByRole("button", { name: /next chapter/i }));
-    expect(onSelect).toHaveBeenCalledWith("c");
-  });
-
-  it("disables Previous on the first chapter and Next on the last", () => {
-    const { rerender } = render(
+  it("renders nothing when the slug resolves to no ChapterDefinition", () => {
+    const { container } = render(
       <CanvasStoreProvider>
-        <ChapterSidebar
-          chapters={chapters}
-          selectedChapterId="a"
-          onSelect={vi.fn()}
-          onBack={vi.fn()}
-          chapterOutcome={null}
-          isStale={false}
-        />
+        <ChapterSidebar courseId="building-blocks" chapterSlug="does-not-exist" chapterOutcome={null} isStale={false} />
       </CanvasStoreProvider>,
     );
-    expect(screen.getByRole("button", { name: /previous chapter/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /next chapter/i })).toBeEnabled();
-
-    rerender(
-      <CanvasStoreProvider>
-        <ChapterSidebar
-          chapters={chapters}
-          selectedChapterId="c"
-          onSelect={vi.fn()}
-          onBack={vi.fn()}
-          chapterOutcome={null}
-          isStale={false}
-        />
-      </CanvasStoreProvider>,
-    );
-    expect(screen.getByRole("button", { name: /next chapter/i })).toBeDisabled();
-  });
-
-  it("forwards onSelect from ChapterList when a chapter row is clicked", () => {
-    const onSelect = vi.fn();
-    renderSidebar({ selectedChapterId: null, onSelect });
-    fireEvent.click(screen.getByText("Alpha"));
-    expect(onSelect).toHaveBeenCalledWith("a");
-  });
-
-  it("forwards onBack from QuestionPane's 'All chapters' button", () => {
-    const onBack = vi.fn();
-    renderSidebar({ selectedChapterId: "a", onBack });
-    fireEvent.click(screen.getByRole("button", { name: /all chapters/i }));
-    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("shows QuestionPane's 'Not yet validated' when isStale is true even with prior violations", () => {
-    const chaptersWithRequirement = [makeChapter({ id: "a", title: "Alpha", requiredComponentIds: ["client"] })];
-    render(
-      <CanvasStoreProvider>
-        <ChapterSidebar
-          chapters={chaptersWithRequirement}
-          selectedChapterId="a"
-          onSelect={vi.fn()}
-          onBack={vi.fn()}
-          chapterOutcome={makeOutcome({
-            violations: [
-              {
-                ruleId: "r1",
-                severity: "error",
-                message: "Bad",
-                explanation: "Because reasons.",
-                offendingNodeIds: [],
-                offendingEdgeIds: [],
-              },
-            ],
-            errorCount: 1,
-          })}
-          isStale={true}
-        />
-      </CanvasStoreProvider>,
-    );
+    renderSidebar({
+      isStale: true,
+      chapterOutcome: makeOutcome({
+        violations: [
+          {
+            ruleId: "r1",
+            severity: "error",
+            message: "Bad",
+            explanation: "Because reasons.",
+            offendingNodeIds: [],
+            offendingEdgeIds: [],
+          },
+        ],
+        errorCount: 1,
+      }),
+    });
     expect(screen.getByText(/not yet validated/i)).toBeInTheDocument();
+  });
+
+  it("links back to the chapter's Reader, not a curriculum browser", () => {
+    renderSidebar();
+    const link = screen.getByRole("link", { name: /back to lesson/i });
+    expect(link).toHaveAttribute("href", "/building-blocks/a/lesson");
+    expect(screen.queryByRole("button", { name: /curriculum/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /learning path/i })).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "scalecraft",
-  "version": "2.1.0-alpha",
+  "version": "3.0.0-alpha",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -26,6 +26,7 @@
     "clsx": "^2.1.1",
     "dexie": "^4.4.4",
     "drizzle-orm": "^0.45.2",
+    "github-slugger": "^2.0.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.24.0",
     "mermaid": "^11.16.0",

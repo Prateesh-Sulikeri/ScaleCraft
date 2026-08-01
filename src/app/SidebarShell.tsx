@@ -13,11 +13,9 @@ type SidebarShellProps = {
 
 /**
  * Generic collapsible + resizable left `<aside>` chrome — Home link,
- * collapse toggle, 220-480px drag-resize, width transition — extracted
- * verbatim (behavior-wise) from the pre-Component-Picker QuestionPanel
- * (see git history at a2c4846~1) so chapter mode's ChapterSidebar can reuse
- * it. Content-agnostic: takes `children` instead of baking in Sandbox's old
- * intro text + Palette.
+ * collapse toggle, 220-480px drag-resize, the same width-transition +
+ * opacity-fade pattern the old QuestionPanel established. Content-agnostic:
+ * takes `children` instead of baking in Sandbox's old intro text + Palette.
  */
 export function SidebarShell({ children }: SidebarShellProps) {
   const [collapsed, setCollapsed] = useState(false);

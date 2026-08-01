@@ -54,9 +54,8 @@ instead of getting nothing — see `canvas/legal-edge-kinds.ts`.
 type ChapterDefinition = {
   id: string;
   mode: "building-blocks" | "real-world-extraction";  // sandbox has no chapter def
-  title: string;                     // short Chapter List display name
-  group?: string;                    // optional one-level Chapter List section
-  placeholder?: boolean;             // true = throwaway/dummy content, muted + captioned in Chapter List
+  title: string;                     // short display name (workspace Question Pane heading)
+  placeholder?: boolean;             // true = throwaway/dummy content, Draft-badged in the Question Pane
   problemStatement: string;
   learningObjectives: string[];
   availableComponentIds: string[];   // subset of the global registry
@@ -77,6 +76,50 @@ type ChapterDefinition = {
 Note `readingLinks` is deliberately just `{ label, url }` — per the resolved question on
 the textbook relationship, ScaleCraft does not consume or version against the textbook's
 content. It only ever points at it.
+
+### Curriculum manifest vs. ChapterDefinition
+
+Two distinct types, easy to conflate, that a future agent will most likely get wrong —
+written down here specifically to prevent that:
+
+- **`CurriculumChapter`** (`src/curriculum/types.ts`) is the curriculum *map*: one row
+  per lesson named in `.claude/docs/CURRICULUM.md` §13, whether or not it's been
+  authored yet. It's what `src/curriculum/manifest.ts` transcribes wholesale — every
+  Building Blocks unit and Real World Extraction project, 31 entries total, most with
+  `chapterDefinitionId: null`. It's a stable, content-free identity: slug (the route
+  segment and the persistence key), number, title, difficulty, estimated minutes,
+  prerequisites. It never contains a problem statement, hints, or a starter graph.
+- **`ChapterDefinition`** (`src/content/chapters/types.ts`, above) is the authored
+  *lesson* itself — the content a `CurriculumChapter` points at once it exists. Only
+  entries with a non-null `chapterDefinitionId` have one.
+
+The relationship is a foreign key, not inheritance: a `CurriculumChapter`'s
+`chapterDefinitionId` names the `ChapterDefinition.id` it's backed by (or `null` — see
+`src/curriculum/manifest.ts`'s doc comment for the two that resolve today).
+`src/curriculum/index.ts`'s `slugForChapterDefinitionId` is the reverse lookup, used
+where something is keyed by definition id (a validation pass) but needs attributing to
+a curriculum slug (progress tracking, navigation).
+
+**What reads which:** the Learning Path (`src/learning-path/`) and the in-workspace
+`ChapterNavigator` (`src/chapters/ChapterNavigator.tsx`) read the curriculum manifest —
+they render every entry, authored or not, and gate interactivity on
+`chapterDefinitionId !== null`. `ChapterWorkspace` reads a `ChapterDefinition` (resolved
+from the route's `chapterSlug` via `findEntry` + a `chapterRegistry` lookup) — it never
+reads the manifest for its own content, only to resolve which definition to load and to
+compute curriculum-order prev/next (`adjacentAuthoredEntries`, which skips unauthored
+entries by design). Authoring milestone 7's real chapters is therefore two independent
+steps that must both happen, not one: write the `ChapterDefinition`, then flip that
+entry's `chapterDefinitionId` in the manifest from `null` to the new id. Neither one
+alone is enough — a `ChapterDefinition` with no manifest entry pointing at it is
+unreachable from any route; a manifest entry with a bad or missing id 404s
+(`[chapterSlug]/page.tsx`'s route guard).
+
+Progress itself is tracked per curriculum slug (`src/persistence/db.ts`'s
+`CurriculumProgress` table, keyed by `CurriculumChapter.slug`), separate from
+`chapterProgress` (keyed by `ChapterDefinition.id`, written when `evaluateChapter`
+reports a pass) — see `src/curriculum/progress.ts`'s `deriveStatus`, which merges both
+into one `ChapterStatus`. Two tables, two distinct facts (what the learner did vs. what
+validation proved), one derivation — never read as duplicated state.
 
 ### Architecture Graph
 

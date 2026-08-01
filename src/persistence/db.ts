@@ -1,15 +1,16 @@
-import Dexie, { type EntityTable } from "dexie";
+import Dexie, { type EntityTable, type Table } from "dexie";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import type { CustomComponentRecord } from "@/content/components/custom";
 import type { AiSettings } from "@/ai/settings";
 import type { AiCritique } from "@/ai/schema";
+import type { QuizAnswer } from "@/chapters/quiz/evaluate";
 
 /**
  * Local-first persistence — see .claude/docs/ARCHITECTURE.md "Persistence"
- * and milestone 8 in MILESTONES.md. This pulls forward just the "a refresh
- * doesn't lose work" core: a manual Save writes here, and the app restores
- * from it on load. Full autosave-on-every-edit and cloud sync (milestone 9)
- * remain deferred.
+ * and milestones 8-9 in MILESTONES.md. A manual Save writes here, debounced
+ * autosave-on-edit (see persistence/use-autosave.ts) also writes here, and
+ * the app restores from it on load. Cloud sync (milestone 10) remains
+ * deferred.
  *
  * Stores the raw canvas state (nodes/edges as the canvas store holds them),
  * not the domain ArchitectureGraph — zones aren't part of ArchitectureGraph
@@ -78,6 +79,50 @@ export type AiActiveProfile = {
   profileId: string | null;
 };
 
+/** Learner-owned curriculum state, keyed by curriculum slug
+ * (src/curriculum/manifest.ts). Deliberately SEPARATE from `chapterProgress`:
+ * that table records what the *validation engine* proved (keyed by
+ * ChapterDefinition id); this one records what the *learner* did (an explicit
+ * manual completion, and when they last opened the chapter). Two distinct
+ * facts with two distinct writers — ChapterStatus is derived from both by
+ * curriculum/progress.ts's deriveStatus, which is the single place the two
+ * are ever combined. Keyed by slug rather than definition id because an
+ * unauthored chapter has no definition id but can still be manually marked
+ * complete (a learner who read the chapter in the PDF). */
+export type CurriculumProgress = {
+  slug: string;
+  /** Learner's explicit "Mark complete" toggle. null = not manually completed. */
+  manuallyCompletedAt: number | null;
+  /** Last time the learner opened this chapter's workspace. Drives
+   * IN_PROGRESS, and is what a future "Resume where I left off" will read. */
+  lastVisitedAt: number | null;
+};
+
+/** One answered (or left-blank) question within a submitted exam attempt.
+ * `answer: null` distinguishes "left blank at submit" (scored incorrect, but
+ * rendered as "Not answered" rather than "Wrong") from an actual wrong
+ * guess. */
+export type ExamQuestionAnswer = {
+  questionId: string;
+  answer: QuizAnswer | null;
+  correct: boolean;
+};
+
+/** One row per submitted exam attempt — unlimited per chapter until passed
+ * (see curriculum/progress.ts). Keyed by [chapterDefinitionId+attemptNumber]
+ * since attempt numbers are only unique within their chapter. Replaces the
+ * old per-question `QuizProgress` mastery model (schema v8) — the exam-mode
+ * pivot scores a submitted attempt, it doesn't track individual question
+ * mastery over time (see .claude/docs/pending-quiz-ui.md addendum). */
+export type ExamAttempt = {
+  chapterDefinitionId: string;
+  attemptNumber: number;
+  submittedAt: number;
+  /** 0-100, rounded — same convention as ProgressSummary.percent. */
+  score: number;
+  answers: ExamQuestionAnswer[];
+};
+
 export class ScaleCraftDB extends Dexie {
   saves!: EntityTable<CanvasSave, "id">;
   /** User-created components (see CreateComponentModal.tsx /
@@ -89,6 +134,10 @@ export class ScaleCraftDB extends Dexie {
   aiProfiles!: EntityTable<AiProfile, "id">;
   aiActiveProfile!: EntityTable<AiActiveProfile, "id">;
   deepCheckSessions!: EntityTable<DeepCheckSession, "id">;
+  curriculumProgress!: EntityTable<CurriculumProgress, "slug">;
+  /** Compound primary key — no single field identifies a row, so this is a
+   * plain Table rather than an EntityTable. */
+  examAttempts!: Table<ExamAttempt, [string, number]>;
 
   /** Name defaults to the real app database; overridable so tests can
    * exercise the full version chain (including the v6 migration) against an
@@ -167,6 +216,49 @@ export class ScaleCraftDB extends Dexie {
         await trans.table("aiProfiles").add(profile);
         await trans.table("aiActiveProfile").put({ id: "default", profileId: profile.id });
       });
+    // A new, empty table — no .upgrade() needed. Existing chapterProgress
+    // rows (the validation-pass record) keep working untouched; this is a
+    // second, additive fact, not a replacement (see CurriculumProgress
+    // above).
+    this.version(7).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+      curriculumProgress: "slug",
+    });
+    // Another new, empty table — same additive pattern as v7. The secondary
+    // (non-unique) chapterDefinitionId index lets resetChapter delete every
+    // question row for a chapter without a full-table scan.
+    this.version(8).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+      curriculumProgress: "slug",
+      quizProgress: "[chapterDefinitionId+questionId], chapterDefinitionId",
+    });
+    // The exam-mode pivot (.claude/docs/pending-quiz-ui.md addendum) drops
+    // the per-question mastery model outright — no real user data exists yet
+    // (pre-beta) and the model it backed no longer exists — and replaces it
+    // with per-attempt scoring. `quizProgress: null` is Dexie's
+    // delete-this-store syntax (same as v6's `aiSettings: null`); no upgrade
+    // callback, since there is nothing worth carrying forward.
+    this.version(9).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+      curriculumProgress: "slug",
+      quizProgress: null,
+      examAttempts: "[chapterDefinitionId+attemptNumber], chapterDefinitionId",
+    });
   }
 }
 

@@ -44,8 +44,22 @@ describe("ModeNode", () => {
   });
 
   it("shows a status badge when provided", () => {
-    render(<ModeNode {...makeNodeProps({ mode: "real-world-extraction", status: "coming soon" })} />);
-    expect(screen.getByText("coming soon")).toBeInTheDocument();
+    render(<ModeNode {...makeNodeProps({ mode: "real-world-extraction", status: "not started" })} />);
+    expect(screen.getByText("not started")).toBeInTheDocument();
+  });
+
+  it("shows a muted x / y progress label when provided", () => {
+    render(
+      <ModeNode
+        {...makeNodeProps({ mode: "building-blocks", status: "in progress", progressLabel: "1 / 26" })}
+      />,
+    );
+    expect(screen.getByText("1 / 26 chapters")).toBeInTheDocument();
+  });
+
+  it("omits the progress label for Sandbox, which has no status", () => {
+    render(<ModeNode {...makeNodeProps({ mode: "sandbox", href: "/sandbox" })} />);
+    expect(screen.queryByText(/chapters/)).not.toBeInTheDocument();
   });
 
   it("intercepts a plain left-click, shows the loading transition, then navigates after the hold", () => {

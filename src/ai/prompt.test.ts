@@ -5,7 +5,7 @@ import { DEFAULT_AI_SETTINGS, type AiSettings } from "./settings";
 import type { ComponentDefinition } from "@/content/components/types";
 import type { ArchitectureGraph } from "@/lib/graph";
 import type { ValidationViolation } from "@/validation-engine/types";
-import type { Blueprint } from "@/content/chapters/types";
+import type { Blueprint, CurriculumContext } from "@/content/chapters/types";
 
 function makeComponent(
   id: string,
@@ -100,9 +100,39 @@ describe("buildUserPayload", () => {
 
   it("includes chapter context when supplied", () => {
     const payload = buildUserPayload(
-      baseCtx({ chapter: { problemStatement: "Build a cache", learningObjectives: ["caching"] } }),
+      baseCtx({
+        chapter: {
+          mode: "real-world-extraction",
+          problemStatement: "Build a cache",
+          learningObjectives: ["caching"],
+        },
+      }),
     );
-    expect(payload.chapter).toEqual({ problemStatement: "Build a cache", learningObjectives: ["caching"] });
+    expect(payload.chapter).toEqual({
+      mode: "real-world-extraction",
+      problemStatement: "Build a cache",
+      learningObjectives: ["caching"],
+    });
+  });
+
+  it("includes curriculumContext under chapter when supplied on a Building Blocks chapter", () => {
+    const curriculumContext = {
+      position: "Building Blocks, Unit 1 — Chapter 1.2 of 22.",
+      masteredConcepts: ["Client/server/database request flow"],
+      notYetIntroducedConcepts: ["Distributed caching"],
+      simplifications: ["One load balancer, no health-check tuning."],
+    };
+    const payload = buildUserPayload(
+      baseCtx({
+        chapter: {
+          mode: "building-blocks",
+          problemStatement: "Place a load balancer in front of two app servers.",
+          learningObjectives: ["load balancing"],
+          curriculumContext,
+        },
+      }),
+    );
+    expect(payload.chapter?.curriculumContext).toEqual(curriculumContext);
   });
 });
 
@@ -179,6 +209,72 @@ describe("buildSystemPrompt", () => {
     // model into looking for content that was never sent.
     const prompt = buildSystemPrompt(DEFAULT_AI_SETTINGS, baseCtx({ passed: true, blueprints: [] }));
     expect(prompt).not.toContain("already passed this chapter");
+  });
+
+  const bbChapterCtx = (curriculumContext?: CurriculumContext) =>
+    baseCtx({
+      chapter: {
+        mode: "building-blocks",
+        problemStatement: "Place a load balancer in front of two app servers.",
+        learningObjectives: ["load balancing"],
+        curriculumContext,
+      },
+    });
+
+  it("switches to the guide/teacher framing for a Building Blocks chapter, and drops the Senior Staff Engineer framing", () => {
+    const prompt = buildSystemPrompt(DEFAULT_AI_SETTINGS, bbChapterCtx());
+    expect(prompt).toContain("guide and teacher");
+    expect(prompt).toContain("Building Blocks priorities");
+    expect(prompt).not.toContain("Senior Staff Engineer");
+  });
+
+  it("keeps the Senior Staff Engineer framing for Real World Extraction and Sandbox (no chapter), unaffected by the BB change", () => {
+    const rweCtx = baseCtx({
+      chapter: {
+        mode: "real-world-extraction",
+        problemStatement: "Build bit.ly.",
+        learningObjectives: ["url shortening"],
+      },
+    });
+    for (const ctx of [rweCtx, baseCtx()]) {
+      const prompt = buildSystemPrompt(DEFAULT_AI_SETTINGS, ctx);
+      expect(prompt).toContain("Senior Staff Engineer");
+      expect(prompt).not.toContain("guide and teacher");
+      expect(prompt).not.toContain("Building Blocks priorities");
+    }
+  });
+
+  it("states the Building-Blocks-only guardrail against recommending future-chapter concepts, before the payload and again in the closing reminder", () => {
+    const prompt = buildSystemPrompt(DEFAULT_AI_SETTINGS, bbChapterCtx());
+    expect(prompt).toContain("never recommend advanced distributed-systems techniques");
+
+    const payloadIndex = prompt.indexOf("<graph_data>");
+    const restatementIndex = prompt.indexOf("This is still a Building Blocks chapter");
+    expect(restatementIndex).toBeGreaterThan(payloadIndex);
+  });
+
+  it("does not add the Building-Blocks-only guardrail restatement for non-BB modes", () => {
+    const prompt = buildSystemPrompt(DEFAULT_AI_SETTINGS, baseCtx());
+    expect(prompt).not.toContain("This is still a Building Blocks chapter");
+  });
+
+  it("renders curriculumContext as its own tagged block, distinct from chapter_context", () => {
+    const curriculumContext = {
+      position: "Building Blocks, Unit 1 — Chapter 1.2 of 22.",
+      masteredConcepts: ["Client/server/database request flow"],
+      notYetIntroducedConcepts: ["Distributed caching"],
+      simplifications: ["One load balancer, no health-check tuning."],
+    };
+    const prompt = buildSystemPrompt(DEFAULT_AI_SETTINGS, bbChapterCtx(curriculumContext));
+    expect(prompt).toContain("<curriculum_context>");
+    expect(prompt).toContain("Client/server/database request flow");
+    expect(prompt).toContain("Distributed caching");
+    expect(prompt).toContain("One load balancer, no health-check tuning.");
+  });
+
+  it("omits the curriculum_context block when a Building Blocks chapter doesn't supply one", () => {
+    const prompt = buildSystemPrompt(DEFAULT_AI_SETTINGS, bbChapterCtx());
+    expect(prompt).not.toContain("<curriculum_context>");
   });
 
   it("wraps a custom component's user-authored docs in its own delimited tag, never bleeding into a shared boundary", () => {
