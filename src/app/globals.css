@@ -214,6 +214,20 @@ body {
   background: transparent;
 }
 
+/* Mermaid renders by appending a temporary measurement div straight to
+ * document.body, named "d" + the id passed to mermaid.render (see
+ * MermaidBlock.tsx). body is a flex column with a hard height cap
+ * (layout.tsx), so that stray node lands as a flex sibling of the app shell
+ * and steals ~150px of vertical space mid-render - the app squashes upward
+ * and bare background shows as a bar at the bottom. Taking it out of flow
+ * keeps it measurable but weightless. */
+body > div[id^="ddocs-mermaid-"] {
+  position: absolute;
+  top: 0;
+  left: -9999px;
+  pointer-events: none;
+}
+
 /* Used by LoadingTransition.tsx's branded loading sweep — a real state
  * signal (navigation is pending), not decoration, so it's exempt from
  * "no idle animation." Reduced-motion users get a static full-width bar

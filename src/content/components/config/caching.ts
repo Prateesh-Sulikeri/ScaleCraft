@@ -63,6 +63,7 @@ export default [
     ],
     summary: "A cache sharded and replicated across nodes",
     docs: "A cache whose data is partitioned and replicated across multiple nodes instead of living on one machine — survives a single node failing, at the cost of the same consistency-vs-latency tradeoff every distributed store faces.",
+    docsFile: "/docs/distributed-cache.md",
     relations: {
       inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
       outputs: { allowedCategories: ["data"], allowedKinds: ["request-flow"] },

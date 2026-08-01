@@ -1,4 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
+import { readdirSync } from "node:fs";
+import path from "node:path";
 import { componentRegistry, getAllComponents, getComponent } from "./registry";
 import { useCustomComponentsStore } from "@/canvas/custom-components-store";
 
@@ -49,6 +51,21 @@ describe("getComponent", () => {
 describe("getAllComponents", () => {
   it("returns just the built-in registry when there are no custom components", () => {
     expect(getAllComponents()).toHaveLength(componentRegistry.length);
+  });
+
+  it("wires built-in components to their public markdown docs", () => {
+    const docsDir = path.resolve(process.cwd(), "public/docs");
+    const componentIds = new Set(componentRegistry.map((component) => component.id));
+
+    for (const fileName of readdirSync(docsDir)) {
+      if (!fileName.endsWith(".md")) continue;
+
+      const componentId = fileName.replace(/\.md$/, "");
+      if (!componentIds.has(componentId)) continue;
+
+      const component = componentRegistry.find((entry) => entry.id === componentId);
+      expect(component?.docsFile).toBe(`/docs/${componentId}.md`);
+    }
   });
 
   it("appends custom components after the built-in registry", () => {
