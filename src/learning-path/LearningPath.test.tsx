@@ -1,0 +1,59 @@
+import "fake-indexeddb/auto";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { LearningPath } from "./LearningPath";
+import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+import { db } from "@/persistence/db";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+beforeEach(async () => {
+  useCurriculumProgressStore.setState({
+    hydrated: false,
+    hydrating: false,
+    validationPassedDefinitionIds: new Set(),
+    rowsBySlug: new Map(),
+  });
+  await db.curriculumProgress.clear();
+  await db.chapterProgress.clear();
+});
+
+describe("LearningPath", () => {
+  it("renders Building Blocks' 10 sections and all 47 chapter rows", () => {
+    render(<LearningPath courseId="building-blocks" />);
+    expect(screen.getByRole("heading", { level: 1, name: "Building Blocks" })).toBeInTheDocument();
+
+    const sectionToggles = screen.getAllByRole("button", { name: /^(part|group) /i });
+    expect(sectionToggles).toHaveLength(10);
+
+    // Every section defaults expanded (D5) — every chapter's status icon is
+    // present, one per curriculum entry (47 for BB).
+    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(47);
+  });
+
+  it("renders Real World Extraction's 5 sections and all 32 chapter rows", () => {
+    render(<LearningPath courseId="real-world-extraction" />);
+    expect(screen.getByRole("heading", { level: 1, name: "Real World Extraction" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^tier /i })).toHaveLength(5);
+    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(32);
+  });
+
+  it("the authored Load Balancer row is a real link to its lesson (Chapter Reader) route; an unauthored row is not", () => {
+    render(<LearningPath courseId="building-blocks" />);
+    expect(screen.getByRole("link", { name: /load balancer/i })).toHaveAttribute(
+      "href",
+      "/building-blocks/3-4-load-balancer/lesson",
+    );
+    expect(screen.getAllByText("Coming soon").length).toBeGreaterThan(0);
+  });
+
+  it("includes a working Download Curriculum link", () => {
+    render(<LearningPath courseId="building-blocks" />);
+    expect(screen.getByRole("link", { name: /download curriculum/i })).toHaveAttribute(
+      "href",
+      "/docs/The_Crafters_Guide_to_System_Design.pdf",
+    );
+  });
+});

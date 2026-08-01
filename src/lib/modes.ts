@@ -5,6 +5,8 @@
  * ChapterDefinition, but still needs an identity for the mode badge/header
  * accent (see .claude/docs/DESIGN_LANGUAGE.md, "Mode color").
  */
+import { Boxes, Code2, Globe, type LucideIcon } from "lucide-react";
+
 export type AppMode = "sandbox" | "building-blocks" | "real-world-extraction";
 
 export const modeLabel: Record<AppMode, string> = {
@@ -18,6 +20,16 @@ export const modeColorVar: Record<AppMode, string> = {
   sandbox: "var(--mode-sandbox)",
   "building-blocks": "var(--mode-building-blocks)",
   "real-world-extraction": "var(--mode-real-world-extraction)",
+};
+
+/** Wireframe glyph per mode — Home's mode cards (ModeNode.tsx) are the only
+ * current consumer, kept here rather than local to that component so any
+ * future mode-identity surface (e.g. a header icon) draws from the same
+ * source as label/color/tagline instead of picking its own glyph. */
+export const modeIcon: Record<AppMode, LucideIcon> = {
+  sandbox: Code2,
+  "building-blocks": Boxes,
+  "real-world-extraction": Globe,
 };
 
 /** Bold lead-in line for the mode badge's opt-in popover. */

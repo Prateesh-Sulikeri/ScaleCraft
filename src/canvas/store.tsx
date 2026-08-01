@@ -22,6 +22,7 @@ import type {
   ArchitectureEdgeType,
 } from "./types";
 import { DEFAULT_ZONE_COLOR, DEFAULT_COMMENT_COLOR, DEFAULT_FLAG_COLOR } from "./annotation-colors";
+import { EDGE_COLOR_VAR, EDGE_DASH_ARRAY } from "./edge-styles";
 
 /** What the palette's "Add zone"/"Add comment"/"Add start" buttons put the
  * canvas into — one mutually-exclusive placement mode rather than three
@@ -29,26 +30,10 @@ import { DEFAULT_ZONE_COLOR, DEFAULT_COMMENT_COLOR, DEFAULT_FLAG_COLOR } from ".
  * logic branches once instead of tripling itself per annotation type. */
 export type PlacementMode = "zone" | "comment" | "start" | null;
 
-/** Color + line pattern per kind (see globals.css's --edge-* tokens) — two
- * redundant channels so kind is legible even for colorblind users or at
- * small canvas scale, not color alone. Every kind animates (see
- * DESIGN.md's "Do reuse the dashdraw motion token for anything that should
- * read as part of the live system") — a real connection is a real
- * connection regardless of kind, so request-flow doesn't get a motion
- * signal the other three don't. */
-const EDGE_COLOR_VAR: Record<EdgeKind, string> = {
-  "request-flow": "var(--edge-request-flow)",
-  control: "var(--edge-control)",
-  replication: "var(--edge-replication)",
-  async: "var(--edge-async)",
-};
-
-const EDGE_DASH_ARRAY: Partial<Record<EdgeKind, string>> = {
-  control: "2 3",
-  replication: "6 3",
-  async: "3 6",
-};
-
+// Every kind animates (see DESIGN.md's "Do reuse the dashdraw motion token
+// for anything that should read as part of the live system") — a real
+// connection is a real connection regardless of kind, so request-flow
+// doesn't get a motion signal the other three don't.
 function edgeStyle(kind: EdgeKind) {
   return {
     animated: true,

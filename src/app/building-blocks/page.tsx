@@ -1,5 +1,5 @@
-import { ChapterWorkspace } from "@/chapters/ChapterWorkspace";
+import { LearningPath } from "@/learning-path/LearningPath";
 
 export default function BuildingBlocksPage() {
-  return <ChapterWorkspace mode="building-blocks" />;
+  return <LearningPath courseId="building-blocks" />;
 }

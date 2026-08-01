@@ -262,7 +262,10 @@ curriculum (its §11 rec. 1):
 1. Chapter 1 = curriculum **BB 1.2 Load Balancing** (with 0.1-style intro folded into
    its problem statement for now); Chapter 2 = **BB 2.1 Cache-Aside**. Problem
    statements, learning objectives, starter graphs, chapter-scoped validation rules,
-   opt-in hints, reading links to the textbook.
+   opt-in hints, reading links to the textbook. Also transcribe each chapter's
+   `curriculumContext` (`validation_agent_design.md` §10.7) from CURRICULUM.md's own
+   "Assumes" / "New concepts" / "Prepares for" fields — this is what keeps Deep Check's
+   critique scoped to the learner's actual stage instead of a production-readiness lens.
 2. Add the curriculum's minimal content-model extensions as needed: `quiz` field on
    `ChapterDefinition` + renderer (unlimited retries, explanation on every option, no
    scores) — see CURRICULUM.md §12.
