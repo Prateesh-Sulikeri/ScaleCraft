@@ -14,6 +14,15 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "3.0.0-alpha",
+    date: "2026-07-31",
+    highlights: [
+      "Learning Path — a full-screen curriculum browser for Building Blocks (26 chapters) and Real World Extraction (5 chapters). Navigate chapters by row, track completion progress across all sections, and download the full curriculum as a PDF.",
+      "Chapter Workspace now uses route-driven navigation — every chapter has its own URL, so links stay shareable and back/forward work as expected.",
+      "In-workspace progress sidebar — see where you are in the learning path without leaving your diagram. Jump to any chapter, check your progress at a glance, and know which chapters unlock next.",
+    ],
+  },
+  {
     version: "2.1.0-alpha",
     date: "2026-07-30",
     highlights: [
