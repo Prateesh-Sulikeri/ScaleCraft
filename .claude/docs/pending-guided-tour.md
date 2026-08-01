@@ -101,6 +101,8 @@ enthusiasm, no game language.
 11. `finish` (centered): recap in one line; point at "Back to lesson" to
     continue to the next chapter. No celebration animation.
 
+Here is where I suggest another change, let us add another button in the top-bar called submit for BB and RWE, this button runs the Validation engine, checks against the blue-prints and if correct then confirms the assigment is complete and can move ahead. 
+
 Interactive steps must keep the target area clickable (see overlay spec) and
 each shows a subdued "or skip this step" text action, so a user who cannot
 or will not perform the gesture is never stuck.
