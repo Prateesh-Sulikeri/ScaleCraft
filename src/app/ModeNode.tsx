@@ -119,7 +119,7 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
       <h3 style={{ color }} className="text-[17px] font-semibold tracking-tight">
         {modeLabel[mode]}
       </h3>
-      <p className="line-clamp-2 text-sm leading-relaxed text-foreground/65">{modeTagline[mode]}</p>
+      <p className="w-full pb-3 line-clamp-2 text-sm leading-snug text-foreground/65">{modeTagline[mode]}</p>
 
       {/* Absorbs leftover vertical slack instead of the paragraph above
        * (flex-grow on a line-clamped element gets crushed below its own
@@ -168,7 +168,7 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
         href={href}
         onClick={handleClick}
         style={{ width: NODE_WIDTH, height: NODE_HEIGHT, "--accent": color } as CSSProperties}
-        className="group relative flex flex-col gap-3 rounded-lg border border-border bg-panel p-5 transition-[border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-0.5 hover:border-[color:color-mix(in_srgb,var(--accent)_45%,var(--border))] hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+        className="group relative flex flex-col gap-3 overflow-hidden rounded-lg border border-border bg-panel p-5 transition-[border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-0.5 hover:border-[color:color-mix(in_srgb,var(--accent)_45%,var(--border))] hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
       >
         {body}
         {navigating && <LoadingTransition label={`Crafting your ${modeLabel[mode]}…`} />}
@@ -180,7 +180,7 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
     <div
       aria-disabled="true"
       style={{ width: NODE_WIDTH, height: NODE_HEIGHT, "--accent": color } as CSSProperties}
-      className="relative flex cursor-not-allowed flex-col gap-3 rounded-lg border border-border bg-panel p-5 opacity-70"
+      className="relative flex cursor-not-allowed flex-col gap-3 overflow-hidden rounded-lg border border-border bg-panel p-5 opacity-70"
     >
       {body}
     </div>
