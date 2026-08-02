@@ -149,13 +149,13 @@ test.describe("Chapter Reader - Error States", () => {
   test("invalid chapter slug returns a 404", async ({ page }) => {
     const response = await page.goto("/building-blocks/nonexistent-chapter/lesson", { waitUntil: "networkidle" });
     expect(response?.status()).toBe(404);
-    await expect(page.getByText("This page doesn't exist")).toBeVisible();
+    await expect(page.getByText("Route Not Found")).toBeVisible();
   });
 
   test("invalid course mode returns a 404", async ({ page }) => {
     const response = await page.goto("/invalid-mode/some-chapter/lesson", { waitUntil: "networkidle" });
     expect(response?.status()).toBe(404);
-    await expect(page.getByText("This page doesn't exist")).toBeVisible();
+    await expect(page.getByText("Route Not Found")).toBeVisible();
   });
 });
 
