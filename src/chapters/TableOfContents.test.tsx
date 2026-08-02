@@ -32,27 +32,28 @@ describe("TableOfContents", () => {
     vi.clearAllMocks();
   });
 
-  it("renders nothing when no h2+ headings provided", () => {
-    const headings: ExtractedHeading[] = [{ id: "h1", text: "Title", level: 1 }];
-    const { container } = render(
-      <TableOfContents headings={headings} targetRef={createRef<HTMLElement>()} />,
-    );
-    expect(container.firstChild).toBeNull();
-  });
-
   it("renders navigation with h2+ headings", () => {
     render(<TableOfContents headings={testHeadings} targetRef={createRef<HTMLElement>()} />);
     expect(screen.getByLabelText("On this page")).toBeInTheDocument();
   });
 
-  it("filters out h1 headings", () => {
+  it("includes h1 headings from lesson body content", () => {
     const headings = [
       { id: "h1", text: "Title", level: 1 },
       { id: "overview", text: "Overview", level: 2 },
     ];
     render(<TableOfContents headings={headings} targetRef={createRef<HTMLElement>()} />);
-    expect(screen.queryByText("Title")).not.toBeInTheDocument();
+    expect(screen.getByText("Title")).toBeInTheDocument();
     expect(screen.getByText("Overview")).toBeInTheDocument();
+  });
+
+  it("does not give h1 negative indentation", () => {
+    const headings = [{ id: "h1", text: "Title", level: 1 }];
+    const { container } = render(
+      <TableOfContents headings={headings} targetRef={createRef<HTMLElement>()} />,
+    );
+    const li = container.querySelector("li");
+    expect(li?.getAttribute("style")).toContain("0px");
   });
 
   it("renders all h2+ headings as links", () => {
