@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 import { PageEnter } from "@/app/PageEnter";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { ReaderSidebar } from "./ReaderSidebar";
@@ -75,6 +76,43 @@ export function ChapterReader({ mode, chapterSlug, markdown, headings }: Chapter
               <DifficultyDots difficulty={entry.difficulty} />
               {entry.difficulty}
             </p>
+
+            {entry.domain && (
+              <div className="mt-3">
+                <span className="inline-block rounded-md bg-border/40 px-2 py-1 text-xs font-medium text-foreground/80">
+                  {entry.domain}
+                </span>
+              </div>
+            )}
+
+            {entry.prerequisiteSlugs.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-medium tracking-wide text-foreground/50 uppercase">
+                  Prerequisites
+                </span>
+                {entry.prerequisiteSlugs.map((slug) => {
+                  const prereq = findEntry(mode, slug);
+                  if (!prereq) return null;
+                  const label = prereq.number ? `${prereq.number} ${prereq.title}` : prereq.title;
+                  return prereq.chapterDefinitionId ? (
+                    <Link
+                      key={slug}
+                      href={`/${mode}/${slug}/lesson`}
+                      className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70 transition-colors hover:border-foreground/40 hover:text-foreground"
+                    >
+                      {label}
+                    </Link>
+                  ) : (
+                    <span
+                      key={slug}
+                      className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/40"
+                    >
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="mt-8">
               <MarkdownRenderer content={markdown} />

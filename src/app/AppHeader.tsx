@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 import Link from "next/link";
-import { BookOpen, Check, Redo2, Save, Undo2 } from "lucide-react";
+import { AlertTriangle, BookOpen, Check, Loader2, Redo2, Save, Undo2 } from "lucide-react";
 import type { CanvasHandle } from "@/canvas/Canvas";
 import { Tooltip } from "@/app/Tooltip";
 import { ThemeToggle } from "@/app/ThemeToggle";
@@ -16,6 +16,24 @@ import type { ValidationViolation } from "@/validation-engine/types";
 import type { DeepCheckContext } from "@/ai/prompt";
 import type { AppMode } from "@/lib/modes";
 import { modeColorVar } from "@/lib/modes";
+import type { SaveStatus } from "@/persistence/use-autosave";
+
+// Announced to screen readers only (see the sr-only <p> below) - the button
+// itself carries this state visually via icon alone.
+const saveStatusLabel: Record<SaveStatus, string> = {
+  saved: "Saved",
+  saving: "Saving...",
+  "saved-recent": "Saved just now",
+  error: "Save failed",
+};
+
+// Sighted users get this on hover instead of a permanent label.
+const saveTooltipLabel: Record<SaveStatus, string> = {
+  saved: "Save (Ctrl+S)",
+  saving: "Saving...",
+  "saved-recent": "Saved just now",
+  error: "Save failed - click to retry",
+};
 
 type AppHeaderProps = {
   mode: AppMode;
@@ -32,7 +50,11 @@ type AppHeaderProps = {
    * there's no well-defined target yet (chapter mode's Chapter List view). */
   saveId: string | null;
   onSave: () => void;
-  justSaved: boolean;
+  /** One shared status for both the explicit Save button/Ctrl+S and
+   *  background autosave (see persistence/use-autosave.ts) - rendered on the
+   *  Save button as an icon swap plus its tooltip text, with a sr-only echo
+   *  for screen readers. No permanent visible label. */
+  saveStatus: SaveStatus;
   docsPanelOpen: boolean;
   toggleDocsPanel: () => void;
   /** Assembled by the caller (sandbox/page.tsx always builds the pre-pass
@@ -61,7 +83,7 @@ export function AppHeader({
   onValidate,
   saveId,
   onSave,
-  justSaved,
+  saveStatus,
   docsPanelOpen,
   toggleDocsPanel,
   deepCheckCtx,
@@ -121,18 +143,39 @@ export function AppHeader({
         </div>
         <ValidationIndicator violations={violations} isStale={isStale} onValidate={onValidate} />
         <DeepCheckButton ctx={deepCheckCtx} saveId={saveId} />
-        <Tooltip label={saveId ? "Save (Ctrl+S)" : "Select a chapter to enable Save"}>
+        <Tooltip label={saveId ? saveTooltipLabel[saveStatus] : "Select a chapter to enable Save"}>
           <button
             onClick={onSave}
             disabled={!saveId}
             aria-label="Save"
+            data-save-status={saveStatus}
             className={`flex h-8 w-8 items-center justify-center rounded-md border bg-panel hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-foreground/70 ${
-              justSaved ? "border-state-valid text-state-valid" : "border-border text-foreground/70"
+              saveStatus === "error"
+                ? "border-state-error text-state-error"
+                : saveStatus === "saved-recent"
+                  ? "border-state-valid text-state-valid"
+                  : "border-border text-foreground/70"
             }`}
           >
-            {justSaved ? <Check size={16} /> : <Save size={16} />}
+            {saveStatus === "saving" ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : saveStatus === "saved-recent" ? (
+              <Check size={16} />
+            ) : saveStatus === "error" ? (
+              <AlertTriangle size={16} />
+            ) : (
+              <Save size={16} />
+            )}
           </button>
         </Tooltip>
+        {/* Screen-reader-only echo of the icon-only save status above - no
+         * visible text label (that used to sit here permanently, which read
+         * as header clutter), but the state change is still announced. */}
+        {saveId && (
+          <p aria-live="polite" className="sr-only">
+            {saveStatusLabel[saveStatus]}
+          </p>
+        )}
         <ProjectMenu canvasRef={canvasRef} disabled={!saveId} />
         <BoardMenu saveId={saveId} />
         <Tooltip label="Documentation">

@@ -54,7 +54,7 @@ export const requestFlowCycle: ValidationRule = {
   },
   message: () => "Request-flow edges form a cycle.",
   explanation: () =>
-    "A request that enters this loop can never reach an endpoint — it just keeps circulating " +
+    "A request that enters this loop can never reach an endpoint - it just keeps circulating " +
     "among the same components forever. Request-flow is the only edge kind meant to be acyclic; " +
     "if this back-edge is intentional (a callback, a retry, a feedback loop), model it as a " +
     "control, replication, or async edge instead, which are allowed to form cycles.",

@@ -34,12 +34,19 @@ export function isEditableTarget(target: EventTarget | null): boolean {
  * under whatever the user is typing — Save/Export stay global regardless of
  * focus, since neither conflicts with in-field editing.
  *
- * Duplicate/select-all are gated on both the component picker being closed
- * (it owns Up/Down/Enter/Escape for its own list while open — see
+ * Duplicate/select-all/lock are gated on both the component picker being
+ * closed (it owns Up/Down/Enter/Escape for its own list while open — see
  * ComponentPicker.tsx) and focus notes mode being off (the canvas isn't
  * interactable there, just hidden — see DocsPanel.tsx/sandbox/page.tsx), so
  * a shortcut aimed at "the canvas" never silently acts on it from underneath
  * one of those two surfaces.
+ *
+ * Ctrl/Cmd+Shift+L toggles lock on selected zone/comment/flag nodes (see
+ * toggleAnnotationLock in store.tsx) — Shift+L, not bare Ctrl/Cmd+L, since
+ * that's the browser's own address-bar focus shortcut. Matches Figma's lock
+ * binding. Non-annotation nodes in the selection are silently skipped
+ * (toggleAnnotationLock is already a no-op on them); a selection with zero
+ * lockable nodes does nothing, same as duplicate on an empty selection.
  */
 export function useCanvasShortcuts(onSave: () => void) {
   const undo = useCanvasStore((s) => s.undo);
@@ -50,6 +57,7 @@ export function useCanvasShortcuts(onSave: () => void) {
   const onNodesChange = useCanvasStore((s) => s.onNodesChange);
   const onEdgesChange = useCanvasStore((s) => s.onEdgesChange);
   const duplicateNodes = useCanvasStore((s) => s.duplicateNodes);
+  const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
   const componentPicker = useCanvasStore((s) => s.componentPicker);
   const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
   const setFocusMode = useCanvasStore((s) => s.setFocusMode);
@@ -101,6 +109,13 @@ export function useCanvasShortcuts(onSave: () => void) {
         onEdgesChange(edges.map((e) => ({ id: e.id, type: "select", selected: true })));
         return;
       }
+      if (key === "l" && event.shiftKey && !componentPicker && !focusMode) {
+        event.preventDefault();
+        nodes
+          .filter((n) => n.selected && (n.type === "zone" || n.type === "comment" || n.type === "start"))
+          .forEach((n) => toggleAnnotationLock(n.id));
+        return;
+      }
 
       if (key === "z" && event.shiftKey) {
         event.preventDefault();
@@ -126,6 +141,7 @@ export function useCanvasShortcuts(onSave: () => void) {
     onNodesChange,
     onEdgesChange,
     duplicateNodes,
+    toggleAnnotationLock,
     componentPicker,
     focusMode,
     setFocusMode,

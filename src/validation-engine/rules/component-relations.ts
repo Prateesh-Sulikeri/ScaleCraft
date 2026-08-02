@@ -83,6 +83,6 @@ export const componentRelations: ValidationRule = {
   message: () => "This connection isn't valid between these two components.",
   explanation: (match) =>
     (match.detail ?? "This connection's kind and endpoints aren't a compatible pairing.") +
-    " Check the Edge Inspector — either the edge's kind needs to change, or this isn't a legitimate " +
+    " Check the Edge Inspector - either the edge's kind needs to change, or this isn't a legitimate " +
     "connection between these two component types at all.",
 };

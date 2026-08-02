@@ -22,7 +22,7 @@ describe("componentDisplayNames", () => {
   it("prefers a custom instance name over the ordinal suffix", () => {
     const names = componentDisplayNames([node("n1", "client"), node("n2", "client", "browser-tab")]);
     expect(names.get("n1")).toBe("Client #1");
-    expect(names.get("n2")).toBe("Client — browser-tab");
+    expect(names.get("n2")).toBe("Client - browser-tab");
   });
 
   it("ignores a whitespace-only custom name", () => {

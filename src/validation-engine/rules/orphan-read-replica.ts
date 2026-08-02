@@ -26,7 +26,7 @@ export const orphanReadReplica: ValidationRule = {
   },
   message: () => "Read Replica has no replication source.",
   explanation: () =>
-    "A Read Replica only has data because a primary database streams it via replication — without a " +
+    "A Read Replica only has data because a primary database streams it via replication - without a " +
     '"replication"-kind edge coming in from a SQL or NoSQL Database, this replica will never receive ' +
     "anything, and any reads from it are empty or permanently stale.",
 };

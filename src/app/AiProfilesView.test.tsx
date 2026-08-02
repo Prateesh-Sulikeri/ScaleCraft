@@ -8,6 +8,7 @@ const listProfilesMock = vi.fn();
 const createProfileMock = vi.fn();
 const updateProfileMock = vi.fn();
 const deleteProfileMock = vi.fn();
+const restoreProfileMock = vi.fn();
 const setActiveProfileIdMock = vi.fn();
 const getActiveProfileMock = vi.fn();
 
@@ -16,6 +17,7 @@ vi.mock("@/ai/profiles", () => ({
   createProfile: (...args: unknown[]) => createProfileMock(...args),
   updateProfile: (...args: unknown[]) => updateProfileMock(...args),
   deleteProfile: (...args: unknown[]) => deleteProfileMock(...args),
+  restoreProfile: (...args: unknown[]) => restoreProfileMock(...args),
   setActiveProfileId: (...args: unknown[]) => setActiveProfileIdMock(...args),
   getActiveProfile: (...args: unknown[]) => getActiveProfileMock(...args),
 }));
@@ -38,6 +40,7 @@ describe("AiProfilesView", () => {
     createProfileMock.mockReset();
     updateProfileMock.mockReset();
     deleteProfileMock.mockReset().mockResolvedValue(undefined);
+    restoreProfileMock.mockReset().mockResolvedValue(undefined);
     setActiveProfileIdMock.mockReset().mockResolvedValue(undefined);
     getActiveProfileMock.mockReset();
   });
@@ -131,7 +134,7 @@ describe("AiProfilesView", () => {
     expect(deleteProfileMock).not.toHaveBeenCalled();
   });
 
-  it("undo restores the profile and reverses an active-profile reassignment without ever deleting it", async () => {
+  it("deletes immediately on confirm, and undo restores the profile and reverses the active-profile reassignment", async () => {
     const p1 = makeProfile({ id: "p1", name: "Work key" });
     const p2 = makeProfile({ id: "p2", name: "Personal key" });
     listProfilesMock.mockResolvedValue([p1, p2]);
@@ -149,18 +152,19 @@ describe("AiProfilesView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Delete Work key" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
-    // handleDeleteConfirm calls setActiveProfileId synchronously (it's the
-    // function *call*, not what happens after it resolves, that's sync) —
-    // no flush needed to observe this call.
+    // Both the reassignment and the real delete happen synchronously on
+    // confirm — durable immediately, regardless of what the UI does next
+    // (close the panel, switch views, navigate away). No flush needed to
+    // observe either call.
     expect(setActiveProfileIdMock).toHaveBeenCalledWith("p2");
+    expect(deleteProfileMock).toHaveBeenCalledWith("p1");
     expect(screen.getByText("Profile deleted.")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-    expect(setActiveProfileIdMock).toHaveBeenCalledWith("p1");
 
-    // Undo's *effect* on the row (pendingDelete cleared) only lands once its
-    // two internal awaits resolve. No fake timer is scheduled at this point
-    // (the delete's own timeout was already cleared), so
+    // Undo's effect (restore + reassign + pendingDelete cleared) only lands
+    // once its internal awaits resolve. No fake timer is scheduled at this
+    // point (the delete's own timeout was already cleared), so
     // advanceTimersByTimeAsync has nothing to advance through and won't
     // drive the microtask queue — flush it directly instead.
     await act(async () => {
@@ -168,14 +172,16 @@ describe("AiProfilesView", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
+    expect(restoreProfileMock).toHaveBeenCalledWith(p1);
+    expect(setActiveProfileIdMock).toHaveBeenCalledWith("p1");
     expect(screen.getByText("Work key")).toBeInTheDocument();
     expect(screen.queryByText("Profile deleted.")).not.toBeInTheDocument();
 
     await vi.advanceTimersByTimeAsync(6000);
-    expect(deleteProfileMock).not.toHaveBeenCalled();
+    expect(restoreProfileMock).toHaveBeenCalledTimes(1);
   });
 
-  it("commits the delete once the undo window elapses without an undo click", async () => {
+  it("drops the row from the local list once the undo window elapses without an undo click, without deleting it again", async () => {
     const p1 = makeProfile({ id: "p1", name: "Work key" });
     listProfilesMock.mockResolvedValue([p1]);
     render(<AiProfilesView activeProfileId={null} onActiveProfileChange={vi.fn()} />);
@@ -185,11 +191,29 @@ describe("AiProfilesView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Delete Work key" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(deleteProfileMock).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Profile deleted.")).toBeInTheDocument();
 
     await vi.advanceTimersByTimeAsync(6000);
 
-    expect(deleteProfileMock).toHaveBeenCalledWith("p1");
+    expect(deleteProfileMock).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Work key")).not.toBeInTheDocument();
+  });
+
+  it("commits the delete even if the component unmounts before the undo window elapses", async () => {
+    const p1 = makeProfile({ id: "p1", name: "Work key" });
+    listProfilesMock.mockResolvedValue([p1]);
+    const { unmount } = render(<AiProfilesView activeProfileId={null} onActiveProfileChange={vi.fn()} />);
+    await screen.findByText("Work key");
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete Work key" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    // The real Dexie delete already happened synchronously on confirm —
+    // unmounting straight after (closing the panel, switching views,
+    // navigating away) can no longer lose it, unlike the old
+    // timeout-deferred version of this flow.
+    expect(deleteProfileMock).toHaveBeenCalledWith("p1");
+    unmount();
   });
 });

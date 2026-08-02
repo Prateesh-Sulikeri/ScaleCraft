@@ -184,7 +184,7 @@ export function CreateComponentModal({ onClose, onSave, initialRecord }: CreateC
            * entry on custom-component contract authoring. */}
           <p className="text-xs text-foreground/50">
             Custom components get general validation only (connectivity, category
-            compatibility) — not the specific rules built-in components have.
+            compatibility) - not the specific rules built-in components have.
           </p>
 
           <label className="flex flex-col gap-1 text-sm">

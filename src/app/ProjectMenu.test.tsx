@@ -94,7 +94,7 @@ describe("ProjectMenu", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Couldn't import that file — not a valid ScaleCraft canvas export."),
+        screen.getByText("Couldn't import that file - not a valid ScaleCraft canvas export."),
       ).toBeInTheDocument(),
     );
     expect(screen.getByText("Import Project")).toBeInTheDocument();

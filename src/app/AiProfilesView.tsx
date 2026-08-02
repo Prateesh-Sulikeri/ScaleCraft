@@ -8,6 +8,7 @@ import {
   createProfile,
   updateProfile,
   deleteProfile,
+  restoreProfile,
   setActiveProfileId,
   getActiveProfile,
   type AiProfile,
@@ -16,10 +17,20 @@ import {
 import { DEFAULT_AI_SETTINGS } from "@/ai/settings";
 import { AiSettingsForm } from "./AiSettingsForm";
 
-/** How long a deleted profile stays undo-able before the delete actually
- * commits to Dexie. Chosen a beat longer than HistoryView's 4s confirm-
- * arming window (DeepCheckPanel.tsx) since this is a two-step flow
- * (confirm, then undo) rather than one. */
+/** How long a deleted profile stays undo-able (restorable) before the row
+ * is dropped from local state for good. Chosen a beat longer than
+ * HistoryView's 4s confirm-arming window (DeepCheckPanel.tsx) since this is
+ * a two-step flow (confirm, then undo) rather than one.
+ *
+ * The delete itself commits to Dexie immediately on confirm, not after this
+ * window — an earlier version deferred the real delete until the timeout
+ * fired, but that timer lived only in this component's local state, so
+ * closing the panel, switching views, or navigating away before it fired
+ * unmounted AiProfilesView and either lost the pending delete outright (full
+ * navigation/reload) or left a stale re-fetched list that looked like the
+ * delete had silently reverted (panel reopened before the timer fired).
+ * Deleting up front makes the mutation durable regardless of what the UI
+ * does next; Undo now means "restore," not "cancel." */
 const UNDO_WINDOW_MS = 5000;
 
 type PendingDelete = {
@@ -91,11 +102,13 @@ export function AiProfilesView({ activeProfileId, onActiveProfileChange }: AiPro
       void setActiveProfileId(remaining[0]?.id ?? null).then(refreshActive);
     }
 
+    // Commits immediately — see UNDO_WINDOW_MS's doc comment for why this
+    // isn't deferred to the timeout below.
+    void deleteProfile(profile.id);
+
     const timeout = setTimeout(() => {
-      void deleteProfile(profile.id).then(() => {
-        setProfiles((prev) => (prev ?? []).filter((p) => p.id !== profile.id));
-        setPendingDelete((current) => (current?.profile.id === profile.id ? null : current));
-      });
+      setProfiles((prev) => (prev ?? []).filter((p) => p.id !== profile.id));
+      setPendingDelete((current) => (current?.profile.id === profile.id ? null : current));
     }, UNDO_WINDOW_MS);
 
     setPendingDelete({ profile, wasActive, timeout });
@@ -104,6 +117,7 @@ export function AiProfilesView({ activeProfileId, onActiveProfileChange }: AiPro
   const handleUndoDelete = async () => {
     if (!pendingDelete) return;
     clearTimeout(pendingDelete.timeout);
+    await restoreProfile(pendingDelete.profile);
     if (pendingDelete.wasActive) {
       await setActiveProfileId(pendingDelete.profile.id);
       await refreshActive();

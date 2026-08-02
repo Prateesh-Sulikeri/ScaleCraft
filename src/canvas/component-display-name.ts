@@ -26,7 +26,7 @@ export function componentDisplayNames(nodes: AnyNodeType[]): Map<string, string>
     const base = definition?.label ?? n.data.componentId;
     const customName = n.data.name?.trim();
     if (customName) {
-      result.set(n.id, `${base} — ${customName}`);
+      result.set(n.id, `${base} - ${customName}`);
       continue;
     }
     if ((countByType.get(n.data.componentId) ?? 0) > 1) {

@@ -14,7 +14,7 @@ export const permissiveFirewall: ValidationRule = {
   },
   message: () => "Firewall is configured to allow all traffic.",
   explanation: () =>
-    'A Firewall with defaultPolicy set to "allow-all" doesn\'t filter anything — it\'s present in the ' +
+    'A Firewall with defaultPolicy set to "allow-all" doesn\'t filter anything - it\'s present in the ' +
     "diagram but not actually restricting traffic. Set a default-deny policy (deny-all or allow-listed) " +
     "and open only what needs to be reachable.",
 };

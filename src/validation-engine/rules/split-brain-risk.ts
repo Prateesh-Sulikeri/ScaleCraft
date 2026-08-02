@@ -18,7 +18,7 @@ export const splitBrainRisk: ValidationRule = {
   },
   message: () => "Multiple Leader nodes with no Coordinator managing them.",
   explanation: () =>
-    "More than one Leader can each independently accept writes and diverge from each other — a " +
+    "More than one Leader can each independently accept writes and diverge from each other - a " +
     "split-brain. A Coordinator running a consensus protocol (Raft/Paxos/ZAB) is what ensures only one " +
     "Leader is active at a time; without one here, nothing is preventing that.",
 };
