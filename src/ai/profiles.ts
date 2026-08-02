@@ -65,6 +65,15 @@ export async function deleteProfile(id: string): Promise<void> {
   await db.aiProfiles.delete(id);
 }
 
+/** Re-inserts a profile previously removed by deleteProfile, with its
+ * original id/createdAt/updatedAt intact — the undo half of
+ * AiProfilesView.tsx's delete flow. `add` (not `put`) is deliberate: undo
+ * should only ever recreate a row that's genuinely gone, never clobber one
+ * that already exists. */
+export async function restoreProfile(profile: AiProfile): Promise<void> {
+  await db.aiProfiles.add(profile);
+}
+
 export function isProfileUsable(profile: AiProfile | null): boolean {
   return profile !== null && profile.apiKey.trim().length > 0;
 }
