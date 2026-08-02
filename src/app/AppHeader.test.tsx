@@ -37,6 +37,7 @@ function renderHeader(overrides: Partial<Parameters<typeof AppHeader>[0]> = {}) 
         saveId="sandbox"
         onSave={onSave}
         justSaved={false}
+        autosaveStatus="idle"
         docsPanelOpen={false}
         toggleDocsPanel={toggleDocsPanel}
         deepCheckCtx={emptyDeepCheckCtx}
@@ -111,6 +112,22 @@ describe("AppHeader", () => {
     expect(onValidate).toHaveBeenCalledTimes(1);
   });
 
+  it("shows no autosave text when idle", () => {
+    renderHeader({ autosaveStatus: "idle" });
+    expect(screen.queryByText("Saving...")).not.toBeInTheDocument();
+    expect(screen.queryByText("Saved")).not.toBeInTheDocument();
+  });
+
+  it("shows 'Saving...' while a save is pending", () => {
+    renderHeader({ autosaveStatus: "saving" });
+    expect(screen.getByText("Saving...")).toBeInTheDocument();
+  });
+
+  it("shows 'Saved' once the write completes", () => {
+    renderHeader({ autosaveStatus: "saved" });
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+  });
+
   it("colors the header border per mode via modeColorVar", () => {
     const { container } = render(
       <CanvasStoreProvider>
@@ -127,6 +144,7 @@ describe("AppHeader", () => {
           saveId="sandbox"
           onSave={vi.fn()}
           justSaved={false}
+          autosaveStatus="idle"
           docsPanelOpen={false}
           toggleDocsPanel={vi.fn()}
           deepCheckCtx={emptyDeepCheckCtx}

@@ -136,7 +136,7 @@ function SandboxPageContent() {
   // stops changing, independent of the explicit Save button or the
   // unmount cleanup below. null until the restore above has actually
   // completed (see hasLoadedInitialState).
-  useAutosave(hasLoadedInitialState ? SANDBOX_SAVE_ID : null, nodes, edges);
+  const autosaveStatus = useAutosave(hasLoadedInitialState ? SANDBOX_SAVE_ID : null, nodes, edges);
 
   // Each mode's canvas store instance is created fresh on mount (see
   // CanvasStoreProvider) and torn down on unmount — without this, navigating
@@ -246,6 +246,7 @@ function SandboxPageContent() {
           saveId={SANDBOX_SAVE_ID}
           onSave={handleSave}
           justSaved={justSaved}
+          autosaveStatus={autosaveStatus}
           docsPanelOpen={docsPanelOpen}
           toggleDocsPanel={toggleDocsPanel}
           deepCheckCtx={deepCheckCtx}

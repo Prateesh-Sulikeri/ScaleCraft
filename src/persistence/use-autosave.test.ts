@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { db } from "./db";
 import { useAutosave, AUTOSAVE_DEBOUNCE_MS } from "./use-autosave";
 import type { ComponentNodeType, ArchitectureEdgeType } from "@/canvas/types";
@@ -77,5 +77,23 @@ describe("useAutosave", () => {
 
     await wait(AUTOSAVE_DEBOUNCE_MS + 200);
     expect(await db.saves.get("save-1")).toBeUndefined();
+  });
+
+  it("reports saving while the write is debounced, then saved, then idle again", async () => {
+    // Nodes/edges hoisted to a stable reference outside the render callback
+    // (as the real store selectors give ChapterWorkspace/SandboxPage) — a
+    // fresh `[nodeA]` literal every render would look "changed" to the
+    // effect's deps and restart the debounce on the status flip alone.
+    const stableNodes = [nodeA];
+    const { result } = renderHook(() => useAutosave("save-1", stableNodes, edges));
+
+    await waitFor(() => expect(result.current).toBe("saving"));
+    await waitFor(() => expect(result.current).toBe("saved"), { timeout: AUTOSAVE_DEBOUNCE_MS + 1000 });
+    await waitFor(() => expect(result.current).toBe("idle"), { timeout: 2000 });
+  });
+
+  it("stays idle when saveId is null", () => {
+    const { result } = renderHook(() => useAutosave(null, [nodeA], edges));
+    expect(result.current).toBe("idle");
   });
 });

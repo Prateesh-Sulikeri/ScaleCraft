@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { db } from "./db";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 
@@ -7,6 +7,14 @@ import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
  * before a user could physically close the tab. */
 export const AUTOSAVE_DEBOUNCE_MS = 800;
 
+/** How long the "Saved" indicator stays up before going quiet again —
+ * matches the manual Save button's own justSaved window (AppHeader). */
+const SAVED_DISPLAY_MS = 1500;
+
+/** `"idle"`: nothing pending, no indicator. `"saving"`: an edit is debounced
+ *  and waiting to write. `"saved"`: the write just completed. */
+export type AutosaveStatus = "idle" | "saving" | "saved";
+
 /**
  * Debounced autosave-on-edit (MILESTONES.md #9's "Done when": autosave
  * works offline for both sandbox and chapter attempts). Runs alongside —
@@ -14,6 +22,8 @@ export const AUTOSAVE_DEBOUNCE_MS = 800;
  * cleanup already in ChapterWorkspace/SandboxPage: those still cover
  * in-app navigation and the manual affordance, this is what stops closing
  * or refreshing the tab from losing work that was never explicitly saved.
+ * Returns a status so callers can surface a "Saving..."/"Saved" indicator
+ * near the header — silent otherwise, exactly around a real save event.
  *
  * `saveId: null` disables the effect entirely (e.g. ChapterWorkspace before
  * the open chapter resolves). Callers MUST also pass `null` until their own
@@ -25,12 +35,46 @@ export const AUTOSAVE_DEBOUNCE_MS = 800;
  * real prior save — silently discarding the starterGraph/actual save. This
  * was a real, reproduced bug: see ChapterWorkspace.tsx's `hasLoadedRef`.
  */
-export function useAutosave(saveId: string | null, nodes: AnyNodeType[], edges: ArchitectureEdgeType[]): void {
+export function useAutosave(
+  saveId: string | null,
+  nodes: AnyNodeType[],
+  edges: ArchitectureEdgeType[],
+): AutosaveStatus {
+  const [status, setStatus] = useState<AutosaveStatus>("idle");
+  // Bumped on every effect run. A write's completion callback only applies
+  // its status update if it's still the most recent run — otherwise a slow
+  // write finishing after a newer edit already started re-debouncing would
+  // stomp "saving" back to "saved" out of order.
+  const generationRef = useRef(0);
+
   useEffect(() => {
     if (!saveId) return;
-    const handle = setTimeout(() => {
-      void db.saves.put({ id: saveId, updatedAt: Date.now(), nodes, edges });
+    const generation = ++generationRef.current;
+    // Deferred to a microtask rather than called synchronously in the
+    // effect body, to avoid react-hooks/set-state-in-effect's
+    // cascading-render warning (same pattern as ChapterWorkspace.tsx's
+    // restore effect).
+    void Promise.resolve().then(() => {
+      if (generationRef.current === generation) setStatus("saving");
+    });
+    let savedDisplayHandle: ReturnType<typeof setTimeout> | undefined;
+    const debounceHandle = setTimeout(() => {
+      void db.saves.put({ id: saveId, updatedAt: Date.now(), nodes, edges }).then(() => {
+        if (generationRef.current !== generation) return;
+        setStatus("saved");
+        savedDisplayHandle = setTimeout(() => {
+          if (generationRef.current === generation) setStatus("idle");
+        }, SAVED_DISPLAY_MS);
+      });
     }, AUTOSAVE_DEBOUNCE_MS);
-    return () => clearTimeout(handle);
+    return () => {
+      clearTimeout(debounceHandle);
+      if (savedDisplayHandle) clearTimeout(savedDisplayHandle);
+    };
   }, [saveId, nodes, edges]);
+
+  // Derived, not effect-driven: a null saveId means autosave is disabled
+  // right now, so the indicator goes quiet immediately rather than waiting
+  // on (or triggering) a render.
+  return saveId ? status : "idle";
 }

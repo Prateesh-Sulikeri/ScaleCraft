@@ -190,7 +190,11 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
   // stops changing, independent of the explicit Save button or the
   // unmount cleanup below. null until the chapter resolves AND the initial
   // restore above has actually completed (see hasLoadedInitialState).
-  useAutosave(hasLoadedInitialState && chapter?.id ? chapterSaveId(chapter.id) : null, nodes, edges);
+  const autosaveStatus = useAutosave(
+    hasLoadedInitialState && chapter?.id ? chapterSaveId(chapter.id) : null,
+    nodes,
+    edges,
+  );
 
   // Each chapter route mounts a fresh CanvasStoreProvider (key={chapterSlug}
   // on the route, see the [chapterSlug]/page.tsx guard), so within one
@@ -356,6 +360,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
           saveId={chapterSaveId(chapter.id)}
           onSave={handleSave}
           justSaved={justSaved}
+          autosaveStatus={autosaveStatus}
           docsPanelOpen={docsPanelOpen}
           toggleDocsPanel={toggleDocsPanel}
           deepCheckCtx={deepCheckCtx}

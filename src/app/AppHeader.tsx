@@ -16,6 +16,7 @@ import type { ValidationViolation } from "@/validation-engine/types";
 import type { DeepCheckContext } from "@/ai/prompt";
 import type { AppMode } from "@/lib/modes";
 import { modeColorVar } from "@/lib/modes";
+import type { AutosaveStatus } from "@/persistence/use-autosave";
 
 type AppHeaderProps = {
   mode: AppMode;
@@ -33,6 +34,10 @@ type AppHeaderProps = {
   saveId: string | null;
   onSave: () => void;
   justSaved: boolean;
+  /** Background autosave status, distinct from the explicit Save button's
+   *  own justSaved flash — rendered as a quiet text indicator, never shown
+   *  for an idle canvas. */
+  autosaveStatus: AutosaveStatus;
   docsPanelOpen: boolean;
   toggleDocsPanel: () => void;
   /** Assembled by the caller (sandbox/page.tsx always builds the pre-pass
@@ -62,6 +67,7 @@ export function AppHeader({
   saveId,
   onSave,
   justSaved,
+  autosaveStatus,
   docsPanelOpen,
   toggleDocsPanel,
   deepCheckCtx,
@@ -90,6 +96,11 @@ export function AppHeader({
           <h1 className="text-base font-semibold">ScaleCraft</h1>
         </Link>
         <ModeBadge mode={mode} />
+        {autosaveStatus !== "idle" && (
+          <span aria-live="polite" className="text-xs text-foreground/40">
+            {autosaveStatus === "saving" ? "Saving..." : "Saved"}
+          </span>
+        )}
       </div>
       <div className="flex items-center gap-2">
         {/* One split button, not two separate ones — bg-panel on the
