@@ -132,11 +132,16 @@ function SandboxPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Autosave-on-edit (MILESTONES.md #9) — fires ~800ms after the graph
-  // stops changing, independent of the explicit Save button or the
-  // unmount cleanup below. null until the restore above has actually
-  // completed (see hasLoadedInitialState).
-  const autosaveStatus = useAutosave(hasLoadedInitialState ? SANDBOX_SAVE_ID : null, nodes, edges);
+  // Autosave-on-edit (MILESTONES.md #9) — fires once the graph stops
+  // changing for AUTOSAVE_DEBOUNCE_MS, independent of the unmount cleanup
+  // below. null until the restore above has actually completed (see
+  // hasLoadedInitialState). `saveNow` also backs the explicit Save button/
+  // Ctrl+S so both paths drive the one shared status shown in AppHeader.
+  const { status: saveStatus, saveNow } = useAutosave(
+    hasLoadedInitialState ? SANDBOX_SAVE_ID : null,
+    nodes,
+    edges,
+  );
 
   // Each mode's canvas store instance is created fresh on mount (see
   // CanvasStoreProvider) and torn down on unmount — without this, navigating
@@ -151,11 +156,6 @@ function SandboxPageContent() {
     };
   }, [storeApi]);
 
-  // Icon-only header button (see Tooltip below) — the text label "Saved"
-  // that used to carry this feedback is gone, so a brief icon swap
-  // (Save -> Check, same 1.5s window as before) is what now communicates
-  // "it worked" without needing to hover the tooltip to see it.
-  const [justSaved, setJustSaved] = useState(false);
   const canvasRef = useRef<CanvasHandle>(null);
 
   // The palette sidebar was the only always-visible insertion affordance;
@@ -168,14 +168,7 @@ function SandboxPageContent() {
   const [hintDismissed, dismissHint] = useDismissedFlag("sc-insert-hint-dismissed");
   const showInsertHint = !hintDismissed;
 
-  const handleSave = async () => {
-    const { nodes, edges } = storeApi.getState();
-    await db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
-    setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 1500);
-  };
-
-  useCanvasShortcuts(handleSave);
+  useCanvasShortcuts(() => void saveNow());
 
   // Validation is explicit, not live — per direction, an automatic
   // per-edit re-check felt noisy. `checkedGraphKey` is a snapshot of the
@@ -244,9 +237,8 @@ function SandboxPageContent() {
           isStale={isStale}
           onValidate={handleValidate}
           saveId={SANDBOX_SAVE_ID}
-          onSave={handleSave}
-          justSaved={justSaved}
-          autosaveStatus={autosaveStatus}
+          onSave={() => void saveNow()}
+          saveStatus={saveStatus}
           docsPanelOpen={docsPanelOpen}
           toggleDocsPanel={toggleDocsPanel}
           deepCheckCtx={deepCheckCtx}

@@ -13,15 +13,15 @@ implementation. Each item below gets its own `type/*` branch off
 - `main` and `develop` are the only branches left, both in sync with origin.
 - Cut and pushed `release/v3.1.0-ui-clean-up-fixes` from `develop`.
 
-## 1. Shared about-style modal
+## 1. Shared about-style modal - done
 
-`AboutButton.tsx` already reuses `DocsModal` (generic title+text window).
-`ReleaseNotesButton.tsx` instead hand-rolls its own backdrop+panel. Fix:
-rebuild `ReleaseNotesButton` on `DocsModal` (or extract a shared modal shell
-both consume) so future Home buttons follow one pattern instead of a third
-bespoke modal. Small.
+Corrected direction: kept the centered backdrop+panel modal (the one
+`ReleaseNotesButton.tsx` already had, same convention as
+`CreateComponentModal.tsx`), extracted as `CenteredModal.tsx`, and rebuilt
+`AboutButton.tsx` on it - not the other way around. `DocsModal.tsx` (floating
+draggable window) is now unused by both and was deleted. Small.
 
-## 2. Autosave indicator
+## 2. Autosave indicator - done
 
 `useAutosave` (`src/persistence/use-autosave.ts`) fires silently on an 800ms
 debounce, no UI signal today. Add a small indicator (e.g. "Saved" / "Saving..."
@@ -42,7 +42,7 @@ explanatory-comment style. Scope: user-facing text only (chapter markdown + UI
 strings), not source comments - "the site" means what renders, not the
 codebase. Medium, mostly mechanical, needs care to not touch comments.
 
-## 5. Collapse-all + search on Learning Path
+## 5. Collapse-all + search on Learning Path - done
 
 `SectionCard.tsx` already has per-section collapse (local `useState`, decision
 D5), needs lifting to `LearningPath.tsx` so one control drives all sections.
@@ -50,13 +50,13 @@ Search (chapter name / section name / completion status) doesn't exist yet,
 new filter UI needed against `course.sections` / `ChapterStatus` from the
 progress store. Medium.
 
-## 6. Completion tracker redesign
+## 6. Completion tracker redesign - done
 
 `OverallProgress.tsx` already renders "0/47 chapters * 0/10 sections", this is
 a visual/IA redesign, not new plumbing. Good candidate for `/impeccable
 polish`. Small-medium.
 
-## 7. Reading progress bar bug
+## 7. Reading progress bar bug - done
 
 `ReadingProgress.tsx`'s scroll-percent math (`scrollTop / (scrollHeight -
 clientHeight)`) looks correct on read. It only listens to `scroll` events, no
@@ -65,7 +65,7 @@ clientHeight)`) looks correct on read. It only listens to `scroll` events, no
 the last scroll event, so the computed max silently drifts. Needs a live
 repro to confirm before fixing. Medium.
 
-## 8. Prerequisite/domain tags in Chapter Reader
+## 8. Prerequisite/domain tags in Chapter Reader - done
 
 Data already exists: `CurriculumChapter.prerequisiteSlugs` and `.domain` (32
 of 79 entries, all RWE, all BB are `null` by design, confirmed in
@@ -84,7 +84,7 @@ author intended as a section heading. The uncommitted edit to
 Fix: change the filter to `h.level >= 1` in `TableOfContents.tsx`. Confident,
 low-risk. Fold the `bb-dummy-1.md` repro edit into this branch. Small.
 
-## 10. Visual distinction + numbering for checkpoints
+## 10. Visual distinction + numbering for checkpoints - done
 
 `CurriculumChapter.kind: "chapter" | "checkpoint"` already exists but
 `ChapterRow.tsx` never reads it, checkpoints render identically to chapters.

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Info } from "lucide-react";
-import { DocsModal } from "@/canvas/DocsModal";
+import { CenteredModal } from "./CenteredModal";
 
 const ABOUT_TEXT =
   "ScaleCraft is an interactive system-design lab, not a game. You assemble real-world " +
@@ -19,17 +19,14 @@ const ABOUT_TEXT =
   "ScaleCraft is single-player, permanently - a self-paced course, not a shared workspace.";
 
 /**
- * Reuses DocsModal (a generic floating title+text window, otherwise
- * unrelated to the canvas's docked documentation panel — see
- * docs-panel/DocsPanel.tsx) with static content instead of a component's
- * registry docs — it's already fully generic over title/docs, so no changes
- * needed there. Local state rather than the canvas store's docsPanel: this
- * isn't component documentation and Home doesn't touch the canvas store at
- * all. Mounted on Home only, per the request.
+ * Reuses CenteredModal (shared with ReleaseNotesButton.tsx) with static
+ * content instead of a component's registry docs. Local state rather than
+ * the canvas store's docsPanel: this isn't component documentation and Home
+ * doesn't touch the canvas store at all. Mounted on Home only, per the
+ * request.
  */
 export function AboutButton() {
   const [open, setOpen] = useState(false);
-  const [minimized, setMinimized] = useState(false);
 
   if (!open) {
     return (
@@ -45,14 +42,8 @@ export function AboutButton() {
   }
 
   return (
-    <DocsModal
-      title="About ScaleCraft"
-      index={0}
-      minimized={minimized}
-      onMinimizedChange={setMinimized}
-      onClose={() => setOpen(false)}
-    >
+    <CenteredModal title="About ScaleCraft" onClose={() => setOpen(false)}>
       <p className="text-base leading-7 text-foreground/80">{ABOUT_TEXT}</p>
-    </DocsModal>
+    </CenteredModal>
   );
 }

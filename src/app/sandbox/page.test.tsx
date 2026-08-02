@@ -93,7 +93,7 @@ describe("SandboxPage", () => {
         const saved = await db.saves.get(SANDBOX_SAVE_ID);
         expect(saved?.nodes.length).toBe(5);
       },
-      { timeout: 2000 },
+      { timeout: AUTOSAVE_DEBOUNCE_MS + 1000 },
     );
   });
 

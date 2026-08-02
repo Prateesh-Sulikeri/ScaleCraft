@@ -99,10 +99,6 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
 
   const canvasRef = useRef<CanvasHandle>(null);
 
-  // Icon-only header button (see AppHeader) — same 1.5s Save -> Check icon
-  // swap as Sandbox.
-  const [justSaved, setJustSaved] = useState(false);
-
   const markVisited = useCurriculumProgressStore((s) => s.markVisited);
   const hydrateProgress = useCurriculumProgressStore((s) => s.hydrate);
   const recordValidationPass = useCurriculumProgressStore((s) => s.recordValidationPass);
@@ -186,11 +182,13 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapter?.id]);
 
-  // Autosave-on-edit (MILESTONES.md #9) — fires ~800ms after the graph
-  // stops changing, independent of the explicit Save button or the
-  // unmount cleanup below. null until the chapter resolves AND the initial
-  // restore above has actually completed (see hasLoadedInitialState).
-  const autosaveStatus = useAutosave(
+  // Autosave-on-edit (MILESTONES.md #9) — fires once the graph stops
+  // changing for AUTOSAVE_DEBOUNCE_MS, independent of the unmount cleanup
+  // below. null until the chapter resolves AND the initial restore above
+  // has actually completed (see hasLoadedInitialState). `saveNow` also backs
+  // the explicit Save button/Ctrl+S so both paths drive the one shared
+  // status shown in AppHeader.
+  const { status: saveStatus, saveNow } = useAutosave(
     hasLoadedInitialState && chapter?.id ? chapterSaveId(chapter.id) : null,
     nodes,
     edges,
@@ -208,21 +206,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     };
   }, [storeApi, chapter]);
 
-  const handleSave = async () => {
-    // Defensive only — the route guard means there is always a chapter open.
-    if (!chapter) return;
-    const { nodes: liveNodes, edges: liveEdges } = storeApi.getState();
-    await db.saves.put({
-      id: chapterSaveId(chapter.id),
-      updatedAt: Date.now(),
-      nodes: liveNodes,
-      edges: liveEdges,
-    });
-    setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 1500);
-  };
-
-  useCanvasShortcuts(handleSave);
+  useCanvasShortcuts(() => void saveNow());
 
   const [chapterOutcome, setChapterOutcome] = useState<ChapterOutcome | null>(null);
   const [checkedGraphKey, setCheckedGraphKey] = useState<string | null>(null);
@@ -358,9 +342,8 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
           isStale={isStale}
           onValidate={handleValidate}
           saveId={chapterSaveId(chapter.id)}
-          onSave={handleSave}
-          justSaved={justSaved}
-          autosaveStatus={autosaveStatus}
+          onSave={() => void saveNow()}
+          saveStatus={saveStatus}
           docsPanelOpen={docsPanelOpen}
           toggleDocsPanel={toggleDocsPanel}
           deepCheckCtx={deepCheckCtx}

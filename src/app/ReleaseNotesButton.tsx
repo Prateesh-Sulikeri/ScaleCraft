@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Megaphone } from "lucide-react";
 import { releaseNotes } from "@/content/release-notes";
-import { DocsModal } from "@/canvas/DocsModal";
+import { CenteredModal } from "./CenteredModal";
 
 /**
  * Mounted only on the Home page (page.tsx) — release notes are a landing-page
@@ -13,13 +13,12 @@ import { DocsModal } from "@/canvas/DocsModal";
  * free this spot, and Home's AboutButton (page.tsx) is shifted up to stack
  * above it rather than overlap.
  *
- * Shares DocsModal with AboutButton.tsx rather than hand-rolling its own
+ * Shares CenteredModal with AboutButton.tsx rather than hand-rolling its own
  * backdrop+panel — one modal shell for every Home dialog instead of a
  * bespoke variant per button.
  */
 export function ReleaseNotesButton() {
   const [open, setOpen] = useState(false);
-  const [minimized, setMinimized] = useState(false);
   const latest = releaseNotes[0];
 
   if (!open) {
@@ -36,16 +35,13 @@ export function ReleaseNotesButton() {
   }
 
   return (
-    <DocsModal
+    <CenteredModal
       title="Release notes"
       titleAdornment={
         <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[11px] font-medium text-foreground/60">
           Alpha {latest.version}
         </span>
       }
-      index={1}
-      minimized={minimized}
-      onMinimizedChange={setMinimized}
       onClose={() => setOpen(false)}
     >
       <ul className="flex flex-col gap-5">
@@ -66,6 +62,6 @@ export function ReleaseNotesButton() {
           </li>
         ))}
       </ul>
-    </DocsModal>
+    </CenteredModal>
   );
 }
