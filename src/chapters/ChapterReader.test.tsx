@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { ChapterReader } from "./ChapterReader";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import type { CurriculumChapter } from "@/curriculum/types";
+import type { CurriculumChapter, Course } from "@/curriculum/types";
 import type { ExtractedHeading } from "./extract-headings";
 
 function makeChapter(overrides: Partial<ChapterDefinition> = {}): ChapterDefinition {
@@ -111,5 +113,124 @@ describe("ChapterReader - Component Integration", () => {
 
     expect(bb.mode).toBe("building-blocks");
     expect(rwe.mode).toBe("real-world-extraction");
+  });
+});
+
+vi.mock("./ReaderSidebar", () => ({ ReaderSidebar: () => null }));
+vi.mock("./ReadingProgress", () => ({ ReadingProgress: () => null }));
+vi.mock("./TableOfContents", () => ({ TableOfContents: () => null }));
+vi.mock("./DesignEditorCTA", () => ({ DesignEditorCTA: () => null }));
+vi.mock("./quiz/QuizLauncher", () => ({ QuizLauncher: () => null }));
+vi.mock("@/app/ThemeToggle", () => ({ ThemeToggle: () => null }));
+vi.mock("@/canvas/docs-panel/markdown/MarkdownRenderer", () => ({
+  MarkdownRenderer: ({ content }: { content: string }) => <div>{content}</div>,
+}));
+
+const { mainChapter, entriesBySlug, targetEntry } = vi.hoisted(() => {
+  const targetEntry = {
+    slug: "target",
+    number: "2.3",
+    title: "Target Chapter",
+    kind: "chapter" as const,
+    chapterDefinitionId: "ch-target",
+    estimatedMinutes: 30,
+    difficulty: "intermediate" as const,
+    prerequisiteSlugs: ["prereq-authored", "prereq-unauthored"],
+    domain: "Messaging" as string | null,
+  };
+  const authoredPrereq = {
+    slug: "prereq-authored",
+    number: "1.1",
+    title: "Prereq One",
+    kind: "chapter" as const,
+    chapterDefinitionId: "ch-prereq",
+    estimatedMinutes: 20,
+    difficulty: "foundational" as const,
+    prerequisiteSlugs: [] as string[],
+    domain: null as string | null,
+  };
+  const unauthoredPrereq = {
+    slug: "prereq-unauthored",
+    number: "1.2",
+    title: "Prereq Two",
+    kind: "chapter" as const,
+    chapterDefinitionId: null,
+    estimatedMinutes: 15,
+    difficulty: "foundational" as const,
+    prerequisiteSlugs: [] as string[],
+    domain: null as string | null,
+  };
+  return {
+    mainChapter: {
+      id: "ch-target",
+      mode: "real-world-extraction" as const,
+      title: "Target Chapter",
+      problemStatement: "Problem",
+      learningObjectives: [] as string[],
+      availableComponentIds: [] as string[],
+      requiredComponentIds: [] as string[],
+      validationRuleIds: [] as string[],
+      blueprints: [] as ChapterDefinition["blueprints"],
+      hints: [] as ChapterDefinition["hints"],
+      readingLinks: [] as ChapterDefinition["readingLinks"],
+    },
+    targetEntry,
+    entriesBySlug: {
+      target: targetEntry,
+      "prereq-authored": authoredPrereq,
+      "prereq-unauthored": unauthoredPrereq,
+    } as Record<string, CurriculumChapter>,
+  };
+});
+
+vi.mock("@/content/chapters", () => ({
+  chapterRegistry: [mainChapter],
+}));
+
+vi.mock("@/curriculum", () => ({
+  getCourse: (): Course => ({
+    id: "real-world-extraction",
+    title: "Real World Extraction",
+    subtitle: "",
+    sections: [],
+  }),
+  findEntry: (_mode: string, slug: string) => entriesBySlug[slug],
+}));
+
+describe("ChapterReader - prerequisite and domain tags", () => {
+  it("renders the domain badge for an RWE chapter with a domain", () => {
+    render(
+      <ChapterReader
+        mode="real-world-extraction"
+        chapterSlug="target"
+        markdown="Lesson body"
+        headings={[]}
+      />,
+    );
+    expect(screen.getByText("Messaging")).toBeInTheDocument();
+  });
+
+  it("renders an authored prerequisite as a link to its lesson, and an unauthored one as a plain chip", () => {
+    render(
+      <ChapterReader
+        mode="real-world-extraction"
+        chapterSlug="target"
+        markdown="Lesson body"
+        headings={[]}
+      />,
+    );
+    const authoredLink = screen.getByRole("link", { name: /1\.1 Prereq One/i });
+    expect(authoredLink).toHaveAttribute("href", "/real-world-extraction/prereq-authored/lesson");
+    expect(screen.getByText("1.2 Prereq Two")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /1\.2 Prereq Two/i })).not.toBeInTheDocument();
+  });
+
+  it("renders neither section when there are no prerequisites or domain", () => {
+    const bareEntry: CurriculumChapter = { ...targetEntry, slug: "bare", prerequisiteSlugs: [], domain: null };
+    entriesBySlug.bare = bareEntry;
+    render(
+      <ChapterReader mode="real-world-extraction" chapterSlug="bare" markdown="Lesson body" headings={[]} />,
+    );
+    expect(screen.queryByText(/prerequisites/i)).not.toBeInTheDocument();
   });
 });
