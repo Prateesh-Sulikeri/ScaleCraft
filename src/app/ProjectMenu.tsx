@@ -55,7 +55,7 @@ export function ProjectMenu({ canvasRef, disabled = false }: ProjectMenuProps) {
       loadCanvasState(parsed.nodes as AnyNodeType[], parsed.edges as ArchitectureEdgeType[]);
       setOpen(false);
     } catch {
-      setImportError("Couldn't import that file — not a valid ScaleCraft canvas export.");
+      setImportError("Couldn't import that file - not a valid ScaleCraft canvas export.");
     }
   };
 

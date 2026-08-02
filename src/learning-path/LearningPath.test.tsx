@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { LearningPath } from "./LearningPath";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { db } from "@/persistence/db";
@@ -55,5 +55,46 @@ describe("LearningPath", () => {
       "href",
       "/docs/The_Crafters_Guide_to_System_Design.pdf",
     );
+  });
+
+  it("'Collapse all' collapses every section and flips to 'Expand all'; clicking again restores them", () => {
+    render(<LearningPath courseId="building-blocks" />);
+    const toggleAll = screen.getByRole("button", { name: /collapse all/i });
+
+    fireEvent.click(toggleAll);
+    expect(screen.getAllByRole("button", { name: /^(part|group) /i }).every((b) => b.getAttribute("aria-expanded") === "false")).toBe(true);
+    expect(screen.getByRole("button", { name: /expand all/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /expand all/i }));
+    expect(screen.getAllByRole("button", { name: /^(part|group) /i }).every((b) => b.getAttribute("aria-expanded") === "true")).toBe(true);
+  });
+
+  it("search filters chapter rows by title, hiding sections with no match", () => {
+    render(<LearningPath courseId="building-blocks" />);
+    fireEvent.change(screen.getByRole("textbox", { name: /search chapters/i }), {
+      target: { value: "load balancer" },
+    });
+
+    expect(screen.getByText("Load Balancer")).toBeInTheDocument();
+    expect(screen.queryByText("Vertical vs. Horizontal Scaling")).not.toBeInTheDocument();
+  });
+
+  it("search matches on completion status", () => {
+    render(<LearningPath courseId="building-blocks" />);
+    fireEvent.change(screen.getByRole("textbox", { name: /search chapters/i }), {
+      target: { value: "not started" },
+    });
+
+    expect(screen.getAllByRole("img", { name: /not started/i }).length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole("img", { name: /^completed$/i })).toHaveLength(0);
+  });
+
+  it("shows a no-results message when nothing matches", () => {
+    render(<LearningPath courseId="building-blocks" />);
+    fireEvent.change(screen.getByRole("textbox", { name: /search chapters/i }), {
+      target: { value: "zzz-no-such-chapter" },
+    });
+
+    expect(screen.getByText(/no chapters match/i)).toBeInTheDocument();
   });
 });

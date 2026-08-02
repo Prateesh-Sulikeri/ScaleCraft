@@ -92,7 +92,7 @@ describe("ChapterRow", () => {
     render(<ChapterRow entry={entry()} courseId="building-blocks" status="COMPLETED" completedByValidation={true} />);
     const toggle = screen.getByRole("button", { name: "Reset Load Balancing progress" });
     expect(toggle).not.toBeDisabled();
-    expect(toggle).toHaveAttribute("title", "Completed by validation — click to reset and redo this chapter");
+    expect(toggle).toHaveAttribute("title", "Completed by validation - click to reset and redo this chapter");
 
     fireEvent.click(toggle);
     await waitFor(() => {
@@ -101,6 +101,19 @@ describe("ChapterRow", () => {
         useCurriculumProgressStore.getState().rowsBySlug.get("1-2-load-balancing")?.manuallyCompletedAt,
       ).toBeNull();
     });
+  });
+
+  it("renders a checkpoint's R-number in a bordered chip and its title in bold, unlike a regular chapter", () => {
+    render(
+      <ChapterRow
+        entry={entry({ slug: "checkpoint-r1-a-site-that-stays-up", number: "R1", title: "Checkpoint · A Site That Stays Up", kind: "checkpoint" })}
+        courseId="building-blocks"
+        status="NOT_STARTED"
+        completedByValidation={false}
+      />,
+    );
+    expect(screen.getByText("R1")).toBeInTheDocument();
+    expect(screen.getByText("Checkpoint · A Site That Stays Up")).toHaveClass("font-semibold");
   });
 
   it("leaves the toggle enabled when COMPLETED came from a manual override, not validation", async () => {

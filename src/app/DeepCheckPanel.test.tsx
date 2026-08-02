@@ -83,6 +83,20 @@ describe("DeepCheckPanel", () => {
     expect(onRun).toHaveBeenCalledTimes(1);
   });
 
+  it("renders a no-profile explanatory message with Help/AI Profiles shortcuts instead of a Run button when no usable profile exists", () => {
+    const onViewChange = vi.fn();
+    render(<DeepCheckPanel {...baseProps({ state: null, canRun: false, onViewChange })} />);
+
+    expect(screen.getByText(/No AI profile is set up yet/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Run Deep Check" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Read Help" }));
+    expect(onViewChange).toHaveBeenCalledWith("help");
+
+    fireEvent.click(screen.getByRole("button", { name: "Set Up AI Profile" }));
+    expect(onViewChange).toHaveBeenCalledWith("profiles");
+  });
+
   it("renders the plain failure message on an error result, with no severity styling", () => {
     render(
       <DeepCheckPanel

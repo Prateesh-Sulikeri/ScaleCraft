@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ChevronLeft, HelpCircle, History, Loader2, Sparkles, Trash2, Users, X } from "lucide-react";
+import { ChevronLeft, HelpCircle, History, Loader2, Settings, Sparkles, Trash2, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
@@ -187,7 +187,7 @@ export function DeepCheckPanel({
                     aria-label="AI Profiles"
                     className="flex h-7 w-7 items-center justify-center rounded text-foreground/50 hover:text-foreground"
                   >
-                    <Users size={15} />
+                    <Settings size={15} />
                   </button>
                 </Tooltip>
               </>
@@ -212,7 +212,7 @@ export function DeepCheckPanel({
           {view === "help" && <HelpView />}
           {view === "result" && (
             <>
-              {state === null && <EmptyResultState canRun={canRun} onRun={onRun} />}
+              {state === null && <EmptyResultState canRun={canRun} onRun={onRun} onViewChange={onViewChange} />}
               {state?.status === "loading" && <LoadingState onCancel={onCancelRun} />}
               {state?.status === "error" && <ErrorState message={state.message} />}
               {state?.status === "ok" && <CritiqueView critique={state.critique} onSelectNode={onSelectNode} />}
@@ -234,7 +234,7 @@ function HelpView() {
       <div className="flex flex-col gap-1.5">
         <h3 className="text-sm font-semibold text-foreground">What is Deep Check?</h3>
         <p className="text-foreground/70">
-          Deep Check sends your current design to an AI model for a system-design critique —
+          Deep Check sends your current design to an AI model for a system-design critique -
           trade-offs, failure modes, and things worth reconsidering. It never decides whether a
           chapter passes; that&apos;s always the deterministic validation engine.
         </p>
@@ -244,7 +244,7 @@ function HelpView() {
         <h3 className="text-sm font-semibold text-foreground">Why bring your own API key?</h3>
         <p className="text-foreground/70">
           ScaleCraft doesn&apos;t run or pay for AI calls on your behalf. Your key is stored only in
-          this browser&apos;s IndexedDB and sent directly to your chosen provider — never through
+          this browser&apos;s IndexedDB and sent directly to your chosen provider - never through
           ScaleCraft&apos;s servers.
         </p>
       </div>
@@ -270,14 +270,49 @@ function HelpView() {
   );
 }
 
-function EmptyResultState({ canRun, onRun }: { canRun: boolean; onRun: () => void }) {
+/** No usable profile yet (first-time users, or anyone who cleared theirs):
+ * point at Help and Profiles instead of running anything, rather than
+ * dropping the user straight into the Profiles view (that used to happen
+ * on open and skipped explaining what Deep Check even is). */
+function EmptyResultState({
+  canRun,
+  onRun,
+  onViewChange,
+}: {
+  canRun: boolean;
+  onRun: () => void;
+  onViewChange: (view: DeepCheckView) => void;
+}) {
+  if (!canRun) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-10 text-center">
+        <p className="text-sm text-foreground/60">
+          No AI profile is set up yet. See Help to learn what Deep Check does, or set one up in AI Profiles.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => onViewChange("help")}
+            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium hover:bg-border"
+          >
+            Read Help
+          </button>
+          <button
+            onClick={() => onViewChange("profiles")}
+            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium hover:bg-border"
+          >
+            Set Up AI Profile
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center gap-3 py-10 text-center">
       <p className="text-sm text-foreground/60">Settings saved. Run Deep Check to review your design.</p>
       <button
         onClick={onRun}
-        disabled={!canRun}
-        className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium hover:bg-border disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium hover:bg-border"
       >
         Run Deep Check
       </button>
@@ -379,7 +414,7 @@ function HistoryView({
   if (sessions.length === 0) {
     return (
       <p className="text-sm text-foreground/60">
-        No saved reviews yet — every completed Deep Check is saved here automatically.
+        No saved reviews yet - every completed Deep Check is saved here automatically.
       </p>
     );
   }

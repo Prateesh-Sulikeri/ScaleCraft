@@ -5,12 +5,12 @@ import { ExamConfirmSubmitDialog } from "./ExamConfirmSubmitDialog";
 describe("ExamConfirmSubmitDialog", () => {
   it("pluralizes the unanswered count correctly", () => {
     render(<ExamConfirmSubmitDialog unansweredCount={3} onCancel={vi.fn()} onConfirm={vi.fn()} />);
-    expect(screen.getByText("3 questions unanswered — submit anyway?")).toBeInTheDocument();
+    expect(screen.getByText("3 questions unanswered - submit anyway?")).toBeInTheDocument();
   });
 
   it("does not pluralize a single unanswered question", () => {
     render(<ExamConfirmSubmitDialog unansweredCount={1} onCancel={vi.fn()} onConfirm={vi.fn()} />);
-    expect(screen.getByText("1 question unanswered — submit anyway?")).toBeInTheDocument();
+    expect(screen.getByText("1 question unanswered - submit anyway?")).toBeInTheDocument();
   });
 
   it("calls onCancel when 'Keep going' is clicked", () => {

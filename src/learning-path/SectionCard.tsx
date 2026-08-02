@@ -1,25 +1,37 @@
 "use client";
 
-import { useState } from "react";
 import { ChevronRight, CheckCircle2 } from "lucide-react";
 import { ChapterRow } from "./ChapterRow";
 import { ProgressBar } from "./ProgressBar";
 import { summarizeSection, deriveStatus, type ProgressInputs } from "@/curriculum/progress";
-import type { CourseId, CurriculumSection } from "@/curriculum/types";
+import type { CourseId, CurriculumChapter, CurriculumSection } from "@/curriculum/types";
 
 type SectionCardProps = {
   section: CurriculumSection;
   courseId: CourseId;
   /** Passed down, never re-read from the store per card. */
   inputs: ProgressInputs;
+  /** Lifted to LearningPath (decision D5 extended) so a single collapse-all
+   *  control and search can both drive every card's expanded state. */
+  expanded: boolean;
+  onToggleExpanded: () => void;
+  /** Chapter rows to render below the header - the full section, or a
+   *  search-filtered subset. The header's own progress count always reflects
+   *  the full, unfiltered section. */
+  visibleChapters: readonly CurriculumChapter[];
 };
 
-/** Collapsible section (decision D5: in-memory only, defaults expanded).
- *  The header row (chevron, eyebrow label, mini progress bar, count) stays
- *  visible whether collapsed or expanded; the full title/summary and the
- *  chapter list only render while expanded. */
-export function SectionCard({ section, courseId, inputs }: SectionCardProps) {
-  const [expanded, setExpanded] = useState(true);
+/** Collapsible section. The header row (chevron, eyebrow label, mini
+ *  progress bar, count) stays visible whether collapsed or expanded; the
+ *  full title/summary and the chapter list only render while expanded. */
+export function SectionCard({
+  section,
+  courseId,
+  inputs,
+  expanded,
+  onToggleExpanded,
+  visibleChapters,
+}: SectionCardProps) {
   const summary = summarizeSection(section, inputs);
   const isComplete = summary.total > 0 && summary.completed === summary.total;
 
@@ -27,7 +39,7 @@ export function SectionCard({ section, courseId, inputs }: SectionCardProps) {
     <div className="rounded-md border border-border bg-panel">
       <button
         type="button"
-        onClick={() => setExpanded((e) => !e)}
+        onClick={onToggleExpanded}
         aria-expanded={expanded}
         className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-border/30"
       >
@@ -61,7 +73,7 @@ export function SectionCard({ section, courseId, inputs }: SectionCardProps) {
             <p className="mt-0.5 text-[13px] text-foreground/60">{section.summary}</p>
           </div>
           <ul className="flex flex-col">
-            {section.chapters.map((entry) => (
+            {visibleChapters.map((entry) => (
               <li key={entry.slug}>
                 <ChapterRow
                   entry={entry}

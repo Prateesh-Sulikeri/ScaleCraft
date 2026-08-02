@@ -21,6 +21,7 @@ const SHORTCUTS: { keys: string; label: string }[] = [
   { keys: "Ctrl/Cmd+E", label: "Export JSON" },
   { keys: "Ctrl/Cmd+D", label: "Duplicate selection" },
   { keys: "Ctrl/Cmd+A", label: "Select all" },
+  { keys: "Ctrl/Cmd+Shift+L", label: "Lock/unlock selection" },
   { keys: "Arrow keys", label: "Nudge selected node(s)" },
   { keys: "Shift+Arrow", label: "Nudge selected node(s) (4x)" },
   { keys: "Delete / Backspace", label: "Delete selection" },

@@ -20,7 +20,7 @@ export function ExamConfirmSubmitDialog({ unansweredCount, onCancel, onConfirm }
           className="pointer-events-auto w-80 max-w-full rounded-md border border-border bg-panel p-4 shadow-lg"
         >
           <p className="text-sm text-foreground">
-            {unansweredCount} question{unansweredCount === 1 ? "" : "s"} unanswered — submit anyway?
+            {unansweredCount} question{unansweredCount === 1 ? "" : "s"} unanswered - submit anyway?
           </p>
           <p className="mt-1 text-xs text-foreground/60">Unanswered questions are scored as incorrect.</p>
           <div className="mt-3 flex gap-2">

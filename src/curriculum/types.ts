@@ -19,7 +19,8 @@ export type CurriculumChapter = {
    *  /building-blocks/<slug>. Never change one after release — it is a
    *  persistence key (see CurriculumProgress) and a bookmarkable URL. */
   slug: string;
-  /** Display number from CURRICULUM.md §14/§23, e.g. "1.2". `null` for checkpoints. */
+  /** Display number from CURRICULUM.md §14/§23, e.g. "1.2". Checkpoints use
+   *  "R1"/"R2"/"R3" (CURRICULUM.md Part 4) instead of a section number. */
   number: string | null;
   title: string;
   kind: "chapter" | "checkpoint";

@@ -130,7 +130,7 @@ export function ComponentPicker() {
     {
       id: "tool-zone",
       label: "Add zone",
-      description: "Visual grouping only — doesn't move or reparent components inside it",
+      description: "Visual grouping only - doesn't move or reparent components inside it",
       icon: SquareDashedBottom,
     },
     {

@@ -21,31 +21,39 @@ function renderHeader(overrides: Partial<Parameters<typeof AppHeader>[0]> = {}) 
   const onValidate = vi.fn();
   const onSave = vi.fn();
   const toggleDocsPanel = vi.fn();
+  const baseProps: Parameters<typeof AppHeader>[0] = {
+    mode: "sandbox",
+    canvasRef,
+    canUndo: false,
+    canRedo: false,
+    onUndo,
+    onRedo,
+    violations: null,
+    isStale: false,
+    onValidate,
+    saveId: "sandbox",
+    onSave,
+    saveStatus: "saved",
+    docsPanelOpen: false,
+    toggleDocsPanel,
+    deepCheckCtx: emptyDeepCheckCtx,
+    ...overrides,
+  };
 
-  render(
+  const view = render(
     <CanvasStoreProvider>
-      <AppHeader
-        mode="sandbox"
-        canvasRef={canvasRef}
-        canUndo={false}
-        canRedo={false}
-        onUndo={onUndo}
-        onRedo={onRedo}
-        violations={null}
-        isStale={false}
-        onValidate={onValidate}
-        saveId="sandbox"
-        onSave={onSave}
-        justSaved={false}
-        docsPanelOpen={false}
-        toggleDocsPanel={toggleDocsPanel}
-        deepCheckCtx={emptyDeepCheckCtx}
-        {...overrides}
-      />
+      <AppHeader {...baseProps} />
     </CanvasStoreProvider>,
   );
 
-  return { onUndo, onRedo, onValidate, onSave, toggleDocsPanel };
+  const rerenderWith = (moreOverrides: Partial<Parameters<typeof AppHeader>[0]>) =>
+    view.rerender(
+      <CanvasStoreProvider>
+        <AppHeader {...baseProps} {...moreOverrides} />
+      </CanvasStoreProvider>,
+    );
+
+  return { onUndo, onRedo, onValidate, onSave, toggleDocsPanel, rerenderWith };
 }
 
 describe("AppHeader", () => {
@@ -85,8 +93,8 @@ describe("AppHeader", () => {
     expect(screen.getByRole("button", { name: "Board" })).toBeDisabled();
   });
 
-  it("calls onSave when Save is clicked, and shows a check icon state when justSaved", () => {
-    const { onSave } = renderHeader({ justSaved: true });
+  it("calls onSave when Save is clicked, and shows a check icon state when just saved", () => {
+    const { onSave } = renderHeader({ saveStatus: "saved-recent" });
     const saveButton = screen.getByRole("button", { name: "Save" });
     expect(saveButton.className).toContain("border-state-valid");
     fireEvent.click(saveButton);
@@ -111,6 +119,35 @@ describe("AppHeader", () => {
     expect(onValidate).toHaveBeenCalledTimes(1);
   });
 
+  it("carries no permanent visible save-status text - only an icon on the button and a sr-only echo", () => {
+    renderHeader({ saveStatus: "saved" });
+    // sr-only text exists in the DOM for screen readers...
+    expect(screen.getByText("Saved")).toHaveClass("sr-only");
+    // ...but there's nothing else visibly labeling the button as "Saved".
+    expect(screen.queryAllByText("Saved")).toHaveLength(1);
+  });
+
+  it("hides the sr-only save-status echo entirely when saveId is null", () => {
+    renderHeader({ saveId: null, saveStatus: "saved" });
+    expect(screen.queryByText("Saved")).not.toBeInTheDocument();
+  });
+
+  it("reflects each save status as a data attribute and icon/color on the Save button itself", () => {
+    const { rerenderWith } = renderHeader({ saveStatus: "saved" });
+    const saveButton = screen.getByRole("button", { name: "Save" });
+    expect(saveButton).toHaveAttribute("data-save-status", "saved");
+
+    rerenderWith({ saveStatus: "saving" });
+    expect(saveButton.querySelector("svg")).toHaveClass("animate-spin");
+
+    rerenderWith({ saveStatus: "saved-recent" });
+    expect(saveButton.className).toContain("border-state-valid");
+
+    rerenderWith({ saveStatus: "error" });
+    expect(saveButton.className).toContain("border-state-error");
+    expect(screen.getByText("Save failed")).toHaveClass("sr-only");
+  });
+
   it("colors the header border per mode via modeColorVar", () => {
     const { container } = render(
       <CanvasStoreProvider>
@@ -126,7 +163,7 @@ describe("AppHeader", () => {
           onValidate={vi.fn()}
           saveId="sandbox"
           onSave={vi.fn()}
-          justSaved={false}
+          saveStatus="saved"
           docsPanelOpen={false}
           toggleDocsPanel={vi.fn()}
           deepCheckCtx={emptyDeepCheckCtx}

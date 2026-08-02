@@ -273,6 +273,32 @@ body > div[id^="ddocs-mermaid-"] {
   }
 }
 
+/* Used by not-found.tsx's route illustration — the tiles and background
+ * particles drift 1-2px, slow and staggered, to read as "alive" without
+ * looping into anything gamified. Gated behind motion-safe: at every call
+ * site per DESIGN.md's reduced-motion requirement. */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* Used by not-found.tsx's "Invalid Route" tile — a soft pulse on the fault
+ * icon, the illustration's one focal point. */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 /* The browser default focus outline (near-black) is indistinguishable from
  * this app's dark-theme surfaces (#0a0a0a/#141414) — a keyboard-only user
  * could Tab through the whole header and never see where focus is. One

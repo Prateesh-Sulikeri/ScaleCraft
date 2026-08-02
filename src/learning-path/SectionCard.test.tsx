@@ -1,10 +1,11 @@
 import "fake-indexeddb/auto";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { SectionCard } from "./SectionCard";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { db } from "@/persistence/db";
-import type { CurriculumSection } from "@/curriculum/types";
+import type { CourseId, CurriculumSection } from "@/curriculum/types";
 import type { ProgressInputs } from "@/curriculum/progress";
 
 vi.mock("next/navigation", () => ({
@@ -62,9 +63,36 @@ beforeEach(async () => {
   await db.curriculumProgress.clear();
 });
 
+/** SectionCard is controlled (expanded state lives in LearningPath) - this
+ *  wrapper owns that state locally so tests can exercise it the same way a
+ *  real parent would. */
+function ControlledSectionCard({
+  section: sectionProp,
+  courseId,
+  inputs: inputsProp,
+  defaultExpanded = true,
+}: {
+  section: CurriculumSection;
+  courseId: CourseId;
+  inputs: ProgressInputs;
+  defaultExpanded?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  return (
+    <SectionCard
+      section={sectionProp}
+      courseId={courseId}
+      inputs={inputsProp}
+      expanded={expanded}
+      onToggleExpanded={() => setExpanded((e) => !e)}
+      visibleChapters={sectionProp.chapters}
+    />
+  );
+}
+
 describe("SectionCard", () => {
   it("defaults to expanded, showing the full title/summary and every chapter row", () => {
-    render(<SectionCard section={section} courseId="building-blocks" inputs={inputs()} />);
+    render(<ControlledSectionCard section={section} courseId="building-blocks" inputs={inputs()} />);
     expect(screen.getByRole("button", { name: /unit 1/i })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("Scaling Compute")).toBeInTheDocument();
     expect(screen.getByText("Test summary for scaling compute.")).toBeInTheDocument();
@@ -73,7 +101,7 @@ describe("SectionCard", () => {
   });
 
   it("collapses on click, hiding the title/summary and chapter rows but keeping the header line", () => {
-    render(<SectionCard section={section} courseId="building-blocks" inputs={inputs()} />);
+    render(<ControlledSectionCard section={section} courseId="building-blocks" inputs={inputs()} />);
     fireEvent.click(screen.getByRole("button", { name: /unit 1/i }));
 
     expect(screen.getByRole("button", { name: /unit 1/i })).toHaveAttribute("aria-expanded", "false");
@@ -84,7 +112,11 @@ describe("SectionCard", () => {
   it("shows the section's own progress count, derived from its chapters", () => {
     const validationPassedDefinitionIds = new Set(["bb-dummy-1"]);
     render(
-      <SectionCard section={section} courseId="building-blocks" inputs={inputs({ validationPassedDefinitionIds })} />,
+      <ControlledSectionCard
+        section={section}
+        courseId="building-blocks"
+        inputs={inputs({ validationPassedDefinitionIds })}
+      />,
     );
     expect(screen.getByText("1 / 2")).toBeInTheDocument();
   });

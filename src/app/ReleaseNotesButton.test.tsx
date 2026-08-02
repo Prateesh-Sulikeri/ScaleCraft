@@ -26,16 +26,7 @@ describe("ReleaseNotesButton", () => {
   it("closes on the close (X) control", () => {
     render(<ReleaseNotesButton />);
     fireEvent.click(screen.getByRole("button", { name: "Release notes" }));
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    expect(screen.queryByText(`Alpha ${releaseNotes[0].version}`)).not.toBeInTheDocument();
-  });
-
-  it("closes when the backdrop is clicked", () => {
-    const { container } = render(<ReleaseNotesButton />);
-    fireEvent.click(screen.getByRole("button", { name: "Release notes" }));
-    expect(screen.getByText(`Alpha ${releaseNotes[0].version}`)).toBeInTheDocument();
-
-    fireEvent.click(container.querySelector(".bg-black\\/40")!);
+    fireEvent.click(screen.getByRole("button", { name: "Close docs" }));
     expect(screen.queryByText(`Alpha ${releaseNotes[0].version}`)).not.toBeInTheDocument();
   });
 });

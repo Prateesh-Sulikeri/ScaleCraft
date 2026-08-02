@@ -16,11 +16,11 @@ export const chapterRegistry: ChapterDefinition[] = [
     title: "Placeholder Chapter",
     placeholder: true,
     problemStatement:
-      "This is placeholder content for the first Building Blocks chapter — " +
+      "This is placeholder content for the first Building Blocks chapter - " +
       "real lesson content (starting with load balancing, per CURRICULUM.md) " +
       "lands in a later step. For now, this exists only to prove the chapter " +
-      "shell — list, question pane, filtered component picker — works.",
-    learningObjectives: ["Placeholder objective — real objectives arrive with real content."],
+      "shell - list, question pane, filtered component picker - works.",
+    learningObjectives: ["Placeholder objective - real objectives arrive with real content."],
     availableComponentIds: ["client", "load-balancer", "app-server"],
     requiredComponentIds: ["client", "load-balancer", "app-server"],
     // Scoped to the 4 general/structural rules only — not all 10, not none.
@@ -66,7 +66,7 @@ export const chapterRegistry: ChapterDefinition[] = [
         },
         commentary:
           "**Throwaway fixture, not real curriculum content.** A client should " +
-          "never depend on a single app server directly — routing through a " +
+          "never depend on a single app server directly - routing through a " +
           "load balancer means a server can be replaced or scaled without the " +
           "client ever noticing.",
       },
@@ -74,7 +74,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     hints: [
       {
         id: "bb-dummy-1-hint-1",
-        body: "This is a placeholder hint. Real hints are opt-in, never auto-shown — this one is no different.",
+        body: "This is a placeholder hint. Real hints are opt-in, never auto-shown - this one is no different.",
       },
     ],
     readingLinks: [],
@@ -83,7 +83,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // to end. Approximates CURRICULUM.md's 3.4 Load Balancer entry, which
     // this chapter stands in for per this file's own header comment.
     curriculumContext: {
-      position: "Building Blocks, Group A: Core Infrastructure — Chapter 3.4 of 44 (placeholder).",
+      position: "Building Blocks, Group A: Core Infrastructure - Chapter 3.4 of 44 (placeholder).",
       masteredConcepts: [
         "Networking fundamentals and the trust perimeter (3.1)",
         "DNS resolution and the reverse proxy's single-front-door pattern (3.2-3.3)",
@@ -95,7 +95,7 @@ export const chapterRegistry: ChapterDefinition[] = [
         "Any queue/async/coordination concepts (Groups E-G)",
       ],
       simplifications: [
-        "One load balancer in front of two app servers is the whole lesson — no health-check tuning, no multi-region failover.",
+        "One load balancer in front of two app servers is the whole lesson - no health-check tuning, no multi-region failover.",
         "Balancing algorithm choice (round-robin vs. least-connections) is a config decision here, not a performance-tuning exercise.",
       ],
     },
@@ -116,9 +116,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     placeholder: true,
     problemStatement:
       "This is placeholder content for Real World Extraction Tier 1's Bitly project " +
-      "(per CURRICULUM.md §15.2) — real content lands in a later step. For now, this " +
+      "(per CURRICULUM.md §15.2) - real content lands in a later step. For now, this " +
       "exists only to prove the chapter shell works in this mode too.",
-    learningObjectives: ["Placeholder objective — real objectives arrive with real content."],
+    learningObjectives: ["Placeholder objective - real objectives arrive with real content."],
     availableComponentIds: ["client", "load-balancer", "app-server", "sql-database", "cache"],
     requiredComponentIds: ["client", "app-server", "sql-database"],
     // Moot either way — real-world-extraction chapters always run the full

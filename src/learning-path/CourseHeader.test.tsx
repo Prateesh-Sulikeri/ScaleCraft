@@ -23,6 +23,7 @@ describe("CourseHeader", () => {
   it("includes the Download Curriculum button and overall progress", () => {
     render(<CourseHeader course={getCourse("building-blocks")} summary={summary} />);
     expect(screen.getByRole("link", { name: /download curriculum/i })).toBeInTheDocument();
-    expect(screen.getByText("7 / 26 chapters · 1 / 7 sections")).toBeInTheDocument();
+    expect(screen.getByText("7 / 26")).toBeInTheDocument();
+    expect(screen.getByText("1 / 7")).toBeInTheDocument();
   });
 });

@@ -77,7 +77,7 @@ export function DocsPanel() {
 
         {tabs.length === 0 || !activeTabId ? (
           <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-foreground/50">
-            No documentation open — right-click a component and choose &quot;Open Documentation&quot;.
+            No documentation open - right-click a component and choose &quot;Open Documentation&quot;.
           </div>
         ) : (
           <DocsTabContent key={activeTabId} componentId={activeTabId} />

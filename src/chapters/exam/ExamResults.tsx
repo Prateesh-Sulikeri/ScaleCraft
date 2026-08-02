@@ -36,7 +36,7 @@ export function ExamResults({ chapter, attempt, onReturn }: ExamResultsProps) {
       className="fixed inset-0 z-[var(--z-modal)] flex flex-col bg-background"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-3">
-        <p className="text-sm font-medium text-foreground">{chapter.title} — results</p>
+        <p className="text-sm font-medium text-foreground">{chapter.title} - results</p>
         <button
           type="button"
           onClick={onReturn}
@@ -54,8 +54,8 @@ export function ExamResults({ chapter, attempt, onReturn }: ExamResultsProps) {
             {/* Plain, not celebratory — this app isn't a game (CLAUDE.md). */}
             <p className={`text-sm ${passed ? "text-state-valid" : "text-foreground/70"}`}>
               {passed
-                ? `Passed — ${EXAM_PASS_THRESHOLD}% required`
-                : `Not yet passing — ${EXAM_PASS_THRESHOLD}% required`}
+                ? `Passed - ${EXAM_PASS_THRESHOLD}% required`
+                : `Not yet passing - ${EXAM_PASS_THRESHOLD}% required`}
             </p>
           </div>
 
