@@ -47,11 +47,12 @@ export function AboutButton() {
   return (
     <DocsModal
       title="About ScaleCraft"
-      docs={ABOUT_TEXT}
       index={0}
       minimized={minimized}
       onMinimizedChange={setMinimized}
       onClose={() => setOpen(false)}
-    />
+    >
+      <p className="text-base leading-7 text-foreground/80">{ABOUT_TEXT}</p>
+    </DocsModal>
   );
 }

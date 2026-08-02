@@ -5,7 +5,10 @@ import { Maximize2, Minus, X } from "lucide-react";
 
 type DocsModalProps = {
   title: string;
-  docs: string;
+  /** Rendered next to the title, e.g. a version badge - optional, absent for
+   * plain-text callers like AboutButton. */
+  titleAdornment?: React.ReactNode;
+  children: React.ReactNode;
   /** Which slot in the open-windows list this is — used only to cascade
    * each new window's default position so they don't stack exactly on top
    * of each other. */
@@ -32,15 +35,23 @@ function defaultPosition(index: number) {
 /**
  * A small, moveable floating window rather than a full-screen backdrop
  * modal — no darkened overlay, whatever's behind it stays fully
- * interactive. Generic over title/docs; its only current caller is
- * AboutButton.tsx (Home's static About dialog) — the canvas's own
- * component documentation now lives in the docked docs-panel (see
- * docs-panel/DocsPanel.tsx), not this component. Position and size are
- * local state, not stored — they change continuously during drag/resize,
- * and only `minimized` (which toggles rarely) needs to survive being read
- * from outside this component.
+ * interactive. Generic over title/body content; the shared shell for every
+ * Home dialog (AboutButton.tsx's static About text, ReleaseNotesButton.tsx's
+ * structured version list) — the canvas's own component documentation lives
+ * in the docked docs-panel (see docs-panel/DocsPanel.tsx), not this
+ * component. Position and size are local state, not stored — they change
+ * continuously during drag/resize, and only `minimized` (which toggles
+ * rarely) needs to survive being read from outside this component.
  */
-export function DocsModal({ title, docs, index, minimized, onMinimizedChange, onClose }: DocsModalProps) {
+export function DocsModal({
+  title,
+  titleAdornment,
+  children,
+  index,
+  minimized,
+  onMinimizedChange,
+  onClose,
+}: DocsModalProps) {
   const [pos, setPos] = useState(() => defaultPosition(index));
   const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT });
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
@@ -123,7 +134,10 @@ export function DocsModal({ title, docs, index, minimized, onMinimizedChange, on
         onMouseDown={startDrag}
         className="flex shrink-0 cursor-move items-center justify-between border-b border-border px-3 py-2"
       >
-        <h2 className="truncate text-sm font-semibold">{title}</h2>
+        <div className="flex min-w-0 items-center gap-2">
+          <h2 className="truncate text-sm font-semibold">{title}</h2>
+          {titleAdornment}
+        </div>
         <div className="flex shrink-0 items-center gap-1">
           <button
             data-window-control
@@ -143,9 +157,7 @@ export function DocsModal({ title, docs, index, minimized, onMinimizedChange, on
           </button>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        <p className="text-base leading-7 text-foreground/80">{docs}</p>
-      </div>
+      <div className="flex-1 overflow-y-auto p-4">{children}</div>
       <div
         onMouseDown={startResize}
         aria-label="Resize docs window"

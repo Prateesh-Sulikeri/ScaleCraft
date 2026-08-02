@@ -3,31 +3,38 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { DocsModal } from "./DocsModal";
 
 describe("DocsModal", () => {
-  it("renders the title and docs body when not minimized", () => {
+  it("renders the title and body when not minimized", () => {
     render(
-      <DocsModal
-        title="About ScaleCraft"
-        docs="Some longer docs text."
-        index={0}
-        minimized={false}
-        onMinimizedChange={vi.fn()}
-        onClose={vi.fn()}
-      />,
+      <DocsModal title="About ScaleCraft" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()}>
+        Some longer docs text.
+      </DocsModal>,
     );
     expect(screen.getByText("About ScaleCraft")).toBeInTheDocument();
     expect(screen.getByText("Some longer docs text.")).toBeInTheDocument();
   });
 
-  it("renders as a minimized capsule (no docs body) when minimized is true", () => {
+  it("renders an optional title adornment next to the title", () => {
     render(
       <DocsModal
-        title="About ScaleCraft"
-        docs="Some longer docs text."
+        title="Release notes"
+        titleAdornment={<span>Alpha 3.1.0</span>}
         index={0}
-        minimized
+        minimized={false}
         onMinimizedChange={vi.fn()}
         onClose={vi.fn()}
-      />,
+      >
+        body
+      </DocsModal>,
+    );
+    expect(screen.getByText("Release notes")).toBeInTheDocument();
+    expect(screen.getByText("Alpha 3.1.0")).toBeInTheDocument();
+  });
+
+  it("renders as a minimized capsule (no body) when minimized is true", () => {
+    render(
+      <DocsModal title="About ScaleCraft" index={0} minimized onMinimizedChange={vi.fn()} onClose={vi.fn()}>
+        Some longer docs text.
+      </DocsModal>,
     );
     expect(screen.getByRole("button", { name: /About ScaleCraft/ })).toBeInTheDocument();
     expect(screen.queryByText("Some longer docs text.")).not.toBeInTheDocument();
@@ -36,14 +43,9 @@ describe("DocsModal", () => {
   it("clicking Minimize calls onMinimizedChange(true)", () => {
     const onMinimizedChange = vi.fn();
     render(
-      <DocsModal
-        title="Docs"
-        docs="body"
-        index={0}
-        minimized={false}
-        onMinimizedChange={onMinimizedChange}
-        onClose={vi.fn()}
-      />,
+      <DocsModal title="Docs" index={0} minimized={false} onMinimizedChange={onMinimizedChange} onClose={vi.fn()}>
+        body
+      </DocsModal>,
     );
     fireEvent.click(screen.getByLabelText("Minimize docs"));
     expect(onMinimizedChange).toHaveBeenCalledWith(true);
@@ -52,7 +54,9 @@ describe("DocsModal", () => {
   it("clicking Close calls onClose", () => {
     const onClose = vi.fn();
     render(
-      <DocsModal title="Docs" docs="body" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={onClose} />,
+      <DocsModal title="Docs" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={onClose}>
+        body
+      </DocsModal>,
     );
     fireEvent.click(screen.getByLabelText("Close docs"));
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -61,14 +65,9 @@ describe("DocsModal", () => {
   it("clicking the minimized capsule (without dragging) restores it via onMinimizedChange(false)", () => {
     const onMinimizedChange = vi.fn();
     render(
-      <DocsModal
-        title="Docs"
-        docs="body"
-        index={0}
-        minimized
-        onMinimizedChange={onMinimizedChange}
-        onClose={vi.fn()}
-      />,
+      <DocsModal title="Docs" index={0} minimized onMinimizedChange={onMinimizedChange} onClose={vi.fn()}>
+        body
+      </DocsModal>,
     );
     const capsule = screen.getByRole("button", { name: /Docs/ });
     fireEvent.mouseDown(capsule, { clientX: 0, clientY: 0 });
@@ -78,7 +77,9 @@ describe("DocsModal", () => {
 
   it("dragging the title bar moves the window (position tracks the mouse delta)", () => {
     const { container } = render(
-      <DocsModal title="Docs" docs="body" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()} />,
+      <DocsModal title="Docs" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()}>
+        body
+      </DocsModal>,
     );
     const win = container.querySelector(".fixed.z-\\[var\\(--z-modal\\)\\]") as HTMLElement;
     const titleBar = win.querySelector(".cursor-move") as HTMLElement;
@@ -96,14 +97,9 @@ describe("DocsModal", () => {
   it("clicking a title-bar control (Minimize/Close) does not start a drag", () => {
     const onMinimizedChange = vi.fn();
     const { container } = render(
-      <DocsModal
-        title="Docs"
-        docs="body"
-        index={0}
-        minimized={false}
-        onMinimizedChange={onMinimizedChange}
-        onClose={vi.fn()}
-      />,
+      <DocsModal title="Docs" index={0} minimized={false} onMinimizedChange={onMinimizedChange} onClose={vi.fn()}>
+        body
+      </DocsModal>,
     );
     const win = container.querySelector(".fixed.z-\\[var\\(--z-modal\\)\\]") as HTMLElement;
     const startLeft = win.style.left;
@@ -119,7 +115,9 @@ describe("DocsModal", () => {
 
   it("dragging the resize handle grows the window, clamped within min/max bounds", () => {
     const { container } = render(
-      <DocsModal title="Docs" docs="body" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()} />,
+      <DocsModal title="Docs" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()}>
+        body
+      </DocsModal>,
     );
     const win = container.querySelector(".fixed.z-\\[var\\(--z-modal\\)\\]") as HTMLElement;
     const handle = screen.getByLabelText("Resize docs window");
@@ -134,7 +132,9 @@ describe("DocsModal", () => {
 
   it("clamps resize to MIN_WIDTH/MIN_HEIGHT when dragged smaller than the floor", () => {
     const { container } = render(
-      <DocsModal title="Docs" docs="body" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()} />,
+      <DocsModal title="Docs" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()}>
+        body
+      </DocsModal>,
     );
     const win = container.querySelector(".fixed.z-\\[var\\(--z-modal\\)\\]") as HTMLElement;
     const handle = screen.getByLabelText("Resize docs window");
@@ -149,7 +149,9 @@ describe("DocsModal", () => {
 
   it("clamps resize to MAX_WIDTH/MAX_HEIGHT when dragged larger than the ceiling", () => {
     const { container } = render(
-      <DocsModal title="Docs" docs="body" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()} />,
+      <DocsModal title="Docs" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()}>
+        body
+      </DocsModal>,
     );
     const win = container.querySelector(".fixed.z-\\[var\\(--z-modal\\)\\]") as HTMLElement;
     const handle = screen.getByLabelText("Resize docs window");
@@ -164,7 +166,9 @@ describe("DocsModal", () => {
 
   it("stops responding to mousemove after mouseup (listeners are torn down)", () => {
     const { container } = render(
-      <DocsModal title="Docs" docs="body" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()} />,
+      <DocsModal title="Docs" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()}>
+        body
+      </DocsModal>,
     );
     const win = container.querySelector(".fixed.z-\\[var\\(--z-modal\\)\\]") as HTMLElement;
     const titleBar = win.querySelector(".cursor-move") as HTMLElement;
@@ -182,14 +186,9 @@ describe("DocsModal", () => {
   it("a drag under DRAG_THRESHOLD still moves the window but doesn't count as a 'real' drag", () => {
     const onMinimizedChange = vi.fn();
     render(
-      <DocsModal
-        title="Docs"
-        docs="body"
-        index={0}
-        minimized
-        onMinimizedChange={onMinimizedChange}
-        onClose={vi.fn()}
-      />,
+      <DocsModal title="Docs" index={0} minimized onMinimizedChange={onMinimizedChange} onClose={vi.fn()}>
+        body
+      </DocsModal>,
     );
     const capsule = screen.getByRole("button", { name: /Docs/ });
     fireEvent.mouseDown(capsule, { clientX: 0, clientY: 0 });
@@ -204,14 +203,9 @@ describe("DocsModal", () => {
   it("a drag past DRAG_THRESHOLD suppresses the following click-to-restore", () => {
     const onMinimizedChange = vi.fn();
     render(
-      <DocsModal
-        title="Docs"
-        docs="body"
-        index={0}
-        minimized
-        onMinimizedChange={onMinimizedChange}
-        onClose={vi.fn()}
-      />,
+      <DocsModal title="Docs" index={0} minimized onMinimizedChange={onMinimizedChange} onClose={vi.fn()}>
+        body
+      </DocsModal>,
     );
     const capsule = screen.getByRole("button", { name: /Docs/ });
     fireEvent.mouseDown(capsule, { clientX: 0, clientY: 0 });
@@ -223,10 +217,14 @@ describe("DocsModal", () => {
 
   it("cascades default window position further right/down for a higher index", () => {
     const { container: c0 } = render(
-      <DocsModal title="A" docs="a" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()} />,
+      <DocsModal title="A" index={0} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()}>
+        a
+      </DocsModal>,
     );
     const { container: c2 } = render(
-      <DocsModal title="B" docs="b" index={2} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()} />,
+      <DocsModal title="B" index={2} minimized={false} onMinimizedChange={vi.fn()} onClose={vi.fn()}>
+        b
+      </DocsModal>,
     );
     const win0 = c0.querySelector(".fixed.z-\\[var\\(--z-modal\\)\\]") as HTMLElement;
     const win2 = c2.querySelector(".fixed.z-\\[var\\(--z-modal\\)\\]") as HTMLElement;
