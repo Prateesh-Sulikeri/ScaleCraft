@@ -163,7 +163,11 @@ export function HomeCanvas() {
           fitView
           fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
         >
-          <Background />
+          <Background
+            gap={50}
+            size={2}
+            color={resolvedTheme === "light" ? "#d1d5db" : "#334155"}
+          />
         </ReactFlow>
       </ReactFlowProvider>
     </div>
