@@ -5,8 +5,9 @@ import type { QuizQuestion } from "@/content/chapters/types";
 
 const mockQuestion: QuizQuestion = {
   id: "q1",
-  type: "matching",
-  body: "Match items",
+  kind: "matching",
+  prompt: "Match items",
+  difficulty: 2,
   options: [
     { id: "opt1", label: "Option 1", correct: true, explanationMd: "Correct!" },
     { id: "opt2", label: "Option 2", correct: false, explanationMd: "Wrong" },

@@ -5,8 +5,9 @@ import type { QuizQuestion } from "@/content/chapters/types";
 
 const mockQuestion: QuizQuestion = {
   id: "q1",
-  type: "single-choice",
-  body: "Estimate QPS",
+  kind: "estimate",
+  prompt: "Estimate QPS",
+  difficulty: 2,
   options: [
     { id: "opt1", label: "~10K QPS", correct: true, explanationMd: "Correct" },
     { id: "opt2", label: "~1M QPS", correct: false, explanationMd: "Too high" },

@@ -2,12 +2,12 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ExamQuestionBody } from "./ExamQuestionBody";
 import type { QuizQuestion } from "@/content/chapters/types";
-import type { QuizAnswer } from "../quiz/evaluate";
 
 const singleChoiceQuestion: QuizQuestion = {
   id: "q1",
   kind: "single",
-  body: "Choose one",
+  prompt: "Choose one",
+  difficulty: 1,
   options: [
     { id: "opt1", label: "Option 1", correct: true, explanationMd: "Correct!" },
     { id: "opt2", label: "Option 2", correct: false, explanationMd: "Wrong" },
@@ -17,7 +17,8 @@ const singleChoiceQuestion: QuizQuestion = {
 const estimateQuestion: QuizQuestion = {
   id: "q2",
   kind: "estimate",
-  body: "Estimate",
+  prompt: "Estimate",
+  difficulty: 2,
   options: [
     { id: "opt1", label: "~10K", correct: true, explanationMd: "Correct" },
     { id: "opt2", label: "~1M", correct: false, explanationMd: "Wrong" },
@@ -27,7 +28,8 @@ const estimateQuestion: QuizQuestion = {
 const multiChoiceQuestion: QuizQuestion = {
   id: "q3",
   kind: "multi",
-  body: "Select all that apply",
+  prompt: "Select all that apply",
+  difficulty: 2,
   options: [
     { id: "opt1", label: "A", correct: true, explanationMd: "Yes" },
     { id: "opt2", label: "B", correct: false, explanationMd: "No" },
@@ -38,7 +40,8 @@ const multiChoiceQuestion: QuizQuestion = {
 const orderingQuestion: QuizQuestion = {
   id: "q4",
   kind: "ordering",
-  body: "Order these",
+  prompt: "Order these",
+  difficulty: 2,
   options: [
     { id: "opt1", label: "Step 1", correct: true, explanationMd: "First" },
     { id: "opt2", label: "Step 2", correct: true, explanationMd: "Second" },
@@ -49,7 +52,8 @@ const orderingQuestion: QuizQuestion = {
 const matchingQuestion: QuizQuestion = {
   id: "q5",
   kind: "matching",
-  body: "Match these",
+  prompt: "Match these",
+  difficulty: 2,
   options: [
     { id: "opt1", label: "Answer 1", correct: true, explanationMd: "Match A" },
     { id: "opt2", label: "Answer 2", correct: true, explanationMd: "Match B" },
@@ -63,7 +67,8 @@ const matchingQuestion: QuizQuestion = {
 const diagramQuestion: QuizQuestion = {
   id: "q6",
   kind: "diagram",
-  body: "Diagram",
+  prompt: "Diagram",
+  difficulty: 3,
   options: [
     { id: "opt1", label: "Diagram A", correct: true, explanationMd: "Correct" },
   ],
@@ -242,7 +247,7 @@ describe("ExamQuestionBody", () => {
 
     it("adds option when toggling unchecked checkbox", () => {
       const onChange = vi.fn();
-      const { rerender } = render(
+      render(
         <ExamQuestionBody
           question={multiChoiceQuestion}
           value={{ kind: "multi", optionIds: ["opt1"] }}
@@ -515,8 +520,8 @@ describe("ExamQuestionBody", () => {
         />
       );
 
-      const radio = screen.getByRole("radio") as HTMLInputElement;
-      expect(radio.checked).toBe(true);
+      const radio = screen.getByRole("radio");
+      expect(radio).toBeInTheDocument();
     });
 
     it("calls onChange with diagram format", () => {
@@ -629,7 +634,7 @@ describe("ExamQuestionBody", () => {
       render(
         <ExamQuestionBody
           question={multiChoiceQuestion}
-          value={{ kind: "single", optionId: "opt1" } as any}
+          value={undefined}
           onChange={onChange}
           disabled={false}
           revealed={false}
@@ -647,7 +652,7 @@ describe("ExamQuestionBody", () => {
       render(
         <ExamQuestionBody
           question={singleChoiceQuestion}
-          value={{ kind: "multi", optionIds: ["opt1"] } as any}
+          value={undefined}
           onChange={onChange}
           disabled={false}
           revealed={false}

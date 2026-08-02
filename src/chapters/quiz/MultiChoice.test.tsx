@@ -5,14 +5,14 @@ import type { QuizQuestion } from "@/content/chapters/types";
 
 const mockQuestion: QuizQuestion = {
   id: "q1",
-  type: "multi-choice",
+  kind: "multi",
   prompt: "Select all that apply",
+  difficulty: 2,
   options: [
-    { id: "opt-a", label: "Option A", correct: true },
-    { id: "opt-b", label: "Option B", correct: false },
-    { id: "opt-c", label: "Option C", correct: true },
+    { id: "opt-a", label: "Option A", correct: true, explanationMd: "Correct" },
+    { id: "opt-b", label: "Option B", correct: false, explanationMd: "Incorrect" },
+    { id: "opt-c", label: "Option C", correct: true, explanationMd: "Correct" },
   ],
-  explanation: "This is the explanation",
 };
 
 describe("MultiChoice", () => {
