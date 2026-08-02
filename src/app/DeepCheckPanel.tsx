@@ -124,6 +124,7 @@ export function DeepCheckPanel({
     <>
       <div className="fixed inset-0 z-[var(--z-modal-backdrop)] bg-black/40" onClick={onClose} />
       <div
+        data-testid="deep-check-panel"
         style={{ width }}
         className="fixed right-0 top-0 z-[var(--z-modal)] flex h-full max-w-full flex-col border-l border-border bg-panel shadow-xl"
       >
