@@ -14,6 +14,18 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "3.1.0-alpha",
+    date: "2026-08-02",
+    highlights: [
+      "Learning Path gets a collapse-all control, a search box (filter by title, section, or completion status), a redesigned two-stat completion tracker, and distinct flag-icon styling with R1-R3 numbering for checkpoint chapters.",
+      "Chapter Reader now shows prerequisite tags (linking straight to their lesson) and domain badges for Real World Extraction chapters.",
+      "Fixed the reading progress bar going stale when diagrams or images resize the page after your last scroll, and fixed 'On this page' dropping numbered headings written as H1s in lesson content.",
+      "Manual saves (the Save button or Ctrl+S) now confirm with a brief toast, alongside the existing Saving.../Saved header indicator.",
+      "Added a themed custom 404 page.",
+      "Replaced em dashes with hyphens across chapter content and UI copy, per house style.",
+    ],
+  },
+  {
     version: "3.0.1-alpha",
     date: "2026-08-02",
     highlights: [
