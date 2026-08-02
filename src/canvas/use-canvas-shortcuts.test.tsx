@@ -277,6 +277,49 @@ describe("useCanvasShortcuts", () => {
     expect(api().getState().edges.every((e) => e.selected)).toBe(true);
   });
 
+  it("toggles lock on selected zone/comment/flag nodes on Ctrl/Cmd+Shift+L, ignoring unselected and non-annotation nodes", () => {
+    const api = withStoreApi();
+
+    act(() => {
+      api().getState().addZone({ x: 0, y: 0 });
+      api().getState().addComment({ x: 100, y: 0 });
+      api().getState().addNode(component("client"), { x: 200, y: 0 });
+    });
+    const [zone, comment, client] = api().getState().nodes;
+    act(() => {
+      api().setState({
+        nodes: api()
+          .getState()
+          .nodes.map((n) => (n.id === client.id ? n : { ...n, selected: true })),
+      });
+    });
+
+    fireKey({ key: "l", ctrlKey: true, shiftKey: true });
+
+    const nodes = api().getState().nodes;
+    const nodeById = (id: string) => nodes.find((n) => n.id === id);
+    const zoneNode = nodeById(zone.id);
+    const commentNode = nodeById(comment.id);
+    const clientNode = nodeById(client.id);
+    expect(zoneNode?.type === "zone" && zoneNode.data.locked).toBe(true);
+    expect(commentNode?.type === "comment" && commentNode.data.locked).toBe(true);
+    // Non-annotation nodes have no `locked` field at all (see
+    // ComponentNodeData in types.ts) — this shortcut must leave them
+    // completely untouched, so just confirm the node itself is unchanged.
+    expect(clientNode).toEqual(client);
+  });
+
+  it("does nothing on Ctrl/Cmd+Shift+L when nothing is selected", () => {
+    const api = withStoreApi();
+
+    act(() => {
+      api().getState().addZone({ x: 0, y: 0 });
+    });
+    fireKey({ key: "l", ctrlKey: true, shiftKey: true });
+    const zoneNode = api().getState().nodes[0];
+    expect(zoneNode.type === "zone" && zoneNode.data.locked).toBeFalsy();
+  });
+
   it("exits focus notes mode on Escape", () => {
     const api = withStoreApi();
 

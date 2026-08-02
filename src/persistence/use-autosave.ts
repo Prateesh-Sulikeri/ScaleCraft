@@ -35,6 +35,16 @@ export type UseAutosaveResult = {
   /** Writes immediately, bypassing the debounce and cancelling any pending
    * one - used by the Save button and Ctrl+S. Always visible. */
   saveNow: () => Promise<void>;
+  /** Timestamp of the most recent successful saveNow() write, or null before
+   * the first one - never set by the debounced autosave path. Drives
+   * SaveToast.tsx: a toast on every quiet background write would be exactly
+   * the header-clutter/noise this hook's own status throttling (see
+   * AUTOSAVE_VISIBLE_EVERY above) was built to avoid, but an explicit
+   * Ctrl+S/Save-button press is a deliberate action a user expects
+   * confirmation for. Callers should key their toast on this value, not
+   * re-derive it from `status` (saved-recent fires for throttled autosaves
+   * too). */
+  lastManualSaveAt: number | null;
 };
 
 /**
@@ -62,6 +72,7 @@ export function useAutosave(
   edges: ArchitectureEdgeType[],
 ): UseAutosaveResult {
   const [status, setStatus] = useState<SaveStatus>("saved");
+  const [lastManualSaveAt, setLastManualSaveAt] = useState<number | null>(null);
   // Bumped on every write attempt. A write's completion only applies if it's
   // still the most recent attempt - otherwise a slow write finishing after a
   // newer one already started (a later debounce, or a manual saveNow) would
@@ -117,11 +128,14 @@ export function useAutosave(
     if (!saveId) return;
     clearTimeout(debounceRef.current);
     await write(saveId, nodes, edges, true);
+    // hadErrorRef reflects the write() call just above, synchronously set
+    // before it returned - false means that write succeeded.
+    if (!hadErrorRef.current) setLastManualSaveAt(Date.now());
   }, [saveId, nodes, edges, write]);
 
   // Derived, not effect-driven: a null saveId means autosave is disabled
   // right now, so callers should treat status as inert (AppHeader hides the
   // Save button's status affordance entirely whenever saveId is null, same as
   // it already gates Save/Project/Board).
-  return { status: saveId ? status : "saved", saveNow };
+  return { status: saveId ? status : "saved", saveNow, lastManualSaveAt };
 }

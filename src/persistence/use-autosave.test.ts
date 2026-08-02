@@ -151,6 +151,36 @@ describe("useAutosave", () => {
     await waitFor(() => expect(result.current.status).toBe("saved-recent"));
   });
 
+  it("lastManualSaveAt is null until the first successful saveNow, then set on each one", async () => {
+    const { result } = renderHook(() => useAutosave("save-1", [nodeA], edges));
+    expect(result.current.lastManualSaveAt).toBeNull();
+
+    await result.current.saveNow();
+    await waitFor(() => expect(result.current.lastManualSaveAt).not.toBeNull());
+    const first = result.current.lastManualSaveAt;
+
+    await result.current.saveNow();
+    await waitFor(() => expect(result.current.lastManualSaveAt).not.toBe(first));
+  });
+
+  it("does not set lastManualSaveAt on a debounced automatic save", async () => {
+    const stableNodes = [nodeA];
+    const { result } = renderHook(() => useAutosave("save-1", stableNodes, edges));
+
+    await wait(AUTOSAVE_DEBOUNCE_MS + 200);
+    expect(await db.saves.get("save-1")).toBeDefined();
+    expect(result.current.lastManualSaveAt).toBeNull();
+  });
+
+  it("does not set lastManualSaveAt when saveNow fails", async () => {
+    vi.spyOn(db.saves, "put").mockRejectedValueOnce(new Error("write failed"));
+    const { result } = renderHook(() => useAutosave("save-1", [nodeA], edges));
+
+    await result.current.saveNow();
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.lastManualSaveAt).toBeNull();
+  });
+
   it(
     `writes every automatic save but only surfaces status on every ${AUTOSAVE_VISIBLE_EVERY}th one`,
     async () => {

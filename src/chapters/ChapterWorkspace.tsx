@@ -5,6 +5,7 @@ import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
 import { UndoToast } from "@/app/UndoToast";
+import { SaveToast } from "@/app/SaveToast";
 import { AppHeader } from "@/app/AppHeader";
 import { PageEnter } from "@/app/PageEnter";
 import { SidebarShell } from "@/app/SidebarShell";
@@ -188,7 +189,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
   // has actually completed (see hasLoadedInitialState). `saveNow` also backs
   // the explicit Save button/Ctrl+S so both paths drive the one shared
   // status shown in AppHeader.
-  const { status: saveStatus, saveNow } = useAutosave(
+  const { status: saveStatus, saveNow, lastManualSaveAt } = useAutosave(
     hasLoadedInitialState && chapter?.id ? chapterSaveId(chapter.id) : null,
     nodes,
     edges,
@@ -370,6 +371,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
       </main>
 
       <UndoToast />
+      <SaveToast savedAt={lastManualSaveAt} />
     </PageEnter>
   );
 }
