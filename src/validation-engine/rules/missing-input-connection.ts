@@ -40,7 +40,7 @@ export const missingInputConnection: ValidationRule = {
   },
   message: () => "Component has no incoming connection, despite requiring one.",
   explanation: () =>
-    "This component declares that it needs an incoming connection, but nothing feeds into it — " +
+    "This component declares that it needs an incoming connection, but nothing feeds into it - " +
     "only outgoing connections exist. It looks wired into the diagram, but no request can ever " +
     "actually reach it. Connect something upstream of it, or remove it if it isn't meant to be " +
     "part of this path.",

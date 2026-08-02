@@ -234,7 +234,7 @@ function HelpView() {
       <div className="flex flex-col gap-1.5">
         <h3 className="text-sm font-semibold text-foreground">What is Deep Check?</h3>
         <p className="text-foreground/70">
-          Deep Check sends your current design to an AI model for a system-design critique —
+          Deep Check sends your current design to an AI model for a system-design critique -
           trade-offs, failure modes, and things worth reconsidering. It never decides whether a
           chapter passes; that&apos;s always the deterministic validation engine.
         </p>
@@ -244,7 +244,7 @@ function HelpView() {
         <h3 className="text-sm font-semibold text-foreground">Why bring your own API key?</h3>
         <p className="text-foreground/70">
           ScaleCraft doesn&apos;t run or pay for AI calls on your behalf. Your key is stored only in
-          this browser&apos;s IndexedDB and sent directly to your chosen provider — never through
+          this browser&apos;s IndexedDB and sent directly to your chosen provider - never through
           ScaleCraft&apos;s servers.
         </p>
       </div>
@@ -379,7 +379,7 @@ function HistoryView({
   if (sessions.length === 0) {
     return (
       <p className="text-sm text-foreground/60">
-        No saved reviews yet — every completed Deep Check is saved here automatically.
+        No saved reviews yet - every completed Deep Check is saved here automatically.
       </p>
     );
   }

@@ -92,7 +92,7 @@ describe("ChapterRow", () => {
     render(<ChapterRow entry={entry()} courseId="building-blocks" status="COMPLETED" completedByValidation={true} />);
     const toggle = screen.getByRole("button", { name: "Reset Load Balancing progress" });
     expect(toggle).not.toBeDisabled();
-    expect(toggle).toHaveAttribute("title", "Completed by validation — click to reset and redo this chapter");
+    expect(toggle).toHaveAttribute("title", "Completed by validation - click to reset and redo this chapter");
 
     fireEvent.click(toggle);
     await waitFor(() => {

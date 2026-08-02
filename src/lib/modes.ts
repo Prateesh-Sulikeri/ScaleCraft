@@ -34,8 +34,8 @@ export const modeIcon: Record<AppMode, LucideIcon> = {
 
 /** Bold lead-in line for the mode badge's opt-in popover. */
 export const modeTagline: Record<AppMode, string> = {
-  sandbox: "Free exploration — no objectives, no scoring.",
-  "building-blocks": "Guided, constrained lessons — one concept at a time.",
+  sandbox: "Free exploration - no objectives, no scoring.",
+  "building-blocks": "Guided, constrained lessons - one concept at a time.",
   "real-world-extraction": "Apply what you've learned to a full system design problem.",
 };
 
@@ -44,11 +44,11 @@ export const modeDescription: Record<AppMode, string> = {
   sandbox:
     "Build anything with the full component library. Validate still checks structural rules " +
     "(e.g. no direct client→database calls), but there's no single correct answer here to " +
-    "match — this is the mode for trying things out.",
+    "match - this is the mode for trying things out.",
   "building-blocks":
     "Only the components relevant to the lesson are available, and hints are there if you want " +
-    "them — but never forced on you when something fails.",
+    "them - but never forced on you when something fails.",
   "real-world-extraction":
-    "A larger component library and multiple valid solutions — validation here looks for " +
+    "A larger component library and multiple valid solutions - validation here looks for " +
     "anti-patterns, not one prescribed shape.",
 };

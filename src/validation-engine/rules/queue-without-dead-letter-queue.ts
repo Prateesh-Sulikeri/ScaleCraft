@@ -31,7 +31,7 @@ export const queueWithoutDeadLetterQueue: ValidationRule = {
   },
   message: () => "Message Queue has no Dead Letter Queue.",
   explanation: () =>
-    "This queue's deliveryGuarantee means a failed message gets retried rather than dropped once — " +
+    "This queue's deliveryGuarantee means a failed message gets retried rather than dropped once - " +
     "without a Dead Letter Queue connected, a message that keeps failing has nowhere to go: it either " +
     "retries forever or is eventually dropped silently. Connect a Dead Letter Queue to give failures " +
     "somewhere to land.",

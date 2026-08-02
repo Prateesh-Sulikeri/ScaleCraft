@@ -96,7 +96,7 @@ describe("ExamShell", () => {
   it("shows the unanswered-confirm dialog with the correct count when submitting early", () => {
     render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={vi.fn()} onExit={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Submit exam" }));
-    expect(screen.getByText("2 questions unanswered — submit anyway?")).toBeInTheDocument();
+    expect(screen.getByText("2 questions unanswered - submit anyway?")).toBeInTheDocument();
   });
 
   it("'Keep going' dismisses the confirm dialog without submitting", () => {

@@ -47,7 +47,7 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
             ? `Mark ${entry.title} incomplete`
             : `Mark ${entry.title} complete`
       }
-      title={completedByValidation ? "Completed by validation — click to reset and redo this chapter" : undefined}
+      title={completedByValidation ? "Completed by validation - click to reset and redo this chapter" : undefined}
       className={`shrink-0 rounded-md p-1 transition-colors ${
         isCompleted ? "text-state-valid hover:opacity-80" : "text-foreground/40 hover:text-foreground"
       }`}

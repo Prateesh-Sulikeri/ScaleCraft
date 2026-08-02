@@ -36,6 +36,6 @@ export const singleInstanceLoadBalancer: ValidationRule = {
   message: () => "Load Balancer distributes to a single backend instance.",
   explanation: () =>
     "A Load Balancer in front of only one instance total (or one App Server configured with a single " +
-    "instance) provides no load distribution and no failover if that instance goes down — it's a " +
+    "instance) provides no load distribution and no failover if that instance goes down - it's a " +
     "pass-through, not a load balancer. Add a second instance or a second backend.",
 };

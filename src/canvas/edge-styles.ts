@@ -25,8 +25,8 @@ export const EDGE_KINDS: EdgeKind[] = ["request-flow", "control", "replication",
 // kind means, not a nudge toward help someone didn't ask for. See
 // .claude/docs/ARCHITECTURE.md ("Architecture Graph") for the full model.
 export const EDGE_KIND_CAPTIONS: Record<EdgeKind, string> = {
-  "request-flow": "Client-facing request path — the only kind checked for cycles.",
+  "request-flow": "Client-facing request path - the only kind checked for cycles.",
   control: "Non-blocking control signal, e.g. a health check or heartbeat.",
   replication: "Data replicated between instances (a legitimate back-edge).",
-  async: "Asynchronous messaging — queues, events, fire-and-forget.",
+  async: "Asynchronous messaging - queues, events, fire-and-forget.",
 };

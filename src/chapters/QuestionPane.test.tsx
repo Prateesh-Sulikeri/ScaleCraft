@@ -200,7 +200,7 @@ describe("QuestionPane", () => {
       });
 
       expect(screen.queryByText(/last validated: passing/i)).not.toBeInTheDocument();
-      const summary = screen.getByText(/not yet passing — see validate for details/i);
+      const summary = screen.getByText(/not yet passing - see validate for details/i);
       expect(summary).toBeInTheDocument();
       expect(summary).toHaveClass("text-state-warning");
     });
@@ -213,7 +213,7 @@ describe("QuestionPane", () => {
         isStale: false,
       });
 
-      const summary = screen.getByText(/not yet passing — see validate for details/i);
+      const summary = screen.getByText(/not yet passing - see validate for details/i);
       expect(summary).toBeInTheDocument();
       expect(summary).toHaveClass("text-state-warning");
       expect(screen.queryByText(/last validated: passing/i)).not.toBeInTheDocument();

@@ -85,7 +85,7 @@ export function QuestionPane({ chapter, entry, status, chapterOutcome, isStale }
         ? "Last validated: passing"
         : violations && violations.length > 0
           ? `Last validated: ${violations.length} issue${violations.length === 1 ? "" : "s"}`
-          : "Last validated: not yet passing — see Validate for details";
+          : "Last validated: not yet passing - see Validate for details";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">

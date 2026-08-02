@@ -41,6 +41,6 @@ export const orphanComponent: ValidationRule = {
   message: () => "Component is not connected to anything.",
   explanation: () =>
     "This component has no incoming or outgoing connections at all, so it plays no part in " +
-    "the architecture as drawn — traffic can never reach it and it can never send anything " +
+    "the architecture as drawn - traffic can never reach it and it can never send anything " +
     "onward. Either connect it to the rest of the diagram or remove it.",
 };
