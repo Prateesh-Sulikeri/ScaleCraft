@@ -2,17 +2,7 @@ import { ThemeToggle } from "@/app/ThemeToggle";
 import { HomeCanvas } from "@/app/HomeCanvas";
 import { AboutButton } from "@/app/AboutButton";
 import { ReleaseNotesButton } from "@/app/ReleaseNotesButton";
-import { HomeBlueprintFrame } from "@/app/HomeBlueprintFrame";
 
-// The mode-select landing page (milestone 4, .claude/docs/MILESTONES.md).
-// The ScaleCraft mark + "choose a mode" heading live inside HomeCanvas's own
-// node list (see HomeTitleNode.tsx) rather than as HTML overlaid on top of
-// it — that's what keeps the heading and the mode row centered together as
-// one composition under fitView, instead of two independently-positioned
-// things. Ships as a skeleton on purpose: Sandbox is the only real
-// destination until Building Blocks/RWE (7, 8) exist, and status badges are
-// static placeholders until persistence (9) makes them reflect real
-// per-chapter progress.
 export default function RootPage() {
   return (
     <main className="relative min-h-0 flex-1 overflow-hidden">
@@ -20,14 +10,10 @@ export default function RootPage() {
         <HomeCanvas />
       </div>
 
-      <HomeBlueprintFrame />
-
       <div className="absolute right-6 top-6 z-10">
         <ThemeToggle />
       </div>
 
-      {/* bottom-16, not bottom-6 — stacks above ReleaseNotesButton, which
-       * owns bottom-6/left-6 on this page only (see ReleaseNotesButton.tsx). */}
       <div className="absolute bottom-16 left-6 z-10">
         <AboutButton />
       </div>

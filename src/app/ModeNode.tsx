@@ -11,7 +11,7 @@ import { LoadingTransition } from "@/app/LoadingTransition";
 import { ProgressBar } from "@/learning-path/ProgressBar";
 
 const NODE_WIDTH = 300;
-const NODE_HEIGHT = 280;
+const NODE_HEIGHT = 310;
 
 /** How long the branded transition holds before the real navigation fires —
  * a deliberate, fixed duration, not a reflection of actual network/route
@@ -111,12 +111,12 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
 
       <div
         style={{ backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)`, borderColor: color }}
-        className="flex h-14 w-14 items-center justify-center rounded-md border"
+        className="flex h-16 w-16 items-center justify-center rounded-md border"
       >
-        <Icon size={24} style={{ color }} strokeWidth={1.5} />
+        <Icon size={28} style={{ color }} strokeWidth={1.5} />
       </div>
 
-      <h3 style={{ color }} className="text-[17px] font-semibold tracking-tight">
+      <h3 style={{ color }} className="text-lg font-semibold tracking-tight">
         {modeLabel[mode]}
       </h3>
       <p className="w-full pb-3 line-clamp-2 text-sm leading-snug text-foreground/65">{modeTagline[mode]}</p>
@@ -168,7 +168,7 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
         href={href}
         onClick={handleClick}
         style={{ width: NODE_WIDTH, height: NODE_HEIGHT, "--accent": color } as CSSProperties}
-        className="group relative flex flex-col gap-3 overflow-hidden rounded-lg border border-border bg-panel p-5 transition-[border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-0.5 hover:border-[color:color-mix(in_srgb,var(--accent)_45%,var(--border))] hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+        className="group relative flex flex-col gap-4 overflow-hidden rounded-lg border border-border bg-panel p-6 transition-[border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-0.5 hover:border-[color:color-mix(in_srgb,var(--accent)_45%,var(--border))] hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
       >
         {body}
         {navigating && <LoadingTransition label={`Crafting your ${modeLabel[mode]}…`} />}
@@ -180,7 +180,7 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
     <div
       aria-disabled="true"
       style={{ width: NODE_WIDTH, height: NODE_HEIGHT, "--accent": color } as CSSProperties}
-      className="relative flex cursor-not-allowed flex-col gap-3 overflow-hidden rounded-lg border border-border bg-panel p-5 opacity-70"
+      className="relative flex cursor-not-allowed flex-col gap-4 overflow-hidden rounded-lg border border-border bg-panel p-6 opacity-70"
     >
       {body}
     </div>
