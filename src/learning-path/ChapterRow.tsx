@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Flag } from "lucide-react";
 import { ChapterStatusIcon } from "./ChapterStatusIcon";
 import { DifficultyDots } from "./DifficultyDots";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
@@ -23,6 +24,10 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
   const resetChapter = useCurriculumProgressStore((s) => s.resetChapter);
   const isAuthored = entry.chapterDefinitionId !== null;
   const isCompleted = status === "COMPLETED";
+  // A checkpoint is a blank-canvas re-demonstration gating the next group,
+  // not just another row (CURRICULUM.md Part 4) - shape-distinct (icon +
+  // bordered number chip), not color-only, per DESIGN.md's signal rule.
+  const isCheckpoint = entry.kind === "checkpoint";
 
   // Sits outside the navigation element (not nested inside it) — a button
   // nested in an anchor is invalid HTML and would fight the anchor's own
@@ -58,11 +63,19 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
 
   const mainContent = (
     <>
-      {entry.number && (
-        <span className="w-9 shrink-0 text-sm tabular-nums text-foreground/50">{entry.number}</span>
-      )}
+      {entry.number &&
+        (isCheckpoint ? (
+          <span className="flex w-9 shrink-0 items-center justify-center rounded-md border border-border bg-panel py-0.5 text-[11px] font-semibold tabular-nums text-foreground/70">
+            {entry.number}
+          </span>
+        ) : (
+          <span className="w-9 shrink-0 text-sm tabular-nums text-foreground/50">{entry.number}</span>
+        ))}
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-sm ${isAuthored ? "text-foreground" : "text-foreground/40"}`}>
+        <p
+          className={`flex items-center gap-1 truncate text-sm ${isAuthored ? "text-foreground" : "text-foreground/40"} ${isCheckpoint ? "font-semibold" : ""}`}
+        >
+          {isCheckpoint && <Flag size={12} className="shrink-0 text-foreground/50" aria-hidden="true" />}
           {entry.title}
         </p>
         <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-foreground/50">
@@ -85,7 +98,9 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
   );
 
   return (
-    <div className={`flex items-center gap-2.5 px-4 py-2.5 transition-colors ${isAuthored ? "hover:bg-border/40" : ""}`}>
+    <div
+      className={`flex items-center gap-2.5 px-4 py-2.5 transition-colors ${isCheckpoint ? "bg-border/20" : ""} ${isAuthored ? "hover:bg-border/40" : ""}`}
+    >
       {toggleButton}
       {isAuthored ? (
         <Link href={`/${courseId}/${entry.slug}/lesson`} className="flex min-w-0 flex-1 items-center gap-2.5">
