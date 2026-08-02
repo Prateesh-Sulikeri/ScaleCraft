@@ -406,3 +406,108 @@ describe("matchPattern — composite curriculum-shaped patterns", () => {
     expect(patternMatches(buildGraphIndex(directHotPath), hotPath)).toBe(true);
   });
 });
+
+describe("patternMatches — exported boolean helper", () => {
+  it("returns true when pattern matches at least one binding", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("lb-1", "load-balancer"), node("app-1", "app-server")],
+      edges: [],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+    const pattern: GraphPattern = { nodes: [{ alias: "x", componentId: "load-balancer" }] };
+    expect(patternMatches(index, pattern)).toBe(true);
+  });
+
+  it("returns false when pattern matches zero bindings", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("app-1", "app-server")],
+      edges: [],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+    const pattern: GraphPattern = { nodes: [{ alias: "x", componentId: "load-balancer" }] };
+    expect(patternMatches(index, pattern)).toBe(false);
+  });
+});
+
+describe("pattern.ts — edge case branches", () => {
+  it("handles config predicate with boolean field", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("fw-1", "firewall", { enableNat: true })],
+      edges: [],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+    const pattern: GraphPattern = {
+      nodes: [{ alias: "fw", componentId: "firewall", config: [{ field: "enableNat", op: "eq", value: true }] }],
+    };
+    expect(matchPattern(index, pattern)).toHaveLength(1);
+  });
+
+  it("config predicate on missing field returns no matches", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("app-1", "app-server", { instances: 2 })],
+      edges: [],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+    const pattern: GraphPattern = {
+      nodes: [{ alias: "app", componentId: "app-server", config: [{ field: "nonexistent", op: "eq", value: 5 }] }],
+    };
+    expect(matchPattern(index, pattern)).toHaveLength(0);
+  });
+
+  it("multiple config predicates (AND logic) — all must hold", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("app-1", "app-server", { instances: 2, region: "us-east" })],
+      edges: [],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+
+    const bothMatch: GraphPattern = {
+      nodes: [
+        {
+          alias: "app",
+          componentId: "app-server",
+          config: [
+            { field: "instances", op: "gte", value: 2 },
+            { field: "region", op: "eq", value: "us-east" },
+          ],
+        },
+      ],
+    };
+    expect(matchPattern(index, bothMatch)).toHaveLength(1);
+
+    const oneMisses: GraphPattern = {
+      nodes: [
+        {
+          alias: "app",
+          componentId: "app-server",
+          config: [
+            { field: "instances", op: "gte", value: 2 },
+            { field: "region", op: "eq", value: "us-west" },
+          ],
+        },
+      ],
+    };
+    expect(matchPattern(index, oneMisses)).toHaveLength(0);
+  });
+
+  it("pattern with edges defined but empty array", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("app-1", "app-server"), node("cache-1", "cache")],
+      edges: [],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+    const pattern: GraphPattern = {
+      nodes: [{ alias: "app", componentId: "app-server" }, { alias: "cache", category: "caching" }],
+      edges: [],
+    };
+    // Two nodes with no edge constraints should still return all node combinations
+    const results = matchPattern(index, pattern);
+    expect(results.length).toBeGreaterThan(0);
+  });
+});

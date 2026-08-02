@@ -14,6 +14,14 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "3.0.1-alpha",
+    date: "2026-08-02",
+    highlights: [
+      "Fixed the Home screen's mode-selector cards — corrected icon and heading sizing that made the cards feel cramped, and gave the canvas background grid proper theme-aware contrast in both light and dark mode.",
+      "Stabilized the end-to-end test suite: fixed two failing Playwright specs — edge-click interactions on the canvas (React Flow's straight edges have a zero-height hit box that made plain clicks time out) and a race condition where the sandbox's Validate button was checked before the page header finished hydrating.",
+    ],
+  },
+  {
     version: "3.0.0-alpha",
     date: "2026-07-31",
     highlights: [

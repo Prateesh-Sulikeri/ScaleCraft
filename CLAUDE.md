@@ -132,21 +132,17 @@ When working on UI/UX improvements:
 - Claude does not push directly to `main` or `develop` going forward, and does not open
   or merge PRs, unless explicitly asked.
 
-### Pre-push CI verification (non-negotiable)
+### CI verification (on-demand, not per-feature)
 
-- **Every change, before it is pushed, must be verified locally against the same
-  pipeline CI runs**: `npm run typecheck && npm run lint && npm test && npm run build`.
-  This includes merge/conflict resolutions, not just new feature work — a resolution
-  that "looks" merged (no `<<<<<<<` markers left) can still be semantically broken
-  (duplicate blocks, stale test expectations against changed behavior on the other
-  side) in ways only the actual pipeline catches.
-- This was learned the hard way: a merge conflict in a test file was resolved by
-  stripping the conflict marker lines without reconciling the two sides, then pushed
-  straight to origin — it broke `tsc` (`TS1185: Merge conflict marker encountered`)
-  and would have failed again on structurally invalid TS even after that. Both times
-  the break reached the Vercel deployment before anyone ran the pipeline locally.
-- Do not push (or tell the user something is "fixed") on the strength of a diff
-  looking plausible. Run the pipeline, see it exit 0, then push.
+- **Run the full CI pipeline only when explicitly asked or near session completion**:
+  `npm run typecheck && npm run lint && npm test && npm run build`. Do not run this
+  after every feature — it slows down iteration. Run it once at the end when the user
+  asks for verification, or before pushing to origin.
+- For individual feature work, trust the incremental signals: typecheck catches type
+  errors, the dev server's hot reload catches runtime issues, and tests (when relevant)
+  run on demand. Only run the full pipeline together when verification is needed.
+- If a merge conflict or complex change occurs, use judgment: run the pipeline for
+  that specific change if the risk is high, otherwise defer to session-end verification.
 
 ## Design tools
 
