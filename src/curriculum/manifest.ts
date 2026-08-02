@@ -476,7 +476,7 @@ export const courses: Record<CourseId, Course> = {
           },
           {
             slug: "checkpoint-r1-a-site-that-stays-up",
-            number: null,
+            number: "R1",
             title: "Checkpoint · A Site That Stays Up",
             kind: "checkpoint",
             chapterDefinitionId: null,
@@ -634,7 +634,7 @@ export const courses: Record<CourseId, Course> = {
           },
           {
             slug: "checkpoint-r2-building-a-complete-backend",
-            number: null,
+            number: "R2",
             title: "Checkpoint · Building a Complete Backend",
             kind: "checkpoint",
             chapterDefinitionId: null,
@@ -645,7 +645,7 @@ export const courses: Record<CourseId, Course> = {
           },
           {
             slug: "checkpoint-r3-open-system-design",
-            number: null,
+            number: "R3",
             title: "Checkpoint · Open System Design",
             kind: "checkpoint",
             chapterDefinitionId: null,

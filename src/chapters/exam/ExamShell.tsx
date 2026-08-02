@@ -125,7 +125,7 @@ export function ExamShell({ chapter, attemptNumber, onSubmitted, onExit }: ExamS
       className="fixed inset-0 z-[var(--z-modal)] flex flex-col bg-background outline-none"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-3">
-        <p className="text-sm font-medium text-foreground">{chapter.title} — exam</p>
+        <p className="text-sm font-medium text-foreground">{chapter.title} - exam</p>
         <div className="flex items-center gap-1">
           <ThemeToggle />
           <button

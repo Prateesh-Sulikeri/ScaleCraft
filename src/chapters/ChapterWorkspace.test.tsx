@@ -81,7 +81,7 @@ vi.mock("@/app/AppHeader", () => ({
   // A minimal stand-in that surfaces every prop ChapterWorkspace passes
   // through, as clickable controls / readable text — enough to prove the
   // wiring (validate/save/undo/redo/docs-toggle callbacks, violations,
-  // isStale, saveId, justSaved) without pulling in the real header's own
+  // isStale, saveId, saveStatus) without pulling in the real header's own
   // dependency tree (ValidationIndicator, ProjectMenu, BoardMenu, ...),
   // which belongs to another agent's test scope (src/app).
   AppHeader: (props: {
@@ -94,7 +94,7 @@ vi.mock("@/app/AppHeader", () => ({
     onValidate: () => void;
     saveId: string | null;
     onSave: () => void;
-    justSaved: boolean;
+    saveStatus: string;
     docsPanelOpen: boolean;
     toggleDocsPanel: () => void;
   }) => (
@@ -115,7 +115,7 @@ vi.mock("@/app/AppHeader", () => ({
         {props.docsPanelOpen ? "Close docs" : "Open docs"}
       </button>
       <span data-testid="save-id">{props.saveId ?? "none"}</span>
-      <span data-testid="just-saved">{String(props.justSaved)}</span>
+      <span data-testid="save-status">{props.saveStatus}</span>
       <span data-testid="violations-count">{props.violations ? props.violations.length : "null"}</span>
       <span data-testid="is-stale">{String(props.isStale)}</span>
     </div>
@@ -462,18 +462,18 @@ describe("ChapterWorkspace", () => {
   });
 
   describe("save wiring", () => {
-    it("persists the live canvas to the chapter's own save slot and flashes justSaved", async () => {
+    it("persists the live canvas to the chapter's own save slot and flashes 'saved-recent'", async () => {
       await renderWorkspace("slug-one");
       await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
 
       fireEvent.click(screen.getByTestId("save-btn"));
 
-      await waitFor(() => expect(screen.getByTestId("just-saved")).toHaveTextContent("true"));
+      await waitFor(() => expect(screen.getByTestId("save-status")).toHaveTextContent("saved-recent"));
       const saved = await db.saves.get(chapterSaveId("ch-1"));
       expect(saved?.nodes).toHaveLength(1);
       expect(saved?.nodes[0]).toMatchObject({ id: "n1" });
 
-      await waitFor(() => expect(screen.getByTestId("just-saved")).toHaveTextContent("false"), {
+      await waitFor(() => expect(screen.getByTestId("save-status")).toHaveTextContent(/^saved$/), {
         timeout: 3000,
       });
     });
@@ -516,7 +516,7 @@ describe("ChapterWorkspace", () => {
 
     fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
     fireEvent.click(screen.getByTestId("save-btn"));
-    await waitFor(() => expect(screen.getByTestId("just-saved")).toHaveTextContent("true"));
+    await waitFor(() => expect(screen.getByTestId("save-status")).toHaveTextContent("saved-recent"));
 
     await act(async () => {
       unmount();
@@ -559,7 +559,7 @@ describe("ChapterWorkspace", () => {
 
     fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
     fireEvent.click(screen.getByTestId("save-btn"));
-    await waitFor(() => expect(screen.getByTestId("just-saved")).toHaveTextContent("true"));
+    await waitFor(() => expect(screen.getByTestId("save-status")).toHaveTextContent("saved-recent"));
     expect(screen.getByTestId("node-count")).toHaveTextContent("2");
 
     await act(async () => {
@@ -600,7 +600,7 @@ describe("ChapterWorkspace", () => {
         const saved = await db.saves.get(chapterSaveId("ch-1"));
         expect(saved?.nodes.length).toBe(2);
       },
-      { timeout: 2000 },
+      { timeout: AUTOSAVE_DEBOUNCE_MS + 1000 },
     );
   });
 });

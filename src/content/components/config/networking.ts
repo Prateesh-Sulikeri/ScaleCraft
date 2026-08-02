@@ -29,7 +29,7 @@ export default [
       { kind: "boolean", name: "honorsCacheControl", label: "Honors Cache Control", default: true },
     ],
     summary: "A web browser issuing HTTP requests",
-    docs: "A specific kind of Client that runs in a web browser — unlike a generic Client, it honors HTTP caching headers (Cache-Control, ETag) and can serve a repeat request from its own local cache without touching the network at all.",
+    docs: "A specific kind of Client that runs in a web browser - unlike a generic Client, it honors HTTP caching headers (Cache-Control, ETag) and can serve a repeat request from its own local cache without touching the network at all.",
     docsFile: "/docs/browser.md",
     relations: {
       outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
@@ -53,7 +53,7 @@ export default [
       { kind: "number", name: "ttlSeconds", label: "Ttl Seconds", default: 300, min: 0, max: 86400, int: true },
     ],
     summary: "Resolves domain names to IP addresses",
-    docs: "Translates a human-readable domain name into the address of the system to actually contact. `ttlSeconds` controls how long resolvers cache that answer — a low TTL enables fast failover (e.g. during a deploy) at the cost of more lookup traffic.",
+    docs: "Translates a human-readable domain name into the address of the system to actually contact. `ttlSeconds` controls how long resolvers cache that answer - a low TTL enables fast failover (e.g. during a deploy) at the cost of more lookup traffic.",
     docsFile: "/docs/dns.md",
     relations: {
       inputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
@@ -123,7 +123,7 @@ export default [
       },
     ],
     summary: "Single entry point for routing, auth, rate limits",
-    docs: "A single entry point in front of one or more backend services — commonly handles authentication, request routing, and rate limiting in one place instead of duplicating that logic in every service behind it.",
+    docs: "A single entry point in front of one or more backend services - commonly handles authentication, request routing, and rate limiting in one place instead of duplicating that logic in every service behind it.",
     docsFile: "/docs/api-gateway.md",
     // Inputs must come from the client-facing networking tier, never from
     // compute — a Gateway with nothing but an outgoing edge (traffic
@@ -180,7 +180,7 @@ export default [
       },
     ],
     summary: "Filters traffic in or out by security rules",
-    docs: "Inspects and filters traffic against a set of rules before it reaches whatever's behind it. A Firewall configured to allow everything through is present in the diagram but doing nothing — see `defaultPolicy`.",
+    docs: "Inspects and filters traffic against a set of rules before it reaches whatever's behind it. A Firewall configured to allow everything through is present in the diagram but doing nothing - see `defaultPolicy`.",
     docsFile: "/docs/firewall.md",
     relations: {
       inputs: { allowedCategories: ["networking"], allowedKinds: ["request-flow"] },

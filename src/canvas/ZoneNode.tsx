@@ -107,7 +107,7 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
         // actively looking at this one rather than cluttering every zone
         // on the canvas permanently.
         <p className="relative mx-2 text-[10px] text-foreground/60">
-          Visual grouping only — doesn&apos;t move or reparent components
+          Visual grouping only - doesn&apos;t move or reparent components
         </p>
       )}
       {selected && (

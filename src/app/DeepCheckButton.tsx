@@ -32,9 +32,13 @@ type DeepCheckButtonProps = {
  * there is exactly one entry point into Deep Check from the header.
  *
  * The button is never HTML-`disabled`: per §10.5, with no usable profile
- * configured it stays clickable but opens the panel straight to its
- * profiles view instead of running Deep Check — a genuinely inert disabled
- * button would have nowhere for that click to go.
+ * configured it stays clickable but just opens the panel — a genuinely
+ * inert disabled button would have nowhere for that click to go.
+ *
+ * Opening the panel never runs Deep Check on its own, even with a usable
+ * profile already active: a paid-API mistake from an accidental click is
+ * exactly what the explicit "Run Deep Check" button in the empty result
+ * state (DeepCheckPanel.tsx) exists to prevent.
  */
 export function DeepCheckButton({ ctx, saveId }: DeepCheckButtonProps) {
   const [activeProfile, setActiveProfile] = useState<AiProfile | null>(null);
@@ -87,11 +91,6 @@ export function DeepCheckButton({ ctx, saveId }: DeepCheckButtonProps) {
 
   const handleDeepCheckClick = () => {
     setPanelOpen(true);
-    if (!isProfileUsable(activeProfile)) {
-      setView("profiles");
-      return;
-    }
-    runCheck(activeProfile!);
   };
 
   const handleClosePanel = () => {

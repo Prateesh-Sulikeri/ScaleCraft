@@ -46,7 +46,7 @@ export default [
       },
     ],
     summary: "Flexible-schema storage for high-scale workloads",
-    docs: "Non-relational storage that trades some of a SQL database's consistency and query flexibility for horizontal scalability and a flexible schema. `model` determines the actual data shape and access pattern — a key-value store and a graph database solve very different problems.",
+    docs: "Non-relational storage that trades some of a SQL database's consistency and query flexibility for horizontal scalability and a flexible schema. `model` determines the actual data shape and access pattern - a key-value store and a graph database solve very different problems.",
     docsFile: "/docs/nosql-database.md",
     relations: {
       inputs: { allowedCategories: ["compute", "caching"], allowedKinds: ["request-flow"] },
@@ -72,7 +72,7 @@ export default [
       },
     ],
     summary: "A read-only copy kept in sync via replication",
-    docs: 'A read-only copy of a primary database, kept up to date via a replication stream rather than serving writes itself. Offloads read traffic from the primary, at the cost of `replicationLagBudgetMs` — however much staleness reads from it are allowed to tolerate. Needs a "replication"-kind edge in from a SQL or NoSQL Database, or it never receives any data.',
+    docs: 'A read-only copy of a primary database, kept up to date via a replication stream rather than serving writes itself. Offloads read traffic from the primary, at the cost of `replicationLagBudgetMs` - however much staleness reads from it are allowed to tolerate. Needs a "replication"-kind edge in from a SQL or NoSQL Database, or it never receives any data.',
     docsFile: "/docs/read-replica.md",
     // Mirrors orphan-read-replica.ts's own requirement declaratively —
     // deliberate overlap, same reasoning as sql-database.ts above.
@@ -98,7 +98,7 @@ export default [
       },
     ],
     summary: "Durable storage for large, unstructured blobs",
-    docs: "Stores files, images, backups, and other large binary blobs as opaque objects rather than structured rows — not queryable the way a database is, but far cheaper at scale. `storageClass` trades retrieval latency for cost.",
+    docs: "Stores files, images, backups, and other large binary blobs as opaque objects rather than structured rows - not queryable the way a database is, but far cheaper at scale. `storageClass` trades retrieval latency for cost.",
     docsFile: "/docs/object-storage.md",
     // No `outputs` relations — no output port at all.
     relations: {
@@ -114,7 +114,7 @@ export default [
     outputs: [],
     fields: [{ kind: "number", name: "shards", label: "Shards", default: 1, min: 1, max: 100, int: true }],
     summary: "Indexed full-text and faceted search",
-    docs: "A separately indexed store optimized for full-text search, filtering, and ranking — the kind of querying a relational database's indexes weren't built for. `shards` splits the index across nodes for scale.",
+    docs: "A separately indexed store optimized for full-text search, filtering, and ranking - the kind of querying a relational database's indexes weren't built for. `shards` splits the index across nodes for scale.",
     docsFile: "/docs/search-engine.md",
     relations: {
       inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },

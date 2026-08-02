@@ -15,15 +15,15 @@ type TableOfContentsProps = {
  * "On this page" list - scrollspy via IntersectionObserver against the
  * rendered heading ids (rehype-slug output, matched by extract-headings.ts
  * using the same github-slugger engine, so an id here always resolves to a
- * real DOM anchor). Skips level-1 headings - a lesson body shouldn't have
- * one (see lessons.ts's doc comment: ChapterReader already renders the
- * chapter title as the page's own h1), but this filters defensively
- * regardless. The "On this page" heading itself lives in ChapterReader.tsx,
+ * real DOM anchor). Includes every heading level: ChapterReader.tsx renders
+ * `chapter.title` as the page's own h1 *outside* the markdown body, so any
+ * h1 inside lesson markdown is real author content, not a duplicate of the
+ * page title. The "On this page" heading itself lives in ChapterReader.tsx,
  * not here - it needs to stay visible (alongside ThemeToggle) even on a
- * chapter with no subheadings, when this component renders nothing.
+ * chapter with no headings, when this component renders nothing.
  */
 export function TableOfContents({ headings, targetRef }: TableOfContentsProps) {
-  const items = headings.filter((h) => h.level >= 2);
+  const items = headings.filter((h) => h.level >= 1);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export function TableOfContents({ headings, targetRef }: TableOfContentsProps) {
     <nav aria-label="On this page">
       <ul className="flex flex-col gap-1.5 text-sm">
         {items.map((h) => (
-          <li key={h.id} style={{ paddingLeft: (h.level - 2) * 12 }}>
+          <li key={h.id} style={{ paddingLeft: Math.max(0, h.level - 2) * 12 }}>
             <a
               href={`#${h.id}`}
               className={`block truncate transition-colors ${

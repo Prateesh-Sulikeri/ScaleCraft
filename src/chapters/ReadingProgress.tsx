@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 type ReadingProgressProps = {
   /** The article's own scrollable container, not window - the app has no
@@ -17,23 +17,42 @@ type ReadingProgressProps = {
  */
 export function ReadingProgress({ targetRef }: ReadingProgressProps) {
   const [percent, setPercent] = useState(0);
+  // So the resize observer below can skip this bar's own (fixed-height)
+  // root node when it walks `el`'s children looking for the growing
+  // content sibling.
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = targetRef.current;
     if (!el) return;
 
-    const handleScroll = () => {
+    const recompute = () => {
       const scrollable = el.scrollHeight - el.clientHeight;
       setPercent(scrollable <= 0 ? 100 : Math.min(100, Math.round((el.scrollTop / scrollable) * 100)));
     };
 
-    handleScroll();
-    el.addEventListener("scroll", handleScroll);
-    return () => el.removeEventListener("scroll", handleScroll);
+    recompute();
+    el.addEventListener("scroll", recompute);
+
+    // Async-resizing content (Mermaid diagrams, images) can grow the
+    // article after the last scroll event, silently staling `percent`
+    // against the old scrollHeight. `el` itself is the fixed-height
+    // scrollable viewport, so its own box never changes — observe its
+    // other children (the actual growing content) instead.
+    const resizeObserver = new ResizeObserver(recompute);
+    for (const child of el.children) {
+      if (child !== barRef.current) resizeObserver.observe(child);
+    }
+
+    return () => {
+      el.removeEventListener("scroll", recompute);
+      resizeObserver.disconnect();
+    };
   }, [targetRef]);
 
   return (
     <div
+      ref={barRef}
       role="progressbar"
       aria-label="Reading progress"
       aria-valuenow={percent}

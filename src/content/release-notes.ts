@@ -14,20 +14,32 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "3.1.0-alpha",
+    date: "2026-08-02",
+    highlights: [
+      "Learning Path gets a collapse-all control, a search box (filter by title, section, or completion status), a redesigned two-stat completion tracker, and distinct flag-icon styling with R1-R3 numbering for checkpoint chapters.",
+      "Chapter Reader now shows prerequisite tags (linking straight to their lesson) and domain badges for Real World Extraction chapters.",
+      "Fixed the reading progress bar going stale when diagrams or images resize the page after your last scroll, and fixed 'On this page' dropping numbered headings written as H1s in lesson content.",
+      "Manual saves (the Save button or Ctrl+S) now confirm with a brief toast, alongside the existing Saving.../Saved header indicator.",
+      "Added a themed custom 404 page.",
+      "Replaced em dashes with hyphens across chapter content and UI copy, per house style.",
+    ],
+  },
+  {
     version: "3.0.1-alpha",
     date: "2026-08-02",
     highlights: [
-      "Fixed the Home screen's mode-selector cards — corrected icon and heading sizing that made the cards feel cramped, and gave the canvas background grid proper theme-aware contrast in both light and dark mode.",
-      "Stabilized the end-to-end test suite: fixed two failing Playwright specs — edge-click interactions on the canvas (React Flow's straight edges have a zero-height hit box that made plain clicks time out) and a race condition where the sandbox's Validate button was checked before the page header finished hydrating.",
+      "Fixed the Home screen's mode-selector cards - corrected icon and heading sizing that made the cards feel cramped, and gave the canvas background grid proper theme-aware contrast in both light and dark mode.",
+      "Stabilized the end-to-end test suite: fixed two failing Playwright specs - edge-click interactions on the canvas (React Flow's straight edges have a zero-height hit box that made plain clicks time out) and a race condition where the sandbox's Validate button was checked before the page header finished hydrating.",
     ],
   },
   {
     version: "3.0.0-alpha",
     date: "2026-07-31",
     highlights: [
-      "Learning Path — a full-screen curriculum browser for Building Blocks (26 chapters) and Real World Extraction (5 chapters). Navigate chapters by row, track completion progress across all sections, and download the full curriculum as a PDF.",
-      "Chapter Workspace now uses route-driven navigation — every chapter has its own URL, so links stay shareable and back/forward work as expected.",
-      "In-workspace progress sidebar — see where you are in the learning path without leaving your diagram. Jump to any chapter, check your progress at a glance, and know which chapters unlock next.",
+      "Learning Path - a full-screen curriculum browser for Building Blocks (26 chapters) and Real World Extraction (5 chapters). Navigate chapters by row, track completion progress across all sections, and download the full curriculum as a PDF.",
+      "Chapter Workspace now uses route-driven navigation - every chapter has its own URL, so links stay shareable and back/forward work as expected.",
+      "In-workspace progress sidebar - see where you are in the learning path without leaving your diagram. Jump to any chapter, check your progress at a glance, and know which chapters unlock next.",
     ],
   },
   {
@@ -41,8 +53,8 @@ export const releaseNotes: ReleaseNote[] = [
     version: "2.0.0-alpha",
     date: "2026-07-29",
     highlights: [
-      "Validation now recognizes correct architectures, not just wrong ones — chapters have a real pass/fail gate driven by reference blueprints, plus a much broader library of structural checks for catching nonsensical designs (disconnected components, backwards data flow, and more).",
-      "New: Deep Check — an optional AI-powered design review. Bring your own API key from Anthropic, OpenAI, Google, xAI, or any OpenAI-compatible provider, save multiple named profiles, and get a trade-off-focused critique of your architecture. Your key stays in your browser and is never sent to our servers; Deep Check never decides pass/fail — that's still the deterministic validation engine's job.",
+      "Validation now recognizes correct architectures, not just wrong ones - chapters have a real pass/fail gate driven by reference blueprints, plus a much broader library of structural checks for catching nonsensical designs (disconnected components, backwards data flow, and more).",
+      "New: Deep Check - an optional AI-powered design review. Bring your own API key from Anthropic, OpenAI, Google, xAI, or any OpenAI-compatible provider, save multiple named profiles, and get a trade-off-focused critique of your architecture. Your key stays in your browser and is never sent to our servers; Deep Check never decides pass/fail - that's still the deterministic validation engine's job.",
     ],
   },
   {
@@ -57,7 +69,7 @@ export const releaseNotes: ReleaseNote[] = [
     date: "2026-07-25",
     highlights: [
       "First alpha: Sandbox, Building Blocks, and Real World Extraction modes, a full component registry, live validation with explanations, and local autosave.",
-      "Established a formal versioning and release process — this panel will track what changes from here on.",
+      "Established a formal versioning and release process - this panel will track what changes from here on.",
     ],
   },
 ];

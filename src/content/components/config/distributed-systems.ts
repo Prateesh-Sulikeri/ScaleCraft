@@ -18,7 +18,7 @@ export default [
       },
     ],
     summary: "Manages consensus and coordination between nodes",
-    docs: "Runs a consensus protocol so a group of nodes can agree on shared state — leader election, distributed locks, configuration — even when some nodes fail. `consensusProtocol` names the actual algorithm (Raft, Paxos, or ZAB, per ZooKeeper's implementation).",
+    docs: "Runs a consensus protocol so a group of nodes can agree on shared state - leader election, distributed locks, configuration - even when some nodes fail. `consensusProtocol` names the actual algorithm (Raft, Paxos, or ZAB, per ZooKeeper's implementation).",
     docsFile: "/docs/coordinator.md",
     // Never reachable from networking directly — only compute (a service
     // registering/participating in coordination) or other
@@ -79,7 +79,7 @@ export default [
     outputs: [{ id: "out", label: "Reads" }],
     fields: [{ kind: "boolean", name: "readOnly", label: "Read Only", default: true }],
     summary: "Replicates a leader's state; may serve reads",
-    docs: "Stays in sync with a Leader via replication and can take over if the Leader fails. Whether it's allowed to serve reads directly (`readOnly`) is a real tradeoff — faster reads at the cost of potentially stale ones, since replication isn't instant.",
+    docs: "Stays in sync with a Leader via replication and can take over if the Leader fails. Whether it's allowed to serve reads directly (`readOnly`) is a real tradeoff - faster reads at the cost of potentially stale ones, since replication isn't instant.",
     docsFile: "/docs/follower.md",
     // Accepts "control" alongside "replication" — a Coordinator managing
     // election/failover also needs to reach a Follower directly, not just

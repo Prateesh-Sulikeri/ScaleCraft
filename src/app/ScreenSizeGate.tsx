@@ -29,7 +29,7 @@ export function ScreenSizeGate({ children }: { children: React.ReactNode }) {
         <div className="max-w-sm space-y-2">
           <h1 className="text-base font-semibold text-foreground">ScaleCraft needs a larger screen</h1>
           <p className="text-pretty text-sm leading-relaxed text-foreground/70">
-            Assembling and connecting components precisely is a desktop task — this canvas isn&apos;t built for a
+            Assembling and connecting components precisely is a desktop task - this canvas isn&apos;t built for a
             phone-sized or narrow browser window. Open ScaleCraft on a tablet, or maximize your desktop browser.
           </p>
         </div>

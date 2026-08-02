@@ -48,7 +48,7 @@ export function chapterDisplayViolations(
       message: `${label} is on the canvas but not connected to anything.`,
       explanation:
         `This chapter requires a connected ${label}. It's present but has no incoming or ` +
-        "outgoing edges, so it plays no part in the architecture as drawn — connect it to " +
+        "outgoing edges, so it plays no part in the architecture as drawn - connect it to " +
         "the rest of the diagram.",
       offendingNodeIds,
       offendingEdgeIds: [],
@@ -75,7 +75,7 @@ export function chapterDisplayViolations(
       message: "This design doesn't match a known correct approach for this chapter yet.",
       explanation:
         "Every required component is present and connected, and nothing here matches a " +
-        "known anti-pattern — but the overall shape doesn't match any of the approaches " +
+        "known anti-pattern - but the overall shape doesn't match any of the approaches " +
         "this chapter is teaching. Structural checks can't be more specific without giving " +
         "away the answer; if you want a nudge, check this chapter's hints.",
       offendingNodeIds: [],

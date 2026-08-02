@@ -5,6 +5,7 @@ import {
   createProfile,
   updateProfile,
   deleteProfile,
+  restoreProfile,
   listProfiles,
   getActiveProfile,
   getActiveProfileId,
@@ -84,6 +85,16 @@ describe("ai/profiles", () => {
     expect(await db.aiProfiles.get(profile.id)).toBeUndefined();
     // Still points at the now-deleted id — reassignment is the caller's job.
     expect(await getActiveProfileId()).toBe(profile.id);
+  });
+
+  it("restores a deleted profile with its original id/createdAt/updatedAt intact", async () => {
+    const profile = await createProfile(draft());
+    await deleteProfile(profile.id);
+    expect(await db.aiProfiles.get(profile.id)).toBeUndefined();
+
+    await restoreProfile(profile);
+
+    expect(await db.aiProfiles.get(profile.id)).toEqual(profile);
   });
 
   it("setActiveProfileId can be pointed at null (no active profile)", async () => {

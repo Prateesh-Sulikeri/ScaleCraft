@@ -18,7 +18,7 @@ export default [
       },
     ],
     summary: "Decouples producers from consumers via a queue",
-    docs: "Lets a producer hand off work without waiting for a consumer to be ready for it — decouples the two in time and load. `deliveryGuarantee` determines what happens on a failure partway through; anything but at-most-once needs a Dead Letter Queue for messages that keep failing.",
+    docs: "Lets a producer hand off work without waiting for a consumer to be ready for it - decouples the two in time and load. `deliveryGuarantee` determines what happens on a failure partway through; anything but at-most-once needs a Dead Letter Queue for messages that keep failing.",
     docsFile: "/docs/message-queue.md",
     // Outputs allow "messaging" (to a Dead Letter Queue on repeated
     // failure — see queue-without-dead-letter-queue.ts) alongside the
@@ -48,7 +48,7 @@ export default [
       },
     ],
     summary: "Partitioned log for high-throughput event streams",
-    docs: "An append-only, partitioned log rather than a traditional queue — messages aren't removed on consumption, so multiple independent consumers can replay the same stream. `partitions` bounds parallelism; `retentionHours` bounds how far back a consumer can replay.",
+    docs: "An append-only, partitioned log rather than a traditional queue - messages aren't removed on consumption, so multiple independent consumers can replay the same stream. `partitions` bounds parallelism; `retentionHours` bounds how far back a consumer can replay.",
     docsFile: "/docs/kafka.md",
     relations: {
       inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow", "async"] },
@@ -90,7 +90,7 @@ export default [
       { kind: "number", name: "maxRetries", label: "Max Retries", default: 5, min: 0, max: 20, int: true },
     ],
     summary: "Holds messages that failed processing repeatedly",
-    docs: "Catches messages that failed to process after repeated attempts instead of silently dropping them or retrying forever — gives you somewhere to inspect and replay failures by hand. `maxRetries` is how many attempts happen before a message lands here.",
+    docs: "Catches messages that failed to process after repeated attempts instead of silently dropping them or retrying forever - gives you somewhere to inspect and replay failures by hand. `maxRetries` is how many attempts happen before a message lands here.",
     docsFile: "/docs/dead-letter-queue.md",
     // Only ever fed BY another messaging component (a queue giving up on a
     // message) — never directly by compute.

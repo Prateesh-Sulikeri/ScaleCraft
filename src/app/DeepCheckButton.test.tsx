@@ -70,18 +70,43 @@ describe("DeepCheckButton", () => {
     saveSessionMock.mockReset().mockResolvedValue(undefined);
   });
 
-  it("opens the panel straight to AI Profiles instead of running Deep Check when no usable profile exists", async () => {
+  it("opens the panel to an explanatory empty state, without running Deep Check, when no usable profile exists", async () => {
     getActiveProfileMock.mockResolvedValue(null);
     renderButton();
     await waitFor(() => expect(getActiveProfileMock).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
 
-    expect(await screen.findByText("AI Profiles")).toBeInTheDocument();
+    expect(await screen.findByText(/No AI profile is set up yet/)).toBeInTheDocument();
     expect(runDeepCheckMock).not.toHaveBeenCalled();
   });
 
-  it("runs Deep Check and renders the ok result once a usable active profile exists", async () => {
+  it("from the no-profile empty state, the Help and AI Profiles buttons switch views", async () => {
+    getActiveProfileMock.mockResolvedValue(null);
+    listProfilesMock.mockResolvedValue([]);
+    renderButton();
+    await waitFor(() => expect(getActiveProfileMock).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
+    await screen.findByText(/No AI profile is set up yet/);
+
+    fireEvent.click(screen.getByRole("button", { name: "Set Up AI Profile" }));
+    expect(await screen.findByRole("button", { name: /New Profile/ })).toBeInTheDocument();
+  });
+
+  it("does not auto-run Deep Check on open even when a usable active profile exists — requires an explicit Run click", async () => {
+    const profile = makeProfile();
+    getActiveProfileMock.mockResolvedValue(profile);
+    renderButton();
+    await waitFor(() => expect(getActiveProfileMock).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
+
+    expect(await screen.findByText("Settings saved. Run Deep Check to review your design.")).toBeInTheDocument();
+    expect(runDeepCheckMock).not.toHaveBeenCalled();
+  });
+
+  it("runs Deep Check and renders the ok result once the Run Deep Check button is clicked", async () => {
     const profile = makeProfile();
     getActiveProfileMock.mockResolvedValue(profile);
     let resolveRun: ((value: unknown) => void) | undefined;
@@ -94,6 +119,7 @@ describe("DeepCheckButton", () => {
     await waitFor(() => expect(getActiveProfileMock).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Run Deep Check" }));
     expect(screen.getByText("Reviewing your design…")).toBeInTheDocument();
 
     resolveRun!({ status: "ok", critique: { summary: "All good", sections: [], tradeoffs: [] } });
@@ -111,6 +137,7 @@ describe("DeepCheckButton", () => {
     await waitFor(() => expect(getActiveProfileMock).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Run Deep Check" }));
 
     await waitFor(() => expect(saveSessionMock).toHaveBeenCalledWith("sandbox", critique));
   });
@@ -126,6 +153,7 @@ describe("DeepCheckButton", () => {
     await waitFor(() => expect(getActiveProfileMock).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Run Deep Check" }));
 
     await waitFor(() => expect(screen.getByText("All good")).toBeInTheDocument());
     expect(saveSessionMock).not.toHaveBeenCalled();
@@ -139,6 +167,7 @@ describe("DeepCheckButton", () => {
     await waitFor(() => expect(getActiveProfileMock).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Run Deep Check" }));
 
     await waitFor(() => expect(screen.getByText("nope")).toBeInTheDocument());
     expect(saveSessionMock).not.toHaveBeenCalled();
@@ -147,7 +176,6 @@ describe("DeepCheckButton", () => {
   it("opens the panel's inline AI Profiles view via its header icon even when a profile is already active", async () => {
     getActiveProfileMock.mockResolvedValue(makeProfile());
     listProfilesMock.mockResolvedValue([makeProfile()]);
-    runDeepCheckMock.mockReturnValue(new Promise(() => {})); // never resolves — panel stays open on the loading state underneath
     renderButton();
     await waitFor(() => expect(getActiveProfileMock).toHaveBeenCalled());
 
@@ -170,6 +198,7 @@ describe("DeepCheckButton", () => {
     await waitFor(() => expect(getActiveProfileMock).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Run Deep Check" }));
     expect(screen.getByText("Reviewing your design…")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -193,7 +222,8 @@ describe("DeepCheckButton", () => {
     await waitFor(() => expect(getActiveProfileMock).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
-    expect(await screen.findByText("AI Profiles")).toBeInTheDocument();
+    expect(await screen.findByText(/No AI profile is set up yet/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "AI Profiles" }));
 
     fireEvent.click(await screen.findByRole("button", { name: /New Profile/ }));
     fireEvent.change(await screen.findByLabelText("Profile name"), { target: { value: "First profile" } });
@@ -206,7 +236,8 @@ describe("DeepCheckButton", () => {
       status: "ok",
       critique: { summary: "ok now", sections: [], tradeoffs: [] },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Deep Check" }));
+    fireEvent.click(screen.getByRole("button", { name: "Back to review" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Run Deep Check" }));
 
     await waitFor(() => expect(runDeepCheckMock).toHaveBeenCalledTimes(1));
     expect(runDeepCheckMock).toHaveBeenCalledWith(ctx, created, expect.anything());
