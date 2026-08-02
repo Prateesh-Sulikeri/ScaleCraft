@@ -35,7 +35,7 @@ test.describe("Deep Check - Launch and UI", () => {
       await page.waitForTimeout(500);
 
       // Panel should appear
-      const panel = page.locator("[class*='panel'], [class*='drawer'], [role='dialog']");
+      const panel = page.getByTestId("deep-check-panel");
 
       // Should show "Analyzing" or loading state
       if ((await panel.count()) > 0) {
