@@ -93,7 +93,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   { nodeStates, onCanvasPaneClick },
   ref,
 ) {
-  const { screenToFlowPosition, getNodes, fitView } = useReactFlow();
+  const { screenToFlowPosition, getNodes, fitView, getViewport, setViewport } = useReactFlow();
 
   useImperativeHandle(ref, () => ({
     exportImage: async ({ format, backgroundColor }) => {
@@ -229,6 +229,42 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   // the highlight on its own.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      const mod = event.ctrlKey || event.metaKey;
+
+      // Zoom shortcuts: Ctrl++ (zoom in), Ctrl+- (zoom out), Ctrl+0 (reset to 100%), Shift+1 (fit all), Shift+2 (fit selection)
+      if (mod && (event.key === "+" || event.key === "=")) {
+        event.preventDefault();
+        const viewport = getViewport();
+        const newZoom = Math.min(4, viewport.zoom * 1.2);
+        setViewport({ x: viewport.x, y: viewport.y, zoom: newZoom }, { duration: 200 });
+        return;
+      }
+      if (mod && event.key === "-") {
+        event.preventDefault();
+        const viewport = getViewport();
+        const newZoom = Math.max(0.25, viewport.zoom * 0.833); // 1/1.2 for consistency
+        setViewport({ x: viewport.x, y: viewport.y, zoom: newZoom }, { duration: 200 });
+        return;
+      }
+      if (mod && event.key === "0") {
+        event.preventDefault();
+        setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 300 });
+        return;
+      }
+      if (event.shiftKey && event.key === "!") { // Shift+1
+        event.preventDefault();
+        fitView({ padding: 0.1, maxZoom: 2, duration: 300 });
+        return;
+      }
+      if (event.shiftKey && event.key === "@") { // Shift+2
+        event.preventDefault();
+        const selectedNodes = getNodes().filter((n) => n.selected);
+        if (selectedNodes.length > 0) {
+          fitView({ nodes: selectedNodes, padding: 0.2, duration: 300 });
+        }
+        return;
+      }
+
       if (event.key !== "Escape") return;
       // The picker handles its own Escape (closes itself, no placement/
       // highlight side effect) — bail here so this listener doesn't also
@@ -293,6 +329,32 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       window.removeEventListener("blur", onBlur);
     };
   }, []);
+
+  // Trackpad gesture handling: pinch to zoom, two-finger drag to pan.
+  // ReactFlow handles native pinch/pan natively, but we ensure proper zoom limits and smoothing.
+  const handleWheel = useCallback(
+    (event: WheelEvent) => {
+      // Trackpad pinch detection: when ctrlKey is pressed during wheel, it's a pinch zoom
+      // Two-finger scroll without modifier = vertical scroll (handled by ReactFlow)
+      // Shift + two-finger scroll = horizontal scroll (handled by ReactFlow)
+      const isTrackpadPinch = event.ctrlKey && Math.abs(event.deltaY) > 0;
+      if (isTrackpadPinch) {
+        event.preventDefault();
+        const viewport = getViewport();
+        const zoomDelta = event.deltaY > 0 ? 0.833 : 1.2; // zoom out / zoom in
+        const newZoom = Math.max(0.25, Math.min(4, viewport.zoom * zoomDelta));
+        setViewport({ x: viewport.x, y: viewport.y, zoom: newZoom }, { duration: 100 });
+      }
+    },
+    [getViewport, setViewport],
+  );
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [handleWheel]);
 
   // Annotations don't just spawn in — clicking a palette "Add …" button arms
   // placement mode (crosshair cursor, see the overlay in the render below)
