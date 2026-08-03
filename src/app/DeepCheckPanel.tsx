@@ -7,7 +7,8 @@ import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
 import type { AiCritique } from "@/ai/schema";
 import type { AiProfile } from "@/ai/profiles";
-import { providers, type DeepCheckResult } from "@/engines";
+import type { DeepCheckResult } from "@/engines";
+import { providersMetadata } from "@/engines";
 import type { DeepCheckSession } from "@/persistence/db";
 import { deleteSession, listSessions } from "@/persistence/deepCheckSessions";
 import { AiProfilesView } from "./AiProfilesView";
@@ -251,7 +252,7 @@ function HelpView() {
       <div className="flex flex-col gap-1.5">
         <h3 className="text-sm font-semibold text-foreground">Supported providers</h3>
         <ul className="list-inside list-disc text-foreground/70">
-          {Object.values(providers).map((provider) => (
+          {Object.values(providersMetadata).map((provider) => (
             <li key={provider.id}>{provider.label}</li>
           ))}
         </ul>

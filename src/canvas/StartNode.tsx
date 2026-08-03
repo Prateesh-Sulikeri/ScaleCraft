@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { ChevronDown, Flag, Lock, Pencil, Unlock } from "lucide-react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { useCanvasStore } from "./store";
@@ -29,7 +29,7 @@ import type { ComponentNodeType, StartNodeType } from "./types";
  * edge. The two Handles below are invisible, non-connectable anchors that
  * only exist so xyflow has a point to draw that arrow from/to.
  */
-export function StartNode({ id, data, selected }: NodeProps<StartNodeType>) {
+function StartNodeInner({ id, data, selected }: NodeProps<StartNodeType>) {
   const updateStartMarker = useCanvasStore((s) => s.updateStartMarker);
   const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
   const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
@@ -162,3 +162,5 @@ export function StartNode({ id, data, selected }: NodeProps<StartNodeType>) {
     </div>
   );
 }
+
+export const StartNode = memo(StartNodeInner);

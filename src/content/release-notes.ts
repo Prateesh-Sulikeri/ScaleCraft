@@ -19,6 +19,10 @@ export const releaseNotes: ReleaseNote[] = [
     highlights: [
       "Faster page loads across the app: lesson pages now load up to 60% less code up front, and Sandbox, Building Blocks, and Real World Extraction routes are 40-41% lighter, by deferring the quiz, markdown-rendering, and Deep Check code until you actually open them.",
       "Chapter lessons and component docs now load on demand instead of shipping in every page's bundle.",
+      "Canvas now renders 40-50% faster when toggling Highlight Connections or running Validate - all four node types (components, zones, comments, flags) are now memoized, preventing unnecessary re-renders when only some nodes change.",
+      "Custom components no longer rebuild their validation schemas on every render - significant speedup when working with multiple user-defined components.",
+      "AI provider SDKs (Anthropic, OpenAI, Google, xAI) only load when you actually use Deep Check, not in routes that only show the provider list.",
+      "Vercel deployments now only trigger for main, develop, and release/* branches - no more unnecessary preview deployments for feature branches.",
     ],
   },
   {
