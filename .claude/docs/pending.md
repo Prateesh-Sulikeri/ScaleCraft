@@ -1,102 +1,127 @@
-# Release 3.1.0 - UI clean-up fixes
+# Release 3.2.0 - infra clean-up
 
 Plan of action. Original ask plus findings from a codebase pass before starting
 implementation. Each item below gets its own `type/*` branch off
-`release/v3.1.0-ui-clean-up-fixes`.
+`release/v3.2.0-infra-clean-up`. Phases are ordered by dependency, not by the
+order items were originally listed - bundle analysis moved to Phase 0 (its own
+stated purpose is "know what's large before optimizing," so it needs to run
+before the optimization phases, then again at the end to verify).
 
-## 0. Branch cleanup - done
+## Codebase-pass findings (context for every phase below)
 
-- Verified `wip/home-canvas-and-e2e-fixes` (56 commits) and
-  `release/v3.0.0-chapter-content` (44 commits) were fully merged into
-  `origin/develop` before deleting anything.
-- Deleted both, locally and remotely.
-- `main` and `develop` are the only branches left, both in sync with origin.
-- Cut and pushed `release/v3.1.0-ui-clean-up-fixes` from `develop`.
+- Chapter lesson markdown already lives outside `public/`, at
+  `src/content/chapters/lessons/*.md`, read server-side via
+  `fs.readFileSync` in `src/content/chapters/lessons.ts` (`getLessonMarkdown`,
+  keyed by `ChapterDefinition.id`). It never ships in the client bundle today,
+  but it's not in the target `public/content/` structure and isn't fetch-based.
+- Component docs are further along than the rest: `ComponentDefinition.docsFile`
+  (`src/content/components/types.ts`) already points at `public/docs/*.md`,
+  fetched client-side by `docs-panel/DocsTabContent.tsx`. This is the pattern
+  to generalize, not a parallel thing to rebuild - `docs`
+  (the inline fallback string) stays as-is.
+- No content manifest exists yet for components - only chapters have one
+  (`chapterRegistry` in `src/content/chapters/index.ts`, currently one
+  placeholder entry).
+- Zero use of `next/dynamic` anywhere in `src/`. No code-splitting beyond
+  whatever Next's App Router does automatically per route. `next.config.ts` is
+  minimal (just `devIndicators: false`) - no bundle analyzer wired in.
+- Biggest single UI file today: `src/app/DeepCheckPanel.tsx` at 512 lines -
+  top candidate for its own chunk.
+- Engines are `src/validation-engine/` (engine.ts, pattern.ts, chapter-outcome.ts,
+  rules/) and `src/ai/run-deep-check.ts` + `src/ai/providers/`. Both are already
+  reasonably contained, but freely import from and get imported by UI code
+  (`DeepCheckPanel.tsx`, `QuestionPane.tsx`) - no enforced boundary today.
+- `.claude/docs/pending-simulation-engine.md` (brainstorm, not yet scoped or
+  scheduled) describes a future third engine. It's out of scope for 3.2.0, but
+  the Engine interface/registry in Phase 3 should be shaped so that engine can
+  plug in later without a rework - don't design it Validation/Deep-Check-specific.
 
-## 1. Shared about-style modal - done
+**Decision (confirmed with user 2026-08-03):** engine extraction is a clean
+module boundary inside this repo (`src/engines/`), not a real npm workspace
+package. No `package.json` of its own, no monorepo tooling - matches
+CLAUDE.md's "no monorepo tooling yet" and there's no current plan to release
+the engine independently. Revisit only if that changes (e.g. reuse from the
+separate textbook project).
 
-Corrected direction: kept the centered backdrop+panel modal (the one
-`ReleaseNotesButton.tsx` already had, same convention as
-`CreateComponentModal.tsx`), extracted as `CenteredModal.tsx`, and rebuilt
-`AboutButton.tsx` on it - not the other way around. `DocsModal.tsx` (floating
-draggable window) is now unused by both and was deleted. Small.
+---
 
-## 2. Autosave indicator - done
+## Phase 0. Bundle analysis baseline
 
-`useAutosave` (`src/persistence/use-autosave.ts`) fires silently on an 800ms
-debounce, no UI signal today. Add a small indicator (e.g. "Saved" / "Saving..."
-near the header) that appears only around an actual save event, not on every
-render. Small-medium. Needs live verification.
+- Install `rollup-plugin-visualizer`, wire into the build so a stats report is
+  reproducible on demand. Run it once now, before any other phase, and save
+  the output for comparison at the end (Phase 4). Branch:
+  `chore/bundle-analysis-baseline`. Small.
 
-## 3. Custom 404 page
+## Phase 1. Content extraction
 
-No `not-found.tsx` exists anywhere in `src/app`, currently using Next's
-default. Add an in-theme `src/app/not-found.tsx`. Small.
+- `public/content/` directory structure: `chapters/`, `components/`,
+  `examples/`, `glossary/`, `images/`. Move `src/content/chapters/lessons/*.md`
+  into `public/content/chapters/` and relocate `public/docs/*.md` (component
+  docs) into `public/content/components/` - one convention instead of two.
+  `examples/`, `glossary/`, `images/` are created empty, ready for content that
+  doesn't exist yet. Branch: `feature/content-directory-extraction`. Medium -
+  touches `getLessonMarkdown` call sites and `DocsTabContent.tsx`'s fetch path.
+- On-demand content manifests: add a components manifest alongside the
+  existing chapter one (`chapterRegistry`), same shape/spirit - metadata in
+  code, bodies fetched on demand from `public/content/`. Everything the UI
+  renders comes from a manifest, not an ad hoc path string. Branch:
+  `feature/content-manifests`. Medium. Depends on the directory move above.
 
-## 4. Em dash audit
+## Phase 2. Content access layer
 
-1128 occurrences across 225 files, but only ~45 are in actual lesson content,
-plus a handful in real UI copy (`AboutButton.tsx`'s `ABOUT_TEXT`, release
-notes). The rest (~1080) are in code comments/JSDoc, the repo's own
-explanatory-comment style. Scope: user-facing text only (chapter markdown + UI
-strings), not source comments - "the site" means what renders, not the
-codebase. Medium, mostly mechanical, needs care to not touch comments.
+- Migrate `getLessonMarkdown`'s `fs.readFileSync` to a client-side `fetch()`
+  against `public/content/chapters/`, matching the pattern `docsFile` already
+  uses for components. Branch: `feature/markdown-fetch-migration`. Medium.
+- Markdown cache: in-memory cache keyed by content path (+ version, see
+  below), so repeat visits to the same chapter/component doc don't re-fetch.
+  Branch: `feature/markdown-cache`. Small-medium.
+- Version metadata per `.md`: a field in each manifest entry (not frontmatter
+  parsing) marking content version, used to invalidate the cache above when
+  authored content changes. Branch: `feature/content-versioning`. Small.
+- `ContentService` as the one API surface - `getChapter(id)`, `getComponent(id)`,
+  `search()` - wrapping manifest lookup + fetch + cache. Nothing in the UI
+  calls `fetch()` on content paths directly after this lands. Branch:
+  `feature/content-service`. Medium. Depends on manifests + cache above.
+- Content types: same loader through `ContentService`, renderer chosen by
+  content type (chapter/component/example/glossary all resolve through one
+  path, `MarkdownRenderer` stays the shared renderer). Branch:
+  `feature/content-type-renderers`. Medium.
 
-## 5. Collapse-all + search on Learning Path - done
+## Phase 3. Engine package extraction
 
-`SectionCard.tsx` already has per-section collapse (local `useState`, decision
-D5), needs lifting to `LearningPath.tsx` so one control drives all sections.
-Search (chapter name / section name / completion status) doesn't exist yet,
-new filter UI needed against `course.sections` / `ChapterStatus` from the
-progress store. Medium.
+- Extract `src/validation-engine/` and `src/ai/run-deep-check.ts` (+
+  `src/ai/providers/`) behind a single `src/engines/` boundary with an
+  explicit public export surface - UI code imports only through that
+  boundary, never engine internals directly. No workspace package (see
+  decision above). Branch: `feature/engine-boundary`. Large - biggest
+  refactor in this release, touches every call site in `DeepCheckPanel.tsx`
+  and `QuestionPane.tsx`.
+- Engine interface (`run()` / `validate()` / `analyze()`) that both engines
+  implement, shaped generically enough for the future simulation engine to
+  adopt without a rework. Branch: `feature/engine-interface`. Medium. Depends
+  on the boundary above.
+- Engine registry keyed off the interface. Branch: `feature/engine-registry`.
+  Small-medium.
+- Lazy-load each engine at its call site via `next/dynamic` / dynamic
+  `import()`, through the registry. Branch: `feature/engine-lazy-load`.
+  Small. Depends on the registry.
 
-## 6. Completion tracker redesign - done
+## Phase 4. UI code-splitting
 
-`OverallProgress.tsx` already renders "0/47 chapters * 0/10 sections", this is
-a visual/IA redesign, not new plumbing. Good candidate for `/impeccable
-polish`. Small-medium.
+- Route-based splitting audit across all 10 `page.tsx` entries under
+  `src/app/` - identify which pages pull in heavy client subtrees that don't
+  need to be in the initial route bundle, split via `next/dynamic`. Branch:
+  `feature/route-based-splitting`. Medium.
+- Split named large UI modules into their own chunks via `next/dynamic`:
+  Inspector, Question UI, Simulation (currently minimal - just
+  `trace.ts`, low priority), Deep Check (`DeepCheckPanel.tsx`, 512 lines,
+  highest-value target), Markdown Reader, Diagram Renderer. Branch:
+  `feature/ui-module-chunking`. Medium-large.
 
-## 7. Reading progress bar bug - done
+## Phase 5. Verify
 
-`ReadingProgress.tsx`'s scroll-percent math (`scrollTop / (scrollHeight -
-clientHeight)`) looks correct on read. It only listens to `scroll` events, no
-`ResizeObserver` on content. Leading hypothesis: async-resizing content
-(Mermaid diagrams, images in `MarkdownRenderer`) growing the container after
-the last scroll event, so the computed max silently drifts. Needs a live
-repro to confirm before fixing. Medium.
-
-## 8. Prerequisite/domain tags in Chapter Reader - done
-
-Data already exists: `CurriculumChapter.prerequisiteSlugs` and `.domain` (32
-of 79 entries, all RWE, all BB are `null` by design, confirmed in
-`manifest.ts`). Needs: a capsule-tag row in `ChapterReader.tsx` linking to
-`/{mode}/{slug}/lesson` for each prereq, and a separate tags section for
-`domain` (visually distinct, only rendered for RWE). Medium.
-
-## 9. "On this page" not registering `# 1.` headings - root cause found
-
-Not a parser bug. `TableOfContents.tsx` deliberately filters `h.level >= 2`,
-assuming lesson markdown never contains an H1. But `ChapterReader.tsx` renders
-`chapter.title` as the page's H1 completely outside `<MarkdownRenderer>`, so
-any H1 inside lesson markdown is never a duplicate, it's real content the
-author intended as a section heading. The uncommitted edit to
-`bb-dummy-1.md` reproduces this exactly with 20 `# 1.` / `# 2.` ... headings.
-Fix: change the filter to `h.level >= 1` in `TableOfContents.tsx`. Confident,
-low-risk. Fold the `bb-dummy-1.md` repro edit into this branch. Small.
-
-## 10. Visual distinction + numbering for checkpoints - done
-
-`CurriculumChapter.kind: "chapter" | "checkpoint"` already exists but
-`ChapterRow.tsx` never reads it, checkpoints render identically to chapters.
-`entry.number` is `null` for all 3 existing checkpoints today. Needs: a
-distinct badge/style for `kind === "checkpoint"` in `ChapterRow.tsx`, and a
-numbering scheme (e.g. `R1`, `R2`, consistent with `MILESTONES.md`'s own
-checkpoint naming) populated in `manifest.ts`, supporting multiple checkpoints
-per section. Medium.
-
-## Suggested order
-
-Quick wins first (3, 1, 9), then mechanical-but-large (4), then the real
-plumbing items (5, 10, 8), then the two needing live verification (2, 7),
-then polish (6) last, since `/impeccable` benefits from everything else being
-settled first.
+- Re-run the Phase 0 bundle analysis, diff against the baseline, confirm the
+  split points actually moved weight out of the initial bundle. Run the full
+  CI pipeline (`typecheck && lint && test && build`) before pushing the
+  release branch. No new branch - this happens on `release/v3.2.0-infra-clean-up`
+  itself before it's handed off for review.
