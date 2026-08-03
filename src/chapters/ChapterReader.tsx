@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { PageEnter } from "@/app/PageEnter";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { ReaderSidebar } from "./ReaderSidebar";
@@ -9,12 +10,18 @@ import { ReadingProgress } from "./ReadingProgress";
 import { TableOfContents } from "./TableOfContents";
 import { DesignEditorCTA } from "./DesignEditorCTA";
 import { QuizLauncher } from "./quiz/QuizLauncher";
-import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
 import { getCourse, findEntry } from "@/curriculum";
 import { getChapter, useChapterLesson } from "@/content/content-service";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import { appendKnowledgeCheckHeading, extractHeadings } from "./extract-headings";
+
+// This is the lesson page's primary content, so it keeps SSR (no
+// ssr:false) - still a real chunk-splitting win since it pulls in
+// react-markdown, remark/rehype plugins, CodeBlock, and MermaidBlock.
+const MarkdownRenderer = dynamic(() =>
+  import("@/canvas/docs-panel/markdown/MarkdownRenderer").then((m) => m.MarkdownRenderer),
+);
 
 type ChapterReaderProps = {
   mode: ChapterDefinition["mode"];
