@@ -11,6 +11,22 @@ call - could be its own release, or a "drop 2" batch cut from
 
 ---
 
+## Completed: 3.2.0_drop2 phase 1 (2026-08-03)
+
+All four performance fixes implemented and tested:
+
+1. ✓ **Canvas node components memoized** - All four node types (ComponentNode, ZoneNode, CommentNode, StartNode) wrapped in React.memo; Canvas.tsx nodes useMemo optimized to avoid spreading fresh objects when only some nodes changed.
+
+2. ✓ **Custom components schema memoization** - `toComponentDefinition` now uses WeakMap caching per record, preventing Zod schema rebuild on every render.
+
+3. ✓ **AI provider SDKs removed from eager imports** - Created `providersMetadata` export (id/label/defaultModel/suggestedModels) separate from implementations; UI code (AiSettingsForm, AiProfilesView, DeepCheckPanel) now uses metadata-only, no longer pulling in unused AI SDKs on non-Deep-Check routes.
+
+4. ✓ **Vercel deployment branch filtering** - Added `scripts/check-deploy-branch.sh` and updated vercel.json `ignoreCommand` to skip builds on non-eligible branches (only `main`, `develop`, `release/*` deploy).
+
+See commit b20d36d for implementation details.
+
+---
+
 ## Candidate action items (performance audit, 2026-08-03)
 
 Found by tracing actual render/data-access code after 3.2.0's bundle-splitting
