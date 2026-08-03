@@ -159,7 +159,6 @@ test.describe("Design Editor - Configuration", () => {
       if ((await inputs.count()) > 0) {
         // Try to modify an input
         const firstInput = inputs.nth(0);
-        const initialValue = await firstInput.inputValue();
 
         await firstInput.fill("modified-value");
         await page.waitForTimeout(200);

@@ -295,12 +295,6 @@ test.describe("Chapter Exam - Persistence", () => {
     // Navigate to learning path and check initial progress
     await page.goto("/building-blocks");
 
-    // Find the chapter row and check progress before exam
-    const chapterRow = page.getByText(/3\.4.*Load Balancer/i);
-    const initialStatus = await chapterRow.evaluate((el) =>
-      el.closest("li")?.querySelector("[class*='progress']")?.textContent
-    );
-
     // Take the exam and complete it
     await page.getByRole("link", { name: /3\.4.*Load Balancer/i }).click();
     await page.waitForURL("**/building-blocks/3-4-load-balancer/lesson");
@@ -378,9 +372,6 @@ test.describe("Chapter Exam - Persistence", () => {
           break;
         }
       }
-
-      // Capture score before reload
-      const scoreBeforeReload = await page.locator("[class*='score']").textContent();
 
       // Reload the page
       await page.reload();

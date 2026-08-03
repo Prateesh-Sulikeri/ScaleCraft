@@ -228,9 +228,6 @@ test.describe("Canvas - Edge Management", () => {
     if (edgeCount > 0) {
       const firstEdge = edges.first();
 
-      // Get source and target before reversal
-      const sourceAttr = await firstEdge.getAttribute("data-source");
-
       // Right-click the edge (force: zero-height SVG bbox on straight edges)
       await firstEdge.click({ button: "right", force: true });
 
@@ -266,7 +263,6 @@ test.describe("Canvas - Validation Integration", () => {
 
       // Check initial validation state (button should be neutral)
       const validateButton = page.getByRole("button", { name: /validate/i });
-      const initialClass = await validateButton.getAttribute("class");
 
       // Click Validate
       await validateButton.click();
@@ -433,9 +429,6 @@ test.describe("Canvas - Selection and Configuration", () => {
       // force: straight edges have a zero-height SVG bbox that fails
       // Playwright's actionability check on a plain click
       await edges.first().click({ force: true });
-
-      // Edge inspector or properties panel should show
-      const inspector = page.locator("aside, [class*='inspector'], [class*='inspector']");
 
       // At least some UI element should become active
       const selectedEdge = page.locator(".react-flow__edge.selected");
