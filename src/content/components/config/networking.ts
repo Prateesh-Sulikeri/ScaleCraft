@@ -11,7 +11,7 @@ export default [
     fields: [],
     summary: "Issues requests into the system",
     docs: "The end user's device or application issuing requests into the system.",
-    docsFile: "/docs/client.md",
+    docsFile: "/content/components/client.md",
     // No `inputs` relations — there's no input port at all, by design (a
     // Client is always an origin, never a destination).
     relations: {
@@ -30,7 +30,7 @@ export default [
     ],
     summary: "A web browser issuing HTTP requests",
     docs: "A specific kind of Client that runs in a web browser - unlike a generic Client, it honors HTTP caching headers (Cache-Control, ETag) and can serve a repeat request from its own local cache without touching the network at all.",
-    docsFile: "/docs/browser.md",
+    docsFile: "/content/components/browser.md",
     relations: {
       outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
     },
@@ -54,7 +54,7 @@ export default [
     ],
     summary: "Resolves domain names to IP addresses",
     docs: "Translates a human-readable domain name into the address of the system to actually contact. `ttlSeconds` controls how long resolvers cache that answer - a low TTL enables fast failover (e.g. during a deploy) at the cost of more lookup traffic.",
-    docsFile: "/docs/dns.md",
+    docsFile: "/content/components/dns.md",
     relations: {
       inputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
       outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
@@ -81,7 +81,7 @@ export default [
     ],
     summary: "Caches static content close to the client",
     docs: "A geographically distributed edge cache sitting between the client and your origin infrastructure. Serves cacheable content from a nearby edge node, only forwarding a request to the origin on a cache miss.",
-    docsFile: "/docs/cdn.md",
+    docsFile: "/content/components/cdn.md",
     relations: {
       inputs: { allowedCategories: ["networking"], allowedKinds: ["request-flow"] },
       outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
@@ -97,7 +97,7 @@ export default [
     fields: [{ kind: "boolean", name: "terminatesTls", label: "Terminates Tls", default: true }],
     summary: "Forwards client requests to backend services",
     docs: "Sits in front of one or more backend servers and forwards client requests to them, hiding backend topology and, when `terminatesTls` is on, handling TLS at the edge instead of on every backend instance.",
-    docsFile: "/docs/reverse-proxy.md",
+    docsFile: "/content/components/reverse-proxy.md",
     relations: {
       inputs: { allowedCategories: ["networking"], allowedKinds: ["request-flow"] },
       outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
@@ -124,7 +124,7 @@ export default [
     ],
     summary: "Single entry point for routing, auth, rate limits",
     docs: "A single entry point in front of one or more backend services - commonly handles authentication, request routing, and rate limiting in one place instead of duplicating that logic in every service behind it.",
-    docsFile: "/docs/api-gateway.md",
+    docsFile: "/content/components/api-gateway.md",
     // Inputs must come from the client-facing networking tier, never from
     // compute — a Gateway with nothing but an outgoing edge (traffic
     // "entering" from nowhere) is exactly the reported live bug this
@@ -152,7 +152,7 @@ export default [
     ],
     summary: "Distributes requests across instances",
     docs: "Distributes incoming requests across multiple downstream instances to avoid overloading any single one.",
-    docsFile: "/docs/load-balancer.md",
+    docsFile: "/content/components/load-balancer.md",
     // Inputs restricted to networking (never compute) and outputs
     // restricted to compute (never back to networking) — this is what
     // makes a Serverless Function/App Server feeding INTO a Load Balancer
@@ -181,7 +181,7 @@ export default [
     ],
     summary: "Filters traffic in or out by security rules",
     docs: "Inspects and filters traffic against a set of rules before it reaches whatever's behind it. A Firewall configured to allow everything through is present in the diagram but doing nothing - see `defaultPolicy`.",
-    docsFile: "/docs/firewall.md",
+    docsFile: "/content/components/firewall.md",
     relations: {
       inputs: { allowedCategories: ["networking"], allowedKinds: ["request-flow"] },
       outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },

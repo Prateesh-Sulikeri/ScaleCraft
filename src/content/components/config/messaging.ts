@@ -19,7 +19,7 @@ export default [
     ],
     summary: "Decouples producers from consumers via a queue",
     docs: "Lets a producer hand off work without waiting for a consumer to be ready for it - decouples the two in time and load. `deliveryGuarantee` determines what happens on a failure partway through; anything but at-most-once needs a Dead Letter Queue for messages that keep failing.",
-    docsFile: "/docs/message-queue.md",
+    docsFile: "/content/components/message-queue.md",
     // Outputs allow "messaging" (to a Dead Letter Queue on repeated
     // failure — see queue-without-dead-letter-queue.ts) alongside the
     // normal "async" consume path to a Worker/Serverless Function.
@@ -49,7 +49,7 @@ export default [
     ],
     summary: "Partitioned log for high-throughput event streams",
     docs: "An append-only, partitioned log rather than a traditional queue - messages aren't removed on consumption, so multiple independent consumers can replay the same stream. `partitions` bounds parallelism; `retentionHours` bounds how far back a consumer can replay.",
-    docsFile: "/docs/kafka.md",
+    docsFile: "/content/components/kafka.md",
     relations: {
       inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow", "async"] },
       outputs: { allowedCategories: ["compute", "messaging"], allowedKinds: ["async"] },
@@ -73,7 +73,7 @@ export default [
     ],
     summary: "Publish/subscribe fan-out to listeners",
     docs: "Broadcasts an event to every interested subscriber rather than to one consumer at a time. `deliveryMode` picks between fanning an event out to every subscriber versus routing each message to exactly one.",
-    docsFile: "/docs/event-bus.md",
+    docsFile: "/content/components/event-bus.md",
     relations: {
       inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow", "async"] },
       outputs: { allowedCategories: ["compute"], allowedKinds: ["async"] },
@@ -91,7 +91,7 @@ export default [
     ],
     summary: "Holds messages that failed processing repeatedly",
     docs: "Catches messages that failed to process after repeated attempts instead of silently dropping them or retrying forever - gives you somewhere to inspect and replay failures by hand. `maxRetries` is how many attempts happen before a message lands here.",
-    docsFile: "/docs/dead-letter-queue.md",
+    docsFile: "/content/components/dead-letter-queue.md",
     // Only ever fed BY another messaging component (a queue giving up on a
     // message) — never directly by compute.
     relations: {

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const LESSONS_DIR = join(process.cwd(), "src/content/chapters/lessons");
+const LESSONS_DIR = join(process.cwd(), "public/content/chapters");
 
 /**
  * Reads a chapter's Chapter Reader body straight off disk, keyed by
