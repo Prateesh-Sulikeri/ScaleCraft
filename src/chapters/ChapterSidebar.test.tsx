@@ -94,9 +94,11 @@ function renderSidebar(overrides: { chapterOutcome?: ChapterOutcome | null; isSt
 }
 
 describe("ChapterSidebar", () => {
-  it("renders QuestionPane for the chapter the route slug resolves to", () => {
+  it("renders QuestionPane for the chapter the route slug resolves to", async () => {
     renderSidebar();
-    expect(screen.getByRole("heading", { name: "Chapter One" })).toBeInTheDocument();
+    // QuestionPane is next/dynamic-loaded (see ChapterSidebar.tsx) - findBy
+    // waits out that chunk resolution instead of asserting synchronously.
+    expect(await screen.findByRole("heading", { name: "Chapter One" })).toBeInTheDocument();
   });
 
   it("renders nothing when the slug resolves to no ChapterDefinition", () => {
@@ -108,7 +110,7 @@ describe("ChapterSidebar", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("shows QuestionPane's 'Not yet validated' when isStale is true even with prior violations", () => {
+  it("shows QuestionPane's 'Not yet validated' when isStale is true even with prior violations", async () => {
     renderSidebar({
       isStale: true,
       chapterOutcome: makeOutcome({
@@ -125,7 +127,7 @@ describe("ChapterSidebar", () => {
         errorCount: 1,
       }),
     });
-    expect(screen.getByText(/not yet validated/i)).toBeInTheDocument();
+    expect(await screen.findByText(/not yet validated/i)).toBeInTheDocument();
   });
 
   it("links back to the chapter's Reader, not a curriculum browser", () => {

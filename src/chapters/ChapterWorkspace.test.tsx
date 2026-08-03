@@ -250,7 +250,9 @@ afterEach(() => {
 describe("ChapterWorkspace", () => {
   it("renders the chapter for the given route slug and loads its starterGraph", async () => {
     await renderWorkspace("slug-one");
-    expect(screen.getByRole("heading", { name: "Chapter One" })).toBeInTheDocument();
+    // QuestionPane is next/dynamic-loaded (see ChapterSidebar.tsx) - findBy
+    // waits out that chunk resolution instead of asserting synchronously.
+    expect(await screen.findByRole("heading", { name: "Chapter One" })).toBeInTheDocument();
     // starterGraph has one of the two required components present.
     await waitFor(() => expect(screen.getByText(/1 \/ 2 required components present/)).toBeInTheDocument());
     expect(screen.getByTestId("save-id")).toHaveTextContent(chapterSaveId("ch-1"));
@@ -376,8 +378,10 @@ describe("ChapterWorkspace", () => {
 
       // getRules was scoped to exactly this chapter's own rule ids — never
       // the full global registry (see CLAUDE.md: chapters validate only
-      // what they teach).
-      expect(getRulesMock).toHaveBeenCalledWith(["rule-a"]);
+      // what they teach). evaluateChapter is now dynamically imported (see
+      // src/engines/registry.ts), so this needs to wait a tick rather than
+      // asserting synchronously right after the click.
+      await waitFor(() => expect(getRulesMock).toHaveBeenCalledWith(["rule-a"]));
       // The violation reaches the header unconditionally — nothing in
       // ChapterWorkspace filters or hides it. Total is 3, not 1 — slug-one's
       // starterGraph is always missing load-balancer and has a disconnected

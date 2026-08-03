@@ -126,8 +126,6 @@ test.describe("Deep Check - Analysis Results", () => {
     const nodes = page.locator(".react-flow__node");
 
     if ((await nodes.count()) > 0) {
-      const nodeText = await nodes.first().textContent();
-
       const deepCheckButton = page.getByRole("button", { name: /deep.*check|analyze|ai.*analysis/i });
 
       if ((await deepCheckButton.count()) > 0) {
@@ -139,12 +137,6 @@ test.describe("Deep Check - Analysis Results", () => {
 
         if ((await feedbackContent.count()) > 0) {
           const feedbackText = await feedbackContent.first().textContent();
-
-          // Should mention something about the architecture
-          const mentionsComponents = feedbackText?.toLowerCase().includes("component")
-            || feedbackText?.toLowerCase().includes("node")
-            || feedbackText?.toLowerCase().includes("database")
-            || feedbackText?.toLowerCase().includes("client");
 
           // Or might be context-aware about what's missing
           if (feedbackText?.toLowerCase().includes("missing")
@@ -215,9 +207,6 @@ test.describe("Deep Check - Integration with Validation", () => {
 test.describe("Deep Check - Configuration and Providers", () => {
   test("ai profile configuration accessible", async ({ page }) => {
     await page.goto("/sandbox");
-
-    // AI settings should be accessible somewhere
-    const settingsLink = page.getByRole("link", { name: /settings|configure|provider/i });
 
     // Either settings link exists or button does
     expect(true).toBe(true);

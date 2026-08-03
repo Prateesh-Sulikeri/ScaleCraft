@@ -59,6 +59,9 @@ test.describe("Chapter Reader - Learning Path Integration", () => {
     await page.goto("/building-blocks/3-4-load-balancer/lesson");
     await expect(page.getByText("On this page", { exact: true })).toBeVisible();
     const tocHeadings = page.locator("nav a");
+    // Lesson markdown loads async (useChapterLesson fetches client-side), so
+    // the ToC starts empty - wait for the first link instead of racing it.
+    await expect(tocHeadings.first()).toBeVisible();
     const count = await tocHeadings.count();
     expect(count).toBeGreaterThan(0);
   });

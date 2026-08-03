@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
-import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
 import { UndoToast } from "@/app/UndoToast";
 import { SaveToast } from "@/app/SaveToast";
@@ -21,7 +21,7 @@ import {
 import type { ValidationState } from "@/canvas/types";
 import { chapterRegistry } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import { evaluateChapter, type ChapterOutcome } from "@/validation-engine/chapter-outcome";
+import type { ChapterOutcome } from "@/engines";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
@@ -29,6 +29,13 @@ import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { findEntry } from "@/curriculum";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+
+// Starts minimized (see canvas/store.tsx's docsPanel default), so most
+// loads never need it - keeps its markdown-rendering weight out of the
+// route's initial bundle until a user actually opens a doc tab.
+const DocsPanel = dynamic(() => import("@/canvas/docs-panel/DocsPanel").then((m) => m.DocsPanel), {
+  ssr: false,
+});
 
 type ChapterWorkspaceProps = {
   mode: ChapterDefinition["mode"];
@@ -249,9 +256,13 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
   // teaching (CLAUDE.md: "that's a config option or a validation rule
   // scoped to that chapter"). evaluateChapter layers the required-component
   // connectivity check and blueprint matching on top of the rule run.
-  const handleValidate = () => {
+  const handleValidate = async () => {
     if (!chapter) return;
     const graph = toArchitectureGraph(nodes, edges);
+    // Dynamic import, not getEngine() — evaluateChapter is chapter-scoped
+    // orchestration on top of the validation engine, not the generic
+    // Engine interface itself (see src/engines/validation/index.ts).
+    const { evaluateChapter } = await import("@/engines/validation");
     const outcome = evaluateChapter(graph, chapter);
     setChapterOutcome(outcome);
     setCheckedGraphKey(architectureGraphTopologyKey(graph));

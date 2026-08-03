@@ -3,11 +3,9 @@
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Lock } from "lucide-react";
-import { providers } from "@/ai/providers";
-import { testConnection } from "@/ai/run-deep-check";
+import { providers, type AiProviderId } from "@/engines";
 import type { AiSettings } from "@/ai/settings";
 import type { AiProfileDraft } from "@/ai/profiles";
-import type { AiProviderId } from "@/ai/providers";
 
 const CUSTOM_MODEL_OPTION = "__custom__";
 
@@ -118,6 +116,10 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
 
   const handleTestConnection = async () => {
     setTestState("testing");
+    // Dynamic import, not getEngine() — testConnection is a settings-
+    // validation utility, not the generic Engine interface (see
+    // src/engines/deep-check/index.ts).
+    const { testConnection } = await import("@/engines/deep-check");
     const result = await testConnection(toProfileDraft(getValues()));
     setTestState(result.status === "ok" ? { status: "ok" } : { status: "error", message: result.message });
   };

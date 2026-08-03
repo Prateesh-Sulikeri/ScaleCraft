@@ -54,7 +54,7 @@ describe("getAllComponents", () => {
   });
 
   it("wires built-in components to their public markdown docs", () => {
-    const docsDir = path.resolve(process.cwd(), "public/docs");
+    const docsDir = path.resolve(process.cwd(), "public/content/components");
     const componentIds = new Set(componentRegistry.map((component) => component.id));
 
     for (const fileName of readdirSync(docsDir)) {
@@ -64,7 +64,7 @@ describe("getAllComponents", () => {
       if (!componentIds.has(componentId)) continue;
 
       const component = componentRegistry.find((entry) => entry.id === componentId);
-      expect(component?.docsFile).toBe(`/docs/${componentId}.md`);
+      expect(component?.docsFile).toBe(`/content/components/${componentId}.md`);
     }
   });
 
