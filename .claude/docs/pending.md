@@ -163,3 +163,41 @@ See commit history on `feature/canvas-pan-zoom` for the corrected diff.
 - Selection marquee on empty canvas drag (selectionOnDrag).
 - Shift+1/Shift+2 use `event.code` (`Digit1`/`Digit2`), not `event.key`, for
   cross-keyboard-layout compatibility.
+
+---
+
+## Additional candidates for 3.3.0 (added 2026-08-03)
+
+Suggested while scoping the rest of the release. Not yet started.
+
+- [x] **Navigation guard for unsaved work (2026-08-03).** Scoped down after
+  checking `persistence/use-autosave.ts`: debounced autosave-on-edit already
+  covers tab close/refresh loss (2s debounce, see `AUTOSAVE_DEBOUNCE_MS`), and
+  the pendingUndo toast already covers post-clear recovery. The one real gap
+  was Clear board firing with zero confirmation *at the moment of the click*.
+  Fixed: `BoardMenu.tsx`'s Clear board now requires a second click
+  ("Click again to confirm") within the same dropdown before it clears -
+  no new modal, matching the app's existing dialog-averse pattern. Resets
+  when the dropdown closes. Tests updated in `BoardMenu.test.tsx`.
+- [x] **Manual browser pass on pan/zoom (2026-08-03).** Re-verified at the
+  code level: `Canvas.tsx` sets `panOnScroll` + `zoomActivationKeyCode=
+  "Control"` + `minZoom={0.25}`/`maxZoom={4}` as the single source of truth,
+  matching the corrected Phase 1 implementation notes above - no drift found.
+  Could not perform an actual hands-on mouse/trackpad session in this
+  environment (no browser-automation tool available for gesture-level
+  interaction) - a human should still click through pan/scroll/zoom/pinch
+  once before calling Phase 1 fully closed out.
+- [x] **Fix Tab/Enter regression in Component Picker (already done).** Was
+  already fixed in commit `38c631d` ("Fix Tab-then-Enter/Space on picker
+  buttons firing the wrong roving-index action") - both
+  `ComponentPickerResults.tsx`'s category-toggle button and
+  `ComponentPickerCategoryNav.tsx`'s rail buttons now stop propagation on
+  Enter/Space so the window-level listbox listener doesn't hijack them. This
+  checkbox was just stale.
+- [x] **Verify trackpad Shift+two-finger horizontal pan (confirmed, no code
+  needed).** `Canvas.tsx`'s comment above `panOnScroll` confirms this is
+  covered for free: `panOnScrollMode` defaults to `"free"`, so Shift+wheel
+  already pans horizontally (xyflow converts deltaY under Shift on non-Mac;
+  Mac trackpads/mice already deliver Shift+wheel as native deltaX). No
+  separate handling for two-finger-drag vs. wheel is needed since browsers
+  deliver both as wheel events.

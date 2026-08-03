@@ -58,7 +58,7 @@ describe("BoardMenu", () => {
     expect(screen.getByText("Clear board").closest("button")).toBeDisabled();
   });
 
-  it("enables and clears the board via Clear board when it has content", () => {
+  it("requires a second click on Clear board before it actually clears", () => {
     const api = renderBoardMenu("sandbox");
     api.setState({ nodes: [aNode] });
 
@@ -67,9 +67,30 @@ describe("BoardMenu", () => {
     expect(clearButton).toBeEnabled();
 
     fireEvent.click(clearButton);
+    // First click only arms the confirm step - nothing cleared yet.
+    expect(api.getState().nodes).toHaveLength(1);
+    expect(screen.getByText("Click again to confirm")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Click again to confirm").closest("button")!);
     expect(api.getState().nodes).toHaveLength(0);
     // The dropdown closes after a successful action.
     expect(screen.queryByText("Clear board")).not.toBeInTheDocument();
+  });
+
+  it("resets the Clear board confirm step when the dropdown is closed and reopened", () => {
+    const api = renderBoardMenu("sandbox");
+    api.setState({ nodes: [aNode] });
+
+    fireEvent.click(screen.getByRole("button", { name: "Board" }));
+    fireEvent.click(screen.getByText("Clear board").closest("button")!);
+    expect(screen.getByText("Click again to confirm")).toBeInTheDocument();
+
+    // Close via the trigger, then reopen.
+    fireEvent.click(screen.getByRole("button", { name: "Board" }));
+    fireEvent.click(screen.getByRole("button", { name: "Board" }));
+
+    expect(screen.getByText("Clear board")).toBeInTheDocument();
+    expect(api.getState().nodes).toHaveLength(1);
   });
 
   it("shows 'No saved version yet' and disables restore when there's no save for this slot", async () => {
