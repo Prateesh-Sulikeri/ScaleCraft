@@ -467,54 +467,72 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     [highlightSets],
   );
 
+  const createOrUpdateNode = useCallback(
+    (
+      n: AnyNodeType,
+      validationState?: ValidationState,
+      highlighted?: boolean,
+      draggableOverride?: boolean,
+    ): AnyNodeType => {
+      const style = dimStyle(n.id);
+      const isHigh = highlighted ?? false;
+
+      if (n.type === "component") {
+        const shouldUpdateValidation = validationState !== n.data.validationState;
+        const shouldUpdateHighlight = isHigh !== n.data.highlighted;
+        if (!shouldUpdateValidation && !shouldUpdateHighlight) return n;
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            ...(shouldUpdateValidation && { validationState }),
+            ...(shouldUpdateHighlight && { highlighted: isHigh }),
+          },
+          style,
+        } as AnyNodeType;
+      }
+
+      if (n.type === "zone") {
+        const shouldUpdateValidation = validationState !== n.data.validationState;
+        const shouldUpdateHighlight = isHigh !== n.data.highlighted;
+        const shouldUpdateDraggable = draggableOverride !== n.draggable;
+        if (!shouldUpdateValidation && !shouldUpdateHighlight && !shouldUpdateDraggable) return n;
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            ...(shouldUpdateValidation && { validationState }),
+            ...(shouldUpdateHighlight && { highlighted: isHigh }),
+          },
+          draggable: draggableOverride,
+          style,
+        } as AnyNodeType;
+      }
+
+      const shouldUpdateHighlight = isHigh !== n.data.highlighted;
+      const shouldUpdateDraggable = draggableOverride !== n.draggable;
+      if (!shouldUpdateHighlight && !shouldUpdateDraggable) return n;
+      return {
+        ...n,
+        data: { ...n.data, ...(shouldUpdateHighlight && { highlighted: isHigh }) },
+        draggable: draggableOverride,
+        style,
+      } as AnyNodeType;
+    },
+    [dimStyle],
+  );
+
   const nodes = useMemo(
     () =>
-      nodeStates
-        ? storeNodes.map((n): AnyNodeType => {
-            // Only component/zone nodes declare a validationState field at
-            // all (see types.ts) — comment/start are pure annotations, never
-            // touched by the validation engine, so they pass through as-is.
-            // Branched per literal type (not one guard + generic spread):
-            // narrowing to a 2+ member remaining union still loses the
-            // type/data correlation the same way spreading the full union
-            // would — each branch has to narrow to exactly one member.
-            const validationState = nodeStates[n.id];
-            const style = dimStyle(n.id);
-            const highlighted = isHighlighted(n.id);
-            if (n.type === "component")
-              return { ...n, data: { ...n.data, validationState, highlighted }, style };
-            if (n.type === "zone")
-              return {
-                ...n,
-                data: { ...n.data, validationState, highlighted },
-                draggable: !n.data.locked && !spaceHeld,
-                style,
-              };
-            if (n.type === "comment")
-              return { ...n, data: { ...n.data, highlighted }, draggable: !n.data.locked && !spaceHeld, style };
-            if (n.type === "start")
-              return { ...n, data: { ...n.data, highlighted }, draggable: !n.data.locked && !spaceHeld, style };
-            // Unreachable — the four branches above already cover every
-            // member of AnyNodeType, so `n` is narrowed to `never` here.
-            // Just return it as-is (no `style` merge — spreading `never`
-            // is a TS error, and this line never actually executes).
-            return n;
-          })
-        : storeNodes.map((n): AnyNodeType => {
-            // Same locked -> non-draggable override as above, needed even
-            // when nodeStates is absent (e.g. before the first Validate
-            // click) so locking isn't validation-dependent.
-            const style = dimStyle(n.id);
-            const highlighted = isHighlighted(n.id);
-            if (n.type === "zone")
-              return { ...n, data: { ...n.data, highlighted }, draggable: !n.data.locked && !spaceHeld, style };
-            if (n.type === "comment")
-              return { ...n, data: { ...n.data, highlighted }, draggable: !n.data.locked && !spaceHeld, style };
-            if (n.type === "start")
-              return { ...n, data: { ...n.data, highlighted }, draggable: !n.data.locked && !spaceHeld, style };
-            return { ...n, data: { ...n.data, highlighted }, style };
-          }),
-    [storeNodes, nodeStates, spaceHeld, dimStyle, isHighlighted],
+      storeNodes.map((n): AnyNodeType => {
+        const validationState = nodeStates?.[n.id];
+        const highlighted = isHighlighted(n.id);
+        const draggableOverride = (n.type === "zone" || n.type === "comment" || n.type === "start")
+          ? !n.data.locked && !spaceHeld
+          : undefined;
+        return createOrUpdateNode(n, validationState, highlighted, draggableOverride);
+      }),
+    [storeNodes, nodeStates, spaceHeld, createOrUpdateNode, isHighlighted],
   );
 
   // A Start marker's pointer arrow (see StartNode.tsx) — derived purely from

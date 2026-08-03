@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Lock } from "lucide-react";
-import { providers, type AiProviderId } from "@/engines";
+import type { AiProviderId } from "@/engines";
+import { providersMetadata } from "@/engines";
 import type { AiSettings } from "@/ai/settings";
 import type { AiProfileDraft } from "@/ai/profiles";
 
@@ -66,7 +67,7 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
   // (no suggestions make sense for an arbitrary self-hosted endpoint)
   // starts it in custom mode unconditionally.
   const [customModel, setCustomModel] = useState(
-    () => !providers[settings.providerId].suggestedModels.includes(settings.model),
+    () => !providersMetadata[settings.providerId].suggestedModels.includes(settings.model),
   );
 
   // useWatch, not form.watch() — the latter returns a plain function call
@@ -86,14 +87,14 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
   // real, user-initiated provider switch, never on mount.
   const handleProviderChange = (e: { target: { value: string } }) => {
     const nextProviderId = e.target.value as AiProviderId;
-    const suggested = providers[nextProviderId].suggestedModels;
+    const suggested = providersMetadata[nextProviderId].suggestedModels;
     if (suggested.length === 0) {
       setCustomModel(true);
       return;
     }
     if (!suggested.includes(getValues("model"))) {
       setCustomModel(false);
-      setValue("model", providers[nextProviderId].defaultModel || suggested[0]);
+      setValue("model", providersMetadata[nextProviderId].defaultModel || suggested[0]);
     }
   };
 
@@ -101,7 +102,7 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
     return {
       name: values.name.trim() || "Untitled profile",
       providerId: values.providerId,
-      model: values.model.trim() || providers[values.providerId].defaultModel,
+      model: values.model.trim() || providersMetadata[values.providerId].defaultModel,
       apiKey: values.apiKey.trim(),
       depth: values.depth,
       tone: values.tone,
@@ -145,7 +146,7 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
         >
           {providerOrder.map((id) => (
             <option key={id} value={id}>
-              {providers[id].label}
+              {providersMetadata[id].label}
             </option>
           ))}
         </select>
@@ -153,7 +154,7 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-foreground/60">Model</span>
-        {providers[providerId].suggestedModels.length > 0 && (
+        {providersMetadata[providerId].suggestedModels.length > 0 && (
           <select
             aria-label="Model"
             className={inputClass}
@@ -167,7 +168,7 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
               setValue("model", e.target.value);
             }}
           >
-            {providers[providerId].suggestedModels.map((m) => (
+            {providersMetadata[providerId].suggestedModels.map((m) => (
               <option key={m} value={m}>
                 {m}
               </option>
@@ -175,11 +176,11 @@ export function AiSettingsForm({ settings, onSave, onCancel }: AiSettingsFormPro
             <option value={CUSTOM_MODEL_OPTION}>Custom…</option>
           </select>
         )}
-        {(customModel || providers[providerId].suggestedModels.length === 0) && (
+        {(customModel || providersMetadata[providerId].suggestedModels.length === 0) && (
           <input
             {...register("model")}
-            aria-label={providers[providerId].suggestedModels.length > 0 ? "Custom model" : "Model"}
-            placeholder={providers[providerId].defaultModel || "Model ID"}
+            aria-label={providersMetadata[providerId].suggestedModels.length > 0 ? "Custom model" : "Model"}
+            placeholder={providersMetadata[providerId].defaultModel || "Model ID"}
             className={inputClass}
           />
         )}

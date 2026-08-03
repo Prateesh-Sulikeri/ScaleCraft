@@ -30,14 +30,20 @@ export type CustomComponentRecord = {
   fields: CustomFieldSpec[];
 };
 
+const definitionCache = new WeakMap<CustomComponentRecord, ComponentDefinition>();
+
 /**
  * Builds a real ComponentDefinition from a stored record via the same
  * generator built-in components go through (see generate.ts) — the rest of
  * the app (ComponentNode, ConfigForm, Palette, ContextMenu) can't tell a
- * custom component's definition apart from a built-in one.
+ * custom component's definition apart from a built-in one. Memoized per
+ * record object to avoid rebuilding the Zod schema on every render.
  */
 export function toComponentDefinition(record: CustomComponentRecord): ComponentDefinition {
-  return generateComponentDefinition({
+  const cached = definitionCache.get(record);
+  if (cached) return cached;
+
+  const definition = generateComponentDefinition({
     id: record.id,
     category: record.category,
     label: record.label,
@@ -48,4 +54,7 @@ export function toComponentDefinition(record: CustomComponentRecord): ComponentD
     summary: record.summary,
     docs: record.docs,
   });
+
+  definitionCache.set(record, definition);
+  return definition;
 }

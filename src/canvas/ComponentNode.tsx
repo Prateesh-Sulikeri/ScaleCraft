@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Handle, NodeResizer, Position, type NodeProps } from "@xyflow/react";
 import { Server } from "lucide-react";
 import { getComponent } from "@/content/components/registry";
@@ -39,7 +39,7 @@ const stateRingVar: Record<ValidationState, string> = {
  * confirmed by raising MIN_HEIGHT and seeing no visual change until this was
  * added).
  */
-export function ComponentNode({ id, data, selected }: NodeProps<ComponentNodeType>) {
+function ComponentNodeInner({ id, data, selected }: NodeProps<ComponentNodeType>) {
   const resizeNode = useCanvasStore((s) => s.resizeNode);
   // Only used to hide the resizer while a highlight pass is active (see
   // below) — the gold ring itself comes from data.highlighted, already
@@ -189,3 +189,5 @@ export function ComponentNode({ id, data, selected }: NodeProps<ComponentNodeTyp
     </div>
   );
 }
+
+export const ComponentNode = memo(ComponentNodeInner);

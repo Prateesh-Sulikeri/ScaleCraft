@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, Loader2, Pencil, Plus, Trash2, Undo2 } from "lucide-react";
-import { providers } from "@/engines";
+import { providersMetadata } from "@/engines";
 import {
   listProfiles,
   createProfile,
@@ -244,7 +244,7 @@ export function AiProfilesView({ activeProfileId, onActiveProfileChange }: AiPro
                 <span className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">{profile.name}</p>
                   <p className="truncate text-xs text-foreground/60">
-                    {providers[profile.providerId].label} · {profile.model}
+                    {providersMetadata[profile.providerId].label} · {profile.model}
                   </p>
                 </span>
               </button>
