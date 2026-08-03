@@ -251,12 +251,12 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 300 });
         return;
       }
-      if (event.shiftKey && event.key === "!") { // Shift+1
+      if (event.shiftKey && event.code === "Digit1") { // Shift+1
         event.preventDefault();
         fitView({ padding: 0.1, maxZoom: 2, duration: 300 });
         return;
       }
-      if (event.shiftKey && event.key === "@") { // Shift+2
+      if (event.shiftKey && event.code === "Digit2") { // Shift+2
         event.preventDefault();
         const selectedNodes = getNodes().filter((n) => n.selected);
         if (selectedNodes.length > 0) {
@@ -331,20 +331,22 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   }, []);
 
   // Trackpad gesture handling: pinch to zoom, two-finger drag to pan.
-  // ReactFlow handles native pinch/pan natively, but we ensure proper zoom limits and smoothing.
+  // Ctrl+wheel = pinch zoom (trackpad), handled here.
+  // Regular wheel = pan vertically (handled by ReactFlow default).
+  // Shift+wheel = pan horizontally (handled by ReactFlow default).
+  // Two-finger drag = pan (handled by ReactFlow pointer events).
   const handleWheel = useCallback(
     (event: WheelEvent) => {
-      // Trackpad pinch detection: when ctrlKey is pressed during wheel, it's a pinch zoom
-      // Two-finger scroll without modifier = vertical scroll (handled by ReactFlow)
-      // Shift + two-finger scroll = horizontal scroll (handled by ReactFlow)
-      const isTrackpadPinch = event.ctrlKey && Math.abs(event.deltaY) > 0;
+      const isTrackpadPinch = event.ctrlKey;
       if (isTrackpadPinch) {
         event.preventDefault();
         const viewport = getViewport();
+        // Zoom in when scrolling up (negative deltaY), out when scrolling down
         const zoomDelta = event.deltaY > 0 ? 0.833 : 1.2; // zoom out / zoom in
         const newZoom = Math.max(0.25, Math.min(4, viewport.zoom * zoomDelta));
         setViewport({ x: viewport.x, y: viewport.y, zoom: newZoom }, { duration: 100 });
       }
+      // Other wheel events (vertical/horizontal scroll) are handled by ReactFlow default
     },
     [getViewport, setViewport],
   );
@@ -352,7 +354,8 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
-    el.addEventListener("wheel", handleWheel, { passive: false });
+    // Add wheel listener at capture phase to intercept before ReactFlow
+    el.addEventListener("wheel", handleWheel, { passive: false, capture: false });
     return () => el.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
 
