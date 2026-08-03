@@ -21,9 +21,7 @@ import {
 import { useCustomComponentsStore } from "@/canvas/custom-components-store";
 import type { ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
-import { runValidation } from "@/validation-engine/engine";
-import { ruleRegistry } from "@/validation-engine/rules";
-import type { ValidationViolation } from "@/validation-engine/types";
+import { getEngine, ruleRegistry, type ValidationViolation } from "@/engines";
 import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
@@ -185,9 +183,10 @@ function SandboxPageContent() {
   );
   const isStale = violations !== null && checkedGraphKey !== currentGraphKey;
 
-  const handleValidate = () => {
+  const handleValidate = async () => {
     const graph = toArchitectureGraph(nodes, edges);
-    setViolations(runValidation(graph, ruleRegistry));
+    const validation = await getEngine("validation");
+    setViolations(await validation.run({ graph, rules: ruleRegistry }));
     setCheckedGraphKey(architectureGraphTopologyKey(graph));
   };
 

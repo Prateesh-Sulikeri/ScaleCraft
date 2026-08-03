@@ -1,8 +1,7 @@
 import type { AnyNodeType } from "@/canvas/types";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import { getComponent } from "@/content/components/registry";
-import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
-import type { ValidationViolation } from "@/validation-engine/types";
+import type { ChapterOutcome, ValidationViolation } from "@/engines";
 
 /**
  * A chapter can fail with zero real rule violations — a required component

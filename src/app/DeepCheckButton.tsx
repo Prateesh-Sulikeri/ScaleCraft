@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react";
 import { Tooltip } from "@/app/Tooltip";
 import { useCanvasStore } from "@/canvas/store";
 import { getActiveProfile, isProfileUsable, type AiProfile } from "@/ai/profiles";
-import { runDeepCheck } from "@/ai/run-deep-check";
+import { getEngine } from "@/engines";
 import { saveSession } from "@/persistence/deepCheckSessions";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { DeepCheckPanel, type DeepCheckPanelState, type DeepCheckView } from "./DeepCheckPanel";
@@ -68,7 +68,8 @@ export function DeepCheckButton({ ctx, saveId }: DeepCheckButtonProps) {
     abortControllerRef.current = controller;
     setView("result");
     setPanelState({ status: "loading" });
-    runDeepCheck(ctx, profile, controller.signal)
+    getEngine("deep-check")
+      .then((engine) => engine.run(ctx, profile, controller.signal))
       .then((result) => {
         setPanelState(result);
         // Autosave — see the "sessions" ask this was built for (2026-07-29

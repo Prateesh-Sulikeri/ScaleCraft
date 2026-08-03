@@ -21,7 +21,7 @@ import {
 import type { ValidationState } from "@/canvas/types";
 import { chapterRegistry } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import { evaluateChapter, type ChapterOutcome } from "@/validation-engine/chapter-outcome";
+import type { ChapterOutcome } from "@/engines";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
@@ -249,9 +249,13 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
   // teaching (CLAUDE.md: "that's a config option or a validation rule
   // scoped to that chapter"). evaluateChapter layers the required-component
   // connectivity check and blueprint matching on top of the rule run.
-  const handleValidate = () => {
+  const handleValidate = async () => {
     if (!chapter) return;
     const graph = toArchitectureGraph(nodes, edges);
+    // Dynamic import, not getEngine() — evaluateChapter is chapter-scoped
+    // orchestration on top of the validation engine, not the generic
+    // Engine interface itself (see src/engines/validation/index.ts).
+    const { evaluateChapter } = await import("@/engines/validation");
     const outcome = evaluateChapter(graph, chapter);
     setChapterOutcome(outcome);
     setCheckedGraphKey(architectureGraphTopologyKey(graph));

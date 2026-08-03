@@ -9,7 +9,7 @@ import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { deriveStatus, type ProgressInputs } from "@/curriculum/progress";
 import { chapterRegistry } from "@/content/chapters";
 import type { CourseId } from "@/curriculum/types";
-import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
+import type { ChapterOutcome } from "@/engines";
 
 type ChapterSidebarProps = {
   courseId: CourseId;
