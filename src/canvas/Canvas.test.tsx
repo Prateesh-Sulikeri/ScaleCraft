@@ -398,6 +398,58 @@ describe("Canvas", () => {
     });
   });
 
+  describe("zoom keyboard shortcuts", () => {
+    // xyflow's zoomIn/zoomOut/zoomTo animate via a d3 transition even with a
+    // short duration — flushing real timers (not fake ones; jsdom's
+    // requestAnimationFrame polyfill runs on the real clock) lets the
+    // transition settle before asserting on the rendered transform.
+    function getScale(container: HTMLElement): number {
+      const viewport = container.querySelector(".react-flow__viewport") as HTMLElement;
+      const match = viewport.style.transform.match(/scale\(([^)]+)\)/);
+      return match ? parseFloat(match[1]) : 1;
+    }
+
+    it("Ctrl+= zooms in, centered on the viewport (not the flow origin)", async () => {
+      const { container } = renderWithCanvasStore(<Canvas />);
+      const before = getScale(container);
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "=", ctrlKey: true }));
+        await new Promise((r) => setTimeout(r, 250));
+      });
+
+      expect(getScale(container)).toBeGreaterThan(before);
+    });
+
+    it("Ctrl+- zooms out", async () => {
+      const { container } = renderWithCanvasStore(<Canvas />);
+      const before = getScale(container);
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "-", ctrlKey: true }));
+        await new Promise((r) => setTimeout(r, 250));
+      });
+
+      expect(getScale(container)).toBeLessThan(before);
+    });
+
+    it("Ctrl+0 resets zoom to 100%", async () => {
+      const { container } = renderWithCanvasStore(<Canvas />);
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "=", ctrlKey: true }));
+        await new Promise((r) => setTimeout(r, 250));
+      });
+      expect(getScale(container)).not.toBeCloseTo(1);
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "0", ctrlKey: true }));
+        await new Promise((r) => setTimeout(r, 350));
+      });
+      expect(getScale(container)).toBeCloseTo(1);
+    });
+  });
+
   describe("nodeStates prop (validation results merged at render time)", () => {
     it("annotates a component node's validationState/highlighted from nodeStates without touching the store", () => {
       const { api } = renderWithCanvasStore(<Canvas nodeStates={{ n1: "error" }} />);

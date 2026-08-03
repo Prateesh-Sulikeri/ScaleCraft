@@ -93,7 +93,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   { nodeStates, onCanvasPaneClick },
   ref,
 ) {
-  const { screenToFlowPosition, getNodes, fitView } = useReactFlow();
+  const { screenToFlowPosition, getNodes, fitView, zoomIn, zoomOut, zoomTo } = useReactFlow();
 
   useImperativeHandle(ref, () => ({
     exportImage: async ({ format, backgroundColor }) => {
@@ -227,8 +227,49 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   // ContextMenu.tsx's "Highlight Connections" item). Always attached (not
   // gated on placementMode being truthy, unlike before) so Escape can clear
   // the highlight on its own.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      const mod = event.ctrlKey || event.metaKey;
+
+      // Zoom shortcuts: Ctrl++ (zoom in), Ctrl+- (zoom out), Ctrl+0 (reset to 100%), Shift+1 (fit all), Shift+2 (fit selection)
+      //
+      // zoomIn/zoomOut/zoomTo (not a hand-rolled setViewport({x, y, zoom})) —
+      // those call panZoom.scaleBy/scaleTo under the hood, which anchor the
+      // zoom on the *center of the pane*, not flow-space (0,0). A manual
+      // setViewport that keeps x/y fixed while only changing zoom instead
+      // zooms toward the flow origin — usually off in a corner of whatever
+      // the user is looking at, not the center of their current view. These
+      // helpers also respect the minZoom/maxZoom props on <ReactFlow> below,
+      // so the clamp lives in one place instead of being duplicated here.
+      if (mod && (event.key === "+" || event.key === "=")) {
+        event.preventDefault();
+        zoomIn({ duration: 200 });
+        return;
+      }
+      if (mod && event.key === "-") {
+        event.preventDefault();
+        zoomOut({ duration: 200 });
+        return;
+      }
+      if (mod && event.key === "0") {
+        event.preventDefault();
+        zoomTo(1, { duration: 300 });
+        return;
+      }
+      if (event.shiftKey && event.code === "Digit1") { // Shift+1
+        event.preventDefault();
+        fitView({ padding: 0.1, maxZoom: 2, duration: 300 });
+        return;
+      }
+      if (event.shiftKey && event.code === "Digit2") { // Shift+2
+        event.preventDefault();
+        const selectedNodes = getNodes().filter((n) => n.selected);
+        if (selectedNodes.length > 0) {
+          fitView({ nodes: selectedNodes, padding: 0.2, duration: 300 });
+        }
+        return;
+      }
+
       if (event.key !== "Escape") return;
       // The picker handles its own Escape (closes itself, no placement/
       // highlight side effect) — bail here so this listener doesn't also
@@ -244,18 +285,14 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         return;
       }
       if (highlight) clearHighlight();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [
-    placementMode,
-    setPlacementMode,
-    highlight,
-    clearHighlight,
-    componentPicker,
-    pendingComponentPlacement,
-    setPendingComponentPlacement,
-  ]);
+    },
+    [zoomIn, zoomOut, zoomTo, fitView, getNodes, componentPicker, pendingComponentPlacement, setPendingComponentPlacement, placementMode, setPlacementMode, highlight, clearHighlight],
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   // xyflow's hold-Space-to-pan (`panActivationKeyCode`, on by default) only
   // takes over a drag that starts on the blank pane — it has no awareness of
@@ -666,6 +703,23 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         elevateNodesOnSelect={false}
         proOptions={{ hideAttribution: true }}
         minZoom={0.25}
+        maxZoom={4}
+        // Plain wheel pans — panOnScrollMode defaults to "free", which pans
+        // both axes off whatever deltaX/deltaY the wheel event carries, so
+        // Shift+wheel already pans horizontally with no extra config (xyflow's
+        // own handler converts deltaY into deltaX under Shift on non-Mac;
+        // Mac trackpads/mice already deliver Shift+wheel as a native deltaX).
+        // Holding the zoomActivationKeyCode below during a wheel/pinch
+        // switches from panning to xyflow's native, cursor-centered
+        // scroll-to-zoom instead — this also covers trackpad pinch for free,
+        // since browsers deliver a pinch gesture as a wheel event with
+        // ctrlKey:true, which xyflow's pan-on-scroll handler already
+        // special-cases as zoom regardless of this activation key. Without
+        // panOnScroll, xyflow's default (zoomOnScroll, no Ctrl required) has
+        // *every* wheel tick zoom the canvas — the opposite of the spec'd
+        // "wheel scrolls, Ctrl+wheel zooms" (see pending.md).
+        panOnScroll
+        zoomActivationKeyCode="Control"
         fitView
         fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
       >
