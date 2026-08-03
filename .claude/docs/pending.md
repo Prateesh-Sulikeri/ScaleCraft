@@ -1,112 +1,99 @@
-# Pending work
+# Release 3.3.0 - Canvas Navigation Specification
 
-Release 3.2.0 (infra clean-up) is done - all 6 phases (bundle-analysis baseline,
-content extraction, content access layer, engine package extraction, UI
-code-splitting, verify) shipped and verified, see `.claude/PROGRESS_LOG.md`'s
-2026-08-03 entries for the full record. That plan is no longer active; this file
-now holds candidate follow-on work found during a performance audit done right
-after 3.2.0 wrapped, not yet scoped to a release. Scope/ordering is the user's
-call - could be its own release, or a "drop 2" batch cut from
-`release/v3.2.0-infra-clean-up` before it merges to `develop`.
+Canvas navigation overhaul: implement infinite canvas panning/zooming, keyboard shortcuts, trackpad gestures, and selection behavior. The specification below defines the exact interaction model and priorities.
 
 ---
 
-## Completed: 3.2.0_drop2 phase 1 (2026-08-03)
+## Mouse Navigation
 
-All four performance fixes implemented and tested:
-
-1. ✓ **Canvas node components memoized** - All four node types (ComponentNode, ZoneNode, CommentNode, StartNode) wrapped in React.memo; Canvas.tsx nodes useMemo optimized to avoid spreading fresh objects when only some nodes changed.
-
-2. ✓ **Custom components schema memoization** - `toComponentDefinition` now uses WeakMap caching per record, preventing Zod schema rebuild on every render.
-
-3. ✓ **AI provider SDKs removed from eager imports** - Created `providersMetadata` export (id/label/defaultModel/suggestedModels) separate from implementations; UI code (AiSettingsForm, AiProfilesView, DeepCheckPanel) now uses metadata-only, no longer pulling in unused AI SDKs on non-Deep-Check routes.
-
-4. ✓ **Vercel deployment branch filtering** - Added `scripts/check-deploy-branch.sh` and updated vercel.json `ignoreCommand` to skip builds on non-eligible branches (only `main`, `develop`, `release/*` deploy).
-
-See commit b20d36d for implementation details.
+| Action | Shortcut | Notes |
+|---------|----------|-------|
+| Pan | **Space + Left Mouse Drag** | Primary canvas navigation |
+| Pan | **Middle Mouse Drag** | Alternative navigation |
+| Vertical Scroll | **Mouse Wheel** | Scroll canvas vertically |
+| Horizontal Scroll | **Shift + Mouse Wheel** | Scroll canvas horizontally |
+| Zoom | **Ctrl + Mouse Wheel** | Zoom towards mouse cursor |
+| Zoom In | **Ctrl + +** | Keyboard shortcut |
+| Zoom Out | **Ctrl + -** | Keyboard shortcut |
+| Reset Zoom | **Ctrl + 0** | Reset to 100% |
+| Zoom to Fit | **Shift + 1** | Fit all content in viewport |
+| Zoom to Selection | **Shift + 2** | Fit selected nodes |
 
 ---
 
-## Candidate action items (performance audit, 2026-08-03)
+## Trackpad Navigation
 
-Found by tracing actual render/data-access code after 3.2.0's bundle-splitting
-work, not from a stale doc. Roughly in priority order - #1 and #2 compound each
-other and are cheap; #3 needs a bundle-analyzer re-run to size before deciding
-how much effort it's worth.
+| Gesture | Action |
+|----------|--------|
+| Two-finger Drag | Pan canvas |
+| Pinch | Zoom |
+| Shift + Two-finger Drag | Horizontal pan (optional) |
 
-### 1. Canvas node components aren't memoized
+---
 
-`src/canvas/Canvas.tsx` (~L470, the `nodes` useMemo) rebuilds a brand-new data
-object for every node whenever `highlight`, `nodeStates` (validation), or
-`spaceHeld` changes. `ComponentNode`/`ZoneNode`/`CommentNode`/`StartNode`
-(`src/canvas/ComponentNode.tsx:42` etc.) are plain functions, not wrapped in
-`React.memo`. Result: clicking "Highlight Connections" on one node, or running
-Validate, re-renders every node on the board, not just the ones whose
-appearance actually changed. Fine at a dozen nodes, will show up as jank as
-graphs grow (Sandbox is open-ended by design).
+## Zoom Behavior
 
-**Fix:** wrap the four node components in `React.memo`; stop spreading a fresh
-`style`/`data` object onto nodes whose highlight/validation state didn't
-actually change.
+- Zoom is centered around the mouse cursor.
+- Smooth animated zoom.
+- Preserve cursor position while zooming.
+- Preserve pan position during zoom.
+- Infinite canvas.
 
-### 2. Custom components rebuild a Zod schema on every render
+---
 
-`getComponent()` (`src/content/components/registry.ts:64`) is called inside
-`ComponentNode`'s render body. For built-ins that's a cheap array `.find()`
-over a registry built once at module load. For **user-created custom
-components**, it calls `toComponentDefinition()` ->
-`generateComponentDefinition()` (`src/content/components/generate.ts:54`),
-which constructs a fresh `z.object(...)` schema from scratch on every call, no
-cache. Combined with #1, every custom-component node rebuilds its Zod schema
-on every irrelevant canvas re-render.
+## Selection Behavior
 
-**Fix:** memoize `toComponentDefinition` per record (e.g. keyed by id,
-invalidated on edit).
+| Action | Result |
+|---------|--------|
+| Click empty canvas | Clear selection |
+| Drag empty canvas | Marquee selection |
+| Hold Space | Pan instead of selecting |
+| Ctrl + Mouse Wheel | Zoom regardless of current tool |
 
-### 3. AI provider SDKs still ride along eagerly through `@/engines`
+---
 
-Already noted as an open, unscheduled item in this doc's old Phase 3 section
-("provider-adapter eagerness... a known, undecided follow-on") - confirmed
-still true, and bigger than that note implied. `src/engines/index.ts` does
-`export * from "./deep-check"`, which re-exports `providers`/`getProvider`
-straight from `@/ai/providers/index.ts`, which statically imports all 5
-provider files - including `anthropic.ts`, which pulls in the real
-`@anthropic-ai/sdk` package. 11 files import from `@/engines`
-(`sandbox/page.tsx`, `AiSettingsForm.tsx`, `AiProfilesView.tsx`,
-`DeepCheckPanel.tsx`, etc.), and several import real values from that barrel,
-not just types - tree-shaking through 3 layers of barrel re-export is a bad bet
-for keeping those SDKs out of routes that never touch Deep Check.
+## Keyboard Shortcuts
 
-**Fix:** split each provider's lightweight metadata (`id`/`label`/
-`defaultModel`, needed for the Settings dropdown) from its actual `complete()`
-implementation; dynamic-import only the selected provider's implementation at
-call time. Re-run the bundle analyzer first to confirm the actual weight this
-is costing non-Deep-Check routes before committing effort.
+| Shortcut | Action |
+|----------|--------|
+| Ctrl + + | Zoom In |
+| Ctrl + - | Zoom Out |
+| Ctrl + 0 | Reset Zoom (100%) |
+| Shift + 1 | Zoom to Fit |
+| Shift + 2 | Zoom to Selection |
 
-Along side this item, let us add support to more AI models, from the providers we 
-already serve. This helps to have more variaty of direct intergations. 
-Let us improve our prompts a bit more to give better answers and have fine tuning 
-options optmized for better more personalized results. 
+---
 
+## Interaction Priority
 
-### 4. Vercel deployment fix
+1. Hold **Space** -> Pan
+2. Middle Mouse Drag -> Pan
+3. Mouse Wheel -> Vertical Scroll
+4. Shift + Mouse Wheel -> Horizontal Scroll
+5. Ctrl + Mouse Wheel -> Zoom
+6. Trackpad Pinch -> Zoom
+7. Two-finger Drag -> Pan
 
-Currently vercel deploys ever single branch we create which is something I do not want
-I want it to deploy only the release/*, develop and main branches
-so something like:
-```
-if [[ "$BRANCH" == "main" || 
-"$BRANCH" == "develop" || 
-"$BRANCH" == release/* ]]; then
-echo "✅ Deploying $BRANCH"
-exit 1
-fi
+---
 
-echo "🛑 Skipping deployment for $BRANCH"
-exit 0
-```
-or something better that you can comeup with. 
+## Design Principles
 
-### Update the release update
-- update the release updates
-- uodate graphify
+- Infinite canvas.
+- Cursor-centered zoom.
+- Smooth panning and zooming.
+- No visible scrollbars.
+- Navigation should feel identical to modern infinite-canvas tools such as Figma, FigJam, Miro, and tldraw.
+
+---
+
+## Implementation Tasks
+
+- [ ] Canvas pan (Space + drag, middle mouse)
+- [ ] Canvas scroll (wheel, Shift+wheel)
+- [ ] Canvas zoom (Ctrl+wheel, Ctrl +/-, Ctrl+0)
+- [ ] Trackpad gestures (pinch, two-finger drag)
+- [ ] Zoom to fit / zoom to selection
+- [ ] Selection marquee
+- [ ] Interaction priority handling
+- [ ] Animation/smoothing
+- [ ] Test all behaviors
