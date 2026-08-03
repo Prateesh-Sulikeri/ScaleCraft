@@ -184,15 +184,39 @@ branch that actually reflects completed prior work.
 
 ## Phase 4. UI code-splitting
 
+**Status: done.** Both items landed as planned, one branch each.
+
 - Route-based splitting audit across all 10 `page.tsx` entries under
   `src/app/` - identify which pages pull in heavy client subtrees that don't
   need to be in the initial route bundle, split via `next/dynamic`. Branch:
   `feature/route-based-splitting`. Medium.
+  **Done.** Three conditionally-rendered subtrees qualified (default-closed
+  or default-null, gated behind a user action): `DocsPanel` (sandbox and
+  chapter-workspace routes - starts minimized, pulls in markdown rendering)
+  and `ExamShell`/`ExamResults` (lesson routes, via `QuizLauncher` - most
+  lesson visits never take the exam). All three now load via `next/dynamic`
+  with `ssr: false`. `FocusModeBar` and Home's About/Release-notes modals
+  were audited and left alone - too small to be worth the added chunk-load
+  indirection. `LearningPath` and the two dev-only lab routes have no
+  conditional subtree to split.
 - Split named large UI modules into their own chunks via `next/dynamic`:
   Inspector, Question UI, Simulation (currently minimal - just
   `trace.ts`, low priority), Deep Check (`DeepCheckPanel.tsx`, 512 lines,
   highest-value target), Markdown Reader, Diagram Renderer. Branch:
   `feature/ui-module-chunking`. Medium-large.
+  **Done.** `DeepCheckPanel` (dynamic + `ssr:false` at its
+  `DeepCheckButton` call site - opens on demand, default closed).
+  `QuestionPane` (dynamic, SSR kept, at its `ChapterSidebar` call site -
+  always-visible content, so this is a chunk-splitting win rather than a
+  deferred-load one; still pulls `Debrief`, `ReadOnlyGraphSummary`, and
+  every quiz question renderer into their own chunk). `MarkdownRenderer`
+  (dynamic, SSR kept, at its one remaining un-deferred call site,
+  `ChapterReader`'s lesson body - pulls in react-markdown, the
+  remark/rehype plugins, `CodeBlock`, and `MermaidBlock`). Audited and left
+  alone: `EdgeInspector` (45 lines, no heavy deps), `trace.ts` (a pure
+  function, not a UI module to split), and `MermaidBlock` ("Diagram
+  Renderer" - already defers the actual `mermaid` package via its own
+  dynamic `import()`, nothing left to do at the wrapper level).
 
 ## Phase 5. Verify
 
