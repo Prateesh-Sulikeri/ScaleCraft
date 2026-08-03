@@ -250,7 +250,9 @@ afterEach(() => {
 describe("ChapterWorkspace", () => {
   it("renders the chapter for the given route slug and loads its starterGraph", async () => {
     await renderWorkspace("slug-one");
-    expect(screen.getByRole("heading", { name: "Chapter One" })).toBeInTheDocument();
+    // QuestionPane is next/dynamic-loaded (see ChapterSidebar.tsx) - findBy
+    // waits out that chunk resolution instead of asserting synchronously.
+    expect(await screen.findByRole("heading", { name: "Chapter One" })).toBeInTheDocument();
     // starterGraph has one of the two required components present.
     await waitFor(() => expect(screen.getByText(/1 \/ 2 required components present/)).toBeInTheDocument());
     expect(screen.getByTestId("save-id")).toHaveTextContent(chapterSaveId("ch-1"));
