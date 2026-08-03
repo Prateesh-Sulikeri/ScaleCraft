@@ -6,10 +6,10 @@ set -e
 
 BRANCH="${VERCEL_GIT_COMMIT_REF:-$(git rev-parse --abbrev-ref HEAD)}"
 
-if [[ "$BRANCH" == "main" || "$BRANCH" == "develop" || "$BRANCH" == release/* ]]; then
-  echo "✅ Deploying branch: $BRANCH"
-  exit 0
+if [[ "$BRANCH" == "main" || "$BRANCH" == "develop" || "$BRANCH" =~ ^release/ ]]; then
+  echo "✅ Building branch: $BRANCH"
+  exit 1
 fi
 
 echo "🛑 Skipping deployment for branch: $BRANCH"
-exit 1
+exit 0
