@@ -220,8 +220,46 @@ branch that actually reflects completed prior work.
 
 ## Phase 5. Verify
 
+**Status: done.** Ran on `release/v3.2.0-infra-clean-up` directly, after first
+merging `docs/phase-4-ui-code-splitting-status` into it (user-confirmed
+2026-08-03, same pattern as the Phase 2/3 merges) - Phase 5 needs to compare
+against the branch that actually has all of Phase 1-4's changes.
+
 - Re-run the Phase 0 bundle analysis, diff against the baseline, confirm the
-  split points actually moved weight out of the initial bundle. Run the full
-  CI pipeline (`typecheck && lint && test && build`) before pushing the
-  release branch. No new branch - this happens on `release/v3.2.0-infra-clean-up`
-  itself before it's handed off for review.
+  split points actually moved weight out of the initial bundle.
+  **Done.** `npm run analyze` regenerates `.next/diagnostics/route-bundle-stats.json`,
+  which gives per-route `firstLoadUncompressedJsBytes` - a different field
+  than Phase 0's recorded numbers (those came from the interactive
+  `next experimental-analyze` UI, which reports gzip-compressed size, not
+  raw bytes). Rather than compare mismatched units, gzip-compressed each
+  route's first-load chunk set (`gzip -9` over the files in
+  `firstLoadChunkPaths`, summed) to reconstruct the same metric Phase 0
+  used. A true side-by-side rebuild of the pre-Phase-1 commit (773800f, via
+  a git worktree with a symlinked `node_modules`) was attempted first but
+  deadlocked - Turbopack's persistent cache was contended with the `next dev`
+  server already running against the same `node_modules` in the main
+  worktree - so the comparison below is against Phase 0's recorded baseline
+  numbers, not a fresh rebuild.
+
+  | Route | Phase 0 baseline (gzip) | Phase 5 (gzip) | Change |
+  |---|---|---|---|
+  | `/sandbox` | ~772K | 455K | -41% |
+  | `/building-blocks/[chapterSlug]` | ~776K | 465K | -40% |
+  | `/real-world-extraction/[chapterSlug]` | ~776K | 465K | -40% |
+  | `/building-blocks/[chapterSlug]/lesson` | ~700K | 281K | -60% |
+  | `/real-world-extraction/[chapterSlug]/lesson` | ~700K | 281K | -60% |
+  | `/dev/diagram-question-lab` | ~684K | 385K | -44% |
+
+  Every heavy route dropped 40-60%, consistent with Phase 0's prediction that
+  the three canvas-mounting routes (`/sandbox`, both `[chapterSlug]` routes)
+  would see the biggest win from Phase 4's Diagram Renderer / Markdown
+  Reader chunking, plus Phase 1-3's content-fetch and lazy-engine-load work.
+  The lesson routes' -60% is the largest single drop - expected, since
+  `MarkdownRenderer` (react-markdown + remark/rehype + `CodeBlock` +
+  `MermaidBlock`) was their single biggest dependency and Phase 4 made it
+  fully deferred.
+- Run the full CI pipeline (`typecheck && lint && test && build`) before
+  pushing the release branch. **Done.** All green: typecheck clean, lint 0
+  errors (11 pre-existing warnings, unrelated to this release), 1318/1318
+  tests passing across 159 files, production build succeeds (11 routes,
+  Turbopack).
