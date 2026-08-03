@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
-import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
 import { UndoToast } from "@/app/UndoToast";
 import { SaveToast } from "@/app/SaveToast";
@@ -29,6 +29,13 @@ import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { findEntry } from "@/curriculum";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+
+// Starts minimized (see canvas/store.tsx's docsPanel default), so most
+// loads never need it - keeps its markdown-rendering weight out of the
+// route's initial bundle until a user actually opens a doc tab.
+const DocsPanel = dynamic(() => import("@/canvas/docs-panel/DocsPanel").then((m) => m.DocsPanel), {
+  ssr: false,
+});
 
 type ChapterWorkspaceProps = {
   mode: ChapterDefinition["mode"];

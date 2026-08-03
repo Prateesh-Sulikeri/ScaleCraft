@@ -1,12 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { bestExamScore, examLocked, examPassed, EXAM_PASS_THRESHOLD } from "@/curriculum/progress";
-import { ExamShell } from "../exam/ExamShell";
-import { ExamResults } from "../exam/ExamResults";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { ExamAttempt } from "@/persistence/db";
+
+// Most lesson-page visits never take the exam - keep both out of the
+// route's initial bundle until "Take the quiz" / "View your result" is
+// actually clicked.
+const ExamShell = dynamic(() => import("../exam/ExamShell").then((m) => m.ExamShell), { ssr: false });
+const ExamResults = dynamic(() => import("../exam/ExamResults").then((m) => m.ExamResults), { ssr: false });
 
 type QuizLauncherProps = {
   chapter: ChapterDefinition;

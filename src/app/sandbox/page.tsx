@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { MouseRight, X } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
-import { DocsPanel } from "@/canvas/docs-panel/DocsPanel";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
 import { UndoToast } from "@/app/UndoToast";
 import { SaveToast } from "@/app/SaveToast";
@@ -26,6 +26,13 @@ import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
+
+// Starts minimized (see canvas/store.tsx's docsPanel default), so most
+// loads never need it - keeps its markdown-rendering weight out of the
+// route's initial bundle until a user actually opens a doc tab.
+const DocsPanel = dynamic(() => import("@/canvas/docs-panel/DocsPanel").then((m) => m.DocsPanel), {
+  ssr: false,
+});
 
 // Seeded once on first load so the canvas isn't empty — not a chapter
 // starterGraph (those arrive with the chapter framework, milestone 5), just
