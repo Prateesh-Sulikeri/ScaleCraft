@@ -27,6 +27,13 @@ describe("componentDocsManifest", () => {
     const mdFiles = readdirSync(docsDir).filter((f) => f.endsWith(".md"));
     expect(componentDocsManifest.length).toBe(mdFiles.length);
   });
+
+  it("threads a component's docsVersion through unchanged", () => {
+    for (const entry of componentDocsManifest) {
+      const component = componentRegistry.find((c) => c.id === entry.id);
+      expect(entry.docsVersion).toBe(component?.docsVersion);
+    }
+  });
 });
 
 describe("getComponentDocsEntry", () => {

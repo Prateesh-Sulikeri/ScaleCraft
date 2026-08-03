@@ -55,4 +55,41 @@ describe("useMarkdownFile", () => {
     expect(second.result.current).toBe("cached content");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("skips the network on a second call at the same version", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: () => Promise.resolve("v1 content"),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = renderHook(() => useMarkdownFile("/content/chapters/unique-d.md", 1));
+    await waitFor(() => expect(first.result.current).toBe("v1 content"));
+
+    const second = renderHook(() => useMarkdownFile("/content/chapters/unique-d.md", 1));
+    expect(second.result.current).toBe("v1 content");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("refetches when the version bumps, replacing the stale cached copy", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve("v1 content") })
+      .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve("v2 content") })
+      .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve("v1 content") });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const v1 = renderHook(() => useMarkdownFile("/content/chapters/unique-e.md", 1));
+    await waitFor(() => expect(v1.result.current).toBe("v1 content"));
+
+    const v2 = renderHook(() => useMarkdownFile("/content/chapters/unique-e.md", 2));
+    await waitFor(() => expect(v2.result.current).toBe("v2 content"));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    // A third render back at the original path+version now refetches too -
+    // the cache entry was overwritten by the v2 fetch above, not merged.
+    const backToV1 = renderHook(() => useMarkdownFile("/content/chapters/unique-e.md", 1));
+    await waitFor(() => expect(backToV1.result.current).toBe("v1 content"));
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
 });

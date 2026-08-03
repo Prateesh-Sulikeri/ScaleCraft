@@ -39,7 +39,7 @@ export function DocsTabContent({ componentId }: { componentId: string }) {
   };
 
   const definition = getComponent(componentId);
-  const fileContent = useMarkdownFile(definition?.docsFile);
+  const fileContent = useMarkdownFile(definition?.docsFile, definition?.docsVersion);
 
   return (
     <div ref={containerRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto p-4">

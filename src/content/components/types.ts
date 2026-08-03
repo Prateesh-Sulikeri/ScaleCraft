@@ -109,6 +109,13 @@ export type ComponentDefinition<Config = unknown> = {
    * reach client components (ComponentNode.tsx etc.), ruling out a Node
    * `fs.readFileSync` approach. */
   docsFile?: string;
+  /** Bump when a `docsFile`'s content changes, so `useMarkdownFile`'s cache
+   * (keyed by path) knows a previously-fetched copy is stale instead of
+   * serving it indefinitely. Not frontmatter parsed out of the .md file -
+   * hand-maintained here alongside the path it versions. Omitted for
+   * components with no `docsFile`, or ones whose docs haven't changed since
+   * `docsFile` was first set. */
+  docsVersion?: number;
   /** See `ComponentRelations` above. Omitted entirely (not just empty
    * fields) for any component with no declared contract — base-pack
    * components should populate this (see registry.ts); custom components
@@ -159,6 +166,8 @@ export type ComponentConfigSpec = {
   docs: string;
   /** See `ComponentDefinition.docsFile` above — threaded through unchanged. */
   docsFile?: string;
+  /** See `ComponentDefinition.docsVersion` above — threaded through unchanged. */
+  docsVersion?: number;
   /** See `ComponentRelations` above — threaded through unchanged into the
    * generated `ComponentDefinition` by generate.ts. Every base-pack
    * component (one object in a `config/*.ts` file) should populate this —

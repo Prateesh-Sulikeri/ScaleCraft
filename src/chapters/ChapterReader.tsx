@@ -49,7 +49,10 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   // Falls back to the chapter's problemStatement while the fetch is in
   // flight and if it 404s - same fallback convention as
   // DocsTabContent/useMarkdownFile for component docsFile.
-  const lessonMarkdown = useMarkdownFile(chapter ? getLessonFileUrl(chapter.id) : undefined);
+  const lessonMarkdown = useMarkdownFile(
+    chapter ? getLessonFileUrl(chapter.id) : undefined,
+    chapter?.lessonVersion,
+  );
   const markdown = lessonMarkdown ?? chapter?.problemStatement ?? "";
   const headings = useMemo(() => extractHeadings(markdown), [markdown]);
 

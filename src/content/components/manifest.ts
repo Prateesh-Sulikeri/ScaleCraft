@@ -15,11 +15,13 @@ import { componentRegistry } from "./registry";
 export type ComponentDocsManifestEntry = {
   id: string;
   docsFile: string;
+  /** See `ComponentDefinition.docsVersion` — threaded through unchanged. */
+  docsVersion?: number;
 };
 
 export const componentDocsManifest: ComponentDocsManifestEntry[] = componentRegistry
   .filter((component): component is typeof component & { docsFile: string } => Boolean(component.docsFile))
-  .map((component) => ({ id: component.id, docsFile: component.docsFile }));
+  .map((component) => ({ id: component.id, docsFile: component.docsFile, docsVersion: component.docsVersion }));
 
 export function getComponentDocsEntry(id: string): ComponentDocsManifestEntry | undefined {
   return componentDocsManifest.find((entry) => entry.id === id);

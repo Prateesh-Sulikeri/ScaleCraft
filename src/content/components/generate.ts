@@ -80,6 +80,7 @@ export function generateComponentDefinition(spec: ComponentConfigSpec): Componen
     summary: spec.summary,
     docs: spec.docs,
     docsFile: spec.docsFile,
+    docsVersion: spec.docsVersion,
     // Threaded through unchanged — same shape on both sides (see types.ts's
     // ComponentRelations), no transformation needed.
     relations: spec.relations,
