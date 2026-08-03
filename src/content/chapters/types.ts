@@ -131,6 +131,12 @@ export type ChapterDefinition = {
   /** Manual citations into the textbook — no content coupling, just links. */
   readingLinks: { label: string; url: string }[];
   starterGraph?: ArchitectureGraph;
+  /** Bump when this chapter's lesson file (`getLessonFileUrl` in
+   * content/chapters/lessons.ts) changes, so `useMarkdownFile`'s cache knows
+   * a previously-fetched copy is stale. Not frontmatter parsed out of the
+   * .md file - hand-maintained here alongside the chapter it versions. See
+   * `ComponentDefinition.docsVersion` for the equivalent on component docs. */
+  lessonVersion?: number;
   /** Building Blocks only — see CurriculumContext's own doc comment. Absent
    * for real-world-extraction and for not-yet-authored placeholder chapters. */
   curriculumContext?: CurriculumContext;

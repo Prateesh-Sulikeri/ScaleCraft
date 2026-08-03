@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { PageEnter } from "@/app/PageEnter";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { ReaderSidebar } from "./ReaderSidebar";
@@ -9,18 +10,22 @@ import { ReadingProgress } from "./ReadingProgress";
 import { TableOfContents } from "./TableOfContents";
 import { DesignEditorCTA } from "./DesignEditorCTA";
 import { QuizLauncher } from "./quiz/QuizLauncher";
-import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
 import { getCourse, findEntry } from "@/curriculum";
-import { chapterRegistry } from "@/content/chapters";
+import { getChapter, useChapterLesson } from "@/content/content-service";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import { appendKnowledgeCheckHeading, type ExtractedHeading } from "./extract-headings";
+import { appendKnowledgeCheckHeading, extractHeadings } from "./extract-headings";
+
+// This is the lesson page's primary content, so it keeps SSR (no
+// ssr:false) - still a real chunk-splitting win since it pulls in
+// react-markdown, remark/rehype plugins, CodeBlock, and MermaidBlock.
+const MarkdownRenderer = dynamic(() =>
+  import("@/canvas/docs-panel/markdown/MarkdownRenderer").then((m) => m.MarkdownRenderer),
+);
 
 type ChapterReaderProps = {
   mode: ChapterDefinition["mode"];
   chapterSlug: string;
-  markdown: string;
-  headings: ExtractedHeading[];
 };
 
 /**
@@ -35,16 +40,21 @@ type ChapterReaderProps = {
  * problem statement/objectives/hints, that's still the workspace's job once
  * a learner clicks through.
  */
-export function ChapterReader({ mode, chapterSlug, markdown, headings }: ChapterReaderProps) {
+export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   const course = getCourse(mode);
   // Guaranteed non-null by the route guard in practice — kept as a real
   // lookup so a stale/bad slug degrades to the defensive null return below.
   const entry = findEntry(mode, chapterSlug);
-  const chapter = entry?.chapterDefinitionId
-    ? (chapterRegistry.find((c) => c.id === entry.chapterDefinitionId) ?? null)
-    : null;
+  const chapter = entry?.chapterDefinitionId ? (getChapter(entry.chapterDefinitionId) ?? null) : null;
 
   const articleRef = useRef<HTMLDivElement>(null);
+
+  // Falls back to the chapter's problemStatement while the fetch is in
+  // flight and if it 404s - same fallback convention as
+  // DocsTabContent/useComponentDocs for component docsFile.
+  const lessonMarkdown = useChapterLesson(chapter?.id);
+  const markdown = lessonMarkdown ?? chapter?.problemStatement ?? "";
+  const headings = extractHeadings(markdown);
 
   if (!chapter || !entry) return null;
 

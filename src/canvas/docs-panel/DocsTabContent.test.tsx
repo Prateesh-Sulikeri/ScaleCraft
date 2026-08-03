@@ -29,7 +29,7 @@ describe("DocsTabContent", () => {
     render(<DocsTabContent componentId="load-balancer" />);
 
     await waitFor(() => expect(screen.getByText("Load balancer doc body")).toBeInTheDocument());
-    expect(fetchMock).toHaveBeenCalledWith("/docs/load-balancer.md");
+    expect(fetchMock).toHaveBeenCalledWith("/content/components/load-balancer.md");
   });
 
   it("falls back to inline docs when the docsFile fetch 404s", async () => {

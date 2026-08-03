@@ -90,6 +90,11 @@ describe("generateComponentDefinition", () => {
     expect(def.docsFile).toBe("/docs/widget.md");
   });
 
+  it("threads docsVersion through unchanged", () => {
+    const def = generateComponentDefinition(baseSpec({ docsFile: "/docs/widget.md", docsVersion: 2 }));
+    expect(def.docsVersion).toBe(2);
+  });
+
   it("throws when the spec has no id", () => {
     expect(() => generateComponentDefinition(baseSpec({ id: "" }))).toThrow(/missing an id/);
   });

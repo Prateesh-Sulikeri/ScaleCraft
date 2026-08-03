@@ -10,7 +10,7 @@ import { Debrief } from "./Debrief";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
 import { ChapterStatusIcon, chapterStatusLabel } from "@/learning-path/ChapterStatusIcon";
 import type { ChapterDefinition, Hint } from "@/content/chapters/types";
-import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
+import type { ChapterOutcome } from "@/engines";
 import type { ChapterStatus, CurriculumChapter } from "@/curriculum/types";
 
 type QuestionPaneProps = {

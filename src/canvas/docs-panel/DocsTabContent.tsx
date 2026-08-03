@@ -1,51 +1,9 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useCanvasStore } from "../store";
-import { getComponent } from "@/content/components/registry";
+import { getComponent, useComponentDocs } from "@/content/content-service";
 import { MarkdownRenderer } from "./markdown/MarkdownRenderer";
-
-// Keyed by docsFile URL, not componentId — avoids re-fetching the same
-// static asset every time a tab is reopened or switched back to.
-const docsFileCache = new Map<string, string>();
-
-/** Fetches a component's optional `docsFile` (see types.ts) from `public/`
- * — a plain static-asset fetch, not a bundler import, since this repo has
- * no raw-text import loader configured and `docs`/`docsFile` both need to
- * reach client components. Returns null while loading, on 404, or when
- * there's no docsFile at all, so the caller falls back to `docs`. */
-function useDocsFileContent(docsFile: string | undefined): string | null {
-  const [content, setContent] = useState<string | null>(
-    docsFile ? (docsFileCache.get(docsFile) ?? null) : null,
-  );
-
-  useEffect(() => {
-    // No remount-free case to handle here: each DocsTabContent instance is
-    // keyed by componentId (see DocsPanel.tsx), so a docsFile change always
-    // comes with a fresh mount — the useState initializer above already
-    // covers the cached case, so this effect only ever needs to fetch.
-    if (!docsFile || docsFileCache.has(docsFile)) return;
-    let cancelled = false;
-    fetch(docsFile)
-      .then((res) => {
-        if (!res.ok) throw new Error(String(res.status));
-        return res.text();
-      })
-      .then((text) => {
-        if (cancelled) return;
-        docsFileCache.set(docsFile, text);
-        setContent(text);
-      })
-      .catch(() => {
-        if (!cancelled) setContent(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [docsFile]);
-
-  return content;
-}
 
 /**
  * The active tab's scrollable reading pane. Scroll position is written back
@@ -80,7 +38,7 @@ export function DocsTabContent({ componentId }: { componentId: string }) {
   };
 
   const definition = getComponent(componentId);
-  const fileContent = useDocsFileContent(definition?.docsFile);
+  const fileContent = useComponentDocs(componentId);
 
   return (
     <div ref={containerRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto p-4">

@@ -12,7 +12,7 @@ import { ProjectMenu } from "@/app/ProjectMenu";
 import { BoardMenu } from "@/app/BoardMenu";
 import { ModeBadge } from "@/app/ModeBadge";
 import { ShortcutsButton } from "@/app/ShortcutsButton";
-import type { ValidationViolation } from "@/validation-engine/types";
+import type { ValidationViolation } from "@/engines";
 import type { DeepCheckContext } from "@/ai/prompt";
 import type { AppMode } from "@/lib/modes";
 import { modeColorVar } from "@/lib/modes";

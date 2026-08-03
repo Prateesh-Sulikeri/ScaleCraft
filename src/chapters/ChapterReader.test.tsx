@@ -1,9 +1,14 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ChapterReader } from "./ChapterReader";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { CurriculumChapter, Course } from "@/curriculum/types";
 import type { ExtractedHeading } from "./extract-headings";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 function makeChapter(overrides: Partial<ChapterDefinition> = {}): ChapterDefinition {
   return {
@@ -198,27 +203,27 @@ vi.mock("@/curriculum", () => ({
 }));
 
 describe("ChapterReader - prerequisite and domain tags", () => {
-  it("renders the domain badge for an RWE chapter with a domain", () => {
-    render(
-      <ChapterReader
-        mode="real-world-extraction"
-        chapterSlug="target"
-        markdown="Lesson body"
-        headings={[]}
-      />,
+  // ChapterReader now fetches its own lesson markdown (useMarkdownFile) —
+  // stub fetch to 404 so it falls back to chapter.problemStatement rather
+  // than hitting a real, unparseable relative URL in the test environment.
+  // These tests only assert on the domain/prerequisite chrome around the
+  // markdown body, not its content, so the fallback is fine.
+  function stubFetchNotFound() {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 404 }),
     );
+  }
+
+  it("renders the domain badge for an RWE chapter with a domain", () => {
+    stubFetchNotFound();
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="target" />);
     expect(screen.getByText("Messaging")).toBeInTheDocument();
   });
 
   it("renders an authored prerequisite as a link to its lesson, and an unauthored one as a plain chip", () => {
-    render(
-      <ChapterReader
-        mode="real-world-extraction"
-        chapterSlug="target"
-        markdown="Lesson body"
-        headings={[]}
-      />,
-    );
+    stubFetchNotFound();
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="target" />);
     const authoredLink = screen.getByRole("link", { name: /1\.1 Prereq One/i });
     expect(authoredLink).toHaveAttribute("href", "/real-world-extraction/prereq-authored/lesson");
     expect(screen.getByText("1.2 Prereq Two")).toBeInTheDocument();
@@ -226,11 +231,10 @@ describe("ChapterReader - prerequisite and domain tags", () => {
   });
 
   it("renders neither section when there are no prerequisites or domain", () => {
+    stubFetchNotFound();
     const bareEntry: CurriculumChapter = { ...targetEntry, slug: "bare", prerequisiteSlugs: [], domain: null };
     entriesBySlug.bare = bareEntry;
-    render(
-      <ChapterReader mode="real-world-extraction" chapterSlug="bare" markdown="Lesson body" headings={[]} />,
-    );
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="bare" />);
     expect(screen.queryByText(/prerequisites/i)).not.toBeInTheDocument();
   });
 });

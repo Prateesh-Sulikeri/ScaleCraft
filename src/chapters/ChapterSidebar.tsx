@@ -1,15 +1,20 @@
 "use client";
 
 import { useMemo } from "react";
+import dynamic from "next/dynamic";
 import { ChevronLeft } from "lucide-react";
 import { HeldTransitionLink } from "@/app/HeldTransitionLink";
-import { QuestionPane } from "./QuestionPane";
 import { findEntry } from "@/curriculum";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { deriveStatus, type ProgressInputs } from "@/curriculum/progress";
 import { chapterRegistry } from "@/content/chapters";
 import type { CourseId } from "@/curriculum/types";
-import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
+import type { ChapterOutcome } from "@/engines";
+
+// Always rendered, so this keeps SSR (no ssr:false) - it's still a real
+// chunk-splitting win since QuestionPane pulls in Debrief,
+// ReadOnlyGraphSummary, and every quiz question renderer.
+const QuestionPane = dynamic(() => import("./QuestionPane").then((m) => m.QuestionPane));
 
 type ChapterSidebarProps = {
   courseId: CourseId;

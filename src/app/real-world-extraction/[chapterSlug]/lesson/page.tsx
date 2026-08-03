@@ -2,8 +2,6 @@ import { notFound } from "next/navigation";
 import { ChapterReader } from "@/chapters/ChapterReader";
 import { findEntry } from "@/curriculum";
 import { chapterRegistry } from "@/content/chapters";
-import { getLessonMarkdown } from "@/content/chapters/lessons";
-import { extractHeadings } from "@/chapters/extract-headings";
 
 export default async function Page({ params }: { params: Promise<{ chapterSlug: string }> }) {
   const { chapterSlug } = await params;
@@ -15,18 +13,7 @@ export default async function Page({ params }: { params: Promise<{ chapterSlug: 
   const chapter = chapterRegistry.find((c) => c.id === entry.chapterDefinitionId);
   if (!chapter) notFound();
 
-  // Falls back to the chapter's problemStatement rather than rendering
-  // blank if a ChapterDefinition is authored before its lesson file is.
-  const markdown = getLessonMarkdown(chapter.id) ?? chapter.problemStatement;
-  const headings = extractHeadings(markdown);
-
-  return (
-    <ChapterReader
-      key={chapterSlug}
-      mode="real-world-extraction"
-      chapterSlug={chapterSlug}
-      markdown={markdown}
-      headings={headings}
-    />
-  );
+  // ChapterReader fetches its own lesson markdown client-side (see
+  // useMarkdownFile) - this route only needs to establish the slug is real.
+  return <ChapterReader key={chapterSlug} mode="real-world-extraction" chapterSlug={chapterSlug} />;
 }

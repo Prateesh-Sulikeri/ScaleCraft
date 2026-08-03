@@ -5,10 +5,9 @@ import { ChevronLeft, HelpCircle, History, Loader2, Settings, Sparkles, Trash2, 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSanitize from "rehype-sanitize";
-import type { DeepCheckResult } from "@/ai/run-deep-check";
 import type { AiCritique } from "@/ai/schema";
 import type { AiProfile } from "@/ai/profiles";
-import { providers } from "@/ai/providers";
+import { providers, type DeepCheckResult } from "@/engines";
 import type { DeepCheckSession } from "@/persistence/db";
 import { deleteSession, listSessions } from "@/persistence/deepCheckSessions";
 import { AiProfilesView } from "./AiProfilesView";
