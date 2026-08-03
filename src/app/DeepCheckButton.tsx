@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { Sparkles } from "lucide-react";
 import { Tooltip } from "@/app/Tooltip";
 import { useCanvasStore } from "@/canvas/store";
@@ -8,7 +9,14 @@ import { getActiveProfile, isProfileUsable, type AiProfile } from "@/ai/profiles
 import { getEngine } from "@/engines";
 import { saveSession } from "@/persistence/deepCheckSessions";
 import type { DeepCheckContext } from "@/ai/prompt";
-import { DeepCheckPanel, type DeepCheckPanelState, type DeepCheckView } from "./DeepCheckPanel";
+import type { DeepCheckPanelState, DeepCheckView } from "./DeepCheckPanel";
+
+// Opens on demand from the header button (default closed) - keeps its AI
+// provider/settings/history weight out of every canvas route's initial
+// bundle until a user actually clicks Deep Check.
+const DeepCheckPanel = dynamic(() => import("./DeepCheckPanel").then((m) => m.DeepCheckPanel), {
+  ssr: false,
+});
 
 type DeepCheckButtonProps = {
   ctx: DeepCheckContext;
