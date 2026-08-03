@@ -127,6 +127,16 @@ list above it.
 
 ## Phase 3. Engine package extraction
 
+**Status: done.** All four items landed across two branches instead of
+four - boundary, interface, and registry turned out to be inseparable in
+practice (you can't land a clean `src/engines/` boundary without at least a
+minimal interface and registry to enforce it through), so they were bundled.
+Lazy-load stayed its own branch as planned, since it's a genuine, separately
+reviewable follow-on. Also: before branching, `docs/phase-2-content-access-status`
+(all of Phase 1/2) was merged into `release/v3.2.0-infra-clean-up` and pushed
+(user-requested, confirmed 2026-08-03) so Phase 3 would branch from a release
+branch that actually reflects completed prior work.
+
 - Extract `src/validation-engine/` and `src/ai/run-deep-check.ts` (+
   `src/ai/providers/`) behind a single `src/engines/` boundary with an
   explicit public export surface - UI code imports only through that
@@ -134,15 +144,43 @@ list above it.
   decision above). Branch: `feature/engine-boundary`. Large - biggest
   refactor in this release, touches every call site in `DeepCheckPanel.tsx`
   and `QuestionPane.tsx`.
+  **Done.** New `src/engines/` module (`types.ts`, `validation/`,
+  `deep-check/`, `registry.ts`, `index.ts`). Reroutes 11 UI files
+  (`AppHeader`, `sandbox/page`, `ValidationIndicator`, `ChapterWorkspace`,
+  `chapter-outcome-violations`, `ChapterSidebar`, `QuestionPane`,
+  `DeepCheckPanel`, `AiProfilesView`, `AiSettingsForm`, `DeepCheckButton`) to
+  import from `@/engines`. Deliberate exceptions, left importing internals
+  directly: `src/app/dev/blueprint-lab/BlueprintLabContent.tsx` (dev tool
+  inspecting internals on purpose), `src/content/chapters/types.ts` (needs
+  `GraphPattern` structurally for blueprint authoring, not "running" the
+  engine), `src/ai/{prompt,settings,profiles,schema}.ts` (ai-domain support
+  modules, not named in the extraction scope), and test files (fixture
+  convenience). A new scoped `no-restricted-imports` ESLint rule enforces
+  the boundary going forward.
 - Engine interface (`run()` / `validate()` / `analyze()`) that both engines
   implement, shaped generically enough for the future simulation engine to
   adopt without a rework. Branch: `feature/engine-interface`. Medium. Depends
   on the boundary above.
+  **Done, no separate branch.** `Engine<TInput, TConfig, TResult>` in
+  `src/engines/types.ts` - one `run(input, config, signal?)` method both
+  `validationEngine` and `deepCheckEngine` implement. Chapter- and settings-
+  specific orchestration (`evaluateChapter`, `testConnection`) stays outside
+  the interface as plain named exports - they're not generic across engines.
 - Engine registry keyed off the interface. Branch: `feature/engine-registry`.
   Small-medium.
+  **Done, no separate branch.** `src/engines/registry.ts`'s `getEngine(id)`,
+  landed alongside the boundary above (eager at first, made lazy below).
 - Lazy-load each engine at its call site via `next/dynamic` / dynamic
   `import()`, through the registry. Branch: `feature/engine-lazy-load`.
   Small. Depends on the registry.
+  **Done.** `registry.ts`'s `getEngine()` now dynamically imports each
+  engine module. Updated the 4 real invocation sites
+  (`ChapterWorkspace`/`sandbox/page`'s validate buttons, `DeepCheckButton`'s
+  run, `AiSettingsForm`'s test connection) - all already event-handler-
+  triggered, so the added `await` is low-risk. `providers` (Settings/Help UI
+  metadata) stays eager - the item is scoped to the `run()` call site, not
+  provider metadata; splitting metadata from the 5 adapter implementations
+  is a Phase 4 concern if bundle re-check shows it matters.
 
 ## Phase 4. UI code-splitting
 
