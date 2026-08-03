@@ -201,6 +201,12 @@ describe("DeepCheckButton", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Run Deep Check" }));
     expect(screen.getByText("Reviewing your design…")).toBeInTheDocument();
 
+    // The deep-check engine is now dynamically imported (see
+    // src/engines/registry.ts), so the request only actually reaches
+    // runDeepCheck a tick after the click - wait for it to be genuinely
+    // in-flight before cancelling.
+    await waitFor(() => expect(runDeepCheckMock).toHaveBeenCalled());
+
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(capturedSignal?.aborted).toBe(true);

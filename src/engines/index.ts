@@ -6,6 +6,6 @@
  * no-restricted-imports rule, which enforces this.
  */
 export type { Engine } from "./types";
-export { engineRegistry, getEngine, type EngineId } from "./registry";
+export { getEngine, type EngineId } from "./registry";
 export * from "./validation";
 export * from "./deep-check";
