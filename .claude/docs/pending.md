@@ -86,14 +86,29 @@ Canvas navigation overhaul: implement infinite canvas panning/zooming, keyboard 
 
 ---
 
-## Implementation Tasks
+## Implementation Tasks (Phase 1)
 
-- [ ] Canvas pan (Space + drag, middle mouse)
-- [ ] Canvas scroll (wheel, Shift+wheel)
-- [ ] Canvas zoom (Ctrl+wheel, Ctrl +/-, Ctrl+0)
-- [ ] Trackpad gestures (pinch, two-finger drag)
-- [ ] Zoom to fit / zoom to selection
-- [ ] Selection marquee
-- [ ] Interaction priority handling
-- [ ] Animation/smoothing
-- [ ] Test all behaviors
+- [x] Canvas pan (Space + drag, middle mouse) - xyflow panActivationKeyCode + panOnDrag={[1]}
+- [x] Canvas scroll (wheel, Shift+wheel) - xyflow default wheel handling
+- [x] Canvas zoom (Ctrl+wheel, Ctrl +/-, Ctrl+0) - keyboard shortcuts + trackpad support
+- [x] Trackpad gestures (pinch, two-finger drag) - pinch via wheel+Ctrl, pan via pointer events
+- [x] Zoom to fit / zoom to selection (Shift+1, Shift+2) - fitView() with proper bounds
+- [x] Selection marquee - xyflow selectionOnDrag={!isConnecting}
+- [x] Interaction priority handling - order verified in pending.md spec
+- [x] Animation/smoothing - 200-300ms duration on all viewport changes
+- [ ] Test all behaviors - manual browser testing needed
+
+---
+
+## Implementation Notes (Phase 1)
+
+- Zoom limits: 0.25x (min) to 4x (max) to prevent viewport loss
+- Smooth animations on all zoom/pan operations (200-300ms duration)
+- Keyboard shortcuts use event.code for cross-layout compatibility
+- Trackpad pinch support via Ctrl+wheel with preventDefault
+- Space-bar pan works on nodes too (spaceHeld disables nodesDraggable)
+- Middle-mouse pan alternative to Space+drag
+- Zoom center stays at cursor position (xyflow default)
+- Infinite canvas enabled (no viewport bounds)
+- Selection marquee on empty canvas drag (selectionOnDrag)
+- Ctrl+wheel also works as keyboard shortcut (handled separately)
