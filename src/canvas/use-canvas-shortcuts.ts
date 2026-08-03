@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useCanvasStore } from "./store";
 import { exportCanvasAsJson } from "./export-json";
+import type { ComponentNodeType } from "./types";
 
 export function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -47,6 +48,23 @@ export function isEditableTarget(target: EventTarget | null): boolean {
  * binding. Non-annotation nodes in the selection are silently skipped
  * (toggleAnnotationLock is already a no-op on them); a selection with zero
  * lockable nodes does nothing, same as duplicate on an empty selection.
+ *
+ * Shift+/ (i.e. "?") toggles ShortcutsModal.tsx via the store's
+ * shortcutsModalOpen — checked via `event.code === "Slash"` rather than
+ * `event.key === "?"`, same layout-compatibility reasoning as Canvas.tsx's
+ * Shift+1/Shift+2 (the physical key position is stable across layouts even
+ * when the shifted character it produces isn't). Works everywhere except
+ * editable fields, so typing a literal "?" isn't hijacked.
+ *
+ * Ctrl/Cmd+/ opens documentation (openDocTab) for the first selected
+ * component node, mirroring ContextMenu.tsx's "Open Documentation" - a
+ * no-op with nothing selected, same as duplicate/select-all. Kept apart from
+ * bare "/" (add component) and Shift+/ (this shortcuts modal) as the third,
+ * modifier-only member of the "/" family.
+ *
+ * Escape closes ShortcutsModal.tsx when it's open — checked first, ahead of
+ * the focus-mode-exit Escape below, so opening the modal from inside focus
+ * mode and pressing Escape once closes just the modal (not both at once).
  */
 export function useCanvasShortcuts(onSave: () => void) {
   const undo = useCanvasStore((s) => s.undo);
@@ -61,14 +79,33 @@ export function useCanvasShortcuts(onSave: () => void) {
   const componentPicker = useCanvasStore((s) => s.componentPicker);
   const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
   const setFocusMode = useCanvasStore((s) => s.setFocusMode);
+  const shortcutsModalOpen = useCanvasStore((s) => s.shortcutsModalOpen);
+  const toggleShortcutsModal = useCanvasStore((s) => s.toggleShortcutsModal);
+  const closeShortcutsModal = useCanvasStore((s) => s.closeShortcutsModal);
+  const openDocTab = useCanvasStore((s) => s.openDocTab);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const mod = event.metaKey || event.ctrlKey;
 
+      if (event.key === "Escape" && shortcutsModalOpen) {
+        event.preventDefault();
+        closeShortcutsModal();
+        return;
+      }
+
       if (event.key === "Escape" && focusMode && !componentPicker) {
         event.preventDefault();
         setFocusMode(false);
+        return;
+      }
+
+      // Shift+/ ("?") — checked before every other branch below (including
+      // the bare-`/` one right after) since it's neither a bare key nor a
+      // mod combo. See the doc comment above for the event.code reasoning.
+      if (event.shiftKey && event.code === "Slash" && !isEditableTarget(event.target)) {
+        event.preventDefault();
+        toggleShortcutsModal();
         return;
       }
 
@@ -116,6 +153,14 @@ export function useCanvasShortcuts(onSave: () => void) {
           .forEach((n) => toggleAnnotationLock(n.id));
         return;
       }
+      if (key === "/" && !componentPicker && !focusMode) {
+        event.preventDefault();
+        const selected = nodes.find(
+          (n): n is ComponentNodeType => n.selected === true && n.type === "component",
+        );
+        if (selected) openDocTab(selected.data.componentId);
+        return;
+      }
 
       if (key === "z" && event.shiftKey) {
         event.preventDefault();
@@ -145,5 +190,9 @@ export function useCanvasShortcuts(onSave: () => void) {
     componentPicker,
     focusMode,
     setFocusMode,
+    shortcutsModalOpen,
+    toggleShortcutsModal,
+    closeShortcutsModal,
+    openDocTab,
   ]);
 }

@@ -340,6 +340,83 @@ describe("useCanvasShortcuts", () => {
     expect(api().getState().docsPanel.focusMode).toBe(false);
   });
 
+  it("Shift+/ toggles the shortcuts modal", () => {
+    const api = withStoreApi();
+
+    expect(api().getState().shortcutsModalOpen).toBe(false);
+    const event = fireKey({ key: "?", code: "Slash", shiftKey: true });
+    expect(api().getState().shortcutsModalOpen).toBe(true);
+    expect(event.defaultPrevented).toBe(true);
+
+    fireKey({ key: "?", code: "Slash", shiftKey: true });
+    expect(api().getState().shortcutsModalOpen).toBe(false);
+  });
+
+  it("Shift+/ inside an editable field does not toggle the shortcuts modal", () => {
+    const api = withStoreApi();
+
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    fireKey({ key: "?", code: "Slash", shiftKey: true }, input);
+    expect(api().getState().shortcutsModalOpen).toBe(false);
+    document.body.removeChild(input);
+  });
+
+  it("Ctrl/Cmd+/ opens documentation for the selected component node", () => {
+    const api = withStoreApi();
+
+    act(() => {
+      api().getState().addNode(component("client"), { x: 0, y: 0 });
+    });
+    const [node] = api().getState().nodes;
+    act(() => {
+      api().setState({
+        nodes: api().getState().nodes.map((n) => (n.id === node.id ? { ...n, selected: true } : n)),
+      });
+    });
+
+    const event = fireKey({ key: "/", ctrlKey: true });
+
+    expect(api().getState().docsPanel.activeTabId).toBe("client");
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("does nothing on Ctrl/Cmd+/ when no component node is selected", () => {
+    const api = withStoreApi();
+
+    act(() => {
+      api().getState().addNode(component("client"), { x: 0, y: 0 });
+    });
+    fireKey({ key: "/", ctrlKey: true });
+    expect(api().getState().docsPanel.activeTabId).toBeNull();
+  });
+
+  it("Escape closes the shortcuts modal", () => {
+    const api = withStoreApi();
+    act(() => {
+      api().getState().openShortcutsModal();
+    });
+    expect(api().getState().shortcutsModalOpen).toBe(true);
+
+    const event = fireKey({ key: "Escape" });
+
+    expect(api().getState().shortcutsModalOpen).toBe(false);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("Escape closes the shortcuts modal instead of exiting focus mode when both are active", () => {
+    const api = withStoreApi();
+    act(() => {
+      api().getState().setFocusMode(true);
+      api().getState().openShortcutsModal();
+    });
+
+    fireKey({ key: "Escape" });
+
+    expect(api().getState().shortcutsModalOpen).toBe(false);
+    expect(api().getState().docsPanel.focusMode).toBe(true);
+  });
+
   it("removes its window listener on unmount", () => {
     const removeSpy = vi.spyOn(window, "removeEventListener");
     const { unmount } = renderHook(() => useCanvasShortcuts(onSave), { wrapper });

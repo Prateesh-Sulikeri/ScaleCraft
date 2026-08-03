@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { StrictMode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
 import { AUTOSAVE_DEBOUNCE_MS } from "@/persistence/use-autosave";
@@ -56,6 +56,23 @@ vi.mock("@/validation-engine/engine", () => ({ runValidation: vi.fn(() => []) })
 vi.mock("@/validation-engine/rules", () => ({ ruleRegistry: [] }));
 
 const { default: SandboxPage } = await import("./page");
+
+beforeAll(() => {
+  // jsdom has no matchMedia; ShortcutsModal's useViewportWidth (use-large-screen.ts)
+  // reads it unconditionally. Same stub as ShortcutsModal.test.tsx / ThemeToggle.test.tsx.
+  window.matchMedia =
+    window.matchMedia ||
+    ((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }));
+});
 
 beforeEach(async () => {
   await db.saves.clear();
