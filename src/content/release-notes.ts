@@ -14,6 +14,16 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "3.3.0-alpha",
+    date: "2026-08-03",
+    highlights: [
+      "Canvas navigation overhaul: pan with Space+drag or middle-mouse-drag, scroll to pan vertically, Shift+scroll to pan horizontally, and Ctrl/Cmd+scroll or a trackpad pinch to zoom - zoom now stays centered on your cursor instead of drifting.",
+      "New keyboard shortcuts: Ctrl/Cmd+plus/minus/0 to zoom in, out, or reset to 100%, and Shift+1 / Shift+2 to fit the whole graph or just your current selection into view.",
+      "The keyboard shortcuts reference is now a searchable, sectioned modal instead of a cramped dropdown - open it from the header icon or the new ? shortcut, and search by section (\"navigation\") or by shortcut (\"undo\").",
+      "New shortcut: Ctrl/Cmd+/ opens documentation for the selected component directly, no need to reach for the right-click menu.",
+    ],
+  },
+  {
     version: "3.2.0-alpha",
     date: "2026-08-03",
     highlights: [

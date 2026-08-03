@@ -7,6 +7,7 @@ import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
 import { UndoToast } from "@/app/UndoToast";
 import { SaveToast } from "@/app/SaveToast";
 import { AppHeader } from "@/app/AppHeader";
+import { ShortcutsModal } from "@/app/ShortcutsModal";
 import { PageEnter } from "@/app/PageEnter";
 import { SidebarShell } from "@/app/SidebarShell";
 import { ChapterSidebar } from "./ChapterSidebar";
@@ -383,6 +384,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
 
       <UndoToast />
       <SaveToast savedAt={lastManualSaveAt} />
+      <ShortcutsModal />
     </PageEnter>
   );
 }

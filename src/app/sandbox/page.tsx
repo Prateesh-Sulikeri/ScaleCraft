@@ -8,6 +8,7 @@ import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
 import { UndoToast } from "@/app/UndoToast";
 import { SaveToast } from "@/app/SaveToast";
 import { AppHeader } from "@/app/AppHeader";
+import { ShortcutsModal } from "@/app/ShortcutsModal";
 import { PageEnter } from "@/app/PageEnter";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
 import { useDismissedFlag } from "@/lib/use-dismissed-flag";
@@ -288,6 +289,7 @@ function SandboxPageContent() {
 
       <UndoToast />
       <SaveToast savedAt={lastManualSaveAt} />
+      <ShortcutsModal />
     </PageEnter>
   );
 }

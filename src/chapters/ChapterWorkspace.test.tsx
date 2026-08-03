@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { StrictMode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { CurriculumChapter } from "@/curriculum/types";
@@ -229,6 +229,23 @@ async function renderWorkspace(chapterSlug = "slug-one") {
   await waitFor(() => expect(screen.getByTestId("app-header")).toBeInTheDocument());
   return utils;
 }
+
+beforeAll(() => {
+  // jsdom has no matchMedia; ShortcutsModal's useViewportWidth (use-large-screen.ts)
+  // reads it unconditionally. Same stub as ShortcutsModal.test.tsx / ThemeToggle.test.tsx.
+  window.matchMedia =
+    window.matchMedia ||
+    ((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }));
+});
 
 beforeEach(async () => {
   await db.saves.clear();
