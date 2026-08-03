@@ -27,6 +27,14 @@ type BoardMenuProps = {
 export function BoardMenu({ saveId }: BoardMenuProps) {
   const [open, setOpen] = useState(false);
   const [hasSave, setHasSave] = useState(false);
+  // Arms a same-dropdown confirm step for Clear board, the one action here
+  // that's instant and (per .claude/docs/CRITIQUE.md P1) needs a stop at the
+  // moment of loss, not just the pendingUndo toast after the fact. Reset
+  // whenever the dropdown closes so re-opening always starts from the plain
+  // label - no app-wide modal confirm() dialog, matching this menu's existing
+  // click-outside convention instead.
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
   const isEmpty = useCanvasStore((s) => s.nodes.length === 0 && s.edges.length === 0);
   const clearBoard = useCanvasStore((s) => s.clearBoard);
   const snapshotForUndo = useCanvasStore((s) => s.snapshotForUndo);
@@ -39,9 +47,22 @@ export function BoardMenu({ saveId }: BoardMenuProps) {
     db.saves.get(saveId).then((save) => setHasSave(!!save));
   }, [open, saveId]);
 
+  // Reset during render (same pattern as ComponentPicker.tsx's wasOpen check)
+  // rather than an effect - a closed-then-reopened dropdown should show the
+  // plain "Clear board" label on the very same render, not one render later.
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) setConfirmingClear(false);
+  }
+
   const handleClear = () => {
     if (isEmpty) return;
+    if (!confirmingClear) {
+      setConfirmingClear(true);
+      return;
+    }
     clearBoard();
+    setConfirmingClear(false);
     setOpen(false);
   };
 
@@ -80,7 +101,7 @@ export function BoardMenu({ saveId }: BoardMenuProps) {
               className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-state-error hover:bg-border disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
             >
               <Trash2 size={14} />
-              Clear board
+              {confirmingClear ? "Click again to confirm" : "Clear board"}
             </button>
             <button
               onClick={handleRestore}

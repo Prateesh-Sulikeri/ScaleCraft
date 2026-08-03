@@ -290,9 +290,23 @@ For users visiting the Sandbox for the first time:
 - Persist "onboarding seen" flag per user in IndexedDB so it doesn't repeat.
 
 ### Keyboard Shortcuts
-Make them discoverable without reading docs:
-- Publish a keyboard legend accessible via `Shift+?` or from the toolbar (e.g., a `Help` menu with "Keyboard Shortcuts" as one option).
-- Legend should show: Ctrl+Z (Undo), Ctrl+Shift+Z or Ctrl+Y (Redo), Ctrl+S (Save), Ctrl+/ (Help).
+Implemented as `ShortcutsModal.tsx` — a centered modal (the same `CenteredModal`
+shell as About/Release notes), not a floating panel, opened via the header's
+Keyboard Shortcuts button or the `Shift+/` ("?") shortcut from anywhere
+(`use-canvas-shortcuts.ts`):
+- Shortcuts are grouped into sections by use case (Canvas navigation, Editing,
+  Components & documentation, File, General), not a single flat list.
+- A search box filters by section title or by an individual shortcut's
+  label/key combo, so either "editing" or "undo" narrows the list. It has its
+  own clear (X) button, and resets automatically whenever the modal closes
+  (backdrop click, the X, or Escape) so reopening always starts at the full
+  list, not the last search.
+- `Escape` closes the modal - checked ahead of the focus-mode-exit Escape in
+  `use-canvas-shortcuts.ts`, so one Escape closes just the modal even when
+  focus mode is also active underneath it.
+- `Ctrl/Cmd+/` opens documentation for the selected component (`openDocTab`),
+  alongside bare `/` (add component) and `Shift+/` (open this modal) as the
+  "/" family of discovery shortcuts.
 - Consider a command palette (Ctrl+K or Cmd+K) for future power-user features (search components, run validation, export).
 
 ---

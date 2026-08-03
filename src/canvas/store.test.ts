@@ -551,6 +551,18 @@ describe("docs panel", () => {
     expect(store.getState().docsPanel.focusMode).toBe(false);
   });
 
+  it("openShortcutsModal/closeShortcutsModal/toggleShortcutsModal drive shortcutsModalOpen", () => {
+    expect(store.getState().shortcutsModalOpen).toBe(false);
+    store.getState().openShortcutsModal();
+    expect(store.getState().shortcutsModalOpen).toBe(true);
+    store.getState().closeShortcutsModal();
+    expect(store.getState().shortcutsModalOpen).toBe(false);
+    store.getState().toggleShortcutsModal();
+    expect(store.getState().shortcutsModalOpen).toBe(true);
+    store.getState().toggleShortcutsModal();
+    expect(store.getState().shortcutsModalOpen).toBe(false);
+  });
+
   it("setDocsPanelWidth stores the committed width", () => {
     store.getState().setDocsPanelWidth(500);
     expect(store.getState().docsPanel.width).toBe(500);

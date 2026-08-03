@@ -257,6 +257,14 @@ type CanvasStore = {
   componentPicker: boolean;
   openComponentPicker: () => void;
   closeComponentPicker: () => void;
+  /** Drives ShortcutsModal.tsx (see AppHeader.tsx's ShortcutsButton) — a
+   * plain boolean in the store, mirroring componentPicker above, since the
+   * global Shift+/ handler lives in use-canvas-shortcuts.ts and needs to
+   * reach it without prop-drilling a callback through AppHeader. */
+  shortcutsModalOpen: boolean;
+  openShortcutsModal: () => void;
+  closeShortcutsModal: () => void;
+  toggleShortcutsModal: () => void;
   /** Armed by picking a component from ComponentPicker.tsx — the component
    * then "follows" a click-to-place gesture (crosshair cursor, see
    * Canvas.tsx) instead of landing at a guessed position immediately, so
@@ -413,6 +421,7 @@ export function createCanvasStore(): StoreApi<CanvasStore> {
   editingAnnotation: null,
   configPopover: null,
   componentPicker: false,
+  shortcutsModalOpen: false,
   pendingComponentPlacement: null,
   availableComponentIds: null,
   pendingUndo: null,
@@ -608,6 +617,10 @@ export function createCanvasStore(): StoreApi<CanvasStore> {
 
   openComponentPicker: () => set({ componentPicker: true }),
   closeComponentPicker: () => set({ componentPicker: false }),
+
+  openShortcutsModal: () => set({ shortcutsModalOpen: true }),
+  closeShortcutsModal: () => set({ shortcutsModalOpen: false }),
+  toggleShortcutsModal: () => set((state) => ({ shortcutsModalOpen: !state.shortcutsModalOpen })),
 
   setPendingComponentPlacement: (definition) => set({ pendingComponentPlacement: definition }),
 
