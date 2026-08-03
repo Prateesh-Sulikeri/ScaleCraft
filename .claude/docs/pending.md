@@ -69,23 +69,61 @@ separate textbook project).
 
 ## Phase 2. Content access layer
 
+**Status: done.** All four items below landed across three branches instead
+of four - the plan's ordering turned out to not quite match how the work
+actually decomposed once each branch got underway. Recorded here so a future
+read of this doc understands why the branch list doesn't 1:1 match the item
+list above it.
+
 - Migrate `getLessonMarkdown`'s `fs.readFileSync` to a client-side `fetch()`
   against `public/content/chapters/`, matching the pattern `docsFile` already
   uses for components. Branch: `feature/markdown-fetch-migration`. Medium.
+  **Done.** Landed as `useMarkdownFile` (`src/lib/use-markdown-file.ts`), a
+  shared fetch+cache hook - `DocsTabContent` was refactored onto it too, so
+  component docs and chapter lessons stop duplicating the fetch logic.
 - Markdown cache: in-memory cache keyed by content path (+ version, see
   below), so repeat visits to the same chapter/component doc don't re-fetch.
   Branch: `feature/markdown-cache`. Small-medium.
+  **Done, no separate branch.** The path-keyed cache is `useMarkdownFile`'s
+  `markdownFileCache` Map, delivered as part of markdown-fetch-migration
+  above (there was no cache left to add separately by the time that branch
+  landed). The version half of this item waited for content-versioning,
+  next.
 - Version metadata per `.md`: a field in each manifest entry (not frontmatter
   parsing) marking content version, used to invalidate the cache above when
   authored content changes. Branch: `feature/content-versioning`. Small.
+  **Done.** Added `ComponentDefinition.docsVersion` and
+  `ChapterDefinition.lessonVersion`; `useMarkdownFile` now keys its cache on
+  path+version and refetches on a version bump. This branch also absorbed
+  the version-aware half of the markdown-cache item above.
 - `ContentService` as the one API surface - `getChapter(id)`, `getComponent(id)`,
   `search()` - wrapping manifest lookup + fetch + cache. Nothing in the UI
   calls `fetch()` on content paths directly after this lands. Branch:
   `feature/content-service`. Medium. Depends on manifests + cache above.
+  **Done.** `src/content/content-service.ts` - `getChapter`, `getComponent`,
+  `useChapterLesson`, `useComponentDocs`, `search`. `DocsTabContent` and
+  `ChapterReader` both go through it now. `search()` has no UI consumer yet
+  (plain case-insensitive substring match over chapter/component metadata) -
+  built ahead of a search feature, same as the empty `examples/`/`glossary/`
+  dirs from Phase 1.
 - Content types: same loader through `ContentService`, renderer chosen by
   content type (chapter/component/example/glossary all resolve through one
   path, `MarkdownRenderer` stays the shared renderer). Branch:
   `feature/content-type-renderers`. Medium.
+  **Done, no separate branch, scope reduced.** Chapter and component content
+  already resolve through one path (`content-service.ts`) and one renderer
+  (`MarkdownRenderer`) as of the ContentService branch above - there was no
+  remaining code change to make for those two types. `example` and
+  `glossary` are explicitly **not** implemented: neither has ever had a type,
+  a manifest, or a UI consumer, and nothing in `ARCHITECTURE.md` or
+  `INITIAL_THOUGHTS.md` specifies what an "example" or "glossary entry"
+  actually contains beyond the empty `public/content/examples/` and
+  `public/content/glossary/` directories from Phase 1. Building a
+  loader/renderer for either now would mean inventing a content model from
+  nothing. **Trigger to revisit:** once there's an actual product decision on
+  what examples/glossary content looks like (fields, whether they're single
+  pages or a browsable index, etc.) - add that spec to `ARCHITECTURE.md`
+  first, then this item can be reopened as a real branch.
 
 ## Phase 3. Engine package extraction
 
