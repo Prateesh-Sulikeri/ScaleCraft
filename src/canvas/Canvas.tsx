@@ -93,7 +93,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   { nodeStates, onCanvasPaneClick },
   ref,
 ) {
-  const { screenToFlowPosition, getNodes, fitView, getViewport, setViewport } = useReactFlow();
+  const { screenToFlowPosition, getNodes, fitView, zoomIn, zoomOut, zoomTo } = useReactFlow();
 
   useImperativeHandle(ref, () => ({
     exportImage: async ({ format, backgroundColor }) => {
@@ -232,23 +232,28 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       const mod = event.ctrlKey || event.metaKey;
 
       // Zoom shortcuts: Ctrl++ (zoom in), Ctrl+- (zoom out), Ctrl+0 (reset to 100%), Shift+1 (fit all), Shift+2 (fit selection)
+      //
+      // zoomIn/zoomOut/zoomTo (not a hand-rolled setViewport({x, y, zoom})) —
+      // those call panZoom.scaleBy/scaleTo under the hood, which anchor the
+      // zoom on the *center of the pane*, not flow-space (0,0). A manual
+      // setViewport that keeps x/y fixed while only changing zoom instead
+      // zooms toward the flow origin — usually off in a corner of whatever
+      // the user is looking at, not the center of their current view. These
+      // helpers also respect the minZoom/maxZoom props on <ReactFlow> below,
+      // so the clamp lives in one place instead of being duplicated here.
       if (mod && (event.key === "+" || event.key === "=")) {
         event.preventDefault();
-        const viewport = getViewport();
-        const newZoom = Math.min(4, viewport.zoom * 1.2);
-        setViewport({ x: viewport.x, y: viewport.y, zoom: newZoom }, { duration: 200 });
+        zoomIn({ duration: 200 });
         return;
       }
       if (mod && event.key === "-") {
         event.preventDefault();
-        const viewport = getViewport();
-        const newZoom = Math.max(0.25, viewport.zoom * 0.833); // 1/1.2 for consistency
-        setViewport({ x: viewport.x, y: viewport.y, zoom: newZoom }, { duration: 200 });
+        zoomOut({ duration: 200 });
         return;
       }
       if (mod && event.key === "0") {
         event.preventDefault();
-        setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 300 });
+        zoomTo(1, { duration: 300 });
         return;
       }
       if (event.shiftKey && event.code === "Digit1") { // Shift+1
@@ -281,7 +286,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       }
       if (highlight) clearHighlight();
     },
-    [getViewport, setViewport, fitView, getNodes, componentPicker, pendingComponentPlacement, setPendingComponentPlacement, placementMode, setPlacementMode, highlight, clearHighlight],
+    [zoomIn, zoomOut, zoomTo, fitView, getNodes, componentPicker, pendingComponentPlacement, setPendingComponentPlacement, placementMode, setPlacementMode, highlight, clearHighlight],
   );
 
   useEffect(() => {
@@ -325,35 +330,6 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       window.removeEventListener("blur", onBlur);
     };
   }, []);
-
-  // Trackpad gesture handling: pinch to zoom, two-finger drag to pan.
-  // Ctrl+wheel = pinch zoom (trackpad), handled here.
-  // Regular wheel = pan vertically (handled by ReactFlow default).
-  // Shift+wheel = pan horizontally (handled by ReactFlow default).
-  // Two-finger drag = pan (handled by ReactFlow pointer events).
-  const handleWheel = useCallback(
-    (event: WheelEvent) => {
-      const isTrackpadPinch = event.ctrlKey;
-      if (isTrackpadPinch) {
-        event.preventDefault();
-        const viewport = getViewport();
-        // Zoom in when scrolling up (negative deltaY), out when scrolling down
-        const zoomDelta = event.deltaY > 0 ? 0.833 : 1.2; // zoom out / zoom in
-        const newZoom = Math.max(0.25, Math.min(4, viewport.zoom * zoomDelta));
-        setViewport({ x: viewport.x, y: viewport.y, zoom: newZoom }, { duration: 100 });
-      }
-      // Other wheel events (vertical/horizontal scroll) are handled by ReactFlow default
-    },
-    [getViewport, setViewport],
-  );
-
-  useEffect(() => {
-    const el = wrapperRef.current;
-    if (!el) return;
-    // Add wheel listener at capture phase to intercept before ReactFlow
-    el.addEventListener("wheel", handleWheel, { passive: false, capture: false });
-    return () => el.removeEventListener("wheel", handleWheel);
-  }, [handleWheel]);
 
   // Annotations don't just spawn in — clicking a palette "Add …" button arms
   // placement mode (crosshair cursor, see the overlay in the render below)
@@ -727,6 +703,23 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         elevateNodesOnSelect={false}
         proOptions={{ hideAttribution: true }}
         minZoom={0.25}
+        maxZoom={4}
+        // Plain wheel pans — panOnScrollMode defaults to "free", which pans
+        // both axes off whatever deltaX/deltaY the wheel event carries, so
+        // Shift+wheel already pans horizontally with no extra config (xyflow's
+        // own handler converts deltaY into deltaX under Shift on non-Mac;
+        // Mac trackpads/mice already deliver Shift+wheel as a native deltaX).
+        // Holding the zoomActivationKeyCode below during a wheel/pinch
+        // switches from panning to xyflow's native, cursor-centered
+        // scroll-to-zoom instead — this also covers trackpad pinch for free,
+        // since browsers deliver a pinch gesture as a wheel event with
+        // ctrlKey:true, which xyflow's pan-on-scroll handler already
+        // special-cases as zoom regardless of this activation key. Without
+        // panOnScroll, xyflow's default (zoomOnScroll, no Ctrl required) has
+        // *every* wheel tick zoom the canvas — the opposite of the spec'd
+        // "wheel scrolls, Ctrl+wheel zooms" (see pending.md).
+        panOnScroll
+        zoomActivationKeyCode="Control"
         fitView
         fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
       >
