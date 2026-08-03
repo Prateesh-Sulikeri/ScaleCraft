@@ -227,8 +227,8 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   // ContextMenu.tsx's "Highlight Connections" item). Always attached (not
   // gated on placementMode being truthy, unlike before) so Escape can clear
   // the highlight on its own.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
       const mod = event.ctrlKey || event.metaKey;
 
       // Zoom shortcuts: Ctrl++ (zoom in), Ctrl+- (zoom out), Ctrl+0 (reset to 100%), Shift+1 (fit all), Shift+2 (fit selection)
@@ -280,18 +280,14 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         return;
       }
       if (highlight) clearHighlight();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [
-    placementMode,
-    setPlacementMode,
-    highlight,
-    clearHighlight,
-    componentPicker,
-    pendingComponentPlacement,
-    setPendingComponentPlacement,
-  ]);
+    },
+    [getViewport, setViewport, fitView, getNodes, componentPicker, pendingComponentPlacement, setPendingComponentPlacement, placementMode, setPlacementMode, highlight, clearHighlight],
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   // xyflow's hold-Space-to-pan (`panActivationKeyCode`, on by default) only
   // takes over a drag that starts on the blank pane — it has no awareness of
