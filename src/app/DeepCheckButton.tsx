@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react";
 import { Tooltip } from "@/app/Tooltip";
 import { useCanvasStore } from "@/canvas/store";
 import { getActiveProfile, isProfileUsable, type AiProfile } from "@/ai/profiles";
-import { runDeepCheck } from "@/ai/run-deep-check";
+import { runDeepCheck } from "@/engines";
 import { saveSession } from "@/persistence/deepCheckSessions";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { DeepCheckPanel, type DeepCheckPanelState, type DeepCheckView } from "./DeepCheckPanel";

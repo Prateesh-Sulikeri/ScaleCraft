@@ -21,9 +21,7 @@ import {
 import { useCustomComponentsStore } from "@/canvas/custom-components-store";
 import type { ValidationState } from "@/canvas/types";
 import type { ArchitectureGraph } from "@/lib/graph";
-import { runValidation } from "@/validation-engine/engine";
-import { ruleRegistry } from "@/validation-engine/rules";
-import type { ValidationViolation } from "@/validation-engine/types";
+import { runValidation, ruleRegistry, type ValidationViolation } from "@/engines";
 import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";

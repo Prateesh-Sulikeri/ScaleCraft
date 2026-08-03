@@ -21,7 +21,7 @@ import {
 import type { ValidationState } from "@/canvas/types";
 import { chapterRegistry } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import { evaluateChapter, type ChapterOutcome } from "@/validation-engine/chapter-outcome";
+import { evaluateChapter, type ChapterOutcome } from "@/engines";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";

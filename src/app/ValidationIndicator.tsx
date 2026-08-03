@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Tooltip } from "@/app/Tooltip";
-import type { Severity, ValidationViolation } from "@/validation-engine/types";
+import type { Severity, ValidationViolation } from "@/engines";
 
 type ValidationIndicatorProps = {
   violations: ValidationViolation[] | null;

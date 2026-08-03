@@ -3,11 +3,9 @@
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Lock } from "lucide-react";
-import { providers } from "@/ai/providers";
-import { testConnection } from "@/ai/run-deep-check";
+import { providers, testConnection, type AiProviderId } from "@/engines";
 import type { AiSettings } from "@/ai/settings";
 import type { AiProfileDraft } from "@/ai/profiles";
-import type { AiProviderId } from "@/ai/providers";
 
 const CUSTOM_MODEL_OPTION = "__custom__";
 

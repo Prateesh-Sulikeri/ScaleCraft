@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, Loader2, Pencil, Plus, Trash2, Undo2 } from "lucide-react";
-import { providers } from "@/ai/providers";
+import { providers } from "@/engines";
 import {
   listProfiles,
   createProfile,
