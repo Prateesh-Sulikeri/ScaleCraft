@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import { PageEnter } from "@/app/PageEnter";
 import { ThemeToggle } from "@/app/ThemeToggle";
@@ -12,10 +12,8 @@ import { QuizLauncher } from "./quiz/QuizLauncher";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
 import { getCourse, findEntry } from "@/curriculum";
-import { chapterRegistry } from "@/content/chapters";
-import { getLessonFileUrl } from "@/content/chapters/lessons";
+import { getChapter, useChapterLesson } from "@/content/content-service";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import { useMarkdownFile } from "@/lib/use-markdown-file";
 import { appendKnowledgeCheckHeading, extractHeadings } from "./extract-headings";
 
 type ChapterReaderProps = {
@@ -40,21 +38,16 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   // Guaranteed non-null by the route guard in practice — kept as a real
   // lookup so a stale/bad slug degrades to the defensive null return below.
   const entry = findEntry(mode, chapterSlug);
-  const chapter = entry?.chapterDefinitionId
-    ? (chapterRegistry.find((c) => c.id === entry.chapterDefinitionId) ?? null)
-    : null;
+  const chapter = entry?.chapterDefinitionId ? (getChapter(entry.chapterDefinitionId) ?? null) : null;
 
   const articleRef = useRef<HTMLDivElement>(null);
 
   // Falls back to the chapter's problemStatement while the fetch is in
   // flight and if it 404s - same fallback convention as
-  // DocsTabContent/useMarkdownFile for component docsFile.
-  const lessonMarkdown = useMarkdownFile(
-    chapter ? getLessonFileUrl(chapter.id) : undefined,
-    chapter?.lessonVersion,
-  );
+  // DocsTabContent/useComponentDocs for component docsFile.
+  const lessonMarkdown = useChapterLesson(chapter?.id);
   const markdown = lessonMarkdown ?? chapter?.problemStatement ?? "";
-  const headings = useMemo(() => extractHeadings(markdown), [markdown]);
+  const headings = extractHeadings(markdown);
 
   if (!chapter || !entry) return null;
 

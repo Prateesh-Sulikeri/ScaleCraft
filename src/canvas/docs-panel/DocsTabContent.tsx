@@ -2,8 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { useCanvasStore } from "../store";
-import { getComponent } from "@/content/components/registry";
-import { useMarkdownFile } from "@/lib/use-markdown-file";
+import { getComponent, useComponentDocs } from "@/content/content-service";
 import { MarkdownRenderer } from "./markdown/MarkdownRenderer";
 
 /**
@@ -39,7 +38,7 @@ export function DocsTabContent({ componentId }: { componentId: string }) {
   };
 
   const definition = getComponent(componentId);
-  const fileContent = useMarkdownFile(definition?.docsFile, definition?.docsVersion);
+  const fileContent = useComponentDocs(componentId);
 
   return (
     <div ref={containerRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto p-4">
