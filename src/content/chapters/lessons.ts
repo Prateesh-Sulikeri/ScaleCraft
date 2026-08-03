@@ -1,22 +1,14 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
-const LESSONS_DIR = join(process.cwd(), "public/content/chapters");
+const LESSONS_DIR = "/content/chapters";
 
 /**
- * Reads a chapter's Chapter Reader body straight off disk, keyed by
- * ChapterDefinition.id (not the curriculum slug). fs-based, so this only
- * works in a Server Component or route handler — never import it into a
- * "use client" file. Returns null rather than throwing when a
- * ChapterDefinition has no authored lesson file yet. Lesson files should not
- * open with their own top-level `#` heading - ChapterReader already renders
+ * Builds a chapter's Chapter Reader body URL, keyed by ChapterDefinition.id
+ * (not the curriculum slug) - fetched client-side by ChapterReader via
+ * useMarkdownFile, the same public/ static-asset pattern
+ * ComponentDefinition.docsFile uses. Lesson files should not open with their
+ * own top-level `#` heading - ChapterReader already renders
  * ChapterDefinition.title as the page's h1, so a second one would duplicate
  * it. Start the file at the intro paragraph or a `##` section instead.
  */
-export function getLessonMarkdown(chapterId: string): string | null {
-  try {
-    return readFileSync(join(LESSONS_DIR, `${chapterId}.md`), "utf-8");
-  } catch {
-    return null;
-  }
+export function getLessonFileUrl(chapterId: string): string {
+  return `${LESSONS_DIR}/${chapterId}.md`;
 }
