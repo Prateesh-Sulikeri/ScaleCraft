@@ -14,6 +14,14 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "3.2.0-alpha",
+    date: "2026-08-03",
+    highlights: [
+      "Faster page loads across the app: lesson pages now load up to 60% less code up front, and Sandbox, Building Blocks, and Real World Extraction routes are 40-41% lighter, by deferring the quiz, markdown-rendering, and Deep Check code until you actually open them.",
+      "Chapter lessons and component docs now load on demand instead of shipping in every page's bundle.",
+    ],
+  },
+  {
     version: "3.1.0-alpha",
     date: "2026-08-02",
     highlights: [
