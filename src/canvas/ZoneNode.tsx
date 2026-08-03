@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Lock, Pencil, Unlock } from "lucide-react";
 import { NodeResizer, type NodeProps } from "@xyflow/react";
 import { useCanvasStore } from "./store";
@@ -21,7 +22,7 @@ import type { ZoneNodeType } from "./types";
  * as "part of the same system" as the animated edges, permanently, not a
  * one-off creation flourish.
  */
-export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
+function ZoneNodeInner({ id, data, selected }: NodeProps<ZoneNodeType>) {
   const updateZone = useCanvasStore((s) => s.updateZone);
   const resizeNode = useCanvasStore((s) => s.resizeNode);
   const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
@@ -144,3 +145,5 @@ export function ZoneNode({ id, data, selected }: NodeProps<ZoneNodeType>) {
     </div>
   );
 }
+
+export const ZoneNode = memo(ZoneNodeInner);

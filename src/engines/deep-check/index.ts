@@ -7,6 +7,10 @@ export { deepCheckEngine } from "./engine";
 // in ../validation/index.ts.
 export { runDeepCheck, testConnection, type DeepCheckResult, type TestConnectionResult } from "@/ai/run-deep-check";
 
-export { providers, getProvider } from "@/ai/providers";
-export type { AiProvider, AiProviderId, AiCompleteRequest, AiProviderErrorKind } from "@/ai/providers";
-export { AiProviderError } from "@/ai/providers";
+// Re-export provider metadata (id/label/defaultModel/suggestedModels) only,
+// without the SDK implementations. This lets UI code (settings, profiles,
+// help panels) show available providers and their models without pulling in
+// the actual AI SDK packages (which are only needed by runDeepCheck itself).
+// Metadata is in a separate file that doesn't import the provider SDKs.
+export { providersMetadata } from "@/ai/providers/metadata";
+export type { AiProviderId } from "@/ai/providers";

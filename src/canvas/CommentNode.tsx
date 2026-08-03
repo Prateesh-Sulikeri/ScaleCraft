@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Lock, Pencil, Unlock } from "lucide-react";
 import { NodeResizer, type NodeProps } from "@xyflow/react";
 import { useCanvasStore } from "./store";
@@ -21,7 +22,7 @@ import type { CommentNodeType } from "./types";
  * so it doesn't imply "this is a Networking component" the way reusing that
  * channel's color would).
  */
-export function CommentNode({ id, data, selected }: NodeProps<CommentNodeType>) {
+function CommentNodeInner({ id, data, selected }: NodeProps<CommentNodeType>) {
   const updateComment = useCanvasStore((s) => s.updateComment);
   const resizeNode = useCanvasStore((s) => s.resizeNode);
   const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
@@ -112,3 +113,5 @@ export function CommentNode({ id, data, selected }: NodeProps<CommentNodeType>) 
     </div>
   );
 }
+
+export const CommentNode = memo(CommentNodeInner);
