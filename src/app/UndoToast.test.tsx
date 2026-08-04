@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import { CanvasStoreProvider, useCanvasStoreApi } from "@/canvas/store";
 import { UndoToast } from "./UndoToast";
@@ -71,6 +71,18 @@ describe("UndoToast", () => {
 
     expect(api.getState().pendingUndo).toBeNull();
     expect(screen.queryByText("Deleted node")).not.toBeInTheDocument();
+  });
+
+  it("transitions from entering to visible after its mount rAF fires", async () => {
+    const api = renderUndoToast();
+    setPendingUndo(api, "Deleted node");
+
+    const toast = () => screen.getByText("Deleted node").closest("div")!;
+    // Right after mount, still in its pre-transition (opacity-0) state.
+    expect(toast().className).toContain("opacity-0");
+
+    await waitFor(() => expect(toast().className).toContain("opacity-100"));
+    expect(toast().className).not.toContain("opacity-0");
   });
 
   it("auto-dismisses after the timeout elapses", () => {

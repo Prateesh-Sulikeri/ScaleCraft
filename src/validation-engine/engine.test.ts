@@ -97,6 +97,56 @@ describe("runValidation", () => {
     ]);
   });
 
+  it("resolves a direct edge id when the pattern edge constrains a single kind", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("lb-1", "load-balancer"), node("app-1", "app-server")],
+      edges: [edge("e1", "lb-1", "app-1", "control")],
+      entryPointIds: [],
+    };
+    const patternRule: ValidationRule = {
+      kind: "pattern",
+      id: "single-kind",
+      severity: "warning",
+      forbid: {
+        nodes: [
+          { alias: "lb", componentId: "load-balancer" },
+          { alias: "app", componentId: "app-server" },
+        ],
+        edges: [{ from: "lb", to: "app", kind: "control" }],
+      },
+      message: "m",
+      explanation: "e",
+    };
+
+    const [violation] = runValidation(graph, [patternRule]);
+    expect(violation.offendingEdgeIds).toEqual(["e1"]);
+  });
+
+  it("resolves a direct edge id when the pattern edge constrains an array of kinds", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("lb-1", "load-balancer"), node("app-1", "app-server")],
+      edges: [edge("e1", "lb-1", "app-1", "async")],
+      entryPointIds: [],
+    };
+    const patternRule: ValidationRule = {
+      kind: "pattern",
+      id: "multi-kind",
+      severity: "warning",
+      forbid: {
+        nodes: [
+          { alias: "lb", componentId: "load-balancer" },
+          { alias: "app", componentId: "app-server" },
+        ],
+        edges: [{ from: "lb", to: "app", kind: ["control", "async"] }],
+      },
+      message: "m",
+      explanation: "e",
+    };
+
+    const [violation] = runValidation(graph, [patternRule]);
+    expect(violation.offendingEdgeIds).toEqual(["e1"]);
+  });
+
   it("mixes an ImperativeRule and a PatternRule in one call into the same violation shape", () => {
     const graph: ArchitectureGraph = {
       nodes: [node("lb-1", "load-balancer"), node("app-1", "app-server")],

@@ -3,122 +3,10 @@ import { render, screen } from "@testing-library/react";
 import { ChapterReader } from "./ChapterReader";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { CurriculumChapter, Course } from "@/curriculum/types";
-import type { ExtractedHeading } from "./extract-headings";
 
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
-});
-
-function makeChapter(overrides: Partial<ChapterDefinition> = {}): ChapterDefinition {
-  return {
-    id: "ch-1",
-    mode: "building-blocks",
-    title: "Test Chapter",
-    problemStatement: "Problem",
-    learningObjectives: [],
-    availableComponentIds: [],
-    requiredComponentIds: [],
-    validationRuleIds: [],
-    blueprints: [],
-    hints: [],
-    readingLinks: [],
-    ...overrides,
-  };
-}
-
-function makeEntry(overrides: Partial<CurriculumChapter> = {}): CurriculumChapter {
-  return {
-    slug: "test-chapter",
-    number: "1.1",
-    title: "Test Chapter",
-    kind: "chapter",
-    chapterDefinitionId: "ch-1",
-    estimatedMinutes: 10,
-    difficulty: "foundational",
-    prerequisiteSlugs: [],
-    domain: null,
-    ...overrides,
-  };
-}
-
-describe("ChapterReader - Component Integration", () => {
-  const testEntry = makeEntry();
-  const testChapter = makeChapter({ id: "ch-1", title: "Test Chapter" });
-
-  it("requires chapter definition and curriculum entry to render", () => {
-    expect(testChapter.id).toBe("ch-1");
-    expect(testEntry.chapterDefinitionId).toBe("ch-1");
-  });
-
-  it("handles chapters with difficulty levels", () => {
-    const foundational = makeEntry({ difficulty: "foundational" });
-    const intermediate = makeEntry({ difficulty: "intermediate", slug: "ch-2" });
-    const advanced = makeEntry({ difficulty: "advanced", slug: "ch-3" });
-
-    expect(foundational.difficulty).toBe("foundational");
-    expect(intermediate.difficulty).toBe("intermediate");
-    expect(advanced.difficulty).toBe("advanced");
-  });
-
-  it("stores chapter metadata correctly", () => {
-    const ch = makeChapter({
-      title: "My Chapter",
-      problemStatement: "Solve this",
-      learningObjectives: ["Learn A", "Learn B"],
-    });
-
-    expect(ch.title).toBe("My Chapter");
-    expect(ch.problemStatement).toBe("Solve this");
-    expect(ch.learningObjectives).toContain("Learn A");
-  });
-
-  it("tracks estimated minutes for learning path", () => {
-    const quickChapter = makeEntry({ estimatedMinutes: 5 });
-    const longChapter = makeEntry({ estimatedMinutes: 45, slug: "long" });
-
-    expect(quickChapter.estimatedMinutes).toBe(5);
-    expect(longChapter.estimatedMinutes).toBe(45);
-  });
-
-  it("handles placeholder/draft chapters", () => {
-    const draftChapter = makeChapter({ placeholder: true });
-    expect(draftChapter.placeholder).toBe(true);
-  });
-
-  it("preserves chapter number in entry metadata", () => {
-    const ch = makeEntry({ number: "2.3" });
-    expect(ch.number).toBe("2.3");
-  });
-
-  it("stores entry kind correctly", () => {
-    const ch = makeEntry({ kind: "chapter" });
-    expect(ch.kind).toBe("chapter");
-  });
-
-  it("returns null when chapter definition is missing", () => {
-    const entry = makeEntry({ chapterDefinitionId: null });
-    expect(entry.chapterDefinitionId).toBeNull();
-  });
-
-  it("validates heading extraction compatibility", () => {
-    const headings: ExtractedHeading[] = [
-      { id: "overview", text: "Overview", level: 2 },
-      { id: "details", text: "Details", level: 3 },
-    ];
-
-    expect(headings).toHaveLength(2);
-    expect(headings[0].level).toBe(2);
-    expect(headings[1].level).toBe(3);
-  });
-
-  it("supports multiple course modes", () => {
-    const bb = makeChapter({ mode: "building-blocks" });
-    const rwe = makeChapter({ mode: "real-world-extraction", id: "rwe-ch" });
-
-    expect(bb.mode).toBe("building-blocks");
-    expect(rwe.mode).toBe("real-world-extraction");
-  });
 });
 
 vi.mock("./ReaderSidebar", () => ({ ReaderSidebar: () => null }));
@@ -131,7 +19,7 @@ vi.mock("@/canvas/docs-panel/markdown/MarkdownRenderer", () => ({
   MarkdownRenderer: ({ content }: { content: string }) => <div>{content}</div>,
 }));
 
-const { mainChapter, entriesBySlug, targetEntry } = vi.hoisted(() => {
+const { mainChapter, placeholderChapter, freshMarkdownChapter, entriesBySlug, targetEntry } = vi.hoisted(() => {
   const targetEntry = {
     slug: "target",
     number: "2.3",
@@ -165,31 +53,64 @@ const { mainChapter, entriesBySlug, targetEntry } = vi.hoisted(() => {
     prerequisiteSlugs: [] as string[],
     domain: null as string | null,
   };
+  const baseChapter = {
+    mode: "real-world-extraction" as const,
+    title: "Target Chapter",
+    problemStatement: "Problem",
+    learningObjectives: [] as string[],
+    availableComponentIds: [] as string[],
+    requiredComponentIds: [] as string[],
+    validationRuleIds: [] as string[],
+    blueprints: [] as ChapterDefinition["blueprints"],
+    hints: [] as ChapterDefinition["hints"],
+    readingLinks: [] as ChapterDefinition["readingLinks"],
+  };
+  const mainChapter = { ...baseChapter, id: "ch-target" };
+  const placeholderChapter = { ...baseChapter, id: "ch-placeholder", title: "Draft Chapter", placeholder: true };
+  const freshMarkdownChapter = { ...baseChapter, id: "ch-fresh-markdown", title: "Fresh Markdown Chapter" };
+
+  const placeholderEntry: CurriculumChapter = {
+    ...targetEntry,
+    slug: "placeholder-slug",
+    chapterDefinitionId: "ch-placeholder",
+  };
+  const orphanedDefinitionEntry: CurriculumChapter = {
+    ...targetEntry,
+    slug: "orphaned-definition-slug",
+    chapterDefinitionId: "no-such-chapter-in-registry",
+  };
+  const noNumberEntry: CurriculumChapter = { ...targetEntry, slug: "no-number-slug", number: null };
+  const missingPrereqEntry: CurriculumChapter = {
+    ...targetEntry,
+    slug: "missing-prereq-slug",
+    prerequisiteSlugs: ["truly-missing-slug"],
+  };
+  const freshMarkdownEntry: CurriculumChapter = {
+    ...targetEntry,
+    slug: "fresh-markdown-slug",
+    chapterDefinitionId: "ch-fresh-markdown",
+  };
+
   return {
-    mainChapter: {
-      id: "ch-target",
-      mode: "real-world-extraction" as const,
-      title: "Target Chapter",
-      problemStatement: "Problem",
-      learningObjectives: [] as string[],
-      availableComponentIds: [] as string[],
-      requiredComponentIds: [] as string[],
-      validationRuleIds: [] as string[],
-      blueprints: [] as ChapterDefinition["blueprints"],
-      hints: [] as ChapterDefinition["hints"],
-      readingLinks: [] as ChapterDefinition["readingLinks"],
-    },
+    mainChapter,
+    placeholderChapter,
+    freshMarkdownChapter,
     targetEntry,
     entriesBySlug: {
       target: targetEntry,
       "prereq-authored": authoredPrereq,
       "prereq-unauthored": unauthoredPrereq,
+      "placeholder-slug": placeholderEntry,
+      "orphaned-definition-slug": orphanedDefinitionEntry,
+      "no-number-slug": noNumberEntry,
+      "missing-prereq-slug": missingPrereqEntry,
+      "fresh-markdown-slug": freshMarkdownEntry,
     } as Record<string, CurriculumChapter>,
   };
 });
 
 vi.mock("@/content/chapters", () => ({
-  chapterRegistry: [mainChapter],
+  chapterRegistry: [mainChapter, placeholderChapter, freshMarkdownChapter],
 }));
 
 vi.mock("@/curriculum", () => ({
@@ -236,5 +157,56 @@ describe("ChapterReader - prerequisite and domain tags", () => {
     entriesBySlug.bare = bareEntry;
     render(<ChapterReader mode="real-world-extraction" chapterSlug="bare" />);
     expect(screen.queryByText(/prerequisites/i)).not.toBeInTheDocument();
+  });
+
+  it("renders nothing for an unknown chapter slug", () => {
+    stubFetchNotFound();
+    const { container } = render(<ChapterReader mode="real-world-extraction" chapterSlug="no-such-slug" />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders nothing for a curriculum entry with no authored chapter yet", () => {
+    stubFetchNotFound();
+    entriesBySlug["unauthored-slug"] = { ...targetEntry, slug: "unauthored-slug", chapterDefinitionId: null };
+    const { container } = render(<ChapterReader mode="real-world-extraction" chapterSlug="unauthored-slug" />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders nothing when the entry's chapterDefinitionId has no registry match", () => {
+    stubFetchNotFound();
+    const { container } = render(
+      <ChapterReader mode="real-world-extraction" chapterSlug="orphaned-definition-slug" />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("omits the number prefix for an entry with no number", () => {
+    stubFetchNotFound();
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="no-number-slug" />);
+    expect(screen.getByText("Real World Extraction")).toBeInTheDocument();
+    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
+  });
+
+  it("shows a Draft badge for a placeholder chapter", () => {
+    stubFetchNotFound();
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="placeholder-slug" />);
+    expect(screen.getByText("Draft")).toBeInTheDocument();
+  });
+
+  it("skips an unresolvable prerequisite slug without crashing", () => {
+    stubFetchNotFound();
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="missing-prereq-slug" />);
+    expect(screen.getByText("Prerequisites")).toBeInTheDocument();
+    expect(screen.queryByText(/truly-missing-slug/)).not.toBeInTheDocument();
+  });
+
+  it("renders fetched lesson markdown instead of falling back to the problem statement", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve("Fresh fetched lesson body") }),
+    );
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="fresh-markdown-slug" />);
+    expect(await screen.findByText("Fresh fetched lesson body")).toBeInTheDocument();
+    expect(screen.queryByText("Problem")).not.toBeInTheDocument();
   });
 });
