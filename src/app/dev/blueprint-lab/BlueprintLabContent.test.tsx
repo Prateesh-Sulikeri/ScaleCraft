@@ -151,7 +151,6 @@ describe("BlueprintLabContent", () => {
   it("a JSON.parse throw that isn't an Error instance still surfaces a fallback message", () => {
     renderWithCanvasStore(<BlueprintLabContent />);
     const parseSpy = vi.spyOn(JSON, "parse").mockImplementation(() => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw "not an Error instance";
     });
 
