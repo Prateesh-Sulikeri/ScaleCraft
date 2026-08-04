@@ -22,7 +22,11 @@ const sanitizeSchema = {
   },
 };
 
-function codeText(node: ReactNode): string {
+/** Exported for direct unit testing - react-markdown's actual output for a
+ * fenced code block only ever hands this a single string, so the array/
+ * element recursion branches below are defensive and not exercisable
+ * through real markdown content alone. */
+export function codeText(node: ReactNode): string {
   if (typeof node === "string") return node;
   if (Array.isArray(node)) return node.map(codeText).join("");
   if (isValidElement<{ children?: ReactNode }>(node)) return codeText(node.props.children);
