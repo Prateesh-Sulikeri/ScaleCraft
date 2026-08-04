@@ -68,6 +68,30 @@ describe("AiProfilesView", () => {
     expect(screen.getByText(/xAI/)).toBeInTheDocument();
   });
 
+  it("clicking the already-active profile row is a no-op", async () => {
+    const p1 = makeProfile({ id: "p1", name: "Work key" });
+    listProfilesMock.mockResolvedValue([p1]);
+    render(<AiProfilesView activeProfileId="p1" onActiveProfileChange={vi.fn()} />);
+
+    fireEvent.click(await screen.findByText("Work key"));
+
+    expect(setActiveProfileIdMock).not.toHaveBeenCalled();
+  });
+
+  it("does not commit the initial profile list into state after the component unmounts first", async () => {
+    let resolveList!: (profiles: AiProfile[]) => void;
+    listProfilesMock.mockReturnValue(new Promise<AiProfile[]>((resolve) => (resolveList = resolve)));
+    const { unmount } = render(<AiProfilesView activeProfileId={null} onActiveProfileChange={vi.fn()} />);
+
+    unmount();
+    await act(async () => {
+      resolveList([makeProfile({ id: "p1", name: "Work key" })]);
+      await Promise.resolve();
+    });
+    // No assertion beyond "doesn't throw" - the cancelled guard is what
+    // prevents a setState-after-unmount warning/crash here.
+  });
+
   it("switches the active profile when a non-active row is clicked", async () => {
     const p1 = makeProfile({ id: "p1", name: "Work key" });
     const p2 = makeProfile({ id: "p2", name: "Personal key" });
@@ -104,9 +128,10 @@ describe("AiProfilesView", () => {
     expect(await screen.findByText("Fresh Key")).toBeInTheDocument();
   });
 
-  it("edits an existing profile via its pencil icon", async () => {
+  it("edits an existing profile via its pencil icon, leaving the other profile in the list untouched", async () => {
     const p1 = makeProfile({ id: "p1", name: "Work key" });
-    listProfilesMock.mockResolvedValue([p1]);
+    const p2 = makeProfile({ id: "p2", name: "Personal key" });
+    listProfilesMock.mockResolvedValue([p1, p2]);
     const updated = { ...p1, name: "Renamed" };
     updateProfileMock.mockResolvedValue(updated);
     getActiveProfileMock.mockResolvedValue(updated);
@@ -120,6 +145,7 @@ describe("AiProfilesView", () => {
 
     await waitFor(() => expect(updateProfileMock).toHaveBeenCalledWith("p1", expect.objectContaining({ name: "Renamed" })));
     expect(await screen.findByText("Renamed")).toBeInTheDocument();
+    expect(screen.getByText("Personal key")).toBeInTheDocument();
   });
 
   it("delete requires a confirm click before arming undo", async () => {
@@ -198,6 +224,83 @@ describe("AiProfilesView", () => {
 
     expect(deleteProfileMock).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Work key")).not.toBeInTheDocument();
+  });
+
+  it("'Back to profiles' returns to the list without saving, while creating a new profile", async () => {
+    listProfilesMock.mockResolvedValue([]);
+    render(<AiProfilesView activeProfileId={null} onActiveProfileChange={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /New Profile/ }));
+    expect(await screen.findByLabelText("Profile name")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "← Back to profiles" }));
+
+    expect(screen.queryByLabelText("Profile name")).not.toBeInTheDocument();
+    expect(screen.getByText(/No AI profiles yet/)).toBeInTheDocument();
+    expect(createProfileMock).not.toHaveBeenCalled();
+  });
+
+  it("AiSettingsForm's own Cancel button also returns to the list without saving", async () => {
+    const p1 = makeProfile({ id: "p1", name: "Work key" });
+    listProfilesMock.mockResolvedValue([p1]);
+    render(<AiProfilesView activeProfileId="p1" onActiveProfileChange={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Edit Work key" }));
+    expect(await screen.findByLabelText("Profile name")).toHaveValue("Work key");
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByLabelText("Profile name")).not.toBeInTheDocument();
+    expect(screen.getByText("Work key")).toBeInTheDocument();
+    expect(updateProfileMock).not.toHaveBeenCalled();
+  });
+
+  it("'Cancel' on the delete confirmation dismisses it without deleting", async () => {
+    const p1 = makeProfile({ id: "p1", name: "Work key" });
+    listProfilesMock.mockResolvedValue([p1]);
+    render(<AiProfilesView activeProfileId="p1" onActiveProfileChange={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete Work key" }));
+    expect(screen.getByText((text) => text.startsWith("Delete") && text.includes("Work key"))).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByText((text) => text.startsWith("Delete") && text.includes("Work key"))).not.toBeInTheDocument();
+    expect(deleteProfileMock).not.toHaveBeenCalled();
+  });
+
+  it("deleting the only (active) profile reassigns active to null rather than throwing", async () => {
+    const p1 = makeProfile({ id: "p1", name: "Work key" });
+    listProfilesMock.mockResolvedValue([p1]);
+    getActiveProfileMock.mockResolvedValue(null);
+    render(<AiProfilesView activeProfileId="p1" onActiveProfileChange={vi.fn()} />);
+    await screen.findByText("Work key");
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete Work key" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(setActiveProfileIdMock).toHaveBeenCalledWith(null);
+  });
+
+  it("undoing the delete of a profile that was not active does not reassign active", async () => {
+    const p1 = makeProfile({ id: "p1", name: "Work key" });
+    const p2 = makeProfile({ id: "p2", name: "Personal key" });
+    listProfilesMock.mockResolvedValue([p1, p2]);
+    render(<AiProfilesView activeProfileId="p2" onActiveProfileChange={vi.fn()} />);
+    await screen.findByText("Work key");
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete Work key" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    setActiveProfileIdMock.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(restoreProfileMock).toHaveBeenCalledWith(p1);
+    expect(setActiveProfileIdMock).not.toHaveBeenCalled();
   });
 
   it("commits the delete even if the component unmounts before the undo window elapses", async () => {

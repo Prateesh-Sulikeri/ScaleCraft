@@ -97,4 +97,48 @@ describe("LearningPath", () => {
 
     expect(screen.getByText(/no chapters match/i)).toBeInTheDocument();
   });
+
+  it("search matches a section's own title/label, showing all of that section's chapters", () => {
+    render(<LearningPath courseId="building-blocks" />);
+    fireEvent.change(screen.getByRole("textbox", { name: /search chapters/i }), {
+      target: { value: "foundations" },
+    });
+
+    expect(screen.getByText("Welcome to ScaleCraft")).toBeInTheDocument();
+    expect(screen.getByText("What is System Design?")).toBeInTheDocument();
+  });
+
+  it("toggling a single section collapses just that section, independent of the others", () => {
+    render(<LearningPath courseId="building-blocks" />);
+    const toggles = screen.getAllByRole("button", { name: /^(part|group) /i });
+    const first = toggles[0];
+    const second = toggles[1];
+
+    fireEvent.click(first);
+    expect(first).toHaveAttribute("aria-expanded", "false");
+    expect(second).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(first);
+    expect(first).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("shows a 'Scroll to top' button once scrolled past the threshold, which scrolls the pane back to 0", () => {
+    const { container } = render(<LearningPath courseId="building-blocks" />);
+    const scrollPane = container.querySelector(".overflow-y-auto")!;
+    const scrollTo = vi.fn();
+    Object.defineProperty(scrollPane, "scrollTop", { value: 500, configurable: true });
+    // jsdom doesn't implement Element.scrollTo.
+    (scrollPane as unknown as { scrollTo: typeof scrollTo }).scrollTo = scrollTo;
+
+    fireEvent.scroll(scrollPane);
+    const scrollTopBtn = screen.getByRole("button", { name: "Scroll to top" });
+    expect(scrollTopBtn).toBeInTheDocument();
+
+    fireEvent.click(scrollTopBtn);
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
+
+    Object.defineProperty(scrollPane, "scrollTop", { value: 0, configurable: true });
+    fireEvent.scroll(scrollPane);
+    expect(screen.queryByRole("button", { name: "Scroll to top" })).not.toBeInTheDocument();
+  });
 });

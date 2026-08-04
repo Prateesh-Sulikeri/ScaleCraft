@@ -2,7 +2,20 @@
 
 ## Overview
 
-All builds and deployments now require tests to pass. This document outlines the complete testing and deployment pipeline for ScaleCraft.
+Tests gate merges (via GitHub Actions CI on every PR), not deployments. Vercel
+deploys run `next build` only - no test/lint/typecheck re-run - because CI has
+already gated anything reaching `main`/`develop`/`release/*`. This document
+outlines the complete testing and deployment pipeline for ScaleCraft.
+
+**2026-08-04 fix**: `vercel.json`'s `buildCommand` used to run
+`typecheck && lint && test && npm run build`, and `npm run build` itself
+re-ran `typecheck && lint && test` before `next build` - so every deploy paid
+for typecheck/lint/the full unit suite twice. That duplication (plus running
+the full test suite during deploy at all, which CI already does pre-merge)
+was the dominant cause of ~10-11 minute Vercel deploys. Fixed by making
+`npm run build` = `next build` only; `vercel.json buildCommand` = `npm run
+build`. See `.claude/docs/BUILD_PERFORMANCE_AUDIT.md` for the full profiling
+and before/after numbers.
 
 ## Test Coverage
 
@@ -51,40 +64,37 @@ The following test files cover all critical user workflows:
 
 ### Local Development
 ```bash
+# Full pipeline (matches CI), run manually before pushing:
+npm run typecheck && npm run lint && npm test && npm run build
+
+# Just a build:
 npm run build
 ```
 
-**Build Pipeline:**
-1. ✅ TypeScript type-checking (`npm run typecheck`)
-2. ✅ ESLint validation (`npm run lint`)
-3. ✅ All tests pass (`npm test`)
-4. ✅ Next.js build succeeds (`next build`)
-
-**Build fails if:**
-- TypeScript compilation errors exist
-- ESLint finds violations
-- Any test fails (109 tests + all major flow tests)
-- Next.js build compilation fails
+`npm run build` is `next build` only. It re-checks TypeScript internally
+(confirmed - a deliberate type error fails `next build` on its own) but does
+**not** run ESLint or the test suite (confirmed empirically - a restricted-
+import lint violation did not fail `next build`). Type safety on deploy is
+still enforced; lint and test enforcement live entirely in CI, pre-merge.
 
 ### GitHub Actions CI/CD
-**File**: `.github/workflows/test-and-build.yml`
+**File**: `.github/workflows/ci.yml`
 
 **Triggers:**
-- On every push to `main` or `development` branches
-- On every pull request to `main` or `development` branches
+- On every push to `release/**` or `develop`
+- On every pull request to `release/**`, `develop`, or `main`
 
 **Workflow Steps:**
 1. Checkout code
 2. Install dependencies (npm ci)
 3. Run TypeScript check
 4. Run ESLint
-5. Run all tests (vitest)
-6. Run major flow tests specifically
+5. Run unit/component tests with coverage (vitest)
+6. Run e2e tests (Playwright)
 7. Build with Next.js
 
 **PR Merge Requirements:**
 - All GitHub Actions checks must pass
-- Status checks cannot be bypassed
 - Tests must pass before merge is allowed
 
 ### Vercel Deployments
@@ -92,19 +102,19 @@ npm run build
 
 **Build Command:**
 ```bash
-npm run typecheck && npm run lint && npm test && npm run build
+npm run build
 ```
+(= `next build` only)
 
 **Deployment Rules:**
-- Pre-deployment build runs full test suite
-- Deployment fails if tests don't pass
+- No test/lint/typecheck re-run at deploy time - CI already gated the code
+  that reached a deployable branch
 - Output directory: `.next`
-- Auto-deploy enabled for: `main`, `development`
+- `ignoreCommand` (`scripts/check-deploy-branch.sh`) restricts deploys to
+  `main`, `develop`, `release/*`
 
 **Deployment Fails If:**
-- Tests fail
-- TypeScript errors exist
-- ESLint violations found
+- TypeScript errors exist (caught by `next build`'s own type check)
 - Build compilation fails
 
 ## Running Tests Locally
@@ -130,19 +140,22 @@ npm test  # Re-runs on file changes
 ┌─────────────────────────────────────────┐
 │           QUALITY GATES                 │
 ├─────────────────────────────────────────┤
-│ LOCAL:    npm run build                 │
-│           • TypeScript ✓                │
-│           • ESLint ✓                    │
-│           • Tests (129) ✓               │
-│           • Build ✓                     │
+│ LOCAL:    typecheck && lint && test &&  │
+│           build (run manually, matches  │
+│           CI) - not required per commit │
 ├─────────────────────────────────────────┤
 │ PR:       GitHub Actions CI             │
-│           • Same as local + workflow    │
+│           • TypeScript, ESLint          │
+│           • Unit/component tests + cov  │
+│           • E2E tests (Playwright)      │
+│           • next build                  │
 │           • Cannot merge if failed      │
 ├─────────────────────────────────────────┤
-│ DEPLOY:   Vercel Pre-deployment Check  │
-│           • Same as local               │
-│           • Deployment blocked if fail  │
+│ DEPLOY:   Vercel                        │
+│           • next build only             │
+│           • No test/lint/typecheck      │
+│             re-run - CI already gated   │
+│             this code before merge      │
 └─────────────────────────────────────────┘
 ```
 
@@ -151,19 +164,21 @@ npm test  # Re-runs on file changes
 ```
 Code Push/PR
     ↓
-GitHub Actions Triggered
+GitHub Actions Triggered (ci.yml)
     ↓
   ├─ TypeScript Check
   ├─ ESLint Validation
-  ├─ All 129 Tests
-  │  ├─ 100 Unit Tests (validation, store, persistence)
-  │  ├─ 29 Major Flow Tests
-  │  └─ Result: 129 passing
-  └─ Next.js Build
+  ├─ Unit/component tests + coverage (vitest)
+  ├─ E2E tests (Playwright)
+  └─ next build
     ↓
 All Checks Pass?
-    ├─ YES → Merge allowed / Deploy to Vercel
-    └─ NO → Block merge / Cancel deployment
+    ├─ YES → Merge allowed
+    └─ NO → Block merge
+    ↓
+Merge → develop/main/release branch
+    ↓
+Vercel: next build → Deploy
 ```
 
 ## Continuous Improvement
@@ -197,7 +212,7 @@ npm test -- --watch
 
 ## References
 
-- Test files: `src/flows/*.test.ts`
-- CI/CD config: `.github/workflows/test-and-build.yml`
+- Test files: `src/flows/*.test.ts`, plus co-located `*.test.{ts,tsx}` across `src/`
+- CI/CD config: `.github/workflows/ci.yml`
 - Vercel config: `vercel.json`
 - Build script: `package.json` → `build` script

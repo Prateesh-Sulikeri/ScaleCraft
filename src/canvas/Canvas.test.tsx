@@ -296,6 +296,38 @@ describe("Canvas", () => {
       expect(opacities).toContain("0.3");
       expect(opacities).toContain("1");
     });
+
+    it("highlights nodes positioned inside an active Highlight Zone pass, dims those outside it", () => {
+      const zone: AnyNodeType = {
+        id: "z1",
+        type: "zone",
+        position: { x: 0, y: 0 },
+        data: { label: "Zone", width: 300, height: 300 },
+      };
+      const inside: ComponentNodeType = { ...clientNode, id: "n1", position: { x: 50, y: 50 } };
+      const outside: ComponentNodeType = { ...appServerNode, id: "n2", position: { x: 1000, y: 1000 } };
+      const { api } = renderWithCanvasStore(<Canvas />);
+      act(() => {
+        api.getState().loadCanvasState([zone, inside, outside], []);
+        api.getState().setHighlight({ mode: "zone", id: "z1" });
+      });
+
+      const insideCard = screen.getByText("Client").closest(".react-flow__node") as HTMLElement;
+      const outsideCard = screen.getByText("Application Server").closest(".react-flow__node") as HTMLElement;
+      expect(insideCard.style.opacity).toBe("1");
+      expect(outsideCard.style.opacity).toBe("0.3");
+    });
+
+    it("a zone-mode highlight referencing a since-removed zone id highlights nothing (falls back to null)", () => {
+      const { api } = renderWithCanvasStore(<Canvas />);
+      act(() => {
+        api.getState().loadCanvasState([clientNode], []);
+        api.getState().setHighlight({ mode: "zone", id: "no-such-zone" });
+      });
+      const card = screen.getByText("Client").closest(".react-flow__node") as HTMLElement;
+      // No highlightSets (zone lookup returned null) - every node renders at full opacity, none dimmed.
+      expect(card.style.opacity).toBe("1");
+    });
   });
 
   describe("Start marker pointer edge", () => {
@@ -433,6 +465,43 @@ describe("Canvas", () => {
       expect(getScale(container)).toBeLessThan(before);
     });
 
+    it("Shift+1 fits the whole graph into view without throwing", async () => {
+      const { container, api } = renderWithCanvasStore(<Canvas />);
+      act(() => api.getState().loadCanvasState([clientNode, appServerNode], []));
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { code: "Digit1", shiftKey: true }));
+        await new Promise((r) => setTimeout(r, 350));
+      });
+
+      expect(getScale(container)).toBeGreaterThan(0);
+    });
+
+    it("Shift+2 with no node selected is a no-op (fitView is never called)", async () => {
+      const { container } = renderWithCanvasStore(<Canvas />);
+      const before = getScale(container);
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { code: "Digit2", shiftKey: true }));
+        await new Promise((r) => setTimeout(r, 350));
+      });
+
+      expect(getScale(container)).toBe(before);
+    });
+
+    it("Shift+2 fits the current selection into view", async () => {
+      const { container, api } = renderWithCanvasStore(<Canvas />);
+      act(() => api.getState().loadCanvasState([clientNode, appServerNode], []));
+      fireEvent.click(screen.getByText("Client"));
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { code: "Digit2", shiftKey: true }));
+        await new Promise((r) => setTimeout(r, 350));
+      });
+
+      expect(getScale(container)).toBeGreaterThan(0);
+    });
+
     it("Ctrl+0 resets zoom to 100%", async () => {
       const { container } = renderWithCanvasStore(<Canvas />);
 
@@ -541,6 +610,26 @@ describe("Canvas", () => {
 
       await act(async () => {
         await ref.current!.exportImage({ format: "png" });
+      });
+
+      expect(clickSpy).toHaveBeenCalledTimes(1);
+      createElementSpy.mockRestore();
+    });
+
+    it("captures the viewport and triggers a JPEG download without throwing", async () => {
+      const ref = createRef<CanvasHandle>();
+      renderWithCanvasStore(<Canvas ref={ref} />);
+
+      const clickSpy = vi.fn();
+      const realCreateElement = document.createElement.bind(document);
+      const createElementSpy = vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
+        const el = realCreateElement(tag);
+        if (tag === "a") el.click = clickSpy;
+        return el;
+      });
+
+      await act(async () => {
+        await ref.current!.exportImage({ format: "jpg" });
       });
 
       expect(clickSpy).toHaveBeenCalledTimes(1);
