@@ -14,6 +14,14 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "3.4.0-alpha",
+    date: "2026-08-04",
+    highlights: [
+      "Vercel deploys are dramatically faster - typecheck, lint, and the full test suite no longer run twice per deploy (once directly, once again inside the build script), cutting build time from around 10 minutes to under a minute. CI already gates all of that on every pull request, so deploys now just build.",
+      "The automated test suite grew to 1,336 tests with substantially higher coverage across chapters, canvas, quizzes, the validation engine, and AI settings - catching regressions earlier without slowing down deploys.",
+    ],
+  },
+  {
     version: "3.3.0-alpha",
     date: "2026-08-03",
     highlights: [

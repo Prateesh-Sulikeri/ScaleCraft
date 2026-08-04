@@ -29,8 +29,8 @@ function chain(suffix: string): { nodes: ComponentNodeType[]; edges: Architectur
   return {
     nodes: [client, lb, app],
     edges: [
-      { id: `e1-${suffix}`, source: client.id, target: lb.id, kind: "request-flow" },
-      { id: `e2-${suffix}`, source: lb.id, target: app.id, kind: "request-flow" },
+      { id: `e1-${suffix}`, source: client.id, target: lb.id, data: { kind: "request-flow" } },
+      { id: `e2-${suffix}`, source: lb.id, target: app.id, data: { kind: "request-flow" } },
     ],
   };
 }
