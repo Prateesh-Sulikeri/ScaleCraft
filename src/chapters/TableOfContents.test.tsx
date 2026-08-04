@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, act } from "@testing-library/react";
-import { createRef, useRef, type RefObject } from "react";
+import { createRef, useRef } from "react";
 import type { ExtractedHeading } from "./extract-headings";
 
 let lastObserverInstance: MockIntersectionObserver | null = null;
@@ -12,7 +12,6 @@ class MockIntersectionObserver {
   constructor(callback: IntersectionObserverCallback, options: IntersectionObserverInit) {
     this.callback = callback;
     this.options = options;
-    lastObserverInstance = this;
   }
 
   observe = vi.fn();
@@ -20,7 +19,15 @@ class MockIntersectionObserver {
   disconnect = vi.fn();
 }
 
-vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+function createMockObserver(
+  callback: IntersectionObserverCallback,
+  options: IntersectionObserverInit,
+): MockIntersectionObserver {
+  lastObserverInstance = new MockIntersectionObserver(callback, options);
+  return lastObserverInstance;
+}
+
+vi.stubGlobal("IntersectionObserver", createMockObserver);
 
 const { TableOfContents } = await import("./TableOfContents");
 
@@ -31,11 +38,9 @@ const { TableOfContents } = await import("./TableOfContents");
  * null). */
 function Harness({
   headings,
-  refOut,
   domHeadingIds,
 }: {
   headings: ExtractedHeading[];
-  refOut: RefObject<HTMLElement | null>;
   /** Which heading ids get a real DOM element - defaults to all of them.
    *  Passing a subset simulates a heading whose slug doesn't resolve to any
    *  rendered anchor. */
@@ -43,14 +48,8 @@ function Harness({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const idsWithElements = domHeadingIds ?? headings.map((h) => h.id);
-  refOut.current = ref.current;
   return (
-    <div
-      ref={(el) => {
-        ref.current = el;
-        refOut.current = el;
-      }}
-    >
+    <div ref={ref}>
       {headings
         .filter((h) => idsWithElements.includes(h.id))
         .map((h) => (
@@ -184,16 +183,14 @@ describe("TableOfContents", () => {
   });
 
   it("observes every heading element once the target container is real and headings exist in the DOM", () => {
-    const refOut = createRef<HTMLElement | null>();
-    render(<Harness headings={testHeadings} refOut={refOut} />);
+    render(<Harness headings={testHeadings} />);
 
     expect(lastObserverInstance).not.toBeNull();
     expect(lastObserverInstance!.observe).toHaveBeenCalledTimes(testHeadings.length);
   });
 
   it("marks the topmost visible heading as active on an intersection change", () => {
-    const refOut = createRef<HTMLElement | null>();
-    render(<Harness headings={testHeadings} refOut={refOut} />);
+    render(<Harness headings={testHeadings} />);
 
     act(() => {
       lastObserverInstance!.callback(
@@ -207,8 +204,7 @@ describe("TableOfContents", () => {
   });
 
   it("ignores an intersection callback where nothing is currently visible", () => {
-    const refOut = createRef<HTMLElement | null>();
-    render(<Harness headings={testHeadings} refOut={refOut} />);
+    render(<Harness headings={testHeadings} />);
 
     act(() => {
       lastObserverInstance!.callback([entry("overview", true, 10)], lastObserverInstance as unknown as IntersectionObserver);
@@ -223,12 +219,10 @@ describe("TableOfContents", () => {
   });
 
   it("skips heading ids that have no matching DOM element", () => {
-    const refOut = createRef<HTMLElement | null>();
     const headingsWithGhost: ExtractedHeading[] = [...testHeadings, { id: "ghost", text: "Ghost", level: 2 }];
     render(
       <Harness
         headings={headingsWithGhost}
-        refOut={refOut}
         domHeadingIds={testHeadings.map((h) => h.id)}
       />,
     );
@@ -238,8 +232,7 @@ describe("TableOfContents", () => {
   });
 
   it("never instantiates an observer when none of the headings resolve to a DOM element", () => {
-    const refOut = createRef<HTMLElement | null>();
-    render(<Harness headings={testHeadings} refOut={refOut} domHeadingIds={[]} />);
+    render(<Harness headings={testHeadings} domHeadingIds={[]} />);
     expect(lastObserverInstance).toBeNull();
   });
 });
