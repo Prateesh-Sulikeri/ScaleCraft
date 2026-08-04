@@ -510,4 +510,109 @@ describe("pattern.ts — edge case branches", () => {
     const results = matchPattern(index, pattern);
     expect(results.length).toBeGreaterThan(0);
   });
+
+  it("an entirely unconstrained node (no componentId, no category) matches every node in the graph", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("app-1", "app-server"), node("cache-1", "cache"), node("lb-1", "load-balancer")],
+      edges: [],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+    const pattern: GraphPattern = { nodes: [{ alias: "anything" }] };
+    expect(matchPattern(index, pattern)).toHaveLength(3);
+  });
+
+  it("orders an unconstrained node last, after componentId- and category-constrained ones", () => {
+    // The unconstrained "any" alias would blow up the search if it went
+    // first (matches every node); orderBySelectivity puts componentId/
+    // category-bound aliases first specifically to avoid that.
+    const graph: ArchitectureGraph = {
+      nodes: [node("app-1", "app-server"), node("lb-1", "load-balancer"), node("cache-1", "cache")],
+      edges: [{ id: "e1", source: "lb-1", target: "app-1", kind: "request-flow" }],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+    const pattern: GraphPattern = {
+      nodes: [{ alias: "any" }, { alias: "lb", componentId: "load-balancer" }],
+      edges: [{ from: "lb", to: "any" }],
+    };
+    const results = matchPattern(index, pattern);
+    expect(results).toEqual([{ any: "app-1", lb: "lb-1" }]);
+  });
+
+  it("compares string config values with gt/lt", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("app-1", "app-server", { region: "us-west" })],
+      edges: [],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+    const gt: GraphPattern = {
+      nodes: [{ alias: "app", componentId: "app-server", config: [{ field: "region", op: "gt", value: "us-east" }] }],
+    };
+    expect(matchPattern(index, gt)).toHaveLength(1);
+
+    const lt: GraphPattern = {
+      nodes: [{ alias: "app", componentId: "app-server", config: [{ field: "region", op: "lt", value: "us-east" }] }],
+    };
+    expect(matchPattern(index, lt)).toHaveLength(0);
+  });
+
+  it("compares boolean config values with gt/lt (true > false)", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("fw-1", "firewall", { enableNat: true })],
+      edges: [],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+    const gt: GraphPattern = {
+      nodes: [{ alias: "fw", componentId: "firewall", config: [{ field: "enableNat", op: "gt", value: false }] }],
+    };
+    expect(matchPattern(index, gt)).toHaveLength(1);
+
+    const lt: GraphPattern = {
+      nodes: [{ alias: "fw", componentId: "firewall", config: [{ field: "enableNat", op: "lt", value: false }] }],
+    };
+    expect(matchPattern(index, lt)).toHaveLength(0);
+  });
+
+  it("a type-mismatched gt/lt comparison (config value vs. predicate value) never matches", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("app-1", "app-server", { instances: "two" })],
+      edges: [],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+    const pattern: GraphPattern = {
+      nodes: [{ alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gt", value: 1 }] }],
+    };
+    expect(matchPattern(index, pattern)).toHaveLength(0);
+  });
+
+  it("an absent block whose preset edge constraint fails to hold doesn't block the outer match", () => {
+    // client -> lb (request-flow) is the outer match. The absent block
+    // references both outer aliases but requires a "control" edge between
+    // them, which doesn't exist - so the block can't fire, and the outer
+    // match survives.
+    const graph: ArchitectureGraph = {
+      nodes: [node("client-1", "client"), node("lb-1", "load-balancer")],
+      edges: [{ id: "e1", source: "client-1", target: "lb-1", kind: "request-flow" }],
+      entryPointIds: [],
+    };
+    const index = buildGraphIndex(graph);
+    const pattern: GraphPattern = {
+      nodes: [
+        { alias: "client", componentId: "client" },
+        { alias: "lb", componentId: "load-balancer" },
+      ],
+      edges: [{ from: "client", to: "lb" }],
+      absent: [
+        {
+          nodes: [{ alias: "client" }, { alias: "lb" }],
+          edges: [{ from: "client", to: "lb", kind: "control" }],
+        },
+      ],
+    };
+    expect(matchPattern(index, pattern)).toHaveLength(1);
+  });
 });
