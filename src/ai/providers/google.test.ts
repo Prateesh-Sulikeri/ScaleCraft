@@ -78,4 +78,55 @@ describe("googleProvider", () => {
       googleProvider.complete({ apiKey: "k", model: "m", system: "s", user: "u" }),
     ).rejects.toMatchObject({ kind: "unknown" });
   });
+
+  it("re-throws an AbortError as-is instead of wrapping it", async () => {
+    const abortError = new DOMException("aborted", "AbortError");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError));
+
+    await expect(
+      googleProvider.complete({ apiKey: "k", model: "m", system: "s", user: "u" }),
+    ).rejects.toBe(abortError);
+  });
+
+  it("maps a 400 PERMISSION_DENIED body to an auth error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: { status: "PERMISSION_DENIED" } }), { status: 400 }),
+      ),
+    );
+
+    await expect(
+      googleProvider.complete({ apiKey: "bad", model: "m", system: "s", user: "u" }),
+    ).rejects.toMatchObject({ kind: "auth" });
+  });
+
+  it("maps a 400 body with an unrecognized status to a generic unknown error", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ error: { status: "INVALID_ARGUMENT" } }), { status: 400 }),
+      ),
+    );
+
+    await expect(
+      googleProvider.complete({ apiKey: "k", model: "m", system: "s", user: "u" }),
+    ).rejects.toMatchObject({ kind: "unknown" });
+  });
+
+  it("maps a 400 response with an unparseable body to a generic unknown error", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("not json", { status: 400 })));
+
+    await expect(
+      googleProvider.complete({ apiKey: "k", model: "m", system: "s", user: "u" }),
+    ).rejects.toMatchObject({ kind: "unknown" });
+  });
+
+  it("maps a 200 response with no candidates/text to an unknown error", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({}), { status: 200 })));
+
+    await expect(
+      googleProvider.complete({ apiKey: "k", model: "m", system: "s", user: "u" }),
+    ).rejects.toMatchObject({ kind: "unknown" });
+  });
 });

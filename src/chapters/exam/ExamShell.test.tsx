@@ -129,6 +129,33 @@ describe("ExamShell", () => {
     ]);
   });
 
+  it("renders nothing for a chapter with no quiz questions", () => {
+    const { container } = render(
+      <ExamShell chapter={{ ...chapter(), quiz: undefined }} attemptNumber={1} onSubmitted={vi.fn()} onExit={vi.fn()} />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("Escape still calls onExit for an empty-quiz chapter (no container to fullscreen-exit)", () => {
+    const onExit = vi.fn();
+    render(
+      <ExamShell chapter={{ ...chapter(), quiz: undefined }} attemptNumber={1} onSubmitted={vi.fn()} onExit={onExit} />,
+    );
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores ArrowLeft/ArrowRight when the key event targets a form control (e.g. Matching's select)", () => {
+    render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={vi.fn()} onExit={vi.fn()} />);
+    const select = document.createElement("select");
+    document.body.appendChild(select);
+
+    fireEvent.keyDown(select, { key: "ArrowRight" });
+    expect(screen.getByText("First question")).toBeInTheDocument();
+
+    select.remove();
+  });
+
   it("'Submit anyway' from the confirm dialog produces a well-formed payload scoring unanswered as incorrect", () => {
     const onSubmitted = vi.fn();
     render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={onSubmitted} onExit={vi.fn()} />);
