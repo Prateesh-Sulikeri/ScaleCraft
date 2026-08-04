@@ -16,7 +16,10 @@ vi.mock("@/canvas/Canvas", async () => {
   const React = await import("react");
   const { useCanvasStore } = await import("@/canvas/store");
   return {
-    Canvas: React.forwardRef(function MockCanvas(_props: unknown, ref: React.Ref<unknown>) {
+    Canvas: React.forwardRef(function MockCanvas(
+      props: { onCanvasPaneClick?: () => void },
+      ref: React.Ref<unknown>,
+    ) {
       const addNode = useCanvasStore((s) => s.addNode);
       const nodeCount = useCanvasStore((s) => s.nodes.length);
       React.useImperativeHandle(ref, () => ({}));
@@ -31,23 +34,55 @@ vi.mock("@/canvas/Canvas", async () => {
               { x: 100, y: 100 },
             ),
         }),
+        React.createElement("button", { "data-testid": "canvas-pane-click-btn", onClick: props.onCanvasPaneClick }),
         React.createElement("span", { "data-testid": "node-count" }, String(nodeCount)),
       );
     }),
   };
 });
 
-vi.mock("@/canvas/docs-panel/DocsPanel", () => ({ DocsPanel: () => null }));
-vi.mock("@/canvas/docs-panel/FocusModeBar", () => ({ FocusModeBar: () => null }));
+vi.mock("@/canvas/docs-panel/DocsPanel", async () => {
+  const React = await import("react");
+  const { useCanvasStore } = await import("@/canvas/store");
+  return {
+    DocsPanel: () => {
+      const toggleFocusMode = useCanvasStore((s) => s.toggleFocusMode);
+      return React.createElement(
+        "div",
+        { "data-testid": "docs-panel" },
+        React.createElement("button", { "data-testid": "toggle-focus-mode-btn", onClick: toggleFocusMode }),
+      );
+    },
+  };
+});
+vi.mock("@/canvas/docs-panel/FocusModeBar", () => ({
+  FocusModeBar: () => <div data-testid="focus-mode-bar" />,
+}));
 vi.mock("@/app/UndoToast", () => ({ UndoToast: () => null }));
 
 vi.mock("@/app/AppHeader", () => ({
-  AppHeader: (props: { onSave: () => void; saveId: string | null }) => (
+  AppHeader: (props: {
+    onSave: () => void;
+    saveId: string | null;
+    onValidate: () => void;
+    violations: unknown[] | null;
+    isStale: boolean;
+    docsPanelOpen: boolean;
+    toggleDocsPanel: () => void;
+  }) => (
     <div data-testid="app-header">
       <button onClick={props.onSave} data-testid="save-btn">
         Save
       </button>
       <span data-testid="save-id">{props.saveId ?? "none"}</span>
+      <button onClick={props.onValidate} data-testid="validate-btn">
+        Validate
+      </button>
+      <span data-testid="violations-count">{props.violations === null ? "null" : props.violations.length}</span>
+      <span data-testid="is-stale">{String(props.isStale)}</span>
+      <button onClick={props.toggleDocsPanel} data-testid="toggle-docs-panel-btn">
+        {props.docsPanelOpen ? "Close docs" : "Open docs"}
+      </button>
     </div>
   ),
 }));
@@ -157,5 +192,42 @@ describe("SandboxPage", () => {
 
     const saved = await db.saves.get(SANDBOX_SAVE_ID);
     expect(saved?.nodes.length).toBe(5);
+  });
+
+  it("running Validate against the seed graph reports zero violations and clears staleness", async () => {
+    await renderSandbox();
+    fireEvent.click(screen.getByTestId("validate-btn"));
+    await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+    expect(screen.getByTestId("is-stale")).toHaveTextContent("false");
+  });
+
+  it("marks the result stale once the graph changes after a Validate run", async () => {
+    await renderSandbox();
+    fireEvent.click(screen.getByTestId("validate-btn"));
+    await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+
+    fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
+    await waitFor(() => expect(screen.getByTestId("is-stale")).toHaveTextContent("true"));
+  });
+
+  it("clicking the canvas pane clears a prior Validate result", async () => {
+    await renderSandbox();
+    fireEvent.click(screen.getByTestId("validate-btn"));
+    await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+
+    fireEvent.click(screen.getByTestId("canvas-pane-click-btn"));
+    expect(screen.getByTestId("violations-count")).toHaveTextContent("null");
+  });
+
+  it("toggling the docs panel open renders DocsPanel, and toggling focus mode swaps in FocusModeBar", async () => {
+    await renderSandbox();
+    expect(screen.queryByTestId("docs-panel")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("toggle-docs-panel-btn"));
+    expect(await screen.findByTestId("docs-panel")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("toggle-focus-mode-btn"));
+    expect(await screen.findByTestId("focus-mode-bar")).toBeInTheDocument();
+    expect(screen.queryByTestId("app-header")).not.toBeInTheDocument();
   });
 });

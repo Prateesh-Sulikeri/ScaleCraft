@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { render, screen } from "@testing-library/react";
-import { MarkdownRenderer } from "./MarkdownRenderer";
+import { MarkdownRenderer, codeText } from "./MarkdownRenderer";
 import { stubResizeObserver } from "../../canvas-test-utils";
 
 beforeAll(() => {
@@ -27,6 +27,30 @@ function renderMarkdown(content: string) {
     </NextThemesProvider>,
   );
 }
+
+describe("codeText", () => {
+  it("returns a string node as-is", () => {
+    expect(codeText("hello")).toBe("hello");
+  });
+
+  it("joins an array of string nodes", () => {
+    expect(codeText(["a", "b", "c"])).toBe("abc");
+  });
+
+  it("recurses into a React element's children", () => {
+    expect(codeText(<span>nested text</span>)).toBe("nested text");
+  });
+
+  it("recurses through nested arrays and elements together", () => {
+    expect(codeText(["before ", <em key="e">emphasized</em>, " after"])).toBe("before emphasized after");
+  });
+
+  it("returns an empty string for a node it doesn't recognize", () => {
+    expect(codeText(42)).toBe("");
+    expect(codeText(null)).toBe("");
+    expect(codeText(undefined)).toBe("");
+  });
+});
 
 describe("MarkdownRenderer", () => {
   it("renders basic headings, paragraphs, and GFM tables", () => {
@@ -108,6 +132,20 @@ describe("MarkdownRenderer", () => {
     renderMarkdown("<details><summary>More</summary>\n\nhidden body\n\n</details>");
     expect(screen.getByText("More")).toBeInTheDocument();
     expect(screen.getByText("hidden body")).toBeInTheDocument();
+  });
+
+  it("falls back to a plain <pre> when its child isn't a <code> element (raw HTML, no fence)", () => {
+    const { container } = renderMarkdown("<pre>plain preformatted text, no code element</pre>");
+    const pre = container.querySelector("pre")!;
+    expect(pre).toBeInTheDocument();
+    expect(pre.querySelector("code")).not.toBeInTheDocument();
+    expect(pre.textContent).toBe("plain preformatted text, no code element");
+  });
+
+  it("resolves a fenced code block's language from a multi-word className", () => {
+    const { container } = renderMarkdown("```python\nx = 1\n```");
+    const code = container.querySelector("pre code");
+    expect(code?.textContent).toBe("x = 1");
   });
 
   it("slugs headings so in-page anchors resolve", () => {

@@ -57,4 +57,15 @@ describe("exitFullscreenIfActive", () => {
 
     expect(exitFullscreen).not.toHaveBeenCalled();
   });
+
+  it("swallows a rejected exitFullscreen (denied/unsupported) without throwing", async () => {
+    const el = document.createElement("div");
+    Object.defineProperty(document, "fullscreenElement", { value: el, configurable: true });
+    const exitFullscreen = vi.fn().mockRejectedValue(new Error("denied"));
+    document.exitFullscreen = exitFullscreen;
+
+    expect(() => exitFullscreenIfActive(el)).not.toThrow();
+    // Let the rejected promise's .catch() handler actually run before the test ends.
+    await Promise.resolve().then().then();
+  });
 });

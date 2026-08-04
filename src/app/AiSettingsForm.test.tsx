@@ -95,4 +95,76 @@ describe("AiSettingsForm", () => {
 
     await waitFor(() => expect(screen.getByText("The API key was rejected.")).toBeInTheDocument());
   });
+
+  it("switching provider resets the model to the new provider's default when the old model isn't in its suggested list", () => {
+    render(<AiSettingsForm settings={DEFAULT_DRAFT} onSave={vi.fn()} onCancel={vi.fn()} />);
+    expect(screen.getByLabelText("Model")).toHaveValue("claude-opus-5");
+
+    fireEvent.change(screen.getByLabelText("Provider"), { target: { value: "google" } });
+
+    expect(screen.getByLabelText("Model")).toHaveValue("gemini-3-pro");
+  });
+
+  it("switching to a provider with no suggested models drops straight into the free-text model input", () => {
+    render(<AiSettingsForm settings={DEFAULT_DRAFT} onSave={vi.fn()} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Provider"), { target: { value: "openai-compatible" } });
+
+    expect(screen.queryByLabelText("Model", { selector: "select" })).not.toBeInTheDocument();
+    const modelInput = screen.getByLabelText("Model", { selector: "input" });
+    expect(modelInput).toHaveAttribute("placeholder", "Model ID");
+  });
+
+  it("picking a different suggested model from the Model dropdown updates the value", async () => {
+    const onSave = vi.fn();
+    render(<AiSettingsForm settings={DEFAULT_DRAFT} onSave={onSave} onCancel={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("Model"), { target: { value: "claude-haiku-4-5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0].model).toBe("claude-haiku-4-5");
+  });
+
+  it("choosing 'Custom…' in the Model dropdown swaps in a free-text field", () => {
+    render(<AiSettingsForm settings={DEFAULT_DRAFT} onSave={vi.fn()} onCancel={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("Model"), { target: { value: "__custom__" } });
+
+    expect(screen.getByLabelText("Custom model")).toBeInTheDocument();
+  });
+
+  it("falls back to the provider's default model when the model field is cleared", async () => {
+    const onSave = vi.fn();
+    render(<AiSettingsForm settings={DEFAULT_DRAFT} onSave={onSave} onCancel={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("Model"), { target: { value: "__custom__" } });
+    fireEvent.change(screen.getByLabelText("Custom model"), { target: { value: "   " } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0].model).toBe("claude-opus-5");
+  });
+
+  it("omits baseUrl from the saved draft for a non-openai-compatible provider", async () => {
+    const onSave = vi.fn();
+    render(<AiSettingsForm settings={DEFAULT_DRAFT} onSave={onSave} onCancel={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty("baseUrl");
+  });
+
+  it("includes the trimmed baseUrl in the saved draft for the openai-compatible provider", async () => {
+    const onSave = vi.fn();
+    render(
+      <AiSettingsForm
+        settings={{ ...DEFAULT_DRAFT, providerId: "openai-compatible" }}
+        onSave={onSave}
+        onCancel={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Base URL"), { target: { value: "  http://localhost:11434/v1  " } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0][0].baseUrl).toBe("http://localhost:11434/v1");
+  });
 });
