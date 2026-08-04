@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { renderWithCanvasStore as render } from "../canvas-test-utils";
 import { DocsTabContent } from "./DocsTabContent";
 
@@ -40,5 +40,22 @@ describe("DocsTabContent", () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     expect(await screen.findByText(/in-memory store/i)).toBeInTheDocument();
+  });
+
+  it("rAF-throttles scroll writes back to the store (a second scroll before the frame fires is a no-op)", async () => {
+    const { container, api } = render(<DocsTabContent componentId="client" />);
+    act(() => api.getState().openDocTab("client"));
+    const pane = container.querySelector("div")!;
+    Object.defineProperty(pane, "scrollTop", { value: 120, configurable: true });
+
+    fireEvent.scroll(pane);
+    // Fired again immediately, still within the same pending rAF - the
+    // in-flight guard (rafRef.current !== null) should make this a no-op
+    // rather than scheduling a second frame.
+    fireEvent.scroll(pane);
+
+    await waitFor(() =>
+      expect(api.getState().docsPanel.tabs.find((t) => t.componentId === "client")?.scrollTop).toBe(120),
+    );
   });
 });
