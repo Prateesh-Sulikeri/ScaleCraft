@@ -126,11 +126,58 @@ playtest-sequencing check), in curriculum order:
 - Quiz UI: appears already built (`QuizLauncher.tsx`, `ExamShell`, `QUIZ_FRAMEWORK.md`
   present in code; no outstanding `pending-quiz-ui.md` left in `.claude/docs/`) - verify
   by exercising it, don't take absence-of-a-pending-doc as final proof.
+  **Resolved 2026-08-05:** wiring confirmed - `ChapterReader.tsx:131` renders
+  `QuizLauncher` straight off `chapter.quiz`, and `appendKnowledgeCheckHeading` adds
+  the TOC entry. Authoring the array is sufficient; no engineering work needed.
+  Still wants one real click-through of `ExamShell` now that 0.1 has a live quiz.
 - Stages UI: not required for this wave - none of the five Wave 1 chapters are staged
   Part-1 Process chapters.
-- **Not yet checked:** `pending-content.md`'s claim that "manifest migration to v2
-  structure precedes Wave 1" - needs a direct read of `src/curriculum/manifest.ts`
-  against `CURRICULUM.md`'s §21.4 slug/persistence-key rules before Track B starts.
+- ~~**Not yet checked:** `pending-content.md`'s claim that "manifest migration to v2
+  structure precedes Wave 1"~~ - **resolved 2026-08-05, no work needed.** The claim is
+  stale: `src/curriculum/manifest.ts` is already the v3 map (79 entries, migrated per
+  §21.4, see its header comment). Every Wave 1 slug exists today
+  (`0-1-welcome-to-scalecraft`, `0-2-what-is-system-design`,
+  `1-6-drawing-the-first-architecture`, `3-4-load-balancer` -> `bb-dummy-1`,
+  `rwe-t1-bitly-url-shortener` -> `rwe-dummy-1`). Authoring 3.4 and Bitly means
+  repointing those two rows off the dummies, which §21.4 explicitly permits (dummies
+  "carry no migration weight"). Nothing blocks Track B.
+
+### Track B progress
+
+**1. 0.1 Welcome to ScaleCraft - done 2026-08-05**, branch
+`feature/content-0-1-welcome` (stacked on `feature/guided-tour-track-a`, since 0.1's
+content builds on Track A's chapter definition). All 6 deliverables:
+spec (`src/content/chapters/specs/bb-0-1-welcome.spec.md`), lesson body rewritten to
+§5.3's beats, `ChapterDefinition` (5 objectives across §5.2's categories, palette
+corrected, `lessonVersion: 2`), no new validation rules (justified in the spec), a
+4-question quiz, and the §18.2 playtest pass. New
+`src/content/chapters/authoring-invariants.test.ts` guards the authoring contract
+registry-wide. Pipeline green.
+
+**Two spec divergences raised, both needing a doc decision (not authored around):**
+
+- **§14's 0.1 row vs. the chapter as built.** §14 says "Exercise: none (the tour is
+  the chapter)" and "New: none (tour of the seed graph, read-only)". Track A built a
+  real fix exercise on a deliberately broken graph, gated by Submit. The built
+  behavior is kept - it is shipped, tested, and stronger pedagogically - so
+  **CURRICULUM.md §14's 0.1 row needs updating** in its own commit. Recorded in the
+  chapter spec's §10.
+- **§16 component budget.** §16 homes `client`/`app-server`/`sql-database` at 1.6 and
+  forbids a component appearing in any palette before its home chapter. 0.1 needs
+  them on the canvas to have something to fix. Handled as a declared, minimal
+  exception documented in the spec's §6; `load-balancer` and `cache` were removed
+  from 0.1's palette outright (they were there only to give the picker more to
+  browse, which did not justify two further violations).
+
+**Engineering gap found, blocks 1.6 and 3.4, does not block Part 0:** CURRICULUM §7.2
+says topology diagrams are authored as ScaleCraft graph JSON so they render in the
+product's own visual language, but **the Reader has no renderer for embedded graph
+JSON.** `MarkdownRenderer.tsx` handles Mermaid (`MermaidBlock`), GFM, callouts and
+code, and nothing else. Part 0 is unaffected (its diagrams are process flows, which
+§7.2 assigns to Mermaid anyway), but 1.6 and 3.4 are topology chapters whose primary
+diagram is exactly what has no renderer. Needs a decision before Wave 1 chapter 3:
+build a markdown graph block, or amend §7.2 to allow Mermaid for topology in the
+Reader. Not hacked around, per `pending-content.md`'s working process.
 
 ---
 
