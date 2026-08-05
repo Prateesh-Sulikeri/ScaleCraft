@@ -50,6 +50,13 @@ don't).
   specific chapters. **Read it before authoring any chapter, and append to it when
   one is finished** - that entry is the last step before committing a chapter, not
   something batched at the end of a wave.
+- **Information density is the first rule of lesson writing** (`CURRICULUM.md`
+  §20.6, binding, outranks every other style preference). Optimize for knowledge
+  per minute, not polish. Every sentence introduces a concept, clarifies a hard
+  one, or reinforces one with a real example - anything else gets cut. Prefer
+  tables and bullets where they scan better than prose, and let length follow
+  content rather than the time estimate. Always do a density revision pass; a
+  complete first draft is not a finished chapter.
 - `.claude/docs/CURRICULUM.md` is the master spec (§5 blueprint, §6 mandatory
   sections, §14/§15 per-chapter briefs, §16 component budget, §20 author voice);
   `.claude/docs/QUIZ_FRAMEWORK.md` governs every quiz question;

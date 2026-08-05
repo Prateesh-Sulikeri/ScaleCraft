@@ -82,7 +82,8 @@ Every chapter you author produces ALL of the following, in one branch:
    batched at the end of a wave.
 
 **Definition of done per chapter:** all six deliverables plus the ledger entry;
-every §6-mandatory section present (or a written justification); component
+every §6-mandatory section present (or a written justification); **a density
+revision pass done against §20.6, not just a complete first draft**; component
 budget respected; no em dashes; `placeholder` flag absent; pipeline green; the
 chapter reads as one continuous experience from cold open to Design Editor.
 
@@ -156,6 +157,13 @@ wave's chapters are merged (the user merges; you never do).
 
 ## Quality bar (how your work will be judged)
 
+**Information density is the first thing your draft will be judged on.** Read
+CURRICULUM.md §20.6 before writing a word; it outranks every other style rule.
+Optimize for knowledge per minute, not polish. Every sentence introduces a
+concept, clarifies a hard one, or reinforces one with a real example, or it gets
+cut. Prefer tables and bullets wherever they scan better than prose. Length
+follows content: if the material is 400 words, ship 400 words.
+
 Read three sources before writing your first chapter, for register only (never
 copy content): Hello Interview's teaching structure, ByteByteGo's diagram
 discipline, Alex Xu's pacing. Your chapter should feel like it was written by a
@@ -163,3 +171,8 @@ staff engineer who is also a gifted teacher: concrete, honest about trade-offs,
 zero filler, every section earning its place. The test for every paragraph:
 does it change what the learner can DO in the Design Editor or say in an
 interview? If not, cut it.
+
+**Expect a density revision pass.** 0.1's first draft was roughly double the
+length its content justified and was cut 47% (1262 words to 667) with every
+mandatory section intact. Budget for that pass rather than treating the first
+complete draft as done.

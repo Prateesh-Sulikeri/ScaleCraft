@@ -96,9 +96,10 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
     readingLinks: [],
     editorTourId: "design-editor",
-    // Bumped to 2 when Track B rewrote the lesson body to CURRICULUM.md
-    // §5.3's beat structure (2026-08-05).
-    lessonVersion: 2,
+    // 2: Track B rewrote the body to CURRICULUM.md §5.3's beat structure.
+    // 3: density revision pass against the new §20.6, 1262 words to 667.
+    // Both 2026-08-05.
+    lessonVersion: 3,
     curriculumContext: {
       position: "Building Blocks, Part 0: Foundations - Chapter 0.1 of 44.",
       masteredConcepts: [],

@@ -1315,6 +1315,53 @@ Never assume:
 - That the reader of your lesson spec has read your mind: specs list their
   omissions, simplifications, and evaluation criteria explicitly (§11.2).
 
+### 20.6 Information density (the highest-priority style rule)
+
+Added 2026-08-05 after 0.1's first draft came in at roughly double the length its
+content justified. This rule outranks every other style preference in §20: when
+density and elegance conflict, density wins.
+
+**Optimize for knowledge per minute, not polish.** A learner who spends 10
+minutes in a chapter should leave with 10 minutes of knowledge, not 10 minutes of
+well-made English. A 6-page chapter dense with insight beats a 15-page chapter
+saying the same thing more gracefully. Assume the reader is intelligent and busy.
+
+**Every sentence must do one of three things.** Introduce a new concept, clarify
+a difficult one, or reinforce an important one with a meaningful example. A
+sentence doing none of the three gets cut or rewritten until it does. This is a
+per-sentence test, applied on revision, not a general aspiration.
+
+Concretely, cut on sight:
+
+- One idea stretched across multiple paragraphs. State it once, at full strength.
+- Restating a point in new words because the new words are better. Pick one.
+- Transitional and scene-setting sentences that carry no information ("Let's
+  explore why this matters", "As we will see", "It is worth noting that").
+- Atmosphere in the cold open beyond what is needed to make the problem felt.
+  Beat 1 needs a concrete pressure, not a short story - two or three sentences.
+- Elegant phrasing where plain phrasing is clearer. Sophistication is not a
+  teaching aid.
+- A recap that restates the chapter instead of compressing it to retrieval
+  anchors. Three tight lines beat eight loose ones.
+
+**Prefer the format with the highest scan value.** A comparison belongs in a
+table, not in paragraphs contrasting two things across five sentences. A list of
+mistakes belongs in bullets. Reserve prose for reasoning that genuinely needs
+connected argument. Write like high-quality engineering documentation: direct,
+technically precise, easy to skim, concrete before abstract.
+
+**Length follows content, not the time estimate.** A chapter's `Est` is a
+prediction about the learner, not a word budget to fill. If a chapter's material
+is genuinely 400 words, ship 400 words. Padding a short chapter to feel
+substantial is the specific failure this rule exists to prevent.
+
+**How to apply it.** Draft for completeness against §5.3's beats and §6's section
+inventory, then revise for density before the chapter is done. The mandatory
+sections still all appear - density is about how much text each one costs, not
+about dropping beats. A section that cannot justify itself under this rule in a
+given chapter is a §6 omission needing written justification in the spec, not a
+section quietly padded to look present.
+
 ---
 
 ## 21. Implementation mapping and migration

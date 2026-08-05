@@ -46,21 +46,22 @@ and quiz Q4; 5 by the build's validate-read-fix cycle.
 
 | Beat | Section in the lesson | Notes |
 |---|---|---|
-| 1-2 Cold open / why this exists | "Reading about architecture is not the same skill" | The felt pressure is recognition-without-production: the explainer made sense, the blank page does not. |
+| 1-2 Cold open / why this exists | Untitled opening, 2 short paragraphs | The felt pressure is recognition-without-production: you can follow the article and still freeze at a blank canvas. |
 | 3 Think first | "Think first" callout | Prediction prompt on what "wrong" means for a diagram. Never graded. |
-| 4 Mental model | "The loop" | One anchor sentence: ScaleCraft is a loop, not a book. |
-| 5 Visual explanation | Mermaid loop diagram | Primary diagram, placed before the prose that explains it (§8.1). Captioned. |
-| 6-7 Core + internal mechanics | "What the editor gives you" / "What validation actually does" | Includes the two-stage Submit and drift reporting. |
-| 8 Trade-offs | "Why hints do not open themselves" | Genuine two-sided decision, costs named both ways. |
+| 4 Mental model | "The loop" | One anchor sentence: a loop, not a book. |
+| 5 Visual explanation | Mermaid loop diagram | Primary diagram, placed before the prose that explains it (§8.1). Captioned on what to notice (the two backward arrows). |
+| 6 Core mechanics | "The editor" | One paragraph naming the whole surface. The tour does the walkthrough; the lesson does not duplicate 21 steps. |
+| 7 Internal mechanics | "Validate and Submit" | A comparison table plus the two-stage short-circuit and the explain-always commitment. Table chosen over prose per §20.6's scan-value rule. |
+| 8 Trade-offs | "Hints stay closed" | Genuine two-sided decision, costs named both ways. |
 | 9 Failure modes | omitted | Optional for Concept (§6). No system under discussion to fail. |
 | 10 Scaling | omitted | Optional for Concept (§6). Not applicable. |
 | 11 Production examples | **omitted - justified below** | Mandatory for Concept; see §4. |
-| 12 Common mistakes | "Four ways to make this harder than it is" | Four real first-session errors. |
-| 13 Interview lens | "Why this loop looks like an interview" | Kept short and honest; chapter is Interview: Low. |
-| 14 Connections | "Where this sits" | Backward connections justified below; one forward tease to 0.2. |
-| 15 Recap + knowledge check | "Recap" | 4 anchors; QuizLauncher renders the knowledge check automatically. |
-| 16 Transition brief | "Your turn" | Names the exercise, success condition, and what is withheld. |
-| Preview of next | "Next" | Pull into 0.2 via an unresolved question, not a table of contents. |
+| 12 Common mistakes | "Four ways to make this harder" | Four real first-session errors, as bullets. |
+| 13 Interview lens | "Why this resembles an interview" | Two sentences; chapter is Interview: Low and padding it would violate §20.6. |
+| 14 Connections | merged into "Next" | §6 permits merging adjacent short sections. Backward half is impossible (see §4); the forward tease is all that remains, so it lives with the preview rather than in a near-empty section of its own. |
+| 15 Recap + knowledge check | "Recap" | 3 retrieval anchors, deliberately not a restatement of the chapter (§20.6). QuizLauncher renders the knowledge check automatically. |
+| 16 Transition brief | "Your turn" | Names the exercise, the success condition, and the self-diagnosis path if the tour is paused. |
+| Preview of next | "Next" | Pull into 0.2 by naming the five forces concretely, not a table of contents. |
 
 ## 4. Declared omissions and justifications (§6's written-justification rule)
 

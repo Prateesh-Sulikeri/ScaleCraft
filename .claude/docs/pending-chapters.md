@@ -19,6 +19,14 @@ content met the authoring bar or what got flagged along the way.
 **Scope of the curriculum:** 47 Building Blocks entries (44 chapters + 3
 checkpoints) + 32 Real World Extraction projects = 79 manifest rows.
 
+> **Information density is the standing bar for every chapter.** CURRICULUM.md
+> §20.6 is binding and outranks every other style rule: optimize for knowledge
+> per minute, cut any sentence that does not introduce, clarify, or reinforce,
+> prefer tables and bullets where they scan better, and let length follow
+> content rather than the time estimate. Every entry below records its lesson
+> word count so drift is visible. Do a density revision pass before calling a
+> chapter done - a complete first draft is not a finished one.
+
 ---
 
 ## Status at a glance
@@ -44,6 +52,7 @@ Everything else in the 79 rows is unauthored (`chapterDefinitionId: null`).
   Track A's chapter definition and lesson file)
 - Definition id `bb-0-1-welcome` · manifest slug `0-1-welcome-to-scalecraft`
 - Type: Concept · foundational · 10 min · no prerequisites
+- **Lesson length: 667 words** (down from 1262 in the first draft)
 - Pipeline green at commit: typecheck, lint, 1552 tests, build
 
 **Deliverables (all 6):**
@@ -59,6 +68,13 @@ Everything else in the 79 rows is unauthored (`chapterDefinitionId: null`).
 
 **Judgment calls made:**
 
+- **Cut 47% for density (2026-08-05, user direction).** The first draft stretched
+  single ideas across multiple paragraphs, restated points in fresher words, and
+  used prose where a table scanned better. The Validate/Submit contrast became a
+  4-row comparison table, the recap became 3 retrieval anchors instead of a
+  restatement, and the near-empty Connections section merged into "Next" (§6
+  permits merging short adjacent sections). Every mandatory beat survived. This
+  produced CURRICULUM.md §20.6, now the highest-priority style rule.
 - Palette narrowed from 5 components to the 3 primitives. `load-balancer` and
   `cache` existed only to give the guided tour's picker step more to browse,
   which did not justify putting Group A/D components in front of a learner in
