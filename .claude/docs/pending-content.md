@@ -74,10 +74,17 @@ Every chapter you author produces ALL of the following, in one branch:
    taught each move this exercise requires?" If any move has no answer, fix the
    chapter or flag the sequencing.
 
-**Definition of done per chapter:** all six deliverables; every §6-mandatory
-section present (or a written justification); component budget respected; no em
-dashes; `placeholder` flag absent; pipeline green; the chapter reads as one
-continuous experience from cold open to Design Editor.
+7. **Ledger entry** - append the chapter to `.claude/docs/pending-chapters.md`
+   as the last step before committing: date, branch, commit, where each
+   deliverable landed, the judgment calls you made, and anything you flagged
+   rather than resolved. That file is the answer to "is this chapter actually
+   done?" for every future session, so it is written at completion time, never
+   batched at the end of a wave.
+
+**Definition of done per chapter:** all six deliverables plus the ledger entry;
+every §6-mandatory section present (or a written justification); component
+budget respected; no em dashes; `placeholder` flag absent; pipeline green; the
+chapter reads as one continuous experience from cold open to Design Editor.
 
 ## Dependencies you must respect (do not author around them silently)
 
@@ -130,6 +137,10 @@ wave's chapters are merged (the user merges; you never do).
 
 ## Working process
 
+- **Read `.claude/docs/pending-chapters.md` before starting any chapter.** It
+  records what is already authored, which gates were checked and found stale
+  (do not re-verify those), and the open decisions that block specific
+  chapters. Append to it when a chapter is done - that is deliverable 7.
 - One branch per chapter (`feature/content-<slug>`), or per small cluster for
   Part 0-sized chapters. Full local pipeline green before any push; ask before
   pushing; never merge.

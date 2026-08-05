@@ -42,6 +42,21 @@ don't).
 - `.claude/docs/MILESTONES.md` — the sequenced, currently-active roadmap from the
   scaffold to MVP. Check this before picking what to work on next.
 
+## Curriculum authoring
+
+- `.claude/docs/pending-chapters.md` - the completion ledger: which chapters are
+  actually authored, on which branch, what judgment calls were made, which gates
+  were already checked (don't re-verify those), and the open decisions that block
+  specific chapters. **Read it before authoring any chapter, and append to it when
+  one is finished** - that entry is the last step before committing a chapter, not
+  something batched at the end of a wave.
+- `.claude/docs/CURRICULUM.md` is the master spec (§5 blueprint, §6 mandatory
+  sections, §14/§15 per-chapter briefs, §16 component budget, §20 author voice);
+  `.claude/docs/QUIZ_FRAMEWORK.md` governs every quiz question;
+  `.claude/docs/pending-content.md` is the wave plan and the per-chapter deliverable
+  contract. When content needs something the framework forbids or lacks, propose a
+  doc edit in its own commit - never author around it silently.
+
 ## Design & UX docs (live reference)
 
 - `DESIGN.md` (root) — the active, committed design system: color tokens, typography,

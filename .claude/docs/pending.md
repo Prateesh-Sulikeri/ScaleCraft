@@ -144,40 +144,28 @@ playtest-sequencing check), in curriculum order:
 
 ### Track B progress
 
-**1. 0.1 Welcome to ScaleCraft - done 2026-08-05**, branch
-`feature/content-0-1-welcome` (stacked on `feature/guided-tour-track-a`, since 0.1's
-content builds on Track A's chapter definition). All 6 deliverables:
-spec (`src/content/chapters/specs/bb-0-1-welcome.spec.md`), lesson body rewritten to
-§5.3's beats, `ChapterDefinition` (5 objectives across §5.2's categories, palette
-corrected, `lessonVersion: 2`), no new validation rules (justified in the spec), a
-4-question quiz, and the §18.2 playtest pass. New
-`src/content/chapters/authoring-invariants.test.ts` guards the authoring contract
-registry-wide. Pipeline green.
+**Per-chapter detail lives in `.claude/docs/pending-chapters.md`** - the completion
+ledger (what is authored, on which branch, judgment calls, gates already verified).
+Append there when a chapter lands; this section stays release-level only.
 
-**Two spec divergences raised, both needing a doc decision (not authored around):**
+**Wave 1: 1 of 5 authored.**
 
-- **§14's 0.1 row vs. the chapter as built.** §14 says "Exercise: none (the tour is
-  the chapter)" and "New: none (tour of the seed graph, read-only)". Track A built a
-  real fix exercise on a deliberately broken graph, gated by Submit. The built
-  behavior is kept - it is shipped, tested, and stronger pedagogically - so
-  **CURRICULUM.md §14's 0.1 row needs updating** in its own commit. Recorded in the
-  chapter spec's §10.
-- **§16 component budget.** §16 homes `client`/`app-server`/`sql-database` at 1.6 and
-  forbids a component appearing in any palette before its home chapter. 0.1 needs
-  them on the canvas to have something to fix. Handled as a declared, minimal
-  exception documented in the spec's §6; `load-balancer` and `cache` were removed
-  from 0.1's palette outright (they were there only to give the picker more to
-  browse, which did not justify two further violations).
+1. **0.1 Welcome to ScaleCraft - done 2026-08-05**, commit `250b5eb`, branch
+   `feature/content-0-1-welcome` (stacked on `feature/guided-tour-track-a`, since
+   0.1's content builds on Track A's chapter definition). All 6 deliverables in,
+   pipeline green. New `src/content/chapters/authoring-invariants.test.ts` enforces
+   the authoring contract registry-wide, so a later chapter that breaks it fails CI
+   rather than shipping.
+2-5. Not started.
 
-**Engineering gap found, blocks 1.6 and 3.4, does not block Part 0:** CURRICULUM §7.2
-says topology diagrams are authored as ScaleCraft graph JSON so they render in the
-product's own visual language, but **the Reader has no renderer for embedded graph
-JSON.** `MarkdownRenderer.tsx` handles Mermaid (`MermaidBlock`), GFM, callouts and
-code, and nothing else. Part 0 is unaffected (its diagrams are process flows, which
-§7.2 assigns to Mermaid anyway), but 1.6 and 3.4 are topology chapters whose primary
-diagram is exactly what has no renderer. Needs a decision before Wave 1 chapter 3:
-build a markdown graph block, or amend §7.2 to allow Mermaid for topology in the
-Reader. Not hacked around, per `pending-content.md`'s working process.
+**Open decisions raised while authoring** (full detail in the ledger): CURRICULUM
+§14's 0.1 row contradicts the chapter as built; §16's component budget needed a
+declared exception at 0.1; and **the Reader has no renderer for ScaleCraft graph
+JSON**, which §7.2 assumes for topology diagrams - `MarkdownRenderer.tsx` handles
+Mermaid and nothing else. That last one **blocks 1.6 and 3.4** (topology chapters)
+while leaving Part 0 unaffected, and needs a decision before Wave 1 chapter 3: build
+a markdown graph block, or amend §7.2. None were authored around, per
+`pending-content.md`'s working process.
 
 ---
 
