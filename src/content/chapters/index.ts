@@ -11,6 +11,101 @@ import type { ChapterDefinition } from "./types";
  */
 export const chapterRegistry: ChapterDefinition[] = [
   {
+    id: "bb-0-1-welcome",
+    mode: "building-blocks",
+    title: "Welcome to ScaleCraft",
+    // No `placeholder: true` — this is the first thing a new user ever sees,
+    // and a "Draft" badge on it was a poor first impression for content that
+    // now describes the chapter accurately (.claude/docs/pending.md tour
+    // punch list #25/#26). Track B still owns the final prose polish; the
+    // lesson body lives in public/content/chapters/bb-0-1-welcome.md.
+    problemStatement:
+      "Your first look at the Design Editor. The starter design on the canvas " +
+      "has two real faults in it, on purpose: run Validate to see what and " +
+      "why, fix both, then Submit to complete the chapter. A guided tour " +
+      "walks you through it - press Esc to pause it, or replay it from the " +
+      "pill in the corner.",
+    learningObjectives: [
+      "Find your way around the Design Editor: canvas, component picker, undo/redo.",
+      "Read a validation result as an explanation, not just a pass/fail.",
+      "Tell Validate (the quick check) apart from Submit (the completion gate).",
+    ],
+    // A slightly wider palette than the starter graph strictly needs, so
+    // the guided tour's "open the component picker" step has more than
+    // three items to actually browse. Narrowed down to just ["sql-database"]
+    // for one remediation step by the tour itself (see
+    // design-editor-tour.ts's "fix-component" step) — that's a runtime-only
+    // override (TourController), not a change to this list.
+    availableComponentIds: ["client", "app-server", "sql-database", "load-balancer", "cache"],
+    requiredComponentIds: ["client", "app-server", "sql-database"],
+    validationRuleIds: ["orphan-component", "missing-input-connection", "request-flow-cycle", "component-relations"],
+    // Unlike a real exercise chapter, 0.1 isn't teaching architecture design
+    // — it's teaching the editor's own fix-it loop. The starter graph is
+    // deliberately broken (see starterGraph below) so Validate has
+    // something real to find and the tour walks the learner through
+    // actually fixing it before Submit can pass.
+    blueprints: [
+      {
+        id: "bb-0-1-welcome-blueprint",
+        label: "Client routed through an app server to a database",
+        require: {
+          id: "bb-0-1-welcome-blueprint",
+          nodes: [
+            { alias: "client", componentId: "client" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "client", to: "app" },
+            { from: "app", to: "db" },
+          ],
+        },
+        commentary:
+          "A client talks to an app server, which reads and writes to a database - the " +
+          "smallest shape that's still a real, three-tier architecture. Every later " +
+          "chapter builds on this one.",
+      },
+    ],
+    hints: [
+      {
+        id: "bb-0-1-welcome-hint-1",
+        body:
+          "Missed part of the guided tour, or want to see it again? Press Esc to pause it " +
+          "and pick up where you left off, or use the pill in the bottom-left corner of " +
+          "the canvas to resume or replay it.",
+      },
+    ],
+    readingLinks: [],
+    editorTourId: "design-editor",
+    curriculumContext: {
+      position: "Building Blocks, Part 0: Foundations - Chapter 0.1 of 44.",
+      masteredConcepts: [],
+      notYetIntroducedConcepts: ["Everything - this is the first chapter in the curriculum."],
+      simplifications: [
+        "The starter design is deliberately broken (a missing component, a wrong edge kind) - " +
+          "this chapter teaches the editor's fix-it loop, not architecture design.",
+      ],
+    },
+    // Deliberately broken, not the solved shape (2026-08-05 revision, after
+    // an in-editor tour review) — two real, distinct issues for Validate to
+    // find and the guided tour to walk the learner through fixing:
+    //  1. sql-database (a required component) is entirely absent.
+    //  2. The one edge that IS here has the wrong kind: "async" from a
+    //     Client is illegal (Client's own relations.outputs.allowedKinds is
+    //     ["request-flow"] only — see content/components/config/
+    //     networking.ts), so component-relations flags it.
+    // See design-editor-tour.ts's "validate-click"/"fix-component"/
+    // "fix-edge"/"revalidate-clean" steps for the guided remediation.
+    starterGraph: {
+      nodes: [
+        { id: "bb-0-1-client", componentId: "client", position: { x: 80, y: 140 }, config: {} },
+        { id: "bb-0-1-app-server", componentId: "app-server", position: { x: 340, y: 140 }, config: {} },
+      ],
+      edges: [{ id: "bb-0-1-edge-client-app", source: "bb-0-1-client", target: "bb-0-1-app-server", kind: "async" }],
+      entryPointIds: ["bb-0-1-client"],
+    },
+  },
+  {
     id: "bb-dummy-1",
     mode: "building-blocks",
     title: "Placeholder Chapter",

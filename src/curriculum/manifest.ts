@@ -39,7 +39,7 @@ export const courses: Record<CourseId, Course> = {
             number: "0.1",
             title: "Welcome to ScaleCraft",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-0-1-welcome",
             estimatedMinutes: 10,
             difficulty: "foundational",
             prerequisiteSlugs: [],

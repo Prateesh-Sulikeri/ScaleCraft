@@ -143,4 +143,10 @@ export type ChapterDefinition = {
   /** Absent means the chapter has no quiz — checkpoints never have one. See
    * .claude/docs/QUIZ_FRAMEWORK.md and the Reader's QuizLauncher. */
   quiz?: QuizQuestion[];
+  /** Mounts `TourController` (src/tour/) in ChapterWorkspaceContent when
+   * present. Only one script exists today ("design-editor", see
+   * src/tour/design-editor-tour.ts) — a literal union rather than a bare
+   * string so a typo'd id fails at compile time, not silently no-ops at
+   * runtime. Absent means no guided tour for this chapter. */
+  editorTourId?: "design-editor";
 };

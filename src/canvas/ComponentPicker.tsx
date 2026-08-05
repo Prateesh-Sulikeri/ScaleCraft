@@ -355,6 +355,7 @@ export function ComponentPicker() {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Add a component"
+                data-tour="component-picker"
                 className="motion-reduce:transition-none pointer-events-auto flex max-h-[70vh] w-[640px] max-w-full flex-col rounded-md border border-border bg-panel shadow-lg transition-opacity duration-150"
               >
                 <div className="border-b border-border p-3">

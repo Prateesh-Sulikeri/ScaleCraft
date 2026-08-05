@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 import Link from "next/link";
-import { AlertTriangle, BookOpen, Check, Loader2, Redo2, Save, Undo2 } from "lucide-react";
+import { AlertTriangle, BookOpen, Check, CheckCheck, Loader2, Redo2, Save, Undo2 } from "lucide-react";
 import type { CanvasHandle } from "@/canvas/Canvas";
 import { Tooltip } from "@/app/Tooltip";
 import { ThemeToggle } from "@/app/ThemeToggle";
@@ -45,6 +45,16 @@ type AppHeaderProps = {
   violations: ValidationViolation[] | null;
   isStale: boolean;
   onValidate: () => void;
+  /** Submit checks the same violations as Validate, plus (once that
+   * passes) blueprint matching — the chapter-completion gate. See
+   * .claude/docs/pending.md Track A's Validate/Submit split. Omitted
+   * entirely in Sandbox (no chapter, nothing to complete) — the button
+   * only renders when this is provided. */
+  onSubmit?: () => void;
+  /** True once this chapter has a chapterProgress row — persisted
+   * completion, independent of the current in-progress graph edits, so
+   * this never goes stale the way `isStale` above does. */
+  chapterPassed?: boolean;
   /** Which save slot Save/Project/Board act on (persistence/db.ts's
    * SANDBOX_SAVE_ID / chapterSaveId). `null` disables all three together —
    * there's no well-defined target yet (chapter mode's Chapter List view). */
@@ -81,6 +91,8 @@ export function AppHeader({
   violations,
   isStale,
   onValidate,
+  onSubmit,
+  chapterPassed,
   saveId,
   onSave,
   saveStatus,
@@ -118,7 +130,7 @@ export function AppHeader({
          * shared container is what makes this actually match Save/Export/
          * Board (the prior merged version omitted it and rendered
          * transparent against the header, which read as "doesn't match"). */}
-        <div className="flex h-8 items-center overflow-hidden rounded-md border border-border bg-panel">
+        <div data-tour="undo-redo" className="flex h-8 items-center overflow-hidden rounded-md border border-border bg-panel">
           <Tooltip label="Undo (Ctrl+Z)">
             <button
               onClick={onUndo}
@@ -142,56 +154,72 @@ export function AppHeader({
           </Tooltip>
         </div>
         <ValidationIndicator violations={violations} isStale={isStale} onValidate={onValidate} />
-        <DeepCheckButton ctx={deepCheckCtx} saveId={saveId} />
-        <Tooltip label={saveId ? saveTooltipLabel[saveStatus] : "Select a chapter to enable Save"}>
-          <button
-            onClick={onSave}
-            disabled={!saveId}
-            aria-label="Save"
-            data-save-status={saveStatus}
-            className={`flex h-8 w-8 items-center justify-center rounded-md border bg-panel hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-foreground/70 ${
-              saveStatus === "error"
-                ? "border-state-error text-state-error"
-                : saveStatus === "saved-recent"
-                  ? "border-state-valid text-state-valid"
-                  : "border-border text-foreground/70"
-            }`}
-          >
-            {saveStatus === "saving" ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : saveStatus === "saved-recent" ? (
-              <Check size={16} />
-            ) : saveStatus === "error" ? (
-              <AlertTriangle size={16} />
-            ) : (
-              <Save size={16} />
-            )}
-          </button>
-        </Tooltip>
-        {/* Screen-reader-only echo of the icon-only save status above - no
-         * visible text label (that used to sit here permanently, which read
-         * as header clutter), but the state change is still announced. */}
-        {saveId && (
-          <p aria-live="polite" className="sr-only">
-            {saveStatusLabel[saveStatus]}
-          </p>
+        {onSubmit && (
+          <Tooltip label="Submit - checks completion against this chapter's target design">
+            <button
+              onClick={onSubmit}
+              aria-label="Submit"
+              data-tour="submit"
+              className={`flex h-8 w-8 items-center justify-center rounded-md border bg-panel hover:bg-border ${
+                chapterPassed ? "border-state-valid text-state-valid" : "border-border text-foreground/70"
+              }`}
+            >
+              <CheckCheck size={16} />
+            </button>
+          </Tooltip>
         )}
-        <ProjectMenu canvasRef={canvasRef} disabled={!saveId} />
-        <BoardMenu saveId={saveId} />
-        <Tooltip label="Documentation">
-          <button
-            onClick={toggleDocsPanel}
-            aria-label={docsPanelOpen ? "Hide documentation panel" : "Show documentation panel"}
-            aria-pressed={docsPanelOpen}
-            className={`flex h-8 w-8 items-center justify-center rounded-md border border-border hover:text-foreground ${
-              docsPanelOpen ? "bg-border text-foreground" : "bg-panel text-foreground/70"
-            }`}
-          >
-            <BookOpen size={16} />
-          </button>
-        </Tooltip>
-        <ShortcutsButton />
-        <ThemeToggle />
+        <DeepCheckButton ctx={deepCheckCtx} saveId={saveId} />
+        <div data-tour="header-tools" className="flex items-center gap-2">
+          <Tooltip label={saveId ? saveTooltipLabel[saveStatus] : "Select a chapter to enable Save"}>
+            <button
+              onClick={onSave}
+              disabled={!saveId}
+              aria-label="Save"
+              data-save-status={saveStatus}
+              className={`flex h-8 w-8 items-center justify-center rounded-md border bg-panel hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-foreground/70 ${
+                saveStatus === "error"
+                  ? "border-state-error text-state-error"
+                  : saveStatus === "saved-recent"
+                    ? "border-state-valid text-state-valid"
+                    : "border-border text-foreground/70"
+              }`}
+            >
+              {saveStatus === "saving" ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : saveStatus === "saved-recent" ? (
+                <Check size={16} />
+              ) : saveStatus === "error" ? (
+                <AlertTriangle size={16} />
+              ) : (
+                <Save size={16} />
+              )}
+            </button>
+          </Tooltip>
+          {/* Screen-reader-only echo of the icon-only save status above - no
+           * visible text label (that used to sit here permanently, which read
+           * as header clutter), but the state change is still announced. */}
+          {saveId && (
+            <p aria-live="polite" className="sr-only">
+              {saveStatusLabel[saveStatus]}
+            </p>
+          )}
+          <ProjectMenu canvasRef={canvasRef} disabled={!saveId} />
+          <BoardMenu saveId={saveId} />
+          <Tooltip label="Documentation">
+            <button
+              onClick={toggleDocsPanel}
+              aria-label={docsPanelOpen ? "Hide documentation panel" : "Show documentation panel"}
+              aria-pressed={docsPanelOpen}
+              className={`flex h-8 w-8 items-center justify-center rounded-md border border-border hover:text-foreground ${
+                docsPanelOpen ? "bg-border text-foreground" : "bg-panel text-foreground/70"
+              }`}
+            >
+              <BookOpen size={16} />
+            </button>
+          </Tooltip>
+          <ShortcutsButton />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
