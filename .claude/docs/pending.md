@@ -148,7 +148,7 @@ playtest-sequencing check), in curriculum order:
 ledger (what is authored, on which branch, judgment calls, gates already verified).
 Append there when a chapter lands; this section stays release-level only.
 
-**Wave 1: 1 of 5 authored.**
+**Wave 1: 2 of 5 authored.**
 
 1. **0.1 Welcome to ScaleCraft - done 2026-08-05**, commit `250b5eb`, branch
    `feature/content-0-1-welcome` (stacked on `feature/guided-tour-track-a`, since
@@ -156,7 +156,19 @@ Append there when a chapter lands; this section stays release-level only.
    pipeline green. New `src/content/chapters/authoring-invariants.test.ts` enforces
    the authoring contract registry-wide, so a later chapter that breaks it fails CI
    rather than shipping.
-2-5. Not started.
+2. **0.2 What is System Design? - authored 2026-08-06, not yet committed**,
+   branch `feature/content-0-1-welcome`. All 6 deliverables in, pipeline green.
+   **One-chapter process experiment (user-directed):** authored directly by
+   Sonnet rather than delegated to Opus, pending an Opus proofread/correction
+   pass the user will review before deciding whether to make this the standing
+   process. User review of Sonnet's draft caught two real gaps before that
+   Opus pass even ran - the forces were named but never explained, and
+   `DesignEditorCTA` showing "Begin exercise" for a canvas-less chapter turned
+   out to also break completion tracking (no reachable Submit to write the
+   `chapterProgress` row `deriveStatus` required). Both fixed in-session; new
+   `ChapterDefinition.hasEditorExercise?: boolean` field now covers every
+   future canvas-less Concept chapter. Full detail in the ledger entry.
+3-5. Not started.
 
 **Open decisions raised while authoring** (full detail in the ledger): CURRICULUM
 §14's 0.1 row contradicts the chapter as built; §16's component budget needed a

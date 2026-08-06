@@ -4,7 +4,7 @@ import { chapterRegistry, getChaptersForMode } from "./index";
 describe("getChaptersForMode", () => {
   it("returns only building-blocks chapters for that mode", () => {
     const chapters = getChaptersForMode("building-blocks");
-    expect(chapters.map((c) => c.id)).toEqual(["bb-0-1-welcome", "bb-dummy-1"]);
+    expect(chapters.map((c) => c.id)).toEqual(["bb-0-1-welcome", "bb-0-2-what-is-system-design", "bb-dummy-1"]);
   });
 
   it("returns only real-world-extraction chapters for that mode", () => {

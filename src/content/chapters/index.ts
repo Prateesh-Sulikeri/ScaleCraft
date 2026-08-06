@@ -4,8 +4,9 @@ import type { ChapterDefinition } from "./types";
  * The authored chapter registry. Mixed state during Wave 1 content authoring
  * (.claude/docs/pending-content.md):
  *
- * - `bb-0-1-welcome` is real curriculum content, authored against
- *   CURRICULUM.md §5/§6 with a chapter spec in `specs/` beside it.
+ * - `bb-0-1-welcome` and `bb-0-2-what-is-system-design` are real curriculum
+ *   content, authored against CURRICULUM.md §5/§6 with a chapter spec in
+ *   `specs/` beside each.
  * - `bb-dummy-1` and `rwe-dummy-1` are still throwaway shell fixtures
  *   (`placeholder: true`), standing in for 3.4 Load Balancer and RWE Tier 1
  *   Bitly respectively. Wave 1 replaces both - replace them, don't extend
@@ -142,20 +143,20 @@ export const chapterRegistry: ChapterDefinition[] = [
           },
           {
             id: "b",
+            label: "Reveals the hint automatically after a set number of failed attempts.",
+            correct: false,
+            explanationMd:
+              "Attempt-count triggers are exactly the nudging the product rules out. Nothing counts your " +
+              "attempts toward revealing anything.",
+          },
+          {
+            id: "c",
             label: "Nothing. The hint stays closed until you open it, and opening it is not recorded.",
             correct: true,
             explanationMd:
               "Correct. Hints are a separate, opt-in layer from explanations. You can always fail, read " +
               "the explanation, and reason your own way to a fix without ever opening one - and if you do " +
               "open it, nothing is tracked or penalized.",
-          },
-          {
-            id: "c",
-            label: "Reveals the hint automatically after a set number of failed attempts.",
-            correct: false,
-            explanationMd:
-              "Attempt-count triggers are exactly the nudging the product rules out. Nothing counts your " +
-              "attempts toward revealing anything.",
           },
           {
             id: "d",
@@ -230,6 +231,22 @@ export const chapterRegistry: ChapterDefinition[] = [
           },
           {
             id: "b",
+            label: "To slow the lesson down so the material has time to sink in.",
+            correct: false,
+            explanationMd:
+              "Pacing is not the mechanism. A prediction you never make would cost no time either, and " +
+              "would also teach nothing - the commitment is what does the work, not the delay.",
+          },
+          {
+            id: "c",
+            label: "To identify learners who are struggling so they can be given extra hints.",
+            correct: false,
+            explanationMd:
+              "Think-first prompts are never graded or recorded, and nothing in the product routes hints " +
+              "to you based on how you are doing.",
+          },
+          {
+            id: "d",
             label:
               "Committing to a prediction and then seeing the outcome teaches more than reading the answer. " +
               "Being wrong first is productive.",
@@ -238,22 +255,6 @@ export const chapterRegistry: ChapterDefinition[] = [
               "Correct. Committing to an answer makes the gap between what you expected and what happened " +
               "visible, and that gap is what sticks. Reading a correct answer you never predicted against " +
               "feels like understanding without producing much of it.",
-          },
-          {
-            id: "c",
-            label: "To slow the lesson down so the material has time to sink in.",
-            correct: false,
-            explanationMd:
-              "Pacing is not the mechanism. A prediction you never make would cost no time either, and " +
-              "would also teach nothing - the commitment is what does the work, not the delay.",
-          },
-          {
-            id: "d",
-            label: "To identify learners who are struggling so they can be given extra hints.",
-            correct: false,
-            explanationMd:
-              "Think-first prompts are never graded or recorded, and nothing in the product routes hints " +
-              "to you based on how you are doing.",
           },
         ],
       },
@@ -267,14 +268,6 @@ export const chapterRegistry: ChapterDefinition[] = [
         options: [
           {
             id: "a",
-            label: "That it is a good design - both checks passed, and that is what the checks are for.",
-            correct: false,
-            explanationMd:
-              "Both checks establish something narrower. Neither one has any knowledge of the requirements " +
-              "your colleague has in mind, or of the trade-offs a real decision would turn on.",
-          },
-          {
-            id: "b",
             label:
               "That it is structurally coherent, and that it matches the approach this chapter teaches. " +
               "Whether it is good for a given set of requirements is a judgment neither check makes.",
@@ -283,6 +276,14 @@ export const chapterRegistry: ChapterDefinition[] = [
               "Correct, and the distinction matters for the whole curriculum. Automated checks can confirm " +
               "coherence and conformance to a taught approach. Whether a design is right for a workload, a " +
               "budget, and a failure tolerance is the judgment you are here to build.",
+          },
+          {
+            id: "b",
+            label: "That it is a good design - both checks passed, and that is what the checks are for.",
+            correct: false,
+            explanationMd:
+              "Both checks establish something narrower. Neither one has any knowledge of the requirements " +
+              "your colleague has in mind, or of the trade-offs a real decision would turn on.",
           },
           {
             id: "c",
@@ -325,6 +326,338 @@ export const chapterRegistry: ChapterDefinition[] = [
       edges: [{ id: "bb-0-1-edge-client-app", source: "bb-0-1-client", target: "bb-0-1-app-server", kind: "async" }],
       entryPointIds: ["bb-0-1-client"],
     },
+  },
+  {
+    id: "bb-0-2-what-is-system-design",
+    mode: "building-blocks",
+    title: "What is System Design?",
+    // Real authored content (Track B, Wave 1 chapter 2). Spec:
+    // specs/bb-0-2-what-is-system-design.spec.md. Lesson body:
+    // public/content/chapters/bb-0-2-what-is-system-design.md.
+    problemStatement:
+      "System design gets used for everything from picking a database to drawing boxes on a " +
+      "whiteboard. This chapter replaces the phrase with five forces every design trades " +
+      "against - latency, throughput, availability, durability, cost - and asks you to name " +
+      "the dominant one across five short systems in the knowledge check.",
+    // Four objectives - Practical omitted per CURRICULUM.md §5.2's explicit
+    // carve-out ("except Practical in pure Concept chapters"). This chapter
+    // has no construction-family exercise (§11.1's justified-Concept-chapter
+    // exception, see spec §6) - "Practical" application happens in the
+    // trade-off-pick quiz question, not the canvas, so it is folded under
+    // Engineering rather than invented as a separate untested category.
+    learningObjectives: [
+      "Knowledge - Name the five forces (latency, throughput, availability, durability, cost) and state what each measures.",
+      "Engineering - Decide whether a proposed change is justified by identifying which force, if any, is actually under pressure.",
+      "Interview - Translate an interviewer's stated constraint (\"assume heavy read traffic\") into the force it is actually testing.",
+      "Communication - Explain a trade-off in both directions: what a decision buys and what it costs, naming both forces involved.",
+    ],
+    // No components introduced (§16 homes the first three at 1.6) and no
+    // construction-family exercise - a justified Concept-chapter exception
+    // per §11.1, spec §4. The chapter is Reader + knowledge check only.
+    // hasEditorExercise: false suppresses DesignEditorCTA (nothing to open)
+    // and switches curriculum/progress.ts's deriveStatus to gate COMPLETED
+    // on the exam pass alone, since there is no Submit to record a
+    // validation pass.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-0-2-hint-1",
+        body:
+          "Stuck on which force a described system depends on most? Ask what its worst possible " +
+          "failure would look like - a lost byte, an unreachable button, a slow response, or a " +
+          "huge bill - and match the force to that failure.",
+      },
+    ],
+    readingLinks: [],
+    // 2: Opus proofread pass (2026-08-06). Fixed the "Next" section to preview
+    // 0.3 (§6 requires the actual next chapter; it previewed 1.3 and skipped
+    // 0.3), removed an undefined forward reference to Interview Loop "step 2"
+    // (§10.1 is not taught until 0.4/Part 1, and 0.1 already used "loop" for
+    // something else), captioned the diagram (§7.2), paid off the cold open,
+    // and corrected two trade-off claims. See spec §10.
+    lessonVersion: 2,
+    curriculumContext: {
+      position: "Building Blocks, Part 0: Foundations - Chapter 0.2 of 44.",
+      masteredConcepts: ["The Reader-to-Editor loop, Validate vs. Submit, and hints-on-request (0.1)."],
+      notYetIntroducedConcepts: [
+        "Non-functional requirements as numeric targets - that's 1.3.",
+        "Any specific component or edge kind - none are introduced until 1.6.",
+        "Named consistency models (CAP, quorums) - that's 3.22.",
+      ],
+      simplifications: [
+        "The five forces get one-sentence definitions, not formalized as measurable NFRs yet - " +
+          "that is 1.3's job.",
+        "Trade-off examples (a cache, cross-datacenter replication) name a component-shaped idea " +
+          "without teaching the component - every component stays untaught until its home chapter.",
+        "Availability vs. durability is drawn as a clean distinction here; real failure modes often " +
+          "blend both - the clean version is intentional at this stage.",
+        "The five forces are this curriculum's working frame, not an exhaustive list of everything a " +
+          "design is judged on - consistency (3.22) and security (from 3.1 on) are deferred to their " +
+          "own chapters. The lesson says so rather than implying the five are complete.",
+      ],
+    },
+    // Ramp 1/1/2/2/3. Q1 models the Foundations bank's Q1 (QUIZ_FRAMEWORK.md
+    // §5); Q2's pairs are the bank's Q2, verbatim (they are the five forces'
+    // own definitions, already exactly matched to this lesson's diagram);
+    // Q3 is the chapter's own "trade-off pick" exercise (CURRICULUM.md §14),
+    // five described systems each matched to their dominant force; Q4 models
+    // the bank's Q7 (no force under pressure -> change nothing); Q5 is
+    // original, testing the availability/durability distinction from
+    // "Ways to misread this".
+    quiz: [
+      {
+        id: "bb-0-2-what-is-system-design-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A teammate says \"system design is about knowing lots of AWS services.\" What is the " +
+          "best correction?",
+        options: [
+          {
+            id: "a",
+            label: "It is about memorizing standard architectures for common products.",
+            correct: false,
+            explanationMd:
+              "Memorized shapes stop working the moment the requirements differ, which they always " +
+              "do. The lesson's Stripe/Netflix contrast used the same five forces to reach opposite " +
+              "designs.",
+          },
+          {
+            id: "b",
+            label:
+              "It is about reasoning under constraints - latency, throughput, availability, durability, " +
+              "cost - and defending the trade-offs between them.",
+            correct: true,
+            explanationMd:
+              "Correct. Services and specific patterns change constantly; the five forces and the " +
+              "trade-off reasoning between them are the stable discipline underneath.",
+          },
+          {
+            id: "c",
+            label: "It is about writing scalable code.",
+            correct: false,
+            explanationMd:
+              "Code-level performance is one lever on latency and throughput, but it says nothing " +
+              "about availability, durability, or cost - the discipline is broader than implementation.",
+          },
+          {
+            id: "d",
+            label: "It is mostly about databases.",
+            correct: false,
+            explanationMd:
+              "Databases are one place these forces show up, not the discipline itself - the same " +
+              "five forces govern the choice of load balancer, cache, or queue just as much.",
+          },
+        ],
+      },
+      {
+        id: "bb-0-2-what-is-system-design-q2",
+        kind: "matching",
+        difficulty: 1,
+        prompt: "Match each concern to the force it names.",
+        // Option order deliberately does not mirror pairs' order below - each
+        // pair's correct option sits at a different index than the pair
+        // itself, so the dropdown position carries no signal (caught in
+        // review: an identity-order draft made every row's Nth option the
+        // answer to its Nth pair).
+        options: [
+          {
+            id: "throughput",
+            label: "Throughput",
+            correct: true,
+            explanationMd: "How many requests the system survives per second - a volume measurement.",
+          },
+          {
+            id: "cost",
+            label: "Cost",
+            correct: true,
+            explanationMd: "What the other four are bought with - the bill for whatever trade-off was made.",
+          },
+          {
+            id: "durability",
+            label: "Durability",
+            correct: true,
+            explanationMd: "Whether data already written is still there later, independent of reachability.",
+          },
+          {
+            id: "latency",
+            label: "Latency",
+            correct: true,
+            explanationMd: "How long one request takes to complete - a single-request measurement.",
+          },
+          {
+            id: "availability",
+            label: "Availability",
+            correct: true,
+            explanationMd: "The fraction of time the system answers at all, regardless of how well.",
+          },
+        ],
+        pairs: [
+          ["p99 response time", "latency"],
+          ["requests per second the system survives", "throughput"],
+          ["fraction of time the system answers at all", "availability"],
+          ["data still exists after a crash", "durability"],
+          ["the bill", "cost"],
+        ],
+      },
+      {
+        id: "bb-0-2-what-is-system-design-q3",
+        kind: "matching",
+        difficulty: 2,
+        prompt: "Match each system to the force that dominates its design.",
+        // Same derangement discipline as Q2 - option order does not mirror
+        // pairs' order.
+        options: [
+          {
+            id: "latency",
+            label: "Latency",
+            correct: true,
+            explanationMd:
+              "A response slower than roughly 100 ms reads as broken to someone actively typing - " +
+              "speed is the entire product here, not a secondary concern.",
+          },
+          {
+            id: "cost",
+            label: "Cost",
+            correct: true,
+            explanationMd:
+              "Low value, low urgency, no one watching in real time - minimizing spend is the only " +
+              "force genuinely under pressure.",
+          },
+          {
+            id: "availability",
+            label: "Availability",
+            correct: true,
+            explanationMd:
+              "Being unreachable when it matters is the catastrophic failure - a briefly stale alert " +
+              "is far safer than no alert at all.",
+          },
+          {
+            id: "throughput",
+            label: "Throughput",
+            correct: true,
+            explanationMd:
+              "Surviving a sudden 50x spike in concurrent requests without falling over is the whole " +
+              "problem - each individual request being a few ms slower is a minor cost by comparison.",
+          },
+          {
+            id: "durability",
+            label: "Durability",
+            correct: true,
+            explanationMd:
+              "A lost or corrupted write is the catastrophic failure here - money that silently " +
+              "disappears is worse than a slow or briefly unreachable ledger.",
+          },
+        ],
+        pairs: [
+          ["A bank's transaction ledger recording money movements", "durability"],
+          ["A hospital's patient-monitoring alert system", "availability"],
+          ["A checkout page hit by 50x normal traffic during a ten-minute flash sale", "throughput"],
+          ["Search-as-you-type autocomplete suggestions", "latency"],
+          ["A weekly analytics report emailed to 12 people", "cost"],
+        ],
+      },
+      {
+        id: "bb-0-2-what-is-system-design-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Your internal tool has 40 users and one server sitting at 2% CPU. A teammate suggests " +
+          "adding a cache to \"future-proof it.\" What is the strongest response?",
+        options: [
+          {
+            id: "a",
+            label: "Add the cache now - it is easier to build before real usage arrives.",
+            correct: false,
+            explanationMd:
+              "Building ahead of any pressure is exactly the cost this lesson warns about: complexity " +
+              "with no offsetting benefit today, and possibly the wrong shape once real usage arrives.",
+          },
+          {
+            id: "b",
+            label: "Add a read replica instead, since databases are always the eventual bottleneck.",
+            correct: false,
+            explanationMd:
+              "\"Always eventually\" is not \"under pressure now\" - the same reasoning error as the " +
+              "cache suggestion, aimed at a different component.",
+          },
+          {
+            id: "c",
+            label:
+              "Change nothing - no force here is under pressure, so any of these additions is a cost " +
+              "with no benefit yet.",
+            correct: true,
+            explanationMd:
+              "Correct. 2% CPU and 40 users means latency, throughput, and availability all have " +
+              "headroom to spare - the only force actually affected by adding a cache right now is " +
+              "cost, moving in the wrong direction.",
+          },
+          {
+            id: "d",
+            label: "Add both the cache and a load balancer, since extra headroom is never wrong.",
+            correct: false,
+            explanationMd:
+              "Headroom is never free - it is bought with cost, one of the five forces, and this tool " +
+              "has shown no other force that needs buying it.",
+          },
+        ],
+      },
+      {
+        id: "bb-0-2-what-is-system-design-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "During a brief network partition, a write request to your database times out and the " +
+          "client shows an error - but every previously-committed write is still intact once the " +
+          "partition heals. Which force actually failed here, and which one held?",
+        // Correct option sits at d here on purpose. Q1's is at b and Q4's at c;
+        // with only three single-kind questions in this chapter, leaving this
+        // one at b as well would have put 2 of 3 on the same letter - passing
+        // the invariant test but reproducing the habit the test exists to
+        // catch (see quiz-invariants.test.ts).
+        options: [
+          {
+            id: "a",
+            label: "Durability failed; availability held.",
+            correct: false,
+            explanationMd:
+              "This reverses the two definitions - durability is about whether committed writes " +
+              "survive, not about whether a given request could be reached.",
+          },
+          {
+            id: "b",
+            label: "Both failed - a timeout means the request was fully lost, including its effect on prior data.",
+            correct: false,
+            explanationMd:
+              "A request that never committed had no effect on prior data to lose - there is nothing " +
+              "for durability to have failed at.",
+          },
+          {
+            id: "c",
+            label: "Neither - a timeout during a partition is a latency problem, not availability or durability.",
+            correct: false,
+            explanationMd:
+              "Latency describes how long a completed response took. A request that never got a " +
+              "response at all is unavailability, not slowness.",
+          },
+          {
+            id: "d",
+            label:
+              "Availability failed (the request could not be served); durability held (nothing already " +
+              "written was lost).",
+            correct: true,
+            explanationMd:
+              "Correct. A request going unanswered during a partition is exactly what unavailability " +
+              "looks like. Durability only speaks to writes that already committed, and none of those " +
+              "were touched.",
+          },
+        ],
+      },
+    ],
   },
   {
     id: "bb-dummy-1",

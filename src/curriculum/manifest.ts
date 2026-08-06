@@ -50,7 +50,7 @@ export const courses: Record<CourseId, Course> = {
             number: "0.2",
             title: "What is System Design?",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-0-2-what-is-system-design",
             estimatedMinutes: 15,
             difficulty: "foundational",
             prerequisiteSlugs: ["0-1-welcome-to-scalecraft"],
