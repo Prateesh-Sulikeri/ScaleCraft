@@ -103,4 +103,56 @@ describe("quiz question invariants", () => {
       }
     }
   });
+
+  // Three mechanical guards against positionally-guessable quizzes - each
+  // catches a real pattern authored content actually shipped with once
+  // (2026-08-06, user review): single-choice correct answers clustered on
+  // one letter, matching pairs whose correct option sat at the same index as
+  // the pair itself (a diagonal), and an ordering question whose authored
+  // option array was already the correct sequence. None of these are
+  // content-quality judgments (a human still checks whether the distractors
+  // are good) - they only catch a shape a test-taker could exploit without
+  // reading the question.
+
+  it("a chapter's single-choice correct answers are not all the same option position", () => {
+    for (const { chapterId, quiz } of questionsByChapter) {
+      const singles = quiz.filter((q) => q.kind === "single");
+      if (singles.length < 3) continue; // too few to judge a pattern
+      const correctPositions = singles.map((q) => q.options.findIndex((o) => o.correct));
+      expect(
+        new Set(correctPositions).size,
+        `${chapterId}'s ${singles.length} single-choice questions all put the correct answer at the same position`
+      ).toBeGreaterThan(1);
+    }
+  });
+
+  it("a matching question's correct-option sequence is not an index-for-index copy of its options array", () => {
+    for (const { chapterId, quiz } of questionsByChapter) {
+      for (const question of quiz) {
+        if (question.kind !== "matching") continue;
+        const pairs = question.pairs ?? [];
+        const correctSequence = pairs.map(([, optionId]) => optionId);
+        const optionSequence = question.options.map((o) => o.id).slice(0, pairs.length);
+        expect(
+          correctSequence,
+          `${chapterId}/${question.id}: pair i's correct option is options[i] for every i - the dropdown ` +
+            "position alone gives away every answer"
+        ).not.toEqual(optionSequence);
+      }
+    }
+  });
+
+  it("an ordering question's authored option array is not already the correct sequence", () => {
+    for (const { chapterId, quiz } of questionsByChapter) {
+      for (const question of quiz) {
+        if (question.kind !== "ordering") continue;
+        const authoredSequence = question.options.map((o) => o.id);
+        expect(
+          authoredSequence,
+          `${chapterId}/${question.id}: the authored options are already in correctOrder - the exercise is ` +
+            "solved before the learner touches it"
+        ).not.toEqual(question.correctOrder ?? []);
+      }
+    }
+  });
 });

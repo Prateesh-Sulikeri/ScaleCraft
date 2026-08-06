@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { QuestionPane } from "./QuestionPane";
+import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { CanvasStoreProvider, useCanvasStoreApi } from "@/canvas/store";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import type { ChapterDefinition, Hint, Blueprint, QuizQuestion } from "@/content/chapters/types";
 import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
+import type { BlueprintDriftReport } from "@/validation-engine/blueprint-drift";
 import type { ValidationViolation } from "@/validation-engine/types";
 import type { ComponentNodeType } from "@/canvas/types";
 import type { CurriculumChapter } from "@/curriculum/types";
@@ -29,14 +31,29 @@ function makeEntry(overrides: Partial<CurriculumChapter> = {}): CurriculumChapte
   };
 }
 
+// Deliberately returns a full ChapterOutcome — it's a structural superset of
+// ChapterValidationOutcome, so the same fixture works for both the
+// `validationOutcome` and `submitOutcome` props below.
 function makeOutcome(overrides: Partial<ChapterOutcome> = {}): ChapterOutcome {
   return {
     passed: false,
     matchedBlueprintId: null,
+    driftReport: null,
     violations: [],
     errorCount: 0,
     missingRequiredComponentIds: [],
     disconnectedRequiredComponentIds: [],
+    ...overrides,
+  };
+}
+
+function makeDrift(overrides: Partial<BlueprintDriftReport> = {}): BlueprintDriftReport {
+  return {
+    blueprintId: "bp-1",
+    blueprintLabel: "The taught approach",
+    missingComponents: [],
+    extraComponentIds: [],
+    mismatchedConnections: [],
     ...overrides,
   };
 }
@@ -83,25 +100,39 @@ function Harness({
   nodes,
   entry = makeEntry(),
   status = "NOT_STARTED",
-  chapterOutcome = null,
-  isStale = false,
+  validationOutcome = null,
+  isValidationStale = false,
+  submitOutcome = null,
+  isSubmitStale = false,
 }: {
   chapter: ChapterDefinition;
   nodes: ComponentNodeType[];
   entry?: CurriculumChapter;
   status?: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
-  chapterOutcome?: ChapterOutcome | null;
-  isStale?: boolean;
+  validationOutcome?: ChapterOutcome | null;
+  isValidationStale?: boolean;
+  submitOutcome?: ChapterOutcome | null;
+  isSubmitStale?: boolean;
 }) {
   const storeApi = useCanvasStoreApi();
   storeApi.setState({ nodes });
+  // Mirrors ChapterWorkspace's own wiring exactly (validate-scoped: no drift
+  // report) rather than hand-building a list, so these tests can't drift from
+  // what the header actually counts — the mismatch that produced punch list
+  // item #3 in the first place.
+  const displayViolations = validationOutcome
+    ? chapterDisplayViolations({ ...validationOutcome, driftReport: null }, nodes)
+    : null;
   return (
     <QuestionPane
       chapter={chapter}
       entry={entry}
       status={status}
-      chapterOutcome={chapterOutcome}
-      isStale={isStale}
+      validationOutcome={validationOutcome}
+      isValidationStale={isValidationStale}
+      displayViolations={displayViolations}
+      submitOutcome={submitOutcome}
+      isSubmitStale={isSubmitStale}
     />
   );
 }
@@ -156,11 +187,11 @@ describe("QuestionPane", () => {
     expect(screen.queryByText(/required components present/)).not.toBeInTheDocument();
   });
 
-  describe("validation summary line", () => {
+  describe("validation summary line (Validate-driven, never mentions blueprints)", () => {
     const chapter = makeChapter({ requiredComponentIds: ["client"] });
 
-    it("reads 'Not yet validated' when chapterOutcome is null", () => {
-      renderQuestionPane({ chapter, nodes: [], chapterOutcome: null, isStale: false });
+    it("reads 'Not yet validated' when validationOutcome is null", () => {
+      renderQuestionPane({ chapter, nodes: [], validationOutcome: null, isValidationStale: false });
       expect(screen.getByText(/not yet validated/i)).toBeInTheDocument();
     });
 
@@ -178,45 +209,100 @@ describe("QuestionPane", () => {
       renderQuestionPane({
         chapter,
         nodes: [],
-        chapterOutcome: makeOutcome({ violations, errorCount: 1 }),
-        isStale: true,
+        validationOutcome: makeOutcome({ violations, errorCount: 1 }),
+        isValidationStale: true,
       });
       expect(screen.getByText(/not yet validated/i)).toBeInTheDocument();
     });
 
-    it("reads 'passing' when the outcome has zero violations and is not stale", () => {
-      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }), isStale: false });
-      expect(screen.getByText(/last validated: passing/i)).toBeInTheDocument();
-    });
-
-    it("distinguishes 'allowed' from 'correct': zero violations but no blueprint matched must not read 'passing'", () => {
+    it("reads 'passing' when the outcome has zero violations and is not stale, even for a chapter with blueprints", () => {
       const bp: Blueprint = { id: "bp-1", label: "The taught approach", require: { nodes: [] }, commentary: "" };
       const chapterWithBlueprint = makeChapter({ requiredComponentIds: ["client"], blueprints: [bp] });
       renderQuestionPane({
         chapter: chapterWithBlueprint,
         nodes: [],
-        chapterOutcome: makeOutcome({ passed: false, matchedBlueprintId: null }),
-        isStale: false,
+        validationOutcome: makeOutcome({ passed: true }),
+        isValidationStale: false,
+      });
+      // Validate never checks blueprints — a clean rules-only result reads
+      // "passing" regardless of whether the chapter declares any.
+      expect(screen.getByText(/last validated: passing/i)).toBeInTheDocument();
+    });
+
+    it("reads 'not yet complete - see Submit' when Validate is clean but Submit found a blueprint drift", () => {
+      renderQuestionPane({
+        chapter,
+        nodes: [],
+        validationOutcome: makeOutcome({ passed: true }),
+        submitOutcome: makeOutcome({ passed: false, driftReport: makeDrift() }),
       });
 
       expect(screen.queryByText(/last validated: passing/i)).not.toBeInTheDocument();
-      const summary = screen.getByText(/not yet passing - see validate for details/i);
+      const summary = screen.getByText(/not yet complete - see submit for details/i);
       expect(summary).toBeInTheDocument();
       expect(summary).toHaveClass("text-state-warning");
     });
 
-    it("shows the same allowed-but-not-correct warning when zero violations but a required component is disconnected", () => {
+    it("ignores a stale submitOutcome when deciding the allowed-but-not-correct warning", () => {
       renderQuestionPane({
         chapter,
         nodes: [],
-        chapterOutcome: makeOutcome({ passed: false, disconnectedRequiredComponentIds: ["client"] }),
-        isStale: false,
+        validationOutcome: makeOutcome({ passed: true }),
+        submitOutcome: makeOutcome({ passed: false, driftReport: makeDrift() }),
+        isSubmitStale: true,
       });
 
-      const summary = screen.getByText(/not yet passing - see validate for details/i);
+      // The graph changed since that Submit ran — its drift report no
+      // longer describes the current canvas, so it must not gate the
+      // summary line.
+      expect(screen.getByText(/last validated: passing/i)).toBeInTheDocument();
+    });
+
+    it("counts a disconnected required component as an issue, matching the header exactly", () => {
+      // Punch list #3: outcome.violations (raw rule violations) is empty
+      // here, so counting it made the sidebar read "Last validated: 1 issue"
+      // while the header read "2 ISSUES" on the very same run. The
+      // disconnected-required-component reason exists only in the merged
+      // display list, which is now what both surfaces count.
+      renderQuestionPane({
+        chapter,
+        nodes: [],
+        validationOutcome: makeOutcome({ passed: false, disconnectedRequiredComponentIds: ["client"] }),
+        isValidationStale: false,
+      });
+
+      expect(screen.queryByText(/last validated: passing/i)).not.toBeInTheDocument();
+      const summary = screen.getByText(/last validated: 1 issue$/i);
       expect(summary).toBeInTheDocument();
       expect(summary).toHaveClass("text-state-warning");
-      expect(screen.queryByText(/last validated: passing/i)).not.toBeInTheDocument();
+    });
+
+    it("counts rule violations and synthesised required-component issues together", () => {
+      // The exact shape of the reported mismatch: one real rule violation
+      // plus one missing required component reads as two issues, not one.
+      const violations: ValidationViolation[] = [
+        {
+          ruleId: "r1",
+          severity: "error",
+          message: "Bad",
+          explanation: "Because reasons.",
+          offendingNodeIds: [],
+          offendingEdgeIds: [],
+        },
+      ];
+      renderQuestionPane({
+        chapter,
+        nodes: [],
+        validationOutcome: makeOutcome({
+          passed: false,
+          violations,
+          errorCount: 1,
+          missingRequiredComponentIds: ["client"],
+        }),
+        isValidationStale: false,
+      });
+
+      expect(screen.getByText(/last validated: 2 issues/i)).toBeInTheDocument();
     });
 
     it("pluralizes the issue count correctly for one issue", () => {
@@ -233,8 +319,8 @@ describe("QuestionPane", () => {
       renderQuestionPane({
         chapter,
         nodes: [],
-        chapterOutcome: makeOutcome({ violations, errorCount: 1 }),
-        isStale: false,
+        validationOutcome: makeOutcome({ violations, errorCount: 1 }),
+        isValidationStale: false,
       });
       expect(screen.getByText(/last validated: 1 issue$/i)).toBeInTheDocument();
     });
@@ -251,35 +337,35 @@ describe("QuestionPane", () => {
       renderQuestionPane({
         chapter,
         nodes: [],
-        chapterOutcome: makeOutcome({ violations: [violation, violation], errorCount: 2 }),
-        isStale: false,
+        validationOutcome: makeOutcome({ violations: [violation, violation], errorCount: 2 }),
+        isValidationStale: false,
       });
       expect(screen.getByText(/last validated: 2 issues/i)).toBeInTheDocument();
     });
   });
 
-  describe("required-components count, ChapterOutcome-driven", () => {
+  describe("required-components count, Validate-driven", () => {
     it("falls back to a live presence-only count before the first Validate click", () => {
       const chapter = makeChapter({ requiredComponentIds: ["client", "load-balancer"] });
       const nodes: ComponentNodeType[] = [
         { id: "n1", type: "component", position: { x: 0, y: 0 }, data: { componentId: "client", config: {} } },
       ];
-      renderQuestionPane({ chapter, nodes, chapterOutcome: null });
+      renderQuestionPane({ chapter, nodes, validationOutcome: null });
       expect(screen.getByText(/1 \/ 2 required components present$/)).toBeInTheDocument();
     });
 
-    it("upgrades to a present-and-connected count once a fresh ChapterOutcome exists", () => {
+    it("upgrades to a present-and-connected count once a fresh outcome exists", () => {
       const chapter = makeChapter({ requiredComponentIds: ["client", "load-balancer"] });
       renderQuestionPane({
         chapter,
         nodes: [],
-        chapterOutcome: makeOutcome({ disconnectedRequiredComponentIds: ["load-balancer"] }),
+        validationOutcome: makeOutcome({ disconnectedRequiredComponentIds: ["load-balancer"] }),
       });
       expect(screen.getByText(/1 \/ 2 required components present and connected/)).toBeInTheDocument();
     });
   });
 
-  describe("completion and Debrief", () => {
+  describe("completion and Debrief (Submit-driven only)", () => {
     const blueprintA: Blueprint = {
       id: "bp-a",
       label: "Cache-aside",
@@ -293,19 +379,26 @@ describe("QuestionPane", () => {
       commentary: "Writes go through a queue.",
     };
 
-    it("shows no completion line or Debrief when the outcome has not passed", () => {
+    it("shows no completion line or Debrief when the submit outcome has not passed", () => {
       const chapter = makeChapter({ blueprints: [blueprintA] });
-      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: false }) });
+      renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: false }) });
       expect(screen.queryByText(/chapter complete/i)).not.toBeInTheDocument();
       expect(screen.queryByText(/debrief/i)).not.toBeInTheDocument();
     });
 
-    it("shows a plain completion line and a closed-by-default Debrief once passed", () => {
+    it("shows no completion line even when Validate alone is clean — only Submit can mark a chapter complete", () => {
+      const chapter = makeChapter({ blueprints: [blueprintA] });
+      renderQuestionPane({ chapter, nodes: [], validationOutcome: makeOutcome({ passed: true }), submitOutcome: null });
+      expect(screen.queryByText(/chapter complete/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/debrief/i)).not.toBeInTheDocument();
+    });
+
+    it("shows a plain completion line and a closed-by-default Debrief once Submit passes", () => {
       const chapter = makeChapter({ blueprints: [blueprintA, blueprintB] });
       renderQuestionPane({
         chapter,
         nodes: [],
-        chapterOutcome: makeOutcome({ passed: true, matchedBlueprintId: "bp-a" }),
+        submitOutcome: makeOutcome({ passed: true, matchedBlueprintId: "bp-a" }),
       });
 
       expect(screen.getByText(/chapter complete/i)).toBeInTheDocument();
@@ -321,21 +414,32 @@ describe("QuestionPane", () => {
 
     it("omits the Debrief entirely when the chapter declares no blueprints", () => {
       const chapter = makeChapter({ blueprints: [] });
-      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
+      renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: true }) });
       expect(screen.getByText(/chapter complete/i)).toBeInTheDocument();
       expect(screen.queryByText(/debrief/i)).not.toBeInTheDocument();
     });
+
+    it("hides the completion line once the submit outcome goes stale", () => {
+      const chapter = makeChapter({ blueprints: [blueprintA] });
+      renderQuestionPane({
+        chapter,
+        nodes: [],
+        submitOutcome: makeOutcome({ passed: true, matchedBlueprintId: "bp-a" }),
+        isSubmitStale: true,
+      });
+      expect(screen.queryByText(/chapter complete/i)).not.toBeInTheDocument();
+    });
   });
 
-  describe("'Knowledge check remaining' note (exam-mode)", () => {
-    it("shows the note when the build passed but the chapter's exam isn't passed yet", () => {
+  describe("'Knowledge check remaining' note (exam-mode, Submit-driven)", () => {
+    it("shows the note when Submit passed but the chapter's exam isn't passed yet", () => {
       const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" }), makeQuestion({ id: "q2" })] });
       useCurriculumProgressStore.setState({
         examAttemptsByDefinition: new Map([
           ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [] }]],
         ]),
       });
-      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
+      renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: true }) });
 
       expect(screen.getByText("Knowledge check remaining.")).toBeInTheDocument();
     });
@@ -347,21 +451,21 @@ describe("QuestionPane", () => {
           ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 80, answers: [] }]],
         ]),
       });
-      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
+      renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: true }) });
 
       expect(screen.queryByText("Knowledge check remaining.")).not.toBeInTheDocument();
     });
 
     it("omits the note when the chapter has no quiz at all", () => {
       const chapter = makeChapter({ id: "ch-1", quiz: undefined });
-      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: true }) });
+      renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: true }) });
 
       expect(screen.queryByText("Knowledge check remaining.")).not.toBeInTheDocument();
     });
 
-    it("omits the note when the build hasn't passed, even with an unmastered quiz", () => {
+    it("omits the note when Submit hasn't passed, even with an unmastered quiz", () => {
       const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" })] });
-      renderQuestionPane({ chapter, nodes: [], chapterOutcome: makeOutcome({ passed: false }) });
+      renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: false }) });
 
       expect(screen.queryByText("Knowledge check remaining.")).not.toBeInTheDocument();
     });

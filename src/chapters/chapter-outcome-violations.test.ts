@@ -1,35 +1,26 @@
 import { describe, expect, it } from "vitest";
 import type { ComponentNodeType } from "@/canvas/types";
-import type { Blueprint, ChapterDefinition } from "@/content/chapters/types";
-import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
+import type { BlueprintDriftReport } from "@/validation-engine/blueprint-drift";
 import type { ValidationViolation } from "@/validation-engine/types";
-import { chapterDisplayViolations } from "./chapter-outcome-violations";
+import { chapterDisplayViolations, type ViolationSource } from "./chapter-outcome-violations";
 
-function makeOutcome(overrides: Partial<ChapterOutcome> = {}): ChapterOutcome {
+function makeOutcome(overrides: Partial<ViolationSource> = {}): ViolationSource {
   return {
-    passed: false,
-    matchedBlueprintId: null,
     violations: [],
-    errorCount: 0,
     missingRequiredComponentIds: [],
     disconnectedRequiredComponentIds: [],
+    driftReport: null,
     ...overrides,
   };
 }
 
-function makeChapter(overrides: Partial<ChapterDefinition> = {}): ChapterDefinition {
+function makeDrift(overrides: Partial<BlueprintDriftReport> = {}): BlueprintDriftReport {
   return {
-    id: "ch-1",
-    mode: "building-blocks",
-    title: "Test Chapter",
-    problemStatement: "",
-    learningObjectives: [],
-    availableComponentIds: [],
-    requiredComponentIds: [],
-    validationRuleIds: [],
-    blueprints: [],
-    hints: [],
-    readingLinks: [],
+    blueprintId: "bp-1",
+    blueprintLabel: "Taught approach",
+    missingComponents: [],
+    extraComponentIds: [],
+    mismatchedConnections: [],
     ...overrides,
   };
 }
@@ -48,13 +39,13 @@ describe("chapterDisplayViolations", () => {
       offendingNodeIds: ["n1"],
       offendingEdgeIds: [],
     };
-    const result = chapterDisplayViolations(makeOutcome({ violations: [violation] }), makeChapter(), []);
+    const result = chapterDisplayViolations(makeOutcome({ violations: [violation] }), []);
     expect(result).toEqual([violation]);
   });
 
   it("synthesizes a specific, error-severity entry for a missing required component", () => {
     const outcome = makeOutcome({ missingRequiredComponentIds: ["client"] });
-    const result = chapterDisplayViolations(outcome, makeChapter(), []);
+    const result = chapterDisplayViolations(outcome, []);
 
     expect(result).toHaveLength(1);
     expect(result[0].ruleId).toBe("missing-required-component:client");
@@ -66,7 +57,7 @@ describe("chapterDisplayViolations", () => {
   it("synthesizes an entry pointing at the real offending node for a disconnected required component", () => {
     const nodes = [componentNode("n1", "client"), componentNode("n2", "load-balancer")];
     const outcome = makeOutcome({ disconnectedRequiredComponentIds: ["client"] });
-    const result = chapterDisplayViolations(outcome, makeChapter(), nodes);
+    const result = chapterDisplayViolations(outcome, nodes);
 
     expect(result).toHaveLength(1);
     expect(result[0].ruleId).toBe("disconnected-required-component:client");
@@ -76,34 +67,45 @@ describe("chapterDisplayViolations", () => {
     expect(result[0].offendingNodeIds).toEqual(["n1"]);
   });
 
-  it("synthesizes a blueprint-mismatch entry when every other check is clean but no blueprint matched", () => {
-    const bp: Blueprint = { id: "bp-1", label: "Taught approach", require: { nodes: [] }, commentary: "" };
-    const outcome = makeOutcome({ passed: false, matchedBlueprintId: null, violations: [] });
-    const result = chapterDisplayViolations(outcome, makeChapter({ blueprints: [bp] }), []);
+  it("synthesizes a blueprint-drift entry with the real deltas when driftReport is present", () => {
+    const drift = makeDrift({
+      missingComponents: ["Cache"],
+      mismatchedConnections: ["Client -> Load Balancer"],
+      extraComponentIds: ["message-queue"],
+    });
+    const outcome = makeOutcome({ driftReport: drift });
+    const result = chapterDisplayViolations(outcome, []);
 
     expect(result).toHaveLength(1);
-    expect(result[0].ruleId).toBe("blueprint-mismatch");
+    expect(result[0].ruleId).toBe("blueprint-drift:bp-1");
     expect(result[0].severity).toBe("error");
-    expect(result[0].message).toMatch(/doesn't match/i);
+    expect(result[0].message).toMatch(/doesn't yet match/i);
+    expect(result[0].explanation).toMatch(/Missing: Cache/);
+    expect(result[0].explanation).toMatch(/Client -> Load Balancer/);
+    expect(result[0].explanation).toMatch(/Message Queue/);
   });
 
-  it("omits the blueprint-mismatch entry when the chapter declares no blueprints", () => {
-    const outcome = makeOutcome({ passed: false, violations: [] });
-    const result = chapterDisplayViolations(outcome, makeChapter({ blueprints: [] }), []);
+  it("omits the blueprint-drift entry when driftReport is null", () => {
+    const outcome = makeOutcome({ driftReport: null });
+    const result = chapterDisplayViolations(outcome, []);
     expect(result).toEqual([]);
   });
 
-  it("omits the blueprint-mismatch entry once the chapter has actually passed", () => {
-    const bp: Blueprint = { id: "bp-1", label: "Taught approach", require: { nodes: [] }, commentary: "" };
-    const outcome = makeOutcome({ passed: true, matchedBlueprintId: "bp-1", violations: [] });
-    const result = chapterDisplayViolations(outcome, makeChapter({ blueprints: [bp] }), []);
+  it("never synthesizes a blueprint-drift entry for a plain ChapterValidationOutcome (no driftReport field at all)", () => {
+    // Mirrors what Validate actually passes — no `driftReport` key present,
+    // as opposed to explicitly null. Both must produce the same "omit" result.
+    const outcome: ViolationSource = {
+      violations: [],
+      missingRequiredComponentIds: [],
+      disconnectedRequiredComponentIds: [],
+    };
+    const result = chapterDisplayViolations(outcome, []);
     expect(result).toEqual([]);
   });
 
-  it("does not synthesize a blueprint-mismatch entry when a missing/disconnected component is the real reason", () => {
-    const bp: Blueprint = { id: "bp-1", label: "Taught approach", require: { nodes: [] }, commentary: "" };
-    const outcome = makeOutcome({ missingRequiredComponentIds: ["client"], violations: [] });
-    const result = chapterDisplayViolations(outcome, makeChapter({ blueprints: [bp] }), []);
+  it("does not synthesize a blueprint-drift entry when a missing/disconnected component is the real reason", () => {
+    const outcome = makeOutcome({ missingRequiredComponentIds: ["client"], driftReport: null });
+    const result = chapterDisplayViolations(outcome, []);
 
     expect(result).toHaveLength(1);
     expect(result[0].ruleId).toBe("missing-required-component:client");
@@ -125,7 +127,7 @@ describe("chapterDisplayViolations", () => {
     });
     const nodes = [componentNode("n1", "load-balancer")];
 
-    const result = chapterDisplayViolations(outcome, makeChapter(), nodes);
+    const result = chapterDisplayViolations(outcome, nodes);
 
     expect(result).toHaveLength(3);
     expect(result[0]).toBe(violation);

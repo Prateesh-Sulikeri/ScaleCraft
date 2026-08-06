@@ -135,7 +135,9 @@ function buildAliasConstraintIndex(edges: PatternEdge[]): Map<string, PatternEdg
 
 // ---- node/config predicates -------------------------------------------------
 
-function nodeMatchesPredicates(index: GraphIndex, nodeId: string, patternNode: PatternNode): boolean {
+/** Exported for blueprint-drift.ts's "extra components" check — does this
+ * one graph node satisfy this one pattern node's own predicates. */
+export function nodeMatchesPredicates(index: GraphIndex, nodeId: string, patternNode: PatternNode): boolean {
   const node = index.nodeById.get(nodeId);
   if (!node) return false;
 
@@ -196,6 +198,14 @@ function compareOrdered(actual: unknown, value: string | number | boolean): numb
 }
 
 function structuralNodeCandidates(index: GraphIndex, patternNode: PatternNode): string[] {
+  return patternNodeCandidates(index, patternNode);
+}
+
+/** Every graph node id satisfying a single PatternNode's own predicates
+ * (componentId/category/config), ignoring edges entirely. Exported for the
+ * blueprint drift report (blueprint-drift.ts), which needs this same
+ * per-node candidate check outside of a full pattern match. */
+export function patternNodeCandidates(index: GraphIndex, patternNode: PatternNode): string[] {
   const ids: string[] = [];
   for (const nodeId of index.nodeById.keys()) {
     if (nodeMatchesPredicates(index, nodeId, patternNode)) ids.push(nodeId);

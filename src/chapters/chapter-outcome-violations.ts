@@ -1,27 +1,52 @@
 import type { AnyNodeType } from "@/canvas/types";
-import type { ChapterDefinition } from "@/content/chapters/types";
 import { getComponent } from "@/content/components/registry";
-import type { ChapterOutcome, ValidationViolation } from "@/engines";
+import type { BlueprintDriftReport, ValidationViolation } from "@/engines";
+
+/** The common shape both ChapterValidationOutcome (Validate) and
+ * ChapterOutcome (Submit) satisfy — `driftReport` only ever exists on the
+ * latter, and only once Submit's structural stage passed but no blueprint
+ * matched (see chapter-outcome.ts). Optional/nullable here so a plain
+ * Validate result (which has no such field at all) is still assignable. */
+export type ViolationSource = {
+  violations: ValidationViolation[];
+  missingRequiredComponentIds: string[];
+  disconnectedRequiredComponentIds: string[];
+  driftReport?: BlueprintDriftReport | null;
+};
+
+function driftExplanation(drift: BlueprintDriftReport): string {
+  const parts: string[] = [];
+  if (drift.missingComponents.length > 0) {
+    parts.push(`Missing: ${drift.missingComponents.join(", ")}.`);
+  }
+  if (drift.mismatchedConnections.length > 0) {
+    parts.push(`Connections that don't match: ${drift.mismatchedConnections.join("; ")}.`);
+  }
+  if (drift.extraComponentIds.length > 0) {
+    const labels = drift.extraComponentIds.map((id) => getComponent(id)?.label ?? id);
+    parts.push(`Not part of this approach: ${labels.join(", ")}.`);
+  }
+  return parts.length > 0
+    ? parts.join(" ")
+    : "The overall shape doesn't match any of the approaches this chapter is teaching.";
+}
 
 /**
  * A chapter can fail with zero real rule violations — a required component
- * missing/disconnected, or present-and-connected but not matching any
- * declared blueprint. That's "allowed" (nothing caught as an anti-pattern),
- * not "correct" (the thing this chapter is teaching), and it used to be
- * conflated: QuestionPane said "passing" while the header's Validation pane
- * said "No violations", which is exactly the beginner confusion CLAUDE.md's
- * "explanations always shown on failure" rule exists to prevent. Rather
- * than inventing a second, separate surface for these, this formats them as
- * ValidationViolation-shaped entries so they render in the *same* header
- * dropdown as real rule violations — one place a learner looks for "what's
- * wrong and why". Display-only: never fed back into ChapterOutcome/passed,
- * which stays the pure engine's job in chapter-outcome.ts.
+ * missing/disconnected, or (Submit only) present-and-connected but not
+ * matching any declared blueprint. That's "allowed" (nothing caught as an
+ * anti-pattern), not "correct" (the thing this chapter is teaching), and it
+ * used to be conflated: QuestionPane said "passing" while the header's
+ * Validation pane said "No violations", which is exactly the beginner
+ * confusion CLAUDE.md's "explanations always shown on failure" rule exists
+ * to prevent. Rather than inventing a second, separate surface for these,
+ * this formats them as ValidationViolation-shaped entries so they render in
+ * the *same* header dropdown as real rule violations — one place a learner
+ * looks for "what's wrong and why". Display-only: never fed back into
+ * ChapterOutcome/passed, which stays the pure engine's job in
+ * chapter-outcome.ts.
  */
-export function chapterDisplayViolations(
-  outcome: ChapterOutcome,
-  chapter: ChapterDefinition,
-  nodes: AnyNodeType[],
-): ValidationViolation[] {
+export function chapterDisplayViolations(outcome: ViolationSource, nodes: AnyNodeType[]): ValidationViolation[] {
   const synthetic: ValidationViolation[] = [];
 
   for (const componentId of outcome.missingRequiredComponentIds) {
@@ -54,29 +79,19 @@ export function chapterDisplayViolations(
     });
   }
 
-  // The one case that genuinely can't be more specific without spoiling the
-  // chapter: every required component is present and connected, nothing
-  // matches a known anti-pattern, but the shape doesn't match any declared
-  // blueprint either. Naming exactly what's different from the blueprint
-  // *is* the answer — that's a hint, and hints are pull-only (CLAUDE.md),
-  // never force-surfaced here.
-  const allowedButUnmatched =
-    !outcome.passed &&
-    outcome.violations.length === 0 &&
-    outcome.missingRequiredComponentIds.length === 0 &&
-    outcome.disconnectedRequiredComponentIds.length === 0 &&
-    chapter.blueprints.length > 0;
-
-  if (allowedButUnmatched) {
+  // Submit-only: the structural stage passed (no rule violations, every
+  // required component present and connected — the two loops above are both
+  // empty) but no declared blueprint matched. driftReport carries exactly
+  // which pieces are missing/extra/mismatched relative to the nearest one —
+  // real, specific deltas rather than a bare "doesn't match" (§8.4's spoiler
+  // limit still applies: blueprint.commentary itself never appears here).
+  if (outcome.driftReport) {
+    const drift = outcome.driftReport;
     synthetic.push({
-      ruleId: "blueprint-mismatch",
+      ruleId: `blueprint-drift:${drift.blueprintId}`,
       severity: "error",
-      message: "This design doesn't match a known correct approach for this chapter yet.",
-      explanation:
-        "Every required component is present and connected, and nothing here matches a " +
-        "known anti-pattern - but the overall shape doesn't match any of the approaches " +
-        "this chapter is teaching. Structural checks can't be more specific without giving " +
-        "away the answer; if you want a nudge, check this chapter's hints.",
+      message: `This design doesn't yet match "${drift.blueprintLabel}" - the closest known approach for this chapter.`,
+      explanation: driftExplanation(drift),
       offendingNodeIds: [],
       offendingEdgeIds: [],
     });

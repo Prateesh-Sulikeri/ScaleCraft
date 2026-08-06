@@ -9,6 +9,7 @@ function makeOutcome(overrides: Partial<ChapterOutcome> = {}): ChapterOutcome {
   return {
     passed: false,
     matchedBlueprintId: null,
+    driftReport: null,
     violations: [],
     errorCount: 0,
     missingRequiredComponentIds: [],
@@ -80,14 +81,24 @@ beforeEach(() => {
   routerPushMock.mockClear();
 });
 
-function renderSidebar(overrides: { chapterOutcome?: ChapterOutcome | null; isStale?: boolean } = {}) {
+function renderSidebar(
+  overrides: {
+    validationOutcome?: ChapterOutcome | null;
+    isValidationStale?: boolean;
+    submitOutcome?: ChapterOutcome | null;
+    isSubmitStale?: boolean;
+  } = {},
+) {
   return render(
     <CanvasStoreProvider>
       <ChapterSidebar
         courseId="building-blocks"
         chapterSlug="a"
-        chapterOutcome={overrides.chapterOutcome ?? null}
-        isStale={overrides.isStale ?? false}
+        validationOutcome={overrides.validationOutcome ?? null}
+        isValidationStale={overrides.isValidationStale ?? false}
+        displayViolations={overrides.validationOutcome?.violations ?? null}
+        submitOutcome={overrides.submitOutcome ?? null}
+        isSubmitStale={overrides.isSubmitStale ?? false}
       />
     </CanvasStoreProvider>,
   );
@@ -104,16 +115,24 @@ describe("ChapterSidebar", () => {
   it("renders nothing when the slug resolves to no ChapterDefinition", () => {
     const { container } = render(
       <CanvasStoreProvider>
-        <ChapterSidebar courseId="building-blocks" chapterSlug="does-not-exist" chapterOutcome={null} isStale={false} />
+        <ChapterSidebar
+          courseId="building-blocks"
+          chapterSlug="does-not-exist"
+          validationOutcome={null}
+          isValidationStale={false}
+          displayViolations={null}
+          submitOutcome={null}
+          isSubmitStale={false}
+        />
       </CanvasStoreProvider>,
     );
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("shows QuestionPane's 'Not yet validated' when isStale is true even with prior violations", async () => {
+  it("shows QuestionPane's 'Not yet validated' when isValidationStale is true even with prior violations", async () => {
     renderSidebar({
-      isStale: true,
-      chapterOutcome: makeOutcome({
+      isValidationStale: true,
+      validationOutcome: makeOutcome({
         violations: [
           {
             ruleId: "r1",
