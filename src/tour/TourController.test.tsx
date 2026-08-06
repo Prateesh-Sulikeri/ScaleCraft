@@ -18,10 +18,16 @@ function Harness({
   hasLoadedInitialState = true,
   lastValidationErrorCount = null,
   hasSubmittedPassing = false,
+  onResetToStarter,
+  resetsStore = false,
 }: {
   hasLoadedInitialState?: boolean;
   lastValidationErrorCount?: number | null;
   hasSubmittedPassing?: boolean;
+  onResetToStarter?: () => void;
+  /** Stands in for ChapterWorkspace's real handleResetToStarter — wipes the
+   *  bits of store state the tour's gesture predicates read. */
+  resetsStore?: boolean;
 }) {
   const storeApi = useCanvasStoreApi();
   const availableComponentIds = useCanvasStore((s) => s.availableComponentIds);
@@ -89,6 +95,11 @@ function Harness({
         hasLoadedInitialState={hasLoadedInitialState}
         lastValidationErrorCount={lastValidationErrorCount}
         hasSubmittedPassing={hasSubmittedPassing}
+        onResetToStarter={
+          resetsStore
+            ? () => storeApi.setState({ selectedNodeId: null, nodes: [], edges: [], past: [], future: [] })
+            : onResetToStarter
+        }
       />
     </>
   );
@@ -208,6 +219,64 @@ describe("TourController", () => {
     fireEvent.click(screen.getByRole("button", { name: "Replay guided tour" }));
     expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument();
     expect(screen.getByText("1 / 21")).toBeInTheDocument();
+  });
+
+  describe("Start over (only offered when the parent supplies a reset)", () => {
+    it("offers no Start over button when no reset is supplied", () => {
+      localStorage.setItem(STATE_KEY, JSON.stringify({ status: "completed" }));
+      renderHarness({ hasLoadedInitialState: true });
+      expect(screen.queryByRole("button", { name: /^Start over/ })).not.toBeInTheDocument();
+    });
+
+    it("arms on the first click and only discards the attempt on the second", () => {
+      const onResetToStarter = vi.fn();
+      localStorage.setItem(STATE_KEY, JSON.stringify({ status: "completed" }));
+      renderHarness({ hasLoadedInitialState: true, onResetToStarter });
+
+      fireEvent.click(screen.getByRole("button", { name: /^Start over/ }));
+      expect(onResetToStarter).not.toHaveBeenCalled();
+
+      const confirm = screen.getByRole("button", { name: /^Confirm: discard/ });
+      expect(confirm).toHaveTextContent("Discard my work?");
+
+      fireEvent.click(confirm);
+      expect(onResetToStarter).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument();
+      expect(screen.getByText("1 / 21")).toBeInTheDocument();
+      expect(storedState()).toEqual({ status: "running", stepIndex: 0 });
+    });
+
+    it("disarms when the button loses focus, so a stray click can't be completed later", () => {
+      const onResetToStarter = vi.fn();
+      localStorage.setItem(STATE_KEY, JSON.stringify({ status: "completed" }));
+      renderHarness({ hasLoadedInitialState: true, onResetToStarter });
+
+      const button = screen.getByRole("button", { name: /^Start over/ });
+      fireEvent.click(button);
+      fireEvent.blur(button);
+
+      expect(screen.getByRole("button", { name: /^Start over/ })).toBeInTheDocument();
+      expect(onResetToStarter).not.toHaveBeenCalled();
+    });
+
+    it("re-runs the gesture steps against the reset canvas instead of treating them as already done", () => {
+      // The whole point: a returning learner's board is fixed and autosaved,
+      // so without the reset every "try it" step opens pre-satisfied with a
+      // Next button and the replay teaches nothing.
+      vi.useFakeTimers();
+      localStorage.setItem(STATE_KEY, JSON.stringify({ status: "completed" }));
+      renderHarness({ hasLoadedInitialState: true, resetsStore: true });
+
+      act(() => fireEvent.click(screen.getByTestId("select-node")));
+      act(() => fireEvent.click(screen.getByRole("button", { name: /^Start over/ })));
+      act(() => fireEvent.click(screen.getByRole("button", { name: /^Confirm: discard/ })));
+
+      next(); // welcome -> canvas-intro
+      next(); // -> select-a-node
+      act(() => void vi.advanceTimersByTime(10000));
+      expect(screen.getByText("Try it: select a component")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+    });
   });
 
   it("flags the tour as active on <body> while it runs, and clears it on pause", () => {

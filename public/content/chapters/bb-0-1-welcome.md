@@ -93,7 +93,8 @@ Validate, then Submit.
 
 The tour walks you through both. To diagnose them yourself instead, press Esc to
 pause it - the validation explanations name both faults without it. Resume or
-replay from the pill in the corner.
+replay from the buttons at the bottom of the lesson sidebar, where Start over
+also resets the canvas to the original design.
 
 ## Next
 

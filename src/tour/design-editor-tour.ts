@@ -25,7 +25,7 @@ export const designEditorTour: TourStep[] = [
     title: "Welcome to the Design Editor",
     body:
       "This is where you build architectures. This chapter's starter design has a couple of real problems in it - you'll find and fix them together with this tour.\n\n" +
-      "21 steps, about five minutes. Press Esc to pause and pick up where you left off, or skip it entirely - the pill in the corner brings it back either way.",
+      "21 steps, about five minutes. Press Esc to pause and pick up where you left off, or skip it entirely - the buttons at the bottom of the lesson sidebar bring it back either way.",
   },
   {
     id: "canvas-intro",
@@ -200,6 +200,6 @@ export const designEditorTour: TourStep[] = [
     id: "wrap-up",
     target: null,
     title: "You're ready",
-    body: "That's the editor. Replay this tour anytime from the pill in the corner. Good luck with the chapter.",
+    body: "That's the editor. Replay this tour anytime from the bottom of the lesson sidebar - Start over there also resets the canvas to the original design, so the fix-it steps run for real again. Good luck with the chapter.",
   },
 ];

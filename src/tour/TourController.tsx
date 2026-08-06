@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useCanvasStore } from "@/canvas/store";
 import type { ComponentNodeType } from "@/canvas/types";
 import { TourOverlay, type TourInteractionState } from "./TourOverlay";
@@ -36,6 +37,19 @@ type TourControllerProps = {
   /** True once the open chapter has a passing Submit — this session's or a
    * persisted one (chapterProgress). */
   hasSubmittedPassing: boolean;
+  /** Discards the learner's saved attempt and puts the canvas back to the
+   * chapter's starterGraph (see ChapterWorkspace's handleResetToStarter).
+   * Present only for a tour chapter, which is what scopes "Start over" to
+   * 0.1 today. Must be synchronous so the restart below sees the reset
+   * graph in the same tick. */
+  onResetToStarter?: () => void;
+  /** Where the idle controls (Replay/Resume + Start over) render. The
+   * sidebar hands over a footer slot (ChapterSidebar.tsx) so they sit under
+   * the chapter's own panel instead of floating over the canvas corner,
+   * where the old fixed pill covered the sidebar's bottom content. `null`
+   * when there's no sidebar to portal into — focus mode unmounts it — and
+   * the controls fall back to the floating position for that case. */
+  idleSlot?: HTMLElement | null;
 };
 
 /**
@@ -55,6 +69,8 @@ export function TourController({
   hasLoadedInitialState,
   lastValidationErrorCount,
   hasSubmittedPassing,
+  onResetToStarter,
+  idleSlot,
 }: TourControllerProps) {
   const steps = TOUR_SCRIPTS[tourId];
   const { state: runState, hydrated, setState: setRunState } = useTourState(tourId);
@@ -141,6 +157,11 @@ export function TourController({
   }
   const preSatisfied = entry.index === stepIndex ? entry.preSatisfied : stepSatisfied;
 
+  // "Start over" discards the learner's saved work, so it's two-step: the
+  // first click arms it, the second one commits. Deliberately not a
+  // window.confirm - nothing else in the app blocks the tab like that.
+  const [resetArmed, setResetArmed] = useState(false);
+
   const interactionState: TourInteractionState = !step.waitFor || preSatisfied ? "none" : stepSatisfied ? "satisfied" : "waiting";
 
   function advance() {
@@ -177,6 +198,21 @@ export function TourController({
       active: true,
       stepIndex: runState.status === "paused" ? clampIndex(runState.stepIndex) : 0,
     });
+  }
+
+  /** Replay is not enough on its own: the tour narrates a deliberately
+   * broken starter graph, and by the time a learner wants to see it again
+   * their canvas is fixed and autosaved, so every "fix it" step opens
+   * pre-satisfied. This throws the attempt away first, then starts the run
+   * at step 1 against the board the script was written for. */
+  function restartFromScratch() {
+    onResetToStarter?.();
+    setResetArmed(false);
+    // Forces the pre-satisfied check to re-run against the reset graph
+    // rather than reusing what step 0 was measured as last time.
+    setEntry({ index: -1, preSatisfied: false });
+    setRunState({ status: "running", stepIndex: 0 });
+    setSession({ active: true, stepIndex: 0 });
   }
 
   // Auto-advances only a gesture the learner just performed while watching
@@ -248,14 +284,45 @@ export function TourController({
   if (!active) {
     const isPaused = runState.status === "paused";
     const resumeStep = isPaused ? clampIndex(runState.stepIndex) + 1 : 1;
-    return (
-      <button
-        onClick={isPaused ? resume : startFresh}
-        aria-label={isPaused ? `Resume guided tour at step ${resumeStep} of ${steps.length}` : "Replay guided tour"}
-        className="fixed bottom-4 left-4 z-[var(--z-tooltip)] rounded-full border border-border bg-panel px-3 py-1.5 text-xs font-medium text-foreground/70 shadow-lg hover:text-foreground"
-      >
-        {isPaused ? `Resume tour (${resumeStep}/${steps.length})` : "Replay tour"}
-      </button>
+    const pillClass =
+      "rounded-full border border-border bg-panel px-2.5 py-1 text-xs font-medium transition-colors";
+    const controls = (
+      <>
+        <button
+          onClick={isPaused ? resume : startFresh}
+          aria-label={isPaused ? `Resume guided tour at step ${resumeStep} of ${steps.length}` : "Replay guided tour"}
+          className={`${pillClass} text-foreground/70 hover:text-foreground`}
+        >
+          {isPaused ? `Resume tour (${resumeStep}/${steps.length})` : "Replay tour"}
+        </button>
+        {onResetToStarter && (
+          <button
+            onClick={resetArmed ? restartFromScratch : () => setResetArmed(true)}
+            onBlur={() => setResetArmed(false)}
+            aria-label={
+              resetArmed
+                ? "Confirm: discard your work and restart the guided tour from the starting design"
+                : "Start over: discard your work and restart the guided tour"
+            }
+            title="Puts the canvas back to this chapter's starting design and replays the tour from step 1"
+            className={`${pillClass} ${
+              resetArmed ? "border-state-error text-state-error" : "text-foreground/70 hover:text-foreground"
+            }`}
+          >
+            {resetArmed ? "Discard my work?" : "Start over"}
+          </button>
+        )}
+      </>
+    );
+
+    return idleSlot ? (
+      createPortal(<div className="flex flex-wrap items-center gap-2">{controls}</div>, idleSlot)
+    ) : (
+      // Focus mode only — no sidebar to sit in, and the canvas is otherwise
+      // empty chrome there.
+      <div className="fixed bottom-4 left-4 z-[var(--z-tooltip)] flex items-center gap-2 [&>button]:shadow-lg">
+        {controls}
+      </div>
     );
   }
 

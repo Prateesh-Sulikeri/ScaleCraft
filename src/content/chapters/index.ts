@@ -30,7 +30,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       "has two real faults in it, on purpose: run Validate to see what and " +
       "why, fix both, then Submit to complete the chapter. A guided tour " +
       "walks you through it - press Esc to pause it, or replay it from the " +
-      "pill in the corner.",
+      "buttons at the bottom of this sidebar.",
     // Five objectives, one per CURRICULUM.md §5.2 category (Knowledge,
     // Engineering, Practical, Interview, Communication). The category tags
     // themselves live in the chapter spec (specs/bb-0-1-welcome.spec.md §2)
@@ -90,8 +90,9 @@ export const chapterRegistry: ChapterDefinition[] = [
         id: "bb-0-1-welcome-hint-1",
         body:
           "Missed part of the guided tour, or want to see it again? Press Esc to pause it " +
-          "and pick up where you left off, or use the pill in the bottom-left corner of " +
-          "the canvas to resume or replay it.",
+          "and pick up where you left off, or use the buttons at the bottom of this sidebar " +
+          "to resume or replay it. Start over there also puts the canvas back to the " +
+          "original starting design, so the tour's fix-it steps run for real again.",
       },
     ],
     readingLinks: [],
