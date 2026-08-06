@@ -109,21 +109,24 @@ chapter reads as one continuous experience from cold open to Design Editor.
 Order within a wave = curriculum order. Do not start a wave until the previous
 wave's chapters are merged (the user merges; you never do).
 
-- **Wave 1 (release 3.x - the first real content).** Goal: one coherent
-  vertical slice proving the whole pipeline.
-  - 0.1 Welcome to ScaleCraft, 0.2 What is System Design? (small, no canvas,
-    fast wins that exercise Reader + quiz)
-  - 1.6 Drawing the First Architecture (first build + first fix; introduces
-    the 3 primitive components; replaces the spirit of old 0.1)
-  - 3.4 Load Balancer (replaces dummy `bb-dummy-1` content; the flagship
-    Building Block chapter)
-  - RWE Tier 1: Bitly (replaces dummy `rwe-dummy-1`; Phase A + Phase B +
-    debrief + retrospective quiz - the full RWE template proven once)
-- **Wave 2.** Part 0 remainder (0.3, 0.4) + Part 1 complete (1.1-1.11).
-  Triggers: stages UI. This wave defines the interview-first identity; budget
-  the most revision time here.
+- **Wave 1 (release 3.x - the first real content).** Goal: complete Part 0 -
+  small, no-canvas orientation chapters that prove the Reader + quiz pipeline
+  before any build content ships. **Redefined 2026-08-06** (was originally
+  a cross-part "vertical slice" pulling 1.6/3.4/RWE Bitly forward; that
+  rationale is deferred to Wave 2 instead - see below).
+  - 0.1 Welcome to ScaleCraft, 0.2 What is System Design? (authored)
+  - 0.3 Interview Design vs. Production Engineering, 0.4 The System Design
+    Lifecycle
+- **Wave 2.** Part 1 complete (1.1-1.11, including 1.6 Drawing the First
+  Architecture - first build + first fix, introduces the 3 primitive
+  components) + 3.4 Load Balancer (replaces dummy `bb-dummy-1`; the flagship
+  Building Block chapter, pulled forward as originally planned) + RWE Tier 1:
+  Bitly (replaces dummy `rwe-dummy-1`; Phase A + Phase B + debrief +
+  retrospective quiz - the full RWE template proven once). Triggers: stages
+  UI. This wave defines the interview-first identity; budget the most
+  revision time here.
 - **Wave 3.** Part 2 (2.1-2.3) + Group A Core Infrastructure (3.1-3.3, 3.5;
-  3.4 exists from Wave 1).
+  3.4 exists from Wave 2).
 - **Wave 4.** Group B Compute (3.6-3.9) + Group C Data (3.10-3.13).
 - **Wave 5.** Group D Performance (3.14-3.16) + Checkpoint R1 + RWE Tier 1
   remainder (Rate Limiter, Distributed Cache, Metrics Monitoring).

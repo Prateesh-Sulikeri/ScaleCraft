@@ -4,9 +4,11 @@ import type { ChapterDefinition } from "./types";
  * The authored chapter registry. Mixed state during Wave 1 content authoring
  * (.claude/docs/pending-content.md):
  *
- * - `bb-0-1-welcome` and `bb-0-2-what-is-system-design` are real curriculum
- *   content, authored against CURRICULUM.md §5/§6 with a chapter spec in
- *   `specs/` beside each.
+ * - `bb-0-1-welcome`, `bb-0-2-what-is-system-design`,
+ *   `bb-0-3-interview-design-vs-production-engineering`, and
+ *   `bb-0-4-the-system-design-lifecycle` are real curriculum content,
+ *   authored against CURRICULUM.md §5/§6 with a chapter spec in `specs/`
+ *   beside each.
  * - `bb-dummy-1` and `rwe-dummy-1` are still throwaway shell fixtures
  *   (`placeholder: true`), standing in for 3.4 Load Balancer and RWE Tier 1
  *   Bitly respectively. Wave 1 replaces both - replace them, don't extend
@@ -654,6 +656,651 @@ export const chapterRegistry: ChapterDefinition[] = [
               "Correct. A request going unanswered during a partition is exactly what unavailability " +
               "looks like. Durability only speaks to writes that already committed, and none of those " +
               "were touched.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-0-3-interview-design-vs-production-engineering",
+    mode: "building-blocks",
+    title: "Interview Design vs. Production Engineering",
+    // Real authored content (Track B, Wave 1 chapter 3 - Wave 1 redefined
+    // 2026-08-06 to Part 0 only, see pending-content.md). Spec:
+    // specs/bb-0-3-interview-design-vs-production-engineering.spec.md.
+    // Lesson body:
+    // public/content/chapters/bb-0-3-interview-design-vs-production-engineering.md.
+    problemStatement:
+      "Interview design and production engineering get judged by the same rubric, but they " +
+      "reward different things under different pressure. This chapter names the two registers " +
+      "explicitly so a later Interview lens or Production note never reads as the wrong one. No " +
+      "build: the knowledge check applies the distinction to five new scenarios.",
+    // Four objectives - Practical omitted per CURRICULUM.md §5.2's carve-out
+    // for pure Concept chapters (same justified exception as 0.2, spec §6):
+    // no components introduced, no construction-family exercise.
+    learningObjectives: [
+      "Knowledge - State what each register (interview, production) rewards and over what time horizon.",
+      "Engineering - Decide whether a proposed design's complexity is justified by a real force under pressure, in either register.",
+      "Interview - Recognize an interviewer's request to switch from the interview register to the production register, and answer in the new register on request.",
+      "Communication - Defend a design decision by naming which register you're answering in and why the choice would or wouldn't change in the other one.",
+    ],
+    // No components introduced (§16 homes the first three at 1.6) and no
+    // construction-family exercise - same justified Concept-chapter
+    // exception 0.2 used (§11.1, spec §4). Reader + knowledge check only.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-0-3-hint-1",
+        body:
+          "Stuck on which register a scenario is testing? Ask what the cost of being wrong is - a " +
+          "missed signal in one conversation, or a page at 3am - and match the register to that cost.",
+      },
+      {
+        id: "bb-0-3-hint-2",
+        body:
+          "For a \"what's the strongest read\" question, check whether the proposed complexity has a " +
+          "named force under pressure behind it (0.2) - if it doesn't, that alone tells you the read.",
+      },
+    ],
+    readingLinks: [],
+    // 2: Opus proofread pass (2026-08-06). Rebalanced register: replaced
+    // untaught vocabulary the argument leaned on (sharded/multi-region,
+    // replication lag, MongoDB/Cassandra) with plain descriptions, defined
+    // "register" at first use, grounded the diagram and the boring/reversible
+    // cells in a concrete decision, and rewrote the senior-answer line, which
+    // had contradicted the chapter's own thesis. Also added the "it depends"
+    // fix the lens claimed to teach but didn't (Q5). See spec §11.
+    lessonVersion: 2,
+    curriculumContext: {
+      position: "Building Blocks, Part 0: Foundations - Chapter 0.3 of 44.",
+      masteredConcepts: [
+        "The Reader-to-Editor loop and the interview-shaped framing of a validation failure (0.1).",
+        "The five forces and 'no force under pressure, no justified complexity' (0.2).",
+      ],
+      notYetIntroducedConcepts: [
+        "The numbered Interview Loop and its eight steps - that's 0.4.",
+        "Any specific component or edge kind - none are introduced until 1.6.",
+        "Staged, step-by-step interview practice - that's 1.1 onward and 1.11.",
+      ],
+      simplifications: [
+        "The interview/production contrast is drawn as a clean two-register split for teaching; real " +
+          "engineering conversations blend both constantly - the clean version is intentional at this " +
+          "stage.",
+        "Examples name a company's public decision, not their full internal reasoning - the lesson " +
+          "states the decision and its trade-off, not implementation detail.",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2's convention. Q1 models QUIZ_FRAMEWORK.md
+    // §5's Q3, Q2 models that bank's Q4, Q5 models that bank's Q10 - all
+    // three explicitly tagged "(0.3)" in the bank. Q3 and Q4 are original.
+    // Correct-position spread (c, b, a, d for the four single-kind
+    // questions) checked by eye against the clustering bug fixed in 0.1/0.2.
+    quiz: [
+      {
+        id: "bb-0-3-interview-design-vs-production-engineering-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "In a system design interview, which is most valued?",
+        options: [
+          {
+            id: "a",
+            label: "Producing the single correct architecture.",
+            correct: false,
+            explanationMd:
+              "There usually isn't one - Stack Overflow's restraint and Discord's migration were both " +
+              "correct, for opposite reasons. Interviews test the reasoning, not a memorized shape.",
+          },
+          {
+            id: "b",
+            label: "Exhaustive depth on every component.",
+            correct: false,
+            explanationMd:
+              "Depth is sampled, not exhaustive - going deep everywhere leaves no time to establish " +
+              "breadth or name trade-offs, both of which are weighted more heavily.",
+          },
+          {
+            id: "c",
+            label: "Structured breadth-first reasoning, clear communication, and named trade-offs.",
+            correct: true,
+            explanationMd:
+              "Correct. The interview register rewards reasoning made visible - what you considered and " +
+              "why - over any single architectural answer.",
+          },
+          {
+            id: "d",
+            label: "Speed of drawing the diagram.",
+            correct: false,
+            explanationMd:
+              "A fast diagram with no reasoning behind it is the scale-theater failure from the cold " +
+              "open - impressive-looking, unjustified, and it falls apart at the first follow-up.",
+          },
+        ],
+      },
+      {
+        id: "bb-0-3-interview-design-vs-production-engineering-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt: "Which statement about production engineering vs. interviews is true?",
+        options: [
+          {
+            id: "a",
+            label: "Production rewards the cleverest architecture.",
+            correct: false,
+            explanationMd:
+              "Backwards - production rewards boring and reversible, since the cost of a clever choice " +
+              "going wrong is a real outage, not a missed signal.",
+          },
+          {
+            id: "b",
+            label:
+              "Production rewards boring, operable choices; interviews reward visible reasoning about " +
+              "alternatives.",
+            correct: true,
+            explanationMd:
+              "Correct. Same underlying question - is this justified - but a 45-minute conversation and " +
+              "a multi-year operational bet reward different things.",
+          },
+          {
+            id: "c",
+            label: "Interview skills and production skills are unrelated.",
+            correct: false,
+            explanationMd:
+              "They share the same test (is this justified by a real force under pressure) - only the " +
+              "reward and the time horizon differ, not the underlying discipline.",
+          },
+          {
+            id: "d",
+            label: "Production designs never involve estimation.",
+            correct: false,
+            explanationMd:
+              "Production estimation is constant - capacity planning and monitoring thresholds are " +
+              "estimation with real stakes, not a skill unique to interviews.",
+          },
+        ],
+      },
+      {
+        id: "bb-0-3-interview-design-vs-production-engineering-q3",
+        kind: "multi",
+        difficulty: 2,
+        prompt: "Select all statements that describe the production register (select all that apply).",
+        options: [
+          {
+            id: "a",
+            label: "The default posture is not to build something until a real force is under pressure.",
+            correct: true,
+            explanationMd:
+              "Correct default posture for production - the same 'no force, no justified complexity' " +
+              "test from 0.2, applied to an operational decision instead of a design one.",
+          },
+          {
+            id: "b",
+            label: "Being wrong costs a missed signal in one conversation, nothing more.",
+            correct: false,
+            explanationMd:
+              "That's the interview register's low stakes. Production's cost of being wrong is a real " +
+              "outage - money and trust, not a missed signal.",
+          },
+          {
+            id: "c",
+            label: "A boring, reversible choice is preferred over a clever one, all else equal.",
+            correct: true,
+            explanationMd:
+              "Correct - boring wins by default in production, though not by rule (Discord's migration " +
+              "shows justified complexity still beats an unjustified boring choice).",
+          },
+          {
+            id: "d",
+            label: "The goal is to narrate your reasoning aloud for someone evaluating you in real time.",
+            correct: false,
+            explanationMd:
+              "That's the interview register. Production is instrumented and monitored, not narrated to " +
+              "a live evaluator.",
+          },
+          {
+            id: "e",
+            label: "Someone other than the original author may have to operate this decision for years.",
+            correct: true,
+            explanationMd:
+              "Correct - production's time horizon is months to years and the decision usually outlives " +
+              "the person who made it, which is exactly why boring and well-understood wins by default.",
+          },
+        ],
+      },
+      {
+        id: "bb-0-3-interview-design-vs-production-engineering-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "In an interview, a candidate designing a todo app for an internal team of 15 people opens by " +
+          "describing a multi-region, event-driven, sharded architecture, unprompted. What's the " +
+          "strongest read on this?",
+        options: [
+          {
+            id: "a",
+            label:
+              "Weak signal - the complexity has no requirement or force behind it; a strong candidate " +
+              "would have asked about scale first, and the same instinct would be reckless in production.",
+            correct: true,
+            explanationMd:
+              "Correct. Fifteen users is not a force under pressure on anything - the same unjustified " +
+              "complexity from the cold open, just with different nouns.",
+          },
+          {
+            id: "b",
+            label: "Strong signal - proposing advanced architecture unprompted shows depth of knowledge.",
+            correct: false,
+            explanationMd:
+              "Depth shown without a reason to show it is exactly the scale-theater failure this chapter " +
+              "opened with - it reads as knowing vocabulary, not judgment.",
+          },
+          {
+            id: "c",
+            label: "Neutral - architecture choices in interviews don't need to match the stated scale.",
+            correct: false,
+            explanationMd:
+              "They do - the interview register still tests whether a choice is justified, and a stated " +
+              "scale of 15 users is information a strong candidate would use, not ignore.",
+          },
+          {
+            id: "d",
+            label:
+              "Strong signal, but only if the candidate can also explain every component's internals.",
+            correct: false,
+            explanationMd:
+              "Internals depth doesn't fix an unjustified choice at the root - explaining a sharding " +
+              "scheme in detail is still scale theater if nothing requires sharding at all.",
+          },
+        ],
+      },
+      {
+        id: "bb-0-3-interview-design-vs-production-engineering-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt: "A candidate answers every follow-up question with \"it depends.\" What's the interviewer's likely read, and the fix?",
+        options: [
+          {
+            id: "a",
+            label: "Good - it always does depend, so no fix is needed.",
+            correct: false,
+            explanationMd:
+              "Often true and still the wrong answer to give - unresolved dependence with no named " +
+              "variable reads as avoiding a commitment, not as precision.",
+          },
+          {
+            id: "b",
+            label: "The candidate should pick one answer and defend it against every follow-up regardless.",
+            correct: false,
+            explanationMd:
+              "That overcorrects into ignoring real variables that would actually change the answer - " +
+              "the fix is naming the dependency, not pretending it doesn't exist.",
+          },
+          {
+            id: "c",
+            label: "The candidate should ask the interviewer to decide instead.",
+            correct: false,
+            explanationMd:
+              "Handing the decision back is a bigger red flag than \"it depends\" - it abandons the " +
+              "reasoning the interview register is specifically rewarding.",
+          },
+          {
+            id: "d",
+            label:
+              "Non-committal; the fix is to name the variable and commit per branch: \"it depends on X - " +
+              "if A, I'd do P because...; if B, Q.\"",
+            correct: true,
+            explanationMd:
+              "Correct. A senior answer makes the dependency explicit and still commits - the branching " +
+              "itself is the reasoning the interviewer is listening for.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-0-4-the-system-design-lifecycle",
+    mode: "building-blocks",
+    title: "The System Design Lifecycle",
+    // Real authored content (Track B, Wave 1 chapter 4 - closes out Wave 1 /
+    // Part 0, see pending-content.md). Spec:
+    // specs/bb-0-4-the-system-design-lifecycle.spec.md. Lesson body:
+    // public/content/chapters/bb-0-4-the-system-design-lifecycle.md.
+    problemStatement:
+      "The Interview Loop is the eight-step sequence every later Part 1 chapter drills one at a " +
+      "time: clarify, requirements, estimate, high-level design, deep dive, bottlenecks and " +
+      "failure, trade-offs, evolve and defend. This chapter previews the whole map before you " +
+      "live any single step. No build: the knowledge check asks you to place the eight steps in " +
+      "order yourself.",
+    // Four objectives - Practical omitted per CURRICULUM.md §5.2's carve-out
+    // for pure Concept chapters (same justified exception as 0.2/0.3, spec
+    // §6): no components introduced, no construction-family exercise.
+    learningObjectives: [
+      "Knowledge - Name the Interview Loop's eight steps in order and state what each one produces.",
+      "Engineering - Decide, given a mid-design follow-up, how much of the loop needs to be re-run versus patched locally.",
+      "Interview - Recognize which loop step a follow-up question is targeting, and answer inside that step rather than defending the whole design.",
+      "Communication - Narrate which step of the loop you're in during a design conversation, the way a senior candidate does.",
+    ],
+    // No components introduced (§16 homes the first three at 1.6) and no
+    // construction-family exercise - same justified Concept-chapter
+    // exception 0.2/0.3 used (§11.1, spec §4). Reader + knowledge check
+    // only; the ordering quiz question (Q3) realizes CURRICULUM §14's
+    // "ordering exercise" for this chapter.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-0-4-hint-1",
+        body:
+          "Stuck on where a step goes? Ask what it needs from the step before it - each step in " +
+          "the loop only works once the step above it already exists.",
+      },
+      {
+        id: "bb-0-4-hint-2",
+        body:
+          "Deep dive, bottlenecks, and trade-offs (5, 6, 7) are easy to swap. All three need a " +
+          "design to already exist (step 4) - re-read \"What each step produces\" for what each " +
+          "one adds on top of that design.",
+      },
+      {
+        id: "bb-0-4-hint-3",
+        body:
+          "For a \"how much do I redo\" question, check requirements (step 2) first - most " +
+          "follow-ups either leave it alone (so the fix is local) or change it (so more of the " +
+          "loop has to re-run).",
+      },
+    ],
+    readingLinks: [],
+    // 2: Opus proofread pass (2026-08-06), lesson scope - grammar and
+    // sentence-level ambiguity only, structure untouched per user direction.
+    // Fixed a comma splice, a tense shift and an unresolved "one answer /
+    // the other" in the cold open, an appositive pile-up in "How far back to
+    // go", a dangling "narrated aloud", "does the same job as a narrative
+    // memo" (read as a comparison), pronoun number on "requirements", and
+    // three loose demonstratives. Glossed QPS at first use (§18.2 rule 1)
+    // and dropped a banned "just". See spec §11 and pending-chapters.md.
+    lessonVersion: 2,
+    curriculumContext: {
+      position: "Building Blocks, Part 0: Foundations - Chapter 0.4 of 44.",
+      masteredConcepts: [
+        "The five forces and 'no force under pressure, no justified complexity' (0.2).",
+        "The interview register and production register, judged against the same test on different clocks (0.3).",
+      ],
+      notYetIntroducedConcepts: [
+        "Any specific component or edge kind - none are introduced until 1.6.",
+        "The mechanics of any individual loop step (clarifying questions, NFR numbers, estimation math, deep-dive technique) - each gets its own chapter in 1.1-1.11.",
+        "Interviewer-intent literacy and staged, timed interview practice in full - 1.10-1.11.",
+      ],
+      simplifications: [
+        "The loop is drawn as a clean eight-step sequence with one dotted return edge; real design " +
+          "conversations branch and backtrack more than one arrow can show - intentional so the " +
+          "shape is learnable before it's exercised.",
+        "Google's design-doc and Amazon's 6-pager descriptions name the publicly documented parts " +
+          "of each practice, not their full internal templates.",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2's/0.3's convention. Q1 and Q2 model
+    // QUIZ_FRAMEWORK.md §5's Q6 and its causal-order idea respectively; Q3
+    // is modeled on that bank's own Q5, written for this chapter. Q4 and Q5
+    // are original. Correct-position spread (b, d, a, c for the four
+    // single-kind questions) checked by eye against the clustering bug
+    // fixed in 0.1/0.2.
+    quiz: [
+      {
+        id: "bb-0-4-the-system-design-lifecycle-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "You're asked, cold, to \"design a ride-sharing app.\" What's the strongest first move?",
+        options: [
+          {
+            id: "a",
+            label: "Draw a client, a load balancer, app servers, and a database to get something on the board.",
+            correct: false,
+            explanationMd:
+              "The cold open's own mistake - it looks productive, but half of it may need to be redrawn " +
+              "once the actual scope shows up.",
+          },
+          {
+            id: "b",
+            label: "Ask who's using it, what the core feature is, and what's explicitly out of scope.",
+            correct: true,
+            explanationMd:
+              "Correct. That's step 1, Clarify - every later step depends on the answer, including the " +
+              "estimate and the architecture itself.",
+          },
+          {
+            id: "c",
+            label: "Estimate a plausible number of riders and drivers to size the system.",
+            correct: false,
+            explanationMd:
+              "Estimate is step 3 - it needs scope and requirements (steps 1-2) first, or the number is a " +
+              "guess dressed up as math.",
+          },
+          {
+            id: "d",
+            label: "Ask the interviewer which database they'd prefer for this kind of app.",
+            correct: false,
+            explanationMd:
+              "A real question, but not a clarifying one - it doesn't change what the system needs to do, " +
+              "which is what step 1 is actually for.",
+          },
+        ],
+      },
+      {
+        id: "bb-0-4-the-system-design-lifecycle-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A candidate is confident the system needs to handle \"roughly a million users\" and wants to " +
+          "skip from clarifying scope straight to sketching the architecture, without estimating first. " +
+          "What's the risk?",
+        options: [
+          {
+            id: "a",
+            label: "None - if you already know the scale, estimating again is redundant.",
+            correct: false,
+            explanationMd:
+              "\"Roughly a million users\" isn't a QPS, storage, or bandwidth number yet - the design " +
+              "choices in step 4 are made against those, not against a headcount.",
+          },
+          {
+            id: "b",
+            label: "The interviewer will assume the candidate can't do arithmetic.",
+            correct: false,
+            explanationMd:
+              "That's about appearances, not the actual dependency at stake - the real risk is guessing " +
+              "the numbers step 4 needs instead of deriving them.",
+          },
+          {
+            id: "c",
+            label: "Estimate always comes after high-level design, so skipping ahead is actually the correct order.",
+            correct: false,
+            explanationMd:
+              "This reverses the real order - estimate (3) precedes high-level design (4) because scale " +
+              "drives the design choices, not the other way around.",
+          },
+          {
+            id: "d",
+            label:
+              "Step 4's design choices - entry point, data store - depend on numbers that \"a million users\" " +
+              "alone doesn't give you; skipping estimate means guessing those numbers instead of deriving them.",
+            correct: true,
+            explanationMd:
+              "Correct. A headcount isn't a QPS or a storage figure - estimate is the step that turns one " +
+              "into the other, and step 4 needs the result.",
+          },
+        ],
+      },
+      {
+        id: "bb-0-4-the-system-design-lifecycle-q3",
+        kind: "ordering",
+        difficulty: 2,
+        prompt: "Put the Interview Loop's eight steps in order, from the first thing a candidate does to the last.",
+        // Full derangement against correctOrder below - Ordering.tsx shows
+        // this array's order with no shuffle, so an already-correct draft
+        // would ship pre-solved (the same discipline 0.2's matching
+        // questions applied to `pairs` vs. `options`).
+        options: [
+          {
+            id: "bottlenecks",
+            label: "Bottlenecks & failure",
+            correct: true,
+            explanationMd:
+              "Comes after a design exists (step 4) and after the deep dive (5) - you need something " +
+              "concrete before you can say what breaks first.",
+          },
+          {
+            id: "evolve-defend",
+            label: "Evolve & defend",
+            correct: true,
+            explanationMd:
+              "Last - responding to follow-ups only makes sense once there's a design, trade-offs, and " +
+              "failure modes already on the table to defend.",
+          },
+          {
+            id: "clarify",
+            label: "Clarify",
+            correct: true,
+            explanationMd: "First - scope has to exist before anything else can be sized, designed, or defended.",
+          },
+          {
+            id: "deep-dive",
+            label: "Deep dive",
+            correct: true,
+            explanationMd:
+              "Comes after the high-level design (4) exists - you go one level down on a specific part of " +
+              "something that's already been sketched.",
+          },
+          {
+            id: "trade-offs",
+            label: "Trade-offs",
+            correct: true,
+            explanationMd:
+              "Comes after bottlenecks (6) - naming the roads not taken is easier once you know what the " +
+              "chosen road actually breaks on.",
+          },
+          {
+            id: "high-level-design",
+            label: "High-level design",
+            correct: true,
+            explanationMd:
+              "Comes after estimate (3) - entry point and data-store choices are made against a scale, not " +
+              "a guess.",
+          },
+          {
+            id: "requirements",
+            label: "Requirements",
+            correct: true,
+            explanationMd: "Second - functional and non-functional promises only make sense once scope (1) is fixed.",
+          },
+          {
+            id: "estimate",
+            label: "Estimate",
+            correct: true,
+            explanationMd:
+              "Third - turning scope and requirements (1-2) into QPS, storage, and bandwidth numbers, " +
+              "before any design decision uses them.",
+          },
+        ],
+        correctOrder: [
+          "clarify",
+          "requirements",
+          "estimate",
+          "high-level-design",
+          "deep-dive",
+          "bottlenecks",
+          "trade-offs",
+          "evolve-defend",
+        ],
+      },
+      {
+        id: "bb-0-4-the-system-design-lifecycle-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt: "Mid-design, the interviewer says: \"now this needs to handle 10x the writes.\" What's the strongest response?",
+        options: [
+          {
+            id: "a",
+            label:
+              "Recompute the estimate for the new number, then check which parts of the high-level design " +
+              "still hold - redo only what the new number actually changes.",
+            correct: true,
+            explanationMd:
+              "Correct. This is the loop's own re-entry move - check requirements/estimate first, then " +
+              "redo only what they actually change.",
+          },
+          {
+            id: "b",
+            label: "Say the current design already handles it, since it wasn't designed with a ceiling in mind.",
+            correct: false,
+            explanationMd:
+              "Dismisses a real force under pressure (0.2) without checking - no stated ceiling isn't the " +
+              "same as verified at 10x.",
+          },
+          {
+            id: "c",
+            label: "Redraw the whole design from clarify onward, since any earlier assumption might now be wrong.",
+            correct: false,
+            explanationMd:
+              "Always safe, but the loop rewards re-running only what a specific follow-up actually " +
+              "touches - redoing everything spends time you don't have without new information to justify it.",
+          },
+          {
+            id: "d",
+            label: "Say \"it depends what kind of writes\" and wait for the interviewer to specify further.",
+            correct: false,
+            explanationMd:
+              "\"It depends\" without naming the variable and answering both branches is the exact " +
+              "non-commitment 0.3 flagged - the fix is to say what it depends on and commit.",
+          },
+        ],
+      },
+      {
+        id: "bb-0-4-the-system-design-lifecycle-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Which statement best describes how the interview register and the production register each run " +
+          "this same eight-step loop?",
+        options: [
+          {
+            id: "a",
+            label: "Production skips clarify and requirements, since there's no interviewer to ask.",
+            correct: false,
+            explanationMd:
+              "Production still needs scope and requirements - they're written down, in a design doc's " +
+              "goals and non-goals, instead of spoken to a listener.",
+          },
+          {
+            id: "b",
+            label: "Only steps 4 through 8 apply in production; the first three are interview formalities.",
+            correct: false,
+            explanationMd:
+              "Google's and Amazon's own design-doc formats devote real space to scope and requirements " +
+              "before any design appears - tempting since interviews compress them, but wrong.",
+          },
+          {
+            id: "c",
+            label:
+              "Both registers run all eight steps in the same order; the interview narrates them in one " +
+              "sitting, production stretches them across days and writes them down.",
+            correct: true,
+            explanationMd:
+              "Correct. Same loop, same order, different clock and different artifact - the point \"Same " +
+              "loop, on paper\" makes with Google's and Amazon's own documented practices.",
+          },
+          {
+            id: "d",
+            label: "The production register runs the loop in reverse, starting from trade-offs since a design already exists.",
+            correct: false,
+            explanationMd:
+              "An invented mechanism - production design docs still open with goals and requirements, the " +
+              "same order the loop runs in everywhere else.",
           },
         ],
       },

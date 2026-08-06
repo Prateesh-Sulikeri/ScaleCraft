@@ -34,14 +34,18 @@ checkpoints) + 32 Real World Extraction projects = 79 manifest rows.
 | Chapter | Status | Date | Branch |
 |---|---|---|---|
 | 0.1 Welcome to ScaleCraft | **Authored** | 2026-08-05 | `feature/content-0-1-welcome` |
-| 0.2 What is System Design? | **Authored (Opus proofread pass done, uncommitted)** | 2026-08-06 | `feature/content-0-1-welcome` |
-| 1.6 Drawing the First Architecture | Not started (blocked, see below) | - | - |
-| 3.4 Load Balancer | Placeholder (`bb-dummy-1`), blocked | - | - |
-| RWE T1 Bitly | Placeholder (`rwe-dummy-1`) | - | - |
+| 0.2 What is System Design? | **Authored (Opus proofread pass done)** | 2026-08-06 | `feature/content-0-1-welcome` (commit `d290339`) |
+| 0.3 Interview Design vs. Production Engineering | **Authored + Opus pass (lesson scope)** | 2026-08-06 | `feature/content-0-1-welcome` |
+| 0.4 The System Design Lifecycle | **Authored + Opus pass (lesson scope)** | 2026-08-06 | `feature/content-0-1-welcome` |
+| 1.6 Drawing the First Architecture | Not started (moved to Wave 2, see `pending-content.md`) | - | - |
+| 3.4 Load Balancer | Placeholder (`bb-dummy-1`), moved to Wave 2 | - | - |
+| RWE T1 Bitly | Placeholder (`rwe-dummy-1`), moved to Wave 2 | - | - |
 
 Everything else in the 79 rows is unauthored (`chapterDefinitionId: null`).
 
-**Wave 1 progress: 2 of 5.** Wave definitions live in `pending-content.md`.
+**Wave 1 progress: 4 of 4 authored, all four through an Opus pass** (Wave 1
+redefined 2026-08-06 as Part 0 only - 0.1-0.4; 1.6/3.4/RWE Bitly moved to
+Wave 2). Wave definitions live in `pending-content.md`.
 
 ---
 
@@ -278,6 +282,376 @@ to be recorded there, since Deep Check reads them).
   the kind §18.2 calls spec bugs, and both would have shipped. Two new
   cross-chapter issues also surfaced only because a second reader came at it
   cold (open decisions 4 and 5 below).
+
+---
+
+## 0.3 Interview Design vs. Production Engineering
+
+- **Authored 2026-08-06 · not yet committed · branch `feature/content-0-1-welcome`**
+  (same stacked branch as 0.1/0.2 - no separate `feature/content-0-3-*` branch cut,
+  consistent with 0.2's precedent).
+- Definition id `bb-0-3-interview-design-vs-production-engineering` · manifest slug
+  `0-3-interview-design-vs-production-engineering`
+- Type: Concept · foundational · 15 min (Reader + knowledge check, no build) ·
+  prerequisite: 0.2
+- **Lesson length: 1156 words after the Opus pass** (896 as drafted; 15 min.
+  Against 0.2's post-pass 1092 for the same estimate and 0.1's 667 for 10 min -
+  see the density note below and the Opus-pass subsection for why it grew)
+- Pipeline green at this revision: typecheck, lint, 1566 tests, build
+
+**Wave-order note (2026-08-06, user-directed).** Drafted out of the previously
+documented wave order - Wave 1 originally owned 1.6/3.4/RWE Bitly, not Part 0's
+remainder. The user redefined Wave 1 as Part 0 only (0.1-0.4) in this same session;
+see `pending-content.md`'s wave section and this file's "Wave 1 progress" line above
+for the corrected plan. 1.6, 3.4, and RWE Bitly moved to Wave 2.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-0-3-interview-design-vs-production-engineering.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-0-3-interview-design-vs-production-engineering.md` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None - no canvas exercise, nothing to validate; justified in spec §7 |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3, first chapter to use `multi` kind |
+| 6 | Playtest pass | Spec §9 |
+
+**Judgment calls made:**
+
+- **No construction-family exercise - justified Concept-chapter exception (§11.1),
+  same as 0.2.** No components introduced (all three primitives stay homed at 1.6).
+  `availableComponentIds`/`requiredComponentIds` both `[]`, `blueprints: []`, no
+  `starterGraph`. CURRICULUM §14's own row for 0.3 already states "Exercise: none
+  (quiz-weighted)" - no divergence to flag here, unlike 0.1's built-vs-spec gap.
+- **`hasEditorExercise: false` reused, not re-derived.** 0.2's spec fixed the
+  underlying CTA/completion mechanism and explicitly flagged 0.3 as a future reuse
+  case. No new engineering work this chapter - just setting the field.
+- **Practical objective category omitted**, same explicit §5.2 carve-out 0.2 used.
+  Four objectives (Knowledge, Engineering, Interview, Communication).
+- **Backward connections: 2, meeting §19's ≥2** (0.1 and 0.2 - unlike 0.1 and 0.2
+  themselves, which each had fewer prior chapters available to cite). 0.2's
+  "justified complexity" test is used substantively in the lesson body (the "Same
+  brief, two registers" section) *and* named explicitly again in "Next" per §19's
+  literal "beat 14" placement requirement - a deliberate double-appearance, not
+  padding: one use is applying the concept, the other is the explicit cross-reference
+  signpost the rule asks for.
+- **Chose `multi` over `matching` for quiz kind variety (Q3).** A "classify each
+  scenario as interview-register or production-register" question was drafted as
+  `matching` first, then rejected: with only two real categories, matching's
+  per-row dropdown becomes a disguised binary guess rather than the genuine n-to-n
+  mapping 0.2's Q2/Q3 used (five *distinct* forces). `multi`'s "select all that
+  apply" format (QUIZ_FRAMEWORK §2) tests the same content without the disguised-coin-flip
+  problem. First chapter to use `multi`.
+- **Quiz position-clustering checked by eye**, per the standing instruction from
+  0.1/0.2's shipped bug. Four single-kind questions (Q1/Q2/Q4/Q5) have correct
+  options at c/b/a/d - four distinct positions, not just "not all identical."
+- **Cold open deliberately avoids "the interviewer is impressed by boldness."**
+  An early draft-in-my-head had the interviewer nod approvingly at the unjustified
+  sharded proposal before the reveal - cut before it reached the file, because it
+  would have taught the exact naive "interview rewards bold, production rewards
+  boring" mental model this chapter argues against. The shipped cold open has the
+  interviewer ask "why sixteen, why now" instead, so the failure is legible as
+  *unjustified complexity failing in both registers*, not "wrong register."
+- **Two production examples instead of one**, unlike 0.2's paired
+  Stripe/Netflix contrast (which contrasted two companies on the same axis).
+  Stack Overflow (restraint) and Discord (justified complexity) are deliberately
+  opposite moves within the *same* register, to head off "production always avoids
+  complexity" as a follow-on misreading of "production favors boring" - flagged in
+  spec §3 and reinforced in "Ways to misread this."
+- **No density revision pass performed as a distinct drafting round** - written
+  once against §20.6 directly (896 words), then one targeted trim pass removed a
+  three-way restatement of the same idea (diagram caption, a standalone paragraph,
+  and the worked-example conclusion were all independently saying "registers differ
+  in what's rewarded, not necessarily the architecture" - cut the caption's second
+  clause and the standalone paragraph entirely, kept the concrete worked-example
+  version as the one place the claim lands). Flagged here per 0.2's own precedent of
+  flagging self-assessed density claims for the next reviewer to check rather than
+  trusting them.
+
+**Opus proofread pass (2026-08-06, lesson scope).** Run after the user read the
+Sonnet draft and reported: *"the language used is either too specific for the point
+where this chapter is present or too vague. I want you to audit and balance it out
+such that it doesn't lose people trying to read the chapter."* Full itemization in
+the chapter spec's §11; summary here.
+
+**Lesson length: 896 -> 1156 words.** Above 0.2's post-pass 1092 for the same
+15-minute estimate, and the increase is deliberate: every added word replaces an
+assertion with a worked instance (§20.6 explicitly prefers concrete over abstract
+even at slightly greater length). Three offsetting density cuts were made in the
+same pass so the growth is net of trimming, not on top of it: the diagram caption
+no longer restates beat 4's definition, the Discord closer no longer duplicates the
+Common-mistakes bullet that generalizes it, and the cold open, "Next" and the
+Stack Overflow example were each tightened.
+
+*Too specific for chapter 3 of 44* (§18.2 rule 1 - the argument, not just the
+flavor, rested on untaught vocabulary in each case):
+
+- Cold open's "sharded, multi-region database... why sixteen shards" -> "split the
+  database across sixteen machines in three regions - minute one, before anyone has
+  said how many users there are." Three untaught terms in one sentence, in the one
+  sentence the reader must grasp to feel the complexity is unjustified.
+- Senior-answer line's "I'd shard only once replication lag or write throughput
+  actually forces it" -> replication lag has no home chapter and was carrying the
+  exemplar's trigger condition. Line rewritten entirely (see the thesis defect
+  below, which was in the same sentence).
+- Discord's "moved a core datastore off MongoDB onto Cassandra" -> "replaced the
+  database under its message history," with the real pain named instead (messages
+  stopped fitting in memory at ~100 million; reads turned slow and unpredictable).
+  Two product names spent on a claim that needs neither; §13 calls that tourism.
+- "An unjustified sharded design" in Common mistakes -> "a design built for a
+  hundred times the traffic that exists," which is what the bullet is about.
+  Unglossed on-call idiom went too: "paged at 3am"/"owning the pager" -> "woken at
+  3am"/"being the person who has to keep it alive".
+- Left as flavor on purpose: "regions"/"machines" (self-describing), "cache" (0.2
+  grounded it), latency/throughput (0.2 taught them).
+
+*Too vague / under-earning:*
+
+- **"Register" was never defined** - the chapter's own central term, in the title,
+  every section heading, the diagram and the quiz, and the draft never said what one
+  is. Beat 4 now defines it before asserting the split. Biggest single fix.
+- **The senior-answer line contradicted the chapter's thesis.** The draft's exemplar
+  opened *"For the interview, I'd propose the sharded design to show I understand the
+  scaling path"* - i.e. it modelled proposing unjustified complexity in the interview
+  register, the exact failure the cold open punishes and the exact naive framing this
+  ledger records the cold open as having been written to avoid. Rewritten so the
+  senior move is naming the register you're in, with the design unchanged across the
+  switch and only instrumentation added.
+- **The "it depends" fix was missing.** Spec §9's playtest table claimed the lens
+  taught it; it didn't, and Q5 tests it. Two sentences added (name the variable,
+  commit on both sides, with a worked branch).
+- **The diagram was abstract scaffolding** - "Same design decision" -> "Interview
+  register"/"Production register" restated the table's first two rows in boxes. Root
+  is now the cold open's actual decision and each leaf states what that register
+  rewards for it, so the picture carries a worked instance.
+- **"Boring, reversible, well-understood choices"** was a terse cell carrying the
+  whole production register, never unpacked. One paragraph now defines both words
+  operationally (failures already documented; wrong costs an afternoon, not a
+  migration).
+- **"At this scale nothing forces more"** referred to a scale the brief never stated.
+  The worked brief now carries a number (a link shortener, 500 new links a day), and
+  that number anchors the senior-answer line three sections later.
+
+**Checked and left alone:** the two-register thesis, the cold open's framing, and
+the Stack Overflow / Discord pairing (all three are the recorded judgment calls
+above and all three survive scrutiny); §6's Concept section inventory complete and
+in §5.3 order; §19's two backward connections intact; "Next" correctly previews 0.4
+(verified against `manifest.ts`) with 1.11 as the one marked further-out tease;
+§4's declared omissions still hold; both production examples' public numbers are
+accurate and load-bearing to the decision.
+
+**Open note for a later quiz-scope pass (not edited - lesson scope):** Q1's stem and
+correct option use "breadth-first," which comes from CURRICULUM §1.5's phrasing and
+appears nowhere in the lesson. The question is answerable without the term, so it
+was left as-is, but it is the one remaining lesson/quiz vocabulary seam in this
+chapter.
+
+---
+
+## 0.4 The System Design Lifecycle
+
+- **Authored 2026-08-06 · not yet committed · branch `feature/content-0-1-welcome`**
+  (same stacked branch as 0.1/0.2/0.3 - no separate `feature/content-0-4-*` branch
+  cut, consistent with precedent).
+- Definition id `bb-0-4-the-system-design-lifecycle` · manifest slug
+  `0-4-the-system-design-lifecycle`
+- Type: Concept · foundational · 15 min (Reader + knowledge check, no build) ·
+  prerequisite: 0.3
+- **Lesson length: 1102 words after the Opus pass** (1085 as drafted). Against
+  0.2's post-pass 1092 and 0.3's 1156 for the same 15-minute estimate; unlike
+  those two, this chapter needed no length change - see the Opus-pass subsection.
+- Pipeline green at this revision: typecheck, lint, tests, build. (The Sonnet
+  drafting pass deliberately skipped it per user direction; the Opus pass ran it.)
+
+**Wave-completion note (2026-08-06).** Closes Wave 1 / Part 0 (0.1-0.4) as
+redefined earlier in this same session. Sonnet draft plus a lesson-scope Opus
+proofread pass, the same shape 0.3 got (0.2 got a full-scope pass).
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-0-4-the-system-design-lifecycle.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-0-4-the-system-design-lifecycle.md` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None - no canvas exercise, nothing to validate; justified in spec §7 |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3, first chapter to use `ordering` kind |
+| 6 | Playtest pass | Spec §9 |
+
+**Judgment calls made:**
+
+- **No construction-family exercise - justified Concept-chapter exception (§11.1),
+  same as 0.2/0.3.** No components introduced (all three primitives stay homed at
+  1.6). `availableComponentIds`/`requiredComponentIds` both `[]`, `blueprints: []`,
+  no `starterGraph`. CURRICULUM §14's own 0.4 row gives the exercise as "ordering
+  exercise (arrange the eight steps; explanation per placement)" - realized as the
+  quiz's `ordering` question (Q3), the same pattern 0.2 used for its matching
+  question and 0.3 flagged as reusable.
+- **`hasEditorExercise: false` reused, not re-derived.** Same mechanism 0.2's spec
+  fixed and 0.3 already reused; no new engineering work.
+- **Practical objective category omitted**, same explicit §5.2 carve-out 0.2/0.3
+  used. Four objectives (Knowledge, Engineering, Interview, Communication).
+- **First chapter to use `ordering` as a quiz kind.** Options authored as a full
+  derangement against `correctOrder` (no option sits at its own correct index) -
+  `Ordering.tsx` shows the authored `options` array with no shuffle
+  (`src/chapters/quiz/Ordering.tsx`), so anything less than a real scramble risks
+  shipping pre-solved. Same discipline 0.2 applied to its `matching` questions'
+  `pairs` vs. `options` ordering.
+- **Backward connections: 2, meeting §19's ≥2** (0.2 and 0.3). 0.2's five forces
+  are named (not re-listed individually) in the step-2 table row *and* again in
+  "Next," a deliberate double-appearance mirroring 0.3's own precedent for this
+  pattern. 0.3's two-registers frame is reused as the organizing idea of "Same
+  loop, on paper" and named again in "Next."
+- **Production examples chosen to extend 0.3's frame rather than introduce a new
+  one.** Google's design-doc convention and Amazon's "6-pager" are both public,
+  documented practices (§13) that run the same eight-step loop, formalized and
+  slowed down instead of narrated live - the direct production-side payoff of
+  0.3's interview/production distinction, rather than an unrelated pair of
+  examples.
+- **`pending-chapters.md` open decision 4 (the §14/§10.1 five-forces
+  contradiction) sidestepped, not resolved.** The step-2 table row says
+  "0.2's five forces" without re-listing the five names, so this chapter takes
+  no position on which list (§14's or §10.1's) is canonical. Flagged in spec §11
+  for a second reader to confirm this reads as deliberate.
+- **Diagram is Mermaid, not ScaleCraft graph JSON** - a process-flow sequence
+  (eight steps plus one dotted return edge), consistent with open decision 3
+  below ("Part 0 is unaffected - process flows are Mermaid by spec anyway").
+- **No everyday analogy in the mental-model beat**, same choice 0.3 made and for
+  the same reason: the loop's own numbered, causally-dependent structure is
+  already the clearest available frame for itself; a forced external metaphor
+  (checklists, pre-flight routines) would have been decorative.
+- **One density-revision cut made during drafting, not left to a later pass.**
+  An early draft carried a standalone "Why the order isn't optional" section
+  (~40 words) that was judged redundant with "Common mistakes"' first bullet and
+  folded into the paragraph following the core-mechanics table instead. The
+  post-table paragraph and the "In an interview" opening were each tightened
+  once more after that. No further density pass was run distinctly from
+  drafting - flagged in spec §11 for a reviewer to check, per 0.2/0.3's own
+  precedent of flagging a self-assessed density claim rather than trusting it.
+
+**Opus proofread pass (2026-08-06, lesson scope).** Run after the user read the
+Sonnet draft and reported: *"I like this chapter layout, go ahead and check the
+grammer and ambiguiety of sentence."* Explicitly a line-level copy-edit, not a
+revision: the user approved the structure and section order as drafted, so no
+section was added, cut, reordered, or reframed. Lesson length effectively
+unchanged (1085 -> 1102 words); every edit trades the same number of words for
+a sentence that can only be read one way.
+
+*Grammar / ambiguity fixes (the pass's actual subject):*
+
+- **Cold open, unresolvable "one answer / the other."** "Half the diagram
+  assumed one answer, the other half assumed the other" - the interviewer had
+  just asked two questions (how many users; read-heavy or write-heavy), and only
+  the second has two answers, so the sentence has no recoverable referent. Now
+  "Half the diagram assumes read-heavy, the other half assumes write-heavy."
+- **Cold open, tense shift inside one sentence.** "...assumed... and the next ten
+  minutes go to redrawing it" mixed past and present in a single clause chain.
+  Now present throughout, matching the paragraph's narration.
+- **Cold open, unquoted direct question.** "The interviewer stops them: how many
+  users, and is this read-heavy or write-heavy?" now carries quotation marks,
+  matching 0.3's own precedent for interviewer speech.
+- **Think-first callout, stacked imperatives.** "Think first: before reading on,
+  guess - what's the very first thing..." piled three commands before the
+  question. Now the question first, "Commit to an answer before reading on"
+  after - 0.2's precedent exactly.
+- **"The fixed sequence that stops this."** "This" pointed at a whole scene with
+  three plausible referents. Now "what prevents that failure."
+- **Comma splice after the mechanics table.** "the diagram was fine, the ground
+  under it was guessed" -> semicolon.
+- **"How far back to go," appositive pile-up.** "might only touch step 4, a new
+  entry point, or it might reopen step 2, a new requirement that forces the deep
+  dive too" reads momentarily as a three-item list. Appositives moved into
+  parentheses; "the deep dive" (a definite article with no antecedent) -> "a
+  fresh deep dive."
+- **Pronoun number on "requirements."** "that's usually what actually moved. If
+  it didn't" -> "they're usually what actually moved. If they didn't."
+- **Dangling "narrated aloud."** "compresses all eight steps into one sitting,
+  narrated aloud" attached the participle to "one sitting." Now "compresses all
+  eight steps into one sitting and narrates them aloud," parallel with
+  production's "stretches them... and writes them down."
+- **"Does the same job as a narrative memo."** Reads as a comparison (the memo
+  is a separate thing doing the same job) when the intent is a form. Now "does
+  the same job in the form of a narrative memo."
+- **"Silence... usually means keep going."** Bare imperative after "means"; now
+  quoted, matching §10.2's own phrasing.
+- **""10x the writes" is steps 3 and 5 again."** Singular verb against a plural
+  complement. Now "reopens steps 3 and 5."
+- **Recap bullet 2.** "Skipping a step doesn't save time - it becomes rework" -
+  "it" resolves to the skipping, which is not what becomes rework. Now "the step
+  comes back as rework later."
+- **"Next," two loose demonstratives and one misattribution.** "the two registers
+  those forces get judged in" - 0.3 defines a register as what a *decision* is
+  judged in, not a force; now "the two registers a design decision gets judged
+  in." "the order everything else gets gathered in" -> "the order the work
+  happens in." "where this stops being a conversation" -> "where the loop stops
+  being a conversation."
+- **Table row 2 parse.** "Functional (what it does) + non-functional (how well)
+  promises" delayed its head noun past two parentheticals and used "+" where
+  rows 1 and 3 use "Noun: expansion." Now "Promises: functional (what it does)
+  and non-functional (how well)."
+
+*Safety-net fixes (outside the grammar remit, flagged as such):*
+
+- **§18.2 rule 1 - QPS was unglossed.** "users to QPS to storage to bandwidth"
+  in the estimate row. QPS appears nowhere in 0.1, 0.2 or 0.3 (grepped), and
+  0.2 teaches the concept as "throughput," never the abbreviation. Glossed
+  inline at first use per §20.1: "users to QPS (queries per second) to storage
+  to bandwidth."
+- **§20.1 banned word.** "It sounds like the easy step - just ask questions -"
+  -> "ask a few questions and move on." The other three "just"s in the file are
+  the "not just X" sense, which the rule doesn't reach.
+- **"Instance" was untaught vocabulary.** ""what if this instance dies?"" ->
+  "server," which the cold open already puts on the board.
+- **Mild gamified framing.** "1.1 puts you on the loop's first square" -> "1.1
+  drops you into step 1." Board-game idiom against the not-a-game principle,
+  and "step" is the chapter's own noun anyway.
+
+**Checked and deliberately left alone:**
+
+- **Structure, section order, and all section headings** - the user approved the
+  layout explicitly; nothing was added, cut, moved, or retitled.
+- **Word count (1085 -> 1102), spec §11's first flagged item.** Re-derived rather
+  than trusted: the table is eight discrete facts x three columns and *is* the
+  chapter's stated purpose (a map of Part 1), and the two production examples are
+  one sentence each. Nothing is padded; no cut was made purely to hit a number,
+  per §20.6's "length follows content" clause. The self-assessed density claim in
+  spec §11 holds.
+- **Open decision 4 (five-forces contradiction), spec §11's second flagged item.**
+  The step-2 row names "0.2's five forces" without re-listing them. Confirmed as
+  deliberate and correct, not evasive: 0.2 is the only chapter that has taught a
+  list, the row points at it by chapter number, and re-listing would force this
+  chapter to pick a side in a contradiction that is still open. Leave as is when
+  the decision is finally resolved - this row needs no edit either way.
+- **Google design doc and Amazon 6-pager claims.** Both accurate as stated:
+  goals/non-goals, the design, and alternatives-considered are the publicly
+  documented Google structure; the 6-pager is a narrative memo read silently at
+  the start of the meeting. Only the sentence's grammar was touched, not the
+  claim.
+- **Em dashes: zero.** Grepped the file for "—" directly, not eyeballed.
+- **"Next" targets verified against `manifest.ts`.** 1.1 (`1-1-understanding-the-problem`)
+  has `prerequisiteSlugs: ["0-4-the-system-design-lifecycle"]`, so it is genuinely
+  the immediate next chapter; 1.6 is the single marked further-out tease, the same
+  one-tease pattern 0.2 (1.3) and 0.3 (1.11) used.
+- **Table's "You'll live it in" column checked row by row against `manifest.ts`.**
+  All eight map correctly, including the two non-sequential ones (deep dive ->
+  1.9, bottlenecks -> 1.7, which are out of numeric order in the table because
+  the loop's order and Part 1's chapter order genuinely differ there).
+- **Lesson vs. quiz eight-step consistency.** The table's order matches the
+  ChapterDefinition's `correctOrder` exactly (clarify, requirements, estimate,
+  high-level-design, deep-dive, bottlenecks, trade-offs, evolve-defend). No
+  mismatch to flag.
+- **Diagram, mermaid source untouched.** Only the caption was reworded
+  ("the loop's namesake" -> "why it's a loop," plainer per §20.1).
+- **§6 Concept section inventory** complete and in §5.3 order; §19's two backward
+  connections (0.2, 0.3) intact; §4's declared omissions still hold.
+
+**Open note for a later quiz-scope pass (not edited - lesson scope):** Q2's
+options and explanations use "QPS" three times. The lesson now glosses it at
+first use, so a reader who read the chapter is fine, but the quiz-side
+vocabulary seam is worth the same look 0.3's "breadth-first" note got.
+
+**`lessonVersion` bumped 1 -> 2** in `src/content/chapters/index.ts` with a
+revision comment, per the 0.2/0.3 convention.
 
 ---
 
