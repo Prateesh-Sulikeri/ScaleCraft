@@ -33,9 +33,11 @@ test("a section collapses and expands", async ({ page }) => {
 
 test("an unauthored row is not a link and does not navigate on click", async ({ page }) => {
   await page.goto("/building-blocks");
-  const row = page.getByText("Welcome to ScaleCraft");
+  // Welcome to ScaleCraft is now authored; use a chapter that remains a
+  // curriculum-only row.
+  const row = page.getByRole("listitem").filter({ hasText: "What is System Design?" });
   await expect(row).toBeVisible();
-  await expect(page.getByRole("link", { name: /Welcome to ScaleCraft/i })).toHaveCount(0);
+  await expect(row.getByRole("link")).toHaveCount(0);
 
   await row.click();
   await expect(page).toHaveURL(/\/building-blocks$/);

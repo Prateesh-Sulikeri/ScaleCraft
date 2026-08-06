@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # Release 4.0.0 - Content Release - Shopping List
 
 Status: **scoping, not started**. Compiled 2026-08-04 from `pending-guided-tour.md` and
@@ -503,3 +504,86 @@ those as a centered card with no hole). #7/#8 are one z-index audit. #9-#14 are
 a single coherent piece of work on persisting tour state alongside board state.
 #15/#16 are the accessibility gap. #20-#26 are a content and authoring pass and
 should wait until the mechanics are stable.
+=======
+# ScaleCraft Canvas Navigation Specification
+
+## Mouse Navigation
+
+| Action | Shortcut | Notes |
+|---------|----------|-------|
+| Pan | **Space + Left Mouse Drag** | Primary canvas navigation |
+| Pan | **Middle Mouse Drag** | Alternative navigation |
+| Vertical Scroll | **Mouse Wheel** | Scroll canvas vertically |
+| Horizontal Scroll | **Shift + Mouse Wheel** | Scroll canvas horizontally |
+| Zoom | **Ctrl + Mouse Wheel** | Zoom towards mouse cursor |
+| Zoom In | **Ctrl + +** | Keyboard shortcut |
+| Zoom Out | **Ctrl + -** | Keyboard shortcut |
+| Reset Zoom | **Ctrl + 0** | Reset to 100% |
+| Zoom to Fit | **Shift + 1** | Fit all content in viewport |
+| Zoom to Selection | **Shift + 2** | Fit selected nodes |
+
+---
+
+## Trackpad Navigation
+
+| Gesture | Action |
+|----------|--------|
+| Two-finger Drag | Pan canvas |
+| Pinch | Zoom |
+| Shift + Two-finger Drag | Horizontal pan (optional) |
+
+---
+
+## Zoom Behavior
+
+- Zoom is centered around the mouse cursor.
+- Smooth animated zoom.
+- Preserve cursor position while zooming.
+- Preserve pan position during zoom.
+- Infinite canvas.
+
+---
+
+## Selection Behavior
+
+| Action | Result |
+|---------|--------|
+| Click empty canvas | Clear selection |
+| Drag empty canvas | Marquee selection |
+| Hold Space | Pan instead of selecting |
+| Ctrl + Mouse Wheel | Zoom regardless of current tool |
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl + + | Zoom In |
+| Ctrl + - | Zoom Out |
+| Ctrl + 0 | Reset Zoom (100%) |
+| Shift + 1 | Zoom to Fit |
+| Shift + 2 | Zoom to Selection |
+
+---
+
+## Interaction Priority
+
+1. Hold **Space** → Pan
+2. Middle Mouse Drag → Pan
+3. Mouse Wheel → Vertical Scroll
+4. Shift + Mouse Wheel → Horizontal Scroll
+5. Ctrl + Mouse Wheel → Zoom
+6. Trackpad Pinch → Zoom
+7. Two-finger Drag → Pan
+
+---
+
+## Design Principles
+
+- Infinite canvas.
+- Cursor-centered zoom.
+- Smooth panning and zooming.
+- No visible scrollbars.
+- Navigation should feel identical to modern infinite-canvas tools such as Figma, FigJam, Miro, and tldraw.
+>>>>>>> Stashed changes

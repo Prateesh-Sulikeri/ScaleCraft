@@ -37,7 +37,7 @@ test("switching modes via client-side navigation never leaks canvas content betw
   // to the Learning Path, which is where the home "ScaleCraft" link lives.
   await page.getByRole("link", { name: "Learning Path" }).click();
   await page.waitForURL("**/building-blocks");
-  await page.getByRole("link", { name: "ScaleCraft" }).click();
+  await page.locator('a[href="/"]').last().click();
   await page.waitForURL("http://localhost:3000/");
 
   await page.getByRole("link", { name: /Sandbox/ }).click();
