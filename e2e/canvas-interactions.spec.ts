@@ -267,9 +267,11 @@ test.describe("Canvas - Validation Integration", () => {
       // Click Validate
       await validateButton.click();
 
-      // Check if violations are shown
-      const violationPanel = page.locator("[role='dialog'], .dropdown, [class*='panel']");
-      await expect(violationPanel).toBeVisible({ timeout: 2000 });
+      // Validation opens its dedicated details popover. The starter graph is
+      // currently valid, so the panel reports that result rather than a rule violation.
+      const validationDetails = page.locator('[data-tour="validation-details"]');
+      await expect(validationDetails).toBeVisible();
+      await expect(validationDetails).toContainText("No violations.");
     }
   });
 
