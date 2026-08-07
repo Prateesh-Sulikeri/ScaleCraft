@@ -148,7 +148,13 @@ body[data-tour-active="true"] {
   --z-canvas-overlay: var(--z-canvas-overlay);
   --z-modal-backdrop: var(--z-modal-backdrop);
   --z-modal: var(--z-modal);
-  --z-tour: var(--z-tour);
+  /* --z-tour is deliberately absent. Listing it here made Tailwind drop the
+     `:root` declaration above from the generated stylesheet entirely, so
+     `z-[var(--z-tour)]` computed to `z-index: auto` and the tour overlay
+     stopped being a stacking layer at all — the component picker's z-40
+     backdrop then painted over the tour card, making its Next button
+     unclickable. `z-index` has no Tailwind theme namespace, so the arbitrary
+     utility reads the raw `:root` variable and needs no entry here. */
   --z-tooltip: var(--z-tooltip);
   --z-toast: var(--z-toast);
 

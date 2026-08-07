@@ -14,13 +14,51 @@ type Side = "top" | "bottom" | "left" | "right";
  * status line, nothing else. */
 export type TourInteractionState = "none" | "waiting" | "satisfied";
 
+/**
+ * An element's rect intersected with every clipping ancestor and the
+ * viewport - i.e. the part of it a learner can actually see.
+ *
+ * A raw getBoundingClientRect reports where an element *would* be, not where
+ * it's visible, so a target scrolled past its own panel's fold still yields
+ * a full-size rect somewhere off-screen. That's what broke chapter 0.1 once
+ * its lesson copy grew: the sidebar's hints block sits below the fold, and
+ * the tour drew its spotlight down there - dimming the whole screen while
+ * the card said "here" and pointed at nothing. Returning null when nothing
+ * is visible makes that case degrade to the docked-card fallback instead of
+ * an invisible ring.
+ */
+function visibleRect(el: Element): Rect | null {
+  const r = el.getBoundingClientRect();
+  if (r.width === 0 && r.height === 0) return null;
+
+  let { top, left, bottom, right } = r;
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const style = getComputedStyle(p);
+    if (style.overflowY === "visible" && style.overflowX === "visible") continue;
+    const pr = p.getBoundingClientRect();
+    if (style.overflowY !== "visible") {
+      top = Math.max(top, pr.top);
+      bottom = Math.min(bottom, pr.bottom);
+    }
+    if (style.overflowX !== "visible") {
+      left = Math.max(left, pr.left);
+      right = Math.min(right, pr.right);
+    }
+  }
+
+  top = Math.max(top, 0);
+  left = Math.max(left, 0);
+  bottom = Math.min(bottom, window.innerHeight);
+  right = Math.min(right, window.innerWidth);
+  if (right - left <= 0 || bottom - top <= 0) return null;
+  return { top, left, width: right - left, height: bottom - top };
+}
+
 function getRect(target: TourStepTarget | null): Rect | null {
   if (!target) return null;
   const el = document.querySelector(`[data-tour="${target}"]`);
   if (!el) return null;
-  const r = el.getBoundingClientRect();
-  if (r.width === 0 && r.height === 0) return null;
-  return { top: r.top, left: r.left, width: r.width, height: r.height };
+  return visibleRect(el);
 }
 
 function unionRect(rects: Rect[]): Rect | null {
@@ -59,11 +97,65 @@ function measureTargets(key: string): Rect | null {
   return unionRect(targets.map(getRect).filter((r): r is Rect => r !== null));
 }
 
+/** Whether any part of the element is hidden by a clipping ancestor or the
+ * viewport edge — i.e. whether scrolling it into view would change anything. */
+function isClipped(el: Element): boolean {
+  const full = el.getBoundingClientRect();
+  const visible = visibleRect(el);
+  if (!visible) return true;
+  return (
+    Math.round(visible.width) < Math.round(full.width) || Math.round(visible.height) < Math.round(full.height)
+  );
+}
+
+/**
+ * Brings each of a step's targets into view inside its own scroll container,
+ * once, the first time that target exists.
+ *
+ * The lesson sidebar scrolls, so any anchor in it (the hints block, the
+ * "Chapter complete" line, the Debrief) can start below the fold - and a
+ * spotlight can't point at something the learner can't see. Scrolling once
+ * per target rather than on every poll tick leaves them free to scroll back
+ * afterwards without the tour yanking the panel around. The retry window
+ * covers targets that mount a beat after the step opens.
+ *
+ * Only a clipped target is moved, and it's centred rather than scrolled the
+ * minimum distance: "nearest" satisfies the measurement while leaving the
+ * highlight flush against the panel edge, which still reads as cut off.
+ */
+function useScrollTargetsIntoView(key: string) {
+  useEffect(() => {
+    if (!key) return;
+    const pending = new Set(key.split("|") as TourStepTarget[]);
+    const attempt = () => {
+      for (const target of [...pending]) {
+        const el = document.querySelector(`[data-tour="${target}"]`);
+        if (!el) continue;
+        pending.delete(target);
+        // Guarded: jsdom has no scrollIntoView, and a component test that
+        // renders a real anchor shouldn't blow up on a purely visual nicety.
+        if (isClipped(el) && typeof el.scrollIntoView === "function") {
+          el.scrollIntoView({ block: "center", inline: "nearest" });
+        }
+      }
+    };
+    attempt();
+    const interval = setInterval(attempt, 200);
+    const stop = setTimeout(() => clearInterval(interval), 3000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(stop);
+    };
+  }, [key]);
+}
+
 function useTrackedUnionRect(targets: (TourStepTarget | null)[]): Rect | null {
   // Collapsed to a string so the effect below has one primitive dependency
   // rather than an array whose identity changes every render.
   const key = targets.filter(Boolean).join("|");
   const [rect, setRect] = useState<Rect | null>(() => measureTargets(key));
+
+  useScrollTargetsIntoView(key);
 
   useEffect(() => {
     const update = () =>
@@ -87,6 +179,12 @@ function useTrackedUnionRect(targets: (TourStepTarget | null)[]): Rect | null {
 
 const SPOTLIGHT_PADDING = 8;
 const POPOVER_GAP = 12;
+// The highlight ring's own width. `ring-2` paints outside the element box,
+// so a hole flush against a screen edge has an invisible ring on that side —
+// the spotlight around the full-height lesson sidebar showed one vertical
+// line and nothing else. Holes are held this far inside the viewport so all
+// four edges are drawn.
+const RING_WIDTH = 2;
 // Keeps the popover off the physical screen edge on every viewport this
 // audits (.claude/docs/pending.md's manual click-through requirement) —
 // without this a flipped/shifted popover can still land flush against an
@@ -107,6 +205,34 @@ const VIEWPORT_MARGIN = 16;
  * .claude/docs/pending.md tour punch list #4, #5, #20, #22.
  */
 const BROAD_TARGET_AREA_RATIO = 0.45;
+
+/** Pads a measured rect out into the spotlight hole, then holds it inside
+ * the viewport so the ring around it is a closed rectangle rather than one
+ * or two stray lines at the screen edge. */
+export function spotlightHole(rect: Rect | null, viewport: Size): Rect | null {
+  if (!rect) return null;
+  const top = rect.top - SPOTLIGHT_PADDING;
+  const left = rect.left - SPOTLIGHT_PADDING;
+  const bottom = rect.top + rect.height + SPOTLIGHT_PADDING;
+  const right = rect.left + rect.width + SPOTLIGHT_PADDING;
+  // A zero viewport only happens before the first measurement (SSR/initial
+  // state); clamping against it would collapse every hole to nothing.
+  if (viewport.width <= 0 || viewport.height <= 0) {
+    return { top, left, width: right - left, height: bottom - top };
+  }
+  const clamped = {
+    top: Math.max(top, RING_WIDTH),
+    left: Math.max(left, RING_WIDTH),
+    bottom: Math.min(bottom, viewport.height - RING_WIDTH),
+    right: Math.min(right, viewport.width - RING_WIDTH),
+  };
+  return {
+    top: clamped.top,
+    left: clamped.left,
+    width: Math.max(0, clamped.right - clamped.left),
+    height: Math.max(0, clamped.bottom - clamped.top),
+  };
+}
 
 function isBroadTarget(rect: Rect | null, viewport: Size): boolean {
   if (!rect) return false;
@@ -301,30 +427,8 @@ export function TourOverlay({
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const hole = useMemo(
-    () =>
-      rect
-        ? {
-            top: rect.top - SPOTLIGHT_PADDING,
-            left: rect.left - SPOTLIGHT_PADDING,
-            width: rect.width + SPOTLIGHT_PADDING * 2,
-            height: rect.height + SPOTLIGHT_PADDING * 2,
-          }
-        : null,
-    [rect],
-  );
-  const anchorHole = useMemo(
-    () =>
-      anchorRectDistinct
-        ? {
-            top: anchorRectDistinct.top - SPOTLIGHT_PADDING,
-            left: anchorRectDistinct.left - SPOTLIGHT_PADDING,
-            width: anchorRectDistinct.width + SPOTLIGHT_PADDING * 2,
-            height: anchorRectDistinct.height + SPOTLIGHT_PADDING * 2,
-          }
-        : null,
-    [anchorRectDistinct],
-  );
+  const hole = useMemo(() => spotlightHole(rect, viewport), [rect, viewport]);
+  const anchorHole = useMemo(() => spotlightHole(anchorRectDistinct, viewport), [anchorRectDistinct, viewport]);
 
   // A target broad enough to be meaningless as a highlight is rendered
   // ambiently: no dimming, no ring, nothing blocked. A step with no target
