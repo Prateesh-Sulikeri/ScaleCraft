@@ -14,6 +14,17 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "4.0.0-alpha",
+    date: "2026-08-07",
+    highlights: [
+      "New: a guided walkthrough for Chapter 0.1 (Welcome to ScaleCraft) - your first chapter starts with a broken diagram, and a step-by-step tour shows you how to diagnose it, add the missing piece, fix the connection, and read Validate's explanation for yourself. Esc pauses instead of dismissing for good, and reloading picks up right where you left off.",
+      "Validate and Submit are now separate steps. Validate checks your diagram's structure only, no completion pressure - Submit adds a check against the chapter's target architecture and reports exactly what's missing, extra, or mismatched instead of a bare pass/fail.",
+      "New 'Start over' control resets a chapter back to its starter graph, discarding your save and undo history - useful for retrying a chapter or replaying its tour from a clean board. It now lives with the Replay/Resume tour controls in the sidebar, instead of a floating pill that used to cover sidebar content.",
+      "Two new Building Blocks chapters: 0.1 Welcome to ScaleCraft (real lesson content, replacing the placeholder) and 0.2 What is System Design? (a quick, canvas-free primer on the five forces behind every design decision - latency, throughput, availability, durability, cost - with its own quiz).",
+      "Concept chapters that don't need a diagram exercise (like 0.2) now complete on their quiz alone, instead of requiring a Submit that was never reachable.",
+    ],
+  },
+  {
     version: "3.4.0-alpha",
     date: "2026-08-04",
     highlights: [
