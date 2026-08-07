@@ -185,6 +185,12 @@ type CanvasStore = {
    * loadGraph, takes AnyNodeType[]/ArchitectureEdgeType[] directly instead
    * of mapping from ArchitectureGraph, so zones survive a restore. */
   loadCanvasState: (nodes: AnyNodeType[], edges: ArchitectureEdgeType[]) => void;
+  /** loadGraph, but with undo/redo history wiped too - "put the board back
+   * how it shipped", not "here's another edit you can Ctrl+Z out of". Backs
+   * the guided tour's Start over (see tour/TourController.tsx): leaving a
+   * `past` entry behind there would make Undo available on step 1, which is
+   * exactly what the tour's undo step asks the learner to produce. */
+  resetGraph: (graph: ArchitectureGraph) => void;
   addNode: (definition: ComponentDefinition, position: XY) => void;
   /** width/height default to the original fixed zone size — the
    * drag-to-draw gesture (see Canvas.tsx) passes explicit dimensions from
@@ -472,6 +478,11 @@ export function createCanvasStore(): StoreApi<CanvasStore> {
           : pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
       future: [],
     }));
+  },
+
+  resetGraph: (graph) => {
+    get().loadGraph(graph);
+    set({ past: [], future: [], pendingUndo: null });
   },
 
   addNode: (definition, position) => {

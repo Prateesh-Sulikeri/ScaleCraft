@@ -33,6 +33,11 @@ type ChapterSidebarProps = {
    * Validate). */
   submitOutcome: ChapterOutcome | null;
   isSubmitStale: boolean;
+  /** Ref callback for the footer slot the guided tour portals its idle
+   * controls into (see TourController's `idleSlot`). Rendered empty and
+   * hidden for every chapter without a tour, so it costs a non-tour chapter
+   * nothing. */
+  tourSlotRef?: (node: HTMLDivElement | null) => void;
 };
 
 /**
@@ -53,6 +58,7 @@ export function ChapterSidebar({
   displayViolations,
   submitOutcome,
   isSubmitStale,
+  tourSlotRef,
 }: ChapterSidebarProps) {
   // Guaranteed non-null by the route guard in practice ([chapterSlug]/
   // page.tsx 404s first) — kept as a real lookup so a stale/bad slug
@@ -94,6 +100,9 @@ export function ChapterSidebar({
         submitOutcome={submitOutcome}
         isSubmitStale={isSubmitStale}
       />
+      {/* empty:hidden — no border, no padding, no gap unless the tour has
+          actually portalled its controls in here. */}
+      <div ref={tourSlotRef} className="shrink-0 border-t border-border px-3 py-2 empty:hidden" />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # Release 4.0.0 - Content Release - Shopping List
 
 Status: **scoping, not started**. Compiled 2026-08-04 from `pending-guided-tour.md` and
@@ -126,11 +127,58 @@ playtest-sequencing check), in curriculum order:
 - Quiz UI: appears already built (`QuizLauncher.tsx`, `ExamShell`, `QUIZ_FRAMEWORK.md`
   present in code; no outstanding `pending-quiz-ui.md` left in `.claude/docs/`) - verify
   by exercising it, don't take absence-of-a-pending-doc as final proof.
+  **Resolved 2026-08-05:** wiring confirmed - `ChapterReader.tsx:131` renders
+  `QuizLauncher` straight off `chapter.quiz`, and `appendKnowledgeCheckHeading` adds
+  the TOC entry. Authoring the array is sufficient; no engineering work needed.
+  Still wants one real click-through of `ExamShell` now that 0.1 has a live quiz.
 - Stages UI: not required for this wave - none of the five Wave 1 chapters are staged
   Part-1 Process chapters.
-- **Not yet checked:** `pending-content.md`'s claim that "manifest migration to v2
-  structure precedes Wave 1" - needs a direct read of `src/curriculum/manifest.ts`
-  against `CURRICULUM.md`'s §21.4 slug/persistence-key rules before Track B starts.
+- ~~**Not yet checked:** `pending-content.md`'s claim that "manifest migration to v2
+  structure precedes Wave 1"~~ - **resolved 2026-08-05, no work needed.** The claim is
+  stale: `src/curriculum/manifest.ts` is already the v3 map (79 entries, migrated per
+  §21.4, see its header comment). Every Wave 1 slug exists today
+  (`0-1-welcome-to-scalecraft`, `0-2-what-is-system-design`,
+  `1-6-drawing-the-first-architecture`, `3-4-load-balancer` -> `bb-dummy-1`,
+  `rwe-t1-bitly-url-shortener` -> `rwe-dummy-1`). Authoring 3.4 and Bitly means
+  repointing those two rows off the dummies, which §21.4 explicitly permits (dummies
+  "carry no migration weight"). Nothing blocks Track B.
+
+### Track B progress
+
+**Per-chapter detail lives in `.claude/docs/pending-chapters.md`** - the completion
+ledger (what is authored, on which branch, judgment calls, gates already verified).
+Append there when a chapter lands; this section stays release-level only.
+
+**Wave 1: 2 of 5 authored.**
+
+1. **0.1 Welcome to ScaleCraft - done 2026-08-05**, commit `250b5eb`, branch
+   `feature/content-0-1-welcome` (stacked on `feature/guided-tour-track-a`, since
+   0.1's content builds on Track A's chapter definition). All 6 deliverables in,
+   pipeline green. New `src/content/chapters/authoring-invariants.test.ts` enforces
+   the authoring contract registry-wide, so a later chapter that breaks it fails CI
+   rather than shipping.
+2. **0.2 What is System Design? - authored 2026-08-06, not yet committed**,
+   branch `feature/content-0-1-welcome`. All 6 deliverables in, pipeline green.
+   **One-chapter process experiment (user-directed):** authored directly by
+   Sonnet rather than delegated to Opus, pending an Opus proofread/correction
+   pass the user will review before deciding whether to make this the standing
+   process. User review of Sonnet's draft caught two real gaps before that
+   Opus pass even ran - the forces were named but never explained, and
+   `DesignEditorCTA` showing "Begin exercise" for a canvas-less chapter turned
+   out to also break completion tracking (no reachable Submit to write the
+   `chapterProgress` row `deriveStatus` required). Both fixed in-session; new
+   `ChapterDefinition.hasEditorExercise?: boolean` field now covers every
+   future canvas-less Concept chapter. Full detail in the ledger entry.
+3-5. Not started.
+
+**Open decisions raised while authoring** (full detail in the ledger): CURRICULUM
+§14's 0.1 row contradicts the chapter as built; §16's component budget needed a
+declared exception at 0.1; and **the Reader has no renderer for ScaleCraft graph
+JSON**, which §7.2 assumes for topology diagrams - `MarkdownRenderer.tsx` handles
+Mermaid and nothing else. That last one **blocks 1.6 and 3.4** (topology chapters)
+while leaving Part 0 unaffected, and needs a decision before Wave 1 chapter 3: build
+a markdown graph block, or amend §7.2. None were authored around, per
+`pending-content.md`'s working process.
 
 ---
 
@@ -503,3 +551,86 @@ those as a centered card with no hole). #7/#8 are one z-index audit. #9-#14 are
 a single coherent piece of work on persisting tour state alongside board state.
 #15/#16 are the accessibility gap. #20-#26 are a content and authoring pass and
 should wait until the mechanics are stable.
+=======
+# ScaleCraft Canvas Navigation Specification
+
+## Mouse Navigation
+
+| Action | Shortcut | Notes |
+|---------|----------|-------|
+| Pan | **Space + Left Mouse Drag** | Primary canvas navigation |
+| Pan | **Middle Mouse Drag** | Alternative navigation |
+| Vertical Scroll | **Mouse Wheel** | Scroll canvas vertically |
+| Horizontal Scroll | **Shift + Mouse Wheel** | Scroll canvas horizontally |
+| Zoom | **Ctrl + Mouse Wheel** | Zoom towards mouse cursor |
+| Zoom In | **Ctrl + +** | Keyboard shortcut |
+| Zoom Out | **Ctrl + -** | Keyboard shortcut |
+| Reset Zoom | **Ctrl + 0** | Reset to 100% |
+| Zoom to Fit | **Shift + 1** | Fit all content in viewport |
+| Zoom to Selection | **Shift + 2** | Fit selected nodes |
+
+---
+
+## Trackpad Navigation
+
+| Gesture | Action |
+|----------|--------|
+| Two-finger Drag | Pan canvas |
+| Pinch | Zoom |
+| Shift + Two-finger Drag | Horizontal pan (optional) |
+
+---
+
+## Zoom Behavior
+
+- Zoom is centered around the mouse cursor.
+- Smooth animated zoom.
+- Preserve cursor position while zooming.
+- Preserve pan position during zoom.
+- Infinite canvas.
+
+---
+
+## Selection Behavior
+
+| Action | Result |
+|---------|--------|
+| Click empty canvas | Clear selection |
+| Drag empty canvas | Marquee selection |
+| Hold Space | Pan instead of selecting |
+| Ctrl + Mouse Wheel | Zoom regardless of current tool |
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl + + | Zoom In |
+| Ctrl + - | Zoom Out |
+| Ctrl + 0 | Reset Zoom (100%) |
+| Shift + 1 | Zoom to Fit |
+| Shift + 2 | Zoom to Selection |
+
+---
+
+## Interaction Priority
+
+1. Hold **Space** → Pan
+2. Middle Mouse Drag → Pan
+3. Mouse Wheel → Vertical Scroll
+4. Shift + Mouse Wheel → Horizontal Scroll
+5. Ctrl + Mouse Wheel → Zoom
+6. Trackpad Pinch → Zoom
+7. Two-finger Drag → Pan
+
+---
+
+## Design Principles
+
+- Infinite canvas.
+- Cursor-centered zoom.
+- Smooth panning and zooming.
+- No visible scrollbars.
+- Navigation should feel identical to modern infinite-canvas tools such as Figma, FigJam, Miro, and tldraw.
+>>>>>>> Stashed changes

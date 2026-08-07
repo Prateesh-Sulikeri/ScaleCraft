@@ -21,6 +21,14 @@ vi.mock("@/content/chapters", () => ({
         { id: "q2", kind: "single", difficulty: 1, prompt: "p2", options: [{ id: "o1", label: "l", explanationMd: "e", correct: true }] },
       ],
     },
+    {
+      id: "no-editor-with-quiz-def",
+      hasEditorExercise: false,
+      quiz: [
+        { id: "q1", kind: "single", difficulty: 1, prompt: "p1", options: [{ id: "o1", label: "l", explanationMd: "e", correct: true }] },
+      ],
+    },
+    { id: "no-editor-no-quiz-def", hasEditorExercise: false },
   ] satisfies Partial<ChapterDefinition>[],
 }));
 
@@ -129,6 +137,50 @@ describe("deriveStatus", () => {
       }),
     );
     expect(result).toBe("COMPLETED");
+  });
+
+  describe("hasEditorExercise: false (no canvas exercise - e.g. 0.2)", () => {
+    it("COMPLETED on exam pass alone, with no validation pass recorded at all", () => {
+      const entry = chapter({ chapterDefinitionId: "no-editor-with-quiz-def" });
+      const result = deriveStatus(
+        entry,
+        inputs({
+          validationPassedDefinitionIds: new Set(), // never populated — there is no Submit to write it
+          examAttemptsByDefinition: new Map([
+            [
+              "no-editor-with-quiz-def",
+              [{ chapterDefinitionId: "no-editor-with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 90, answers: [] }],
+            ],
+          ]),
+        }),
+      );
+      expect(result).toBe("COMPLETED");
+    });
+
+    it("IN_PROGRESS (not COMPLETED) when the quiz has not yet been passed", () => {
+      const entry = chapter({ chapterDefinitionId: "no-editor-with-quiz-def" });
+      const rowsBySlug = new Map([["test-slug", row({ lastVisitedAt: Date.now() })]]);
+      const result = deriveStatus(
+        entry,
+        inputs({
+          rowsBySlug,
+          examAttemptsByDefinition: new Map([
+            [
+              "no-editor-with-quiz-def",
+              [{ chapterDefinitionId: "no-editor-with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 40, answers: [] }],
+            ],
+          ]),
+        }),
+      );
+      expect(result).toBe("IN_PROGRESS");
+    });
+
+    it("never auto-completes when there is neither an editor exercise nor a quiz", () => {
+      const entry = chapter({ chapterDefinitionId: "no-editor-no-quiz-def" });
+      const rowsBySlug = new Map([["test-slug", row({ lastVisitedAt: Date.now() })]]);
+      const result = deriveStatus(entry, inputs({ rowsBySlug }));
+      expect(result).toBe("IN_PROGRESS");
+    });
   });
 });
 

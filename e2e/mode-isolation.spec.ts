@@ -19,8 +19,11 @@ test("switching modes via client-side navigation never leaks canvas content betw
   await expect(page.locator(".react-flow__node")).toHaveCount(4);
   await expect(page.locator(".react-flow__node").filter({ hasText: "Client" })).toHaveCount(1);
 
-  // Header logo is a plain <Link>, no branded transition hold.
-  await page.getByRole("link", { name: "ScaleCraft" }).click();
+  // Header logo is a plain <Link>, no branded transition hold. Exact match:
+  // by default getByRole does substring matching, and an authored chapter
+  // row link's accessible name ("0.1 Welcome to ScaleCraft") also contains
+  // "ScaleCraft".
+  await page.getByRole("link", { name: "ScaleCraft", exact: true }).click();
   await page.waitForURL("http://localhost:3000/");
 
   await page.getByRole("link", { name: /Building Blocks/ }).click();
@@ -37,7 +40,7 @@ test("switching modes via client-side navigation never leaks canvas content betw
   // to the Learning Path, which is where the home "ScaleCraft" link lives.
   await page.getByRole("link", { name: "Learning Path" }).click();
   await page.waitForURL("**/building-blocks");
-  await page.locator('a[href="/"]').last().click();
+  await page.getByRole("link", { name: "ScaleCraft", exact: true }).click();
   await page.waitForURL("http://localhost:3000/");
 
   await page.getByRole("link", { name: /Sandbox/ }).click();

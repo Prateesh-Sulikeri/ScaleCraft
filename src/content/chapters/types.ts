@@ -149,4 +149,13 @@ export type ChapterDefinition = {
    * string so a typo'd id fails at compile time, not silently no-ops at
    * runtime. Absent means no guided tour for this chapter. */
   editorTourId?: "design-editor";
+  /** False for a chapter with no construction-family exercise — CURRICULUM.md
+   * §11.1's justified Concept-chapter exception (no components introduced,
+   * nothing to build). Absent/true means the chapter has a canvas exercise,
+   * matching every chapter authored before this field existed. Read by
+   * ChapterReader (suppresses DesignEditorCTA — there is nothing to open)
+   * and curriculum/progress.ts's deriveStatus (completion can't require a
+   * chapterProgress row that Submit, unreachable, can never write — quiz
+   * pass alone gates COMPLETED instead). */
+  hasEditorExercise?: boolean;
 };

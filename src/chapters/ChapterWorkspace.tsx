@@ -106,8 +106,16 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
   const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
   const loadGraph = useCanvasStore((s) => s.loadGraph);
   const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
+  const resetGraph = useCanvasStore((s) => s.resetGraph);
 
   const canvasRef = useRef<CanvasHandle>(null);
+
+  // The sidebar's footer slot, where TourController portals its idle
+  // controls. State (not a ref) because TourController has to re-render when
+  // it appears or disappears — focus mode unmounts the whole sidebar, and
+  // the ref callback fires with null when it does, which is exactly the
+  // signal to fall back to the floating position.
+  const [tourSlot, setTourSlot] = useState<HTMLDivElement | null>(null);
 
   const markVisited = useCurriculumProgressStore((s) => s.markVisited);
   const hydrateProgress = useCurriculumProgressStore((s) => s.hydrate);
@@ -346,6 +354,36 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     }
   };
 
+  // "Start over" behind the guided tour's pill (TourController) - puts the
+  // canvas back to the chapter's starterGraph and drops everything derived
+  // from the learner's edits, so a replay of the tour narrates the same
+  // deliberately-broken board it was written against. Without this, a
+  // returning learner's autosaved (usually already-fixed) graph makes half
+  // the tour's "fix it" steps pre-satisfied and unrunnable.
+  //
+  // Deliberately does NOT touch chapterProgress - completion has its own
+  // reset on the Learning Path (ChapterRow -> progress-store.resetChapter),
+  // and silently un-passing a chapter from a tour button would be a
+  // surprise. The one visible consequence is that the tour's Submit step
+  // reads as pre-satisfied for an already-passed chapter, which is the
+  // normal pre-satisfied path (a Next button), not a dead end.
+  const handleResetToStarter = () => {
+    if (!chapter) return;
+    // Synchronous, so TourController can restart the run in the same tick
+    // and have the fresh graph already in its TourContext.
+    if (chapter.starterGraph) resetGraph(chapter.starterGraph);
+    else loadCanvasState([], []);
+    setValidationOutcome(null);
+    setValidatedGraphKey(null);
+    setSubmitOutcome(null);
+    setSubmittedGraphKey(null);
+    setLastValidationErrorCount(null);
+    // Autosave re-writes the starter graph into this slot on the next
+    // debounce; deleting first means a tab closed in between restores the
+    // starter graph rather than the discarded attempt.
+    void db.saves.delete(chapterSaveId(chapter.id));
+  };
+
   // Submit's pass is the only thing that paints every node green — a graph
   // that's merely rules-clean under Validate can still be missing a
   // blueprint match, and painting green on that would show a learner a
@@ -440,6 +478,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
               displayViolations={validateDisplayViolations}
               submitOutcome={submitOutcome}
               isSubmitStale={isSubmitStale}
+              tourSlotRef={setTourSlot}
             />
           </SidebarShell>
         )}
@@ -465,6 +504,8 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
           // step still demanding another Submit would contradict the UI
           // beside it (.claude/docs/pending.md tour punch list #14).
           hasSubmittedPassing={submitOutcome?.passed === true || chapterPassed}
+          onResetToStarter={handleResetToStarter}
+          idleSlot={focusMode ? null : tourSlot}
         />
       )}
     </PageEnter>
