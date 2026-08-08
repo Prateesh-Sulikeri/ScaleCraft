@@ -130,7 +130,9 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
 
             <QuizLauncher chapter={chapter} />
 
-            <DesignEditorCTA mode={mode} chapterSlug={chapterSlug} />
+            {chapter.hasEditorExercise !== false && (
+              <DesignEditorCTA mode={mode} chapterSlug={chapterSlug} />
+            )}
           </div>
         </div>
 

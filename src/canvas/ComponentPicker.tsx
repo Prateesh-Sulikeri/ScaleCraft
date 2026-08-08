@@ -16,18 +16,13 @@ import { ComponentPickerCategoryNav } from "./ComponentPickerCategoryNav";
 import { DeleteConfirmPopover } from "./DeleteConfirmPopover";
 import { CreateComponentModal } from "./CreateComponentModal";
 
-// Collapsed by default on a fresh, unfiltered open — Networking + Compute
-// (the two most fundamental categories) stay expanded, the rest start
-// collapsed so the default view isn't the full ~25-component registry at
-// once (2026-07-24 critique). Never applied while searching (see
-// `effectiveCollapsed` below) and never hides Tools/Decoration, which is a
-// small fixed set outside this scheme entirely.
-const DEFAULT_COLLAPSED_CATEGORIES: ComponentCategory[] = [
-  "data",
-  "caching",
-  "messaging",
-  "distributed-systems",
-];
+// Every category starts expanded (2026-08-07). Data/Caching/Messaging/
+// Distributed Systems used to start collapsed to keep the default view short
+// (2026-07-24 critique), but that hid components behind a disclosure the
+// learner had no reason to suspect - including in a chapter whose palette is
+// narrowed to a handful, where the picker could open looking empty. The
+// category rail is the answer to a long list, not collapsing. Collapsing is
+// still available per category, just never the initial state.
 const EMPTY_COLLAPSED: Set<ComponentCategory> = new Set();
 
 /**
@@ -54,7 +49,7 @@ export function ComponentPicker() {
   const [lastQuery, setLastQuery] = useState(query);
   const [wasOpen, setWasOpen] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<ComponentCategory>>(
-    () => new Set(DEFAULT_COLLAPSED_CATEGORIES),
+    () => new Set(EMPTY_COLLAPSED),
   );
   const [modal, setModal] = useState<{ mode: "create" } | { mode: "edit"; record: CustomComponentRecord } | null>(
     null,
@@ -214,7 +209,7 @@ export function ComponentPicker() {
       setQuery("");
       setLastQuery("");
       setActiveIndex(0);
-      setCollapsedCategories(new Set(DEFAULT_COLLAPSED_CATEGORIES));
+      setCollapsedCategories(new Set(EMPTY_COLLAPSED));
     }
   }
   if (query !== lastQuery) {
@@ -355,6 +350,7 @@ export function ComponentPicker() {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Add a component"
+                data-tour="component-picker"
                 className="motion-reduce:transition-none pointer-events-auto flex max-h-[70vh] w-[640px] max-w-full flex-col rounded-md border border-border bg-panel shadow-lg transition-opacity duration-150"
               >
                 <div className="border-b border-border p-3">

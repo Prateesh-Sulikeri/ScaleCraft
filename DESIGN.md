@@ -165,6 +165,16 @@ The system is flat by default. The canvas plane and everything resting on it (co
 ### Named Rules
 **The Flat Canvas Rule.** Nothing on the canvas plane itself casts a shadow beyond node cards' own whisper-thin `ambient-card`. Shadow means "this is floating above the diagram" — it is chrome-only vocabulary, never applied to diagram content. Scoped exception: Home's mode-selector cards (`ModeNode.tsx`) are navigation UI riding on the same react-flow surface for layout convenience, not architecture-diagram content with a validation ring of their own — a restrained hover-only elevation (`0 10px 28px -16px`, well under `floating-menu`'s weight) is permitted there. No other canvas content gets this treatment.
 
+**Guided tour.** `--z-tour: 55` sits between modal (50) and tooltip (60) — the tour overlay (`src/tour/TourOverlay.tsx`) must paint above any modal it's spotlighting a control within, but a tooltip hovering during a tour step still wins.
+
+**Tour-active dropdown lift.** While a tour runs, `TourController` sets `data-tour-active` on `<body>` and `globals.css` raises `--z-dropdown-backdrop`/`--z-dropdown` to 56/57 for the duration. The spotlight deliberately leaves the real control clickable, so a learner can open a context menu or a header menu mid-step — and at their normal 20/30 those paint *underneath* the tour's backdrop, dimmed and unreadable. Scoped to the tour rather than raising the base tokens, so the ordinary hierarchy is unchanged everywhere else.
+
+**Tour controls dock, they don't float.** The tour's idle controls (Replay/Resume tour, Start over) portal into a footer slot at the bottom of the chapter sidebar (`ChapterSidebar.tsx` -> `TourController`'s `idleSlot`), not a `fixed bottom-4 left-4` pill. Floating them over the canvas corner meant permanently covering the bottom of the sidebar's own content, for a control that is idle-state chrome. Focus mode is the one fallback to the floating position, since it unmounts the sidebar entirely. The slot is `empty:hidden`, so a chapter with no tour pays no border or padding for it.
+
+**Destructive controls arm before they fire.** "Start over" discards a learner's saved canvas, so the first click swaps it to "Discard my work?" in `state-error` and only the second commits; blur disarms it. Inline two-step rather than a `window.confirm` or a modal — nothing else in the app blocks the tab, and a modal is heavier than the decision.
+
+**Don't spotlight what you can't point at.** A tour target covering more than ~45% of the viewport (the canvas, on every desktop size) is rendered ambiently: no dimming, no ring, nothing blocked, card docked in a corner. Ringing a near-fullscreen target carries no information — four consecutive steps drew the identical full-panel outline — and leaves no side with room for the popover, which is how the card ended up off-screen at x = -16 at every size from 1280x720 to 2560x1440. Point steps at the specific control they're about (`hint-toggle`, `chapter-complete`, `debrief`), not the panel that contains it.
+
 ## 5. Components
 
 ### Buttons

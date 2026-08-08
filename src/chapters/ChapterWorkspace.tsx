@@ -22,7 +22,7 @@ import {
 import type { ValidationState } from "@/canvas/types";
 import { chapterRegistry } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import type { ChapterOutcome } from "@/engines";
+import type { ChapterOutcome, ChapterValidationOutcome } from "@/engines";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
@@ -30,6 +30,7 @@ import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { findEntry } from "@/curriculum";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+import { TourController } from "@/tour/TourController";
 
 // Starts minimized (see canvas/store.tsx's docsPanel default), so most
 // loads never need it - keeps its markdown-rendering weight out of the
@@ -105,8 +106,16 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
   const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
   const loadGraph = useCanvasStore((s) => s.loadGraph);
   const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
+  const resetGraph = useCanvasStore((s) => s.resetGraph);
 
   const canvasRef = useRef<CanvasHandle>(null);
+
+  // The sidebar's footer slot, where TourController portals its idle
+  // controls. State (not a ref) because TourController has to re-render when
+  // it appears or disappears — focus mode unmounts the whole sidebar, and
+  // the ref callback fires with null when it does, which is exactly the
+  // signal to fall back to the floating position.
+  const [tourSlot, setTourSlot] = useState<HTMLDivElement | null>(null);
 
   const markVisited = useCurriculumProgressStore((s) => s.markVisited);
   const hydrateProgress = useCurriculumProgressStore((s) => s.hydrate);
@@ -217,8 +226,22 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
 
   useCanvasShortcuts(() => void saveNow());
 
-  const [chapterOutcome, setChapterOutcome] = useState<ChapterOutcome | null>(null);
-  const [checkedGraphKey, setCheckedGraphKey] = useState<string | null>(null);
+  // Split per .claude/docs/pending.md Track A: Validate (rules + required
+  // components only) and Submit (that plus blueprint matching, the
+  // completion gate) now write separate state. Each tracks its own
+  // "checked against which graph" key — an intervening edit invalidates
+  // both, but Submit doesn't go stale just because Validate re-ran on the
+  // same still-current graph, and vice versa.
+  const [validationOutcome, setValidationOutcome] = useState<ChapterValidationOutcome | null>(null);
+  const [validatedGraphKey, setValidatedGraphKey] = useState<string | null>(null);
+  const [submitOutcome, setSubmitOutcome] = useState<ChapterOutcome | null>(null);
+  const [submittedGraphKey, setSubmittedGraphKey] = useState<string | null>(null);
+  // Read by TourController — total issue count (errors + missing/
+  // disconnected required components) from the last Validate OR Submit
+  // click, whichever ran most recently. `null` before either has ever run.
+  // The remediation flow needs the real count (0 vs. not), not just "was
+  // clicked at all".
+  const [lastValidationErrorCount, setLastValidationErrorCount] = useState<number | null>(null);
 
   // Deep Check's spoiler gate (§10.6) keys off "has this chapter ever been
   // passed" — chapterProgress row existence, not just chapterOutcome.passed
@@ -237,36 +260,86 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
       cancelled = true;
     };
   }, [chapter]);
-  // Real rule violations plus chapter-level "allowed but not correct"
-  // reasons (missing/disconnected required component, blueprint mismatch),
-  // merged so the header's Validation pane is the one place a learner looks
-  // for "what's wrong and why" — see chapter-outcome-violations.ts.
-  const violations = useMemo(
-    () => (chapterOutcome && chapter ? chapterDisplayViolations(chapterOutcome, chapter, nodes) : null),
-    [chapterOutcome, chapter, nodes],
-  );
-
   const currentGraphKey = useMemo(
     () => architectureGraphTopologyKey(toArchitectureGraph(nodes, edges)),
     [nodes, edges],
   );
-  const isStale = violations !== null && checkedGraphKey !== currentGraphKey;
+  const isValidationStale = validationOutcome !== null && validatedGraphKey !== currentGraphKey;
+  const isSubmitStale = submitOutcome !== null && submittedGraphKey !== currentGraphKey;
 
-  // Scoped to the open chapter's own validationRuleIds, not the full global
-  // registry — a chapter should only ever fail on what it's actually
-  // teaching (CLAUDE.md: "that's a config option or a validation rule
-  // scoped to that chapter"). evaluateChapter layers the required-component
-  // connectivity check and blueprint matching on top of the rule run.
+  // Real rule violations plus chapter-level "allowed but not correct"
+  // reasons (missing/disconnected required component, and — Submit only —
+  // a blueprint drift report), merged so the header's Validation pane is
+  // the one place a learner looks for "what's wrong and why" — see
+  // chapter-outcome-violations.ts. Deliberately NOT gated on isValidationStale
+  // here — going stale flags the result (via the isStale prop below), it
+  // never discards it, so the count a learner last saw doesn't blank out
+  // just because they nudged a node. Submit's driftReport folds in here too
+  // (rather than a second dropdown), but that piece specifically drops once
+  // isSubmitStale — a Validate re-run on a since-edited graph shouldn't
+  // carry a stale Submit drift report along with it.
+  const violations = useMemo(() => {
+    if (!validationOutcome) return null;
+    return chapterDisplayViolations(
+      { ...validationOutcome, driftReport: isSubmitStale ? null : (submitOutcome?.driftReport ?? null) },
+      nodes,
+    );
+  }, [validationOutcome, submitOutcome, isSubmitStale, nodes]);
+
+  // The same merged list, minus Submit's drift report — what the sidebar's
+  // "Last validated: N issues" line counts. Counting `outcome.violations`
+  // there instead is what made the sidebar say "1 issue" while the header
+  // said "2 issues" on the same run: every synthesised missing/disconnected-
+  // required-component entry was invisible to it (.claude/docs/pending.md
+  // tour punch list #3). Drift stays out because that line is explicitly
+  // Validate-scoped — QuestionPane surfaces a Submit drift on its own
+  // branch, pointing at Submit rather than folding into a Validate count.
+  const validateDisplayViolations = useMemo(() => {
+    if (!validationOutcome) return null;
+    return chapterDisplayViolations({ ...validationOutcome, driftReport: null }, nodes);
+  }, [validationOutcome, nodes]);
+
+  // Validate: rules + required-component connectivity only, scoped to the
+  // open chapter's own validationRuleIds — a chapter should only ever fail
+  // on what it's actually teaching (CLAUDE.md: "that's a config option or a
+  // validation rule scoped to that chapter"). No blueprint check, no
+  // chapterProgress write — see .claude/docs/pending.md Track A's
+  // Validate/Submit split.
   const handleValidate = async () => {
     if (!chapter) return;
     const graph = toArchitectureGraph(nodes, edges);
-    // Dynamic import, not getEngine() — evaluateChapter is chapter-scoped
-    // orchestration on top of the validation engine, not the generic
-    // Engine interface itself (see src/engines/validation/index.ts).
+    // Dynamic import, not getEngine() — runChapterValidation is
+    // chapter-scoped orchestration on top of the validation engine, not the
+    // generic Engine interface itself (see src/engines/validation/index.ts).
+    const { runChapterValidation } = await import("@/engines/validation");
+    const outcome = runChapterValidation(graph, chapter);
+    setValidationOutcome(outcome);
+    setValidatedGraphKey(architectureGraphTopologyKey(graph));
+    setLastValidationErrorCount(
+      outcome.errorCount + outcome.missingRequiredComponentIds.length + outcome.disconnectedRequiredComponentIds.length,
+    );
+  };
+
+  // Submit: the same structural check as Validate, plus (only once that
+  // passes) blueprint matching — the completion gate. Two-stage,
+  // short-circuiting: evaluateChapter itself never attempts the blueprint
+  // comparison against a structurally broken graph (chapter-outcome.ts).
+  // Mirrors its structural fields into validationOutcome too, so the one
+  // shared header dropdown reflects Submit's result exactly the way it
+  // would Validate's for the same graph.
+  const handleSubmit = async () => {
+    if (!chapter) return;
+    const graph = toArchitectureGraph(nodes, edges);
     const { evaluateChapter } = await import("@/engines/validation");
     const outcome = evaluateChapter(graph, chapter);
-    setChapterOutcome(outcome);
-    setCheckedGraphKey(architectureGraphTopologyKey(graph));
+    const graphKey = architectureGraphTopologyKey(graph);
+    setValidationOutcome(outcome);
+    setValidatedGraphKey(graphKey);
+    setLastValidationErrorCount(
+      outcome.errorCount + outcome.missingRequiredComponentIds.length + outcome.disconnectedRequiredComponentIds.length,
+    );
+    setSubmitOutcome(outcome);
+    setSubmittedGraphKey(graphKey);
     if (outcome.passed) {
       void db.chapterProgress
         .put({
@@ -281,27 +354,56 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     }
   };
 
-  // Keyed on the whole ChapterOutcome, not just rule violations — a graph
-  // with zero rule violations can still fail the chapter (a required
-  // component present but disconnected, or no blueprint matched), and
-  // painting every node green in that case would show a learner a false
-  // "this is right" signal on a canvas that's still failing overall.
+  // "Start over" behind the guided tour's pill (TourController) - puts the
+  // canvas back to the chapter's starterGraph and drops everything derived
+  // from the learner's edits, so a replay of the tour narrates the same
+  // deliberately-broken board it was written against. Without this, a
+  // returning learner's autosaved (usually already-fixed) graph makes half
+  // the tour's "fix it" steps pre-satisfied and unrunnable.
+  //
+  // Deliberately does NOT touch chapterProgress - completion has its own
+  // reset on the Learning Path (ChapterRow -> progress-store.resetChapter),
+  // and silently un-passing a chapter from a tour button would be a
+  // surprise. The one visible consequence is that the tour's Submit step
+  // reads as pre-satisfied for an already-passed chapter, which is the
+  // normal pre-satisfied path (a Next button), not a dead end.
+  const handleResetToStarter = () => {
+    if (!chapter) return;
+    // Synchronous, so TourController can restart the run in the same tick
+    // and have the fresh graph already in its TourContext.
+    if (chapter.starterGraph) resetGraph(chapter.starterGraph);
+    else loadCanvasState([], []);
+    setValidationOutcome(null);
+    setValidatedGraphKey(null);
+    setSubmitOutcome(null);
+    setSubmittedGraphKey(null);
+    setLastValidationErrorCount(null);
+    // Autosave re-writes the starter graph into this slot on the next
+    // debounce; deleting first means a tab closed in between restores the
+    // starter graph rather than the discarded attempt.
+    void db.saves.delete(chapterSaveId(chapter.id));
+  };
+
+  // Submit's pass is the only thing that paints every node green — a graph
+  // that's merely rules-clean under Validate can still be missing a
+  // blueprint match, and painting green on that would show a learner a
+  // false "this is right" signal.
   const nodeStates: Record<string, ValidationState> = {};
-  if (chapterOutcome && !isStale) {
-    if (chapterOutcome.passed) {
-      for (const n of nodes) {
-        if (n.type === "component") nodeStates[n.id] = "valid";
-      }
-    } else {
-      // `violations` (the merged, display-facing list — see
-      // chapter-outcome-violations.ts) already includes a
-      // disconnected-required-component entry with the real offending node
-      // ids, so this one loop covers both real rule violations and that
-      // chapter-level reason — no separate pass needed.
-      for (const v of violations ?? []) {
-        for (const id of v.offendingNodeIds) {
-          nodeStates[id] = v.severity === "error" ? "error" : "warning";
-        }
+  if (submitOutcome?.passed && !isSubmitStale) {
+    for (const n of nodes) {
+      if (n.type === "component") nodeStates[n.id] = "valid";
+    }
+  } else if (!isValidationStale) {
+    // `violations` (the merged, display-facing list — see
+    // chapter-outcome-violations.ts) already includes disconnected-required-
+    // component and blueprint-drift entries with their real offending node
+    // ids (where applicable), so this one loop covers all of it. Gated on
+    // freshness the same way the green-paint branch above is — once stale,
+    // no node painting happens at all (the header's violations count still
+    // shows the prior result, just flagged, see the `violations` memo).
+    for (const v of violations ?? []) {
+      for (const id of v.offendingNodeIds) {
+        nodeStates[id] = v.severity === "error" ? "error" : "warning";
       }
     }
   }
@@ -352,8 +454,10 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
           onUndo={undo}
           onRedo={redo}
           violations={violations}
-          isStale={isStale}
+          isStale={isValidationStale}
           onValidate={handleValidate}
+          onSubmit={handleSubmit}
+          chapterPassed={chapterPassed}
           saveId={chapterSaveId(chapter.id)}
           onSave={() => void saveNow()}
           saveStatus={saveStatus}
@@ -369,13 +473,17 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
             <ChapterSidebar
               courseId={mode}
               chapterSlug={chapterSlug}
-              chapterOutcome={chapterOutcome}
-              isStale={isStale}
+              validationOutcome={validationOutcome}
+              isValidationStale={isValidationStale}
+              displayViolations={validateDisplayViolations}
+              submitOutcome={submitOutcome}
+              isSubmitStale={isSubmitStale}
+              tourSlotRef={setTourSlot}
             />
           </SidebarShell>
         )}
         {/* Stays mounted across focus-mode toggles — see DocsPanel.tsx. */}
-        <div className="relative flex flex-1 flex-col">
+        <div data-tour="canvas" className="relative flex flex-1 flex-col">
           <Canvas ref={canvasRef} nodeStates={nodeStates} />
         </div>
 
@@ -385,6 +493,21 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
       <UndoToast />
       <SaveToast savedAt={lastManualSaveAt} />
       <ShortcutsModal />
+      {chapter.editorTourId && (
+        <TourController
+          tourId={chapter.editorTourId}
+          hasLoadedInitialState={hasLoadedInitialState}
+          lastValidationErrorCount={lastValidationErrorCount}
+          // Includes a pass persisted by an earlier session, not just this
+          // mount's in-memory submitOutcome — after a reload the sidebar
+          // already says "Chapter complete" (chapterProgress), so a tour
+          // step still demanding another Submit would contradict the UI
+          // beside it (.claude/docs/pending.md tour punch list #14).
+          hasSubmittedPassing={submitOutcome?.passed === true || chapterPassed}
+          onResetToStarter={handleResetToStarter}
+          idleSlot={focusMode ? null : tourSlot}
+        />
+      )}
     </PageEnter>
   );
 }
