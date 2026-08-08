@@ -124,8 +124,21 @@
   --z-canvas-overlay: 35; /* Placement mode hint pill, drag preview (above dropdown, below modal) */
   --z-modal-backdrop: 40; /* Prevents canvas interaction during modal */
   --z-modal: 50; /* Modal dialogs, primary interaction surfaces */
+  --z-tour: 55; /* Guided tour spotlight overlay - above modals, below tooltips */
   --z-tooltip: 60; /* Tooltips, always visible but beneath toasts */
   --z-toast: 70; /* Toast notifications, temporary feedback (highest) */
+}
+
+/* While a guided tour is running (TourController sets this on <body>),
+ * dropdown-class surfaces are lifted above the tour overlay. The tour's
+ * spotlight deliberately leaves the real control clickable, so a learner can
+ * open a context menu or a header menu mid-step - and at their normal 20/30
+ * those render *underneath* the tour's z-55 backdrop, dimmed and unreadable.
+ * Scoped to the tour rather than raising the base tokens, so the ordinary
+ * stacking hierarchy above is unchanged everywhere else. */
+body[data-tour-active="true"] {
+  --z-dropdown-backdrop: 56;
+  --z-dropdown: 57;
 }
 
 @theme inline {
@@ -135,6 +148,13 @@
   --z-canvas-overlay: var(--z-canvas-overlay);
   --z-modal-backdrop: var(--z-modal-backdrop);
   --z-modal: var(--z-modal);
+  /* --z-tour is deliberately absent. Listing it here made Tailwind drop the
+     `:root` declaration above from the generated stylesheet entirely, so
+     `z-[var(--z-tour)]` computed to `z-index: auto` and the tour overlay
+     stopped being a stacking layer at all — the component picker's z-40
+     backdrop then painted over the tour card, making its Next button
+     unclickable. `z-index` has no Tailwind theme namespace, so the arbitrary
+     utility reads the raw `:root` variable and needs no entry here. */
   --z-tooltip: var(--z-tooltip);
   --z-toast: var(--z-toast);
 

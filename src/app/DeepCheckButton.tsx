@@ -130,6 +130,7 @@ export function DeepCheckButton({ ctx, saveId }: DeepCheckButtonProps) {
         <button
           onClick={handleDeepCheckClick}
           aria-label="Deep Check"
+          data-tour="deep-check"
           className={`flex h-8 w-8 items-center justify-center rounded-md border border-border bg-panel hover:text-foreground ${
             canRun ? "text-foreground/70" : "text-foreground/30"
           }`}

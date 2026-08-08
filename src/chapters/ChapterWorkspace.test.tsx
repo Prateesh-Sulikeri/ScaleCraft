@@ -92,6 +92,8 @@ vi.mock("@/app/AppHeader", () => ({
     violations: ValidationViolation[] | null;
     isStale: boolean;
     onValidate: () => void;
+    onSubmit: () => void;
+    chapterPassed: boolean;
     saveId: string | null;
     onSave: () => void;
     saveStatus: string;
@@ -102,6 +104,10 @@ vi.mock("@/app/AppHeader", () => ({
       <button onClick={props.onValidate} data-testid="validate-btn">
         Validate
       </button>
+      <button onClick={props.onSubmit} data-testid="submit-btn">
+        Submit
+      </button>
+      <span data-testid="chapter-passed">{String(props.chapterPassed)}</span>
       <button onClick={props.onSave} data-testid="save-btn">
         Save
       </button>
@@ -155,9 +161,38 @@ const chapterTwo: ChapterDefinition = {
   readingLinks: [],
 };
 
+const chapterThree: ChapterDefinition = {
+  id: "ch-3",
+  mode: "building-blocks",
+  title: "Chapter Three",
+  problemStatement: "Cache-aside.",
+  learningObjectives: [],
+  availableComponentIds: ["client", "cache"],
+  requiredComponentIds: [],
+  validationRuleIds: [],
+  blueprints: [
+    {
+      id: "bp-cache-aside",
+      label: "Cache-aside",
+      require: { nodes: [{ alias: "c", componentId: "cache" }] },
+      commentary: "Reads check the cache first.",
+    },
+  ],
+  hints: [],
+  readingLinks: [],
+  editorTourId: "design-editor",
+  // A tour chapter is the only place "Start over" is offered, and it needs a
+  // starterGraph to put back.
+  starterGraph: {
+    nodes: [{ id: "n1", componentId: "client", position: { x: 0, y: 0 }, config: {} }],
+    edges: [],
+    entryPointIds: [],
+  },
+};
+
 vi.mock("@/content/chapters", () => ({
-  getChaptersForMode: vi.fn(() => [chapterOne, chapterTwo]),
-  chapterRegistry: [chapterOne, chapterTwo],
+  getChaptersForMode: vi.fn(() => [chapterOne, chapterTwo, chapterThree]),
+  chapterRegistry: [chapterOne, chapterTwo, chapterThree],
 }));
 
 // The curriculum manifest entries backing each ChapterDefinition above —
@@ -180,9 +215,15 @@ const entryTwo: CurriculumChapter = {
   title: "Chapter Two",
   chapterDefinitionId: "ch-2",
 };
+const entryThree: CurriculumChapter = {
+  ...entryOne,
+  slug: "slug-three",
+  title: "Chapter Three",
+  chapterDefinitionId: "ch-3",
+};
 
 const findEntryMock = vi.fn((_mode: string, slug: string) =>
-  slug === "slug-one" ? entryOne : slug === "slug-two" ? entryTwo : undefined,
+  slug === "slug-one" ? entryOne : slug === "slug-two" ? entryTwo : slug === "slug-three" ? entryThree : undefined,
 );
 vi.mock("@/curriculum", () => ({
   findEntry: (mode: string, slug: string) => findEntryMock(mode, slug),
@@ -250,6 +291,10 @@ beforeAll(() => {
 beforeEach(async () => {
   await db.saves.clear();
   await db.chapterProgress.clear();
+  // The guided tour's run state (tour/tour-state.ts) lives here — a test
+  // that skips or finishes the tour would otherwise suppress its auto-start
+  // in every test after it.
+  localStorage.clear();
   runValidationMock.mockReset();
   runValidationMock.mockReturnValue([]);
   getRulesMock.mockClear();
@@ -359,10 +404,10 @@ describe("ChapterWorkspace", () => {
       expect(Object.values(nodeStates)).not.toContain("valid");
     });
 
-    it("marks every present component node valid once the chapter actually passes", async () => {
+    it("marks every present component node valid once Submit actually passes (Validate alone never paints green)", async () => {
       // Chapter Two has no required components and no blueprints, so with
       // zero rule violations evaluateChapter passes outright — this is the
-      // one case that should still paint nodes green.
+      // one case that should still paint nodes green, but only via Submit.
       runValidationMock.mockReturnValue([]);
       await renderWorkspace("slug-two");
       await waitFor(() => expect(screen.getByRole("heading", { name: "Chapter Two" })).toBeInTheDocument());
@@ -371,8 +416,16 @@ describe("ChapterWorkspace", () => {
       fireEvent.click(screen.getByTestId("validate-btn"));
 
       await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
-      const nodeStates = JSON.parse(screen.getByTestId("node-states").textContent ?? "{}");
-      expect(Object.values(nodeStates)).toEqual(["valid"]);
+      // A bare Validate pass never paints green — it never checks blueprints
+      // or writes completion, so nodeStates must stay empty here.
+      expect(JSON.parse(screen.getByTestId("node-states").textContent ?? "{}")).toEqual({});
+
+      fireEvent.click(screen.getByTestId("submit-btn"));
+
+      await waitFor(() => {
+        const nodeStates = JSON.parse(screen.getByTestId("node-states").textContent ?? "{}");
+        expect(Object.values(nodeStates)).toEqual(["valid"]);
+      });
     });
 
     it("runs validation scoped to the open chapter's own validationRuleIds and surfaces every violation, unconditionally", async () => {
@@ -438,8 +491,71 @@ describe("ChapterWorkspace", () => {
     });
   });
 
-  describe("chapter progress wiring", () => {
-    it("writes exactly one chapterProgress row and mirrors it into the curriculum progress store when validation passes", async () => {
+  describe("blueprint drift report (Submit only)", () => {
+    it("surfaces a blueprint-drift entry in the shared violations list once Submit runs structurally clean but unmatched", async () => {
+      // Chapter Three has no required components (structural stage passes
+      // trivially with zero mocked rule violations) but declares a
+      // cache-aside blueprint the empty starter graph can never satisfy.
+      runValidationMock.mockReturnValue([]);
+      await renderWorkspace("slug-three");
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Chapter Three" })).toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId("submit-btn"));
+
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("1"));
+      expect(screen.getByTestId("chapter-passed")).toHaveTextContent("false");
+    });
+  });
+
+  describe("guided tour mounting (gated on ChapterDefinition.editorTourId)", () => {
+    it("mounts the guided tour for a chapter that declares editorTourId, auto-starting once loaded", async () => {
+      await renderWorkspace("slug-three");
+      await waitFor(() => expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument());
+    });
+
+    it("renders the tour's idle controls inside the sidebar, not floating over the canvas", async () => {
+      await renderWorkspace("slug-three");
+      await waitFor(() => expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument());
+      fireEvent.click(screen.getByRole("button", { name: "Skip tour" }));
+
+      const replay = screen.getByRole("button", { name: "Replay guided tour" });
+      expect(replay.closest("[data-tour='question-pane']")).not.toBeNull();
+    });
+
+    it("Start over discards the saved attempt and puts the starterGraph back", async () => {
+      await renderWorkspace("slug-three");
+      await waitFor(() => expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument());
+      expect(screen.getByTestId("node-count")).toHaveTextContent("1");
+      fireEvent.click(screen.getByRole("button", { name: "Skip tour" }));
+
+      // A learner's edit, saved into this chapter's slot.
+      fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
+      expect(screen.getByTestId("node-count")).toHaveTextContent("2");
+      fireEvent.click(screen.getByTestId("save-btn"));
+      await waitFor(async () => expect(await db.saves.get(chapterSaveId("ch-3"))).toBeDefined());
+
+      fireEvent.click(screen.getByRole("button", { name: /^Start over/ }));
+      fireEvent.click(screen.getByRole("button", { name: /^Confirm: discard/ }));
+
+      expect(screen.getByTestId("node-count")).toHaveTextContent("1");
+      // Undo history goes with it — the tour's undo step asks the learner to
+      // make Undo available, which a leftover history entry pre-empts.
+      expect(screen.getByTestId("undo-btn")).toBeDisabled();
+      // And the tour is running again from step 1, against that board.
+      expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument();
+      await waitFor(async () => expect(await db.saves.get(chapterSaveId("ch-3"))).toBeUndefined());
+    });
+
+    it("never mounts the guided tour for a chapter with no editorTourId", async () => {
+      await renderWorkspace("slug-one");
+      await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
+      expect(screen.queryByText("Welcome to the Design Editor")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Replay guided tour" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("chapter progress wiring (Submit-only — a bare Validate click never writes it)", () => {
+    it("writes exactly one chapterProgress row and mirrors it into the curriculum progress store when Submit passes", async () => {
       const putSpy = vi.spyOn(db.chapterProgress, "put");
       runValidationMock.mockReturnValue([]);
 
@@ -448,7 +564,7 @@ describe("ChapterWorkspace", () => {
       await renderWorkspace("slug-two");
       await waitFor(() => expect(screen.getByRole("heading", { name: "Chapter Two" })).toBeInTheDocument());
 
-      fireEvent.click(screen.getByTestId("validate-btn"));
+      fireEvent.click(screen.getByTestId("submit-btn"));
 
       await waitFor(() => expect(putSpy).toHaveBeenCalledTimes(1));
       expect(putSpy).toHaveBeenCalledWith(
@@ -457,11 +573,30 @@ describe("ChapterWorkspace", () => {
       const stored = await db.chapterProgress.get("ch-2");
       expect(stored?.matchedBlueprintId).toBeNull();
       await waitFor(() => expect(recordValidationPassMock).toHaveBeenCalledWith("ch-2"));
+      await waitFor(() => expect(screen.getByTestId("chapter-passed")).toHaveTextContent("true"));
 
       putSpy.mockRestore();
     });
 
-    it("writes nothing when validation fails", async () => {
+    it("writes nothing on a plain Validate click, even for a chapter that would trivially pass", async () => {
+      const putSpy = vi.spyOn(db.chapterProgress, "put");
+      runValidationMock.mockReturnValue([]);
+
+      await renderWorkspace("slug-two");
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Chapter Two" })).toBeInTheDocument());
+
+      fireEvent.click(screen.getByTestId("validate-btn"));
+
+      await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
+      expect(putSpy).not.toHaveBeenCalled();
+      expect(await db.chapterProgress.get("ch-2")).toBeUndefined();
+      expect(recordValidationPassMock).not.toHaveBeenCalled();
+      expect(screen.getByTestId("chapter-passed")).toHaveTextContent("false");
+
+      putSpy.mockRestore();
+    });
+
+    it("writes nothing when Submit fails", async () => {
       const putSpy = vi.spyOn(db.chapterProgress, "put");
       runValidationMock.mockReturnValue([]);
 
@@ -471,7 +606,7 @@ describe("ChapterWorkspace", () => {
       await renderWorkspace("slug-one");
       await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
 
-      fireEvent.click(screen.getByTestId("validate-btn"));
+      fireEvent.click(screen.getByTestId("submit-btn"));
 
       await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("2"));
       expect(putSpy).not.toHaveBeenCalled();

@@ -12,14 +12,14 @@ afterEach(() => {
 vi.mock("./ReaderSidebar", () => ({ ReaderSidebar: () => null }));
 vi.mock("./ReadingProgress", () => ({ ReadingProgress: () => null }));
 vi.mock("./TableOfContents", () => ({ TableOfContents: () => null }));
-vi.mock("./DesignEditorCTA", () => ({ DesignEditorCTA: () => null }));
+vi.mock("./DesignEditorCTA", () => ({ DesignEditorCTA: () => <div data-testid="design-editor-cta" /> }));
 vi.mock("./quiz/QuizLauncher", () => ({ QuizLauncher: () => null }));
 vi.mock("@/app/ThemeToggle", () => ({ ThemeToggle: () => null }));
 vi.mock("@/canvas/docs-panel/markdown/MarkdownRenderer", () => ({
   MarkdownRenderer: ({ content }: { content: string }) => <div>{content}</div>,
 }));
 
-const { mainChapter, placeholderChapter, freshMarkdownChapter, entriesBySlug, targetEntry } = vi.hoisted(() => {
+const { mainChapter, placeholderChapter, freshMarkdownChapter, noEditorExerciseChapter, entriesBySlug, targetEntry } = vi.hoisted(() => {
   const targetEntry = {
     slug: "target",
     number: "2.3",
@@ -68,6 +68,12 @@ const { mainChapter, placeholderChapter, freshMarkdownChapter, entriesBySlug, ta
   const mainChapter = { ...baseChapter, id: "ch-target" };
   const placeholderChapter = { ...baseChapter, id: "ch-placeholder", title: "Draft Chapter", placeholder: true };
   const freshMarkdownChapter = { ...baseChapter, id: "ch-fresh-markdown", title: "Fresh Markdown Chapter" };
+  const noEditorExerciseChapter = {
+    ...baseChapter,
+    id: "ch-no-editor-exercise",
+    title: "No Editor Exercise Chapter",
+    hasEditorExercise: false,
+  };
 
   const placeholderEntry: CurriculumChapter = {
     ...targetEntry,
@@ -90,11 +96,17 @@ const { mainChapter, placeholderChapter, freshMarkdownChapter, entriesBySlug, ta
     slug: "fresh-markdown-slug",
     chapterDefinitionId: "ch-fresh-markdown",
   };
+  const noEditorExerciseEntry: CurriculumChapter = {
+    ...targetEntry,
+    slug: "no-editor-exercise-slug",
+    chapterDefinitionId: "ch-no-editor-exercise",
+  };
 
   return {
     mainChapter,
     placeholderChapter,
     freshMarkdownChapter,
+    noEditorExerciseChapter,
     targetEntry,
     entriesBySlug: {
       target: targetEntry,
@@ -105,12 +117,13 @@ const { mainChapter, placeholderChapter, freshMarkdownChapter, entriesBySlug, ta
       "no-number-slug": noNumberEntry,
       "missing-prereq-slug": missingPrereqEntry,
       "fresh-markdown-slug": freshMarkdownEntry,
+      "no-editor-exercise-slug": noEditorExerciseEntry,
     } as Record<string, CurriculumChapter>,
   };
 });
 
 vi.mock("@/content/chapters", () => ({
-  chapterRegistry: [mainChapter, placeholderChapter, freshMarkdownChapter],
+  chapterRegistry: [mainChapter, placeholderChapter, freshMarkdownChapter, noEditorExerciseChapter],
 }));
 
 vi.mock("@/curriculum", () => ({
@@ -208,5 +221,17 @@ describe("ChapterReader - prerequisite and domain tags", () => {
     render(<ChapterReader mode="real-world-extraction" chapterSlug="fresh-markdown-slug" />);
     expect(await screen.findByText("Fresh fetched lesson body")).toBeInTheDocument();
     expect(screen.queryByText("Problem")).not.toBeInTheDocument();
+  });
+
+  it("renders the Design Editor CTA for a chapter with an editor exercise (the default)", () => {
+    stubFetchNotFound();
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="target" />);
+    expect(screen.getByTestId("design-editor-cta")).toBeInTheDocument();
+  });
+
+  it("omits the Design Editor CTA for a chapter with hasEditorExercise: false", () => {
+    stubFetchNotFound();
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="no-editor-exercise-slug" />);
+    expect(screen.queryByTestId("design-editor-cta")).not.toBeInTheDocument();
   });
 });

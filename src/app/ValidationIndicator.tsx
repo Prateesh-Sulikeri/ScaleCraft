@@ -82,7 +82,7 @@ export function ValidationIndicator({ violations, isStale, onValidate }: Validat
       : "border-border text-foreground";
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} data-tour="validate" className="relative">
       <Tooltip label="Validate">
         <button
           onClick={handleClick}
@@ -96,7 +96,14 @@ export function ValidationIndicator({ violations, isStale, onValidate }: Validat
       </Tooltip>
 
       {showDropdown && (
-        <div className="absolute right-0 z-[var(--z-dropdown)] mt-2 flex max-h-[70vh] w-96 flex-col rounded-md border border-border bg-panel shadow-lg">
+        <div
+          // Spotlighted alongside the button itself during the guided tour
+          // (see tour/design-editor-tour.ts) — the step that tells a learner
+          // to read this explanation must not be the thing dimming and
+          // covering it.
+          data-tour="validation-details"
+          className="absolute right-0 z-[var(--z-dropdown)] mt-2 flex max-h-[70vh] w-96 flex-col rounded-md border border-border bg-panel shadow-lg"
+        >
           {violations === null || violations.length === 0 ? (
             <p className="p-3 text-sm text-state-valid">No violations.</p>
           ) : (

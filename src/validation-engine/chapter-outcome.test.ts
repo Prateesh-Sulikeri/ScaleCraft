@@ -120,7 +120,7 @@ describe("evaluateChapter", () => {
     expect(outcome.matchedBlueprintId).toBe("cache-aside");
   });
 
-  it("fails on a single error-severity violation even when a blueprint would otherwise match", () => {
+  it("fails on a single error-severity violation and never attempts blueprint matching against it (two-stage short-circuit)", () => {
     getRulesMock.mockReturnValue([rule("r-error", "error")]);
     const graph: ArchitectureGraph = { nodes: [node("n1", "cache")], edges: [], entryPointIds: [] };
     const bp = blueprint({ require: { nodes: [{ alias: "c", componentId: "cache" }] } });
@@ -129,7 +129,12 @@ describe("evaluateChapter", () => {
 
     expect(outcome.passed).toBe(false);
     expect(outcome.errorCount).toBe(1);
-    expect(outcome.matchedBlueprintId).toBe(bp.id);
+    // Submit's structural stage failed, so the blueprint stage never runs —
+    // matchedBlueprintId/driftReport both stay null even though this graph
+    // would otherwise satisfy the blueprint (pending.md's "two-stage,
+    // short-circuiting" note).
+    expect(outcome.matchedBlueprintId).toBeNull();
+    expect(outcome.driftReport).toBeNull();
   });
 
   it("passes with only warning/note severity violations present, zero errors, and a matching blueprint", () => {

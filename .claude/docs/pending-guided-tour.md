@@ -271,3 +271,32 @@ the open chapter sets it. Nothing else changes for tour-less chapters.
   quiet (CLAUDE.md: not a game).
 - No real lesson prose - that is Opus's job per `pending-content.md` Wave 1.
 - No changes to the Sandbox, exam/quiz system, or Deep Check.
+
+## Addendum (2026-08-06): Start over + sidebar docking
+
+Two follow-ups landed after real use of the 0.1 tour:
+
+- **Start over** (`TourController` -> `ChapterWorkspace.handleResetToStarter`).
+  Replay alone was not enough: the tour narrates a deliberately broken
+  starter graph, but by the time a learner wants it again their board is
+  fixed and autosaved, so every "fix it" step opens pre-satisfied and the
+  replay teaches nothing. Start over discards the chapter's save slot,
+  restores `starterGraph` via the new `store.resetGraph` (loadGraph plus a
+  wiped undo history - a leftover `past` entry pre-satisfies the undo step),
+  clears the Validate/Submit outcomes, and restarts the run at step 1.
+  Two-step confirm, since it throws away work.
+  - Deliberately does NOT clear `chapterProgress`. Completion has its own
+    reset on the Learning Path (`ChapterRow` -> `progress-store.resetChapter`)
+    and un-passing a chapter from a tour button would be a surprise. The
+    visible consequence: for an already-passed chapter the Submit step opens
+    pre-satisfied (a Next button), which is the normal pre-satisfied path,
+    not a dead end.
+  - Scoped by construction to chapters declaring `editorTourId` (only 0.1),
+    since the controls live inside `TourController`. No new chapter field.
+- **Idle controls moved into the sidebar footer.** The `fixed bottom-4
+  left-4` pill covered the bottom of the sidebar's own content. They now
+  portal into a slot `ChapterSidebar` renders (`tourSlotRef` ->
+  `idleSlot`), falling back to the floating position only in focus mode,
+  which unmounts the sidebar. Copy that pointed at "the pill in the corner"
+  (chapter 0.1 problem statement, hint, lesson body, tour steps 1 and 21)
+  was updated to match.

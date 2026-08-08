@@ -32,21 +32,35 @@ export function examLocked(attempts: readonly ExamAttempt[]): boolean {
 }
 
 /** COMPLETED wins over IN_PROGRESS wins over NOT_STARTED. A manual override
- *  is always sufficient on its own — decision D1. A validation pass is
- *  sufficient only when the chapter's definition has no quiz; when it does,
- *  COMPLETED additionally requires the best exam attempt to meet
+ *  is always sufficient on its own — decision D1. For a chapter with a
+ *  Design Editor exercise (the default — `hasEditorExercise !== false`), a
+ *  validation pass is sufficient only when the definition has no quiz; when
+ *  it does, COMPLETED additionally requires the best exam attempt to meet
  *  EXAM_PASS_THRESHOLD (best-score-wins, not last-attempt-wins — see
- *  .claude/docs/pending-quiz-ui.md addendum). */
+ *  .claude/docs/pending-quiz-ui.md addendum). A chapter with
+ *  `hasEditorExercise: false` (CURRICULUM.md §11.1's justified
+ *  Concept-chapter exception) has no Submit to record a validation pass at
+ *  all — completion is the exam pass alone. If such a chapter also has no
+ *  quiz, there is no automatic completion signal; it can only be marked
+ *  complete manually. */
 export function deriveStatus(entry: CurriculumChapter, inputs: ProgressInputs): ChapterStatus {
   const row = inputs.rowsBySlug.get(entry.slug);
 
   if (row?.manuallyCompletedAt != null) return "COMPLETED";
-  if (entry.chapterDefinitionId != null && inputs.validationPassedDefinitionIds.has(entry.chapterDefinitionId)) {
+  if (entry.chapterDefinitionId != null) {
     const definition = chapterRegistry.find((c) => c.id === entry.chapterDefinitionId);
-    const quiz = definition?.quiz;
-    if (!quiz || quiz.length === 0) return "COMPLETED";
-    const attempts = inputs.examAttemptsByDefinition.get(entry.chapterDefinitionId) ?? [];
-    if (examPassed(attempts)) return "COMPLETED";
+    const noEditorExercise = definition?.hasEditorExercise === false;
+    const editorSatisfied = noEditorExercise || inputs.validationPassedDefinitionIds.has(entry.chapterDefinitionId);
+    if (editorSatisfied) {
+      const quiz = definition?.quiz;
+      const hasQuiz = !!quiz && quiz.length > 0;
+      if (hasQuiz) {
+        const attempts = inputs.examAttemptsByDefinition.get(entry.chapterDefinitionId) ?? [];
+        if (examPassed(attempts)) return "COMPLETED";
+      } else if (!noEditorExercise) {
+        return "COMPLETED";
+      }
+    }
   }
   if (row?.lastVisitedAt != null) return "IN_PROGRESS";
   return "NOT_STARTED";

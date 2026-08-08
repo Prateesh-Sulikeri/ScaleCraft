@@ -9,7 +9,7 @@ import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { deriveStatus, type ProgressInputs } from "@/curriculum/progress";
 import { chapterRegistry } from "@/content/chapters";
 import type { CourseId } from "@/curriculum/types";
-import type { ChapterOutcome } from "@/engines";
+import type { ChapterOutcome, ChapterValidationOutcome, ValidationViolation } from "@/engines";
 
 // Always rendered, so this keeps SSR (no ssr:false) - it's still a real
 // chunk-splitting win since QuestionPane pulls in Debrief,
@@ -19,8 +19,25 @@ const QuestionPane = dynamic(() => import("./QuestionPane").then((m) => m.Questi
 type ChapterSidebarProps = {
   courseId: CourseId;
   chapterSlug: string;
-  chapterOutcome: ChapterOutcome | null;
-  isStale: boolean;
+  /** Validate's own last result — the quick "N issues" / required-
+   * components feedback line, updated every Validate click. */
+  validationOutcome: ChapterValidationOutcome | null;
+  isValidationStale: boolean;
+  /** The merged display list the header's Validation pane renders — passed
+   * straight through to QuestionPane so both surfaces count the same
+   * things. See QuestionPane's own prop doc for what went wrong when it
+   * counted `outcome.violations` itself. */
+  displayViolations: ValidationViolation[] | null;
+  /** Submit's own last result — the only thing that marks the chapter
+   * complete (Debrief only ever follows a Submit pass, never a bare
+   * Validate). */
+  submitOutcome: ChapterOutcome | null;
+  isSubmitStale: boolean;
+  /** Ref callback for the footer slot the guided tour portals its idle
+   * controls into (see TourController's `idleSlot`). Rendered empty and
+   * hidden for every chapter without a tour, so it costs a non-tour chapter
+   * nothing. */
+  tourSlotRef?: (node: HTMLDivElement | null) => void;
 };
 
 /**
@@ -33,7 +50,16 @@ type ChapterSidebarProps = {
  * means going back to the lesson this canvas belongs to, not jumping
  * sideways to a different chapter or the full Learning Path.
  */
-export function ChapterSidebar({ courseId, chapterSlug, chapterOutcome, isStale }: ChapterSidebarProps) {
+export function ChapterSidebar({
+  courseId,
+  chapterSlug,
+  validationOutcome,
+  isValidationStale,
+  displayViolations,
+  submitOutcome,
+  isSubmitStale,
+  tourSlotRef,
+}: ChapterSidebarProps) {
   // Guaranteed non-null by the route guard in practice ([chapterSlug]/
   // page.tsx 404s first) — kept as a real lookup so a stale/bad slug
   // degrades to `null` -> the defensive early return below.
@@ -53,7 +79,7 @@ export function ChapterSidebar({ courseId, chapterSlug, chapterOutcome, isStale 
   if (!chapter || !entry) return null;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div data-tour="question-pane" className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 border-b border-border px-3 py-2">
         <HeldTransitionLink
           href={`/${courseId}/${chapterSlug}/lesson`}
@@ -68,9 +94,15 @@ export function ChapterSidebar({ courseId, chapterSlug, chapterOutcome, isStale 
         chapter={chapter}
         entry={entry}
         status={deriveStatus(entry, inputs)}
-        chapterOutcome={chapterOutcome}
-        isStale={isStale}
+        validationOutcome={validationOutcome}
+        isValidationStale={isValidationStale}
+        displayViolations={displayViolations}
+        submitOutcome={submitOutcome}
+        isSubmitStale={isSubmitStale}
       />
+      {/* empty:hidden — no border, no padding, no gap unless the tour has
+          actually portalled its controls in here. */}
+      <div ref={tourSlotRef} className="shrink-0 border-t border-border px-3 py-2 empty:hidden" />
     </div>
   );
 }

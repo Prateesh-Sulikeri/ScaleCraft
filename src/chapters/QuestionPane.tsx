@@ -10,7 +10,7 @@ import { Debrief } from "./Debrief";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
 import { ChapterStatusIcon, chapterStatusLabel } from "@/learning-path/ChapterStatusIcon";
 import type { ChapterDefinition, Hint } from "@/content/chapters/types";
-import type { ChapterOutcome } from "@/engines";
+import type { ChapterOutcome, ChapterValidationOutcome, ValidationViolation } from "@/engines";
 import type { ChapterStatus, CurriculumChapter } from "@/curriculum/types";
 
 type QuestionPaneProps = {
@@ -20,13 +20,27 @@ type QuestionPaneProps = {
    *  ChapterSidebar's "Back to lesson" link above this component, not here. */
   entry: CurriculumChapter;
   status: ChapterStatus;
-  /** Mirrors ChapterWorkspace's own last Validate-button result. `null`
-   * before the first click; `isStale` means the graph has since changed
-   * underneath it. ChapterWorkspace scopes the actual run to the open
-   * chapter's own validationRuleIds (evaluateChapter), not the full global
-   * registry. */
-  chapterOutcome: ChapterOutcome | null;
-  isStale: boolean;
+  /** Mirrors ChapterWorkspace's own last Validate-button result — the quick
+   * "N issues" / required-components feedback line, updated every Validate
+   * click. `null` before the first click; `isValidationStale` means the
+   * graph has since changed underneath it. */
+  validationOutcome: ChapterValidationOutcome | null;
+  isValidationStale: boolean;
+  /** The SAME merged display list the header's Validation pane renders (see
+   * chapter-outcome-violations.ts), not this outcome's raw rule violations.
+   * Counting the raw array here is what made the sidebar say "1 issue" while
+   * the header said "2 issues" on the same run: every missing/disconnected-
+   * required-component and blueprint-drift entry is synthesised into the
+   * display list and exists nowhere in `outcome.violations`, so the sidebar
+   * systematically undercounted on any chapter that declares required
+   * components. */
+  displayViolations: ValidationViolation[] | null;
+  /** Mirrors ChapterWorkspace's own last Submit-button result — the only
+   * thing that marks the chapter complete (Debrief only ever follows a
+   * Submit pass, never a bare Validate — see .claude/docs/pending.md
+   * Track A). */
+  submitOutcome: ChapterOutcome | null;
+  isSubmitStale: boolean;
 };
 
 /**
@@ -35,19 +49,29 @@ type QuestionPaneProps = {
  * CLAUDE.md's "hints vs. explanations" rule), reading links, and a
  * pull-only Debrief once passed.
  */
-export function QuestionPane({ chapter, entry, status, chapterOutcome, isStale }: QuestionPaneProps) {
+export function QuestionPane({
+  chapter,
+  entry,
+  status,
+  validationOutcome,
+  isValidationStale,
+  displayViolations,
+  submitOutcome,
+  isSubmitStale,
+}: QuestionPaneProps) {
   const nodes = useCanvasStore((s) => s.nodes);
   const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
   const [revealedHintIds, setRevealedHintIds] = useState<Set<string>>(new Set());
 
-  const outcome = isStale ? null : chapterOutcome;
+  const outcome = isValidationStale ? null : validationOutcome;
+  const submit = isSubmitStale ? null : submitOutcome;
 
   // Build passed but the chapter's exam (Reader-only, see QuizLauncher) isn't
   // passed yet — copy only, no badge, no nagging. Mirrors deriveStatus's own
   // COMPLETED-requires-exam-pass rule so this note and the status chip above
   // never disagree.
   const attempts = examAttemptsByDefinition.get(chapter.id) ?? [];
-  const quizRemaining = !!outcome?.passed && !!chapter.quiz?.length && !examPassed(attempts);
+  const quizRemaining = !!submit?.passed && !!chapter.quiz?.length && !examPassed(attempts);
 
   // Before the first Validate click (or once results go stale), fall back to
   // a live presence-only count from the canvas so this line isn't blank —
@@ -64,28 +88,41 @@ export function QuestionPane({ chapter, entry, status, chapterOutcome, isStale }
     : requiredPresentCount;
   const requiredCountLabel = outcome ? "present and connected" : "present";
 
-  const violations = outcome?.violations ?? null;
+  // The header's merged display list, gated on freshness the same way
+  // `outcome` above is. Notes are informational and never counted as issues
+  // — the same rule ValidationIndicator applies, so the two surfaces can't
+  // disagree about the number.
+  const displayed = isValidationStale ? null : displayViolations;
+  const issues = displayed?.filter((v) => v.severity !== "note") ?? null;
+  const issueCount = issues?.length ?? 0;
 
-  // A graph can have zero rule violations and still not be *correct* for
-  // this chapter — a required component might be missing/disconnected, or
-  // present-and-connected but not matching any declared blueprint. Either
-  // way that's "allowed" (nothing caught as an anti-pattern), not "passing",
-  // and conflating the two is exactly the beginner confusion this line
-  // exists to avoid: a clean-looking canvas that never actually completes
-  // the chapter. The specific reason now renders in the header's Validation
-  // pane too (see chapter-outcome-violations.ts) — that's the one place to
-  // look for "why"; this line just needs to never say "passing" when it
-  // isn't, so it points there instead of duplicating the wording.
-  const allowedButNotCorrect = outcome !== null && !outcome.passed && outcome.violations.length === 0;
+  // Two ways a graph can be "allowed" (nothing caught as an anti-pattern)
+  // without being "correct" (the thing this chapter is teaching): Validate
+  // itself is clean of rule violations but a required component is still
+  // missing/disconnected, or Submit ran and found no blueprint match.
+  // Conflating either with "passing" is exactly the beginner confusion this
+  // line exists to avoid. The specific reason renders in the header's
+  // Validation pane too (see chapter-outcome-violations.ts) — that's the
+  // one place to look for "why"; this line just needs to never say
+  // "passing" when it isn't, so it points there instead of duplicating the
+  // wording.
+  const notYetCorrect = (outcome !== null && !outcome.passed) || submit?.driftReport != null;
 
+  // Every not-passing reason now reaches this count, so the "N issues" branch
+  // covers what used to need separate copy for a missing required component.
+  // The remaining non-count branch is the defensive one: not passing with
+  // nothing displayed shouldn't be reachable, and if it ever is, the learner
+  // gets pointed somewhere real rather than told they're passing.
   const validationSummary =
     outcome === null
       ? "Not yet validated"
-      : outcome.passed
-        ? "Last validated: passing"
-        : violations && violations.length > 0
-          ? `Last validated: ${violations.length} issue${violations.length === 1 ? "" : "s"}`
-          : "Last validated: not yet passing - see Validate for details";
+      : issueCount > 0
+        ? `Last validated: ${issueCount} issue${issueCount === 1 ? "" : "s"}`
+        : !outcome.passed
+          ? "Last validated: not yet passing - see Validate for details"
+          : notYetCorrect
+            ? "Last validated: not yet complete - see Submit for details"
+            : "Last validated: passing";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -138,23 +175,36 @@ export function QuestionPane({ chapter, entry, status, chapterOutcome, isStale }
         {/* Independent of the required-components line above — a blueprint
          * mismatch can happen even when a chapter declares no required
          * components at all, so this must not be nested inside that gate. */}
-        <p className={`mt-1 text-xs ${allowedButNotCorrect ? "text-state-warning" : "text-foreground/60"}`}>
+        <p className={`mt-1 text-xs ${notYetCorrect ? "text-state-warning" : "text-foreground/60"}`}>
           {validationSummary}
         </p>
 
-        {/* Plain, not celebratory — this app isn't a game (CLAUDE.md). */}
-        {outcome?.passed && <p className="mt-2 text-xs text-state-valid">Chapter complete.</p>}
+        {/* Plain, not celebratory — this app isn't a game (CLAUDE.md). Only
+         * Submit marks a chapter complete — a bare Validate pass never does,
+         * even for a chapter with no blueprints (see handleValidate in
+         * ChapterWorkspace.tsx). */}
+        {submit?.passed && (
+          <p data-tour="chapter-complete" className="mt-2 text-xs text-state-valid">
+            Chapter complete.
+          </p>
+        )}
 
         {/* Copy only — no badge, no nagging. Points at the Reader's own
          * Knowledge check section rather than duplicating it here. */}
         {quizRemaining && <p className="mt-1 text-xs text-foreground/60">Knowledge check remaining.</p>}
 
-        {outcome?.passed && (
-          <Debrief blueprints={chapter.blueprints} matchedBlueprintId={outcome.matchedBlueprintId} />
+        {submit?.passed && (
+          <div data-tour="debrief">
+            <Debrief blueprints={chapter.blueprints} matchedBlueprintId={submit.matchedBlueprintId} />
+          </div>
         )}
 
+        {/* data-tour anchors the guided tour's hints step to the control
+         * itself rather than to the whole sidebar — a ring around an entire
+         * panel while the copy says "further down this panel" pointed at
+         * prose, not at the button. */}
         {chapter.hints.length > 0 && (
-          <div className="mt-4">
+          <div data-tour="hint-toggle" className="mt-4">
             <h3 className="text-xs font-semibold tracking-wide text-foreground/60 uppercase">Hints</h3>
             <div className="mt-1.5 flex flex-col gap-1.5">
               {chapter.hints.map((hint) => (
