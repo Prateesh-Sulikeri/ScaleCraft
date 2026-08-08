@@ -39,23 +39,25 @@ export function ReaderSidebar({ course, chapterSlug }: ReaderSidebarProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="flex shrink-0 flex-col gap-3 px-3 py-3">
+      <div className="shrink-0 border-b border-border px-3 py-2">
         {/* ChevronLeft, not an external-link icon — this stays inside
          * ScaleCraft, it's a back-navigation affordance to the Learning
          * Path, not a hop to another site. */}
         <HeldTransitionLink
           href={`/${course.id}`}
           label="Returning to Learning Path…"
-          className="flex shrink-0 items-center gap-1 text-xs text-foreground/60 hover:text-foreground"
+          className="inline-flex items-center gap-1 text-xs text-foreground/60 hover:text-foreground"
         >
           <ChevronLeft size={13} aria-hidden="true" />
           Learning Path
         </HeldTransitionLink>
+      </div>
+      <div className="flex shrink-0 flex-col gap-3 px-3 py-3">
+        {/* A real heading, not another small label — this is the panel's
+         * own title, and pairing it with the course name (course.title,
+         * e.g. "Building Blocks") answers "curriculum of what?" instead
+         * of leaving "Curriculum" floating with no context. */}
         <div>
-          {/* A real heading, not another small label — this is the panel's
-           * own title, and pairing it with the course name (course.title,
-           * e.g. "Building Blocks") answers "curriculum of what?" instead
-           * of leaving "Curriculum" floating with no context. */}
           <h2 className="text-sm font-semibold text-foreground">Curriculum</h2>
           <p className="text-xs text-foreground/50">{course.title}</p>
         </div>
