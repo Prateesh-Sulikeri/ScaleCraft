@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { CurriculumSectionList } from "./CurriculumSectionList";
@@ -39,6 +40,25 @@ export function ReaderSidebar({ course, chapterSlug }: ReaderSidebarProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="shrink-0 border-b border-border px-3 py-3">
+        <Link href="/" className="flex items-center gap-2 opacity-100 transition-opacity hover:opacity-70">
+          <div
+            aria-hidden="true"
+            style={{
+              width: 22,
+              height: 22,
+              backgroundColor: "var(--foreground)",
+              WebkitMaskImage: "url(/logo-mask.png)",
+              maskImage: "url(/logo-mask.png)",
+              WebkitMaskSize: "contain",
+              maskSize: "contain",
+              WebkitMaskRepeat: "no-repeat",
+              maskRepeat: "no-repeat",
+            }}
+          />
+          <span className="text-sm font-semibold text-foreground">ScaleCraft</span>
+        </Link>
+      </div>
       <div className="shrink-0 border-b border-border px-3 py-2">
         {/* ChevronLeft, not an external-link icon — this stays inside
          * ScaleCraft, it's a back-navigation affordance to the Learning
