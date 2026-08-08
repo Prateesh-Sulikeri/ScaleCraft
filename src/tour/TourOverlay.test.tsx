@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { TourOverlay, computePopoverPosition } from "./TourOverlay";
+import { TourOverlay, computePopoverPosition, spotlightHole } from "./TourOverlay";
 import type { TourStep } from "./types";
 
 function step(overrides: Partial<TourStep> = {}): TourStep {
@@ -297,6 +297,48 @@ describe("TourOverlay", () => {
     // state was invisible to a screen-reader user.
     render(<TourOverlay {...baseProps()} step={step({ waitFor: () => false })} interactionState="waiting" />);
     expect(screen.getByRole("status")).toHaveTextContent(/try it to continue/i);
+  });
+});
+
+describe("spotlightHole", () => {
+  const viewport = { width: 1366, height: 768 };
+
+  it("pads a normal target out on every side", () => {
+    expect(spotlightHole({ top: 100, left: 200, width: 40, height: 40 }, viewport)).toEqual({
+      top: 92,
+      left: 192,
+      width: 56,
+      height: 56,
+    });
+  });
+
+  it("keeps a full-height sidebar's ring inside the viewport on all four edges", () => {
+    // Measured live at 1366x768 once chapter 0.1's copy grew: the lesson
+    // sidebar's padded hole was {top: 76, left: -8, width: 335, height: 700},
+    // so its left edge sat off-screen and its bottom edge 8px below the
+    // fold. The learner saw one vertical line down the middle of the screen
+    // and nothing that read as a highlight.
+    const sidebar = { top: 84, left: 0, width: 319, height: 684 };
+    const hole = spotlightHole(sidebar, viewport)!;
+
+    expect(hole.left).toBeGreaterThan(0);
+    expect(hole.top).toBeGreaterThan(0);
+    expect(hole.left + hole.width).toBeLessThan(viewport.width);
+    expect(hole.top + hole.height).toBeLessThan(viewport.height);
+  });
+
+  it("leaves the hole unclamped before the first viewport measurement", () => {
+    // Clamping against a zero viewport would collapse every hole to nothing.
+    expect(spotlightHole({ top: 100, left: 200, width: 40, height: 40 }, { width: 0, height: 0 })).toEqual({
+      top: 92,
+      left: 192,
+      width: 56,
+      height: 56,
+    });
+  });
+
+  it("passes a missing rect straight through", () => {
+    expect(spotlightHole(null, viewport)).toBeNull();
   });
 });
 
