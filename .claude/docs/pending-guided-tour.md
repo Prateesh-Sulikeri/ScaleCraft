@@ -478,3 +478,70 @@ sandboxing during interactive steps, tab leadership election, and - going
 forward - any more per-scenario patches. A new deviation that the five
 mechanisms above don't absorb means generalizing a mechanism, not adding a
 line to a punch list.
+
+### Verified against code (2026-08-08, before `feature/tour-airbag`)
+
+Checked every claim above against the actual `src/tour/` implementation so
+the next session starts from confirmed facts, not re-derived ones.
+
+**Holds up, and cheaper than it reads** - the plan is additive on plumbing
+that already exists, not speculative:
+- The 0.45 broad-target ambient fallback is real (`TourOverlay.tsx`
+  `BROAD_TARGET_AREA_RATIO`) - the airbag's "degrade to ambient rendering"
+  is generalizing this, not building it.
+- Pre-satisfied detection exists (`TourController.tsx`'s `entry`/
+  `preSatisfied` state), as does the `paused(stepIndex)` run status
+  (`tour-state.ts`'s `TourRunState`).
+- `TourContext` is already a `useMemo` recomputed on every relevant store
+  change, and `stepSatisfied` is already computed fresh every render
+  (`TourController.tsx` L130/L144). `requires` needs no new continuous-
+  evaluation plumbing - it reuses the exact path `waitFor` already runs
+  through, just interpreted as a failure signal instead of an advance
+  trigger. This is the main reason the plan is Sonnet-sized: the hard part
+  (live, render-time predicate evaluation) is already shipped.
+- `parseTourState` destructures only known fields and silently drops the
+  rest, so adding the `version` field is non-breaking today with no
+  migration code needed.
+- `TourStepTarget` is a closed 14-value string-literal union (`types.ts`)
+  with every `data-tour` usage attributable across exactly 7 named files
+  (per that file's own doc comment). The tour-doctor test is mechanical to
+  write against it - confirms the "highest-leverage item for the effort"
+  claim.
+- No telemetry, ring-buffer, or GitHub-issue-prefill code exists anywhere
+  in `src/` today - slice 2 is genuinely greenfield, nothing to reconcile.
+
+**A live bug that proves the diagnosis, not a hypothetical** - the
+`fix-edge` step's predicate (`design-editor-tour.ts`) is
+`ctx.edgeKindById["bb-0-1-edge-client-app"] === "request-flow"`, keyed to
+one hardcoded starter-graph edge id. Delete that specific edge and draw a
+fresh, correctly-kinded one instead of editing it in place, and the
+predicate can never become true again - exactly the class of bug `requires`
+exists to close. Use this step as the mechanism's first real conversion
+(a role-based check: "an edge from Client to Application Server exists with
+kind request-flow") instead of inventing a synthetic test case for slice 3.
+
+**One claim that doesn't hold**: mechanism 3 says modal-step keyboard
+scoping "extends" the existing focus-trap. It doesn't exist yet.
+`TourOverlay`'s own keydown handler only intercepts Escape/Enter/Tab.
+`useCanvasShortcuts` (`src/canvas/use-canvas-shortcuts.ts`) is a fully
+separate `window` keydown listener - Ctrl+Z, Ctrl+D, Shift+L, `/`, all of
+it - with zero awareness the tour exists. Concretely: on any blocking step
+today (e.g. "welcome", "validate-intro"), if focus is still on the canvas
+from before the tour opened, those shortcuts fire for real underneath the
+backdrop. This is new integration work for `feature/tour-reconciler`, not
+an extension. The clean hook-in point: `useCanvasShortcuts` already gates
+several branches on `componentPicker`/`focusMode` booleans read from the
+store; add a matching store flag TourController sets on modal steps
+(mirroring the existing `document.body.dataset.tourActive` pattern it
+already sets) rather than trying to coordinate `stopPropagation` ordering
+between two independent listeners.
+
+**Needs a one-line scoping decision before coding, not a blocker for
+`feature/tour-airbag`**: today the tour's own "completed" is purely
+`stepIndex >= steps.length - 1` (`TourController.tsx`'s `advance()`), and
+it's already a separate concept from the chapter's real completion gate
+(`hasSubmittedPassing`, sourced from `chapterProgress`, independent of
+tour position). Before building "hard-gate-derived completion," pin down
+whether it's about letting the tour register itself as done when a learner
+solves things out of script order, or something else - the mechanism list
+doesn't fully disambiguate it, and it only matters for slice 3.
