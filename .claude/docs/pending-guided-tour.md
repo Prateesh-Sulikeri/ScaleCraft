@@ -300,3 +300,181 @@ Two follow-ups landed after real use of the 0.1 tour:
   which unmounts the sidebar. Copy that pointed at "the pill in the corner"
   (chapter 0.1 problem statement, hint, lesson body, tour steps 1 and 21)
   was updated to match.
+
+## Addendum (2026-08-08): Resilience redesign - plan of action (scoping, not started)
+
+The 26-item punch list above is closed, but it is reactive: each fix answers
+one specific way a real session broke the script. The user flagged two
+classes of problem it does not solve structurally - a curious/distracted
+user doing something no step anticipated, and a live bug (bad predicate,
+missing selector) leaving the user stuck with no generic recovery. Produced
+via deep ideation with Fable (full brief and reasoning in session history,
+not reproduced here - this is the distilled plan). Not yet started; no
+branch cut, no code written.
+
+### Diagnosis
+
+All 26 fixes share one root cause: the engine treats the script as ground
+truth and the app as scenery, when it is the reverse. It cannot currently
+tell apart "user hasn't done the thing yet," "the world stopped supporting
+this step" (an anchor vanished, a node got deleted), and "the tour's own
+code is broken" (a throwing predicate, a renamed selector) - all three
+render as identical silent waiting today. The fix is not "handle more
+deviations," it is giving the engine a way to distinguish those three
+situations and respond truthfully to each.
+
+### Position: additive hardening, not a rewrite
+
+Keep the linear step-index + predicate script. Do not move to a pure
+milestone/achievement model - sequenced pedagogy (see the failure
+explanation before the fix) and the pre-satisfied mechanism both depend on
+a cursor, and an order-free milestone system would silently check boxes,
+which is the exact silent-skip bug pre-satisfied detection was built to
+prevent. No state-machine library either (five states, shipped,
+browser-tested - a library rewrite buys formality with regression risk).
+
+What does change, all additive to `TourStep`/`TourContext`/the persisted
+run-state:
+
+- **The cursor gets revalidated, never trusted.** A new optional `requires`
+  field per step: role-based structural queries ("a cache node exists,"
+  never "node #47 exists"), evaluated continuously while a step is active,
+  not just on entry. Referencing by role instead of instance id means
+  delete-then-replace, rename, and "fixed the wrong way" are non-events -
+  the requirement is satisfied however the state got there.
+- **Predicates must be level-triggered, not edge-triggered** - assert a
+  state ("lastValidationErrorCount === 0"), never an event ("user just
+  clicked Validate"). Mostly true already; audit all 21 steps against it.
+  Level-triggered predicates are what make undo storms, out-of-order
+  gestures, and non-mouse input (keyboard, screen reader) all naturally
+  tolerable without bespoke handling.
+- **"Taught" becomes hard-gate-derived, not cursor-derived.** Tag each step
+  `hard` (see the failure explanation, fix both faults, revalidate clean,
+  submit) or `soft` (everything else). Completion is defined by the hard
+  gate set, order-free, not by "reached step 21."
+
+### The airbag invariant (covers: stuck-on-a-live-bug)
+
+Every active step must present a working advance-or-exit affordance within
+about 3 seconds of entry, always, even when the tour's own machinery is
+broken. Three failure classes, one policy: degrade to ambient rendering
+(the >45%-viewport fallback already shipped, generalized), tell the truth,
+keep moving.
+
+- **Target resolution failure** (selector doesn't resolve): retry for
+  2-3s via ResizeObserver/rAF (absorbs legitimate mount races), then render
+  ambient with the full step content and a Next button.
+- **Throwing predicate**: one try/catch at the evaluator, never per-step.
+  On throw, treat the step as manually advanceable and log it. A typo in
+  one step's closure must never soft-lock the whole tour for every future
+  user.
+- **Predicate that can never become true**: indistinguishable from "hasn't
+  done it yet" at runtime. Two nets: `requires` catches the "world drifted"
+  case deterministically; the watchdog (below) catches the residue.
+- **Static "tour doctor" test** (Vitest, runs pre-runtime): grep every
+  `data-tour` usage and assert every step's `target`/`spotlightAlso`/
+  `popoverAnchor` resolves to one that exists; run every `waitFor` against
+  synthetic `TourContext` fixtures (empty/solved/mid-fix board) asserting
+  none throws and each is satisfiable by at least one fixture. Turns
+  "anchor renamed in an unrelated future refactor" from a silent runtime
+  dead end into a red CI check at the moment of the refactor. Likely the
+  single highest-leverage item in this plan for the effort involved.
+
+### Watchdog (covers: user stuck without a live bug)
+
+Foreground-time-only (Page Visibility API, so a 20-minute tab-switch never
+fires it - that is what the persisted run-state already handles correctly),
+interactive steps only, threshold ~60-75s of visible unsatisfied time.
+Fires a quiet additional row on the existing card, not a modal: restate the
+mechanic, offer "Skip this step" (new - advances the cursor by one, unlike
+today's Skip which abandons the whole tour) and "Pause tour." `role="status"`
+so a screen-reader user who cannot perform a pointer gesture at all gets a
+spoken exit.
+
+Principle check: this does not violate "hints never auto-surface based on
+attempt count" - that principle governs solution content for the design
+problem; the watchdog only ever offers an exit, never a fix. Hold this line
+precisely on `fix-component`/`fix-edge`: the watchdog row restates the
+mechanic only, never what to fix.
+
+### Five mechanisms for the "curious user" catalog (not per-scenario patches)
+
+Every deviation scenario (deleted/renamed node, undo-storm, placed
+something irrelevant, right-click into an unrelated context-menu action,
+keyboard-only input, tab-switch, window resize/zoom, browser back/forward,
+focus mode unmounting the sidebar, two tabs on one chapter) collapses into
+one of five:
+
+1. **`requires` + reconciler** - role-based structural queries (above).
+   Never auto-mutates the user's graph and never silently moves the
+   cursor (both are trust violations); shows a truthful one-line note and,
+   where the missing thing is placeable, reuses `narrowAvailableComponentIds`
+   as a restore affordance. Start Over remains the nuclear fallback.
+2. **Pause on surface loss** - the tour auto-pauses (reusing the existing
+   `paused(stepIndex)` state) the instant its host surface unmounts:
+   focus mode, router navigation away, browser back/forward, tab close.
+   A `pauseReason` bit distinguishes surface-loss (auto-resume on return)
+   from user-initiated Escape (resume pill). One tested code path instead
+   of a special case per navigation trigger.
+3. **Modal steps own the keyboard; interactive steps own nothing.** The
+   existing focus-trap scoping (dimmed + non-interactive steps only)
+   extends to swallowing app hotkeys on those same steps. Interactive
+   steps swallow nothing - explicitly do not sandbox the user's input
+   during a gesture step; let mechanisms 1 and 4 absorb whatever results.
+   A tour that fights input feels broken even when it isn't.
+4. **Continuous live-state evaluation** - mostly already built
+   (`TourContext` is assembled fresh, pre-satisfied detection exists).
+   Addition: `requires` evaluated during the step, not just on entry, so
+   state drifting out from under an already-active step is caught live.
+5. **Environment re-measure + multi-tab adoption** - observer-driven
+   spotlight/popover measurement (finishing work on shipped code, not new
+   architecture). Multi-tab: listen for the `storage` event on the tour
+   key and re-hydrate through the same resume-reconcile path as mechanism
+   2 on change. No tab leadership election - overbuilding for a
+   permanently single-player product; last writer wins, worst case is one
+   re-narrated step.
+
+### Local signal, no backend
+
+No telemetry infra exists and none should be built speculatively. A capped
+localStorage ring buffer (~200 entries) of tour events (`step-entered`,
+`advanced-via`, `watchdog-fired`, `resolution-failed`, `predicate-threw`,
+`requires-broke`, `reconciled-via`, `tour-exited-via`); a stale orphaned
+`running(stepIndex)` on reload is itself the tab-close-abandonment record.
+Dev channel: `window.__scaleTour.dump()`. User channel: a "Report a
+problem" affordance on the watchdog/blocked-step cards that opens a
+prefilled GitHub issue with the buffer contents, visible before sending.
+Honest limitation: this proves existence of a problem, not its rate -
+silent abandoners are silent by definition. A one-route anonymous counter
+(no user id, day-granularity) is an explicit, deferred slice 4, built only
+if beta evidence demands rates the existence-proof channel can't give.
+
+### Sequencing (4 independently-shippable branches, no rewrite, no migration)
+
+All new fields (`requires`, `hard`) are optional additions to `TourStep`;
+`waitFor` keeps its name and shape. The persisted run-state shape is
+unchanged, so a user mid-tour when this ships needs no migration - their
+stored `stepIndex` is revalidated against the live board by the new
+reconcile path exactly as intended, not specially handled. Add a `version`
+field to the persisted state now regardless, as a door for the next change.
+
+1. `feature/tour-airbag` (~1-2 days): safe predicate evaluator,
+   resolution-failure fallback into ambient mode, breadcrumb ring buffer,
+   the tour-doctor static test. After this slice, "stuck on a live bug" is
+   structurally closed regardless of what breaks next.
+2. `feature/tour-watchdog` (~2 days): the timeout row, per-step skip,
+   `hard` tag + no-solution-content rule for fix-step watchdog copy,
+   Report-a-problem wiring.
+3. `feature/tour-reconciler` (~3-4 days, the largest slice): `requires`,
+   pause-on-surface-loss with `pauseReason`, modal hotkey scoping,
+   `storage`-event multi-tab adoption, observer-driven re-measure,
+   hard-gate-derived completion, the level-vs-edge predicate audit.
+4. `feature/tour-beacon` (deferred): the anonymous counter route, only if
+   evidence demands it.
+
+**Explicitly rejected**: milestone/achievement engine rewrite, state-machine
+library adoption, automatic graph mutation to "repair" a step, input
+sandboxing during interactive steps, tab leadership election, and - going
+forward - any more per-scenario patches. A new deviation that the five
+mechanisms above don't absorb means generalizing a mechanism, not adding a
+line to a punch list.
