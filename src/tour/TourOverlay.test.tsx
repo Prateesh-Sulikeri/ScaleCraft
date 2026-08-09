@@ -268,8 +268,9 @@ describe("TourOverlay", () => {
     const card = screen.getByRole("dialog").querySelector<HTMLElement>(".w-80")!;
     // jsdom measures the card as 0x0, so the dock lands at the margin from
     // the bottom-right corner — the point is that it's a corner, not the
-    // centre of a 1024x768 viewport.
-    expect(card.style.left).toBe(`${1024 - 16}px`);
+    // centre of a 1024x768 viewport. The extra 40px clears xyflow's Controls
+    // widget, which is pinned to that same corner (see DOCK_CONTROLS_CLEARANCE).
+    expect(card.style.left).toBe(`${1024 - 16 - 40}px`);
     expect(card.style.top).toBe(`${768 - 16}px`);
   });
 
@@ -621,7 +622,9 @@ describe("computePopoverPosition", () => {
     // vanished and the card recentred onto the canvas the learner then had
     // to click, parking itself exactly in the way.
     const pos = computePopoverPosition(null, "right", popover, viewport, "dock");
-    expect(pos).toEqual({ top: 900 - 190 - 16, left: 1440 - 320 - 16 });
+    // left leaves an extra 40px clear of xyflow's Controls widget, which is
+    // pinned to this same corner (see DOCK_CONTROLS_CLEARANCE).
+    expect(pos).toEqual({ top: 900 - 190 - 16, left: 1440 - 320 - 16 - 40 });
   });
 
   it("places the card just clear of a normal anchor on the requested side", () => {
@@ -642,7 +645,7 @@ describe("computePopoverPosition", () => {
     const canvas = { top: 50, left: 170, width: 1116, height: 842 };
     const pos = computePopoverPosition(canvas, "bottom", popover, viewport);
 
-    expect(pos.left).toBe(1440 - 320 - 16);
+    expect(pos.left).toBe(1440 - 320 - 16 - 40);
     expect(pos.top).toBe(900 - 190 - 16);
   });
 
