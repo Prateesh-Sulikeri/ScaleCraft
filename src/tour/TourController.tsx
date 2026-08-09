@@ -186,12 +186,21 @@ export function TourController({
   }
   const preSatisfied = entry.index === stepIndex ? entry.preSatisfied : stepSatisfied;
 
+  // A satisfied noAutoAdvance step (validate-click, revalidate-clean — see
+  // types.ts) renders exactly like a pre-satisfied one: a normal Next
+  // button, not the auto-advancing "satisfied" state. Reusing that branch
+  // rather than adding a third interactionState value also means the
+  // auto-advance effect below needs no separate opt-out — it only fires on
+  // "satisfied", which this step now never reaches.
+  const skipsAutoAdvance = stepSatisfied && step.noAutoAdvance === true;
+
   // "Start over" discards the learner's saved work, so it's two-step: the
   // first click arms it, the second one commits. Deliberately not a
   // window.confirm - nothing else in the app blocks the tab like that.
   const [resetArmed, setResetArmed] = useState(false);
 
-  const interactionState: TourInteractionState = !step.waitFor || preSatisfied ? "none" : stepSatisfied ? "satisfied" : "waiting";
+  const interactionState: TourInteractionState =
+    !step.waitFor || preSatisfied || skipsAutoAdvance ? "none" : stepSatisfied ? "satisfied" : "waiting";
 
   function advance() {
     if (stepIndex >= steps.length - 1) {

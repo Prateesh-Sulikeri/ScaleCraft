@@ -96,4 +96,15 @@ export type TourStep = {
    * learner to *use* the picker must opt in, or the tour slams shut the
    * very thing it just told them to open. */
   allowsComponentPicker?: boolean;
+  /** Suppresses the ~600ms auto-advance that normally follows a satisfied
+   * `waitFor`. That delay is tuned for a step whose only content was the
+   * gesture itself (drag to make Undo available, say) — it reads as a brief
+   * acknowledgement, not a pause. A step whose real payload is something the
+   * gesture *reveals* (the violations dropdown, spotlighted via
+   * `spotlightAlso`) is different: the explanation can run to several cards,
+   * and whisking it away on a fixed timer regardless of how much there is to
+   * read is indistinguishable from skipping it. Set this true and the step
+   * behaves like an already-satisfied one once its predicate passes — a
+   * normal Next button, on the learner's own pace, no timer. */
+  noAutoAdvance?: boolean;
 };

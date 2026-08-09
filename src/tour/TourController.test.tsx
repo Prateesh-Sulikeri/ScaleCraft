@@ -349,6 +349,43 @@ describe("TourController", () => {
     expect(screen.getByText("Save, docs, and shortcuts")).toBeInTheDocument();
   });
 
+  it("does not auto-advance validate-click even once its predicate is satisfied — the dropdown it reveals is the point", () => {
+    // The step's real payload is the violations dropdown its gesture opens
+    // (spotlightAlso, in design-editor-tour.ts), which can run to several
+    // cards — the fixed ~600ms acknowledgement delay other gesture steps use
+    // would whisk it away regardless of how much there is to read, which
+    // reads as the step being skipped the instant Validate is clicked.
+    vi.useFakeTimers();
+    const { rerender } = renderHarness({ hasLoadedInitialState: true, lastValidationErrorCount: null });
+
+    next(); // welcome -> canvas-intro
+    next(); // -> select-a-node
+    act(() => fireEvent.click(screen.getByTestId("select-node")));
+    settle(); // -> header-tools
+    next(); // -> undo-redo
+    act(() => fireEvent.click(screen.getByTestId("make-undoable")));
+    settle(); // -> open-picker
+    act(() => fireEvent.click(screen.getByTestId("open-picker")));
+    settle(); // -> picker-tour
+    next(); // -> question-pane
+    next(); // -> hints
+    next(); // -> validate-intro
+    next(); // -> validate-click
+
+    rerender(
+      <CanvasStoreProvider>
+        <Harness hasLoadedInitialState lastValidationErrorCount={2} />
+      </CanvasStoreProvider>,
+    );
+
+    act(() => void vi.advanceTimersByTime(10000));
+    expect(screen.getByText("Try it: run Validate")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
+
+    next();
+    expect(screen.getByText("Fix it: add the missing component")).toBeInTheDocument();
+  });
+
   it("Back returns to the previous step, and a satisfied gesture step doesn't immediately bounce forward again", () => {
     // Punch list #18: without this, Back onto a completed gesture step would
     // auto-advance straight back where it came from.
@@ -404,7 +441,10 @@ describe("TourController", () => {
         <Harness hasLoadedInitialState lastValidationErrorCount={2} />
       </CanvasStoreProvider>,
     );
-    settle(); // -> fix-component
+    // validate-click has noAutoAdvance (it's a "read the dropdown" step, not
+    // a gesture-only one) — a satisfied predicate shows a normal Next
+    // button instead of auto-advancing, so this needs a real click.
+    next(); // -> fix-component
     expect(screen.getByText("Fix it: add the missing component")).toBeInTheDocument();
 
     act(() => fireEvent.click(screen.getByTestId("open-picker")));
@@ -441,7 +481,7 @@ describe("TourController", () => {
         <Harness hasLoadedInitialState lastValidationErrorCount={2} />
       </CanvasStoreProvider>,
     );
-    settle(); // -> fix-component
+    next(); // validate-click has noAutoAdvance -> fix-component
     expect(screen.getByTestId("available-ids")).toHaveTextContent(JSON.stringify(["sql-database"]));
 
     act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
@@ -477,7 +517,7 @@ describe("TourController", () => {
         <Harness hasLoadedInitialState lastValidationErrorCount={2} />
       </CanvasStoreProvider>,
     );
-    settle(); // -> fix-component
+    next(); // validate-click has noAutoAdvance -> fix-component
     expect(screen.getByText("Fix it: add the missing component")).toBeInTheDocument();
 
     act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
@@ -491,7 +531,7 @@ describe("TourController", () => {
         <Harness hasLoadedInitialState lastValidationErrorCount={0} />
       </CanvasStoreProvider>,
     );
-    settle(); // -> deep-check-overview
+    next(); // revalidate-clean has noAutoAdvance -> deep-check-overview
     expect(screen.getByText("Deep Check")).toBeInTheDocument();
     next(); // -> submit-intro
     next(); // -> submit-click

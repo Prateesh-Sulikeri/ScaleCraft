@@ -221,4 +221,16 @@ describe("designEditorTour", () => {
     expect(designEditorTour.find((s) => s.id === "fix-component")!.target).toBe("canvas");
     expect(designEditorTour.find((s) => s.id === "fix-edge")!.target).toBe("canvas");
   });
+
+  it("only the two steps that reveal the violations dropdown suppress auto-advance", () => {
+    // Every other waitFor step's whole content IS the gesture, so the
+    // ~600ms acknowledgement delay is appropriate there — only a step whose
+    // real payload is something the gesture reveals (spotlightAlso'd
+    // content that can run to several cards) needs the learner's own pace.
+    const noAutoAdvanceIds = designEditorTour.filter((s) => s.noAutoAdvance).map((s) => s.id);
+    expect(noAutoAdvanceIds).toEqual(["validate-click", "revalidate-clean"]);
+    for (const id of noAutoAdvanceIds) {
+      expect(designEditorTour.find((s) => s.id === id)!.spotlightAlso).toContain("validation-details");
+    }
+  });
 });

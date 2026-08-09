@@ -653,3 +653,31 @@ is a real bug independent of the deviation that surfaced it.
   wasn't touched here.
 
 Verified: full pipeline green (`typecheck`, `lint`, 1588 tests, `build`).
+
+## A third bug, same real-browser session (2026-08-09): auto-advance ate the read
+
+The dropdown-close fix above wasn't the whole story - after it landed, the
+step still "sort of gets skipped as soon as the validate button is clicked."
+Root cause: `validate-click`'s `waitFor` is satisfied the instant any
+Validate result exists, and the controller's ~600ms acknowledgement timer
+(`ADVANCE_DELAY_MS`, tuned for a step whose only content is the gesture
+itself - see its own doc comment) then auto-advances to `fix-component`
+regardless of how many violation cards are actually in the dropdown it just
+opened. The dropdown staying open (the previous fix) was necessary but not
+sufficient - the tour's own spotlight and popover had already moved on to a
+different part of the screen before there was time to read it.
+
+Fixed with a new opt-out, `TourStep.noAutoAdvance` (`types.ts`), set on
+`validate-click` and `revalidate-clean` - the only two steps whose real
+payload is something the gesture *reveals* rather than the gesture itself.
+Once satisfied, such a step now renders exactly like an already-satisfied
+one on entry: a normal Next button, on the learner's own pace, no timer.
+Implemented by folding it into the existing `preSatisfied` branch of
+`interactionState` rather than adding a third state value - the auto-advance
+effect only fires on `"satisfied"`, which these two steps now never reach.
+
+New test in `design-editor-tour.test.ts` asserts `noAutoAdvance` is set on
+exactly those two ids and that both are ones spotlighting
+`validation-details`, so a future step with the same "reveals a dropdown to
+read" shape doesn't silently miss the same fix. Verified: full pipeline
+green (`typecheck`, `lint`, 1590 tests, `build`).

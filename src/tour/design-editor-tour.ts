@@ -115,6 +115,11 @@ export const designEditorTour: TourStep[] = [
     body: "This starter design has real problems in it. Click Validate now to see exactly what and why.",
     placement: "bottom",
     waitFor: (ctx) => ctx.lastValidationErrorCount !== null,
+    // The point of this step is reading the violations dropdown this
+    // gesture opens, not the click itself — a fixed timer whisking the card
+    // away regardless of how much there is to read reads as the step being
+    // skipped the instant Validate is clicked.
+    noAutoAdvance: true,
   },
   {
     id: "fix-component",
@@ -149,6 +154,7 @@ export const designEditorTour: TourStep[] = [
     body: "Click Validate once more - with both issues fixed, it should come back clean.",
     placement: "bottom",
     waitFor: (ctx) => ctx.lastValidationErrorCount === 0,
+    noAutoAdvance: true,
   },
   {
     id: "deep-check-overview",
