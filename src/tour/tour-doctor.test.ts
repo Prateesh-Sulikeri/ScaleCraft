@@ -56,7 +56,7 @@ const emptyCtx: TourContext = {
   selectedNodeId: null,
   presentComponentIds: [],
   connectedComponentIds: [],
-  edgeKindById: {},
+  edges: [],
   lastValidationErrorCount: null,
   hasSubmittedPassing: false,
 };
@@ -74,7 +74,7 @@ const FIXTURES: Record<string, TourContext> = {
     // Placed but not yet wired to anything — the realistic "mid-fix" state
     // for picker-tour, whose predicate now checks both.
     connectedComponentIds: [],
-    edgeKindById: { "bb-0-1-edge-client-app": "async" },
+    edges: [{ sourceComponentId: "client", targetComponentId: "app-server", kind: "async" }],
     lastValidationErrorCount: 1,
     hasSubmittedPassing: false,
   },
@@ -83,7 +83,7 @@ const FIXTURES: Record<string, TourContext> = {
     selectedNodeId: null,
     presentComponentIds: ["client", "app-server", "sql-database"],
     connectedComponentIds: ["sql-database"],
-    edgeKindById: { "bb-0-1-edge-client-app": "request-flow" },
+    edges: [{ sourceComponentId: "client", targetComponentId: "app-server", kind: "request-flow" }],
     lastValidationErrorCount: 0,
     hasSubmittedPassing: true,
   },
@@ -131,6 +131,32 @@ describe("tour doctor (static)", () => {
           expect(
             satisfiable,
             `step "${step.id}"'s predicate is never true against empty/midFix/solved — it can never be completed`,
+          ).toBe(true);
+        }
+      });
+
+      it("no requires predicate throws against any fixture", () => {
+        for (const step of steps) {
+          if (!step.requires) continue;
+          for (const [fixtureName, ctx] of Object.entries(FIXTURES)) {
+            expect(
+              () => step.requires!(ctx),
+              `step "${step.id}"'s requires threw against the "${fixtureName}" fixture`,
+            ).not.toThrow();
+          }
+        }
+      });
+
+      it("every requires predicate is satisfiable by at least one fixture", () => {
+        // requires describes a structural fact that must be reachable, same
+        // as waitFor — an always-false requires would show a false "this
+        // changed" note on every single visit to that step.
+        for (const step of steps) {
+          if (!step.requires) continue;
+          const satisfiable = Object.values(FIXTURES).some((ctx) => step.requires!(ctx));
+          expect(
+            satisfiable,
+            `step "${step.id}"'s requires is never true against empty/midFix/solved`,
           ).toBe(true);
         }
       });

@@ -7,7 +7,7 @@ const emptyCtx: TourContext = {
   selectedNodeId: null,
   presentComponentIds: [],
   connectedComponentIds: [],
-  edgeKindById: {},
+  edges: [],
   lastValidationErrorCount: null,
   hasSubmittedPassing: false,
 };
@@ -212,10 +212,39 @@ describe("designEditorTour", () => {
     expect(step.narrowAvailableComponentIds).toBeUndefined();
   });
 
-  it("fix-edge's predicate is satisfied once the specific starter-graph edge's kind is request-flow", () => {
+  it("fix-edge's predicate is role-based (componentIds), not keyed to the starter graph's own edge id", () => {
+    // Regression guard for the resilience addendum's "live bug that proves
+    // the diagnosis" — deleting the starter-graph edge and drawing a fresh
+    // one between the same two components must still satisfy this.
     const step = designEditorTour.find((s) => s.id === "fix-edge")!;
-    expect(step.waitFor!({ ...emptyCtx, edgeKindById: { "bb-0-1-edge-client-app": "async" } })).toBe(false);
-    expect(step.waitFor!({ ...emptyCtx, edgeKindById: { "bb-0-1-edge-client-app": "request-flow" } })).toBe(true);
+    expect(
+      step.waitFor!({ ...emptyCtx, edges: [{ sourceComponentId: "client", targetComponentId: "app-server", kind: "async" }] }),
+    ).toBe(false);
+    expect(
+      step.waitFor!({
+        ...emptyCtx,
+        edges: [{ sourceComponentId: "client", targetComponentId: "app-server", kind: "request-flow" }],
+      }),
+    ).toBe(true);
+    // A freshly-drawn edge in the opposite direction, or with an
+    // auto-generated id unrelated to the starter graph's, is not a
+    // different fact from the tour's point of view.
+    expect(
+      step.waitFor!({
+        ...emptyCtx,
+        edges: [{ sourceComponentId: "app-server", targetComponentId: "client", kind: "request-flow" }],
+      }),
+    ).toBe(true);
+  });
+
+  it("picker-tour and fix-edge's requires describe the same fact as their waitFor", () => {
+    // The design call recorded in pending-guided-tour.md: for these two
+    // steps, requires and waitFor are the same underlying structural check,
+    // shared via a helper rather than authored twice.
+    const pickerTour = designEditorTour.find((s) => s.id === "picker-tour")!;
+    const fixEdge = designEditorTour.find((s) => s.id === "fix-edge")!;
+    expect(pickerTour.requires).toBe(pickerTour.waitFor);
+    expect(fixEdge.requires).toBe(fixEdge.waitFor);
   });
 
   it("revalidate-clean's predicate requires a zero error count specifically, not just any prior validate", () => {

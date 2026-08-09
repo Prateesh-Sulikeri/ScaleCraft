@@ -35,10 +35,15 @@ export type TourContext = {
    * placed on the canvas. A component can be present without being
    * connected (dropped, not yet joined to anything). */
   connectedComponentIds: string[];
-  /** Kind of a specific starter-graph edge, keyed by its authored id (see
-   * content/chapters/index.ts's bb-0-1-welcome starterGraph) — `undefined`
-   * if that edge no longer exists (deleted rather than fixed in place). */
-  edgeKindById: Record<string, string | undefined>;
+  /** Every edge, described by its endpoints' componentIds and its kind -
+   * role-based, not keyed by the edge's own instance id. A predicate written
+   * against this (e.g. "an edge of kind request-flow connects client and
+   * app-server") stays true however the edge got there: fixed in place,
+   * deleted and redrawn, even redrawn in the opposite direction. Keying a
+   * predicate to a specific starter-graph edge id instead was a real,
+   * shipped bug - see pending-guided-tour.md's resilience addendum,
+   * "A live bug that proves the diagnosis." */
+  edges: { sourceComponentId: string | undefined; targetComponentId: string | undefined; kind: string | undefined }[];
   /** Set once Validate has been clicked at least once; the count is the
    * total issue count from that run (errors + missing/disconnected
    * required components) — 0 once a fix actually lands, not merely "was
@@ -87,6 +92,21 @@ export type TourStep = {
    * teach has already passed, and silently auto-advancing past it is what
    * made those steps vanish without explanation. */
   waitFor?: (ctx: TourContext) => boolean;
+  /** A role-based structural fact this step depends on, evaluated
+   * continuously while the step is active - not to gate advancing (that's
+   * `waitFor`'s job), but to catch the world drifting out from under an
+   * already-satisfied step while the learner is still lingering on it (a
+   * resumed run reopens pre-satisfied, then the learner undoes the very
+   * thing that satisfied it, before ever clicking Next). Only the true ->
+   * false transition matters; a step that hasn't been satisfied yet reads as
+   * ordinary waiting, not drift - see TourController's tracking of this.
+   * Often the identical function as `waitFor` for a step whose "done" and
+   * "still true" are the same structural check (see design-editor-tour.ts's
+   * shared helpers for picker-tour/fix-edge) - kept as a separate field
+   * regardless, since the two questions ("has this happened" vs. "is this
+   * still true") are conceptually distinct even when a given step answers
+   * them identically. */
+  requires?: (ctx: TourContext) => boolean;
   /** While this step is active, the component picker shows only these
    * componentIds instead of the chapter's full availableComponentIds —
    * focuses a remediation step on exactly what's missing. Restored to the

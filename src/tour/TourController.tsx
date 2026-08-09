@@ -141,11 +141,15 @@ export function TourController({
       .filter((n): n is ComponentNodeType => n.type === "component" && connectedNodeIds.has(n.id))
       .map((n) => n.data.componentId);
   }, [nodes, edges]);
-  const edgeKindById = useMemo(() => {
-    const map: Record<string, string | undefined> = {};
-    for (const e of edges) map[e.id] = e.data?.kind;
-    return map;
-  }, [edges]);
+  const roleBasedEdges = useMemo(() => {
+    const componentIdByNodeId = new Map<string, string>();
+    for (const n of nodes) if (n.type === "component") componentIdByNodeId.set(n.id, n.data.componentId);
+    return edges.map((e) => ({
+      sourceComponentId: componentIdByNodeId.get(e.source),
+      targetComponentId: componentIdByNodeId.get(e.target),
+      kind: e.data?.kind,
+    }));
+  }, [nodes, edges]);
 
   const ctx: TourContext = useMemo(
     () => ({
@@ -153,7 +157,7 @@ export function TourController({
       selectedNodeId,
       presentComponentIds,
       connectedComponentIds,
-      edgeKindById,
+      edges: roleBasedEdges,
       lastValidationErrorCount,
       hasSubmittedPassing,
     }),
@@ -162,7 +166,7 @@ export function TourController({
       selectedNodeId,
       presentComponentIds,
       connectedComponentIds,
-      edgeKindById,
+      roleBasedEdges,
       lastValidationErrorCount,
       hasSubmittedPassing,
     ],
@@ -198,6 +202,54 @@ export function TourController({
     loggedThrowRef.current = step.id;
     logTourEvent(tourId, { type: "predicate-threw", stepId: step.id, message: predicateThrewMessage });
   }, [tourId, step.id, predicateThrewMessage]);
+
+  // requires is evaluated the same safe way as waitFor - a throwing
+  // `requires` must not be worse than not having one at all.
+  let requiresSatisfied = true;
+  if (step.requires) {
+    try {
+      requiresSatisfied = step.requires(ctx);
+    } catch {
+      requiresSatisfied = true;
+    }
+  }
+
+  // Only a true -> false transition is drift; a step that's never been
+  // satisfied yet (still being worked on) is ordinary waiting, not the
+  // world changing out from under an already-satisfied step. Tracked with
+  // the same adjust-state-during-render pattern as `entry` below, reset per
+  // step id.
+  const [requiresTracking, setRequiresTracking] = useState<{ index: number; sawTrue: boolean; broken: boolean }>({
+    index: -1,
+    sawTrue: false,
+    broken: false,
+  });
+  if (requiresTracking.index !== stepIndex) {
+    setRequiresTracking({ index: stepIndex, sawTrue: requiresSatisfied, broken: false });
+  } else if (!requiresTracking.broken && requiresTracking.sawTrue && !requiresSatisfied) {
+    setRequiresTracking({ index: stepIndex, sawTrue: true, broken: true });
+  } else if (requiresTracking.broken && requiresSatisfied) {
+    setRequiresTracking({ index: stepIndex, sawTrue: true, broken: false });
+  }
+  const requiresBroken = requiresTracking.index === stepIndex && requiresTracking.broken;
+
+  const loggedRequiresBrokeRef = useRef<string | null>(null);
+  const loggedReconciledRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (requiresBroken) {
+      if (loggedRequiresBrokeRef.current === step.id) return;
+      loggedRequiresBrokeRef.current = step.id;
+      logTourEvent(tourId, { type: "requires-broke", stepId: step.id });
+      return;
+    }
+    // Only log a reconciliation for a step this tab actually saw break -
+    // moving to a fresh step (requiresBroken false because it just reset)
+    // isn't a reconciliation.
+    if (loggedRequiresBrokeRef.current === step.id && loggedReconciledRef.current !== step.id) {
+      loggedReconciledRef.current = step.id;
+      logTourEvent(tourId, { type: "reconciled-via", stepId: step.id, how: "world state matched again" });
+    }
+  }, [tourId, step.id, requiresBroken]);
 
   // Whether this step's gesture was ALREADY done the moment the step became
   // active — a resumed run, a Back navigation, or a learner who happened to
@@ -427,6 +479,7 @@ export function TourController({
       onSkipStep={advance}
       interactionState={interactionState}
       watchdogFired={watchdogFired}
+      requiresBroken={requiresBroken}
     />
   );
 }

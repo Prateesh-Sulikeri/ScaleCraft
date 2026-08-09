@@ -946,3 +946,130 @@ recompute the same way a real resize would rather than asserting on the
 (unmeasurable in jsdom) rendered position directly.
 
 Verified: full pipeline green (`typecheck`, `lint`, 1615 tests, `build`).
+
+## Slice 3 (2026-08-09): `feature/tour-reconciler` - IN PROGRESS, session cut short
+
+Branched from `feature/tour-watchdog`'s tip (same stacking reasoning as
+slice 2 - see its own entry above), after resolving the one open scoping
+call via AskUserQuestion (recorded in the "Scoping decision" section above,
+which also records the `requires`-vs-`waitFor` design call and the finding
+that router-navigation-away/tab-close already need no new code). `git log`
+on this branch is the precise record of what landed; this entry is the
+narrative index into it plus what's left.
+
+**Landed and verified (typecheck clean, full `src/tour/` suite green - 132
+tests, 8 files - not yet the full pipeline):**
+
+- **Role-based `TourContext.edges`** (`types.ts`, `TourController.tsx`)
+  replaces `edgeKindById` (a `Record` keyed by the edge's own instance id)
+  with `{ sourceComponentId, targetComponentId, kind }[]`, resolved from live
+  node/edge state via a `componentIdByNodeId` map. `edgeKindById` had exactly
+  one consumer (`fix-edge`'s `waitFor`) - fully removed, not deprecated
+  alongside.
+- **`fix-edge`'s `waitFor` converted to a role-based check**
+  (`design-editor-tour.ts`'s new `hasClientAppRequestFlowEdge` helper) -
+  closes the addendum's own "live bug that proves the diagnosis": deleting
+  the starter graph's `bb-0-1-edge-client-app` and drawing a fresh edge
+  between the same two components now still satisfies the step, in either
+  direction.
+- **`picker-tour`'s `waitFor` factored into a named helper too**
+  (`hasSqlDatabase`) for the same reason - both helpers are now shared
+  between `waitFor` and the new `requires` field on their respective steps
+  (see the scoping decision above for why that's not considered
+  duplication).
+- **New `TourStep.requires` field** (`types.ts`) - continuously evaluated
+  while a step is active, same safe try/catch pattern as `waitFor`
+  (`TourController.tsx`). Only a true -> false transition counts as drift
+  (tracked via a `requiresTracking` state keyed on `stepIndex`, same
+  adjust-during-render pattern `entry`/`preSatisfied` already use) - a step
+  that simply hasn't been satisfied yet reads as ordinary waiting, not
+  drift. Logs `requires-broke` once per occurrence and `reconciled-via` once
+  it resolves (both were reserved-but-unwired `TourLogEvent` variants since
+  slice 1). `TourOverlay.tsx` renders a truthful one-line note
+  (`requiresBroken` prop) - never blocks navigation, never auto-mutates
+  anything, no restore-affordance UI (deliberately deferred, see the scoping
+  decision). Set on `picker-tour` and `fix-edge` via the shared helpers
+  above.
+- **Test fixture fixes forced by the role-based change**:
+  `TourController.test.tsx`'s `fix-edge-kind` test button now also seeds the
+  two component nodes (`bb-0-1-client`/`bb-0-1-app-server`) the role-based
+  lookup needs to resolve - the old id-keyed approach never needed the nodes
+  to exist at all, which the role-based one silently would have failed
+  against without this fix. Also added a `remove-sql-database` test button
+  (mid-edit when the session was cut - see below) for the not-yet-written
+  `requires-broke`/`reconciled-via` integration test.
+- **Level-vs-edge predicate audit** (task 5): done via reading, not code -
+  every remaining `waitFor` in `design-editor-tour.ts` already reads only
+  from persisted `TourContext` state (recorded in the scoping decision
+  section above). No further action expected here.
+
+**In progress, left mid-edit when the session was cut**: a
+`TourController.test.tsx` integration test exercising the `requires-broke`/
+`reconciled-via` log events and the reconciled note end-to-end. Plan (not yet
+written): drive to `picker-tour` (still waiting), click
+`add-sql-database`+`connect-sql-database` (satisfies both `waitFor` and
+`requires`, schedules the 600ms auto-advance), then immediately click the
+already-added `remove-sql-database` button *before* advancing fake timers -
+`requiresTracking` should flip to `broken`, the auto-advance effect's own
+cleanup should cancel the pending `advance()` (dependency `interactionState`
+drops back to `"waiting"`), and the reconciled note text plus a
+`requires-broke` entry in `dumpTourLog()` should appear. Then re-click
+add+connect to prove `reconciled-via` fires and the note clears. The
+`TourOverlay.test.tsx` side of this (a direct `requiresBroken={true}` render
+asserting the note text) also hasn't been added yet - `baseProps()` already
+has `requiresBroken: false` wired in so existing tests don't need to change.
+
+**Not started (tasks 6-9 from the task list this session was tracking)**:
+
+1. **Pause-on-surface-loss (focus mode) with `pauseReason`** - `TourRunState`
+   needs a `pauseReason?: "user" | "surface-loss"` on its `paused` variant;
+   `TourController` needs a new `focusMode` prop (currently not passed at
+   all - `ChapterWorkspace.tsx` needs `focusMode={focusMode}` added to its
+   existing `<TourController ... />` call, it already has the value in scope
+   for `idleSlot={focusMode ? null : tourSlot}`); `pause()` needs an optional
+   reason param; an effect on `focusMode` transitions (pause when it turns
+   true while `active`, `resume()` when it turns false while idle-and-
+   paused-for-that-reason); the initial session-derivation block (currently
+   the `if (session === null && hydrated && hasLoadedInitialState)` block
+   around `TourController.tsx` L110-118) needs a new branch for
+   `status === "paused" && pauseReason === "surface-loss" && !focusMode` ->
+   active. Full design reasoning already written in the "Slice-3 finding"
+   section above - this is implementation, not a re-design.
+2. **Modal hotkey scoping** - new canvas store boolean (e.g.
+   `tourModalActive`), set by `TourOverlay.tsx` from its own already-computed
+   `isModal` local (a `useEffect` calling the new store setter, mirroring
+   how `TourController` already sets `document.body.dataset.tourActive`).
+   `use-canvas-shortcuts.ts` reads it and returns early (after the two
+   Escape branches, before the Shift+/ and bare-/ branches) so a blocking
+   tour step swallows canvas hotkeys instead of letting them fire underneath
+   the backdrop - the concrete bug named in `use-canvas-shortcuts.ts`'s own
+   read during this session: Ctrl+Z/Ctrl+D/Shift+L/`/` all fire today on
+   `welcome`/`validate-intro`-style blocking steps if focus happens to still
+   be on the canvas.
+3. **`storage`-event multi-tab adoption** - `tour-state.ts`'s `subscribe`
+   needs a module-level (client-only, `typeof window !== "undefined"`
+   guarded) native `storage` listener forwarding to the existing `listeners`
+   set - currently `subscribe` only manages same-tab listeners and never
+   registers for the native event at all, so a write from another tab is
+   silently invisible. `TourController.tsx` then needs to reconcile: replace
+   the one-shot `if (session === null && ...)` mount block with logic that
+   also re-derives `session` whenever the `runState` object reference
+   changes after the first read (safe because `useSyncExternalStore`/the
+   `raw`->`useMemo` chain in `tour-state.ts` only produces a new reference
+   when the underlying string content actually changed) - full derivation
+   logic (including the surface-loss branch above) sketched in this
+   session's own reasoning but not yet written to a file. Add the `version:
+   1` field to `serializeTourState`'s output while touching this file too
+   (addendum: "a door for the next change," purely additive, `parseTourState`
+   already ignores unknown keys).
+4. **Hard-gate-derived, order-free completion** - per the resolved scoping
+   decision above: an effect computing `allHardTaught` from
+   `steps.filter(s => s.hard)` evaluated against live `ctx` (reusing each
+   step's own `waitFor`, same safe try/catch pattern), that writes
+   `runState = { status: "completed" }` only while `!active` (idle/paused/
+   skipped - never yanks an in-progress step away from the learner, see the
+   scoping decision's reasoning for why this is deliberately conservative).
+
+**Then**: task 10 - full pipeline (`typecheck && lint && test && build`),
+manual click-through if time allows, and a proper "done" entry replacing
+this one, same shape as slices 1/2's above.

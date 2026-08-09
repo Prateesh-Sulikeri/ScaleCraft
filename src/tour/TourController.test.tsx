@@ -103,9 +103,35 @@ function Harness({
         connect sql-database
       </button>
       <button
+        data-testid="remove-sql-database"
+        onClick={() =>
+          storeApi.setState((s) => ({
+            nodes: s.nodes.filter((n) => n.id !== "sql-db-added"),
+            edges: s.edges.filter((e) => e.source !== "sql-db-added" && e.target !== "sql-db-added"),
+          }))
+        }
+      >
+        remove sql-database
+      </button>
+      <button
         data-testid="fix-edge-kind"
         onClick={() =>
           storeApi.setState((s) => ({
+            // The role-based waitFor (design-editor-tour.ts's
+            // hasClientAppRequestFlowEdge) resolves an edge's endpoints via
+            // their componentId, not the edge's own id — these two nodes
+            // have to actually exist for that lookup to succeed, unlike the
+            // old edgeKindById approach which only ever looked at the edge.
+            nodes: [
+              ...s.nodes,
+              { id: "bb-0-1-client", type: "component" as const, position: { x: 0, y: 0 }, data: { componentId: "client", config: {} } },
+              {
+                id: "bb-0-1-app-server",
+                type: "component" as const,
+                position: { x: 200, y: 0 },
+                data: { componentId: "app-server", config: {} },
+              },
+            ],
             edges: [
               ...s.edges,
               {

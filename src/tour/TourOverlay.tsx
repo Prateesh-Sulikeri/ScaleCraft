@@ -390,6 +390,13 @@ type TourOverlayProps = {
    * quiet additional row — never a modal, never new solution content, only
    * exits (see use-watchdog.ts, pending-guided-tour.md's watchdog section). */
   watchdogFired: boolean;
+  /** True when this step's `requires` was satisfied at some point during
+   * this step's tenure and has since gone false — the world drifted out
+   * from under an already-satisfied step (TourController.tsx tracks the
+   * true -> false transition). Never blocks navigation and never mutates
+   * anything — just a truthful note, same spirit as the resolution-failed
+   * fallback below. */
+  requiresBroken: boolean;
 };
 
 /**
@@ -421,6 +428,7 @@ export function TourOverlay({
   onSkipStep,
   interactionState,
   watchdogFired,
+  requiresBroken,
 }: TourOverlayProps) {
   const spotlightTargets = useMemo(
     () => [step.target, ...(step.spotlightAlso ?? [])],
@@ -701,6 +709,12 @@ export function TourOverlay({
         {showsManualOverride && (
           <p role="status" className="mt-2 text-[11px] text-state-error">
             Couldn&apos;t find what this step is pointing at - you can continue manually. {reportLink}
+          </p>
+        )}
+        {requiresBroken && (
+          <p role="status" className="mt-2 text-[11px] text-state-error">
+            Something this step needs has changed since you started - you can keep going, or use Start
+            over from the tour&apos;s controls to reset. {reportLink}
           </p>
         )}
         {watchdogFired && interactionState === "waiting" && (

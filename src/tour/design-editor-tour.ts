@@ -1,4 +1,31 @@
-import type { TourStep } from "./types";
+import type { TourContext, TourStep } from "./types";
+
+/** True once the SQL Database from this chapter's starter graph is present -
+ * role-based (componentId, not node instance id), so it stays true however
+ * the component got there. Shared between `picker-tour`'s `waitFor` (has the
+ * learner placed it) and its `requires` (has it since been removed again
+ * while the step is still active) - they describe the same structural fact. */
+function hasSqlDatabase(ctx: TourContext): boolean {
+  return ctx.presentComponentIds.includes("sql-database") && ctx.connectedComponentIds.includes("sql-database");
+}
+
+/** True once a request-flow edge connects Client and Application Server, in
+ * either direction - role-based (componentIds, not the starter graph's own
+ * edge instance id), so deleting the wrong edge and drawing a correct new
+ * one still satisfies this. See pending-guided-tour.md's resilience
+ * addendum, "A live bug that proves the diagnosis": the previous version of
+ * this predicate was keyed to `bb-0-1-edge-client-app` directly and could
+ * never become true again once that specific edge was deleted. Shared
+ * between `fix-edge`'s `waitFor` and `requires` for the same reason as
+ * `hasSqlDatabase` above. */
+function hasClientAppRequestFlowEdge(ctx: TourContext): boolean {
+  return ctx.edges.some(
+    (e) =>
+      e.kind === "request-flow" &&
+      ((e.sourceComponentId === "client" && e.targetComponentId === "app-server") ||
+        (e.sourceComponentId === "app-server" && e.targetComponentId === "client")),
+  );
+}
 
 /**
  * Chapter 0.1's guided walkthrough of the Design Editor
@@ -78,7 +105,8 @@ export const designEditorTour: TourStep[] = [
       "Search the component picker, or browse by category. Choosing something here doesn't drop it immediately - it arms it, and your next click on the canvas decides exactly where it lands. " +
       "This chapter needs a SQL Database - it's highlighted below - find it, place it on the canvas, then draw an edge connecting it to the Application Server.",
     placement: "right",
-    waitFor: (ctx) => ctx.presentComponentIds.includes("sql-database") && ctx.connectedComponentIds.includes("sql-database"),
+    waitFor: hasSqlDatabase,
+    requires: hasSqlDatabase,
     hard: true,
   },
   {
@@ -135,7 +163,8 @@ export const designEditorTour: TourStep[] = [
     placement: "top",
     title: "Fix it: correct the connection",
     body: "One connection has the wrong kind. Click the edge between Client and Application Server, then set its kind to request-flow in the Edge Inspector that appears, bottom-right.",
-    waitFor: (ctx) => ctx.edgeKindById["bb-0-1-edge-client-app"] === "request-flow",
+    waitFor: hasClientAppRequestFlowEdge,
+    requires: hasClientAppRequestFlowEdge,
     hard: true,
   },
   {

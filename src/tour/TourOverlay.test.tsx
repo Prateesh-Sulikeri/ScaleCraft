@@ -71,6 +71,7 @@ function baseProps() {
     onSkipStep: vi.fn(),
     interactionState: "none" as const,
     watchdogFired: false,
+    requiresBroken: false,
   };
 }
 
