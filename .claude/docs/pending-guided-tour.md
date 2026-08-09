@@ -947,7 +947,7 @@ recompute the same way a real resize would rather than asserting on the
 
 Verified: full pipeline green (`typecheck`, `lint`, 1615 tests, `build`).
 
-## Slice 3 (2026-08-09): `feature/tour-reconciler` - IN PROGRESS, session cut short
+## Slice 3 (2026-08-09): `feature/tour-reconciler` - done
 
 Branched from `feature/tour-watchdog`'s tip (same stacking reasoning as
 slice 2 - see its own entry above), after resolving the one open scoping
@@ -1019,57 +1019,319 @@ add+connect to prove `reconciled-via` fires and the note clears. The
 asserting the note text) also hasn't been added yet - `baseProps()` already
 has `requiresBroken: false` wired in so existing tests don't need to change.
 
-**Not started (tasks 6-9 from the task list this session was tracking)**:
+**Done, this session (tasks 1-2 from the list below the addendum)**:
 
-1. **Pause-on-surface-loss (focus mode) with `pauseReason`** - `TourRunState`
-   needs a `pauseReason?: "user" | "surface-loss"` on its `paused` variant;
-   `TourController` needs a new `focusMode` prop (currently not passed at
-   all - `ChapterWorkspace.tsx` needs `focusMode={focusMode}` added to its
-   existing `<TourController ... />` call, it already has the value in scope
-   for `idleSlot={focusMode ? null : tourSlot}`); `pause()` needs an optional
-   reason param; an effect on `focusMode` transitions (pause when it turns
-   true while `active`, `resume()` when it turns false while idle-and-
-   paused-for-that-reason); the initial session-derivation block (currently
-   the `if (session === null && hydrated && hasLoadedInitialState)` block
-   around `TourController.tsx` L110-118) needs a new branch for
-   `status === "paused" && pauseReason === "surface-loss" && !focusMode` ->
-   active. Full design reasoning already written in the "Slice-3 finding"
-   section above - this is implementation, not a re-design.
-2. **Modal hotkey scoping** - new canvas store boolean (e.g.
-   `tourModalActive`), set by `TourOverlay.tsx` from its own already-computed
-   `isModal` local (a `useEffect` calling the new store setter, mirroring
-   how `TourController` already sets `document.body.dataset.tourActive`).
-   `use-canvas-shortcuts.ts` reads it and returns early (after the two
-   Escape branches, before the Shift+/ and bare-/ branches) so a blocking
-   tour step swallows canvas hotkeys instead of letting them fire underneath
-   the backdrop - the concrete bug named in `use-canvas-shortcuts.ts`'s own
-   read during this session: Ctrl+Z/Ctrl+D/Shift+L/`/` all fire today on
-   `welcome`/`validate-intro`-style blocking steps if focus happens to still
-   be on the canvas.
-3. **`storage`-event multi-tab adoption** - `tour-state.ts`'s `subscribe`
-   needs a module-level (client-only, `typeof window !== "undefined"`
-   guarded) native `storage` listener forwarding to the existing `listeners`
-   set - currently `subscribe` only manages same-tab listeners and never
-   registers for the native event at all, so a write from another tab is
-   silently invisible. `TourController.tsx` then needs to reconcile: replace
-   the one-shot `if (session === null && ...)` mount block with logic that
-   also re-derives `session` whenever the `runState` object reference
-   changes after the first read (safe because `useSyncExternalStore`/the
-   `raw`->`useMemo` chain in `tour-state.ts` only produces a new reference
-   when the underlying string content actually changed) - full derivation
-   logic (including the surface-loss branch above) sketched in this
-   session's own reasoning but not yet written to a file. Add the `version:
-   1` field to `serializeTourState`'s output while touching this file too
-   (addendum: "a door for the next change," purely additive, `parseTourState`
-   already ignores unknown keys).
-4. **Hard-gate-derived, order-free completion** - per the resolved scoping
-   decision above: an effect computing `allHardTaught` from
-   `steps.filter(s => s.hard)` evaluated against live `ctx` (reusing each
-   step's own `waitFor`, same safe try/catch pattern), that writes
-   `runState = { status: "completed" }` only while `!active` (idle/paused/
-   skipped - never yanks an in-progress step away from the learner, see the
-   scoping decision's reasoning for why this is deliberately conservative).
+1. **Pause-on-surface-loss (focus mode) with `pauseReason` - done.**
+   `TourRunState`'s `paused` variant gained `pauseReason?: "user" |
+   "surface-loss"` (`tour-state.ts`, with `parseTourState` dropping an
+   unrecognised value rather than trusting it). `TourController` gained a
+   `focusMode?: boolean` prop (default `false`, so existing callers/tests
+   don't need to know it exists), wired from `ChapterWorkspace.tsx`'s
+   existing `focusMode` local (it already had the value in scope for
+   `idleSlot={focusMode ? null : tourSlot}`). `pause()` took an optional
+   `reason` param, defaulting to `"user"`. The initial session-derivation
+   block got the planned new branch: `status === "paused" &&
+   pauseReason === "surface-loss" && !focusMode` resumes active with no
+   pill, same as `running` - covers a reload landing after the surface is
+   already back.
+   - **One implementation deviation from the plan, forced by lint, not a
+     design change**: the plan's "an effect on focusMode transitions"
+     doesn't work as a single effect - `react-hooks/set-state-in-effect`
+     flags calling this component's own `setSession` from inside a
+     `useEffect` body, even indirectly through `pause()`/`resume()`. Landed
+     as two separate flip-detectors instead, same "two effects, not one"
+     shape `use-watchdog.ts` already documents for an analogous reason:
+     a `useState`-based detector (`focusModeSeen`) adjusts `session` during
+     render (the same pattern `entry`/`requiresTracking` already use), and
+     a separate `useRef`-based detector in an actual effect persists the
+     `paused`/`surface-loss` write to localStorage - guarded on
+     `runState.status === "running"` rather than `active`, since by the
+     time an effect runs after a render-time state adjustment, `active`
+     already reflects the *new* value, not the value at the moment focus
+     mode turned on. The resume write needed no new code at all: once the
+     render-time block flips `session` back to active, the pre-existing
+     checkpoint effect's own `active` dependency fires and persists
+     `"running"`.
+   - Tests: `tour-state.test.ts` round-trips both `pauseReason` values and
+     drops a bogus one; `TourController.test.tsx` covers the full
+     pause-on-focus-mode/resume-on-focus-mode-end round trip (asserting the
+     persisted state and that the overlay disappears/reappears) plus the
+     already-back-by-mount-time case.
+2. **Modal hotkey scoping - done.** New canvas store boolean
+   `tourModalActive` (`store.tsx`, alongside `setTourModalActive`, same
+   shape as the existing `highlightedComponentId`/
+   `setHighlightedComponentId` pair), set by `TourOverlay.tsx` from its own
+   already-computed `isModal` local via a `useEffect` (cleared on unmount
+   too, mirroring `TourController`'s `document.body.dataset.tourActive`
+   effect). `use-canvas-shortcuts.ts` reads it and returns early right after
+   the two Escape branches, before Shift+/ and bare-`/` - Escape itself
+   stays unguarded on purpose, since the tour has its own Escape handler
+   (`TourOverlay.tsx`, pauses the run) and letting `use-canvas-shortcuts`'s
+   two Escape branches also run alongside it is pre-existing, unrelated
+   behavior this doesn't touch. Closes the concrete bug named in
+   `use-canvas-shortcuts.ts`'s own read last session: Ctrl+Z/Ctrl+D/
+   Shift+L/`/` firing underneath a blocking step's backdrop if focus
+   happened to still be on the canvas from before the tour opened.
+   - **Test-infra fallout, not a design change**: `TourOverlay.tsx` now
+     reads/writes the canvas store, so every one of `TourOverlay.test.tsx`'s
+     ~40 standalone `render(<TourOverlay .../>)` calls needed a
+     `CanvasStoreProvider` in the tree - added via RTL's `wrapper` render
+     option (mechanically rewritten, not hand-edited one at a time; `rerender`
+     calls needed the option stripped back off, since RTL's `rerender` reuses
+     the wrapper from the initial `render` and errors if you pass it again).
+   - **A second lint false-positive, worth recording so it isn't
+     re-diagnosed from scratch next time it's hit**: the new
+     `tourModalActive`-mirroring integration test (a `Capture` component
+     reassigning an outer `let api` closure variable, the same pattern
+     `use-canvas-shortcuts.test.tsx`'s own `withStoreApi()` already uses
+     without issue) tripped `react-hooks/globals`' "cannot reassign
+     variables declared outside the component" check purely because
+     `TourOverlay.test.tsx` also has a **capitalized**, module-level
+     `Wrapper` component (the one the `wrapper`-render-option rewrite
+     above introduced). The rule appears to misattribute later components'
+     closures once a PascalCase top-level component exists earlier in the
+     same file - confirmed by bisection (isolated repro files) and fixed by
+     renaming `Wrapper` to lowercase `wrapper` throughout the file (which
+     also matches `use-canvas-shortcuts.test.tsx`'s own existing
+     lowercase-`wrapper` convention, so this wasn't purely a workaround).
+   - Tests: `use-canvas-shortcuts.test.tsx` gained three cases (hotkeys
+     swallowed while `tourModalActive`, Escape still works through it,
+     hotkeys resume once it clears). `TourOverlay.test.tsx` gained one
+     asserting `tourModalActive` flips true on a blocking step, false on an
+     interactive one, and false again on unmount.
+   - Verified: `typecheck`, `lint`, and `src/tour` + `src/canvas` +
+     `src/chapters` (77 files, 901 tests) all green. Not yet the full
+     pipeline (`build` not run this pass).
 
-**Then**: task 10 - full pipeline (`typecheck && lint && test && build`),
-manual click-through if time allows, and a proper "done" entry replacing
-this one, same shape as slices 1/2's above.
+**Done, next session (tasks 3-4 from the task list this session was
+tracking)**:
+
+1. **`storage`-event multi-tab adoption - done.** `tour-state.ts`'s
+   `subscribe` set never registered for the native `storage` event at all -
+   only same-tab writes ever notified it (each `setState` call manually
+   `forEach`s the listener set after its own `localStorage.setItem`), so a
+   write from another tab was silently invisible until this tab happened to
+   re-render for an unrelated reason. Fixed with one module-level,
+   `typeof window !== "undefined"`-guarded `window.addEventListener("storage",
+   ...)` that forwards into the exact same `listeners` set same-tab writes
+   already use - not a second, parallel notification path. Un-keyed by
+   tourId deliberately, same reasoning `use-dismissed-flag.ts`'s existing
+   shared-listener-set comment already gives for its own single set: the
+   event carries no key this module would otherwise route by, and an
+   unrelated tour's cross-tab write causing one extra (still-correct)
+   snapshot re-check elsewhere isn't worth a per-tourId listener map.
+   - **`TourController.tsx`'s mount-time `session` derivation generalized
+     into a reconciler**, not left as the one-shot `if (session === null &&
+     ...)` block the plan described. Extracted the exact same
+     unseen/running/surface-loss-paused/else branching into a pure
+     `deriveSession(runState, focusMode, clampIndex)` function, then replaced
+     the `session === null` gate with a `lastSeenRunState` piece of state
+     (adjust-during-render, same pattern `entry`/`requiresTracking`/
+     `focusModeSeen` already use - not a ref, `react-hooks/refs` disallows a
+     ref write during render) that re-runs `deriveSession` any time `runState`
+     changes to an object reference this component hasn't already reacted to.
+     Covers both the very first mount AND every later cross-tab adoption with
+     one code path, not two.
+   - **Verified safe for this tab's own writes, not just cross-tab ones**:
+     every local mutation (`advance`, `pause`, `skip`, `resume`,
+     `restartFromScratch`, the checkpoint effect) already keeps `session` and
+     `runState` in agreement, so re-deriving `session` from `runState` after
+     one of this tab's own writes reproduces the same value (idempotent, see
+     `deriveSession`'s own doc comment) rather than fighting the write that
+     just happened - confirmed by re-running the full pre-existing
+     `TourController.test.tsx` suite unchanged, all of which still pass.
+   - **`version: 1` added to `serializeTourState`'s output**, purely additive
+     per the addendum's "a door for the next change" - `parseTourState`
+     already ignores unknown keys, so this needed no migration and no reader
+     changes anywhere.
+   - Tests: `tour-state.test.ts` gained a `useTourState` describe block
+     (`renderHook` + a real `StorageEvent` dispatch, mirroring
+     `use-dismissed-flag.test.ts`'s existing hook-test shape) covering both
+     adoption of another tab's write and ignoring an unrelated tour's key;
+     plus `serializeTourState`/`parseTourState` round-trip coverage for the
+     new `version` field and for a pre-`version` persisted value.
+     `TourController.test.tsx` gained a "multi-tab adoption" describe block
+     asserting a simulated cross-tab `completed` write closes this tab's
+     active overlay for the replay pill, and that an unrelated tour's key
+     changing is a no-op.
+2. **Hard-gate-derived, order-free completion - done.** A memoized
+   `allHardStepsTaught` in `TourController.tsx` evaluates every `hard`-tagged
+   step's own `waitFor` against the live `ctx` (same try/catch-as-"not yet
+   taught" safety as the per-step evaluation above - a throwing predicate
+   reads as unmet, never crashes the check), reusing `waitFor` directly
+   rather than introducing a second field - exactly the "`requires` is kept
+   distinct, `waitFor` alone is enough for this" conclusion the "Slice-3
+   design call" section above already reached. A second effect writes
+   `runState = { status: "completed" }` the moment `allHardStepsTaught` is
+   true, gated on `!active` (and on not already being `"completed"`, to
+   avoid a redundant write once it lands) - so it can flip a `skipped` or
+   `paused` run to `completed`, or leave a fresh `unseen`/`running` one
+   alone, but never fires while a step is actively on screen.
+   - Confirmed by construction, not just by test, that this can't rewrite an
+     in-progress step: the effect's own first condition is `active`, and
+     `active` is derived from `session`, which only the interactive-step
+     gesture handlers and the reconciler above ever touch - the completion
+     effect has no path to `active` itself.
+   - Tests (`TourController.test.tsx`, new "hard-gate-derived, order-free
+     completion" describe block): satisfying all five `hard` steps'
+     conditions (`picker-tour`, `validate-click`, `fix-edge`,
+     `revalidate-clean`, `submit-click`) while still sitting on `welcome`
+     (step 0, genuinely out of script order) leaves `runState` at `running`
+     until the run actually stops being active - Skip afterward lands on
+     `completed` rather than the ordinary `skipped` a plain Skip test (above)
+     already covers; Escape (pause) afterward lands on `completed` too; and a
+     control case with none of the hard conditions met still leaves a Skip at
+     the ordinary `skipped`.
+
+**Verification**: full pipeline green - `typecheck`, `lint`, 1637 tests across
+188 files (up from slice 2's 1615 - 8 new `src/tour` tests plus the
+role-based-edges/`requires`/pause-on-surface-loss/modal-hotkey-scoping tests
+from earlier in this same slice), `build`. Manual click-through not done this
+pass (per this repo's working convention: full local pipeline is the
+definition of done; an end-to-end pass happens only when explicitly asked
+for).
+
+**This closes the resilience addendum's four-slice plan through slice 3** -
+`requires`, pause-on-surface-loss, modal hotkey scoping, multi-tab adoption,
+and hard-gate-derived completion are all landed on `feature/tour-reconciler`.
+Slice 4 (`feature/tour-beacon`, the anonymous-counter route) remains
+explicitly deferred, per the addendum, until beta evidence demands rates the
+existing local-signal channel (`tour-log.ts`'s ring buffer + Report-a-problem)
+can't answer on its own. Not asked to push this branch; ask before doing so.
+
+## Consolidated onto `bug-fix/guided-tour-fixes` (2026-08-09), for manual testing
+
+`feature/tour-airbag`, `feature/tour-watchdog`, and `feature/tour-reconciler`
+were a linear stack (each branched from the previous one's tip, confirmed via
+`git merge-base --is-ancestor`), so this branch is that stack's tip plus the
+slice-3 work that had been implemented and pipeline-verified but left
+uncommitted in the working tree - nothing was actually merged, there was only
+one line of history to consolidate. Cut for the user to check out and click
+through end to end. Not pushed; ask before pushing.
+
+### Summary of everything on this branch
+
+The tour itself (built before this branch, not part of its diff): a
+hand-rolled, 19-step spotlight tour (`src/tour/`) over the Design Editor -
+welcome, canvas/node/header orientation, open the component picker, place +
+connect SQL Database, question pane, hints, validate, fix a broken edge,
+revalidate clean, Deep Check overview, submit, progress/debrief, wrap-up. 7
+of the 19 steps are interactive (gesture-driven, not Next-click):
+`select-a-node`, `open-picker`, `picker-tour`, `validate-click`, `fix-edge`,
+`revalidate-clean`, `submit-click`. Auto-starts once on chapter 0.1, replayable
+via a sidebar pill, with a "Start over" that resets the starter graph.
+
+Three resilience slices layered on top (the addendum above):
+
+- **Slice 1, `tour-airbag`**: predicates run in try/catch (a throw degrades
+  to a plain Next instead of soft-locking); an unresolved target falls back
+  to ambient rendering with a manual Next after a 2.5s grace period; a
+  capped localStorage event log (`tour-log.ts`) plus
+  `window.__scaleTour.dump()`; a static tour-doctor test that fails CI if a
+  step points at a `data-tour` anchor that doesn't exist in the app. Plus
+  three live-browser bugs fixed same-branch (a dropdown closing itself under
+  the tour's own buttons, stale "two problems" copy, auto-advance eating the
+  read time on validate/revalidate - `noAutoAdvance` exists because of this).
+  SQL Database placement also moved earlier into the picker step, the
+  dedicated undo-redo step was cut, and picker items can be highlighted
+  without narrowing the palette.
+- **Slice 2, `tour-watchdog`**: a visibility-aware watchdog
+  (`use-watchdog.ts`) fires a quiet exit row after ~70s of unsatisfied
+  foreground time on an interactive step, offering "Skip this step" (new,
+  advances one step) alongside "Skip tour" (ends the run); steps tagged
+  `hard` (picker-tour, validate-click, fix-edge, revalidate-clean,
+  submit-click); a "Report a problem" link that opens a prefilled GitHub
+  issue with the log buffer, reviewable before sending. Also fixed live: the
+  popover not repositioning when a row's own content grew the card.
+- **Slice 3, `tour-reconciler`**: role-based `TourContext.edges` (so
+  `fix-edge` survives a delete-and-redraw, not just an in-place kind change);
+  a new `requires` field, continuously re-checked while a step is active, so
+  state drifting out from under an already-satisfied step surfaces a
+  truthful reconciling note instead of going silently stale; pause-on-
+  surface-loss for focus mode with a `pauseReason` distinguishing it from a
+  deliberate Escape; modal steps now actually swallow app hotkeys via a new
+  `tourModalActive` store flag; cross-tab adoption via the native `storage`
+  event; hard-gate-derived, order-free completion (satisfying all five
+  `hard` steps out of script order still registers the run as `completed`
+  once it's not actively on screen).
+
+### What's left after this branch
+
+- Slice 4, `tour-beacon` (anonymous completion-rate counter route) -
+  explicitly deferred, no branch cut, only build if beta evidence demands it.
+- Two items flagged but not fixed, chapter-author's domain not engineering's:
+  `content/chapters/index.ts`'s `problemStatement` and
+  `specs/bb-0-1-welcome.spec.md` both still describe the old
+  fix-component/fix-edge split that no longer exists.
+- This branch's own manual click-through (checklist below) - has not been
+  run yet as of this entry.
+
+### Manual QA checklist
+
+**Setup**
+- [ ] Learning Path -> 0.1 -> Reader -> "Begin exercise" -> tour auto-starts
+      on first visit
+- [ ] Reload mid-tour -> resumes at the same step, no re-narration from
+      step 1
+- [ ] Second visit after finishing/skipping -> does not auto-start; replay
+      pill visible in the sidebar footer
+- [ ] Replay pill restarts cleanly at step 1
+- [ ] "Start over" (two-step confirm) resets the starter graph, clears
+      Validate/Submit outcomes, restarts at step 1, and does NOT un-pass an
+      already-passed chapter
+
+**Every step, both themes (light/dark)**
+- [ ] Spotlight lands on the correct element for all 19 steps, no
+      off-screen or clipped popovers
+- [ ] Step counter, Back, Next, "Skip tour" all present and correct; Esc
+      pauses (not skip) with a resume pill
+- [ ] Popover repositions correctly if its own content grows (e.g. watchdog
+      row or resolution-failed row appearing)
+
+**The 7 interactive steps (must advance on the real gesture, not just Next)**
+- [ ] `select-a-node` - clicking a node advances
+- [ ] `open-picker` - `/` or right-click empty canvas opens the picker and
+      advances
+- [ ] `picker-tour` - placing AND connecting SQL Database advances (browsing
+      alone should not)
+- [ ] `validate-click` - clicking Validate advances only after a chance to
+      read the dropdown (no auto-advance eating the read)
+- [ ] `fix-edge` - fixing the Client -> App Server edge advances, including
+      deleting the edge and drawing a fresh one (not just editing kind in
+      place)
+- [ ] `revalidate-clean` - re-running Validate clean advances, no
+      auto-advance eating the read
+- [ ] `submit-click` - Submit advances only once the board actually passes
+
+**Resilience mechanisms (hardest to catch by code review alone)**
+- [ ] Watchdog: sit idle ~70-75s on an interactive step -> exit row appears
+      with "Skip this step" and "Report a problem"; "Skip this step"
+      advances one step (not the whole tour)
+- [ ] Report-a-problem link opens a prefilled, reviewable GitHub issue
+      (nothing auto-sent)
+- [ ] `requires` reconciliation: on `picker-tour` or `fix-edge`, satisfy the
+      step then delete the thing that satisfied it while still on that step
+      -> a truthful reconciling note appears, nothing auto-mutates the
+      graph; redo it -> note clears
+- [ ] Focus mode: enter focus mode mid-step -> tour pauses (not stuck
+      spotlighting a vanished sidebar); leave focus mode -> resumes silently
+      at the same step
+- [ ] A deliberate Escape pause is NOT auto-resumed the same way (resume
+      pill instead, unlike the silent focus-mode resume)
+- [ ] Hotkeys (Ctrl+Z, `/`, Ctrl+D, Shift+L) do nothing on a modal
+      (non-interactive) step; work normally again once that step ends
+- [ ] Multi-tab: open the same chapter in two tabs, advance/skip in one ->
+      the other tab reflects it (via `storage` event) without a manual
+      refresh
+- [ ] Hard-gate completion: skip the tour early after satisfying all 5
+      `hard` steps out of order -> run registers as `completed`, not stuck
+      at `skipped`
+- [ ] Throwing/broken predicate and unresolvable target (if forceable) both
+      degrade to a manual Next with an honest note, never a silent stall
+
+**Cross-cutting**
+- [ ] `prefers-reduced-motion` - spotlight/popover jump instead of animating
+- [ ] Keyboard-only pass through at least the non-interactive steps
+      (Tab/Enter/Esc)
+- [ ] Everything above still holds after `npm run build` (production
+      build), not just dev

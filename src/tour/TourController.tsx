@@ -7,12 +7,29 @@ import type { ComponentNodeType } from "@/canvas/types";
 import { TourOverlay, type TourInteractionState } from "./TourOverlay";
 import { designEditorTour } from "./design-editor-tour";
 import { logTourEvent } from "./tour-log";
-import { useTourState } from "./tour-state";
+import { useTourState, type TourRunState } from "./tour-state";
 import { useWatchdog } from "./use-watchdog";
 import type { TourContext } from "./types";
 
 const TOUR_SCRIPTS = { "design-editor": designEditorTour } as const;
 export type TourId = keyof typeof TOUR_SCRIPTS;
+
+/** Pure function of persisted state -> this tab's local `active`/`stepIndex`.
+ * Used both to decide the very first session (mount) and to re-decide it any
+ * time `runState` changes to a value this tab didn't itself just write (a
+ * write from another tab, forwarded via tour-state.ts's `storage` listener)
+ * — see the `lastSeenRunState` reconciliation block below for why re-running
+ * this same function on every runState change is safe rather than fighting
+ * this tab's own local writes. */
+function deriveSession(runState: TourRunState, focusMode: boolean, clampIndex: (i: number) => number) {
+  return runState.status === "unseen"
+    ? { active: true, stepIndex: 0 }
+    : runState.status === "running"
+      ? { active: true, stepIndex: clampIndex(runState.stepIndex) }
+      : runState.status === "paused" && runState.pauseReason === "surface-loss" && !focusMode
+        ? { active: true, stepIndex: clampIndex(runState.stepIndex) }
+        : { active: false, stepIndex: 0 };
+}
 
 // How long "Nice - continuing…" stays on screen after a gesture lands,
 // before the tour moves on. Short on purpose: this is acknowledgement, not
@@ -60,6 +77,18 @@ type TourControllerProps = {
    * when there's no sidebar to portal into — focus mode unmounts it — and
    * the controls fall back to the floating position for that case. */
   idleSlot?: HTMLElement | null;
+  /** True while the canvas is in focus mode, which unmounts the header and
+   * sidebar — every `data-tour` anchor but the canvas itself. It's the one
+   * surface-loss case that doesn't already unmount TourController wholesale
+   * (navigating away or closing the tab leaves the persisted run state as
+   * "running", and the resume-on-mount logic below already treats that as
+   * "resume active, no pill" with no extra code — see pending-guided-tour.md's
+   * "Slice-3 finding" section). Used to auto-pause an active run rather than
+   * leaving a step spotlighting anchors that no longer exist, and to
+   * auto-resume the instant focus mode ends. Defaults to false so existing
+   * callers (tests, anything mounted outside a focus-mode-aware workspace)
+   * don't need to know this exists. */
+  focusMode?: boolean;
 };
 
 /**
@@ -81,6 +110,7 @@ export function TourController({
   hasSubmittedPassing,
   onResetToStarter,
   idleSlot,
+  focusMode = false,
 }: TourControllerProps) {
   const steps = TOUR_SCRIPTS[tourId];
   const { state: runState, hydrated, setState: setRunState } = useTourState(tourId);
@@ -104,17 +134,30 @@ export function TourController({
 
   const clampIndex = (i: number) => Math.min(Math.max(i, 0), steps.length - 1);
 
-  // Auto-start (never seen) or resume (reloaded mid-run). `paused`,
-  // `skipped` and `completed` all deliberately stay out of the way until the
-  // learner reaches for the pill.
-  if (session === null && hydrated && hasLoadedInitialState) {
-    setSession(
-      runState.status === "unseen"
-        ? { active: true, stepIndex: 0 }
-        : runState.status === "running"
-          ? { active: true, stepIndex: clampIndex(runState.stepIndex) }
-          : { active: false, stepIndex: 0 },
-    );
+  // Auto-start (never seen) or resume (reloaded mid-run) on first mount, AND
+  // reconcile whenever `runState` changes to a value this tab didn't itself
+  // just produce — i.e. a write from another tab, forwarded through
+  // tour-state.ts's `storage` listener (mechanism 5 of the resilience
+  // addendum's multi-tab adoption: no leadership election, last writer wins,
+  // worst case is one re-narrated step). `lastSeenRunState` (not a ref —
+  // react-hooks/refs disallows a ref write during render, same reason
+  // `entry`/`requiresTracking`/`focusModeSeen` below all use useState instead
+  // of a ref) tracks the last `runState` reference this block has already
+  // reacted to; re-running is safe even for THIS tab's own writes because
+  // `deriveSession` is idempotent against whatever this tab already set
+  // locally (see its own doc comment) — a local write and its own
+  // re-derivation always agree.
+  //
+  // `skipped` and `completed` stay out of the way until the learner reaches
+  // for the pill. `paused` mostly does too, EXCEPT a surface-loss pause whose
+  // surface has already come back (e.g. a reload that happens to land while
+  // focus mode is off again, or another tab ending focus mode) - that one
+  // resumes active with no pill, same as `running`, since the pill exists for
+  // pauses the learner actually asked for.
+  const [lastSeenRunState, setLastSeenRunState] = useState<TourRunState | null>(null);
+  if (hydrated && hasLoadedInitialState && runState !== lastSeenRunState) {
+    setLastSeenRunState(runState);
+    setSession(deriveSession(runState, focusMode, clampIndex));
   }
 
   const active = session?.active ?? false;
@@ -171,6 +214,46 @@ export function TourController({
       hasSubmittedPassing,
     ],
   );
+
+  // Hard-gate-derived, order-free completion (pending-guided-tour.md's
+  // resolved "scoping decision" before this slice): the tour's own "done" is
+  // normally cursor-derived (advance() reaching the final step), but a
+  // learner who satisfies every `hard` step's condition out of script order —
+  // via Skip, a pause-and-finish-manually, or a reload after fixing things
+  // without ever reaching the end — should still have the run register as
+  // complete rather than sitting on "skipped"/"paused" forever. Reuses each
+  // hard step's own `waitFor` directly rather than a second field — it's
+  // already a pure function of live `ctx` with nothing about "is this the
+  // current step" (see the scoping decision's "what requires actually is"
+  // section for why this doesn't need `requires` instead). Same safe
+  // try/catch as `waitFor`'s own evaluation above — a throwing predicate must
+  // read as "not yet taught", never crash this check.
+  const allHardStepsTaught = useMemo(
+    () =>
+      steps
+        .filter((s) => s.hard)
+        .every((s) => {
+          if (!s.waitFor) return true;
+          try {
+            return s.waitFor(ctx);
+          } catch {
+            return false;
+          }
+        }),
+    [steps, ctx],
+  );
+
+  // Deliberately gated on `!active`: never rewrites the run out from under an
+  // in-progress step — a learner reading an active card must never have it
+  // yanked away by a background completion check. A learner who satisfies
+  // everything while the tour is actively running still finishes the normal
+  // way, through the last step's own Next/Done button; this effect only
+  // closes the Skip/pause-and-finish-manually/reload-after-solving-out-of-
+  // order gap the addendum names.
+  useEffect(() => {
+    if (active || !allHardStepsTaught || runState.status === "completed") return;
+    setRunState({ status: "completed" });
+  }, [active, allHardStepsTaught, runState.status, setRunState]);
 
   const step = steps[stepIndex];
 
@@ -318,9 +401,11 @@ export function TourController({
   }
 
   /** Escape / "pause" — the run stays exactly where it is and the pill
-   * offers to resume it. Distinct from Skip, which ends the run. */
-  function pause() {
-    setRunState({ status: "paused", stepIndex });
+   * offers to resume it. Distinct from Skip, which ends the run.
+   * `reason` defaults to "user" (an explicit Escape); the focus-mode effect
+   * below is the one caller that passes "surface-loss". */
+  function pause(reason: "user" | "surface-loss" = "user") {
+    setRunState({ status: "paused", stepIndex, pauseReason: reason });
     setSession({ active: false, stepIndex });
   }
 
@@ -349,6 +434,50 @@ export function TourController({
     setRunState({ status: "running", stepIndex: 0 });
     setSession({ active: true, stepIndex: 0 });
   }
+
+  // Pause the instant focus mode turns on during an active run — its host
+  // surface (header, sidebar, every data-tour anchor but the canvas) just
+  // unmounted out from under whichever step is showing, and resumes it
+  // silently the instant focus mode ends again — but only for a pause this
+  // caused; a learner who paused deliberately via Escape still gets the
+  // resume pill, not an unannounced jump back into the overlay.
+  //
+  // Adjusted during render, not in an effect, same as `entry`/
+  // `requiresTracking` above: react-hooks/set-state-in-effect flags calling
+  // this component's own `setSession` from inside a useEffect body (even via
+  // a helper like `pause()`/`resume()`), so a real prop-driven state change
+  // has to use the render-time comparison pattern instead.
+  const [focusModeSeen, setFocusModeSeen] = useState(focusMode);
+  if (focusModeSeen !== focusMode) {
+    setFocusModeSeen(focusMode);
+    if (focusMode && active) {
+      setSession({ active: false, stepIndex });
+    } else if (!focusMode && runState.status === "paused" && runState.pauseReason === "surface-loss") {
+      setSession({ active: true, stepIndex: clampIndex(runState.stepIndex) });
+    }
+  }
+
+  // The localStorage write for that pause, on the other hand, belongs in an
+  // effect (it's the "update an external system" half of the same
+  // transition — same shape as the checkpoint effect above, which already
+  // covers the resume write: once the render-time block flips `session`
+  // back to active, that effect's own `active` dependency fires and persists
+  // "running" with no extra code needed here). A second, ref-based flip
+  // detector, deliberately not the `focusModeSeen` state above — an effect
+  // can't share a flip-detector with a render-time block and stay correct,
+  // because by the time this effect runs, `active` already reflects the
+  // NEW (post-adjustment) value, not the value at the moment focus mode
+  // turned on. `runState.status === "running"` is what's still trustworthy
+  // at that point — the checkpoint effect kept it "running" for the whole
+  // stretch this was an active run.
+  const prevFocusModeRef = useRef(focusMode);
+  useEffect(() => {
+    const wasFocusMode = prevFocusModeRef.current;
+    prevFocusModeRef.current = focusMode;
+    if (focusMode && !wasFocusMode && runState.status === "running") {
+      setRunState({ status: "paused", stepIndex, pauseReason: "surface-loss" });
+    }
+  }, [focusMode, runState.status, stepIndex, setRunState]);
 
   // Auto-advances only a gesture the learner just performed while watching
   // this step — never one that was already true when the step opened (see

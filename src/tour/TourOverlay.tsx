@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useCanvasStore } from "@/canvas/store";
 import { buildReportUrl, logTourEvent } from "./tour-log";
 import type { TourStep, TourStepTarget } from "./types";
 
@@ -511,6 +512,17 @@ export function TourOverlay({
   // point), so trapping would lock a keyboard user out of the gesture the
   // step is asking for (punch list #15).
   const isModal = dims && !step.waitFor;
+
+  // Mirrored into the canvas store so use-canvas-shortcuts.ts can gate
+  // global hotkeys on it — this component owns the definition of "modal",
+  // that hook has no view into step content to compute it itself. Cleared
+  // on unmount as well as on every isModal flip, same shape as
+  // TourController.tsx's document.body.dataset.tourActive effect.
+  const setTourModalActive = useCanvasStore((s) => s.setTourModalActive);
+  useEffect(() => {
+    setTourModalActive(isModal);
+    return () => setTourModalActive(false);
+  }, [isModal, setTourModalActive]);
 
   // A step that declared any anchor at all must never fall back to centering
   // — see computePopoverPosition's `fallback` parameter.

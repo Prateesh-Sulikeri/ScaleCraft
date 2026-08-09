@@ -303,6 +303,19 @@ type CanvasStore = {
    * non-tour chapter never set this). */
   highlightedComponentId: string | null;
   setHighlightedComponentId: (id: string | null) => void;
+  /** True while a *blocking* (non-interactive) tour step's overlay is
+   * showing — TourOverlay.tsx's own `isModal` local, mirrored here so
+   * use-canvas-shortcuts.ts can gate global hotkeys on it. A blocking step
+   * has nothing for the learner to do in the app behind the backdrop, so
+   * Ctrl+Z/Ctrl+D/Shift+L/`/` firing underneath it (previously possible if
+   * focus happened to still be on the canvas from before the tour opened)
+   * would silently act on a board the step's own copy gives no indication
+   * is still live. An *interactive* step (waitFor set) deliberately leaves
+   * this false — trapping input there would sandbox the very gesture the
+   * step is asking for. `false` for every non-tour chapter and the
+   * Sandbox, which never set it. */
+  tourModalActive: boolean;
+  setTourModalActive: (active: boolean) => void;
   /** Drives the Phase 4 "Highlight Connections"/"Highlight Zone"
    * context-menu actions — Canvas.tsx derives the highlighted node/edge id
    * sets from this each render and dims everything else via node/edge
@@ -440,6 +453,7 @@ export function createCanvasStore(): StoreApi<CanvasStore> {
   pendingComponentPlacement: null,
   availableComponentIds: null,
   highlightedComponentId: null,
+  tourModalActive: false,
   pendingUndo: null,
   past: [],
   future: [],
@@ -648,6 +662,7 @@ export function createCanvasStore(): StoreApi<CanvasStore> {
   setAvailableComponentIds: (ids) => set({ availableComponentIds: ids }),
 
   setHighlightedComponentId: (id) => set({ highlightedComponentId: id }),
+  setTourModalActive: (active) => set({ tourModalActive: active }),
 
   setHighlight: (highlight) => set({ highlight }),
   clearHighlight: () => set({ highlight: null }),

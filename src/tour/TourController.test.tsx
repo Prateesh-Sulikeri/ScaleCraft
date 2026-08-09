@@ -21,6 +21,7 @@ function Harness({
   hasSubmittedPassing = false,
   onResetToStarter,
   resetsStore = false,
+  focusMode = false,
 }: {
   hasLoadedInitialState?: boolean;
   lastValidationErrorCount?: number | null;
@@ -29,6 +30,7 @@ function Harness({
   /** Stands in for ChapterWorkspace's real handleResetToStarter — wipes the
    *  bits of store state the tour's gesture predicates read. */
   resetsStore?: boolean;
+  focusMode?: boolean;
 }) {
   const storeApi = useCanvasStoreApi();
   const availableComponentIds = useCanvasStore((s) => s.availableComponentIds);
@@ -156,6 +158,7 @@ function Harness({
             ? () => storeApi.setState({ selectedNodeId: null, nodes: [], edges: [], past: [], future: [] })
             : onResetToStarter
         }
+        focusMode={focusMode}
       />
     </>
   );
@@ -237,7 +240,7 @@ describe("TourController", () => {
 
     fireEvent.keyDown(window, { key: "Escape" });
 
-    expect(storedState()).toEqual({ status: "paused", stepIndex: 2 });
+    expect(storedState()).toEqual({ status: "paused", stepIndex: 2, pauseReason: "user" });
     const pill = screen.getByRole("button", { name: "Resume guided tour at step 3 of 19" });
     expect(pill).toHaveTextContent("Resume tour (3/19)");
 
@@ -257,6 +260,49 @@ describe("TourController", () => {
 
     renderHarness({ hasLoadedInitialState: true });
     expect(screen.getByText("6 / 19")).toBeInTheDocument();
+  });
+
+  it("focus mode auto-pauses an active run and auto-resumes it when focus mode ends, with no pill", () => {
+    // Focus mode unmounts the header/sidebar - every data-tour anchor but
+    // the canvas - so an active step would otherwise be left spotlighting
+    // anchors that no longer exist. Distinct from an Escape pause: the round
+    // trip back to the same step is silent (no explicit resume click).
+    const { rerender } = renderHarness({ hasLoadedInitialState: true });
+    next();
+    next();
+    expect(screen.getByText("Try it: select a component")).toBeInTheDocument();
+
+    rerender(
+      <CanvasStoreProvider>
+        <Harness hasLoadedInitialState focusMode />
+      </CanvasStoreProvider>,
+    );
+
+    expect(storedState()).toEqual({ status: "paused", stepIndex: 2, pauseReason: "surface-loss" });
+    expect(screen.queryByText("Try it: select a component")).not.toBeInTheDocument();
+
+    rerender(
+      <CanvasStoreProvider>
+        <Harness hasLoadedInitialState focusMode={false} />
+      </CanvasStoreProvider>,
+    );
+
+    expect(screen.getByText("Try it: select a component")).toBeInTheDocument();
+    expect(storedState()).toEqual({ status: "running", stepIndex: 2 });
+  });
+
+  it("a surface-loss pause whose surface is already back by the next mount resumes active with no pill", () => {
+    // Covers a reload that happens to land after focus mode has already
+    // ended again - this should behave like a `running` state, not strand
+    // the learner on a pill for a pause they never asked for.
+    localStorage.setItem(
+      STATE_KEY,
+      JSON.stringify({ status: "paused", stepIndex: 4, pauseReason: "surface-loss" }),
+    );
+    renderHarness({ hasLoadedInitialState: true, focusMode: false });
+
+    expect(screen.getByText("5 / 19")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Resume guided tour/ })).not.toBeInTheDocument();
   });
 
   it("Skip tour ends the run and swaps the overlay for a replay pill", () => {
@@ -655,5 +701,75 @@ describe("TourController", () => {
 
     expect(storedState()).toEqual({ status: "completed" });
     expect(screen.getByRole("button", { name: "Replay guided tour" })).toBeInTheDocument();
+  });
+
+  describe("multi-tab adoption", () => {
+    it("adopts a write made in another tab via the native storage event", () => {
+      renderHarness({ hasLoadedInitialState: true });
+      expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument();
+
+      // A real cross-tab write never fires a storage event in the tab that
+      // made it - simulated as the localStorage mutation another tab already
+      // made, then the native event this tab's own listener reacts to.
+      act(() => {
+        localStorage.setItem(STATE_KEY, JSON.stringify({ status: "completed" }));
+        window.dispatchEvent(new StorageEvent("storage", { key: STATE_KEY }));
+      });
+
+      expect(screen.queryByText("Welcome to the Design Editor")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Replay guided tour" })).toBeInTheDocument();
+    });
+
+    it("ignores an unrelated key changing in the same storage event", () => {
+      renderHarness({ hasLoadedInitialState: true });
+      next();
+      expect(screen.getByText("Your canvas")).toBeInTheDocument();
+
+      act(() => {
+        localStorage.setItem("sc-tour-some-other-tour", JSON.stringify({ status: "completed" }));
+        window.dispatchEvent(new StorageEvent("storage", { key: "sc-tour-some-other-tour" }));
+      });
+
+      expect(screen.getByText("Your canvas")).toBeInTheDocument();
+    });
+  });
+
+  describe("hard-gate-derived, order-free completion", () => {
+    it("self-completes an inactive (skipped) run once every hard step's condition is met, even out of script order", () => {
+      renderHarness({ hasLoadedInitialState: true, lastValidationErrorCount: 0, hasSubmittedPassing: true });
+
+      // Structurally satisfies every hard step's own waitFor while still
+      // sitting on "welcome" (step 0) - genuinely out of script order.
+      act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
+      act(() => fireEvent.click(screen.getByTestId("connect-sql-database")));
+      act(() => fireEvent.click(screen.getByTestId("fix-edge-kind")));
+
+      // Still active on "welcome" - a background check must never yank an
+      // in-progress step away from the learner.
+      expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument();
+      expect(storedState()).toEqual({ status: "running", stepIndex: 0 });
+
+      // Skip would normally leave "skipped" (see the plain "Skip tour ends
+      // the run" test above) - every hard condition already being true
+      // upgrades it to "completed" instead, in the same beat.
+      fireEvent.click(screen.getByRole("button", { name: "Skip tour" }));
+      expect(storedState()).toEqual({ status: "completed" });
+    });
+
+    it("also upgrades a paused run once every hard condition is met", () => {
+      renderHarness({ hasLoadedInitialState: true, lastValidationErrorCount: 0, hasSubmittedPassing: true });
+      act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
+      act(() => fireEvent.click(screen.getByTestId("connect-sql-database")));
+      act(() => fireEvent.click(screen.getByTestId("fix-edge-kind")));
+
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(storedState()).toEqual({ status: "completed" });
+    });
+
+    it("does not self-complete while a hard step's condition still isn't met", () => {
+      renderHarness({ hasLoadedInitialState: true });
+      fireEvent.click(screen.getByRole("button", { name: "Skip tour" }));
+      expect(storedState()).toEqual({ status: "skipped" });
+    });
   });
 });
