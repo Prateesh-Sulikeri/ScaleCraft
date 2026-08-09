@@ -134,6 +134,9 @@ vi.mock("@/curriculum", () => ({
     sections: [],
   }),
   findEntry: (_mode: string, slug: string) => entriesBySlug[slug],
+  // No test in this file asserts on "Next chapter" (see NextChapterLink.test.tsx
+  // for that) - undefined keeps it a no-op so it doesn't affect this file's DOM.
+  nextEntry: () => undefined,
 }));
 
 describe("ChapterReader - prerequisite and domain tags", () => {

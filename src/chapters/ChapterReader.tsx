@@ -9,9 +9,10 @@ import { ReaderSidebar } from "./ReaderSidebar";
 import { ReadingProgress } from "./ReadingProgress";
 import { TableOfContents } from "./TableOfContents";
 import { DesignEditorCTA } from "./DesignEditorCTA";
+import { NextChapterLink } from "./NextChapterLink";
 import { QuizLauncher } from "./quiz/QuizLauncher";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
-import { getCourse, findEntry } from "@/curriculum";
+import { getCourse, findEntry, nextEntry } from "@/curriculum";
 import { getChapter, useChapterLesson } from "@/content/content-service";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import { appendKnowledgeCheckHeading, extractHeadings } from "./extract-headings";
@@ -46,6 +47,7 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   // lookup so a stale/bad slug degrades to the defensive null return below.
   const entry = findEntry(mode, chapterSlug);
   const chapter = entry?.chapterDefinitionId ? (getChapter(entry.chapterDefinitionId) ?? null) : null;
+  const hasNextEntry = nextEntry(mode, chapterSlug) !== undefined;
 
   const articleRef = useRef<HTMLDivElement>(null);
 
@@ -132,6 +134,12 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
 
             {chapter.hasEditorExercise !== false && (
               <DesignEditorCTA mode={mode} chapterSlug={chapterSlug} />
+            )}
+
+            {hasNextEntry && (
+              <div className="mt-10 border-t border-border pt-6">
+                <NextChapterLink courseId={mode} chapterSlug={chapterSlug} variant="card" />
+              </div>
             )}
           </div>
         </div>
