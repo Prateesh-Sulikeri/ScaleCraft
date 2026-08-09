@@ -851,6 +851,71 @@ Manual click-through not yet done this pass.
 observer-driven re-measure, hard-gate-derived completion, the level-vs-edge
 predicate audit).
 
+## Scoping decision (2026-08-09), before `feature/tour-reconciler`: what hard-gate-derived completion means
+
+The one open call flagged above, resolved via AskUserQuestion before any slice-3
+code: **the tour self-completes early if every `hard`-tagged step's condition is
+met, regardless of script order** - not just stepIndex-based completion with
+`hard` feeding the chapter gate as a side signal. Concretely: `TourController`
+evaluates every `hard` step's own `waitFor` against the live `TourContext`
+(order-free - a step's `waitFor` is already a pure function of `ctx`, nothing
+about "is this the current step"), and once all of them are true, the run's
+persisted status becomes `completed` even if `stepIndex` never reached the
+final step.
+
+Scoped conservatively for slice 3: this check only *acts* (writes `completed`)
+while the tour is NOT actively on screen (idle pill, paused, or skipped) - never
+mid-step, so a learner reading an active card never has it yanked away by a
+background completion check. A learner who satisfies everything while the tour
+is actively running still finishes the normal way, through the last step's
+Next/Done button; the early-completion path exists for the Skip/pause-and-
+finish-manually/reload-after-solving-out-of-order cases the addendum names.
+Revisitable if that turns out to feel wrong in practice.
+
+### Slice-3 design call: what `requires` actually is, versus reusing `waitFor`
+
+All six of `design-editor-tour.ts`'s `waitFor` predicates already read only
+from live `TourContext` state (level-triggered, per the addendum's own
+principle) - once `fix-edge`'s hardcoded-edge-id predicate below is converted
+to a role-based check, the level-vs-edge audit passes with no other changes.
+That means hard-gate completion above can reuse `waitFor` directly; it does
+not need a second field.
+
+`requires` is kept as its own, distinct, new field anyway - not a rename of
+`waitFor` - because its job is different: `waitFor` gates *advancing* the
+current step; `requires`, evaluated continuously while a step is active, is
+for the "state drifted out from under an already-satisfied step, while the
+learner is still lingering on it reading" case mechanism 4 names (e.g. a
+resumed/pre-satisfied step where the learner deletes the very thing that
+satisfied it before clicking Next). This is the reason `requires-broke`/
+`reconciled-via` were already reserved in `tour-log.ts`'s `TourLogEvent`
+union back in slice 1 - they were always meant for a field distinct from the
+`predicate-threw` machinery. Applied to `picker-tour` and `fix-edge` via
+shared helper predicates (not duplicated inline), since for those two steps
+`requires` and `waitFor` describe the same underlying structural fact.
+
+Not implemented this slice: the "reuses `narrowAvailableComponentIds` as a
+restore affordance" enhancement the addendum mentions for a placeable missing
+thing - scoped down to a truthful note only (no auto-narrowing) to keep the
+mechanism's first landing small; `Start Over` remains the actual recovery
+path, as the addendum itself calls out as the nuclear fallback.
+
+### Slice-3 finding: router navigation away and tab close needed no new code
+
+Re-reading `TourController.tsx` against mechanism 2 ("pause on surface loss")
+before writing anything: navigating away from the chapter route unmounts
+`TourController` entirely, but the persisted run state is left as `running`
+(never rewritten to `paused` on unmount) - and the *existing* mount-time
+session derivation already treats `status: "running"` as "resume active,
+no pill" on the next mount. That already IS "auto-resume on return" for
+navigation-away and tab-close, correctly, with no code change. The actual gap
+is narrower than the addendum's list implies: **focus mode** is the only
+surface-loss case that doesn't unmount `TourController` (it stays mounted,
+session stays `active`, and AppHeader/ChapterSidebar - and therefore most
+`data-tour` targets - vanish out from under a still-running step, currently
+handled only by the airbag's ambient-degrade fallback rather than a clean
+pause). Slice 3's pause-on-surface-loss work is scoped to just that case.
+
 ## Bug found live, same slice-2 branch (2026-08-09): the watchdog/resolution-failed rows could render off-screen
 
 Reported directly from the running app ("clipping out"), not a walkthrough
