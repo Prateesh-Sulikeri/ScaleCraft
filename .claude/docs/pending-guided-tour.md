@@ -850,3 +850,34 @@ Manual click-through not yet done this pass.
 `pauseReason`, modal hotkey scoping, `storage`-event multi-tab adoption,
 observer-driven re-measure, hard-gate-derived completion, the level-vs-edge
 predicate audit).
+
+## Bug found live, same slice-2 branch (2026-08-09): the watchdog/resolution-failed rows could render off-screen
+
+Reported directly from the running app ("clipping out"), not a walkthrough
+finding. `TourOverlay.tsx`'s popover position was only recomputed on
+`step.id`/`step.body`/viewport change (`useLayoutEffect`, one dependency
+list). The watchdog row above and slice 1's resolution-failed row both add
+content to the card well after that computation, with none of those
+dependencies changing — so a bottom-docked or bottom-placed card's `top`
+stayed anchored for the shorter, pre-row measurement, and the newly-grown
+bottom rendered past the viewport edge. Exactly the class of bug this file's
+own comments already name twice (the punch list's #4/#5/#6 off-screen
+popovers, slice 1's `computePopoverPosition` fallback work) — jsdom has no
+layout engine, so every `getBoundingClientRect` involved reports zero,
+making this invisible to the whole suite by construction, same as those
+earlier bugs.
+
+Fixed with a `ResizeObserver` on the popover element itself
+(`TourOverlay.tsx`), same pattern already used elsewhere in this codebase
+(`Canvas.tsx`, `ComponentNode.tsx`, `ReadingProgress.tsx`) — reposition on
+ANY size change to the card, not just the two cases the old dependency list
+happened to name. This generalizes rather than patches: the next conditional
+row added to the card doesn't need to remember to add itself anywhere.
+Regression test in `TourOverlay.test.tsx` fakes a `ResizeObserver` callback
+(same stub pattern as `ReadingProgress.test.tsx`) to grow the card's
+measured height after mount and asserts `top` actually moves — this is the
+one place in the suite that can prove the fix, since it drives the
+recompute the same way a real resize would rather than asserting on the
+(unmeasurable in jsdom) rendered position directly.
+
+Verified: full pipeline green (`typecheck`, `lint`, 1615 tests, `build`).

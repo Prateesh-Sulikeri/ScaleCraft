@@ -1,8 +1,33 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeAll, beforeEach } from "vitest";
 import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { TourOverlay, computePopoverPosition, spotlightHole } from "./TourOverlay";
 import { dumpTourLog, clearTourLog } from "./tour-log";
 import type { TourStep } from "./types";
+
+/** jsdom has no ResizeObserver — this stub tracks every observed element so
+ * a test can fire a resize callback manually to simulate the card's own
+ * rendered height changing after mount (a watchdog/resolution-failed row
+ * appearing mid-step). */
+let resizeCallbacks: ResizeObserverCallback[] = [];
+function triggerResize() {
+  for (const cb of resizeCallbacks) {
+    act(() => cb([] as ResizeObserverEntry[], {} as ResizeObserver));
+  }
+}
+beforeAll(() => {
+  class ResizeObserverStub {
+    constructor(callback: ResizeObserverCallback) {
+      resizeCallbacks.push(callback);
+    }
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  global.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+});
+beforeEach(() => {
+  resizeCallbacks = [];
+});
 
 function step(overrides: Partial<TourStep> = {}): TourStep {
   return {
@@ -238,6 +263,24 @@ describe("TourOverlay", () => {
     // centre of a 1024x768 viewport.
     expect(card.style.left).toBe(`${1024 - 16}px`);
     expect(card.style.top).toBe(`${768 - 16}px`);
+  });
+
+  it("repositions when the card's own rendered size changes after mount — a row appearing must not push content off-screen", () => {
+    // Regression: the watchdog row and the resolution-failed fallback both
+    // add content to the card well after its position was first computed
+    // (neither step.id, step.body, nor the viewport changes when they
+    // appear), so without this the card's bottom silently drifted past the
+    // viewport edge — invisible in jsdom, which is exactly why this test
+    // has to fake the resize rather than rely on a real layout engine.
+    render(<TourOverlay {...baseProps()} step={step({ target: "component-picker", placement: "right" })} />);
+    const card = screen.getByRole("dialog").querySelector<HTMLElement>(".w-80")!;
+    expect(card.style.top).toBe(`${768 - 16}px`); // jsdom measures 0-height initially, so it docks flush to the bottom
+
+    card.getBoundingClientRect = () =>
+      ({ top: 0, left: 0, width: 320, height: 400, right: 320, bottom: 400, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+    triggerResize();
+
+    expect(card.style.top).toBe(`${768 - 400 - 16}px`);
   });
 
   describe("resolution-failure airbag (waiting step, target never mounts)", () => {

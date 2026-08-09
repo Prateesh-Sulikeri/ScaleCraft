@@ -531,6 +531,26 @@ export function TourOverlay({
     reposition();
   }, [reposition, step.id, step.body, viewport.width, viewport.height]);
 
+  // The dependency list above only catches height changes tied to a step or
+  // viewport change — it stays blind to the card growing for any other
+  // reason (the watchdog row appearing, the resolution-failed fallback
+  // appearing, both mid-step with nothing in that list changing). `top` was
+  // computed for the shorter card and never moved, so the new content pushed
+  // the bottom of a bottom-docked or bottom-placed card past the viewport
+  // edge — genuinely off-screen, invisible in jsdom (no layout engine, so
+  // every getBoundingClientRect the class of bug above already documents is
+  // zeroed out) and only caught live. A ResizeObserver on the card's own
+  // element, same pattern as Canvas.tsx/ComponentNode.tsx, repositions on
+  // ANY size change instead of requiring every future conditional row to
+  // remember to add itself to a dependency list.
+  useEffect(() => {
+    const el = popoverRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => reposition());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [reposition]);
+
   // Moves focus into the card on every step change, so a screen reader
   // announces the new step and a keyboard user starts inside the dialog
   // rather than on whatever the page had focused (previously: BODY, with the
