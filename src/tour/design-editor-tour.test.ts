@@ -7,18 +7,22 @@ const emptyCtx: TourContext = {
   isComponentPickerOpen: false,
   selectedNodeId: null,
   presentComponentIds: [],
+  connectedComponentIds: [],
   edgeKindById: {},
   lastValidationErrorCount: null,
   hasSubmittedPassing: false,
 };
 
-const INTERACTIVE_STEP_IDS = ["select-a-node", "undo-redo", "open-picker", "validate-click", "fix-component", "fix-edge", "revalidate-clean", "submit-click"];
+const INTERACTIVE_STEP_IDS = ["select-a-node", "undo-redo", "open-picker", "picker-tour", "validate-click", "fix-edge", "revalidate-clean", "submit-click"];
 
 describe("designEditorTour", () => {
-  it("has exactly twenty-one steps", () => {
+  it("has exactly twenty steps", () => {
     // Was 23 before the three "one more thing" tail steps were merged into
-    // one (.claude/docs/pending.md tour punch list #24).
-    expect(designEditorTour).toHaveLength(21);
+    // one (.claude/docs/pending.md tour punch list #24), then 21 until
+    // picker-tour absorbed fix-component's placement gesture (real-browser
+    // report: the missing component moved earlier, ahead of Validate,
+    // instead of being a separate post-Validate fix step).
+    expect(designEditorTour).toHaveLength(20);
   });
 
   it("has unique, non-empty step ids", () => {
@@ -45,9 +49,9 @@ describe("designEditorTour", () => {
   });
 
   it("sets an up-front expectation of length on the welcome step", () => {
-    // A 21-step blocking overlay with no stated length is a commitment the
-    // learner can't evaluate before it starts (punch list #24).
-    expect(designEditorTour[0].body).toMatch(/21 steps/);
+    // A multi-step blocking overlay with no stated length is a commitment
+    // the learner can't evaluate before it starts (punch list #24).
+    expect(designEditorTour[0].body).toMatch(/20 steps/);
     expect(designEditorTour[0].body).toMatch(/Esc/);
   });
 
@@ -75,11 +79,12 @@ describe("designEditorTour", () => {
   });
 
   it("uses every anchor with a real gesture requirement as its own step's target", () => {
-    // undo-redo has a data-tour anchor (AppHeader.tsx) but no step targets it
-    // directly — its interactive step deliberately spotlights "canvas"
-    // instead, since the real gesture it asks for (dragging a component)
-    // happens there. It's still referenced as a popoverAnchor, so its anchor
-    // isn't dead code.
+    // undo-redo and component-picker both have a data-tour anchor
+    // (AppHeader.tsx / ComponentPicker.tsx) but no step targets either
+    // directly — their interactive steps deliberately spotlight "canvas"
+    // instead, since the real gesture each asks for (dragging a component;
+    // choosing then placing one) happens there. Both are still referenced
+    // as a popoverAnchor, so neither anchor is dead code.
     const targets = new Set(designEditorTour.map((s) => s.target).filter((t): t is TourStepTarget => t !== null));
     expect(targets).toEqual(
       new Set([
@@ -92,11 +97,10 @@ describe("designEditorTour", () => {
         "hint-toggle",
         "chapter-complete",
         "debrief",
-        "component-picker",
       ]),
     );
     const anchors = new Set(designEditorTour.map((s) => s.popoverAnchor).filter((t): t is TourStepTarget => t !== undefined));
-    expect(anchors).toEqual(new Set(["undo-redo", "edge-inspector"]));
+    expect(anchors).toEqual(new Set(["undo-redo", "component-picker", "edge-inspector"]));
   });
 
   it("anchors the edge-fixing step to the Edge Inspector it tells the learner to use", () => {
@@ -113,16 +117,14 @@ describe("designEditorTour", () => {
     // picker rather than dropping the component — copy that says "click a
     // component to place it on the canvas" leaves the learner waiting for
     // something that never happens.
-    for (const id of ["picker-tour", "fix-component"]) {
-      const step = designEditorTour.find((s) => s.id === id)!;
-      expect(step.body).toMatch(/click the canvas|click on the canvas|next click on the canvas/i);
-    }
+    const step = designEditorTour.find((s) => s.id === "picker-tour")!;
+    expect(step.body).toMatch(/click the canvas|click on the canvas|next click on the canvas/i);
   });
 
   it("every step that talks about the component picker lets it stay open", () => {
-    // The regression guard for punch list #1: "fix-component" told the
-    // learner to open the picker while the controller force-closed it in the
-    // same tick, which dead-ended the tour and made the 9 steps after it
+    // The regression guard for punch list #1: the step that told the
+    // learner to open the picker used to be force-closed by the controller
+    // in the same tick, which dead-ended the tour and made every later step
     // unreachable in a real session. Keyed off the copy itself so a newly
     // authored picker step can't quietly reintroduce it.
     for (const step of designEditorTour) {
@@ -193,11 +195,23 @@ describe("designEditorTour", () => {
     expect(step.waitFor!({ ...emptyCtx, lastValidationErrorCount: 0 })).toBe(true);
   });
 
-  it("fix-component's predicate is satisfied once sql-database is present, and narrows the picker to just that", () => {
-    const step = designEditorTour.find((s) => s.id === "fix-component")!;
+  it("picker-tour's predicate requires sql-database both present and connected, not placement alone", () => {
+    const step = designEditorTour.find((s) => s.id === "picker-tour")!;
     expect(step.waitFor!({ ...emptyCtx, presentComponentIds: ["client", "app-server"] })).toBe(false);
-    expect(step.waitFor!({ ...emptyCtx, presentComponentIds: ["client", "app-server", "sql-database"] })).toBe(true);
-    expect(step.narrowAvailableComponentIds).toEqual(["sql-database"]);
+    // Placed but not yet wired to anything — a dropped, disconnected
+    // component doesn't satisfy "add the SQL Database", per the user's
+    // real-browser report that the old fix-component step's waitFor never
+    // actually checked the connection it told the learner to make.
+    expect(
+      step.waitFor!({ ...emptyCtx, presentComponentIds: ["client", "app-server", "sql-database"] }),
+    ).toBe(false);
+    expect(
+      step.waitFor!({
+        ...emptyCtx,
+        presentComponentIds: ["client", "app-server", "sql-database"],
+        connectedComponentIds: ["sql-database"],
+      }),
+    ).toBe(true);
   });
 
   it("fix-edge's predicate is satisfied once the specific starter-graph edge's kind is request-flow", () => {
@@ -217,8 +231,8 @@ describe("designEditorTour", () => {
     expect(step.waitFor!({ ...emptyCtx, hasSubmittedPassing: true })).toBe(true);
   });
 
-  it("fix-component/fix-edge steps target canvas so the real gesture (open picker, click the edge) stays clickable", () => {
-    expect(designEditorTour.find((s) => s.id === "fix-component")!.target).toBe("canvas");
+  it("picker-tour/fix-edge steps target canvas so the real gesture (place/connect, click the edge) stays clickable", () => {
+    expect(designEditorTour.find((s) => s.id === "picker-tour")!.target).toBe("canvas");
     expect(designEditorTour.find((s) => s.id === "fix-edge")!.target).toBe("canvas");
   });
 

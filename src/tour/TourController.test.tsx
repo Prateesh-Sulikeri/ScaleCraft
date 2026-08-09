@@ -88,6 +88,24 @@ function Harness({
         add sql-database
       </button>
       <button
+        data-testid="connect-sql-database"
+        onClick={() =>
+          storeApi.setState((s) => ({
+            edges: [
+              ...s.edges,
+              {
+                id: "sql-db-added-edge",
+                source: "sql-db-added",
+                target: "bb-0-1-app-server",
+                data: { kind: "request-flow" as const },
+              },
+            ],
+          }))
+        }
+      >
+        connect sql-database
+      </button>
+      <button
         data-testid="fix-edge-kind"
         onClick={() =>
           storeApi.setState((s) => ({
@@ -162,13 +180,13 @@ describe("TourController", () => {
 
   it("resumes a run in progress at the step it left off on, rather than restarting it", () => {
     // Punch list #9: the canvas persists its edits across a reload (Dexie
-    // autosave) but the tour restarted at 1 / 21, so the two told different
+    // autosave) but the tour restarted at 1 / 20, so the two told different
     // stories about where the learner was.
     localStorage.setItem(STATE_KEY, JSON.stringify({ status: "running", stepIndex: 3 }));
     renderHarness({ hasLoadedInitialState: true });
 
     expect(screen.getByText("Save, docs, and shortcuts")).toBeInTheDocument();
-    expect(screen.getByText("4 / 21")).toBeInTheDocument();
+    expect(screen.getByText("4 / 20")).toBeInTheDocument();
   });
 
   it("clamps a persisted step index that no longer exists", () => {
@@ -196,8 +214,8 @@ describe("TourController", () => {
     fireEvent.keyDown(window, { key: "Escape" });
 
     expect(storedState()).toEqual({ status: "paused", stepIndex: 2 });
-    const pill = screen.getByRole("button", { name: "Resume guided tour at step 3 of 21" });
-    expect(pill).toHaveTextContent("Resume tour (3/21)");
+    const pill = screen.getByRole("button", { name: "Resume guided tour at step 3 of 20" });
+    expect(pill).toHaveTextContent("Resume tour (3/20)");
 
     fireEvent.click(pill);
     expect(screen.getByText("Try it: select a component")).toBeInTheDocument();
@@ -210,11 +228,11 @@ describe("TourController", () => {
     const { unmount } = renderHarness({ hasLoadedInitialState: true });
 
     fireEvent.click(screen.getByRole("button", { name: /Resume guided tour/ }));
-    expect(screen.getByText("6 / 21")).toBeInTheDocument();
+    expect(screen.getByText("6 / 20")).toBeInTheDocument();
     unmount();
 
     renderHarness({ hasLoadedInitialState: true });
-    expect(screen.getByText("6 / 21")).toBeInTheDocument();
+    expect(screen.getByText("6 / 20")).toBeInTheDocument();
   });
 
   it("Skip tour ends the run and swaps the overlay for a replay pill", () => {
@@ -233,7 +251,7 @@ describe("TourController", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Replay guided tour" }));
     expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument();
-    expect(screen.getByText("1 / 21")).toBeInTheDocument();
+    expect(screen.getByText("1 / 20")).toBeInTheDocument();
   });
 
   describe("Start over (only offered when the parent supplies a reset)", () => {
@@ -257,7 +275,7 @@ describe("TourController", () => {
       fireEvent.click(confirm);
       expect(onResetToStarter).toHaveBeenCalledTimes(1);
       expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument();
-      expect(screen.getByText("1 / 21")).toBeInTheDocument();
+      expect(screen.getByText("1 / 20")).toBeInTheDocument();
       expect(storedState()).toEqual({ status: "running", stepIndex: 0 });
     });
 
@@ -367,7 +385,9 @@ describe("TourController", () => {
     settle(); // -> open-picker
     act(() => fireEvent.click(screen.getByTestId("open-picker")));
     settle(); // -> picker-tour
-    next(); // -> question-pane
+    act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
+    act(() => fireEvent.click(screen.getByTestId("connect-sql-database")));
+    settle(); // -> question-pane
     next(); // -> hints
     next(); // -> validate-intro
     next(); // -> validate-click
@@ -383,7 +403,7 @@ describe("TourController", () => {
     expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
 
     next();
-    expect(screen.getByText("Fix it: add the missing component")).toBeInTheDocument();
+    expect(screen.getByText("Fix it: correct the connection")).toBeInTheDocument();
   });
 
   it("Back returns to the previous step, and a satisfied gesture step doesn't immediately bounce forward again", () => {
@@ -413,14 +433,14 @@ describe("TourController", () => {
     expect(screen.getByTestId("picker-open")).toHaveTextContent("false");
   });
 
-  it("lets the picker stay open on fix-component, the step that tells the learner to use it", () => {
-    // Punch list #1, the blocker: the force-close was keyed on a hardcoded
-    // set of two step ids that didn't include fix-component, so the picker
-    // was slammed shut in the same tick it opened, the step's predicate could
-    // never be satisfied, it had no Next button, and the nine steps after it
-    // were unreachable in a real session.
+  it("lets the picker stay open on picker-tour, the step that tells the learner to use it", () => {
+    // Punch list #1, the blocker: the force-close used to be keyed on a
+    // hardcoded set of step ids that didn't include the step telling the
+    // learner to use the picker, so it was slammed shut in the same tick it
+    // opened, the step's predicate could never be satisfied, it had no Next
+    // button, and every step after it was unreachable in a real session.
     vi.useFakeTimers();
-    const { rerender } = renderHarness({ hasLoadedInitialState: true, lastValidationErrorCount: null });
+    renderHarness({ hasLoadedInitialState: true });
 
     next(); // welcome -> canvas-intro
     next(); // -> select-a-node
@@ -431,63 +451,17 @@ describe("TourController", () => {
     settle(); // -> open-picker
     act(() => fireEvent.click(screen.getByTestId("open-picker")));
     settle(); // -> picker-tour
-    next(); // -> question-pane
-    next(); // -> hints
-    next(); // -> validate-intro
-    next(); // -> validate-click
-
-    rerender(
-      <CanvasStoreProvider>
-        <Harness hasLoadedInitialState lastValidationErrorCount={2} />
-      </CanvasStoreProvider>,
-    );
-    // validate-click has noAutoAdvance (it's a "read the dropdown" step, not
-    // a gesture-only one) — a satisfied predicate shows a normal Next
-    // button instead of auto-advancing, so this needs a real click.
-    next(); // -> fix-component
-    expect(screen.getByText("Fix it: add the missing component")).toBeInTheDocument();
-
-    act(() => fireEvent.click(screen.getByTestId("open-picker")));
+    expect(screen.getByText("Try it: add the SQL Database")).toBeInTheDocument();
     expect(screen.getByTestId("picker-open")).toHaveTextContent("true");
 
-    // And the step it gates is then genuinely completable.
+    // And the step it gates is then genuinely completable — placement alone
+    // isn't enough, the predicate also requires the connection.
     act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
     settle();
-    expect(screen.getByText("Fix it: correct the connection")).toBeInTheDocument();
-  });
-
-  it("narrows the component picker while fix-component is active, and restores the original list once past it", () => {
-    vi.useFakeTimers();
-    const { rerender } = renderHarness({ hasLoadedInitialState: true, lastValidationErrorCount: null });
-    act(() => fireEvent.click(screen.getByTestId("seed-available-ids")));
-    const originalIds = ["client", "app-server", "sql-database", "cache"];
-
-    next();
-    next();
-    act(() => fireEvent.click(screen.getByTestId("select-node")));
+    expect(screen.getByText("Try it: add the SQL Database")).toBeInTheDocument();
+    act(() => fireEvent.click(screen.getByTestId("connect-sql-database")));
     settle();
-    next();
-    act(() => fireEvent.click(screen.getByTestId("make-undoable")));
-    settle();
-    act(() => fireEvent.click(screen.getByTestId("open-picker")));
-    settle();
-    next();
-    next();
-    next();
-    next(); // now on validate-click
-
-    rerender(
-      <CanvasStoreProvider>
-        <Harness hasLoadedInitialState lastValidationErrorCount={2} />
-      </CanvasStoreProvider>,
-    );
-    next(); // validate-click has noAutoAdvance -> fix-component
-    expect(screen.getByTestId("available-ids")).toHaveTextContent(JSON.stringify(["sql-database"]));
-
-    act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
-    settle(); // -> fix-edge
-    expect(screen.getByText("Fix it: correct the connection")).toBeInTheDocument();
-    expect(screen.getByTestId("available-ids")).toHaveTextContent(JSON.stringify(originalIds));
+    expect(screen.getByText("The lesson sidebar")).toBeInTheDocument();
   });
 
   it("walks through the full remediation flow end to end and completes on the final step", () => {
@@ -503,7 +477,9 @@ describe("TourController", () => {
     settle(); // -> open-picker
     act(() => fireEvent.click(screen.getByTestId("open-picker")));
     settle(); // -> picker-tour
-    next(); // picker-tour -> question-pane
+    act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
+    act(() => fireEvent.click(screen.getByTestId("connect-sql-database")));
+    settle(); // picker-tour -> question-pane
     next(); // question-pane -> hints
     next(); // hints -> validate-intro
     next(); // validate-intro -> validate-click
@@ -517,11 +493,9 @@ describe("TourController", () => {
         <Harness hasLoadedInitialState lastValidationErrorCount={2} />
       </CanvasStoreProvider>,
     );
-    next(); // validate-click has noAutoAdvance -> fix-component
-    expect(screen.getByText("Fix it: add the missing component")).toBeInTheDocument();
+    next(); // validate-click has noAutoAdvance -> fix-edge
+    expect(screen.getByText("Fix it: correct the connection")).toBeInTheDocument();
 
-    act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
-    settle(); // -> fix-edge
     act(() => fireEvent.click(screen.getByTestId("fix-edge-kind")));
     settle(); // -> revalidate-clean
     expect(screen.getByText("Try it: confirm the fix")).toBeInTheDocument();

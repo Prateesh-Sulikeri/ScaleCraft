@@ -25,7 +25,7 @@ export const designEditorTour: TourStep[] = [
     title: "Welcome to the Design Editor",
     body:
       "This is where you build architectures. This chapter's starter design has a couple of real problems in it - you'll find and fix them together with this tour.\n\n" +
-      "21 steps, about five minutes. Press Esc to pause and pick up where you left off, or skip it entirely - the buttons at the bottom of the lesson sidebar bring it back either way.",
+      "20 steps, about five minutes. Press Esc to pause and pick up where you left off, or skip it entirely - the buttons at the bottom of the lesson sidebar bring it back either way.",
   },
   {
     id: "canvas-intro",
@@ -73,11 +73,20 @@ export const designEditorTour: TourStep[] = [
   },
   {
     id: "picker-tour",
-    target: "component-picker",
-    title: "The component picker",
-    body: "Search, or browse by category. Choosing a component here doesn't drop it immediately - it arms it, and your next click on the canvas decides exactly where it lands. You'll do that for real in a moment.",
-    placement: "right",
+    // The real gestures (choose in the picker, drop on the canvas, draw an
+    // edge) span both surfaces; canvas owns the interactive hole since
+    // that's where the waitFor-satisfying actions land, same reasoning as
+    // undo-redo's target/popoverAnchor split below. popoverAnchor still
+    // points the card at the picker itself.
+    target: "canvas",
+    popoverAnchor: "component-picker",
     allowsComponentPicker: true,
+    title: "Try it: add the SQL Database",
+    body:
+      "Search the component picker, or browse by category. Choosing something here doesn't drop it immediately - it arms it, and your next click on the canvas decides exactly where it lands. " +
+      "This chapter needs a SQL Database - find it, place it on the canvas, then draw an edge connecting it to the Application Server.",
+    placement: "right",
+    waitFor: (ctx) => ctx.presentComponentIds.includes("sql-database") && ctx.connectedComponentIds.includes("sql-database"),
   },
   {
     id: "question-pane",
@@ -120,18 +129,6 @@ export const designEditorTour: TourStep[] = [
     // away regardless of how much there is to read reads as the step being
     // skipped the instant Validate is clicked.
     noAutoAdvance: true,
-  },
-  {
-    id: "fix-component",
-    target: "canvas",
-    // Without this the picker is force-closed the instant it opens, which
-    // made this step - and everything after it - impossible to complete.
-    allowsComponentPicker: true,
-    title: "Fix it: add the missing component",
-    body: "Validate flagged a required component that isn't here yet. Open the component picker - it's narrowed down to exactly what's missing - choose it, then click the canvas to drop it. Connect it to the Application Server.",
-    placement: "bottom",
-    waitFor: (ctx) => ctx.presentComponentIds.includes("sql-database"),
-    narrowAvailableComponentIds: ["sql-database"],
   },
   {
     id: "fix-edge",

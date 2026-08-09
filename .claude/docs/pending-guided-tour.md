@@ -681,3 +681,40 @@ exactly those two ids and that both are ones spotlighting
 `validation-details`, so a future step with the same "reveals a dropdown to
 read" shape doesn't silently miss the same fix. Verified: full pipeline
 green (`typecheck`, `lint`, 1590 tests, `build`).
+
+## Flow change, same real-browser session (2026-08-09): move component placement earlier
+
+User-requested reorder, confirmed via AskUserQuestion before touching code
+(two structurally different readings of "step 13 stays the edge change"
+were on the table - picked "place and connect both merge into picker-tour",
+not "split placement into its own new step").
+
+- **`picker-tour` (step 7) now requires placing AND connecting SQL
+  Database**, not just browsing the picker. `waitFor: (ctx) =>
+  presentComponentIds.includes("sql-database") &&
+  connectedComponentIds.includes("sql-database")`. `narrowAvailableComponentIds`
+  deliberately NOT set - the step's whole point is demonstrating search/
+  browse, which a picker narrowed to one item can't teach.
+- **The old `fix-component` step (12) is deleted**, not repurposed - its
+  entire job moved to picker-tour. `fix-edge` (was 13, now 12) and every
+  step after it are unchanged in content, just shifted down by one
+  position. Total step count 21 -> 20 (welcome's copy and every
+  `stepIndex/total` test string updated).
+- **New `TourContext.connectedComponentIds` field** (`types.ts`,
+  `TourController.tsx`) - componentIds with at least one edge touching
+  either endpoint. Generically useful (not scenario-specific): the old
+  `fix-component` step's `waitFor` only ever checked placement, never the
+  connection its own body text told the learner to make - this closes that
+  gap rather than carrying it forward into picker-tour.
+- **Deleted, not adapted**: the integration test for
+  `narrowAvailableComponentIds` (`TourController.test.tsx`), since no
+  step in this tour sets that field anymore now that fix-component is
+  gone. The mechanism itself is untouched in `TourController.tsx` and
+  still available to a future step - it's just currently dormant. Worth
+  knowing before assuming it's dead code.
+- **Not touched, flagged instead**: `content/chapters/index.ts`'s
+  `problemStatement` and `specs/bb-0-1-welcome.spec.md` both still describe
+  the old fix-component/fix-edge split. Chapter-author's domain, not
+  engineering's - left alone.
+
+Verified: full pipeline green (`typecheck`, `lint`, 1589 tests, `build`).

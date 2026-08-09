@@ -31,6 +31,11 @@ export type TourContext = {
    * specific component to have been added, without needing a bespoke
    * boolean threaded in for every possible fix. */
   presentComponentIds: string[];
+  /** componentIds with at least one edge touching them, either endpoint —
+   * lets a step wait for "this component is actually wired in," not just
+   * placed on the canvas. A component can be present without being
+   * connected (dropped, not yet joined to anything). */
+  connectedComponentIds: string[];
   /** Kind of a specific starter-graph edge, keyed by its authored id (see
    * content/chapters/index.ts's bb-0-1-welcome starterGraph) — `undefined`
    * if that edge no longer exists (deleted rather than fixed in place). */

@@ -56,6 +56,7 @@ const emptyCtx: TourContext = {
   isComponentPickerOpen: false,
   selectedNodeId: null,
   presentComponentIds: [],
+  connectedComponentIds: [],
   edgeKindById: {},
   lastValidationErrorCount: null,
   hasSubmittedPassing: false,
@@ -72,6 +73,9 @@ const FIXTURES: Record<string, TourContext> = {
     isComponentPickerOpen: true,
     selectedNodeId: "n1",
     presentComponentIds: ["client", "app-server", "sql-database"],
+    // Placed but not yet wired to anything — the realistic "mid-fix" state
+    // for picker-tour, whose predicate now checks both.
+    connectedComponentIds: [],
     edgeKindById: { "bb-0-1-edge-client-app": "async" },
     lastValidationErrorCount: 1,
     hasSubmittedPassing: false,
@@ -81,6 +85,7 @@ const FIXTURES: Record<string, TourContext> = {
     isComponentPickerOpen: false,
     selectedNodeId: null,
     presentComponentIds: ["client", "app-server", "sql-database"],
+    connectedComponentIds: ["sql-database"],
     edgeKindById: { "bb-0-1-edge-client-app": "request-flow" },
     lastValidationErrorCount: 0,
     hasSubmittedPassing: true,

@@ -122,6 +122,16 @@ export function TourController({
     () => nodes.filter((n): n is ComponentNodeType => n.type === "component").map((n) => n.data.componentId),
     [nodes],
   );
+  const connectedComponentIds = useMemo(() => {
+    const connectedNodeIds = new Set<string>();
+    for (const e of edges) {
+      connectedNodeIds.add(e.source);
+      connectedNodeIds.add(e.target);
+    }
+    return nodes
+      .filter((n): n is ComponentNodeType => n.type === "component" && connectedNodeIds.has(n.id))
+      .map((n) => n.data.componentId);
+  }, [nodes, edges]);
   const edgeKindById = useMemo(() => {
     const map: Record<string, string | undefined> = {};
     for (const e of edges) map[e.id] = e.data?.kind;
@@ -134,11 +144,21 @@ export function TourController({
       isComponentPickerOpen,
       selectedNodeId,
       presentComponentIds,
+      connectedComponentIds,
       edgeKindById,
       lastValidationErrorCount,
       hasSubmittedPassing,
     }),
-    [canUndo, isComponentPickerOpen, selectedNodeId, presentComponentIds, edgeKindById, lastValidationErrorCount, hasSubmittedPassing],
+    [
+      canUndo,
+      isComponentPickerOpen,
+      selectedNodeId,
+      presentComponentIds,
+      connectedComponentIds,
+      edgeKindById,
+      lastValidationErrorCount,
+      hasSubmittedPassing,
+    ],
   );
 
   const step = steps[stepIndex];
