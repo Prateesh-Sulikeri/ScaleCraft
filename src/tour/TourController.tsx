@@ -6,6 +6,7 @@ import { useCanvasStore } from "@/canvas/store";
 import type { ComponentNodeType } from "@/canvas/types";
 import { TourOverlay, type TourInteractionState } from "./TourOverlay";
 import { designEditorTour } from "./design-editor-tour";
+import { logTourEvent } from "./tour-log";
 import { useTourState } from "./tour-state";
 import type { TourContext } from "./types";
 
@@ -141,7 +142,35 @@ export function TourController({
   );
 
   const step = steps[stepIndex];
-  const stepSatisfied = !step.waitFor || step.waitFor(ctx);
+
+  // A predicate keyed to something that can vanish (fix-edge's hardcoded
+  // starter-graph edge id, pre-airbag) must never soft-lock the step for
+  // every future user. A throw is treated as manually advanceable — same
+  // render path as a step with no waitFor at all.
+  let stepSatisfied: boolean;
+  let predicateThrewMessage: string | null = null;
+  if (!step.waitFor) {
+    stepSatisfied = true;
+  } else {
+    try {
+      stepSatisfied = step.waitFor(ctx);
+    } catch (err) {
+      stepSatisfied = true;
+      predicateThrewMessage = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  // Logging (not the satisfied/throw computation above) is pushed into an
+  // effect and deduped per step id via a ref — react-hooks/refs disallows
+  // reading or writing a ref during render, so the dedupe check itself has
+  // to live here rather than inline above.
+  const loggedThrowRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (predicateThrewMessage === null) return;
+    if (loggedThrowRef.current === step.id) return;
+    loggedThrowRef.current = step.id;
+    logTourEvent(tourId, { type: "predicate-threw", stepId: step.id, message: predicateThrewMessage });
+  }, [tourId, step.id, predicateThrewMessage]);
 
   // Whether this step's gesture was ALREADY done the moment the step became
   // active — a resumed run, a Back navigation, or a learner who happened to
@@ -328,6 +357,7 @@ export function TourController({
 
   return (
     <TourOverlay
+      tourId={tourId}
       step={step}
       stepIndex={stepIndex}
       stepCount={steps.length}

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { TourOverlay, computePopoverPosition, spotlightHole } from "./TourOverlay";
+import { dumpTourLog, clearTourLog } from "./tour-log";
 import type { TourStep } from "./types";
 
 function step(overrides: Partial<TourStep> = {}): TourStep {
@@ -35,6 +36,7 @@ function stubRect(el: Element, rect: { top: number; left: number; width: number;
 
 function baseProps() {
   return {
+    tourId: "design-editor",
     stepIndex: 0,
     stepCount: 11,
     onNext: vi.fn(),
@@ -48,6 +50,7 @@ function baseProps() {
 afterEach(() => {
   cleanup();
   document.body.innerHTML = "";
+  clearTourLog();
 });
 
 describe("TourOverlay", () => {
@@ -233,6 +236,112 @@ describe("TourOverlay", () => {
     // centre of a 1024x768 viewport.
     expect(card.style.left).toBe(`${1024 - 16}px`);
     expect(card.style.top).toBe(`${768 - 16}px`);
+  });
+
+  describe("resolution-failure airbag (waiting step, target never mounts)", () => {
+    it("does not offer a manual Next while the target still has time to mount", () => {
+      vi.useFakeTimers();
+      try {
+        render(
+          <TourOverlay
+            {...baseProps()}
+            step={step({ target: "component-picker", waitFor: () => false })}
+            interactionState="waiting"
+          />,
+        );
+        act(() => {
+          vi.advanceTimersByTime(1000);
+        });
+        expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("falls back to a manual Next once a waiting step's target has never resolved past the grace window", () => {
+      vi.useFakeTimers();
+      try {
+        const props = baseProps();
+        render(
+          <TourOverlay
+            {...props}
+            step={step({ target: "component-picker", waitFor: () => false })}
+            interactionState="waiting"
+          />,
+        );
+
+        act(() => {
+          vi.advanceTimersByTime(2500);
+        });
+
+        expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
+        expect(screen.getByText(/couldn't find what this step is pointing at/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: "Next" }));
+        expect(props.onNext).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("cancels the fallback once the target actually resolves before the window elapses", () => {
+      vi.useFakeTimers();
+      try {
+        render(
+          <TourOverlay
+            {...baseProps()}
+            step={step({ target: "component-picker", waitFor: () => false })}
+            interactionState="waiting"
+          />,
+        );
+
+        act(() => {
+          vi.advanceTimersByTime(1000);
+        });
+
+        // Appended, not assigned to body.innerHTML — overwriting it would
+        // blow away the TourOverlay portal already rendered into document.body.
+        document.body.insertAdjacentHTML("beforeend", '<div data-tour="component-picker">Picker</div>');
+        stubRect(document.querySelector('[data-tour="component-picker"]')!, { top: 10, left: 10, width: 100, height: 100 });
+        act(() => {
+          vi.advanceTimersByTime(1600); // total 2600ms — past the grace window, but the target mounted mid-way
+        });
+
+        expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+        expect(screen.getByText(/try it to continue/i)).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("never fires for a step with no declared target — welcome/wrap-up cards have nothing to resolve", () => {
+      vi.useFakeTimers();
+      try {
+        render(<TourOverlay {...baseProps()} step={step({ target: null })} interactionState="none" />);
+        act(() => {
+          vi.advanceTimersByTime(5000);
+        });
+        expect(dumpTourLog().some((e) => e.type === "resolution-failed")).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("logs a resolution-failed event to the tour ring buffer once the grace window elapses", () => {
+      vi.useFakeTimers();
+      try {
+        render(<TourOverlay {...baseProps()} step={step({ target: "component-picker" })} />);
+
+        act(() => {
+          vi.advanceTimersByTime(2500);
+        });
+
+        const entries = dumpTourLog().filter((e) => e.type === "resolution-failed");
+        expect(entries).toHaveLength(1);
+        expect(entries[0]).toMatchObject({ tourId: "design-editor", stepId: "step-1", target: "component-picker" });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   it("anchors the card to a popoverAnchor that appears mid-step, rather than staying docked over it", () => {

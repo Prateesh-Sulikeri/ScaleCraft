@@ -34,6 +34,21 @@ function Harness({
   const isComponentPickerOpen = useCanvasStore((s) => s.componentPicker);
   return (
     <>
+      {/* Stands in for ChapterWorkspace's real `data-tour="canvas"` div — the
+       * airbag's resolution-failure fallback (TourOverlay.tsx) fires after
+       * ~2.5s when a step's target genuinely never resolves, and without
+       * this the harness itself looks like exactly that failure mode to any
+       * test that advances timers past that window. jsdom has no layout
+       * engine, so getBoundingClientRect is zeroed out (and thus "invisible"
+       * to TourOverlay's visibleRect) unless stubbed to a real size. */}
+      <div
+        data-tour="canvas"
+        ref={(el) => {
+          if (!el) return;
+          el.getBoundingClientRect = () =>
+            ({ top: 0, left: 0, width: 800, height: 600, right: 800, bottom: 600, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+        }}
+      />
       <span data-testid="available-ids">{JSON.stringify(availableComponentIds)}</span>
       <span data-testid="picker-open">{String(isComponentPickerOpen)}</span>
       <button

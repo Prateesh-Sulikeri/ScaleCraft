@@ -545,3 +545,68 @@ tour position). Before building "hard-gate-derived completion," pin down
 whether it's about letting the tour register itself as done when a learner
 solves things out of script order, or something else - the mechanism list
 doesn't fully disambiguate it, and it only matters for slice 3.
+
+## Slice 1 (2026-08-09): `feature/tour-airbag` - done
+
+Branched from `release/v4.1.0-part-1-curriculum`. Closes "stuck on a live
+bug" per the airbag invariant above. All four planned pieces landed:
+
+- **Safe predicate evaluator** (`TourController.tsx`). `step.waitFor(ctx)` is
+  now called inside a `try`/`catch`; a throw is treated as `stepSatisfied =
+  true`, which renders exactly like a step with no `waitFor` at all (a
+  normal Next button, no auto-advance, since `preSatisfied` is derived from
+  the same value). One typo in one step's closure can no longer soft-lock
+  the tour for every future user. Logging the throw has to happen in a
+  `useEffect`, not inline in the `try`/`catch` - `react-hooks/refs` disallows
+  reading or writing a ref during render, so the dedupe-per-step-id check
+  (via a ref) had to move out of the render body.
+- **Resolution-failure fallback** (`TourOverlay.tsx`). A waiting step whose
+  declared target hasn't resolved after `RESOLUTION_GRACE_MS` (2.5s - long
+  enough to absorb a legitimate mount race, short enough not to strand a
+  learner on a genuinely broken selector) gets a manual Next button and an
+  honest one-line note ("Couldn't find what this step is pointing at - you
+  can continue manually."), reusing `text-state-error` rather than adding a
+  token. The ambient rendering itself (no dimming, no ring) was already
+  automatic whenever `rect` is null - only the interaction affordance was
+  missing. The "reset to not-timed-out" side is handled with the
+  adjust-state-during-render pattern (same one `TourController`'s `entry`/
+  `preSatisfied` already uses), not a second effect - `react-hooks/set-
+  state-in-effect` flags an unconditional `setState` as the first statement
+  of an effect body, and the reset needs to fire the instant `rect` goes
+  non-null, not on a delay.
+- **Breadcrumb ring buffer** (`tour-log.ts`, new file). Capped-at-200
+  localStorage ring buffer, `logTourEvent(tourId, event)` /
+  `dumpTourLog()` / `clearTourLog()`, plus `window.__scaleTour.dump()` for
+  dev inspection. The `TourLogEvent` union carries all eight event names the
+  addendum names (`step-entered`, `advanced-via`, `predicate-threw`,
+  `resolution-failed`, `watchdog-fired`, `requires-broke`, `reconciled-via`,
+  `tour-exited-via`), but only `predicate-threw` and `resolution-failed`
+  have call sites yet - the rest are slice 2/3's to wire up. No backend,
+  per the addendum's "local signal, no backend" section.
+- **Tour-doctor static test** (`tour-doctor.test.ts`, new file). Greps every
+  `data-tour="..."` literal actually present in `src/` (excluding
+  `src/tour/` itself, which only ever contains the interpolated
+  `` `data-tour="${target}"` `` template, not a literal one) and asserts
+  every registered tour's `target`/`spotlightAlso`/`popoverAnchor` resolves
+  to one of them - a stronger check than the pre-existing
+  `design-editor-tour.test.ts` assertion, which only validated against the
+  `TourStepTarget` type union, not what's actually still wired into JSX
+  anywhere. Also runs every `waitFor` against three synthetic `TourContext`
+  fixtures (empty/mid-fix/solved) confirming none throws and each is
+  satisfiable by at least one - generalizes over future steps/tours instead
+  of relying on someone remembering to hand-write a predicate test per step.
+
+**Not touched, correctly**: `requires`, pause-on-surface-loss, modal hotkey
+scoping, the watchdog, hard-gate completion, multi-tab adoption - all slice
+2/3. `fix-edge`'s hardcoded-edge-id predicate itself is still unconverted;
+slice 1 makes it fail safely (manual Next, logged) rather than fixing the
+underlying fragility, which is `requires`' job in slice 3.
+
+**Verification**: full pipeline green (`typecheck`, `lint`, 1587 tests
+across 187 files including 5 new/changed in `src/tour/`, `build`). No
+`DESIGN.md` change - no new token or component, and the one new bit of UI
+copy reuses the existing `text-state-error` token. Manual click-through not
+yet done this pass.
+
+**Next**: `feature/tour-watchdog` (slice 2), branched from
+`release/v4.1.0-part-1-curriculum` same as this one.

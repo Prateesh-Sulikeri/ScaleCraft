@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { logTourEvent } from "./tour-log";
 import type { TourStep, TourStepTarget } from "./types";
 
 type Rect = { top: number; left: number; width: number; height: number };
@@ -206,6 +207,14 @@ const VIEWPORT_MARGIN = 16;
  */
 const BROAD_TARGET_AREA_RATIO = 0.45;
 
+/** How long a declared target gets to mount before a waiting step falls back
+ * to a manual Next button. Long enough to absorb a legitimate mount race
+ * (the violations dropdown only exists once Validate is clicked); short
+ * enough that a genuinely broken selector — renamed in an unrelated future
+ * refactor, say — doesn't strand the learner on an unadvanceable step for
+ * the rest of the session. See pending-guided-tour.md's airbag invariant. */
+const RESOLUTION_GRACE_MS = 2500;
+
 /** Pads a measured rect out into the spotlight hole, then holds it inside
  * the viewport so the ring around it is a closed rectangle rather than one
  * or two stray lines at the screen edge. */
@@ -358,6 +367,7 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type TourOverlayProps = {
+  tourId: string;
   step: TourStep;
   stepIndex: number;
   stepCount: number;
@@ -389,6 +399,7 @@ type TourOverlayProps = {
  * TourController happens to be mounted in the tree.
  */
 export function TourOverlay({
+  tourId,
   step,
   stepIndex,
   stepCount,
@@ -403,6 +414,36 @@ export function TourOverlay({
     [step.target, step.spotlightAlso],
   );
   const rect = useTrackedUnionRect(spotlightTargets);
+
+  // Airbag: a declared target that never mounts (a renamed selector, a
+  // deleted anchor) must not strand a waiting step forever.
+  //
+  // The "reset to false" side is handled during render (the same adjust-
+  // state-during-render pattern TourController.tsx's `entry`/`preSatisfied`
+  // uses), not in the effect below — react-hooks/set-state-in-effect flags
+  // an unconditional setState as the first statement of an effect body.
+  // Keying on whether the target is currently resolved (not just the step
+  // id) means this also cancels a fallback that already fired if the target
+  // reappears later in the same step, not only on a step change.
+  const resolvedKey = `${step.id}:${rect !== null}`;
+  const [timedOutFor, setTimedOutFor] = useState<{ key: string; timedOut: boolean }>({
+    key: resolvedKey,
+    timedOut: false,
+  });
+  if (timedOutFor.key !== resolvedKey) {
+    setTimedOutFor({ key: resolvedKey, timedOut: false });
+  }
+  const resolutionTimedOut = timedOutFor.key === resolvedKey && timedOutFor.timedOut;
+
+  useEffect(() => {
+    if (step.target === null || rect !== null) return;
+    const timeout = setTimeout(() => {
+      logTourEvent(tourId, { type: "resolution-failed", stepId: step.id, target: step.target as string });
+      setTimedOutFor((prev) => (prev.key === resolvedKey ? { ...prev, timedOut: true } : prev));
+    }, RESOLUTION_GRACE_MS);
+    return () => clearTimeout(timeout);
+  }, [tourId, step.id, step.target, rect, resolvedKey]);
+  const showsManualOverride = resolutionTimedOut && interactionState === "waiting";
   // Only tracked separately when it actually differs — sharing the same rect
   // reference (not just equal value) is what keeps the popover-position
   // layout effect below from re-running on every render.
@@ -595,7 +636,7 @@ export function TourOverlay({
                 Back
               </button>
             )}
-            {interactionState === "none" ? (
+            {interactionState === "none" || showsManualOverride ? (
               <button
                 onClick={onNext}
                 className="rounded-md border border-border bg-background px-3 py-1 text-xs font-medium hover:bg-border"
@@ -609,6 +650,11 @@ export function TourOverlay({
             )}
           </div>
         </div>
+        {showsManualOverride && (
+          <p role="status" className="mt-2 text-[11px] text-state-error">
+            Couldn&apos;t find what this step is pointing at - you can continue manually.
+          </p>
+        )}
         <p className="mt-2 text-[11px] text-foreground/40">Esc pauses - resume from the pill anytime.</p>
       </div>
     </div>,
