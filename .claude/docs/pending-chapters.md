@@ -1089,6 +1089,10 @@ doc edit or a build decision.
    will teach a different five unless one side is amended.
    **Blocks:** nothing today. Fix before Wave 2 authors 1.3, in a doc-only commit.
    Raised by the Opus pass on 0.2.
+   **Resolved 2026-08-09, doc-only.** §14's throughput list is canonical: 0.2's
+   shipped lesson and quiz bank commit to it in prose, and 1.2 never re-lists the
+   five, so no shipped content moves. §10.1 step 2 and §14's 1.3 row amended to
+   match; consistency stays a deferred concept (3.22), not one of the five.
 
 5. **§12's nugget devices are absent from both authored chapters, undeclared.**
    §12 specifies Interview nuggets (1-2/chapter, Acts 2-3), Production nuggets
