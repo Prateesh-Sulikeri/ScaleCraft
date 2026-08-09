@@ -80,11 +80,11 @@ export function ChapterSidebar({
 
   return (
     <div data-tour="question-pane" className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 border-b border-border px-3 py-2">
+      <div className="shrink-0 border-t border-b border-border px-3 py-2">
         <HeldTransitionLink
           href={`/${courseId}/${chapterSlug}/lesson`}
           label="Returning to the lesson…"
-          className="flex items-center gap-1 text-xs text-foreground/70 hover:text-foreground"
+          className="inline-flex items-center gap-1 text-xs text-foreground/70 hover:text-foreground"
         >
           <ChevronLeft size={12} aria-hidden="true" />
           Back to lesson

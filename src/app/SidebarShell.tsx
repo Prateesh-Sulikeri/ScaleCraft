@@ -28,7 +28,7 @@ export function SidebarShell({ children }: SidebarShellProps) {
         className="flex shrink-0 flex-col overflow-hidden border-r border-border transition-[width] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
       >
         <div
-          className={`flex shrink-0 items-center px-3 pt-3 ${
+          className={`flex shrink-0 items-center px-3 pt-3 pb-3 ${
             collapsed ? "flex-col gap-3" : "justify-between"
           }`}
         >

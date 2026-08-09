@@ -37,15 +37,18 @@ checkpoints) + 32 Real World Extraction projects = 79 manifest rows.
 | 0.2 What is System Design? | **Authored (Opus proofread pass done)** | 2026-08-06 | `feature/content-0-1-welcome` (commit `d290339`) |
 | 0.3 Interview Design vs. Production Engineering | **Authored + Opus pass (lesson scope)** | 2026-08-06 | `feature/content-0-1-welcome` |
 | 0.4 The System Design Lifecycle | **Authored + Opus pass (lesson scope)** | 2026-08-06 | `feature/content-0-1-welcome` |
-| 1.6 Drawing the First Architecture | Not started (moved to Wave 2, see `pending-content.md`) | - | - |
+| 1.1 Understanding the Problem | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-08 | `feature/content-1-1-understanding-the-problem` |
+| 1.2 Functional Requirements | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-08 | `feature/content-1-1-understanding-the-problem` |
+| 1.6 Drawing the First Architecture | Not started (Wave 2, see `pending-content.md`) | - | - |
 | 3.4 Load Balancer | Placeholder (`bb-dummy-1`), moved to Wave 2 | - | - |
 | RWE T1 Bitly | Placeholder (`rwe-dummy-1`), moved to Wave 2 | - | - |
 
 Everything else in the 79 rows is unauthored (`chapterDefinitionId: null`).
 
-**Wave 1 progress: 4 of 4 authored, all four through an Opus pass** (Wave 1
-redefined 2026-08-06 as Part 0 only - 0.1-0.4; 1.6/3.4/RWE Bitly moved to
-Wave 2). Wave definitions live in `pending-content.md`.
+**Wave 1 progress: 4 of 4 authored, all four through an Opus pass, merged into
+`develop`/`main` (verified 2026-08-08 via PR #87/#88).** Wave 2 (Part 1)
+started 2026-08-08 with 1.1; 1.2 followed the same day, both Sonnet drafts
+with no Opus pass yet.
 
 ---
 
@@ -652,6 +655,394 @@ vocabulary seam is worth the same look 0.3's "breadth-first" note got.
 
 **`lessonVersion` bumped 1 -> 2** in `src/content/chapters/index.ts` with a
 revision comment, per the 0.2/0.3 convention.
+
+---
+
+## 1.1 Understanding the Problem
+
+- **Authored 2026-08-08 · not yet committed · branch
+  `feature/content-1-1-understanding-the-problem`** (cut from
+  `release/v4.1.0-part-1-curriculum`, itself cut from `develop`).
+- Definition id `bb-1-1-understanding-the-problem` · manifest slug
+  `1-1-understanding-the-problem`
+- Type: Process · foundational · 20 min (Reader + knowledge check, no build -
+  see below) · prerequisite: 0.4
+- **Lesson length: 1063 words**, against 0.4's 1085-word pre-pass draft for a
+  15-minute estimate - proportionately fuller for the 5 extra minutes, not
+  padded (§20.6's own test; no Opus pass has run yet to confirm this
+  independently).
+- Pipeline green at this revision: typecheck, lint, 1570 tests, build (one
+  pre-existing test, `src/content/chapters/index.test.ts`'s hardcoded chapter-
+  id list, updated to include the new id - not a new test, a registry-wiring
+  fixture every new chapter has to touch).
+
+**Wave-gate check before drafting (2026-08-08).** `pending-content.md`'s wave
+rule ("do not start a wave until the previous wave's chapters are merged")
+was checked and found satisfied only after a `git fetch`: local branches were
+stale and made it look unmet, but `origin/develop` and `origin/main` both
+already contain Wave 1 (`e3a4074`) via PR #87/#88. Confirmed with the user
+before proceeding. See the "Wave 1 progress" line above.
+
+**Branch cleanup, same session (user-directed).** All branches other than
+`main`/`develop` (`feature/content-0-1-welcome`, `feature/guided-tour-track-a`,
+`fix/tour-highlight-clipping`, `release/v4.0.0-guided-tour-and-curriculum`)
+were confirmed fully merged into `develop` and deleted, locally and on
+`origin`. `release/v4.1.0-part-1-curriculum` was then cut from `develop` for
+this wave, version bumped to `4.1.0-alpha` (`VERSION`, `package.json`) plus a
+new `.claude/docs/ScaleCraft_Future_Roadmap.md` on a separate
+`chore/version-4.1.0-and-roadmap` branch (also cut from the release branch,
+uncommitted to `feature/content-1-1-understanding-the-problem` - the two
+branches are independent, per repo convention, and both still need pushing
+and review).
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-1-understanding-the-problem.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-1-1-understanding-the-problem.md` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None - no canvas exercise, nothing to validate; justified in spec §8 |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3, first chapter to use `multi` as its primary/exercise-standing-in question |
+| 6 | Playtest pass | Spec §10 |
+
+**Judgment calls made:**
+
+- **The staged exercise CURRICULUM §14 specifies for 1.1 does not exist as
+  built UI and was degraded to a quiz question, per `pending-content.md`'s
+  own documented plan for Part 1 ("stages UI does not exist... a small non-
+  staged exercise where honest"), not an improvisation.** The row's exact
+  wording: "given a vague brief, pick the 4 highest-value clarifying
+  questions from 10; feedback explains what each answer would change."
+  Realized as quiz Q1: `multi` kind, 8 candidate questions (not 10) about a
+  URL shortener, 4 correct, every option carrying its own `explanationMd`.
+  Flagged in spec §5 and §12 as the first candidate to receive its originally
+  -specified staged exercise once the stages UI lands (which is itself one of
+  Wave 2's stated triggers in `pending-content.md`).
+- **Practical objective included, not carved out.** §5.2's Practical
+  exception is explicitly scoped to "pure Concept chapters" - 1.1 is Process
+  type, so the carve-out 0.2/0.3/0.4 used doesn't literally apply here. Wrote
+  a Practical objective honestly tied to the quiz-realized exercise above
+  (spec §2) instead of silently reusing the Concept-chapter exception on a
+  chapter it wasn't written for.
+- **Production examples (optional for Process, unlike Concept where it's
+  mandatory) omitted with written justification**, not silently dropped: the
+  natural production-register example for "state scope and goals before
+  designing" is 0.4's own Google-design-doc / Amazon-6-pager section,
+  already shipped. A second telling of the same point would be restatement,
+  which §20.6 cuts on sight; no distinct, load-bearing public example of
+  *clarifying questions specifically* was found that wouldn't just repeat
+  0.4's point in different clothes. Spec §4 flags this for a second reader
+  rather than asserting it's settled.
+- **Failure modes and scaling - omitted**, both optional for Process (§6),
+  same reasoning 0.4 used for Concept: no system exists yet to fail or scale,
+  only a step in a design conversation.
+- **No everyday analogy in the mental-model beat** - same choice 0.3 and 0.4
+  made, for the same reason: the test itself ("would a different answer
+  change the design") is already the clearest available frame; a forced
+  comparison would be decorative.
+- **New Mermaid diagram shape: a two-branch decision tree**, not a process-
+  flow sequence like 0.4's loop diagram. First use of the "Decision tree"
+  entry from CURRICULUM §7.1's diagram inventory (previously unused across
+  0.1-0.4). Still Mermaid, not ScaleCraft graph JSON - open decision 3 below
+  is unaffected (no topology exists yet to render as a graph).
+- **Backward connections: 2 named explicitly (0.2, 0.4), meeting §19's >=2**,
+  plus 0.2's cache/read-replica material reused substantively in "What a good
+  question actually does" (the deliberate double-appearance pattern 0.3/0.4
+  established: use it in the body, name the chapter again in "Next").
+- **Quiz Q1 reuses QUIZ_FRAMEWORK.md §6's own Q1 scenario (URL shortener,
+  multi-select clarifying questions) rather than inventing a fresh product**,
+  both for continuity with the bank and because it's also standing in for the
+  staged exercise (above) - expanded from the bank's 4 options to 8 so the
+  "pick from many candidates" shape survives the degradation. Not a verbatim
+  copy: all 8 options, explanations, and 4 correct answers are original to
+  this chapter.
+- **Position-clustering checked by eye**, per the standing instruction from
+  0.1/0.2's shipped bug. Four single-kind questions (Q2/Q3/Q4/Q5) have
+  correct options at c/a/d/b - four distinct positions.
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly, then two small cuts made during self-
+  review (a closing meta-sentence in "What a good question actually does",
+  two non-"not just X" uses of "just" reworded per §20.1). Flagged here per
+  0.2/0.3/0.4's own precedent of flagging a self-assessed density claim for
+  the next reviewer to check rather than trusting it.
+
+**Opus proofread pass (2026-08-08, uncommitted).** Scope: content,
+content-structure, blueprints, component lists, submit validations, diagrams.
+Quiz, hints, and `problemStatement`/`learningObjectives`/`curriculumContext`
+were explicitly out of scope and untouched. `lessonVersion` 1 -> 2. Lesson
+1063 -> 1153 words. Full detail in spec §13.
+
+*Four accuracy fixes, all in prerequisite-chapter material:*
+
+- **The cache/read-replica claim was wrong, as the user suspected.** Draft:
+  "a 1000:1 read:write ratio makes 0.2's cache and read replica close to
+  mandatory." 0.2 teaches those two as *competing* diagnoses on different
+  axes - "a cache helps when the same rows are read over and over: it buys
+  latency, and cost. A read replica helps when the database is simply out of
+  read capacity: it buys throughput" - not a pair that both get more
+  mandatory as read skew rises. A bare ratio proves neither repeated-row
+  reuse nor absolute read volume (1000:1 at ten requests a day needs
+  neither), so it cannot make either mandatory. Rewritten: the ratio decides
+  which *path* the design work goes into, and a new second paragraph states
+  what it explicitly does not settle. The correction improves the beat rather
+  than patching it - beat 7's "one level down" is now the real locality-vs-
+  volume distinction, and it earns the word *part* in "collapses part of the
+  design space". A milder form of the same conflation in the cold open
+  ("almost all reads wants caching and read replicas up front") was fixed the
+  same way.
+- **"0.4's ~5-10 minutes of 45" was invented.** 0.4 never states a clarify
+  budget; ~45 minutes is 0.3's figure. Re-derived from taught material (0.3's
+  ~45 minutes over 0.4's eight steps) and the "couple of minutes" figure is
+  now owned by this chapter instead of misattributed. Side effect: 0.3 is now
+  a third named backward connection.
+- **"0.4's dotted arrow starts right here" was wrong.** 0.4's diagram is
+  `H -.-> B` - step 8 to step 2, so it neither starts nor ends at clarify.
+  Reworded to 0.4's actual "How far back to go" teaching.
+- **"What database should I use? - nothing about the design changes"** is
+  false in the curriculum's own terms; 3.11 is SQL vs. NoSQL. Reframed to the
+  reason that actually holds and survives 3.11: it isn't a fact about the
+  problem, it's a decision that's yours to make. The matching "Common
+  mistakes" bullet was aligned.
+
+*Diagram.* Two Mermaid node labels used `\n` for line breaks. Mermaid
+documents `<br/>`, not `\n`, and this renderer runs `securityLevel: "strict"`;
+no other chapter uses either form. Labels shortened so no break is needed -
+removes the risk without betting on unverified renderer behavior. Caption and
+branch accuracy were already fine.
+
+*Voice/density (the user's other flag).* Five over-built sentences shortened
+or split (cold-open payoff, "Where to look" opener, the category caveat, the
+"In an interview" opening move, the senior-answer tag line). One §20.6
+restatement cut: beat 7's closing "One answer, and an entire branch of the
+design either becomes central or drops out" repeated its own topic sentence.
+
+*Confirmed, not changed.* `blueprints`, `availableComponentIds`,
+`requiredComponentIds`, `validationRuleIds` all correctly `[]` per §16 (three
+primitives home at 1.6, no graph to validate). §5.3/§6 structure complete for
+Process type with no reordering. Manifest order verified: 1.2 is next, 1.6 is
+the first build - both references correct. **Production examples omission
+confirmed**, and not by deferring to the draft's own argument: §13 requires
+*who / why / when it applies / what trade-off*, and no public example of
+clarifying-questions-specifically clears that bar without collapsing back into
+"state goals before designing", which 0.4 already shipped (Google design docs,
+Amazon 6-pager).
+
+*New open notes (not acted on):*
+
+- **Part 1 may end up with no production register at all.** 1.1's Production-
+  examples omission is individually correct, but if 1.2-1.5 each reach the
+  same conclusion for the same reason, Part 1 ships without the production
+  half of §1.5's two registers. Decide this deliberately at 1.3 or 1.4, not
+  by four independent omissions.
+- **Quiz Q5 and `hints[1]` carry the same overclaims the lesson just lost**
+  (out of scope for this pass, flagged for the quiz/hints owner). Q5's correct
+  option b says the ratio "decides whether caching and a read replica are
+  worth the added complexity" and its explanation calls a heavy read skew
+  "exactly the signal 0.2 used for when a cache pays for itself" - 0.2's
+  signal was repeated reads of the same rows, not skew. `hints[1]` says
+  database choice "doesn't change the shape of the architecture", defensible
+  at Part 1's three-primitive palette but contradicted by 3.11.
+
+---
+
+## 1.2 Functional Requirements
+
+- **Authored 2026-08-08 · not yet committed · branch
+  `feature/content-1-1-understanding-the-problem`** (same in-progress Wave 2
+  branch as 1.1 - no wave-gate re-check needed, this is a continuation of an
+  already-started wave, not a new one).
+- Definition id `bb-1-2-functional-requirements` · manifest slug
+  `1-2-functional-requirements`
+- Type: Process · foundational · 15 min (Reader + knowledge check, no build -
+  see below) · prerequisite: 1.1
+- **Lesson length: 992 words**, against 0.4's comparable pre-pass 1085 for the
+  same 15-minute estimate and 1.1's 1063 for a 20-minute estimate -
+  proportionate by the same ratio test 1.1's own entry used (no Opus pass has
+  run yet to confirm this independently).
+- Pipeline not run this pass (content-authoring only, per the skill's scope -
+  `src/content/chapters/index.test.ts`'s hardcoded chapter-id list was updated
+  to include the new id, same registry-wiring touch 1.1 needed, but `tsc`/
+  `lint`/`vitest`/`build` were not run).
+
+**Scope-target detour before drafting (2026-08-08, resolved before any file
+was touched).** The user's invocation included "should be < 5 min reads" as a
+parenthetical. Asked to clarify scope; the user's first answer was "all of
+Part 1 (1.1-1.11) should be <5 min" as a standing policy - which would have
+meant revising already-authored 1.1 (20 min/1153 words) and the manifest's
+`estimatedMinutes` across eleven chapters. Before any file was touched, the
+user reversed this ("I take back that 5 min rule... do as you would
+normally"). This chapter was drafted against CURRICULUM §14's actual 1.2 row
+(15 min) instead, matching 0.2-0.4/1.1's established density pattern. Recorded
+so a future session doesn't need to re-litigate whether Part 1 has a <5-minute
+target - it does not.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-2-functional-requirements.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-1-2-functional-requirements.md` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None - no canvas exercise, nothing to validate; justified in spec §8 |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3, continues 1.1's URL shortener brief for Q1 |
+| 6 | Playtest pass | Spec §10 |
+
+**Judgment calls made:**
+
+- **The staged checklist exercise CURRICULUM §14 specifies for 1.2 does not
+  exist as built UI and was degraded to a quiz question**, the same
+  documented pattern 1.1 used (`pending-content.md`'s Part 1 plan). Realized
+  as quiz Q1: `multi` kind, 8 candidate features about the same URL shortener
+  brief 1.1 used (now with two facts confirmed rather than left hypothetical),
+  3 correct. Flagged in spec §5 and §12 as a candidate for its originally
+  specified staged exercise once the stages UI lands.
+- **Production examples included, reversing 1.1's omission.** 1.1's own
+  ledger entry flagged a risk: if every Part 1 chapter independently omits
+  production examples for defensible individual reasons, Part 1 ends up with
+  no production register at all, contradicting CURRICULUM §1.5's two-registers
+  framing. Basecamp's Shape Up "no-gos" practice is genuinely distinct from
+  0.4's design-doc examples (cutting functional scope under a deadline, not
+  stating goals broadly), clears §13's who/why/when/trade-off format in two
+  sentences, and resolves the flagged risk at the first chapter where a
+  non-repetitive example was available - one chapter earlier than 1.1's own
+  "decide this at 1.3 or 1.4" suggestion.
+- **Deliberate structural echo of 1.1's diagram.** Both chapters use a
+  two-branch Mermaid decision tree testing "does a different answer/this
+  feature change something load-bearing" - the same test shape, applied to
+  clarifying questions in 1.1 and to feature scope here. A considered choice
+  (Part 1's first two chapters share a test-shaped mental model on purpose),
+  not an oversight, but flagged in spec §12 for a second reader to confirm it
+  reads as reinforcement rather than repetition.
+- **No further-out forward tease to 1.6.** 1.1 and 0.4 already tease 1.6 as
+  the first build; §19 requires "at most one" tease per chapter, not exactly
+  one, so this chapter's "Next" only previews the immediate next chapter
+  (1.3). Flagged as a judgment call, not a silent omission.
+- **No construction-family exercise - justified Process-chapter carry-over
+  from 1.1's own precedent**, not a fresh Concept-only exception (§11.1's
+  carve-out is explicitly for Concept chapters; 1.1 already established that
+  Process chapters without a build state their `hasEditorExercise: false`
+  reuse plainly instead of invoking §11.1). No components introduced (§16
+  homes the three primitives at 1.6). `availableComponentIds`/
+  `requiredComponentIds` both `[]`, `blueprints: []`, no `starterGraph`.
+- **`hasEditorExercise: false` reused, not re-derived** - same mechanism 0.2's
+  spec fixed and 1.1 already reused.
+- **Quiz position-clustering checked by eye and corrected during drafting**
+  (not just checked after the fact). The first pass of Q2-Q5 landed 3 of 4
+  correct answers at position `b` - the exact clustering bug 0.1/0.2 shipped
+  once and the standing instruction exists to catch. Reordered options
+  (content unchanged) to `b, a, c, d` before finalizing, rather than writing
+  the questions once and checking after.
+- **One density cut made during drafting, not deferred to a later pass**: a
+  closing sentence in "Why the write-down matters" restated the paragraph's
+  own point ("The category decides what to build; only the write-down keeps a
+  Could from silently becoming a Must again") - cut per the exact pattern the
+  Opus pass caught once already in 1.1's beat 7 closing sentence. Flagged in
+  spec §12, per 0.2/0.3/0.4/1.1's own precedent, for a reviewer to check the
+  self-assessed density claim rather than trust it.
+
+**Opus proofread pass (2026-08-08, uncommitted).** Scope: content,
+content-structure, blueprints, component lists, submit validations, diagrams.
+Quiz, hints, and `problemStatement`/`learningObjectives`/`curriculumContext`
+were explicitly out of scope and untouched. `lessonVersion` 1 -> 2. Lesson
+992 -> 1129 words. Full detail in spec §13.
+
+Triggered by direct user feedback on the draft: *"the chapter feels dragged
+out, the In production section is just un-understandable. a more jarring
+chapter for some reason I didn't really get a clear picture out of this
+chapter."* All three reproduced on a fresh read; all three had real causes.
+This was not a rubber-stamp pass - the draft had a structural defect, not a
+line-edit one.
+
+*Complaint 1, "dragged out" - the cause was restatement, not length.* The
+chapter's one idea appeared six times before doing any new work: the cold
+open's closing sentence, the think-first prompt, "The test"'s opening line,
+the diagram, the diagram caption, and the MoSCoW table's first row. §20.6's
+first cut-on-sight item names exactly this. The load-bearing fix: the cold
+open ended on "Not everything that occurs to you is a requirement - only what
+the system cannot ship without", which is the chapter thesis stated one line
+before a think-first prompt that asks the reader to derive it - a §5.3 beat-3
+violation (the prediction prompt must precede any revealed answer). Cold open
+now ends on the felt cost instead. Two related bugs in the same beat: it said
+"Five features in" over a list of seven, and "the interview's design time is
+already gone" was an overclaim (listing seven features costs under a minute).
+The think-first prompt was also unanswerable as written - it asked which *one*
+feature to keep, when the chapter's own answer is two (create and redirect).
+Word count went *up* ~140, which is the honest outcome: the drag was
+redundancy, and cutting it freed room for the diagram and the production
+example to carry real content.
+
+*Complaint 2, "In production is un-understandable" - rewritten, not cut.* Read
+cold by someone who has never heard of Shape Up, the draft assumed the entire
+frame: *Shape Up*, *six-week*, *pitch* and *mid-cycle* all used without
+introduction, and a trade-off sentence that was a comparative between two
+abstractions ("naming them protects the deadline more than including them
+would help the release"). §13's *when it applies to you* leg was missing
+outright. **The Basecamp claim itself was verified as accurate**, not accepted
+from the draft - fixed six-week cycles, work shaped into a written pitch
+before it is bet on, "no-gos" a named ingredient of that pitch for
+functionality deliberately excluded to fit the fixed appetite. So the example
+was sound and only its telling was broken; it was kept and rewritten to
+introduce the cycle and the pitch before using them, state the mechanism
+plainly, carry the when-it-applies leg, and end on the cost. **1.1's flagged
+"Part 1 may ship with no production register" risk therefore stays resolved.**
+
+*Complaint 3, "jarring / no clear picture" - two structural causes, both
+fixed.* (a) The chapter taught **two** mental models and left the reader to
+stitch them: "The test" gave a binary Must/not-Must decision tree, then
+"Sorting the list" introduced a four-bucket scheme the diagram never mentioned.
+The primary diagram is now a three-question router with four leaves, so the
+test *is* the sort and the MoSCoW table names outcomes already seen. That also
+adds an idea the draft lacked - Could versus Won't is a call about this pass's
+capacity, not a property of the feature - which makes the write-down section
+follow rather than arrive. (b) **"In production" was out of §5.3's beat
+order**, sitting between beat 7 and beat 8; §5.3/§20.3 permit merging adjacent
+sections but not reordering. Moved after "Must, or just useful?", restoring
+7 -> 8 -> 11 -> 12 -> 13.
+
+*On the draft's flagged diagram echo of 1.1: it was contributing to the
+retread feeling, and it is gone.* Two consecutive chapters opening with a
+section titled "The test", the same URL-shortener interview cast, and a
+two-node yes/no tree with the branches relabelled reads as a re-run of 1.1.
+The reinforcement argument would have held if the second diagram carried new
+information; it did not - it restated the sentence directly above it. The
+four-outcome router stays inside §7.1's "Decision tree" family while doing
+work 1.1's diagram did not. **Standing note for 1.3-1.5: shared structure
+across Part 1 is only reinforcement when the repeated element carries new
+content. A repeated diagram shape whose only change is the labels is a
+retread, and the reader feels it before they can name it.**
+
+*Smaller content fixes.* The expiry justification now closes the loop with the
+test (the confirmed answer changed what the job *is*) instead of reading as an
+exception to it; a garden-path sentence in "Must, or just useful?" was split;
+"In an interview" moved to second person and shortened; the weakest "Common
+mistakes" bullet ("building Could-have before Must-have is solid" - no
+explanation, no new information) was replaced with sorting by product category
+instead of by the brief, which is what quiz Q3/Q4 actually test.
+
+*Confirmed, not changed.* `blueprints`, `availableComponentIds`,
+`requiredComponentIds`, `validationRuleIds` all correctly `[]` - §16 homes the
+three primitives at 1.6, this chapter introduces none, there is no
+`starterGraph` and no graph to validate, so there is nothing for a blueprint
+or a rule to gate. §5.3/§6 coverage complete for Process type after the
+reorder; failure modes and scaling stay omitted with their written §4
+justification. Manifest checked: `1-3-non-functional-requirements` really is
+next, so "Next" names the right chapter. No untaught vocabulary (§18.2 rule 1)
+- "non-functional" never appears, MoSCoW is defined at first use, no component
+names. Backward connections still >= 2. No further-out forward tease - the
+draft's judgment call stands (§19 says "at most one"; 1.1 and 0.4 both already
+tease 1.6).
+
+*New open notes (not acted on):*
+
+- **`hints[2]` duplicates the lesson's beat-7 sentence almost verbatim**
+  ("Should, Could, and Won't aren't 'no' - they're 'not this pass'"). Fine for
+  a hint, flagged for the hints owner rather than changed (out of scope).
+- **Quiz Q1 option f** ("Should, not Must" for malformed-URL rejection) now
+  lines up exactly with the diagram's second branch - noted so a quiz owner
+  knows the alignment is deliberate, not coincidence.
+- **Pipeline not run this pass** (content-only scope). The chapter still needs
+  `typecheck`/`lint`/`vitest`/`build` before commit, same as 1.1.
 
 ---
 
