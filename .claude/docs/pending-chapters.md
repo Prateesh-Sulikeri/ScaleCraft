@@ -41,7 +41,8 @@ checkpoints) + 32 Real World Extraction projects = 79 manifest rows.
 | 1.2 Functional Requirements | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-08 | `feature/content-1-1-understanding-the-problem` |
 | 1.3 Non-functional Requirements | **Authored + Opus pass (lesson/spec scope)** | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
 | 1.4 Estimating Scale | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
-| 1.6 Drawing the First Architecture | Not started (Wave 2, see `pending-content.md`) | - | - |
+| 1.5 Numbers Every Engineer Should Know | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
+| 1.6 Drawing the First Architecture | **Authored + Opus pass (full scope)** | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
 | 3.4 Load Balancer | Placeholder (`bb-dummy-1`), moved to Wave 2 | - | - |
 | RWE T1 Bitly | Placeholder (`rwe-dummy-1`), moved to Wave 2 | - | - |
 
@@ -50,13 +51,19 @@ Everything else in the 79 rows is unauthored (`chapterDefinitionId: null`).
 **Wave 1 progress: 4 of 4 authored, all four through an Opus pass, merged into
 `develop`/`main` (verified 2026-08-08 via PR #87/#88).** Wave 2 (Part 1)
 started 2026-08-08 with 1.1; 1.2 followed the same day; 1.3 followed
-2026-08-09; 1.4 followed the same day. 1.1 and 1.2 have had their Opus pass
+2026-08-09; 1.4 followed the same day; 1.5 followed the same day; 1.6
+followed the same day, closing Part 1. 1.1 and 1.2 have had their Opus pass
 (content/structure/blueprints/component-lists/validations/diagrams scope;
 quiz, hints and definition metadata not audited - see their own entries
 below); this status line previously said otherwise and was corrected
 2026-08-09 to match the detail sections and `index.ts`'s `lessonVersion: 2`.
-1.3 has also had its Opus pass (lesson/spec scope). 1.4 is a Sonnet draft
-with no Opus pass yet.
+1.3 has also had its Opus pass (lesson/spec scope). 1.4 and 1.5 are both
+Sonnet drafts with no Opus pass yet. 1.6 has had its Opus pass (full
+six-area scope) - it needed one more than any chapter so far this wave: it's
+the first Building Block chapter (real components, a real starter graph, a
+real Fix exercise), unlike every Concept/Process chapter before it, and the
+pass found two factual errors in the draft's own account of its validation
+rules plus a diagram caption making a false general claim about edge kinds.
 
 ---
 
@@ -1362,6 +1369,409 @@ Full breakdown in the spec's new §13; summary:
 
 ---
 
+## 1.5 Numbers Every Engineer Should Know
+
+- **Authored 2026-08-09 · not yet committed · branch
+  `feature/content-1-1-understanding-the-problem`** (same in-progress Wave 2
+  branch as 1.1-1.4 - no wave-gate re-check needed, this is a continuation of
+  an already-started wave, not a new one).
+- Definition id `bb-1-5-numbers-every-engineer-should-know` · manifest slug
+  `1-5-numbers-every-engineer-should-know` (`chapterDefinitionId` flipped
+  from `null` to this id in the same pass)
+- Type: Process (§14's Part 1 header names no per-chapter exception for 1.5;
+  no §4/§14 contradiction to resolve here, unlike 1.3) · foundational · 20
+  minutes (Reader + knowledge check; no build) · prerequisite: 1.4
+- **Lesson length: 1,185 words at draft, 1,226 after the Opus pass**, above
+  1.1's comparable 1,063 and 1.3's 1,043 for the same 20-minute estimate,
+  closer to 1.4's 1,106 for 25 minutes (the Opus pass confirmed the length is
+  the second visual element, not restatement - see its subsection below).
+- Pipeline not run this pass (content-authoring only, per the skill's scope
+  - `src/content/chapters/index.test.ts`'s hardcoded chapter-id list was
+  updated to include the new id, same registry-wiring touch 1.1-1.4 needed,
+  but `tsc`/`lint`/`vitest`/`build` were not run).
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-5-numbers-every-engineer-should-know.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-1-5-numbers-every-engineer-should-know.md` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None - no canvas exercise, nothing to validate; justified in spec §8 |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3, first chapter to combine `ordering` and `estimate` kinds in the same quiz |
+| 6 | Playtest pass | Spec §10 |
+
+**Judgment calls made:**
+
+- **§14's "throughput/storage landmark numbers" narrowed to latency-only
+  ratios.** 1.5's own §14 row asks for latency/throughput/storage landmark
+  numbers, "more importantly, their ratios (RAM vs. disk vs. network; a
+  datacenter round trip vs. cross-continent)." 1.4 already owns
+  throughput/storage order-of-magnitude estimation; re-deriving fresh
+  throughput or storage figures here would restate 1.4 rather than add to
+  it, and the row's own "more importantly, their ratios" clause points
+  specifically at the RAM/disk/network comparison. Narrowed the chapter to
+  that latency ladder alone. Flagged in spec §11-12 for a second reader to
+  confirm this reads as a defensible interpretation rather than a silent
+  scope cut.
+- **The exercise is not a degradation, unlike 1.1/1.2/1.4.** CURRICULUM
+  §14's own 1.5 row - "Exercise: ranking + estimation drills" - is never
+  described as "staged," the same distinction 1.3's spec drew for its own
+  matching exercise. Realized directly as quiz Q1 (`ordering`: rank five
+  operations fastest to slowest) and Q2 (`estimate`: order-of-magnitude
+  latency of a two-operation request) - no stages-UI gap to flag.
+- **The chapter's central teaching point is the one place the ladder is
+  counter-intuitive**: a same-datacenter network round trip (~0.5-1 ms) is
+  typically faster than a local disk seek (~10 ms) - engineers who assume
+  "local always beats network" have it backwards. This is a real,
+  well-established fact (it's the reason large-scale services put a memory
+  cache between the app tier and the disk-backed database at all), not an
+  invented twist for pedagogical drama. Built the whole lesson around it:
+  the think-first prompt asks it directly, the diagram's caption states it,
+  quiz Q1's ordering and Q3's scenario both test it.
+- **Quiz ratios deliberately matched to QUIZ_FRAMEWORK §6's own already-
+  shipped Q5/Q6 rather than a more commonly cited alternative figure.** Q5
+  states SSD is "on the order of 10-100x slower" than RAM; some published
+  latency tables put a random SSD read closer to ~1,000x a RAM reference.
+  Since the framework's Q5/Q6 are pre-existing content this pass doesn't
+  own, and chapter quizzes are meant to draw from or model on the section
+  banks, the lesson teaches the bank's own ratio rather than introducing a
+  conflicting one. Flagged in spec §12 for a second reader to confirm this
+  deference is the right call.
+- **New diagram shape: a single ascending ladder chain**, not branching and
+  with no arithmetic operators on its edges (only ratio factors) - per the
+  standing note 1.2's Opus pass left in this ledger ("shared structure
+  across Part 1 is only reinforcement when the repeated element carries new
+  content"). Distinct from 1.1's yes/no tree, 1.2's three-question router,
+  1.3's one-hop fan-out, and 1.4's branching conversion chain. Flagged in
+  spec §12 for a second reader to confirm.
+- **Diagram and table deliberately carry different content**, per the
+  standing note 1.3's Opus pass left about a beat-5 diagram and beat-6 table
+  restating the same mapping twice. The diagram carries the ladder's shape
+  and ratio jumps; the table carries a concrete worked example per rung (a
+  cache hit, an uncached database row, a nearby service call, a
+  spinning-disk database, a cross-region call). Flagged in spec §12 for a
+  second reader to confirm these don't collide.
+- **Scaling folded into "When the ratio is worth paying for" as one
+  sentence**, same pattern 1.4 used for the same §9 lens-7 content:
+  the ratios are physical constants that don't shift with traffic, but how
+  often they're paid does, tying back to 1.4's own peak-QPS estimate.
+  Optional for Process per §6, a density choice rather than a hidden
+  omission.
+- **No everyday analogy in the mental-model beat**, same choice
+  0.3/0.4/1.1-1.4 made. A physical-distance analogy (pocket vs. warehouse)
+  was drafted and cut - it would have needed its own caveat about the
+  ladder's one swap, costing more words than it earned. The diagram's own
+  ascending order plus its caption already carries the point.
+- **Backward connections: 3 named (1.4, 0.2, 1.3), exceeding §19's >=2** -
+  1.4's shortcut-vs-memorize framing organizes the whole chapter, 0.2's
+  cache force is used substantively in "When the ratio is worth paying for"
+  *and* named again in "Next," and 1.3's latency budgets are named in
+  "Next."
+- **Forward tease: 1.6 only**, the immediate next chapter. No further-out
+  tease - 1.1, 0.4, and 1.4 have all already teased 1.6, and per §19's "at
+  most one" a fourth would be mechanical, the same judgment call 1.2/1.3/1.4
+  made for their own third-plus tease.
+- **One density pass performed during drafting, not deferred**: tightened a
+  vague "SSDs... built to hold far more" physics sentence into a concrete
+  reason (flash cells cost more to read than a memory circuit, which is
+  where the 10-100x gap comes from) once noticed, and cut a filler "just" in
+  the landmark table. Flagged here per 0.2-1.4's own precedent of flagging a
+  self-assessed density claim for the next reviewer to check rather than
+  trust - word count (1,185 for a 20-minute estimate) is above 1.1/1.3's
+  ~1,050 for the same estimate, justified in spec §12 as proportionate to
+  carrying two visual elements (a diagram and a worked-example table) where
+  1.1-1.4 each carried one, but flagged for a second reader to confirm
+  rather than trusted.
+
+**Position-clustering checked by eye**, per the standing instruction from
+0.1/0.2's shipped bug. Three single-kind questions (Q3/Q4/Q5) have correct
+options at c/a/d - three distinct positions.
+
+**Opus proofread pass (2026-08-09).** Scope: content, content-structure,
+blueprints, component lists, submit validations, diagrams. Quiz, hints, and
+definition metadata (`problemStatement`/`learningObjectives`/
+`curriculumContext`) stayed out of scope and were not touched. `lessonVersion`
+bumped 1 -> 2. Full detail in spec §13; the material points:
+
+- **Requested off specific user feedback**, not a routine sweep: the chapter
+  reads as the best-written Part 1 chapter so far, but "rung" is never
+  defined and several sentences take more than one read. Both complaints were
+  real.
+- **"rung" was undefined and the ladder had no fixed orientation.** The word
+  debuted in a section heading with no gloss anywhere, and "above" meant two
+  opposite things in the same lesson: the caption's "the same-datacenter
+  network hop sits above (faster than) the disk seek" (above = faster) versus
+  the trade-off section's "Every rung above RAM exists because..." (above =
+  slower, since RAM is the fastest rung). Fixed by defining both at first
+  use - "Line the five operations up as a ladder, fastest at the top: each
+  rung is one kind of operation, and each step down costs roughly 10 to 100
+  times the rung above it" - and rewording every later use to that one
+  orientation. Heading "What's actually at each rung" -> "Each rung, in
+  practice".
+- **The diagram was `flowchart LR`** while the prose called it a ladder with
+  a top. Flipped to `TD`. Still a single unbranched chain with ratio-only
+  edge labels, so the diagram-novelty claim is unaffected.
+- **The ratio chain did not compose** - 1.4's own standing note hitting a
+  second time. RAM ~100 ns, then "10-100x" to SSD, then "~10x" to a 0.5-1 ms
+  datacenter round trip gives at most 100 us, not 0.5-1 ms; and the SSD node
+  read "~10s of microseconds", which is 200-900x a 100 ns reference and
+  contradicts the "10-100x" edge one node earlier (it also parses for a beat
+  as "ten seconds"). Resolved **without** disturbing the deliberate deference
+  to QUIZ_FRAMEWORK §6 Q5: the 10-100x RAM->SSD ratio is untouched, SSD
+  becomes "~10 microseconds" (100x of 100 ns, top of that band, and a
+  defensible modern NVMe landmark), and the SSD -> datacenter edge becomes
+  "~50x". The chain now composes: 100 ns -> 10 us -> 0.5-1 ms -> 10 ms ->
+  150 ms. No quiz question asserts the SSD -> datacenter ratio, so nothing
+  conflicts.
+- **"RAM is electrical - a few nanoseconds" contradicted the table's ~100 ns**
+  two lines above it. Fixed as part of splitting the five-sentence physics
+  paragraph (§20.1 caps at four) into two, organized by the actual physics -
+  electrical rungs, then physical ones - so the disk-loses-to-network fact
+  falls out of the structure instead of being asserted.
+- **Roughly ten multi-clause sentences split or rewritten**, each one a
+  place the pass genuinely re-read on a cold pass: the cold open's compound
+  "2x faster or 200x faster changes whether..." (singular verb, unmarked
+  shift into the candidate's head), "These ratios" with no antecedent, "it
+  skips a layer" with no referent, "In production"'s 45-word who/why/callback
+  sentence, "costs the same trust as guessing wrong", "Your turn"'s stranded
+  "to estimate the rough total latency of", "cash out against the ladder
+  above", and Recap bullet 1's "except one pair that swaps".
+- **Common mistakes bullet 1 contradicted itself** ("the rung before it" in
+  bold, "the next rung" in the explanation). Now one direction.
+- **Confirmed and left alone:** `blueprints: []`,
+  `availableComponentIds: []`, `requiredComponentIds: []`,
+  `validationRuleIds: []` are all correct with no undeclared exception (no
+  `starterGraph`, `hasEditorExercise: false`, the lesson names no component
+  and §16 homes the three primitives at 1.6); §5.3/§6 structure complete for
+  Process with both renamed headings still in beat order; the diagram/table
+  content split does not collide (the examples column has no counterpart in
+  the diagram); the §14 throughput/storage narrowing is defensible; "Next"
+  names 1.6, confirmed against `manifest.ts`; no em dash; vocabulary all
+  sourced except "app tier", replaced with "their application servers".
+- **Length 1,185 -> 1,226 (+41)**, the same direction and size as 1.4's own
+  Opus pass (1,106 -> 1,136). The growth is the "rung" definition, the
+  caption's orientation gloss and the paragraph splits; six sentences were
+  cut or compressed to pay for part of it.
+- **Out of scope, noted not fixed:** quiz Q1's RAM explanation still says "a
+  few nanoseconds" (the same contradiction fixed in the lesson body), and
+  Q1's explanations now depend on the lesson's "rung"/"ladder" vocabulary -
+  safe today because the lesson defines it, but a real dependency.
+
+**New standing note for later chapters.** A metaphor word that becomes a
+chapter's organizing vocabulary ("rung", and any future "tier", "layer",
+"hop", "budget") needs two things at first use, not one: a gloss saying what
+it means, and a fixed orientation if the metaphor has a direction. 1.5 had
+neither, and the missing orientation is what let "above" mean faster in one
+section and slower in another without anyone catching it at draft time. The
+gloss is already a §20.1 requirement; the orientation check is the new part.
+
+---
+
+## 1.6 Drawing the First Architecture
+
+- **Authored 2026-08-09 · not yet committed · branch
+  `feature/content-1-1-understanding-the-problem`** (same in-progress Wave 2
+  branch as 1.1-1.5 - no wave-gate re-check needed, this closes the wave
+  rather than starting one).
+- Definition id `bb-1-6-drawing-the-first-architecture` · manifest slug
+  `1-6-drawing-the-first-architecture` (`chapterDefinitionId` flipped from
+  `null` to this id in the same pass)
+- Type: **Building Block** - the first chapter in this wave that isn't
+  Concept or Process. Foundational · 30 minutes (Reader + real Editor build,
+  the first Part 1 estimate that isn't Reader-only) · prerequisite: 1.5.
+- **Lesson length: 1,209 words**, leaner per estimated minute than 1.5's
+  1,226 for 20 minutes even though 1.6's own estimate is 30 - proportionate
+  once read correctly: most of the extra 10 minutes is real Editor build
+  time, not Reader time, so the Reader portion did not need to scale
+  linearly with the estimate (no Opus pass has run yet to confirm this
+  independently).
+- Pipeline not run this pass (content-authoring only, per the skill's scope
+  - `src/content/chapters/index.test.ts`'s hardcoded chapter-id list was
+  updated to include the new id, same registry-wiring touch 1.1-1.5 needed,
+  but `tsc`/`lint`/`vitest`/`build` were not run).
+
+**Blocking decision resolved before drafting (user-directed, 2026-08-09).**
+Open decision #3 below names 1.6 specifically as blocked: CURRICULUM §7.2
+requires topology diagrams to render as ScaleCraft graph JSON, but
+`MarkdownRenderer.tsx` was checked directly and has no block type for
+`ArchitectureGraph` JSON - only `MermaidBlock` exists. 1.6 is the first
+Building Block chapter, and its primary diagram (beat 5, mandatory) is
+exactly a topology. Asked the user directly rather than working around it
+silently, per this ledger's own standing policy for open decisions. **Chosen:
+Mermaid exception for 1.6's lesson-body diagram only**, justified because the
+*real* interactive topology already exists and is what the learner actually
+builds - the chapter's `starterGraph` and `blueprints[0]` are genuine
+`ArchitectureGraph`/`GraphPattern` values that render, simulate, and validate
+for real in the Editor. The lesson diagram is a static preview shown before
+the prose that explains it, not the chapter's only encounter with the shape.
+**This resolves the blocker for 1.6 only, not §7.2 in general** - 3.4 (Load
+Balancer, later this wave) will need its own version of this same call when
+it's authored; see open decision #3's update below.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-6-drawing-the-first-architecture.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-1-6-drawing-the-first-architecture.md` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None new - 5 existing rules curated; justified in spec §7 |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3, first chapter to author a `diagram`-kind question (modeled on QUIZ_FRAMEWORK §6's own published Q7 for this exact chapter/rule) |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **First real construction-family exercise in this wave.** 1.1-1.5 all
+  declared `hasEditorExercise: false` with empty `availableComponentIds`/
+  `blueprints`/`validationRuleIds`, reusing 0.2's mechanism. 1.6 needs none
+  of that - it has a real Fix exercise, so `hasEditorExercise` is left
+  absent (defaults to `true`, matching every chapter authored before that
+  field existed).
+- **§16's formal introduction, not another borrowed exception.** 0.1 used
+  `client`/`app-server`/`sql-database` as narrow, undeclared-choice scenery
+  (open decision #2 below), explicitly deferring the real introduction to
+  1.6. This chapter is that introduction: `availableComponentIds` equals
+  `requiredComponentIds` equals all three, no exception to declare. Open
+  decision #2 is resolved by this chapter existing, not left open.
+- **Starter graph reuses 0.1's "two real, distinct issues" pattern, not "find
+  the bug" blind (§11.1).** Missing `app-server` (a required component with
+  nothing satisfying it) plus a `client -> sql-database` edge kept at kind
+  `request-flow` deliberately, not an illegal kind - the more instructive
+  fault, since it shows the rule fires on *what* an edge connects, not on
+  its label. This also means the edge trips **two** rules at once
+  (`no-direct-client-database` and `component-relations`, the latter via
+  `sql-database`'s own already-documented category restriction) - not a new
+  coincidence, `content/components/config/data.ts`'s own comment already
+  calls this overlap deliberate belt-and-suspenders. Flagged in spec §12 for
+  a second reader to confirm two stacked messages on one edge reads as
+  reinforcing rather than confusing on a first real, unguided Fix exercise.
+- **No guided tour, unlike 0.1.** 0.1's Fix exercise is walked by
+  `design-editor-tour.ts`; 1.6's is not (`editorTourId` left absent). This is
+  the deliberate difficulty step from a tour-guided first fix to a real,
+  unguided one - the hint stack and the validation explanations are the only
+  support, which is what a Building Block chapter's higher stage-2
+  (construction) demand actually looks like in practice.
+- **Failure modes and Scaling are mandatory content for the first time in
+  this wave.** §6 makes both "M" for Building Block, "o" for Concept/Process
+  - 1.1-1.5 all justified omitting or folding them; 1.6 can't and doesn't.
+  Merged into one section ("What breaks first") since app-server-crash vs.
+  database-crash and the 10x/100x story are one continuous idea here, which
+  §6 permits for adjacent short sections.
+- **§9 lenses 1, 5, 7 made explicit, per the binding rule for every Building
+  Block chapter** ("at least lenses 1, 5, and 7 appear explicitly"). Lens 1
+  (why this exists) is beat 2's own framing; lens 5 (what breaks first) names
+  the app server explicitly as the first failure; lens 7 (10x/100x) states
+  both multipliers with qualitative, specific outcomes rather than hand-wavy
+  ones, per 1.4/1.5's own standing note about checking scale-ladder claims
+  against real arithmetic (there is no arithmetic to check here - both claims
+  are qualitative by design, not computed figures that could drift).
+- **One further-out forward tease, to 3.4** (§19's "at most one"), spent in
+  the Scaling half of "What breaks first": splitting traffic across more
+  than one app-server instance needs a load balancer, which 3.4 introduces.
+  Checked against every prior Part 1 entry in this ledger - none has already
+  teased 3.4, so this is the first spend of that particular tease, not a
+  repeat. The mandatory immediate-next preview (1.7) is separate and sits in
+  "Next".
+- **Production example: Instagram's early monolith** (one app tier, one
+  primary Postgres database, millions of users), chosen to be distinct from
+  every other Part 1 production example so far (1.2 Basecamp, 1.3 S3, 1.5
+  Meta) and to land §9 lens 9 (how would a two-person startup solve this)
+  without needing exotic infrastructure - the point is that the minimal
+  shape is a genuine production answer at real scale, not a toy.
+- **Quiz Q2 is a `diagram`-kind question**, the first one actually authored
+  in the registry (0.2's ledger confirmed the UI itself renders and works via
+  a direct Playwright check, but no chapter had used it yet). Modeled on
+  QUIZ_FRAMEWORK §6's own Q7, which is explicitly written as "the first
+  validation rule the learner ever meets (1.6, `no-direct-client-database`)"
+  - reworded and re-laid-out, not copied verbatim, matching every other
+  chapter's practice of modeling on bank content rather than reproducing it.
+- **Quiz position-clustering checked by eye**, per the standing instruction
+  from 0.1/0.2's shipped bug. Four single-kind questions (Q1/Q3/Q4/Q5) have
+  correct options at b/a/c/d - four distinct positions.
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly. Flagged here per 0.2-1.5's own
+  precedent of flagging a self-assessed density claim for the next reviewer
+  to check rather than trust, though the word-count comparison above (1,209
+  words, leaner per minute than 1.5) is at least a rough check against
+  padding.
+
+**Opus proofread pass (2026-08-09).** Content-only, no pipeline run. Scope was
+the six audit areas (content, content-structure, blueprints, component lists,
+submit validations, diagrams); quiz, hints and
+`problemStatement`/`learningObjectives`/`curriculumContext` were left
+untouched. `lessonVersion` 1 -> 2. Full detail in spec §13.
+
+- **Checked by tracing source, not by trusting the draft's narrative.** Read
+  all five rule implementations, `chapter-outcome.ts`, and the three
+  components' `relations`, then ran the starter graph through them by hand.
+- **Two factual errors found in the draft's account of its own validation.**
+  (a) `component-relations` was attributed solely to `sql-database`'s input
+  contract. In fact *both* endpoint contracts reject the edge, and because
+  `component-relations.ts` tests `!outputCategoryOk` first, the message the
+  learner reads names the **Client's output rules**
+  (`outputs.allowedCategories: ["networking","compute"]`, no `data`) - not the
+  database's. (b) The draft claimed `missing-input-connection` reports the
+  absent `app-server`. It cannot: the rule iterates `graph.nodes` and
+  `app-server` isn't in the starter graph, so it returns zero findings there.
+  The absent component is reported by `runChapterValidation`'s
+  `missingRequiredComponentIds` check, independent of any rule. **The curation
+  itself was right both times** - the exercise is correctly gated, and all
+  three structural rules earn their place as guards on the intermediate states
+  the fix passes through. Only the spec's and the code comment's explanations
+  were wrong; both corrected.
+- **Four lesson edits.** (1) The diagram caption claimed `request-flow` "only
+  ever" runs client -> app -> db, which is false as a general claim about the
+  edge kind and is contradicted by 3.4's own topology - a real risk under
+  §7.2's "learners absorb edge semantics from every diagram" warning; it also
+  claimed the exercise checks "one rule" (five are curated, two fire on the
+  one bad edge), which the learner disproves on their first Validate and which
+  contradicted the chapter's own deliberate withholding of that count.
+  (2) The Instagram example overclaimed - "a single primary Postgres database,
+  serving millions of users" and "the trade-off they accepted ... a single
+  point of failure" are not defensible, since by that scale Instagram ran many
+  app servers behind a load balancer with Postgres split across machines.
+  Rewritten to the launched-on-this-shape-and-grew-on-it framing, which is
+  both accurate and a stronger version of the chapter's actual point.
+  (3) "Next" carried **no** backward references; §19 requires >=2 in beat 14,
+  and 1.4/1.5 both put them there. Added 0.4/1.4/1.5, matching their shape.
+  Note the draft spec claimed §19 was cleared by references in beats 8 and 13,
+  which is not what §19 says - worth watching for in later chapters.
+  (4) "the first thing to saturate" -> "run out of headroom", so the
+  senior-answer line uses only this chapter's own vocabulary as §10.3 and the
+  spec's own beat-13 note require ("saturate" is 1.7's word and appears
+  nowhere else in Part 1).
+- **Confirmed and left alone:** blueprint is honest and not pre-satisfied by
+  the starter graph; component lists match §16's 1.6 row exactly; all five
+  rule ids resolve; Failure modes and Scaling are genuinely present, not
+  gestured at; §9 lenses 1/5/7 explicit; "Next" names 1.7 per the manifest;
+  no em dash; one diagram only, with nothing claiming a graph-JSON diagram
+  exists. The two-stacked-messages concern flagged in spec §12 was reviewed
+  and deliberately not changed - two findings on one edge is correct product
+  behavior, the two explanations say different things, and the lesson's
+  choice not to preview the count is declared, not accidental.
+- **New drift found: §14's 1.6 row says "Exercise: build + fix + simulator
+  trace"; the chapter ships build + fix only.** Not resolved (adding a trace
+  is exercise/engineering work, not content) and now declared in spec §4. This
+  is the same class of doc-vs-shipped mismatch as open decision #1's 0.1 row -
+  see the new open decision #7 below.
+- **Note for the quiz pass (out of this pass's scope, not acted on):** Q3's
+  stem asks why `no-direct-client-database` fires "regardless of what kind the
+  edge is given". That is accurate to the rule, but the starter graph's edge
+  is `request-flow` and the learner never sees the rule fire on any other
+  kind, so the question tests a claim the chapter asserts rather than one the
+  exercise demonstrates. Worth a look by whoever owns the quiz.
+
+**Open note for a later pass (not resolved here):** the Mermaid-exception
+decision (above) was scoped narrowly to 1.6 on purpose. When 3.4 is authored
+later this wave, it hits the identical §7.2 gap and needs its own explicit
+call - don't assume 1.6's precedent silently extends to it without asking
+again, since 3.4's diagram needs (multiple instances, health-check `control`
+edges) are more complex than 1.6's straight-line shape and the trade-off
+might land differently.
+
+---
+
 ## Open decisions blocking or shaping later chapters
 
 Raised during authoring, deliberately not resolved unilaterally. Each needs a
@@ -1382,8 +1792,14 @@ doc edit or a build decision.
    choice the learner makes. Handled as a declared exception in the spec's §6.
    Either §16 gains an explicit "scenery" carve-out or the exception stands as
    documented.
-   **Blocks:** nothing today. Revisit when authoring 1.6, which does the formal
-   introduction.
+   **Resolved 2026-08-09.** 1.6 authored the formal introduction (see its own
+   ledger entry above): `availableComponentIds` equals `requiredComponentIds`
+   equals all three, no exception needed there. 0.1's own scenery exception
+   still stands as documented and doesn't need retroactive changes - it was
+   always framed as narrow-and-temporary, and 1.6 existing is exactly what
+   makes it fully justified now rather than a promise. §16 itself still has no
+   explicit "scenery" carve-out written into CURRICULUM.md; that doc edit
+   remains optional, cosmetic, not blocking anything.
 
 3. **The Reader cannot render topology diagrams.** CURRICULUM §7.2 says any
    diagram expressible as an architecture graph is authored as ScaleCraft graph
@@ -1391,10 +1807,30 @@ doc edit or a build decision.
    supports Mermaid (`MermaidBlock`), GFM, callouts and code blocks - and no
    graph-JSON block. There is no way to put a ScaleCraft topology diagram in a
    lesson body today.
-   **Blocks: 1.6 and 3.4**, whose primary diagram is a topology. Part 0 is
-   unaffected (process flows are Mermaid by spec anyway). Needs a decision
-   before Wave 1 chapter 3: build a markdown graph block, or amend §7.2 to
-   allow Mermaid for topology in the Reader.
+   **Blocks: 3.4** still, whose primary diagram is a topology. Part 0 is
+   unaffected (process flows are Mermaid by spec anyway). **Partially resolved
+   for 1.6 only, 2026-08-09 (user-directed):** 1.6's own ledger entry above
+   records the decision - author 1.6's lesson-body diagram as Mermaid, styled
+   as the target topology, as a narrow declared exception, justified because
+   the real interactive topology already exists via the chapter's
+   `starterGraph`/`blueprints[0]` and is what the learner actually builds; the
+   lesson diagram is only the static preview. **This is a per-chapter
+   precedent, not a resolution of §7.2 itself** - 3.4 needs its own explicit
+   call when authored, not an assumed extension of 1.6's, since 3.4's diagram
+   (multiple instances, health-check `control` edges) is more complex than
+   1.6's straight-line shape. Still needs an eventual decision either way:
+   build a markdown graph-JSON block, or amend §7.2 to sanction a Mermaid
+   exception for topology in the Reader more generally.
+   **Opus pass confirmed the narrow application held for 1.6 (2026-08-09):**
+   exactly one diagram in the chapter, nothing in the lesson claiming a
+   graph-JSON diagram exists, and the "static preview of something the learner
+   actually builds" framing is real rather than a rationalization - the same
+   topology is reachable as a genuine `ArchitectureGraph` in the Editor. One
+   concrete lesson for 3.4's author: 1.6's caption originally over-generalized
+   from the Mermaid picture ("`request-flow` only ever runs client to app
+   server to database"), which 3.4's own topology would have contradicted. A
+   Mermaid topology is easier to overstate than a graph-JSON one, because it
+   isn't constrained by the registry - caption it for *this* diagram only.
 
 4. **CURRICULUM contradicts itself on what the five forces are.** §14's 0.2 row
    and §5.2 say latency / **throughput** / availability / durability / cost.
@@ -1434,6 +1870,18 @@ doc edit or a build decision.
    examples mandatory-vs-optional, Practical objective carve-out) didn't change
    what 1.3 needed either way. Fix in a doc-only commit: drop "1.3" from §4's
    Concept examples list.
+
+7. **§14's 1.6 row promises a simulator trace the chapter doesn't have.** The
+   row reads "Exercise: build + fix + simulator trace"; 1.6 as authored ships
+   build + fix only. Raised by the Opus pass on 1.6 (2026-08-09) and declared
+   in that chapter's spec §4. The built behavior was kept - the Fix exercise
+   already exercises every learning objective, and wiring a simulator step
+   into the chapter flow is engineering work, not content authoring. Same
+   class as decision #1 (§14's 0.1 row contradicting the shipped chapter).
+   **Blocks:** nothing. Decide once, for both rows: either amend §14 to match
+   what's shipped, or schedule the simulator-trace work. Note that §14's 1.7
+   row ("predict-then-check ... then simulate") makes the same promise, so
+   1.7's author hits this before the decision can keep being deferred.
 
 ---
 

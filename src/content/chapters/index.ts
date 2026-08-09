@@ -2615,6 +2615,724 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
   },
   {
+    id: "bb-1-5-numbers-every-engineer-should-know",
+    mode: "building-blocks",
+    title: "Numbers Every Engineer Should Know",
+    // Real authored content (Wave 2, fifth Part 1 chapter). Spec:
+    // specs/bb-1-5-numbers-every-engineer-should-know.spec.md. Lesson body:
+    // public/content/chapters/bb-1-5-numbers-every-engineer-should-know.md.
+    problemStatement:
+      "Some numbers are cheaper to memorize outright than to derive live - the latency ladder from RAM " +
+      "through SSD, a same-datacenter network hop, a disk seek, and a cross-continent network hop, each " +
+      "roughly one to two orders of magnitude past the one before, with one pair that swaps order. This " +
+      "chapter teaches the ladder and the ratios between its rungs, not just the raw figures. No build: " +
+      "the knowledge check asks you to rank a short list of operations fastest to slowest using the " +
+      "ladder, then estimate the rough total latency of a request built from a stated combination of them.",
+    // Five objectives - all five §5.2 categories present (Process chapters
+    // don't get the Concept-only Practical carve-out, same as 1.1-1.4).
+    learningObjectives: [
+      "Knowledge - State the five-rung latency ladder (RAM, SSD, same-datacenter network, disk seek, cross-continent network) in the correct relative order without deriving it from scratch.",
+      "Engineering - Decide whether a design's dominant latency cost is a compute problem or a data-locality problem, by naming which rung of the ladder a given operation sits on.",
+      "Interview - Quantify a cache's or a nearby copy's benefit as a rough order-of-magnitude number, using the ladder, instead of a bare 'it's faster.'",
+      "Practical - Given a short list of operations, rank them fastest to slowest using the ladder's ratios, and estimate the order-of-magnitude latency of a request built from a stated combination of them.",
+      "Communication - Explain in one sentence why a same-datacenter network round trip can beat a local disk seek, naming the physical reason.",
+    ],
+    // No components introduced (§16 homes the three primitives at 1.6) and no
+    // construction-family exercise - same no-build Process pattern
+    // 1.1/1.2/1.3/1.4 established.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-1-5-hint-1",
+        body:
+          "Start from the ends of the ladder you're most sure of - RAM is the fastest, cross-continent " +
+          "network is the slowest - then place the rest relative to those two.",
+      },
+      {
+        id: "bb-1-5-hint-2",
+        body:
+          "A disk seek is mechanical - something physically has to move. A same-datacenter network hop " +
+          "is electrical. That difference is worth thinking about when you're unsure which one wins.",
+      },
+      {
+        id: "bb-1-5-hint-3",
+        body:
+          "For the estimate drill, find the single slowest operation in the combination first - the " +
+          "total is dominated by that one, not the precise sum of all of them.",
+      },
+    ],
+    readingLinks: [],
+    // 1: Sonnet draft (2026-08-09).
+    // 2: Opus proofread (2026-08-09) - "rung" now defined at first use and the
+    //    ladder given one fixed orientation (was used to mean both faster and
+    //    slower), the RAM/SSD/network ratio chain made arithmetically
+    //    consistent (SSD "~10s of microseconds" -> "~10 microseconds",
+    //    SSD -> datacenter edge "~10x" -> "~50x"), the diagram flipped to TD so
+    //    it matches the ladder metaphor, and roughly a dozen multi-clause
+    //    sentences split. See spec §13.
+    lessonVersion: 2,
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.5 of 44.",
+      masteredConcepts: [
+        "1.4's estimation shortcut (~10^5 seconds/day) and its own distinction between a number worth " +
+          "deriving and a number that's already close enough to a threshold that refining it wastes " +
+          "time - reapplied here to numbers worth memorizing instead of deriving at all.",
+        "0.2's five forces, specifically the cache force (a cache buys latency by keeping hot data " +
+          "closer than its source) - this chapter supplies the physical ratios that force explains.",
+        "1.3's non-functional requirements as numbers-shaped promises (p99 latency, availability) - the " +
+          "budgets this chapter's ladder has to fit inside.",
+      ],
+      notYetIntroducedConcepts: [
+        "Any specific component or edge kind - none are introduced until 1.6.",
+        "Named replication or consistency mechanisms for keeping a nearby copy in sync - referenced " +
+          "only as 'a real mechanism' here, taught starting 3.12 and 3.22.",
+        "CDNs, regions, or any named way of placing data near users - 1.5 teaches only the raw latency " +
+          "gap those mechanisms close, not the mechanisms themselves (home: 3.15 and later).",
+      ],
+      simplifications: [
+        "The ladder's figures are order-of-magnitude landmarks, not measured benchmarks for any " +
+          "specific vendor or hardware generation - real numbers vary by SSD generation, network path, " +
+          "and workload. The ratio between rungs is the durable fact; the exact millisecond isn't.",
+        "\"Same-datacenter\" and \"cross-continent\" stand in for the two ends of the network-distance " +
+          "spectrum worth having memorized, not an exhaustive list of real network distances.",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2-1.4's convention. Q1 (ordering) and Q2
+    // (estimate) directly realize CURRICULUM §14's "ranking + estimation
+    // drills" exercise - not a stages-UI degradation like 1.1/1.2/1.4's,
+    // since §14's row never calls this exercise "staged" (same non-
+    // degradation judgment call 1.3 made). Q3-Q5 are original, modeled on
+    // QUIZ_FRAMEWORK §6's own Q5/Q6 (already written against this chapter)
+    // without reusing their wording. Correct-position spread for the three
+    // single-kind questions (c, a, d) checked by eye against the clustering
+    // bug fixed in 0.1/0.2.
+    quiz: [
+      {
+        id: "bb-1-5-numbers-every-engineer-should-know-q1",
+        kind: "ordering",
+        difficulty: 1,
+        prompt:
+          "Order these five operations from fastest to slowest: a RAM reference, an SSD read, a " +
+          "same-datacenter network round trip, a local disk seek, a cross-continent network round trip.",
+        // Full derangement against correctOrder - Ordering.tsx shows this
+        // array's authored order with no shuffle, so a naturally-ordered
+        // draft would ship pre-solved.
+        options: [
+          {
+            id: "ssd",
+            label: "SSD read",
+            correct: true,
+            explanationMd:
+              "Second - roughly 10-100x slower than a RAM reference, but no moving parts, so still far " +
+              "ahead of anything on this list involving a network or a spinning disk.",
+          },
+          {
+            id: "cross",
+            label: "Cross-continent network round trip",
+            correct: true,
+            explanationMd:
+              "Last - bounded by real physical distance and the cables a signal has to cross; roughly " +
+              "150-300x the same-datacenter round trip, and no code shortens that floor.",
+          },
+          {
+            id: "ram",
+            label: "RAM reference",
+            correct: true,
+            explanationMd: "First - electrical, a few nanoseconds, the fastest rung on the ladder.",
+          },
+          {
+            id: "samedc",
+            label: "Same-datacenter network round trip",
+            correct: true,
+            explanationMd:
+              "Third - pays queuing and OS overhead on top of wire speed, but that wire is measured in " +
+              "feet, which is why it still beats a disk seek.",
+          },
+          {
+            id: "disk",
+            label: "Local disk seek",
+            correct: true,
+            explanationMd:
+              "Fourth, not third - a physical arm moving across a spinning platter is a real mechanical " +
+              "delay, slower than a network hop to the machine next door.",
+          },
+        ],
+        correctOrder: ["ram", "ssd", "samedc", "disk", "cross"],
+      },
+      {
+        id: "bb-1-5-numbers-every-engineer-should-know-q2",
+        kind: "estimate",
+        difficulty: 1,
+        prompt:
+          "A request does one RAM lookup, then one same-datacenter network round trip to another " +
+          "service. What's the order of magnitude for the pair's total latency?",
+        options: [
+          {
+            id: "a",
+            label: "~1 microsecond",
+            correct: false,
+            explanationMd:
+              "This ignores the network hop entirely - a same-datacenter round trip alone runs closer " +
+              "to a millisecond, a thousand times slower than this.",
+          },
+          {
+            id: "b",
+            label: "~1 millisecond",
+            correct: true,
+            explanationMd:
+              "Correct. The RAM lookup (~100 ns) is negligible next to the same-datacenter round trip " +
+              "(~0.5-1 ms), which dominates the pair's total.",
+          },
+          {
+            id: "c",
+            label: "~1 second",
+            correct: false,
+            explanationMd:
+              "Roughly a thousand times too slow for one same-datacenter hop - that scale of delay " +
+              "usually means several hops, not one, or a cross-continent leg in the mix.",
+          },
+          {
+            id: "d",
+            label: "~100 seconds",
+            correct: false,
+            explanationMd:
+              "Nothing on this ladder costs anywhere near this much - even a cross-continent round trip " +
+              "is roughly five orders of magnitude faster than this.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-5-numbers-every-engineer-should-know-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "An engineer designs a service to read straight from local disk instead of adding a small " +
+          "cache reachable over the datacenter network, reasoning that \"local is always faster than " +
+          "the network.\" What's the strongest critique?",
+        options: [
+          {
+            id: "a",
+            label: "The critique is wrong - local disk is always faster than any network hop.",
+            correct: false,
+            explanationMd:
+              "This is exactly the assumption the ladder disproves - a same-datacenter round trip is " +
+              "typically faster than a disk seek, not slower.",
+          },
+          {
+            id: "b",
+            label: "The engineer should have used a faster CPU instead of worrying about storage at all.",
+            correct: false,
+            explanationMd:
+              "A faster CPU doesn't touch either the disk-seek delay or the network round trip - neither " +
+              "is a compute cost.",
+          },
+          {
+            id: "c",
+            label:
+              "The assumption is backwards for this pair: a disk seek is typically slower than a " +
+              "same-datacenter network round trip, which is exactly why fetching from a nearby cache " +
+              "over the network can beat reading local disk.",
+            correct: true,
+            explanationMd:
+              "Correct. This is the ladder's one out-of-order pair, and it's the reason large-scale " +
+              "services put a memory cache between the app tier and the database in the first place.",
+          },
+          {
+            id: "d",
+            label: "Neither disk nor network latency matters once the response is compressed.",
+            correct: false,
+            explanationMd:
+              "Compression shrinks payload size, not the seek delay or the round-trip time being " +
+              "compared here - it addresses a different cost entirely.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-5-numbers-every-engineer-should-know-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A service's cross-continent API calls add roughly 150 ms per round trip. Which change " +
+          "actually addresses that cost?",
+        options: [
+          {
+            id: "a",
+            label:
+              "Serve the request from a location physically closer to the user - a cross-continent " +
+              "round trip's ~150 ms is mostly the distance a signal has to travel, not code running slowly.",
+            correct: true,
+            explanationMd:
+              "Correct. Distance sets a physical floor on round-trip time; the only way to lower it is " +
+              "to shorten the distance.",
+          },
+          {
+            id: "b",
+            label: "Give the origin server more CPU cores.",
+            correct: false,
+            explanationMd:
+              "More compute doesn't touch a physical-distance floor - the 150 ms isn't being spent " +
+              "processing the request.",
+          },
+          {
+            id: "c",
+            label: "Compress the response body further.",
+            correct: false,
+            explanationMd:
+              "Compression shrinks transfer time, a small fraction of the total next to the propagation " +
+              "delay a cross-continent hop pays regardless of payload size.",
+          },
+          {
+            id: "d",
+            label: "Retry the request automatically if it seems slow.",
+            correct: false,
+            explanationMd:
+              "A retry pays the same ~150 ms again - it doesn't reduce the cost, it repeats it.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-5-numbers-every-engineer-should-know-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "1.4 taught you to compute an order-of-magnitude estimate from first principles and spend " +
+          "extra precision only where a number sits near a real threshold. How does that rule apply to " +
+          "this chapter's landmark ratios?",
+        options: [
+          {
+            id: "a",
+            label: "It doesn't - these ratios should always be re-derived from physics for accuracy.",
+            correct: false,
+            explanationMd:
+              "1.4 never asked for re-derivation by default - it endorsed a memorized shortcut " +
+              "(~10^5 seconds/day) precisely to avoid rebuilding a number from scratch each time.",
+          },
+          {
+            id: "b",
+            label:
+              "Since these ratios are memorized constants, no engineer should ever bother measuring a " +
+              "real system's actual numbers.",
+            correct: false,
+            explanationMd:
+              "This overcorrects - 1.4's rule is to spend precision where an estimate sits near a real " +
+              "threshold, not to never measure anything.",
+          },
+          {
+            id: "c",
+            label:
+              "The two rules are unrelated - 1.4 was about traffic volume and this chapter is about " +
+              "physical latency, so they don't share a lesson.",
+            correct: false,
+            explanationMd:
+              "Both chapters teach the same rule (order of magnitude first, precision only where it " +
+              "earns its keep) applied to two different kinds of numbers.",
+          },
+          {
+            id: "d",
+            label:
+              "The rule is identical: memorize the ladder as a fast default, and spend time measuring a " +
+              "system's real numbers only when an estimate built from the ladder lands close enough to " +
+              "a threshold to matter.",
+            correct: true,
+            explanationMd:
+              "Correct. The ladder is this chapter's version of 1.4's ~10^5-seconds shortcut - a fast " +
+              "default good enough until a real threshold says otherwise.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-1-6-drawing-the-first-architecture",
+    mode: "building-blocks",
+    title: "Drawing the First Architecture",
+    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
+    // Spec: specs/bb-1-6-drawing-the-first-architecture.spec.md. Lesson body:
+    // public/content/chapters/bb-1-6-drawing-the-first-architecture.md.
+    // First Building Block chapter (§4) - 1.1-1.5 were Concept/Process with
+    // no components, no starterGraph, no blueprints. This one has all three
+    // for real, plus §16's formal introduction of the three primitives that
+    // 0.1 only borrowed as narrow scenery.
+    problemStatement:
+      "The starter design on the canvas skips the app server: the client is wired straight to " +
+      "the database. No tour walks you through this one. Run Validate, read what it reports, and " +
+      "use that to decide what to add and what to rewire. Add the missing component, route both " +
+      "edges through it, get a clean Validate, then Submit.",
+    // Six objectives (§5.2 allows 3-7): all five required categories, plus a
+    // second Engineering objective for the two beats (Failure modes,
+    // Scaling) that are mandatory for Building Block but were optional for
+    // every Concept/Process chapter so far. Category tags live in the spec
+    // (specs/bb-1-6-drawing-the-first-architecture.spec.md §2).
+    learningObjectives: [
+      "State the job each of the three primitive components does, and why the app server sits between the other two.",
+      "Decide why a client should never connect directly to a database, naming the concrete risk it creates.",
+      "Identify what breaks first in a one-app-server design, and state qualitatively what changes at 10x and 100x traffic.",
+      "Fix a starter graph that skips the app server: add the missing component, route both edges through it, and pass a clean Validate then Submit.",
+      "Produce a defensible first architecture for a simple product in under a minute, naming each component's job as you draw it.",
+      "Explain, in your own words, why the no-direct-client-database validation failure fires and what it is protecting against.",
+    ],
+    // §16's audit row for 1.6 exactly: client, app-server, sql-database is
+    // this chapter's home, not a borrowed exception. The exercise requires
+    // all three - a minimal three-tier build has no optional piece, so
+    // required equals available.
+    availableComponentIds: ["client", "app-server", "sql-database"],
+    requiredComponentIds: ["client", "app-server", "sql-database"],
+    // no-direct-client-database is the chapter's namesake rule (fires on the
+    // starter graph's client -> sql-database edge regardless of edge kind).
+    // component-relations fires on the same edge for an independent reason:
+    // BOTH endpoint contracts reject it (client's outputs.allowedCategories is
+    // ["networking","compute"], sql-database's inputs.allowedCategories is
+    // ["compute","caching"]), and since component-relations.ts tests
+    // !outputCategoryOk first, the message the learner reads names the
+    // Client's output rules, not the database's input rules. The other three
+    // rules fire on graph coherence, not on any concept this chapter hasn't
+    // taught, so they can't surface an idea ahead of its home chapter. None of
+    // them reports the absent app-server - that comes from
+    // runChapterValidation's missingRequiredComponentIds check over
+    // requiredComponentIds (chapter-outcome.ts), not from a rule.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "request-flow-cycle",
+    ],
+    blueprints: [
+      {
+        id: "bb-1-6-blueprint",
+        label: "Client through an app server to a database",
+        require: {
+          id: "bb-1-6-blueprint",
+          nodes: [
+            { alias: "client", componentId: "client" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "client", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "A client talks to an app server, which is the only thing that reads or writes to the " +
+          "database - the smallest shape that is still a real, three-tier architecture. Every later " +
+          "Building Block chapter extends this shape; none of them replace it.",
+      },
+    ],
+    hints: [
+      {
+        id: "bb-1-6-hint-1",
+        body:
+          "Validate names what's on the canvas and what's missing. Of the three jobs - receive, " +
+          "decide, store - which one has no component doing it yet?",
+      },
+      {
+        id: "bb-1-6-hint-2",
+        body:
+          "The picker (`/` or right-click) has all three components available. The missing one " +
+          "belongs between the two already present, not beside them.",
+      },
+      {
+        id: "bb-1-6-hint-3",
+        body:
+          "A request-flow edge already runs straight from the client to the database. Once the " +
+          "missing piece is placed, decide what happens to that edge rather than leaving it where it is.",
+      },
+    ],
+    readingLinks: [],
+    // 1: Sonnet draft (2026-08-09).
+    // 2: Opus proofread (2026-08-09) - diagram caption no longer claims
+    //    request-flow "only ever" runs client -> app -> db (false as a general
+    //    claim about the edge kind, and 3.4 breaks it) nor that the exercise
+    //    checks "one rule" (five are curated, and the starter graph's one bad
+    //    edge trips two), the Instagram example rewritten to a defensible
+    //    claim (it overclaimed a single primary Postgres "serving millions of
+    //    users"; by then Instagram had many app servers and sharded Postgres),
+    //    "Next" given the backward connections §19 requires in beat 14 (it had
+    //    none - 1.4/1.5 both carry them), and the senior line's "saturate"
+    //    changed to the chapter's own "run out of headroom" (§10.3; saturation
+    //    is 1.7's word). See spec §13.
+    lessonVersion: 2,
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.6 of 44.",
+      masteredConcepts: [
+        "The Reader-to-Editor loop, Validate vs. Submit, and reading a validation explanation (0.1).",
+        "The five forces: latency, throughput, availability, durability, cost (0.2).",
+        "Interview vs. production registers, and the eight-step Interview Loop, including step 4 (0.3-0.4).",
+        "Scoping a problem with clarifying questions (1.1) and functional requirements (1.2).",
+        "Non-functional requirements as numbers-shaped promises (1.3).",
+        "Order-of-magnitude estimation, including this chapter's own running system's 1000:1 read:write ratio (1.4).",
+        "The latency ladder and its ratios, referenced here as headroom/saturation language (1.5).",
+      ],
+      notYetIntroducedConcepts: [
+        "Multiple app-server instances and routing traffic across them - a load balancer (3.4).",
+        "Caching (3.14), read replicas and NoSQL (3.11-3.12).",
+        "Formal, systematic bottleneck-finding methodology (1.7) - this chapter applies the idea informally, once.",
+        "Real authentication/authorization mechanics - named as the app server's job, not implemented.",
+      ],
+      simplifications: [
+        "Only one app-server instance is ever in scope. The instances config field exists on the " +
+          "component but this chapter never asks the learner to touch it - what has to change to run " +
+          "more than one safely is 3.4's job.",
+        "Mediation (authentication, authorization, business rules) is named as the app server's job, " +
+          "not implemented as real mechanics. The point here is only that some layer must own it and " +
+          "the client must not be it.",
+        "The database is treated as a single, undifferentiated store. SQL vs. NoSQL, replication, and " +
+          "read replicas are all later material (3.11-3.12) and are not previewed here.",
+      ],
+    },
+    // Five questions, ramp 1/1/2/2/3 (matching 0.2-1.5's convention). Q2 is
+    // modeled on QUIZ_FRAMEWORK.md §6's own Q7 - the bank's published
+    // example for this exact chapter and rule - reworded and re-laid-out
+    // rather than copied verbatim. Position-clustering checked by eye across
+    // the four single-kind questions (Q1/Q3/Q4/Q5): correct options sit at
+    // b, a, c, d - four distinct positions.
+    quiz: [
+      {
+        id: "bb-1-6-drawing-the-first-architecture-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "What is the app server's job in the three-tier shape you just built?",
+        options: [
+          {
+            id: "a",
+            label: "Durably store the data.",
+            correct: false,
+            explanationMd: "That's the database's job. The app server never keeps data of its own.",
+          },
+          {
+            id: "b",
+            label: "Check who is asking, apply the product's business rules, and only then read or write.",
+            correct: true,
+            explanationMd:
+              "Correct. The app server is the only component allowed to touch the database, and " +
+              "mediation is the whole reason it sits between the other two.",
+          },
+          {
+            id: "c",
+            label: "Issue the original request.",
+            correct: false,
+            explanationMd: "That's the client's job - it originates the request; it doesn't decide anything about it.",
+          },
+          {
+            id: "d",
+            label: "Both store the data and issue the request.",
+            correct: false,
+            explanationMd:
+              "This conflates the other two components' jobs into one that does neither - the app " +
+              "server does neither storage nor origination, it mediates between them.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-6-drawing-the-first-architecture-q2",
+        kind: "diagram",
+        difficulty: 1,
+        prompt:
+          "This design has client -> app server -> sql database, plus a second edge straight from " +
+          "the client to the database. Which edge should not exist, and why?",
+        graph: {
+          nodes: [
+            { id: "c1", componentId: "client", position: { x: 40, y: 100 }, config: {} },
+            { id: "a1", componentId: "app-server", position: { x: 220, y: 100 }, config: {} },
+            { id: "d1", componentId: "sql-database", position: { x: 400, y: 100 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "c1", target: "a1", kind: "request-flow" },
+            { id: "e2", source: "a1", target: "d1", kind: "request-flow" },
+            { id: "e3", source: "c1", target: "d1", kind: "request-flow" },
+          ],
+          entryPointIds: ["c1"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "e1 - the client should reach the app server through a firewall first.",
+            correct: false,
+            explanationMd:
+              "A firewall isn't introduced until 3.1 and isn't required at this scale. e1 is a legitimate " +
+              "client-to-app-server edge, exactly the shape this chapter teaches.",
+          },
+          {
+            id: "b",
+            label: "e2 - the app server should not talk to the database directly.",
+            correct: false,
+            explanationMd:
+              "e2 is the one edge in this graph doing exactly what it should - the app server is the " +
+              "only component that is supposed to reach the database.",
+          },
+          {
+            id: "c",
+            label: "e3 - it bypasses the app server's authentication, authorization, and business logic.",
+            correct: true,
+            explanationMd:
+              "Correct. A direct client-to-database edge skips every check the app server exists to " +
+              "make, which is exactly what no-direct-client-database catches - the same fault this " +
+              "chapter's own starter graph ships with.",
+          },
+          {
+            id: "d",
+            label: "All three edges are fine as drawn.",
+            correct: false,
+            explanationMd:
+              "e3 is not fine - a graph with a direct client-to-database edge fails Validate, " +
+              "regardless of what else is drawn correctly alongside it.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-6-drawing-the-first-architecture-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "no-direct-client-database fires on a client-to-database edge no matter what kind that " +
+          "edge is given. Why?",
+        options: [
+          {
+            id: "a",
+            label:
+              "The rule checks which components an edge connects, not what kind it's labeled - the " +
+              "problem is the missing mediation, not the edge's label.",
+            correct: true,
+            explanationMd:
+              "Correct. A request-flow edge straight from client to database is exactly as illegal as " +
+              "any other kind would be - nothing about relabeling it fixes the missing app server.",
+          },
+          {
+            id: "b",
+            label: "It only checks edges of kind async.",
+            correct: false,
+            explanationMd:
+              "There is no kind filter on this rule at all - checking only one kind would let the same " +
+              "illegal connection dodge the rule by picking a different kind, which is exactly what the " +
+              "rule is written to prevent.",
+          },
+          {
+            id: "c",
+            label: "It only fires if the database initiates the connection.",
+            correct: false,
+            explanationMd:
+              "A database has no legal outgoing path to a client at all in this registry - this " +
+              "distinction doesn't apply here. The rule fires on the client-to-database direction, " +
+              "never the reverse.",
+          },
+          {
+            id: "d",
+            label: "It only fires once every other validation rule has already passed.",
+            correct: false,
+            explanationMd:
+              "Validation rules are independent - this one fires on its own match, at the same time as " +
+              "any other rule that also matches the same graph.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-6-drawing-the-first-architecture-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Today's design has exactly one app-server instance. It crashes. What happens?",
+        options: [
+          {
+            id: "a",
+            label: "Reads keep working; only writes fail.",
+            correct: false,
+            explanationMd:
+              "There is no separate read path in this design - the app server is the only route to the " +
+              "database for anything, reads included.",
+          },
+          {
+            id: "b",
+            label: "The database serves cached responses.",
+            correct: false,
+            explanationMd: "No cache exists yet in this architecture - that component doesn't arrive until 3.14.",
+          },
+          {
+            id: "c",
+            label: "Nothing responds at all - the app server is the only path to the database.",
+            correct: true,
+            explanationMd:
+              "Correct. Its absence is total, not partial: with the one component that mediates access " +
+              "gone, there is no route left to the database for anything.",
+          },
+          {
+            id: "d",
+            label: "Clients fall back to a direct database connection.",
+            correct: false,
+            explanationMd:
+              "Nothing in this architecture permits that - it's the exact edge no-direct-client-database " +
+              "exists to forbid, crash or no crash.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-6-drawing-the-first-architecture-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt: "Traffic grows 100x, using only today's three components. What's the first real limitation?",
+        options: [
+          {
+            id: "a",
+            label: "The database fails first.",
+            correct: false,
+            explanationMd:
+              "Plausible-sounding, but not what this design actually hits first - the single app-server " +
+              "instance runs out of headroom before the database does.",
+          },
+          {
+            id: "b",
+            label: "The client can't send requests fast enough.",
+            correct: false,
+            explanationMd: "Clients aren't the bottleneck in this shape - nothing about issuing a request is capacity-limited here.",
+          },
+          {
+            id: "c",
+            label: "Nothing changes; the shape still works at any scale.",
+            correct: false,
+            explanationMd:
+              "Directly contradicted by what this chapter teaches: at 100x, one app-server instance " +
+              "genuinely cannot serve the load.",
+          },
+          {
+            id: "d",
+            label:
+              "The single app-server instance can't serve the load, and nothing yet decides how to " +
+              "split traffic across more than one.",
+            correct: true,
+            explanationMd:
+              "Correct. This is exactly the wall this chapter's own Scaling section names - solving it " +
+              "needs a new component, which 3.4 introduces.",
+          },
+        ],
+      },
+    ],
+    // Deliberately broken, matching 0.1's own "two real, distinct issues"
+    // pattern (§11.1 - fix exercises ship symptoms, never "find the bug"
+    // blind):
+    //  1. app-server (a required component) is entirely absent.
+    //  2. The one edge present runs client -> sql-database directly, kind
+    //     "request-flow" (the only kind a client may legally emit at all -
+    //     see content/components/config/networking.ts's relations). It is
+    //     illegal because of what it connects, not because of its kind -
+    //     the more realistic and more instructive fault, and the reason
+    //     no-direct-client-database checks endpoints unconditionally on
+    //     kind (see that rule's own module comment).
+    starterGraph: {
+      nodes: [
+        { id: "bb-1-6-client", componentId: "client", position: { x: 80, y: 140 }, config: {} },
+        { id: "bb-1-6-sql-database", componentId: "sql-database", position: { x: 400, y: 140 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-1-6-edge-client-db", source: "bb-1-6-client", target: "bb-1-6-sql-database", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-1-6-client"],
+    },
+  },
+  {
     id: "bb-dummy-1",
     mode: "building-blocks",
     title: "Placeholder Chapter",
