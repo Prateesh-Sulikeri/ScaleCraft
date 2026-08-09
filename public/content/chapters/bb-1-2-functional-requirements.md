@@ -132,5 +132,5 @@ and a Must-have list is only half of it.
 
 1.3 takes the same Must-have list and asks a different question: not what the
 system does, but how well it has to do it - how fast, how available, how
-consistent. A feature with no performance promise attached isn't finished
-being specified yet.
+durable. A feature with no performance promise attached isn't finished being
+specified yet.

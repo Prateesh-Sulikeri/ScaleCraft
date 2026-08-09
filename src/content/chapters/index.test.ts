@@ -11,6 +11,10 @@ describe("getChaptersForMode", () => {
       "bb-0-4-the-system-design-lifecycle",
       "bb-1-1-understanding-the-problem",
       "bb-1-2-functional-requirements",
+      "bb-1-3-non-functional-requirements",
+      "bb-1-4-estimating-scale",
+      "bb-1-5-numbers-every-engineer-should-know",
+      "bb-1-6-drawing-the-first-architecture",
       "bb-dummy-1",
     ]);
   });

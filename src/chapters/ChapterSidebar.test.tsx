@@ -59,6 +59,9 @@ vi.mock("@/content/chapters", () => ({
 const findEntryMock = vi.fn((_courseId: string, slug: string) => (slug === "a" ? entryA : undefined));
 vi.mock("@/curriculum", () => ({
   findEntry: (courseId: string, slug: string) => findEntryMock(courseId, slug),
+  // No test in this file asserts on "Next chapter" (see NextChapterLink.test.tsx
+  // for that) - undefined keeps it a no-op so it doesn't affect this file's DOM.
+  nextEntry: () => undefined,
 }));
 
 vi.mock("@/curriculum/progress-store", () => ({
