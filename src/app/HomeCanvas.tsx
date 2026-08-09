@@ -87,6 +87,7 @@ export function HomeCanvas() {
   const { resolvedTheme } = useTheme();
   const mounted = useHasMounted();
   const colorMode = mounted && resolvedTheme === "light" ? "light" : "dark";
+  const backgroundColor = colorMode === "light" ? "#d1d5db" : "#334155";
 
   const hydrate = useCurriculumProgressStore((s) => s.hydrate);
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
@@ -163,11 +164,7 @@ export function HomeCanvas() {
           fitView
           fitViewOptions={{ padding: 0.25, maxZoom: 1 }}
         >
-          <Background
-            gap={50}
-            size={2}
-            color={resolvedTheme === "light" ? "#d1d5db" : "#334155"}
-          />
+          <Background gap={50} size={2} color={backgroundColor} />
         </ReactFlow>
       </ReactFlowProvider>
     </div>

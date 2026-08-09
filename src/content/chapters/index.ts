@@ -1985,6 +1985,636 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
   },
   {
+    id: "bb-1-3-non-functional-requirements",
+    mode: "building-blocks",
+    title: "Non-functional Requirements",
+    // Real authored content (Wave 2, third Part 1 chapter). Spec:
+    // specs/bb-1-3-non-functional-requirements.spec.md. Lesson body:
+    // public/content/chapters/bb-1-3-non-functional-requirements.md.
+    problemStatement:
+      "A non-functional requirement is a functional requirement's how well partner (1.2) - stated " +
+      "as a number you'd defend, not an adjective you'd say. This chapter turns 0.2's five forces " +
+      "into their measurable shapes (a latency budget, a throughput floor, an availability " +
+      "percentage, a durability tolerance, a cost ceiling) and teaches why the number, not the " +
+      "feeling, is what actually constrains a design. No build: the knowledge check gives you " +
+      "three described products and asks you to match each to the number that dominates it.",
+    // Five objectives - all five §5.2 categories present, same as 1.1/1.2
+    // (Process chapters don't get the Concept-only Practical carve-out).
+    // Practical is exercised by the quiz's matching question standing in for
+    // CURRICULUM §14's own exercise description (spec §5 - no stages UI
+    // needed here, unlike 1.1/1.2's degradation, since §14's own row never
+    // called this one "staged").
+    learningObjectives: [
+      "Knowledge - State what makes a promise a non-functional requirement: a number about how well the system performs, not what it does, tied to one of 0.2's five forces.",
+      "Engineering - Translate a described product's dominant pressure into the NFR-shaped number that actually constrains its design (a latency budget, an availability target, a durability tolerance) instead of a vague adjective.",
+      "Interview - State a non-functional requirement as a number with a stated reason, instead of an adjective like 'fast' or 'reliable', inside the interview's requirements step.",
+      "Practical - Given three described products, match each to the number that actually dominates its design.",
+      "Communication - Justify why one force is prioritized over another for a given product, naming the cost of buying the extra nine or the tighter budget.",
+    ],
+    // No components introduced (§16 homes the three primitives at 1.6) and no
+    // construction-family exercise - same pattern 1.1/1.2 established for
+    // Part 1's no-build Process chapters.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-1-3-hint-1",
+        body:
+          "Read the requirement and ask: is it a number you could check against a dashboard, or is " +
+          "it an adjective like \"fast\" or \"reliable\" that nobody could actually test?",
+      },
+      {
+        id: "bb-1-3-hint-2",
+        body:
+          "Ask which single force (0.2) this product's worst failure story is about - what actually " +
+          "goes wrong for the user, and which of the five forces does that belong to?",
+      },
+      {
+        id: "bb-1-3-hint-3",
+        body:
+          "Durability answers \"is the data still there\"; availability answers \"can I reach it " +
+          "right now.\" Don't let one product's number stand in for the other.",
+      },
+    ],
+    readingLinks: [],
+    // 2: Opus proofread pass (2026-08-09). Density fix - the primary diagram
+    // and the core-mechanics table stated the same force-to-number-shape
+    // mapping twice, so the table's middle column was cut and it now carries
+    // worked examples only. Also: p99 defined at first use, a false
+    // "availability compounds the same way" bridge rewritten, "buys back 10x
+    // less downtime" -> "cuts downtime tenfold" (body + recap), the senior
+    // line's "fifth nine" -> "fourth nine" (it sits at 99.9%), S3's 99.9%
+    // labelled as its service-agreement figure, and "Your turn" given the
+    // withheld-information line it was missing. See spec §13.
+    lessonVersion: 2,
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.3 of 44.",
+      masteredConcepts: [
+        "0.2's five forces (latency, throughput, availability, durability, cost) and that they " +
+          "trade against each other.",
+        "1.2's Must/Should/Could/Won't feature list - the thing this chapter attaches numeric " +
+          "promises to.",
+        "The Interview Loop's eight steps, with requirements as step 2 (0.4).",
+      ],
+      notYetIntroducedConcepts: [
+        "Estimation math - turning a user count into QPS, storage, and bandwidth (1.4-1.5). This " +
+          "chapter names the shape of the number; deriving it from scale is next.",
+        "Any specific component or edge kind - none are introduced until 1.6.",
+        "Consistency as a formal design concern, deferred to 3.22 - not one of the five forces this " +
+          "curriculum teaches (0.2).",
+      ],
+      simplifications: [
+        "Nines-to-downtime figures use a 365.25-day year and standard rounding - illustrative, not " +
+          "exact SLA legal language.",
+        "Real NFR-setting also weighs measured historical data and business risk tolerance, " +
+          "compressed here into \"name the dominant force and defend the number.\"",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2/0.3/0.4/1.1/1.2's convention. Q1 stands in
+    // for CURRICULUM §14's own exercise ("match NFRs to three described
+    // products; explanation per match") directly - no degradation flag
+    // needed, unlike 1.1/1.2's staged-exercise substitutions. Q2-Q5 are
+    // original. Correct-position spread for the four single-kind questions
+    // (b, c, a, d) checked by eye against the clustering bug fixed in 0.1/0.2.
+    quiz: [
+      {
+        id: "bb-1-3-non-functional-requirements-q1",
+        kind: "matching",
+        difficulty: 1,
+        prompt: "Match each product to the number that actually dominates its design.",
+        // Option order is a full derangement against pairs' order below
+        // (durability, throughput, latency vs. pairs' latency, durability,
+        // throughput) - no pair's correct option sits at its own index.
+        options: [
+          {
+            id: "durability-nfr",
+            label: "99.999999999% durability - a stored file is essentially never lost",
+            correct: true,
+            explanationMd:
+              "A scan can't be re-taken from that moment - losing the file is unrecoverable in a way " +
+              "a slow load never is.",
+          },
+          {
+            id: "throughput-nfr",
+            label: "Accepts 50,000 votes in the same three minutes without dropping any",
+            correct: true,
+            explanationMd:
+              "The whole risk is the concurrent spike; each individual vote landing a few hundred ms " +
+              "slower barely matters.",
+          },
+          {
+            id: "latency-nfr",
+            label: "p99 response time under 150 ms",
+            correct: true,
+            explanationMd:
+              "Someone standing on a curb expects the app to feel instant - a slow response reads as " +
+              "broken, not busy.",
+          },
+        ],
+        pairs: [
+          ["A ride-hailing app's driver-match request, tapped by someone standing on a curb", "latency-nfr"],
+          [
+            "A hospital archiving every patient's MRI scan for the legally required 7 years, with no way to re-take an old scan",
+            "durability-nfr",
+          ],
+          [
+            "A conference Q&A app collecting audience up-votes during the single most-attended talk of the day",
+            "throughput-nfr",
+          ],
+        ],
+      },
+      {
+        id: "bb-1-3-non-functional-requirements-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt: "Which of these is a properly stated non-functional requirement?",
+        options: [
+          {
+            id: "a",
+            label: "The checkout page should feel snappy.",
+            correct: false,
+            explanationMd: "\"Snappy\" isn't a number - nobody can check it against a dashboard.",
+          },
+          {
+            id: "b",
+            label: "p99 checkout latency under 300 ms.",
+            correct: true,
+            explanationMd: "Correct. A percentile, a number, and a unit - testable and specific.",
+          },
+          {
+            id: "c",
+            label: "Users can apply a discount code at checkout.",
+            correct: false,
+            explanationMd:
+              "This is what the system does, not how well it does it - a functional requirement " +
+              "(1.2), not an NFR.",
+          },
+          {
+            id: "d",
+            label: "The system should be reliable.",
+            correct: false,
+            explanationMd: "Same problem as \"snappy\" - an adjective nobody can measure or defend.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-3-non-functional-requirements-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A team is deciding between 99.9% and 99.99% availability for an internal reporting tool " +
+          "12 employees check during business hours. What's the strongest argument against the " +
+          "extra nine?",
+        options: [
+          {
+            id: "a",
+            label: "It's technically impossible to reach 99.99% without a full multi-region deployment.",
+            correct: false,
+            explanationMd: "Possible, just not free - this overstates the barrier.",
+          },
+          {
+            id: "b",
+            label: "Nines don't matter for internal tools, only customer-facing ones.",
+            correct: false,
+            explanationMd:
+              "A blanket rule, not a judgment - some internal tools (a deploy pipeline) genuinely " +
+              "need high availability. This one's usage pattern is the real reason, not its " +
+              "internal label.",
+          },
+          {
+            id: "c",
+            label:
+              "The extra nine buys back about 8 hours of yearly downtime, but the failover " +
+              "machinery and on-call burden it costs aren't justified by a tool 12 people check " +
+              "during business hours.",
+            correct: true,
+            explanationMd:
+              "Correct. The number isn't free, and nothing here describes a force under enough " +
+              "pressure to justify the cost (0.2's cost force).",
+          },
+          {
+            id: "d",
+            label: "There's no real difference between the two numbers.",
+            correct: false,
+            explanationMd:
+              "The nines table says otherwise - roughly 8 hours a year versus roughly 53 minutes a " +
+              "year, a real gap.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-3-non-functional-requirements-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A candidate says: \"the system needs to be highly available and fast.\" What's the " +
+          "interviewer's strongest follow-up?",
+        options: [
+          {
+            id: "a",
+            label: "\"Give me a number for each, and tell me why not a different one.\"",
+            correct: true,
+            explanationMd:
+              "Correct - forcing the adjective into something the design can actually be checked " +
+              "against is the whole move this chapter teaches.",
+          },
+          {
+            id: "b",
+            label: "Nothing - the candidate named the right forces.",
+            correct: false,
+            explanationMd: "Naming the forces (0.2) is step one; nothing here is a number yet.",
+          },
+          {
+            id: "c",
+            label: "\"Which programming language will you use to achieve that?\"",
+            correct: false,
+            explanationMd:
+              "Language is a decision for the candidate to make (1.1), not a fact that changes the " +
+              "NFR.",
+          },
+          {
+            id: "d",
+            label: "Move on to the next requirement - availability and speed are always assumed.",
+            correct: false,
+            explanationMd: "Assuming a force needs no number skips the entire point of this chapter.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-3-non-functional-requirements-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A teammate says: \"99.999999999% durability and 99.99% availability are basically the " +
+          "same guarantee, restated twice.\" What's wrong with that claim?",
+        options: [
+          {
+            id: "a",
+            label:
+              "Nothing's wrong - both numbers describe how trustworthy the system is, so they can " +
+              "be quoted interchangeably.",
+            correct: false,
+            explanationMd:
+              "Interchanging them hides a real gap: a system can hold every byte perfectly while " +
+              "being completely unreachable, or the reverse (0.2).",
+          },
+          {
+            id: "b",
+            label: "Durability is just a stricter version of availability - more nines, same idea.",
+            correct: false,
+            explanationMd:
+              "Not the same axis - one asks whether a write survives, the other asks whether the " +
+              "system answers right now. More nines doesn't turn one into the other.",
+          },
+          {
+            id: "c",
+            label: "The claim is right for storage systems, but wrong for compute systems.",
+            correct: false,
+            explanationMd:
+              "Invents a boundary the two forces don't actually have - the distinction (0.2) applies " +
+              "to any system that stores something, not a storage-versus-compute split.",
+          },
+          {
+            id: "d",
+            label:
+              "They measure different failures - durability asks whether a write survives, " +
+              "availability asks whether the system answers right now, and a system can fail one " +
+              "without failing the other.",
+            correct: true,
+            explanationMd:
+              "Correct. S3's own two numbers make this concrete: a lost byte and a brief outage are " +
+              "different failures with different engineering answers.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-1-4-estimating-scale",
+    mode: "building-blocks",
+    title: "Estimating Scale",
+    // Real authored content (Wave 2, fourth Part 1 chapter). Spec:
+    // specs/bb-1-4-estimating-scale.spec.md. Lesson body:
+    // public/content/chapters/bb-1-4-estimating-scale.md.
+    problemStatement:
+      "Estimation turns a daily volume into an order of magnitude - QPS, storage, bandwidth - using " +
+      "a day's ~10^5-second shortcut, never a precise figure. This chapter teaches when that " +
+      "estimate actually changes a design decision (a number sitting near a real threshold) and " +
+      "when refining it further is wasted effort (a number nowhere close to one). No build: the " +
+      "knowledge check gives you a product's daily volume and asks you to pick the right " +
+      "order-of-magnitude bucket for each output in turn.",
+    // Five objectives - all five §5.2 categories present, same as 1.1/1.2/1.3
+    // (Process chapters don't get the Concept-only Practical carve-out).
+    // Practical is exercised by the quiz's estimate-kind questions standing in
+    // for CURRICULUM §14's own staged bucket-choice exercise (spec §5 - same
+    // stages-UI degradation pattern 1.1/1.2 used).
+    learningObjectives: [
+      "Knowledge - State the ~10^5-seconds-a-day shortcut and explain why an order-of-magnitude answer, not a precise one, is estimation's actual deliverable.",
+      "Engineering - Convert a product's daily volume into average QPS, peak QPS, storage, and bandwidth, and identify which of those numbers actually changes a design decision.",
+      "Interview - State an estimate as a round number with the benchmark named, in a couple of minutes, instead of computing a precise figure.",
+      "Practical - Given a product's daily volume, choose the correct order-of-magnitude bucket for QPS, storage, and bandwidth, with a stated reason.",
+      "Communication - Justify why a peak-load estimate deserves more scrutiny than a storage estimate for a specific product, naming the threshold each one is or isn't near.",
+    ],
+    // No components introduced (§16 homes the three primitives at 1.6) and no
+    // construction-family exercise - same no-build Process pattern 1.1/1.2/1.3
+    // established.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-1-4-hint-1",
+        body:
+          "Convert the daily number into a rate first - divide by about 10^5 seconds in a day - " +
+          "before worrying about anything else.",
+      },
+      {
+        id: "bb-1-4-hint-2",
+        body:
+          "A rate by itself isn't the whole answer - ask whether a peak multiplier (2-10x, from the " +
+          "product's own usage pattern) would push that rate past a threshold that matters.",
+      },
+      {
+        id: "bb-1-4-hint-3",
+        body:
+          "Check whether the number you're estimating is close to a threshold that would change the " +
+          "design, or comfortably far from one - that's what decides how much precision it's worth.",
+      },
+    ],
+    readingLinks: [],
+    // 1: Sonnet draft (2026-08-09).
+    // 2: Opus proofread (2026-08-09) - diagram's storage/bandwidth branches
+    //    corrected to match the prose, caption's "bandwidth doesn't spike"
+    //    claim fixed, lens-7 sentence made specific, "Your turn" no longer
+    //    promises a bandwidth question the quiz doesn't ask.
+    lessonVersion: 2,
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.4 of 44.",
+      masteredConcepts: [
+        "0.4's loop step 3 (users -> QPS -> storage -> bandwidth) and that estimation runs in " +
+          "powers of ten, never precise figures.",
+        "1.1's clarifying-question test and its 1000:1 read:write ratio example for the URL " +
+          "shortener, confirmed here as the real number for that brief.",
+        "1.3's non-functional requirements (p99 latency, availability) as the numbers a design has " +
+          "to satisfy - this chapter estimates the load those numbers have to hold up under.",
+      ],
+      notYetIntroducedConcepts: [
+        "The landmark latency/throughput/storage ratios (RAM vs. disk vs. network, same-datacenter " +
+          "vs. cross-continent) - 1.5's own material, deliberately not front-loaded here.",
+        "Any specific component or edge kind - none are introduced until 1.6.",
+        "How a peak-QPS number actually gets handled architecturally (more than one machine, a way " +
+          "to add more) - 1.6 onward. This chapter only identifies which number would force that " +
+          "decision, not how the decision gets built.",
+      ],
+      simplifications: [
+        "Bytes-per-record and bytes-per-response figures are illustrative round numbers (\"call it " +
+          "500 bytes\"), not measured - the skill being taught is picking a defensible round number " +
+          "and stating it, not precision.",
+        "A day is treated as ~10^5 seconds (actual: 86,400) throughout - that rounding is the " +
+          "chapter's own point, not an error to correct.",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2/0.3/0.4/1.1/1.2/1.3's convention. Q1-Q2
+    // stand in for CURRICULUM §14's own "staged estimation with
+    // order-of-magnitude buckets" exercise (spec §5 - same stages-UI
+    // degradation 1.1/1.2 used), using the `estimate` quiz kind
+    // (QUIZ_FRAMEWORK §2's bucket-choice format) on a fresh product rather
+    // than the lesson's own URL-shortener numbers, so the check tests
+    // transfer, not recall. Q3-Q5 are original. Correct-position spread for
+    // the three single-kind questions (c, a, d) checked by eye against the
+    // clustering bug fixed in 0.1/0.2.
+    quiz: [
+      {
+        id: "bb-1-4-estimating-scale-q1",
+        kind: "estimate",
+        difficulty: 1,
+        prompt:
+          "A photo-sharing app has 50 million daily active users, each opening the feed about 4 " +
+          "times a day. What's the order of magnitude for average feed-load QPS?",
+        options: [
+          {
+            id: "a",
+            label: "~20 requests per second",
+            correct: false,
+            explanationMd:
+              "Off by two orders of magnitude - 200 million opens a day is nowhere near this small " +
+              "once divided by ~10^5 seconds.",
+          },
+          {
+            id: "b",
+            label: "~2,000 requests per second",
+            correct: true,
+            explanationMd:
+              "Correct. 50M x 4 = 200 million opens a day; divided by ~10^5 seconds a day lands at " +
+              "about 2,000 QPS.",
+          },
+          {
+            id: "c",
+            label: "~200,000 requests per second",
+            correct: false,
+            explanationMd:
+              "This treats the daily total itself as a per-second rate - dividing by seconds in a " +
+              "day is the step that's missing.",
+          },
+          {
+            id: "d",
+            label: "~20,000,000 requests per second",
+            correct: false,
+            explanationMd:
+              "This is roughly the daily total, not a rate - a request every day isn't the same " +
+              "unit as a request every second.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-4-estimating-scale-q2",
+        kind: "estimate",
+        difficulty: 1,
+        prompt:
+          "That same app logs one analytics row per feed-open, about 200 bytes each, kept for 90 " +
+          "days. What's the order of magnitude for total stored analytics data?",
+        options: [
+          {
+            id: "a",
+            label: "~4 megabytes",
+            correct: false,
+            explanationMd:
+              "Off by six orders of magnitude - 200 million rows a day for 90 days is far more than " +
+              "a few thousand rows' worth of data.",
+          },
+          {
+            id: "b",
+            label: "~4 gigabytes",
+            correct: false,
+            explanationMd:
+              "Off by three orders of magnitude - a single day's rows alone (200 million x 200 " +
+              "bytes) already clear a gigabyte before 90 days of accumulation.",
+          },
+          {
+            id: "c",
+            label: "~4 terabytes",
+            correct: true,
+            explanationMd:
+              "Correct. 200 million rows/day x 90 days x 200 bytes lands around 3.6 trillion bytes " +
+              "- a few terabytes, the point where a single ordinary database's disk stops being the " +
+              "obvious answer.",
+          },
+          {
+            id: "d",
+            label: "~4 petabytes",
+            correct: false,
+            explanationMd:
+              "Overshoots by three orders of magnitude - petabyte scale needs a much larger daily " +
+              "volume or a much longer retention window than this brief states.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-4-estimating-scale-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Average feed-load QPS for that app is about 2,000. A viral post could spike traffic well " +
+          "above that average. What's the strongest way to account for it?",
+        options: [
+          {
+            id: "a",
+            label: "Assume peak equals average, since averages already smooth out spikes.",
+            correct: false,
+            explanationMd:
+              "An average is a daily mean by construction - it can't also describe a short burst " +
+              "above it.",
+          },
+          {
+            id: "b",
+            label: "Always assume peak is exactly 100x average, regardless of the product.",
+            correct: false,
+            explanationMd:
+              "A fixed multiplier ignores the product's own usage pattern - the right multiplier is " +
+              "a judgment (2-10x, occasionally more for something genuinely viral), not a constant.",
+          },
+          {
+            id: "c",
+            label:
+              "Multiply average by a small factor (2-10x) based on how bursty this product's usage " +
+              "pattern actually is, then check whether that crosses a real capacity threshold.",
+            correct: true,
+            explanationMd:
+              "Correct. The multiplier comes from the product, not a formula, and the whole point is " +
+              "finding out whether the peak number crosses into territory that changes what gets " +
+              "built.",
+          },
+          {
+            id: "d",
+            label: "Skip peak entirely, since only creates spike, not reads.",
+            correct: false,
+            explanationMd:
+              "Reads spike too - a viral post drives redirects and feed-loads, not new links or new " +
+              "posts.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-4-estimating-scale-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate spends fifteen minutes computing this app's storage figure down to the exact " +
+          "byte, after already rounding it to \"a few terabytes.\" What's the strongest critique?",
+        options: [
+          {
+            id: "a",
+            label:
+              "The order-of-magnitude answer already told you it needs real infrastructure beyond " +
+              "a single database's disk - more decimal places wouldn't change that decision.",
+            correct: true,
+            explanationMd:
+              "Correct. Once a number has already crossed the threshold that matters, refining it " +
+              "further is exactly the wasted precision this chapter opened with.",
+          },
+          {
+            id: "b",
+            label: "None - more precision is always better.",
+            correct: false,
+            explanationMd:
+              "More precision costs time; it's only worth spending when the answer is close enough " +
+              "to a threshold that it could flip which side you land on.",
+          },
+          {
+            id: "c",
+            label: "The estimate should have been in bytes from the start, never terabytes.",
+            correct: false,
+            explanationMd:
+              "The unit is cosmetic - terabytes and bytes describe the same number; the critique is " +
+              "about spending time, not which unit was chosen.",
+          },
+          {
+            id: "d",
+            label: "Storage never matters enough to estimate at all.",
+            correct: false,
+            explanationMd:
+              "It mattered enough here to change the answer from \"any database\" to \"real " +
+              "infrastructure\" - the critique is about over-precision, not skipping the estimate.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-4-estimating-scale-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A teammate claims: \"Since the URL shortener's storage and bandwidth came out tiny, " +
+          "estimation barely mattered for that system.\" What's the strongest correction?",
+        options: [
+          {
+            id: "a",
+            label: "Estimation only matters for large-scale systems, not modest ones.",
+            correct: false,
+            explanationMd:
+              "The URL shortener is modest and estimation still mattered - for peak QPS, just not " +
+              "for the other two numbers.",
+          },
+          {
+            id: "b",
+            label:
+              "All four numbers matter equally on every system, so this one was actually a rare " +
+              "exception.",
+            correct: false,
+            explanationMd:
+              "The opposite pattern - which numbers matter varies by system, and this system " +
+              "happened to have exactly one that did.",
+          },
+          {
+            id: "c",
+            label:
+              "Since three of four numbers turned out tiny, none of them were worth computing in " +
+              "the first place.",
+            correct: false,
+            explanationMd:
+              "You don't know a number is tiny until you check it - skipping the check isn't the " +
+              "lesson, computing it quickly and moving on is.",
+          },
+          {
+            id: "d",
+            label:
+              "It mattered for peak QPS, the one number that sat near a real threshold - estimation " +
+              "matters exactly where a number is close enough to a threshold to change the design, " +
+              "and this system had exactly one such number.",
+            correct: true,
+            explanationMd:
+              "Correct. Storage and bandwidth being trivial here doesn't mean estimation didn't " +
+              "matter - it means estimation is what revealed they didn't.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "bb-dummy-1",
     mode: "building-blocks",
     title: "Placeholder Chapter",
