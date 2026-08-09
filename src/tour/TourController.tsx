@@ -226,9 +226,13 @@ export function TourController({
   });
   if (requiresTracking.index !== stepIndex) {
     setRequiresTracking({ index: stepIndex, sawTrue: requiresSatisfied, broken: false });
-  } else if (!requiresTracking.broken && requiresTracking.sawTrue && !requiresSatisfied) {
+  } else if (requiresSatisfied && !requiresTracking.sawTrue) {
+    // First time this step's requirement becomes true - record it so a
+    // later false reads as drift, not as "still hasn't happened yet".
+    setRequiresTracking({ index: stepIndex, sawTrue: true, broken: false });
+  } else if (!requiresSatisfied && requiresTracking.sawTrue && !requiresTracking.broken) {
     setRequiresTracking({ index: stepIndex, sawTrue: true, broken: true });
-  } else if (requiresTracking.broken && requiresSatisfied) {
+  } else if (requiresSatisfied && requiresTracking.broken) {
     setRequiresTracking({ index: stepIndex, sawTrue: true, broken: false });
   }
   const requiresBroken = requiresTracking.index === stepIndex && requiresTracking.broken;

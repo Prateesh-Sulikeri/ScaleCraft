@@ -530,6 +530,19 @@ describe("TourOverlay", () => {
     render(<TourOverlay {...baseProps()} step={step({ waitFor: () => false })} interactionState="waiting" />);
     expect(screen.getByRole("status")).toHaveTextContent(/try it to continue/i);
   });
+
+  describe("requires-broke note (world drifted out from under an active step)", () => {
+    it("renders nothing extra while requiresBroken is false", () => {
+      render(<TourOverlay {...baseProps()} step={step()} requiresBroken={false} />);
+      expect(screen.queryByText(/something this step needs has changed/i)).not.toBeInTheDocument();
+    });
+
+    it("shows a truthful note, with a Report a problem link, once requiresBroken is true", () => {
+      render(<TourOverlay {...baseProps()} step={step()} requiresBroken />);
+      expect(screen.getByText(/something this step needs has changed/i)).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Report a problem" })).toBeInTheDocument();
+    });
+  });
 });
 
 describe("spotlightHole", () => {

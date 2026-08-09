@@ -529,6 +529,49 @@ describe("TourController", () => {
     expect(screen.getByText("The lesson sidebar")).toBeInTheDocument();
   });
 
+  it("requires catches drift on an already-satisfied step and clears once it's fixed again", () => {
+    // picker-tour's requires is the same role-based check as its waitFor
+    // (design-editor-tour.ts's hasSqlDatabase) - once satisfied, deleting
+    // the very thing that satisfied it, before the auto-advance timer
+    // fires, must show a truthful note and cancel the pending advance
+    // rather than silently moving on regardless.
+    vi.useFakeTimers();
+    renderHarness({ hasLoadedInitialState: true });
+
+    next(); // welcome -> canvas-intro
+    next(); // -> select-a-node
+    act(() => fireEvent.click(screen.getByTestId("select-node")));
+    settle(); // -> header-tools
+    next(); // header-tools -> open-picker
+    act(() => fireEvent.click(screen.getByTestId("open-picker")));
+    settle(); // -> picker-tour
+
+    act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
+    act(() => fireEvent.click(screen.getByTestId("connect-sql-database")));
+    // Satisfied - the 600ms auto-advance is now scheduled but hasn't fired.
+    expect(screen.getByText("Try it: add the SQL Database")).toBeInTheDocument();
+
+    act(() => fireEvent.click(screen.getByTestId("remove-sql-database")));
+    expect(screen.getByText(/something this step needs has changed/i)).toBeInTheDocument();
+    expect(
+      dumpTourLog().some((e) => e.type === "requires-broke" && e.stepId === "picker-tour"),
+    ).toBe(true);
+
+    // The scheduled auto-advance was cancelled, not merely delayed.
+    act(() => void vi.advanceTimersByTime(10000));
+    expect(screen.getByText("Try it: add the SQL Database")).toBeInTheDocument();
+
+    act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
+    act(() => fireEvent.click(screen.getByTestId("connect-sql-database")));
+    expect(screen.queryByText(/something this step needs has changed/i)).not.toBeInTheDocument();
+    expect(
+      dumpTourLog().some((e) => e.type === "reconciled-via" && e.stepId === "picker-tour"),
+    ).toBe(true);
+
+    settle(); // now genuinely advances
+    expect(screen.getByText("The lesson sidebar")).toBeInTheDocument();
+  });
+
   it("highlights sql-database in the picker while picker-tour is active, and clears it once past that step", () => {
     vi.useFakeTimers();
     renderHarness({ hasLoadedInitialState: true });
