@@ -192,6 +192,17 @@ const RING_WIDTH = 2;
 // without this a flipped/shifted popover can still land flush against an
 // edge, which reads as clipped even when technically in-bounds.
 const VIEWPORT_MARGIN = 16;
+// xyflow's <Controls> zoom/fit widget (Canvas.tsx) is pinned to the canvas's
+// bottom-right corner and is always on screen — the exact corner `dock()`
+// below also uses for a broad or vanished target. Left unaccounted for, the
+// docked card renders flush over Controls, hiding it completely (same bug
+// EdgeInspector.tsx had, see its CONTROLS_CLEARANCE_PX). Controls' own panel
+// margin (15px) plus its rendered width (~28px for the default button
+// stack) claims about 43px from the true edge; this adds enough on top of
+// VIEWPORT_MARGIN to clear it with a small gap. Kept equal to
+// EdgeInspector's clearance so both float flush with each other in the
+// corner.
+const DOCK_CONTROLS_CLEARANCE = 40;
 
 /**
  * Above this share of the viewport, a "spotlight" stops being a highlight.
@@ -327,7 +338,7 @@ export function computePopoverPosition(
     clampToViewport(
       {
         top: viewport.height - popover.height - VIEWPORT_MARGIN,
-        left: viewport.width - popover.width - VIEWPORT_MARGIN,
+        left: viewport.width - popover.width - VIEWPORT_MARGIN - DOCK_CONTROLS_CLEARANCE,
       },
       popover,
       viewport,

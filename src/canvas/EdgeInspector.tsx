@@ -21,9 +21,15 @@ export function EdgeInspector() {
   const kind = edge.data?.kind ?? "request-flow";
 
   return (
-    // bottom-right, not bottom-left — xyflow's own zoom/fit/lock Controls
-    // panel (see Canvas.tsx) sits at its default bottom-left position, and
-    // this floating picker would otherwise render right on top of it.
+    // bottom-right, same corner as xyflow's own zoom/fit/lock Controls panel
+    // (see Canvas.tsx, itself pinned there — not its old bottom-left
+    // default — to clear the persistent Release Notes button). Controls'
+    // own panel margin (15px) plus its rendered width (~28px for the
+    // default button stack) claims ~43px from the true edge, so right-14
+    // (56px) - not right-4 (16px) - is what actually clears it instead of
+    // rendering on top and hiding it outright. Keep in sync with
+    // TourOverlay.tsx's DOCK_CONTROLS_CLEARANCE, which floats a docked tour
+    // card in this same corner and needs to line up with it.
     <div
       // Anchors the guided tour's "fix the connection" step (see
       // tour/design-editor-tour.ts) so its card is positioned relative to
@@ -31,7 +37,7 @@ export function EdgeInspector() {
       // an unanchored tour card docks, which made the edge-kind select
       // unreachable.
       data-tour="edge-inspector"
-      className="absolute bottom-4 right-4 z-[var(--z-dropdown)] max-w-xs rounded-md border border-border bg-panel px-3 py-2 shadow-sm"
+      className="absolute bottom-4 right-14 z-[var(--z-dropdown)] max-w-xs rounded-md border border-border bg-panel px-3 py-2 shadow-sm"
     >
       <label className="flex items-center gap-2 text-sm">
         <span className="text-foreground/60">Edge kind</span>

@@ -227,7 +227,7 @@ export const designEditorTour: TourStep[] = [
     body:
       "Right-click a component to configure it - instance counts, engine choice, and more.\n" +
       "The picker's Decoration section has zones, comments, and flags for annotating a design.\n" +
-      "Scroll to zoom, drag empty canvas to pan, and use the corner controls to fit the view.",
+      "Scroll to pan, hold Space and drag (or middle-mouse-drag) to pan by hand, Ctrl+scroll or pinch to zoom, and use the corner controls to fit the view.",
     placement: "bottom",
   },
   {
