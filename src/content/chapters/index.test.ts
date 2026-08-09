@@ -9,6 +9,8 @@ describe("getChaptersForMode", () => {
       "bb-0-2-what-is-system-design",
       "bb-0-3-interview-design-vs-production-engineering",
       "bb-0-4-the-system-design-lifecycle",
+      "bb-1-1-understanding-the-problem",
+      "bb-1-2-functional-requirements",
       "bb-dummy-1",
     ]);
   });

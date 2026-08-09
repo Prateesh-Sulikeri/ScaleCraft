@@ -5,8 +5,9 @@ import type { ChapterDefinition } from "./types";
  * (.claude/docs/pending-content.md):
  *
  * - `bb-0-1-welcome`, `bb-0-2-what-is-system-design`,
- *   `bb-0-3-interview-design-vs-production-engineering`, and
- *   `bb-0-4-the-system-design-lifecycle` are real curriculum content,
+ *   `bb-0-3-interview-design-vs-production-engineering`,
+ *   `bb-0-4-the-system-design-lifecycle`, and
+ *   `bb-1-1-understanding-the-problem` are real curriculum content,
  *   authored against CURRICULUM.md §5/§6 with a chapter spec in `specs/`
  *   beside each.
  * - `bb-dummy-1` and `rwe-dummy-1` are still throwaway shell fixtures
@@ -1301,6 +1302,683 @@ export const chapterRegistry: ChapterDefinition[] = [
             explanationMd:
               "An invented mechanism - production design docs still open with goals and requirements, the " +
               "same order the loop runs in everywhere else.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-1-1-understanding-the-problem",
+    mode: "building-blocks",
+    title: "Understanding the Problem",
+    // Real authored content (Wave 2 chapter 1 - first Part 1 chapter, see
+    // pending-content.md). Spec:
+    // specs/bb-1-1-understanding-the-problem.spec.md. Lesson body:
+    // public/content/chapters/bb-1-1-understanding-the-problem.md.
+    problemStatement:
+      "A clarifying question only earns its place if a different answer would change the design - " +
+      "everything else is conversation. This chapter teaches that one test, and where to look for " +
+      "the questions worth asking (scope, scale, usage pattern, non-negotiables). No build: the " +
+      "knowledge check gives you a brief and a list of candidate questions, and asks you to pick " +
+      "only the ones that pass the test.",
+    // Five objectives - all five §5.2 categories present. Process chapters
+    // don't get the Concept-only Practical carve-out (spec §2); Practical is
+    // honestly exercised by the quiz's multi-select question standing in for
+    // CURRICULUM §14's staged exercise (spec §5 - stages UI doesn't exist yet,
+    // per pending-content.md's documented degradation).
+    learningObjectives: [
+      "Knowledge - State the test that decides whether a candidate clarifying question is worth asking: would a different answer change the design.",
+      "Engineering - Apply the test to a list of candidate questions for a brief and identify which ones would materially change the architecture.",
+      "Interview - Ask two or three targeted clarifying questions inside the interview's small clarify-and-scope budget, instead of reciting a checklist or skipping the step.",
+      "Practical - Given a brief and a list of candidate clarifying questions, select exactly the ones that pass the test.",
+      "Communication - Name, out loud, which specific design decision a clarifying question's answer would flip.",
+    ],
+    // No components introduced (§16 homes the three primitives at 1.6) and no
+    // construction-family exercise - the staged exercise CURRICULUM §14
+    // specifies degrades to the quiz's multi-select question (spec §5),
+    // pending-content.md's documented approach for Part 1 chapters until the
+    // stages UI lands.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-1-1-hint-1",
+        body:
+          "Not sure if a question counts? Ask: if the answer came back the opposite way, would you " +
+          "draw something different? If not, it's not a clarifying question.",
+      },
+      {
+        id: "bb-1-1-hint-2",
+        body:
+          "A question can sound technical and still fail the test - database choice and programming " +
+          "language don't change the shape of the architecture, even though they sound like design " +
+          "decisions.",
+      },
+      {
+        id: "bb-1-1-hint-3",
+        body:
+          "Check the four categories - scope, scale, usage pattern, non-negotiables - for whichever " +
+          "one is still unpinned in the brief you're given. Not every category needs a question every " +
+          "time.",
+      },
+    ],
+    readingLinks: [],
+    // 2: Opus pass. Fixed the cache/read-replica claim (a read:write ratio
+    // does not make either "close to mandatory" - 0.2 splits them on repeated
+    // rows vs. read capacity), removed an invented "0.4's ~5-10 minutes of 45"
+    // budget 0.4 never taught, corrected "0.4's dotted arrow starts right
+    // here" (it runs step 8 -> step 2), reframed database choice as a decision
+    // rather than "changes nothing" (3.11 would contradict that), dropped
+    // unsupported \n line breaks from the Mermaid labels, gave the 1.2 preview
+    // real pull (§6), and simplified several long sentences (§20.1/§20.6).
+    // See spec §13 and pending-chapters.md.
+    lessonVersion: 2,
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.1 of 44.",
+      masteredConcepts: [
+        "The five forces, and the cache / read-replica example used to illustrate them (0.2).",
+        "The interview register and the production register, judged against the same test on different clocks (0.3).",
+        "The Interview Loop's eight steps, with clarify as step 1 (0.4).",
+      ],
+      notYetIntroducedConcepts: [
+        "Any specific component or edge kind - none are introduced until 1.6.",
+        "Functional and non-functional requirements as formal categories - 1.2 and 1.3 turn today's clarifying answers into those.",
+        "Estimation math and the numbers-every-engineer-should-know landmarks - 1.4-1.5.",
+      ],
+      simplifications: [
+        "The four categories (scope, scale, usage pattern, non-negotiables) cover most real clarifying " +
+          "questions but aren't an exhaustive taxonomy - a working set for this stage, not a formula.",
+        "CURRICULUM.md §14 specifies this chapter's exercise as a staged pick-4-of-10 flow; the stages " +
+          "UI doesn't exist yet, so it's realized here as a quiz multi-select question instead (see the " +
+          "chapter spec §5) - the skill tested is the same, the mechanic is simpler.",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2/0.3/0.4's convention. Q1 models and
+    // expands QUIZ_FRAMEWORK.md §6's own Q1 (same URL-shortener scenario),
+    // also standing in for CURRICULUM §14's staged exercise (spec §5). Q2-Q5
+    // are original. Correct-position spread (c, a, d, b for the four
+    // single-kind questions) checked by eye against the clustering bug fixed
+    // in 0.1/0.2.
+    quiz: [
+      {
+        id: "bb-1-1-understanding-the-problem-q1",
+        kind: "multi",
+        difficulty: 1,
+        prompt:
+          "\"Design a URL shortener.\" Select ALL of the following candidate questions that would " +
+          "materially change the design.",
+        options: [
+          {
+            id: "a",
+            label: "What's the expected read-to-write ratio?",
+            correct: true,
+            explanationMd:
+              "A 1000:1 ratio makes caching and read replicas close to mandatory; a near-1:1 ratio " +
+              "doesn't. The answer decides an entire branch of the design.",
+          },
+          {
+            id: "b",
+            label: "What programming language should I use?",
+            correct: false,
+            explanationMd:
+              "Neither answer changes the architecture - this asks the interviewer to design for you, " +
+              "not a question about the problem.",
+          },
+          {
+            id: "c",
+            label: "Roughly how many links are created per day?",
+            correct: true,
+            explanationMd:
+              "Scale in orders of magnitude changes whether a single database is plausible at all, and " +
+              "sets up 1.4's estimation work later.",
+          },
+          {
+            id: "d",
+            label: "Should short codes be 6 characters or 8?",
+            correct: false,
+            explanationMd:
+              "Cosmetic within the same storage scheme either way - nothing downstream changes based on " +
+              "the answer.",
+          },
+          {
+            id: "e",
+            label: "Do links ever expire or get deleted?",
+            correct: true,
+            explanationMd:
+              "A non-negotiable: \"yes\" means a cleanup/expiry subsystem exists at all; \"no\" means it " +
+              "doesn't. That's a real fork, not a detail.",
+          },
+          {
+            id: "f",
+            label: "What should the product be called?",
+            correct: false,
+            explanationMd: "Doesn't touch the architecture under any answer - not a clarifying question at all.",
+          },
+          {
+            id: "g",
+            label: "Do we need click analytics?",
+            correct: true,
+            explanationMd:
+              "\"Yes\" adds an entire async subsystem (event capture, aggregation) that \"no\" never " +
+              "requires - one of the largest forks on this list.",
+          },
+          {
+            id: "h",
+            label: "Which cloud provider should host this?",
+            correct: false,
+            explanationMd:
+              "An infrastructure choice that sits outside the architecture this exercise is scoping - " +
+              "the design looks the same either way.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-1-understanding-the-problem-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A teammate suggests asking \"what testing framework should we use for this?\" as a " +
+          "clarifying question before designing the system. Is this a clarifying question by this " +
+          "chapter's test?",
+        options: [
+          {
+            id: "a",
+            label: "Yes - any question asked before drawing the design counts as clarifying.",
+            correct: false,
+            explanationMd:
+              "Timing isn't the test. A question asked early can still fail it if no answer would " +
+              "change the design.",
+          },
+          {
+            id: "b",
+            label: "Yes - testing strategy is technically part of system design.",
+            correct: false,
+            explanationMd:
+              "True in a broad sense, but irrelevant here - the test is whether a different answer " +
+              "changes the architecture, not whether the topic is design-adjacent.",
+          },
+          {
+            id: "c",
+            label: "No - a different answer wouldn't change the architecture, so it fails the test.",
+            correct: true,
+            explanationMd:
+              "Correct. Neither \"Jest\" nor \"Vitest\" changes a single box or edge in the resulting " +
+              "design - the defining property of a non-clarifying question.",
+          },
+          {
+            id: "d",
+            label: "No - because it doesn't fall under scope, scale, usage pattern, or non-negotiables.",
+            correct: false,
+            explanationMd:
+              "Right conclusion, wrong reasoning - the four categories are where to look, not the test " +
+              "itself. A question can sit in a category and still fail it.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-1-understanding-the-problem-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A candidate spends the first 15 minutes of a 45-minute interview asking clarifying " +
+          "questions before drawing anything. What's the most likely problem?",
+        options: [
+          {
+            id: "a",
+            label:
+              "The candidate is burning the interview's small clarify-and-scope budget, leaving less " +
+              "time for the design itself.",
+            correct: true,
+            explanationMd:
+              "Correct. 0.4 already put clarify and requirements at roughly 5-10 of the interview's 45 " +
+              "minutes combined - 15 minutes on clarify alone eats into design time directly.",
+          },
+          {
+            id: "b",
+            label: "None - more clarifying questions always produce a better design.",
+            correct: false,
+            explanationMd:
+              "Only questions that pass the test improve the design; past that point, more questions " +
+              "just spend the clock without changing anything.",
+          },
+          {
+            id: "c",
+            label: "Clarifying should happen only after a first draft is already on the board.",
+            correct: false,
+            explanationMd:
+              "This is the cold open's own mistake restated as a rule - drawing before scoping is what " +
+              "forces the redraw in the first place.",
+          },
+          {
+            id: "d",
+            label: "The interviewer will conclude the candidate doesn't understand the problem.",
+            correct: false,
+            explanationMd:
+              "About appearances, not the real cost - the actual issue is the spent clock, not how it " +
+              "looks to be asking questions.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-1-understanding-the-problem-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "\"Design a chat app.\" A candidate asks: \"should messages be end-to-end encrypted?\" Is " +
+          "this worth asking?",
+        options: [
+          {
+            id: "a",
+            label: "No - encryption is a security detail, not an architecture question.",
+            correct: false,
+            explanationMd:
+              "It sounds like an implementation detail the way database choice does, but the answer " +
+              "here actually changes what the server can do - see option d.",
+          },
+          {
+            id: "b",
+            label: "No - all messaging apps use end-to-end encryption by default, so the answer is already known.",
+            correct: false,
+            explanationMd:
+              "Not a safe default to assume, and beside the point - the question is whether the answer " +
+              "would change the design, not what's typical.",
+          },
+          {
+            id: "c",
+            label: "Yes - but only because compliance requirements always require asking about encryption.",
+            correct: false,
+            explanationMd:
+              "Compliance can be a reason to ask, but it's not this question's reason - the design " +
+              "impact holds even with no compliance requirement in play.",
+          },
+          {
+            id: "d",
+            label:
+              "Yes - a different answer changes what the server can do with message content (search, " +
+              "moderation, storage), which is a real architecture fork.",
+            correct: true,
+            explanationMd:
+              "Correct. End-to-end encrypted means the server can't read message content at all - " +
+              "search and moderation features built server-side become impossible, not just harder.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-1-understanding-the-problem-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "You ask \"read-heavy or write-heavy?\" and the interviewer answers \"read-heavy, about " +
+          "1000:1.\" Which of 0.2's five forces does this answer most directly start to pin down?",
+        options: [
+          {
+            id: "a",
+            label: "Durability - reads don't touch how safely data is stored.",
+            correct: false,
+            explanationMd:
+              "Durability is about not losing data once written - a read:write ratio doesn't speak to " +
+              "that at all.",
+          },
+          {
+            id: "b",
+            label:
+              "Latency and throughput - it decides whether caching and a read replica are worth the " +
+              "added complexity.",
+            correct: true,
+            explanationMd:
+              "Correct. A heavy read skew is exactly the signal 0.2 used for when a cache pays for " +
+              "itself - it's a latency/throughput trade before it's anything else.",
+          },
+          {
+            id: "c",
+            label: "Cost only - caching is primarily a cost-cutting move.",
+            correct: false,
+            explanationMd:
+              "Cost is a real secondary effect (0.2's own cache example), but \"only\" is too narrow - " +
+              "the primary driver is latency and throughput, not cost.",
+          },
+          {
+            id: "d",
+            label: "None of the five - read:write ratio is a scale detail, not a force.",
+            correct: false,
+            explanationMd:
+              "The ratio itself is a usage-pattern fact, but what it *does* to the design is exactly " +
+              "how a force operates - it changes which trade-off matters.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-1-2-functional-requirements",
+    mode: "building-blocks",
+    title: "Functional Requirements",
+    // Real authored content (Wave 2, second Part 1 chapter). Spec:
+    // specs/bb-1-2-functional-requirements.spec.md. Lesson body:
+    // public/content/chapters/bb-1-2-functional-requirements.md.
+    problemStatement:
+      "A feature only belongs on the system's Must-have list if the system fails at its core job " +
+      "without it - everything else is Should, Could, or Won't (this pass), and writing the cut " +
+      "list down is what keeps it cut. This chapter teaches that test and the Must/Should/Could/" +
+      "Won't vocabulary for scoping a feature list ruthlessly. No build: the knowledge check gives " +
+      "you a brief and a list of candidate features and asks you to sort them.",
+    // Five objectives - all five §5.2 categories present, same as 1.1 (Process
+    // chapters don't get the Concept-only Practical carve-out). Practical is
+    // exercised by the quiz's multi-select question standing in for CURRICULUM
+    // §14's staged checklist exercise (spec §5 - stages UI doesn't exist yet).
+    learningObjectives: [
+      "Knowledge - State the test that decides whether a feature belongs on the Must-have list: the system fails its core job without it.",
+      "Engineering - Sort a list of candidate features for a brief into Must, Should, Could, and Won't using that test.",
+      "Interview - Name the Must-have list crisply and state why one or two features are deliberately deferred, inside the interview's requirements step.",
+      "Practical - Given a brief and a list of candidate features, select exactly the ones that belong on the Must-have list.",
+      "Communication - State out loud why a specific feature was cut, not just that it was cut.",
+    ],
+    // No components introduced (§16 homes the three primitives at 1.6) and no
+    // construction-family exercise - same degradation as 1.1: the staged
+    // checklist CURRICULUM §14 specifies becomes the quiz's multi-select
+    // question (spec §5) until the stages UI lands.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-1-2-hint-1",
+        body:
+          "Ask whether the system's one job would actually fail without this feature - not whether " +
+          "the feature would be nice to have.",
+      },
+      {
+        id: "bb-1-2-hint-2",
+        body:
+          "If a feature only makes sense because a clarifying question's answer confirmed it (1.1), " +
+          "that confirmed answer is what moves it into Must - not your intuition about what this " +
+          "kind of product usually has.",
+      },
+      {
+        id: "bb-1-2-hint-3",
+        body:
+          "Should, Could, and Won't aren't \"no\" - they're \"not this pass.\" Write the deferred " +
+          "ones down instead of silently dropping them.",
+      },
+    ],
+    readingLinks: [],
+    // 2: Opus proofread pass (2026-08-08), driven by user feedback that the
+    // chapter dragged and didn't cohere. Cold open no longer states the answer
+    // before the think-first prompt (and "five features" now matches the seven
+    // listed), the primary diagram became a four-outcome router so the test and
+    // the MoSCoW buckets are one model instead of two (this also drops the
+    // near-identical decision-tree echo of 1.1), "In production" was rewritten
+    // to explain Shape Up before using it, and "In production" moved after the
+    // trade-offs section to restore §5.3's beat order. See spec §13.
+    lessonVersion: 2,
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.2 of 44.",
+      masteredConcepts: [
+        "The clarifying-question test from 1.1, and its URL shortener worked example (heavy read " +
+          "skew, confirmed link expiry).",
+        "The Interview Loop's eight steps, with requirements as step 2 (0.4).",
+      ],
+      notYetIntroducedConcepts: [
+        "Non-functional requirements as a formal category - numbers-shaped promises like latency, " +
+          "availability, consistency, durability, cost (1.3).",
+        "Any specific component or edge kind - none are introduced until 1.6.",
+        "Estimation math and the numbers-every-engineer-should-know landmarks (1.4-1.5).",
+      ],
+      simplifications: [
+        "Must/Should/Could/Won't (MoSCoW) is one popular prioritization scheme, not the only valid " +
+          "one - a working vocabulary for this stage, not a claim it's the single correct method.",
+        "CURRICULUM.md §14 specifies this chapter's exercise as a staged checklist with feedback; " +
+          "the stages UI doesn't exist yet, so it's realized here as a quiz multi-select question " +
+          "instead (see the chapter spec §5), the same documented degradation pattern 1.1 used.",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2/0.3/0.4/1.1's convention. Q1 stands in for
+    // CURRICULUM §14's staged checklist exercise (spec §5), continuing 1.1's
+    // URL shortener brief for continuity across the loop's first two steps.
+    // Q2-Q5 are original. Correct-position spread for the four single-kind
+    // questions (b, a, c, d) checked by eye against the clustering bug fixed
+    // in 0.1/0.2.
+    quiz: [
+      {
+        id: "bb-1-2-functional-requirements-q1",
+        kind: "multi",
+        difficulty: 1,
+        prompt:
+          "Same URL shortener brief as 1.1, now confirmed: heavy read skew, and links expire after " +
+          "a year. Select ALL of the following that belong on the Must-have list.",
+        options: [
+          {
+            id: "a",
+            label: "Create a short link from a long URL.",
+            correct: true,
+            explanationMd: "Half of the core job. The system has no product at all without it.",
+          },
+          {
+            id: "b",
+            label: "Redirect a short link to its original URL.",
+            correct: true,
+            explanationMd: "The other half of the core job - create with no redirect is not a product either.",
+          },
+          {
+            id: "c",
+            label: "Automatically expire links once the confirmed date passes.",
+            correct: true,
+            explanationMd:
+              "The confirmed non-negotiable from 1.1 moved this into Must - a fact about this brief, " +
+              "not an assumption about URL shorteners in general.",
+          },
+          {
+            id: "d",
+            label: "Custom vanity aliases.",
+            correct: false,
+            explanationMd:
+              "Real value, but the core loop works fine with random codes - Could, not Must, for this " +
+              "brief's audience.",
+          },
+          {
+            id: "e",
+            label: "A dashboard of click counts.",
+            correct: false,
+            explanationMd:
+              "Nothing in the confirmed brief requires it. Won't (this pass) - write it down rather " +
+              "than build it now.",
+          },
+          {
+            id: "f",
+            label: "Reject a malformed URL before shortening it.",
+            correct: false,
+            explanationMd:
+              "Should, not Must - it makes the core job safe, but the core job (create, redirect) " +
+              "still exists without this check.",
+          },
+          {
+            id: "g",
+            label: "User accounts to manage links.",
+            correct: false,
+            explanationMd: "Won't (this pass) - nothing in the brief makes accounts part of the core job.",
+          },
+          {
+            id: "h",
+            label: "QR code generation for each short link.",
+            correct: false,
+            explanationMd: "Could - genuinely useful, no dependency on create-and-redirect working.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-2-functional-requirements-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A ticket-booking app's brief says: \"search must return results in under 300 ms, and " +
+          "users can filter results by date.\" Which part is a functional requirement?",
+        options: [
+          {
+            id: "a",
+            label: "\"Returns results in under 300 ms.\"",
+            correct: false,
+            explanationMd:
+              "A promise about how well the system performs, not what it does - a non-functional " +
+              "requirement (1.3's territory).",
+          },
+          {
+            id: "b",
+            label: "\"Users can filter results by date.\"",
+            correct: true,
+            explanationMd:
+              "Correct. A specific thing the system does - exactly the kind of feature the " +
+              "Must/Should/Could/Won't test sorts.",
+          },
+          {
+            id: "c",
+            label: "Both are functional requirements.",
+            correct: false,
+            explanationMd:
+              "The latency line says nothing about what the system does, only how well it does " +
+              "something else - not a feature.",
+          },
+          {
+            id: "d",
+            label: "Neither - both are implementation details the interviewer should specify.",
+            correct: false,
+            explanationMd:
+              "Filtering by date is a real feature choice, not an implementation detail like database " +
+              "choice or language (1.1).",
+          },
+        ],
+      },
+      {
+        id: "bb-1-2-functional-requirements-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Halfway through a build, a teammate says: \"wait, doesn't this need user accounts? I " +
+          "assumed that was obvious.\" The feature was never discussed in scoping. What's the " +
+          "actual failure here?",
+        options: [
+          {
+            id: "a",
+            label:
+              "The Won't-have list was never written down, so an assumed feature could sneak back " +
+              "in as if it had always been in scope.",
+            correct: true,
+            explanationMd:
+              "Correct. The category isn't what failed - the missing write-down is what let an " +
+              "assumption stand in for a decision.",
+          },
+          {
+            id: "b",
+            label: "The feature should have been built from the start - user accounts are always Must-have.",
+            correct: false,
+            explanationMd:
+              "Whether it's Must depends on the brief and the audience, not a blanket rule about the " +
+              "product category.",
+          },
+          {
+            id: "c",
+            label: "Nothing went wrong - catching a missing feature mid-build is exactly what code review is for.",
+            correct: false,
+            explanationMd:
+              "The problem isn't that it surfaced - it's that whatever decision was made about it was " +
+              "never written down for the team to check against.",
+          },
+          {
+            id: "d",
+            label: "The team should have built every conceivable feature to avoid this exact conversation.",
+            correct: false,
+            explanationMd: "This chapter's own cold open, just moved later into the build instead of the interview.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-2-functional-requirements-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Team A sells branded short links to marketing departments. Team B is building a personal " +
+          "tool for one person's own links. Where does \"custom aliases\" belong for each?",
+        options: [
+          {
+            id: "a",
+            label: "Must for both - custom aliases are always a core URL-shortener feature.",
+            correct: false,
+            explanationMd:
+              "The category depends on the audience the brief establishes, not the product category " +
+              "in general.",
+          },
+          {
+            id: "b",
+            label: "Could for both - branding is a marketing concern, never part of the core job.",
+            correct: false,
+            explanationMd:
+              "True for Team B, not Team A - for a product sold to marketing teams, branded links are " +
+              "the reason the product gets used at all.",
+          },
+          {
+            id: "c",
+            label:
+              "Must for Team A, Could for Team B - the same feature sits in a different bucket " +
+              "because the audience changes what \"the core job\" means.",
+            correct: true,
+            explanationMd:
+              "Correct. Team A's product is unusable for its actual customers without it; Team B's " +
+              "core loop works fine with random codes.",
+          },
+          {
+            id: "d",
+            label: "Won't for both - aliases are polish, not a real requirement.",
+            correct: false,
+            explanationMd: "Dismisses the audience-dependent judgment call entirely - wrong for Team A specifically.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-2-functional-requirements-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "In 1.1, \"do we need click analytics?\" was worth asking because a different answer " +
+          "changes the design. Suppose the interviewer answers yes. Where does \"click-count " +
+          "dashboard\" move on today's list?",
+        options: [
+          {
+            id: "a",
+            label: "It stays Won't (this pass) - analytics is never core to a URL shortener.",
+            correct: false,
+            explanationMd:
+              "The sort responds to the confirmed brief, not a fixed rule about URL shorteners - the " +
+              "same reasoning that put expiry in Must.",
+          },
+          {
+            id: "b",
+            label: "It moves to Could - a confirmed answer only ever adds optional value.",
+            correct: false,
+            explanationMd:
+              "A \"yes\" to a question that changes the design redefines the core job - it doesn't " +
+              "just add an extra.",
+          },
+          {
+            id: "c",
+            label: "Nothing changes - 1.1's questions only affect scale and architecture, not the feature list.",
+            correct: false,
+            explanationMd:
+              "1.1's own test (would a different answer change the design) applies to feature scope " +
+              "exactly as much as topology - that's the bridge this chapter builds.",
+          },
+          {
+            id: "d",
+            label:
+              "It moves to Must - a confirmed \"yes\" to a non-negotiable clarifying question makes " +
+              "the feature part of the system's actual job, the same way expiry did.",
+            correct: true,
+            explanationMd:
+              "Correct. A confirmed answer from 1.1 is exactly what moved expiry into Must here too - " +
+              "the same mechanism, a different feature.",
           },
         ],
       },
