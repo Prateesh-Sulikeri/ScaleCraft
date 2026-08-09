@@ -52,7 +52,6 @@ function discoverLiveDataTourAnchors(): Set<string> {
 const TOURS: { name: string; steps: TourStep[] }[] = [{ name: "design-editor", steps: designEditorTour }];
 
 const emptyCtx: TourContext = {
-  canUndo: false,
   isComponentPickerOpen: false,
   selectedNodeId: null,
   presentComponentIds: [],
@@ -69,7 +68,6 @@ const emptyCtx: TourContext = {
 const FIXTURES: Record<string, TourContext> = {
   empty: emptyCtx,
   midFix: {
-    canUndo: true,
     isComponentPickerOpen: true,
     selectedNodeId: "n1",
     presentComponentIds: ["client", "app-server", "sql-database"],
@@ -81,7 +79,6 @@ const FIXTURES: Record<string, TourContext> = {
     hasSubmittedPassing: false,
   },
   solved: {
-    canUndo: true,
     isComponentPickerOpen: false,
     selectedNodeId: null,
     presentComponentIds: ["client", "app-server", "sql-database"],

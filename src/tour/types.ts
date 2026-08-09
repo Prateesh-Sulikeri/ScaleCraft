@@ -24,7 +24,6 @@ export type TourStepTarget =
  * TourController from the canvas store plus ChapterWorkspace's own
  * Validate/Submit-click tracking. */
 export type TourContext = {
-  canUndo: boolean;
   isComponentPickerOpen: boolean;
   selectedNodeId: string | null;
   /** componentIds currently present on the canvas — lets a step wait for a
@@ -103,7 +102,7 @@ export type TourStep = {
   allowsComponentPicker?: boolean;
   /** Suppresses the ~600ms auto-advance that normally follows a satisfied
    * `waitFor`. That delay is tuned for a step whose only content was the
-   * gesture itself (drag to make Undo available, say) — it reads as a brief
+   * gesture itself (select a component, say) — it reads as a brief
    * acknowledgement, not a pause. A step whose real payload is something the
    * gesture *reveals* (the violations dropdown, spotlighted via
    * `spotlightAlso`) is different: the explanation can run to several cards,

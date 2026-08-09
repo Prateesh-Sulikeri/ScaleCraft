@@ -3,7 +3,6 @@ import { designEditorTour } from "./design-editor-tour";
 import type { TourContext, TourStepTarget } from "./types";
 
 const emptyCtx: TourContext = {
-  canUndo: false,
   isComponentPickerOpen: false,
   selectedNodeId: null,
   presentComponentIds: [],
@@ -13,16 +12,16 @@ const emptyCtx: TourContext = {
   hasSubmittedPassing: false,
 };
 
-const INTERACTIVE_STEP_IDS = ["select-a-node", "undo-redo", "open-picker", "picker-tour", "validate-click", "fix-edge", "revalidate-clean", "submit-click"];
+const INTERACTIVE_STEP_IDS = ["select-a-node", "open-picker", "picker-tour", "validate-click", "fix-edge", "revalidate-clean", "submit-click"];
 
 describe("designEditorTour", () => {
-  it("has exactly twenty steps", () => {
+  it("has exactly nineteen steps", () => {
     // Was 23 before the three "one more thing" tail steps were merged into
     // one (.claude/docs/pending.md tour punch list #24), then 21 until
-    // picker-tour absorbed fix-component's placement gesture (real-browser
-    // report: the missing component moved earlier, ahead of Validate,
-    // instead of being a separate post-Validate fix step).
-    expect(designEditorTour).toHaveLength(20);
+    // picker-tour absorbed fix-component's placement gesture, then 20 until
+    // undo-redo was cut outright (2026-08-09: not worth a dedicated step —
+    // Undo/Redo stay in the app, just no longer narrated).
+    expect(designEditorTour).toHaveLength(19);
   });
 
   it("has unique, non-empty step ids", () => {
@@ -31,7 +30,7 @@ describe("designEditorTour", () => {
     for (const id of ids) expect(id.length).toBeGreaterThan(0);
   });
 
-  it("has exactly eight interactive (waitFor) steps, matching the remediation-flow redesign", () => {
+  it("has exactly seven interactive (waitFor) steps, matching the remediation-flow redesign", () => {
     const interactive = designEditorTour.filter((s) => s.waitFor);
     expect(interactive.map((s) => s.id)).toEqual(INTERACTIVE_STEP_IDS);
   });
@@ -51,7 +50,7 @@ describe("designEditorTour", () => {
   it("sets an up-front expectation of length on the welcome step", () => {
     // A multi-step blocking overlay with no stated length is a commitment
     // the learner can't evaluate before it starts (punch list #24).
-    expect(designEditorTour[0].body).toMatch(/20 steps/);
+    expect(designEditorTour[0].body).toMatch(/19 steps/);
     expect(designEditorTour[0].body).toMatch(/Esc/);
   });
 
@@ -79,12 +78,11 @@ describe("designEditorTour", () => {
   });
 
   it("uses every anchor with a real gesture requirement as its own step's target", () => {
-    // undo-redo and component-picker both have a data-tour anchor
-    // (AppHeader.tsx / ComponentPicker.tsx) but no step targets either
-    // directly — their interactive steps deliberately spotlight "canvas"
-    // instead, since the real gesture each asks for (dragging a component;
-    // choosing then placing one) happens there. Both are still referenced
-    // as a popoverAnchor, so neither anchor is dead code.
+    // component-picker has a data-tour anchor (ComponentPicker.tsx) but no
+    // step targets it directly — its interactive step deliberately
+    // spotlights "canvas" instead, since the real gesture it asks for
+    // (choosing then placing a component) happens there. It's still
+    // referenced as a popoverAnchor, so it isn't dead code.
     const targets = new Set(designEditorTour.map((s) => s.target).filter((t): t is TourStepTarget => t !== null));
     expect(targets).toEqual(
       new Set([
@@ -100,7 +98,7 @@ describe("designEditorTour", () => {
       ]),
     );
     const anchors = new Set(designEditorTour.map((s) => s.popoverAnchor).filter((t): t is TourStepTarget => t !== undefined));
-    expect(anchors).toEqual(new Set(["undo-redo", "component-picker", "edge-inspector"]));
+    expect(anchors).toEqual(new Set(["component-picker", "edge-inspector"]));
   });
 
   it("anchors the edge-fixing step to the Edge Inspector it tells the learner to use", () => {
@@ -176,12 +174,6 @@ describe("designEditorTour", () => {
   it("select-a-node's predicate is satisfied once a node is selected", () => {
     const step = designEditorTour.find((s) => s.id === "select-a-node")!;
     expect(step.waitFor!({ ...emptyCtx, selectedNodeId: "n1" })).toBe(true);
-  });
-
-  it("undo-redo's predicate is satisfied once canUndo is true", () => {
-    const step = designEditorTour.find((s) => s.id === "undo-redo")!;
-    expect(step.waitFor!({ ...emptyCtx, canUndo: true })).toBe(true);
-    expect(step.popoverAnchor).toBe("undo-redo");
   });
 
   it("open-picker's predicate is satisfied once the component picker is open", () => {

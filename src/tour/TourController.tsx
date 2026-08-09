@@ -84,7 +84,6 @@ export function TourController({
   // yet": localStorage isn't readable, or the canvas hasn't loaded.
   const [session, setSession] = useState<{ active: boolean; stepIndex: number } | null>(null);
 
-  const canUndo = useCanvasStore((s) => s.past.length > 0);
   const isComponentPickerOpen = useCanvasStore((s) => s.componentPicker);
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
   const closeComponentPicker = useCanvasStore((s) => s.closeComponentPicker);
@@ -140,7 +139,6 @@ export function TourController({
 
   const ctx: TourContext = useMemo(
     () => ({
-      canUndo,
       isComponentPickerOpen,
       selectedNodeId,
       presentComponentIds,
@@ -150,7 +148,6 @@ export function TourController({
       hasSubmittedPassing,
     }),
     [
-      canUndo,
       isComponentPickerOpen,
       selectedNodeId,
       presentComponentIds,

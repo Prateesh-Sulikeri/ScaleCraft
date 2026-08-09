@@ -60,12 +60,6 @@ function Harness({
       <button data-testid="select-node" onClick={() => storeApi.setState({ selectedNodeId: "n1" })}>
         select node
       </button>
-      <button
-        data-testid="make-undoable"
-        onClick={() => storeApi.setState({ past: [{ nodes: [], edges: [], key: "k", at: Date.now() }] })}
-      >
-        make undoable
-      </button>
       <button data-testid="open-picker" onClick={() => storeApi.setState({ componentPicker: true })}>
         open picker
       </button>
@@ -180,13 +174,13 @@ describe("TourController", () => {
 
   it("resumes a run in progress at the step it left off on, rather than restarting it", () => {
     // Punch list #9: the canvas persists its edits across a reload (Dexie
-    // autosave) but the tour restarted at 1 / 20, so the two told different
+    // autosave) but the tour restarted at 1 / 19, so the two told different
     // stories about where the learner was.
     localStorage.setItem(STATE_KEY, JSON.stringify({ status: "running", stepIndex: 3 }));
     renderHarness({ hasLoadedInitialState: true });
 
     expect(screen.getByText("Save, docs, and shortcuts")).toBeInTheDocument();
-    expect(screen.getByText("4 / 20")).toBeInTheDocument();
+    expect(screen.getByText("4 / 19")).toBeInTheDocument();
   });
 
   it("clamps a persisted step index that no longer exists", () => {
@@ -214,8 +208,8 @@ describe("TourController", () => {
     fireEvent.keyDown(window, { key: "Escape" });
 
     expect(storedState()).toEqual({ status: "paused", stepIndex: 2 });
-    const pill = screen.getByRole("button", { name: "Resume guided tour at step 3 of 20" });
-    expect(pill).toHaveTextContent("Resume tour (3/20)");
+    const pill = screen.getByRole("button", { name: "Resume guided tour at step 3 of 19" });
+    expect(pill).toHaveTextContent("Resume tour (3/19)");
 
     fireEvent.click(pill);
     expect(screen.getByText("Try it: select a component")).toBeInTheDocument();
@@ -228,11 +222,11 @@ describe("TourController", () => {
     const { unmount } = renderHarness({ hasLoadedInitialState: true });
 
     fireEvent.click(screen.getByRole("button", { name: /Resume guided tour/ }));
-    expect(screen.getByText("6 / 20")).toBeInTheDocument();
+    expect(screen.getByText("6 / 19")).toBeInTheDocument();
     unmount();
 
     renderHarness({ hasLoadedInitialState: true });
-    expect(screen.getByText("6 / 20")).toBeInTheDocument();
+    expect(screen.getByText("6 / 19")).toBeInTheDocument();
   });
 
   it("Skip tour ends the run and swaps the overlay for a replay pill", () => {
@@ -251,7 +245,7 @@ describe("TourController", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Replay guided tour" }));
     expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument();
-    expect(screen.getByText("1 / 20")).toBeInTheDocument();
+    expect(screen.getByText("1 / 19")).toBeInTheDocument();
   });
 
   describe("Start over (only offered when the parent supplies a reset)", () => {
@@ -275,7 +269,7 @@ describe("TourController", () => {
       fireEvent.click(confirm);
       expect(onResetToStarter).toHaveBeenCalledTimes(1);
       expect(screen.getByText("Welcome to the Design Editor")).toBeInTheDocument();
-      expect(screen.getByText("1 / 20")).toBeInTheDocument();
+      expect(screen.getByText("1 / 19")).toBeInTheDocument();
       expect(storedState()).toEqual({ status: "running", stepIndex: 0 });
     });
 
@@ -380,9 +374,7 @@ describe("TourController", () => {
     next(); // -> select-a-node
     act(() => fireEvent.click(screen.getByTestId("select-node")));
     settle(); // -> header-tools
-    next(); // -> undo-redo
-    act(() => fireEvent.click(screen.getByTestId("make-undoable")));
-    settle(); // -> open-picker
+    next(); // header-tools -> open-picker
     act(() => fireEvent.click(screen.getByTestId("open-picker")));
     settle(); // -> picker-tour
     act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
@@ -446,9 +438,7 @@ describe("TourController", () => {
     next(); // -> select-a-node
     act(() => fireEvent.click(screen.getByTestId("select-node")));
     settle(); // -> header-tools
-    next(); // -> undo-redo
-    act(() => fireEvent.click(screen.getByTestId("make-undoable")));
-    settle(); // -> open-picker
+    next(); // header-tools -> open-picker
     act(() => fireEvent.click(screen.getByTestId("open-picker")));
     settle(); // -> picker-tour
     expect(screen.getByText("Try it: add the SQL Database")).toBeInTheDocument();
@@ -472,9 +462,7 @@ describe("TourController", () => {
     next(); // canvas-intro -> select-a-node
     act(() => fireEvent.click(screen.getByTestId("select-node")));
     settle(); // -> header-tools
-    next(); // header-tools -> undo-redo
-    act(() => fireEvent.click(screen.getByTestId("make-undoable")));
-    settle(); // -> open-picker
+    next(); // header-tools -> open-picker
     act(() => fireEvent.click(screen.getByTestId("open-picker")));
     settle(); // -> picker-tour
     act(() => fireEvent.click(screen.getByTestId("add-sql-database")));

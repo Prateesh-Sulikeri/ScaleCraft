@@ -718,3 +718,24 @@ not "split placement into its own new step").
   engineering's - left alone.
 
 Verified: full pipeline green (`typecheck`, `lint`, 1589 tests, `build`).
+
+## Cut, same real-browser session (2026-08-09): the undo-redo step
+
+User's call: nobody needs a dedicated step teaching what Undo is. Removed
+outright, not repurposed - 19 steps now.
+
+- Deleted the `undo-redo` step (`design-editor-tour.ts`) and its sole
+  `TourContext` consumer, `canUndo` (`types.ts`, `TourController.tsx`) - no
+  step reads it anymore, so it was dead plumbing, not dormant capability
+  like `narrowAvailableComponentIds` (which a future step could still
+  legitimately use).
+- **`"undo-redo"` stays a valid `TourStepTarget`** - `AppHeader.tsx`'s
+  `data-tour="undo-redo"` marker is untouched, since Undo/Redo remain real
+  app features, just no longer narrated. The type documents anchors that
+  exist, not anchors a step currently uses.
+- Every step after undo-redo in the array shifts down one position;
+  content otherwise unchanged. `header-tools` now advances straight to
+  `open-picker`.
+- Test harness's `make-undoable` button removed (no consumer left).
+
+Verified: full pipeline green (`typecheck`, `lint`, 1588 tests, `build`).

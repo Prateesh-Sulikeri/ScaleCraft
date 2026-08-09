@@ -25,7 +25,7 @@ export const designEditorTour: TourStep[] = [
     title: "Welcome to the Design Editor",
     body:
       "This is where you build architectures. This chapter's starter design has a couple of real problems in it - you'll find and fix them together with this tour.\n\n" +
-      "20 steps, about five minutes. Press Esc to pause and pick up where you left off, or skip it entirely - the buttons at the bottom of the lesson sidebar bring it back either way.",
+      "19 steps, about five minutes. Press Esc to pause and pick up where you left off, or skip it entirely - the buttons at the bottom of the lesson sidebar bring it back either way.",
   },
   {
     id: "canvas-intro",
@@ -50,19 +50,6 @@ export const designEditorTour: TourStep[] = [
     placement: "bottom",
   },
   {
-    id: "undo-redo",
-    // The real gesture happens on the canvas, so that's the target;
-    // popoverAnchor points the card (and its ring) at the undo/redo buttons
-    // it's actually describing. The canvas is too broad to spotlight, so
-    // only one ring is drawn — the header one (see TourOverlay).
-    target: "canvas",
-    popoverAnchor: "undo-redo",
-    title: "Try it: make Undo available",
-    body: "Drag a component to a new spot on the canvas - then glance up here. Undo lights up as soon as there's a change to undo.",
-    placement: "bottom",
-    waitFor: (ctx) => ctx.canUndo,
-  },
-  {
     id: "open-picker",
     target: "canvas",
     title: "Try it: open the component picker",
@@ -75,9 +62,9 @@ export const designEditorTour: TourStep[] = [
     id: "picker-tour",
     // The real gestures (choose in the picker, drop on the canvas, draw an
     // edge) span both surfaces; canvas owns the interactive hole since
-    // that's where the waitFor-satisfying actions land, same reasoning as
-    // undo-redo's target/popoverAnchor split below. popoverAnchor still
-    // points the card at the picker itself.
+    // that's where the waitFor-satisfying actions land, same target/
+    // popoverAnchor split fix-edge uses below for the same reason.
+    // popoverAnchor still points the card at the picker itself.
     target: "canvas",
     popoverAnchor: "component-picker",
     allowsComponentPicker: true,
