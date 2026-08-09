@@ -610,3 +610,46 @@ yet done this pass.
 
 **Next**: `feature/tour-watchdog` (slice 2), branched from
 `release/v4.1.0-part-1-curriculum` same as this one.
+
+## Two bugs found in real-browser use, same slice-1 branch (2026-08-09)
+
+Reported from an actual session: clicking the real Validate button early
+(while step 10 "validate-intro" was still showing, before advancing) and
+placing `sql-database` early via "picker-tour"'s open picker, unconnected.
+Both fixed here rather than deferred, since they're narrowly scoped and one
+is a real bug independent of the deviation that surfaced it.
+
+- **`ValidationIndicator.tsx`'s outside-click-to-close didn't exempt the
+  tour's own UI.** Its document-level mousedown listener closes the
+  violations dropdown on anything outside the button itself (with an
+  existing exemption for `.react-flow__node` clicks). The tour's Next/Back/
+  Skip buttons weren't exempted, so clicking Next while the dropdown was
+  open (only reachable by clicking Validate on a non-`waitFor` step like
+  validate-intro, since the intended gesture-driven path auto-advances
+  without ever touching Next) closed it in the same tick the tour advanced
+  to a step that wanted to spotlight it via `spotlightAlso` — it then
+  measured as gone and the spotlight silently dropped it. Fixed with one
+  more exemption clause, `target.closest("[data-tour-step]")`, matching
+  TourOverlay's own portal-root marker — the same pattern the existing
+  react-flow exemption already uses. This is a real, general bug (not
+  tied to the deviation that surfaced it) — worth noting as a small,
+  independent example of the exact class of "the tour's assumed order
+  isn't enforced anywhere" the resilience addendum diagnoses at a system
+  level.
+- **validate-click's body hardcoded "two real problems."** True only on the
+  one path where nothing was touched before this step — "picker-tour" (a
+  few steps earlier) deliberately leaves the picker open
+  (`allowsComponentPicker`), so a learner who places a component early can
+  genuinely change what Validate finds (an unconnected `sql-database` adds
+  a third issue). Reworded to not name a count at all, rather than trying
+  to compute one — `TourStep.body` is a plain string, not a function of
+  `TourContext`, and making it one is squarely the "level-triggered, not
+  hardcoded" territory slice 3's `requires`/hard-gate work already claims,
+  not a slice-1 patch.
+- **Not fixed, flagged instead**: `content/chapters/index.ts`'s
+  `problemStatement` for bb-0-1-welcome has the identical "two real faults"
+  claim, same staleness risk. Left alone — this is authored chapter content
+  (chapter-author skill's domain per `CLAUDE.md`), not tour UI chrome, and
+  wasn't touched here.
+
+Verified: full pipeline green (`typecheck`, `lint`, 1588 tests, `build`).

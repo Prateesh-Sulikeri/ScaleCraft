@@ -107,7 +107,12 @@ export const designEditorTour: TourStep[] = [
     // alongside the button rather than dimmed behind the backdrop.
     spotlightAlso: ["validation-details"],
     title: "Try it: run Validate",
-    body: "This starter design actually has two real problems in it. Click Validate now to see exactly what and why.",
+    // Doesn't name a specific count — "picker-tour" a few steps back
+    // deliberately leaves the picker open (allowsComponentPicker), so a
+    // learner who places something early can genuinely change how many
+    // issues Validate finds. Naming "two" here was only ever true in the
+    // one path where nothing was touched before this step.
+    body: "This starter design has real problems in it. Click Validate now to see exactly what and why.",
     placement: "bottom",
     waitFor: (ctx) => ctx.lastValidationErrorCount !== null,
   },
