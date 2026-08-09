@@ -739,3 +739,38 @@ outright, not repurposed - 19 steps now.
 - Test harness's `make-undoable` button removed (no consumer left).
 
 Verified: full pipeline green (`typecheck`, `lint`, 1588 tests, `build`).
+
+## New capability, same real-browser session (2026-08-09): highlight one picker item
+
+User's ask: highlight SQL Database in picker-tour (step 6) so it's easy to
+find, without narrowing the palette (which would undercut the step's own
+"search or browse by category" copy).
+
+- **New store field, `highlightedComponentId: string | null`**
+  (`canvas/store.tsx`), read by `ComponentPicker.tsx` to pre-select that
+  item's roving-active ring (`aria-selected`/`ring-2 ring-foreground/40`) -
+  the same visual the picker's own keyboard navigation already draws, not a
+  new spotlight mechanism. Reused deliberately: no new UI language for the
+  learner to parse.
+- **Keyed on the id changing, not on the picker's open transition.** The
+  obvious first design (highlight on open, mirroring
+  `narrowAvailableComponentIds`'s pattern) doesn't fire in practice - the
+  picker is opened by the *previous* step (`open-picker`) and stays open
+  straight into `picker-tour` (`allowsComponentPicker`), so there's no
+  fresh open transition left to hook into by the time the highlight should
+  appear. `ComponentPicker.tsx` tracks `highlightedComponentId` itself
+  (adjust-state-during-render, mirroring the existing `wasOpen`/`lastQuery`
+  pattern) and re-applies whenever the id changes, regardless of `isOpen`.
+- **New `TourStep.highlightComponentId`** (`types.ts`) +
+  `TourController.tsx` effect setting/clearing the store field, mirroring
+  `narrowAvailableComponentIds`'s active-gated effect but simpler - no
+  prior value to restore, since the highlight is entirely tour-owned.
+- A learner moving the keyboard cursor themselves overrides the highlight
+  immediately (same roving-index state either way) - never fights real
+  input, consistent with the airbag's "never sandbox input during an
+  interactive step" principle.
+- Set on `picker-tour` only: `highlightComponentId: "sql-database"`,
+  `narrowAvailableComponentIds` left unset (confirmed via a dedicated test)
+  so the step's own "search or browse" copy stays true.
+
+Verified: full pipeline green (`typecheck`, `lint`, 1591 tests, `build`).

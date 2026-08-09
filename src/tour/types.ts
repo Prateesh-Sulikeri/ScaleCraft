@@ -93,6 +93,14 @@ export type TourStep = {
    * chapter's own list the moment a step without this field becomes
    * active. */
   narrowAvailableComponentIds?: string[];
+  /** While this step is active, ComponentPicker.tsx pre-highlights this one
+   * componentId (the same roving-active ring keyboard navigation already
+   * draws) the moment it's set, without hiding anything else — unlike
+   * `narrowAvailableComponentIds`, which only ever restricts. For a step
+   * that wants a specific item to stand out in an otherwise fully-browsable
+   * picker. Restored to no highlight the moment a step without this field
+   * becomes active. */
+  highlightComponentId?: string;
   /** Whether the component picker may stay open during this step. The tour
    * force-closes it everywhere else, because the picker's modal backdrop
    * sits below the tour overlay but above everything else, so leaving it

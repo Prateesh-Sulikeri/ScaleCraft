@@ -91,6 +91,7 @@ export function TourController({
   const edges = useCanvasStore((s) => s.edges);
   const availableComponentIds = useCanvasStore((s) => s.availableComponentIds);
   const setAvailableComponentIds = useCanvasStore((s) => s.setAvailableComponentIds);
+  const setHighlightedComponentId = useCanvasStore((s) => s.setHighlightedComponentId);
 
   const clampIndex = (i: number) => Math.min(Math.max(i, 0), steps.length - 1);
 
@@ -330,6 +331,15 @@ export function TourController({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step]);
+
+  // A step can declare `highlightComponentId` to make one specific picker
+  // item stand out (ComponentPicker.tsx's highlightedComponentId) without
+  // narrowing the palette, the way `narrowAvailableComponentIds` above
+  // does. No prior value to restore here — the highlight is entirely
+  // tour-owned, so clearing it is just setting it back to `null`.
+  useEffect(() => {
+    setHighlightedComponentId(active ? (step.highlightComponentId ?? null) : null);
+  }, [active, step, setHighlightedComponentId]);
 
   // Nothing paints until localStorage has actually been read — otherwise a
   // learner who finished the tour gets a flash of the pill (or worse, the

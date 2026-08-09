@@ -32,6 +32,7 @@ function Harness({
   const storeApi = useCanvasStoreApi();
   const availableComponentIds = useCanvasStore((s) => s.availableComponentIds);
   const isComponentPickerOpen = useCanvasStore((s) => s.componentPicker);
+  const highlightedComponentId = useCanvasStore((s) => s.highlightedComponentId);
   return (
     <>
       {/* Stands in for ChapterWorkspace's real `data-tour="canvas"` div — the
@@ -51,6 +52,7 @@ function Harness({
       />
       <span data-testid="available-ids">{JSON.stringify(availableComponentIds)}</span>
       <span data-testid="picker-open">{String(isComponentPickerOpen)}</span>
+      <span data-testid="highlighted-id">{String(highlightedComponentId)}</span>
       <button
         data-testid="seed-available-ids"
         onClick={() => storeApi.setState({ availableComponentIds: ["client", "app-server", "sql-database", "cache"] })}
@@ -452,6 +454,29 @@ describe("TourController", () => {
     act(() => fireEvent.click(screen.getByTestId("connect-sql-database")));
     settle();
     expect(screen.getByText("The lesson sidebar")).toBeInTheDocument();
+  });
+
+  it("highlights sql-database in the picker while picker-tour is active, and clears it once past that step", () => {
+    vi.useFakeTimers();
+    renderHarness({ hasLoadedInitialState: true });
+
+    expect(screen.getByTestId("highlighted-id")).toHaveTextContent("null");
+
+    next(); // welcome -> canvas-intro
+    next(); // -> select-a-node
+    act(() => fireEvent.click(screen.getByTestId("select-node")));
+    settle(); // -> header-tools
+    next(); // header-tools -> open-picker
+    expect(screen.getByTestId("highlighted-id")).toHaveTextContent("null");
+
+    act(() => fireEvent.click(screen.getByTestId("open-picker")));
+    settle(); // -> picker-tour
+    expect(screen.getByTestId("highlighted-id")).toHaveTextContent("sql-database");
+
+    act(() => fireEvent.click(screen.getByTestId("add-sql-database")));
+    act(() => fireEvent.click(screen.getByTestId("connect-sql-database")));
+    settle(); // -> question-pane
+    expect(screen.getByTestId("highlighted-id")).toHaveTextContent("null");
   });
 
   it("walks through the full remediation flow end to end and completes on the final step", () => {

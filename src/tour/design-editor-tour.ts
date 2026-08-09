@@ -68,10 +68,15 @@ export const designEditorTour: TourStep[] = [
     target: "canvas",
     popoverAnchor: "component-picker",
     allowsComponentPicker: true,
+    // Highlights the tile (the same ring keyboard navigation already draws)
+    // rather than narrowing the palette to it — the step's own copy still
+    // teaches search/browse, this just saves the learner from hunting for
+    // the one component that actually matters this step.
+    highlightComponentId: "sql-database",
     title: "Try it: add the SQL Database",
     body:
       "Search the component picker, or browse by category. Choosing something here doesn't drop it immediately - it arms it, and your next click on the canvas decides exactly where it lands. " +
-      "This chapter needs a SQL Database - find it, place it on the canvas, then draw an edge connecting it to the Application Server.",
+      "This chapter needs a SQL Database - it's highlighted below - find it, place it on the canvas, then draw an edge connecting it to the Application Server.",
     placement: "right",
     waitFor: (ctx) => ctx.presentComponentIds.includes("sql-database") && ctx.connectedComponentIds.includes("sql-database"),
   },

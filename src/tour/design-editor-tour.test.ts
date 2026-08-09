@@ -206,6 +206,12 @@ describe("designEditorTour", () => {
     ).toBe(true);
   });
 
+  it("picker-tour highlights sql-database in the picker rather than narrowing the palette to it", () => {
+    const step = designEditorTour.find((s) => s.id === "picker-tour")!;
+    expect(step.highlightComponentId).toBe("sql-database");
+    expect(step.narrowAvailableComponentIds).toBeUndefined();
+  });
+
   it("fix-edge's predicate is satisfied once the specific starter-graph edge's kind is request-flow", () => {
     const step = designEditorTour.find((s) => s.id === "fix-edge")!;
     expect(step.waitFor!({ ...emptyCtx, edgeKindById: { "bb-0-1-edge-client-app": "async" } })).toBe(false);
