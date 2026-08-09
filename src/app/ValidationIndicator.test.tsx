@@ -134,4 +134,25 @@ describe("ValidationIndicator", () => {
     fireEvent.mouseDown(screen.getByRole("button", { name: "outside" }));
     expect(screen.queryByText("No violations.")).not.toBeInTheDocument();
   });
+
+  it("does not close the dropdown on a click inside the guided tour's overlay", () => {
+    // The guided tour spotlights this exact dropdown (design-editor-tour.ts's
+    // validate-click/revalidate-clean steps) and its own Next/Back/Skip
+    // buttons render outside this component's DOM subtree — without this
+    // exemption, clicking Next closed the dropdown in the same tick the tour
+    // advanced to a step that wanted to spotlight it, so it measured as gone.
+    render(
+      <div>
+        <ValidationIndicator violations={[]} isStale={false} onValidate={vi.fn()} />
+        <div data-tour-step="validate-click">
+          <button>Next</button>
+        </div>
+      </div>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Validate" }));
+    expect(screen.getByText("No violations.")).toBeInTheDocument();
+
+    fireEvent.mouseDown(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("No violations.")).toBeInTheDocument();
+  });
 });

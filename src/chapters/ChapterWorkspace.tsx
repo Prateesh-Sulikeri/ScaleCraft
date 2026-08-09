@@ -506,6 +506,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
           hasSubmittedPassing={submitOutcome?.passed === true || chapterPassed}
           onResetToStarter={handleResetToStarter}
           idleSlot={focusMode ? null : tourSlot}
+          focusMode={focusMode}
         />
       )}
     </PageEnter>

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useCanvasStore } from "@/canvas/store";
+import { buildReportUrl, logTourEvent } from "./tour-log";
 import type { TourStep, TourStepTarget } from "./types";
 
 type Rect = { top: number; left: number; width: number; height: number };
@@ -206,6 +208,14 @@ const VIEWPORT_MARGIN = 16;
  */
 const BROAD_TARGET_AREA_RATIO = 0.45;
 
+/** How long a declared target gets to mount before a waiting step falls back
+ * to a manual Next button. Long enough to absorb a legitimate mount race
+ * (the violations dropdown only exists once Validate is clicked); short
+ * enough that a genuinely broken selector — renamed in an unrelated future
+ * refactor, say — doesn't strand the learner on an unadvanceable step for
+ * the rest of the session. See pending-guided-tour.md's airbag invariant. */
+const RESOLUTION_GRACE_MS = 2500;
+
 /** Pads a measured rect out into the spotlight hole, then holds it inside
  * the viewport so the ring around it is a closed rectangle rather than one
  * or two stray lines at the screen edge. */
@@ -358,6 +368,7 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type TourOverlayProps = {
+  tourId: string;
   step: TourStep;
   stepIndex: number;
   stepCount: number;
@@ -368,7 +379,25 @@ type TourOverlayProps = {
    * Escape conventionally means "close this", not "never show me this
    * again" (punch list #11/#12). */
   onPause: () => void;
+  /** Advances the cursor by one, same as `onNext` — exposed separately so
+   * the watchdog row can offer it even while `interactionState` is
+   * "waiting" (the regular Next button only appears once a step has nothing
+   * left to wait for). Distinct from `onSkip`, which abandons the whole
+   * run. */
+  onSkipStep: () => void;
   interactionState: TourInteractionState;
+  /** True once the learner has spent the watchdog's foreground-time
+   * threshold waiting on this step's gesture without it landing. Renders a
+   * quiet additional row — never a modal, never new solution content, only
+   * exits (see use-watchdog.ts, pending-guided-tour.md's watchdog section). */
+  watchdogFired: boolean;
+  /** True when this step's `requires` was satisfied at some point during
+   * this step's tenure and has since gone false — the world drifted out
+   * from under an already-satisfied step (TourController.tsx tracks the
+   * true -> false transition). Never blocks navigation and never mutates
+   * anything — just a truthful note, same spirit as the resolution-failed
+   * fallback below. */
+  requiresBroken: boolean;
 };
 
 /**
@@ -389,6 +418,7 @@ type TourOverlayProps = {
  * TourController happens to be mounted in the tree.
  */
 export function TourOverlay({
+  tourId,
   step,
   stepIndex,
   stepCount,
@@ -396,13 +426,46 @@ export function TourOverlay({
   onBack,
   onSkip,
   onPause,
+  onSkipStep,
   interactionState,
+  watchdogFired,
+  requiresBroken,
 }: TourOverlayProps) {
   const spotlightTargets = useMemo(
     () => [step.target, ...(step.spotlightAlso ?? [])],
     [step.target, step.spotlightAlso],
   );
   const rect = useTrackedUnionRect(spotlightTargets);
+
+  // Airbag: a declared target that never mounts (a renamed selector, a
+  // deleted anchor) must not strand a waiting step forever.
+  //
+  // The "reset to false" side is handled during render (the same adjust-
+  // state-during-render pattern TourController.tsx's `entry`/`preSatisfied`
+  // uses), not in the effect below — react-hooks/set-state-in-effect flags
+  // an unconditional setState as the first statement of an effect body.
+  // Keying on whether the target is currently resolved (not just the step
+  // id) means this also cancels a fallback that already fired if the target
+  // reappears later in the same step, not only on a step change.
+  const resolvedKey = `${step.id}:${rect !== null}`;
+  const [timedOutFor, setTimedOutFor] = useState<{ key: string; timedOut: boolean }>({
+    key: resolvedKey,
+    timedOut: false,
+  });
+  if (timedOutFor.key !== resolvedKey) {
+    setTimedOutFor({ key: resolvedKey, timedOut: false });
+  }
+  const resolutionTimedOut = timedOutFor.key === resolvedKey && timedOutFor.timedOut;
+
+  useEffect(() => {
+    if (step.target === null || rect !== null) return;
+    const timeout = setTimeout(() => {
+      logTourEvent(tourId, { type: "resolution-failed", stepId: step.id, target: step.target as string });
+      setTimedOutFor((prev) => (prev.key === resolvedKey ? { ...prev, timedOut: true } : prev));
+    }, RESOLUTION_GRACE_MS);
+    return () => clearTimeout(timeout);
+  }, [tourId, step.id, step.target, rect, resolvedKey]);
+  const showsManualOverride = resolutionTimedOut && interactionState === "waiting";
   // Only tracked separately when it actually differs — sharing the same rect
   // reference (not just equal value) is what keeps the popover-position
   // layout effect below from re-running on every render.
@@ -450,6 +513,17 @@ export function TourOverlay({
   // step is asking for (punch list #15).
   const isModal = dims && !step.waitFor;
 
+  // Mirrored into the canvas store so use-canvas-shortcuts.ts can gate
+  // global hotkeys on it — this component owns the definition of "modal",
+  // that hook has no view into step content to compute it itself. Cleared
+  // on unmount as well as on every isModal flip, same shape as
+  // TourController.tsx's document.body.dataset.tourActive effect.
+  const setTourModalActive = useCanvasStore((s) => s.setTourModalActive);
+  useEffect(() => {
+    setTourModalActive(isModal);
+    return () => setTourModalActive(false);
+  }, [isModal, setTourModalActive]);
+
   // A step that declared any anchor at all must never fall back to centering
   // — see computePopoverPosition's `fallback` parameter.
   const unanchoredFallback = step.target === null && !step.popoverAnchor ? "center" : "dock";
@@ -476,6 +550,26 @@ export function TourOverlay({
   useLayoutEffect(() => {
     reposition();
   }, [reposition, step.id, step.body, viewport.width, viewport.height]);
+
+  // The dependency list above only catches height changes tied to a step or
+  // viewport change — it stays blind to the card growing for any other
+  // reason (the watchdog row appearing, the resolution-failed fallback
+  // appearing, both mid-step with nothing in that list changing). `top` was
+  // computed for the shorter card and never moved, so the new content pushed
+  // the bottom of a bottom-docked or bottom-placed card past the viewport
+  // edge — genuinely off-screen, invisible in jsdom (no layout engine, so
+  // every getBoundingClientRect the class of bug above already documents is
+  // zeroed out) and only caught live. A ResizeObserver on the card's own
+  // element, same pattern as Canvas.tsx/ComponentNode.tsx, repositions on
+  // ANY size change instead of requiring every future conditional row to
+  // remember to add itself to a dependency list.
+  useEffect(() => {
+    const el = popoverRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => reposition());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [reposition]);
 
   // Moves focus into the card on every step change, so a screen reader
   // announces the new step and a keyboard user starts inside the dialog
@@ -536,6 +630,21 @@ export function TourOverlay({
   // back into catching clicks individually instead.
   const backdropClass = "motion-reduce:transition-none pointer-events-auto fixed bg-black/50 transition-all duration-200";
 
+  // A real link (not a window.open handler) — works with cmd/ctrl-click,
+  // reads correctly to a screen reader, and never fires from a keyboard
+  // action other than actually activating it. Opening it hands the learner
+  // to GitHub's own compose form; nothing here submits anything.
+  const reportLink = (
+    <a
+      href={buildReportUrl(tourId, step.id)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
+    >
+      Report a problem
+    </a>
+  );
+
   return createPortal(
     <div
       className="pointer-events-none fixed inset-0 z-[var(--z-tour)]"
@@ -595,7 +704,7 @@ export function TourOverlay({
                 Back
               </button>
             )}
-            {interactionState === "none" ? (
+            {interactionState === "none" || showsManualOverride ? (
               <button
                 onClick={onNext}
                 className="rounded-md border border-border bg-background px-3 py-1 text-xs font-medium hover:bg-border"
@@ -609,6 +718,35 @@ export function TourOverlay({
             )}
           </div>
         </div>
+        {showsManualOverride && (
+          <p role="status" className="mt-2 text-[11px] text-state-error">
+            Couldn&apos;t find what this step is pointing at - you can continue manually. {reportLink}
+          </p>
+        )}
+        {requiresBroken && (
+          <p role="status" className="mt-2 text-[11px] text-state-error">
+            Something this step needs has changed since you started - you can keep going, or use Start
+            over from the tour&apos;s controls to reset. {reportLink}
+          </p>
+        )}
+        {watchdogFired && interactionState === "waiting" && (
+          <div role="status" className="mt-3 rounded-md border border-border bg-background/60 p-2.5 text-[11px] text-foreground/70">
+            {/* Deliberately generic — never step-specific, so it can never
+             * add solution content beyond what the card above already said
+             * (pending-guided-tour.md: "restates the mechanic only, never
+             * what to fix", held precisely on the fix-it steps). */}
+            <p>Still here? The instructions above are everything this step gives you - there&apos;s no extra hint below.</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-3">
+              <button onClick={onSkipStep} className="text-foreground/70 underline-offset-2 hover:text-foreground hover:underline">
+                Skip this step
+              </button>
+              <button onClick={onPause} className="text-foreground/70 underline-offset-2 hover:text-foreground hover:underline">
+                Pause tour
+              </button>
+              {reportLink}
+            </div>
+          </div>
+        )}
         <p className="mt-2 text-[11px] text-foreground/40">Esc pauses - resume from the pill anytime.</p>
       </div>
     </div>,

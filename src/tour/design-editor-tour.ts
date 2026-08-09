@@ -1,4 +1,31 @@
-import type { TourStep } from "./types";
+import type { TourContext, TourStep } from "./types";
+
+/** True once the SQL Database from this chapter's starter graph is present -
+ * role-based (componentId, not node instance id), so it stays true however
+ * the component got there. Shared between `picker-tour`'s `waitFor` (has the
+ * learner placed it) and its `requires` (has it since been removed again
+ * while the step is still active) - they describe the same structural fact. */
+function hasSqlDatabase(ctx: TourContext): boolean {
+  return ctx.presentComponentIds.includes("sql-database") && ctx.connectedComponentIds.includes("sql-database");
+}
+
+/** True once a request-flow edge connects Client and Application Server, in
+ * either direction - role-based (componentIds, not the starter graph's own
+ * edge instance id), so deleting the wrong edge and drawing a correct new
+ * one still satisfies this. See pending-guided-tour.md's resilience
+ * addendum, "A live bug that proves the diagnosis": the previous version of
+ * this predicate was keyed to `bb-0-1-edge-client-app` directly and could
+ * never become true again once that specific edge was deleted. Shared
+ * between `fix-edge`'s `waitFor` and `requires` for the same reason as
+ * `hasSqlDatabase` above. */
+function hasClientAppRequestFlowEdge(ctx: TourContext): boolean {
+  return ctx.edges.some(
+    (e) =>
+      e.kind === "request-flow" &&
+      ((e.sourceComponentId === "client" && e.targetComponentId === "app-server") ||
+        (e.sourceComponentId === "app-server" && e.targetComponentId === "client")),
+  );
+}
 
 /**
  * Chapter 0.1's guided walkthrough of the Design Editor
@@ -25,7 +52,7 @@ export const designEditorTour: TourStep[] = [
     title: "Welcome to the Design Editor",
     body:
       "This is where you build architectures. This chapter's starter design has a couple of real problems in it - you'll find and fix them together with this tour.\n\n" +
-      "21 steps, about five minutes. Press Esc to pause and pick up where you left off, or skip it entirely - the buttons at the bottom of the lesson sidebar bring it back either way.",
+      "19 steps, about five minutes. Press Esc to pause and pick up where you left off, or skip it entirely - the buttons at the bottom of the lesson sidebar bring it back either way.",
   },
   {
     id: "canvas-intro",
@@ -50,19 +77,6 @@ export const designEditorTour: TourStep[] = [
     placement: "bottom",
   },
   {
-    id: "undo-redo",
-    // The real gesture happens on the canvas, so that's the target;
-    // popoverAnchor points the card (and its ring) at the undo/redo buttons
-    // it's actually describing. The canvas is too broad to spotlight, so
-    // only one ring is drawn — the header one (see TourOverlay).
-    target: "canvas",
-    popoverAnchor: "undo-redo",
-    title: "Try it: make Undo available",
-    body: "Drag a component to a new spot on the canvas - then glance up here. Undo lights up as soon as there's a change to undo.",
-    placement: "bottom",
-    waitFor: (ctx) => ctx.canUndo,
-  },
-  {
     id: "open-picker",
     target: "canvas",
     title: "Try it: open the component picker",
@@ -73,11 +87,27 @@ export const designEditorTour: TourStep[] = [
   },
   {
     id: "picker-tour",
-    target: "component-picker",
-    title: "The component picker",
-    body: "Search, or browse by category. Choosing a component here doesn't drop it immediately - it arms it, and your next click on the canvas decides exactly where it lands. You'll do that for real in a moment.",
-    placement: "right",
+    // The real gestures (choose in the picker, drop on the canvas, draw an
+    // edge) span both surfaces; canvas owns the interactive hole since
+    // that's where the waitFor-satisfying actions land, same target/
+    // popoverAnchor split fix-edge uses below for the same reason.
+    // popoverAnchor still points the card at the picker itself.
+    target: "canvas",
+    popoverAnchor: "component-picker",
     allowsComponentPicker: true,
+    // Highlights the tile (the same ring keyboard navigation already draws)
+    // rather than narrowing the palette to it — the step's own copy still
+    // teaches search/browse, this just saves the learner from hunting for
+    // the one component that actually matters this step.
+    highlightComponentId: "sql-database",
+    title: "Try it: add the SQL Database",
+    body:
+      "Search the component picker, or browse by category. Choosing something here doesn't drop it immediately - it arms it, and your next click on the canvas decides exactly where it lands. " +
+      "This chapter needs a SQL Database - it's highlighted below - find it, place it on the canvas, then draw an edge connecting it to the Application Server.",
+    placement: "right",
+    waitFor: hasSqlDatabase,
+    requires: hasSqlDatabase,
+    hard: true,
   },
   {
     id: "question-pane",
@@ -107,21 +137,20 @@ export const designEditorTour: TourStep[] = [
     // alongside the button rather than dimmed behind the backdrop.
     spotlightAlso: ["validation-details"],
     title: "Try it: run Validate",
-    body: "This starter design actually has two real problems in it. Click Validate now to see exactly what and why.",
+    // Doesn't name a specific count — "picker-tour" a few steps back
+    // deliberately leaves the picker open (allowsComponentPicker), so a
+    // learner who places something early can genuinely change how many
+    // issues Validate finds. Naming "two" here was only ever true in the
+    // one path where nothing was touched before this step.
+    body: "This starter design has real problems in it. Click Validate now to see exactly what and why.",
     placement: "bottom",
     waitFor: (ctx) => ctx.lastValidationErrorCount !== null,
-  },
-  {
-    id: "fix-component",
-    target: "canvas",
-    // Without this the picker is force-closed the instant it opens, which
-    // made this step - and everything after it - impossible to complete.
-    allowsComponentPicker: true,
-    title: "Fix it: add the missing component",
-    body: "Validate flagged a required component that isn't here yet. Open the component picker - it's narrowed down to exactly what's missing - choose it, then click the canvas to drop it. Connect it to the Application Server.",
-    placement: "bottom",
-    waitFor: (ctx) => ctx.presentComponentIds.includes("sql-database"),
-    narrowAvailableComponentIds: ["sql-database"],
+    // The point of this step is reading the violations dropdown this
+    // gesture opens, not the click itself — a fixed timer whisking the card
+    // away regardless of how much there is to read reads as the step being
+    // skipped the instant Validate is clicked.
+    noAutoAdvance: true,
+    hard: true,
   },
   {
     id: "fix-edge",
@@ -134,7 +163,9 @@ export const designEditorTour: TourStep[] = [
     placement: "top",
     title: "Fix it: correct the connection",
     body: "One connection has the wrong kind. Click the edge between Client and Application Server, then set its kind to request-flow in the Edge Inspector that appears, bottom-right.",
-    waitFor: (ctx) => ctx.edgeKindById["bb-0-1-edge-client-app"] === "request-flow",
+    waitFor: hasClientAppRequestFlowEdge,
+    requires: hasClientAppRequestFlowEdge,
+    hard: true,
   },
   {
     id: "revalidate-clean",
@@ -144,6 +175,8 @@ export const designEditorTour: TourStep[] = [
     body: "Click Validate once more - with both issues fixed, it should come back clean.",
     placement: "bottom",
     waitFor: (ctx) => ctx.lastValidationErrorCount === 0,
+    noAutoAdvance: true,
+    hard: true,
   },
   {
     id: "deep-check-overview",
@@ -166,6 +199,7 @@ export const designEditorTour: TourStep[] = [
     body: "Your design is clean now - click Submit to complete this chapter.",
     placement: "bottom",
     waitFor: (ctx) => ctx.hasSubmittedPassing,
+    hard: true,
   },
   {
     id: "progress-complete",
