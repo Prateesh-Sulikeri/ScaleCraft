@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { logTourEvent } from "./tour-log";
+import { buildReportUrl, logTourEvent } from "./tour-log";
 import type { TourStep, TourStepTarget } from "./types";
 
 type Rect = { top: number; left: number; width: number; height: number };
@@ -378,7 +378,18 @@ type TourOverlayProps = {
    * Escape conventionally means "close this", not "never show me this
    * again" (punch list #11/#12). */
   onPause: () => void;
+  /** Advances the cursor by one, same as `onNext` — exposed separately so
+   * the watchdog row can offer it even while `interactionState` is
+   * "waiting" (the regular Next button only appears once a step has nothing
+   * left to wait for). Distinct from `onSkip`, which abandons the whole
+   * run. */
+  onSkipStep: () => void;
   interactionState: TourInteractionState;
+  /** True once the learner has spent the watchdog's foreground-time
+   * threshold waiting on this step's gesture without it landing. Renders a
+   * quiet additional row — never a modal, never new solution content, only
+   * exits (see use-watchdog.ts, pending-guided-tour.md's watchdog section). */
+  watchdogFired: boolean;
 };
 
 /**
@@ -407,7 +418,9 @@ export function TourOverlay({
   onBack,
   onSkip,
   onPause,
+  onSkipStep,
   interactionState,
+  watchdogFired,
 }: TourOverlayProps) {
   const spotlightTargets = useMemo(
     () => [step.target, ...(step.spotlightAlso ?? [])],
@@ -577,6 +590,21 @@ export function TourOverlay({
   // back into catching clicks individually instead.
   const backdropClass = "motion-reduce:transition-none pointer-events-auto fixed bg-black/50 transition-all duration-200";
 
+  // A real link (not a window.open handler) — works with cmd/ctrl-click,
+  // reads correctly to a screen reader, and never fires from a keyboard
+  // action other than actually activating it. Opening it hands the learner
+  // to GitHub's own compose form; nothing here submits anything.
+  const reportLink = (
+    <a
+      href={buildReportUrl(tourId, step.id)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-foreground/70 underline-offset-2 hover:text-foreground hover:underline"
+    >
+      Report a problem
+    </a>
+  );
+
   return createPortal(
     <div
       className="pointer-events-none fixed inset-0 z-[var(--z-tour)]"
@@ -652,8 +680,26 @@ export function TourOverlay({
         </div>
         {showsManualOverride && (
           <p role="status" className="mt-2 text-[11px] text-state-error">
-            Couldn&apos;t find what this step is pointing at - you can continue manually.
+            Couldn&apos;t find what this step is pointing at - you can continue manually. {reportLink}
           </p>
+        )}
+        {watchdogFired && interactionState === "waiting" && (
+          <div role="status" className="mt-3 rounded-md border border-border bg-background/60 p-2.5 text-[11px] text-foreground/70">
+            {/* Deliberately generic — never step-specific, so it can never
+             * add solution content beyond what the card above already said
+             * (pending-guided-tour.md: "restates the mechanic only, never
+             * what to fix", held precisely on the fix-it steps). */}
+            <p>Still here? The instructions above are everything this step gives you - there&apos;s no extra hint below.</p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-3">
+              <button onClick={onSkipStep} className="text-foreground/70 underline-offset-2 hover:text-foreground hover:underline">
+                Skip this step
+              </button>
+              <button onClick={onPause} className="text-foreground/70 underline-offset-2 hover:text-foreground hover:underline">
+                Pause tour
+              </button>
+              {reportLink}
+            </div>
+          </div>
         )}
         <p className="mt-2 text-[11px] text-foreground/40">Esc pauses - resume from the pill anytime.</p>
       </div>

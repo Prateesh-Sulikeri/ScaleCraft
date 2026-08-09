@@ -774,3 +774,79 @@ find, without narrowing the palette (which would undercut the step's own
   so the step's own "search or browse" copy stays true.
 
 Verified: full pipeline green (`typecheck`, `lint`, 1591 tests, `build`).
+
+## Slice 2 (2026-08-09): `feature/tour-watchdog` - done
+
+Stacked on `feature/tour-airbag`'s tip, not branched fresh from
+`release/v4.1.0-part-1-curriculum` as the addendum above originally said -
+that instruction predates the same-day bug-fix cascade that landed on
+`feature/tour-airbag` after slice 1's own "done" entry above; Report-a-
+problem (below) needs `tour-log.ts`, which only exists on that branch, and
+building against the stale base would have fought the current 19-step script
+instead of the 21-step one the addendum was written against. All four
+planned pieces landed:
+
+- **Timeout row** (`use-watchdog.ts`, new file). `useWatchdog(enabled,
+  resetKey, thresholdMs)` — one scheduled `setTimeout` carrying a
+  remaining-time budget across Page Visibility toggles, not a poll loop.
+  `visibilitychange` to hidden subtracts elapsed time from the budget and
+  clears the timeout; the next visible transition reschedules with what's
+  left, so a 20-minute tab-switch never fires it (foreground-time-only, per
+  the addendum). Threshold is `WATCHDOG_THRESHOLD_MS = 70_000`
+  (`TourController.tsx`), the middle of the addendum's suggested 60-75s
+  band. `resetKey` is the step id, so a step change restarts the budget.
+  Enabled only while `interactionState === "waiting"` — never on a
+  non-interactive step, never once the gesture has landed. Two effects, not
+  one: `react-hooks/refs` disallows touching a ref during render, so the
+  budget-reset ref writes and the `fired` state's own reset (the sanctioned
+  adjust-state-during-render pattern, same one `TourController`'s `entry`
+  already uses) can't share a code path — see the file's own doc comment.
+- **Per-step skip.** `TourOverlay.onSkipStep` is the same function as
+  `onNext` (`TourController` passes `advance` for both) — exposed under a
+  second name so the watchdog row can offer it while `interactionState` is
+  still "waiting", the one state the regular Next button never renders in.
+  Distinct from the existing "Skip tour" link, which ends the whole run.
+- **`TourStep.hard` tag** (`types.ts`) - set on `picker-tour`,
+  `validate-click`, `fix-edge`, `revalidate-clean`, `submit-click`: the
+  addendum's "see the failure explanation, fix each fault, confirm clean,
+  submit". Data only, nothing reads it yet - it exists so slice 3's
+  hard-gate-derived completion doesn't need every step retroactively
+  annotated.
+- **No-solution-content rule for fix-step watchdog copy** - held by
+  construction rather than a per-step check: the watchdog row's text
+  (`TourOverlay.tsx`) is a single hardcoded string, never interpolated from
+  step content, so it structurally cannot restate more than "the
+  instructions above are everything this step gives you" regardless of
+  which step - hard or soft - fired it. Covered by a test asserting the
+  rendered copy is byte-identical whether the active step is `fix-edge` or a
+  plain browsing step.
+- **Report-a-problem wiring.** `tour-log.ts`'s new `buildReportUrl(tourId,
+  stepId)` builds a `github.com/.../issues/new?title=...&body=...` link
+  (title names the tour/step; body is the current `dumpTourLog()` buffer as
+  JSON, capped at 6000 chars with a truncation note past that). Nothing is
+  auto-submitted - the link hands the learner to GitHub's own compose form,
+  which is the "visible before sending" review step the addendum asks for.
+  Wired as a real `<a target="_blank">` (not a `window.open` click handler)
+  on both the watchdog row and the existing slice-1 resolution-failed
+  fallback card.
+
+**Not touched, correctly**: `requires`, pause-on-surface-loss, modal hotkey
+scoping, `storage`-event multi-tab adoption, and hard-gate-derived
+completion (`hard` is tagged but not yet wired into what "taught" means) -
+all slice 3's job per the addendum's sequencing.
+
+**Verification**: full pipeline green (`typecheck`, `lint`, 1614 tests across
+188 files, `build`). New tests: `use-watchdog.test.ts` (fires/doesn't fire,
+resets on key change, pauses across `visibilitychange`, starts already-paused
+if the document is hidden at mount), watchdog-row and Report-a-problem
+coverage in `TourOverlay.test.tsx`, a `hard` tag test in
+`design-editor-tour.test.ts`, `buildReportUrl` coverage in `tour-log.test.ts`,
+and a watchdog integration test in `TourController.test.tsx` (fires once,
+logs once, Skip this step advances, row clears once the gesture lands).
+Manual click-through not yet done this pass.
+
+**Next**: `feature/tour-reconciler` (slice 3), per the addendum's sequencing
+- the largest remaining slice (`requires`, pause-on-surface-loss with
+`pauseReason`, modal hotkey scoping, `storage`-event multi-tab adoption,
+observer-driven re-measure, hard-gate-derived completion, the level-vs-edge
+predicate audit).

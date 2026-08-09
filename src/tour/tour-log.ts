@@ -5,9 +5,9 @@
  * existence of a problem (a predicate threw, a target never resolved), not
  * its rate — silent abandoners are silent by definition.
  *
- * Dev/support channel only, read via `window.__scaleTour.dump()`. A later
- * slice may add a "Report a problem" affordance that reads this buffer; none
- * exists yet.
+ * Dev/support channel: `window.__scaleTour.dump()` for manual inspection,
+ * plus `buildReportUrl()` below, which the watchdog and resolution-failed
+ * cards (TourOverlay.tsx) link out to.
  */
 
 const STORAGE_KEY = "scalecraft:tour-log";
@@ -59,6 +59,40 @@ export function dumpTourLog(): LoggedTourEvent[] {
 
 export function clearTourLog() {
   writeLog([]);
+}
+
+const REPORT_REPO = "Prateesh-Sulikeri/ScaleCraft";
+// Keeps the encoded URL well clear of practical browser/GitHub length
+// limits even with a full 200-entry buffer — this is a diagnostic excerpt,
+// not a guarantee of completeness; the note below points at the full buffer.
+const MAX_LOG_CHARS_IN_REPORT = 6000;
+
+/**
+ * A "Report a problem" link's target: a GitHub new-issue page prefilled with
+ * where the learner got stuck and this tour run's local event buffer, so a
+ * maintainer isn't debugging blind. Nothing is sent automatically — GitHub's
+ * own compose form is the review step before anything is actually filed
+ * (pending-guided-tour.md's watchdog section, "visible before sending").
+ */
+export function buildReportUrl(tourId: string, stepId: string): string {
+  const events = dumpTourLog();
+  let dump = JSON.stringify(events, null, 2);
+  const truncated = dump.length > MAX_LOG_CHARS_IN_REPORT;
+  if (truncated) dump = dump.slice(0, MAX_LOG_CHARS_IN_REPORT);
+
+  const title = `Guided tour stuck: ${tourId} / ${stepId}`;
+  const body =
+    `The guided tour ("${tourId}") got stuck on step "${stepId}".\n\n` +
+    "What were you doing right before this? (optional, but helpful)\n\n" +
+    "---\n" +
+    "Diagnostic log, from this browser's window.__scaleTour.dump():\n\n" +
+    "```json\n" +
+    dump +
+    (truncated ? "\n… truncated" : "") +
+    "\n```\n" +
+    (truncated ? `\n(${events.length} events total — truncated above for URL length; the full log is still in localStorage under "scalecraft:tour-log".)` : "");
+
+  return `https://github.com/${REPORT_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 }
 
 if (typeof window !== "undefined") {

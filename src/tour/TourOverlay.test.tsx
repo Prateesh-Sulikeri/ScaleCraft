@@ -43,7 +43,9 @@ function baseProps() {
     onBack: vi.fn(),
     onSkip: vi.fn(),
     onPause: vi.fn(),
+    onSkipStep: vi.fn(),
     interactionState: "none" as const,
+    watchdogFired: false,
   };
 }
 
@@ -342,6 +344,83 @@ describe("TourOverlay", () => {
         vi.useRealTimers();
       }
     });
+  });
+
+  describe("watchdog row (learner stuck without a live bug)", () => {
+    it("renders nothing extra while watchdogFired is false", () => {
+      render(<TourOverlay {...baseProps()} step={step({ waitFor: () => false })} interactionState="waiting" watchdogFired={false} />);
+      expect(screen.queryByText(/still here/i)).not.toBeInTheDocument();
+    });
+
+    it("shows the watchdog row once fired on a genuinely waiting step", () => {
+      render(<TourOverlay {...baseProps()} step={step({ waitFor: () => false })} interactionState="waiting" watchdogFired />);
+      expect(screen.getByText(/still here/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Skip this step" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Pause tour" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Report a problem" })).toBeInTheDocument();
+    });
+
+    it("does not show the row once the gesture is satisfied, even if watchdogFired stayed true", () => {
+      // interactionState flips to "satisfied"/"none" the instant the gesture
+      // lands; the row would otherwise linger telling a learner who just
+      // succeeded that they're stuck.
+      render(<TourOverlay {...baseProps()} step={step({ waitFor: () => true })} interactionState="satisfied" watchdogFired />);
+      expect(screen.queryByText(/still here/i)).not.toBeInTheDocument();
+    });
+
+    it("Skip this step calls onSkipStep, not onSkip — it advances one step, not the whole run", () => {
+      const props = baseProps();
+      render(<TourOverlay {...props} step={step({ waitFor: () => false })} interactionState="waiting" watchdogFired />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Skip this step" }));
+      expect(props.onSkipStep).toHaveBeenCalledTimes(1);
+      expect(props.onSkip).not.toHaveBeenCalled();
+    });
+
+    it("Pause tour in the watchdog row calls onPause, same as Escape", () => {
+      const props = baseProps();
+      render(<TourOverlay {...props} step={step({ waitFor: () => false })} interactionState="waiting" watchdogFired />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Pause tour" }));
+      expect(props.onPause).toHaveBeenCalledTimes(1);
+    });
+
+    it("the watchdog row's copy is identical regardless of which step fired it — never step-specific solution content", () => {
+      // pending-guided-tour.md: "restates the mechanic only, never what to
+      // fix", held precisely on the fix-it steps. Guaranteed structurally
+      // here by never interpolating step content into the row at all.
+      const { unmount } = render(
+        <TourOverlay {...baseProps()} step={step({ id: "fix-edge", waitFor: () => false, hard: true })} interactionState="waiting" watchdogFired />,
+      );
+      const fixEdgeCopy = screen.getByText(/still here/i).textContent;
+      unmount();
+
+      render(
+        <TourOverlay {...baseProps()} step={step({ id: "select-a-node", waitFor: () => false })} interactionState="waiting" watchdogFired />,
+      );
+      expect(screen.getByText(/still here/i).textContent).toBe(fixEdgeCopy);
+    });
+
+    it("Report a problem's href points at a GitHub new-issue page naming this tour and step", () => {
+      render(<TourOverlay {...baseProps()} tourId="design-editor" step={step({ id: "fix-edge", waitFor: () => false })} interactionState="waiting" watchdogFired />);
+
+      const href = screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")!;
+      expect(href).toMatch(/^https:\/\/github\.com\/Prateesh-Sulikeri\/ScaleCraft\/issues\/new\?/);
+      expect(decodeURIComponent(href)).toMatch(/design-editor \/ fix-edge/);
+    });
+  });
+
+  it("the resolution-failed fallback also offers Report a problem", () => {
+    vi.useFakeTimers();
+    try {
+      render(<TourOverlay {...baseProps()} step={step({ target: "component-picker", waitFor: () => false })} interactionState="waiting" />);
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
+      expect(screen.getByRole("link", { name: "Report a problem" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("anchors the card to a popoverAnchor that appears mid-step, rather than staying docked over it", () => {

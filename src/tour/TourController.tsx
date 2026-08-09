@@ -8,6 +8,7 @@ import { TourOverlay, type TourInteractionState } from "./TourOverlay";
 import { designEditorTour } from "./design-editor-tour";
 import { logTourEvent } from "./tour-log";
 import { useTourState } from "./tour-state";
+import { useWatchdog } from "./use-watchdog";
 import type { TourContext } from "./types";
 
 const TOUR_SCRIPTS = { "design-editor": designEditorTour } as const;
@@ -22,6 +23,14 @@ export type TourId = keyof typeof TOUR_SCRIPTS;
 // this only ever applies to a gesture the learner just performed and is
 // watching the result of. See .claude/docs/pending.md tour punch list #19.
 const ADVANCE_DELAY_MS = 600;
+
+// How long a learner can sit on an interactive step, tab in the foreground,
+// without the gesture landing, before the watchdog offers a way out. Picked
+// from the middle of pending-guided-tour.md's suggested 60-75s band: long
+// enough that a learner genuinely reading and trying isn't interrupted,
+// short enough that a real stall (missed instruction, a live bug) doesn't
+// strand them for minutes with no acknowledgement.
+const WATCHDOG_THRESHOLD_MS = 70_000;
 
 type TourControllerProps = {
   tourId: TourId;
@@ -220,6 +229,20 @@ export function TourController({
   const interactionState: TourInteractionState =
     !step.waitFor || preSatisfied || skipsAutoAdvance ? "none" : stepSatisfied ? "satisfied" : "waiting";
 
+  // The airbag invariant covers a broken script; the watchdog covers a
+  // learner stuck on a script that works fine — genuinely waiting on a
+  // gesture they haven't found or can't perform. Foreground-time-only via
+  // useWatchdog, reset per step id, only while genuinely "waiting" (not
+  // "satisfied" mid-acknowledgement, not "none" on a step with no gesture).
+  const watchdogFired = useWatchdog(active && interactionState === "waiting", step.id, WATCHDOG_THRESHOLD_MS);
+  const loggedWatchdogRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!watchdogFired) return;
+    if (loggedWatchdogRef.current === step.id) return;
+    loggedWatchdogRef.current = step.id;
+    logTourEvent(tourId, { type: "watchdog-fired", stepId: step.id });
+  }, [tourId, step.id, watchdogFired]);
+
   function advance() {
     if (stepIndex >= steps.length - 1) {
       setRunState({ status: "completed" });
@@ -401,7 +424,9 @@ export function TourController({
       onBack={back}
       onSkip={skip}
       onPause={pause}
+      onSkipStep={advance}
       interactionState={interactionState}
+      watchdogFired={watchdogFired}
     />
   );
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { logTourEvent, dumpTourLog, clearTourLog } from "./tour-log";
+import { buildReportUrl, logTourEvent, dumpTourLog, clearTourLog } from "./tour-log";
 
 afterEach(() => {
   clearTourLog();
@@ -48,5 +48,42 @@ describe("tour-log", () => {
     expect(scaleTour.dump()).toHaveLength(1);
     scaleTour.clear();
     expect(dumpTourLog()).toEqual([]);
+  });
+
+  describe("buildReportUrl", () => {
+    it("points at this repo's GitHub new-issue page", () => {
+      const url = buildReportUrl("design-editor", "fix-edge");
+      expect(url.startsWith("https://github.com/Prateesh-Sulikeri/ScaleCraft/issues/new?")).toBe(true);
+    });
+
+    it("names the tour and step in the prefilled title", () => {
+      const url = buildReportUrl("design-editor", "fix-edge");
+      const title = new URL(url).searchParams.get("title")!;
+      expect(title).toContain("design-editor");
+      expect(title).toContain("fix-edge");
+    });
+
+    it("includes the current log buffer's events in the prefilled body", () => {
+      logTourEvent("design-editor", { type: "predicate-threw", stepId: "fix-edge", message: "boom" });
+      const url = buildReportUrl("design-editor", "fix-edge");
+      const body = new URL(url).searchParams.get("body")!;
+      expect(body).toContain("predicate-threw");
+      expect(body).toContain("boom");
+    });
+
+    it("works with an empty log — nothing to report yet is not an error case", () => {
+      const url = buildReportUrl("design-editor", "welcome");
+      expect(() => new URL(url)).not.toThrow();
+    });
+
+    it("truncates a very large buffer rather than producing an unbounded URL", () => {
+      for (let i = 0; i < 200; i++) {
+        logTourEvent("design-editor", { type: "step-entered", stepId: `step-with-a-somewhat-long-id-${i}` });
+      }
+      const url = buildReportUrl("design-editor", "fix-edge");
+      const body = new URL(url).searchParams.get("body")!;
+      expect(body).toContain("truncated");
+      expect(url.length).toBeLessThan(20000);
+    });
   });
 });

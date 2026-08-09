@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { CanvasStoreProvider, useCanvasStore, useCanvasStoreApi } from "@/canvas/store";
 import { TourController } from "./TourController";
+import { dumpTourLog, clearTourLog } from "./tour-log";
 import { parseTourState, tourStateKey } from "./tour-state";
 
 const STATE_KEY = tourStateKey("design-editor");
@@ -153,6 +154,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  clearTourLog();
 });
 
 describe("TourController", () => {
@@ -340,6 +342,51 @@ describe("TourController", () => {
     next();
     act(() => void vi.advanceTimersByTime(10000));
     expect(screen.getByText("Try it: select a component")).toBeInTheDocument();
+  });
+
+  it("the watchdog offers a quiet way out after ~70s stuck on a gesture step, and logs it once", () => {
+    vi.useFakeTimers();
+    renderHarness({ hasLoadedInitialState: true });
+
+    next();
+    next();
+    expect(screen.getByText("Try it: select a component")).toBeInTheDocument();
+    expect(screen.queryByText(/still here/i)).not.toBeInTheDocument();
+
+    act(() => void vi.advanceTimersByTime(70_000));
+    expect(screen.getByText(/still here/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Skip this step" })).toBeInTheDocument();
+    expect(dumpTourLog().filter((e) => e.type === "watchdog-fired")).toHaveLength(1);
+
+    // Continues to advance the timer without logging a second time.
+    act(() => void vi.advanceTimersByTime(5000));
+    expect(dumpTourLog().filter((e) => e.type === "watchdog-fired")).toHaveLength(1);
+  });
+
+  it("Skip this step (from the watchdog row) advances past a gesture that never happened", () => {
+    vi.useFakeTimers();
+    renderHarness({ hasLoadedInitialState: true });
+
+    next();
+    next();
+    act(() => void vi.advanceTimersByTime(70_000));
+
+    fireEvent.click(screen.getByRole("button", { name: "Skip this step" }));
+    expect(screen.getByText("Save, docs, and shortcuts")).toBeInTheDocument();
+  });
+
+  it("the watchdog row disappears once the gesture actually lands", () => {
+    vi.useFakeTimers();
+    renderHarness({ hasLoadedInitialState: true });
+
+    next();
+    next();
+    act(() => void vi.advanceTimersByTime(70_000));
+    expect(screen.getByText(/still here/i)).toBeInTheDocument();
+
+    act(() => fireEvent.click(screen.getByTestId("select-node")));
+    settle();
+    expect(screen.queryByText(/still here/i)).not.toBeInTheDocument();
   });
 
   it("shows a Next button — and never auto-advances — for a gesture step already satisfied on arrival", () => {

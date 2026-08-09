@@ -234,6 +234,15 @@ describe("designEditorTour", () => {
     expect(designEditorTour.find((s) => s.id === "fix-edge")!.target).toBe("canvas");
   });
 
+  it("tags exactly the steps this chapter exists to teach as hard, everything else soft", () => {
+    // pending-guided-tour.md's resilience addendum: "the failure explanation,
+    // fix each fault, confirm clean, submit" — the moments a future
+    // hard-gate-derived completion (slice 3) would key off. Data only for
+    // now; nothing reads this yet.
+    const hardIds = designEditorTour.filter((s) => s.hard).map((s) => s.id);
+    expect(hardIds).toEqual(["picker-tour", "validate-click", "fix-edge", "revalidate-clean", "submit-click"]);
+  });
+
   it("only the two steps that reveal the violations dropdown suppress auto-advance", () => {
     // Every other waitFor step's whole content IS the gesture, so the
     // ~600ms acknowledgement delay is appropriate there — only a step whose

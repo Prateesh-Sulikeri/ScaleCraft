@@ -119,4 +119,12 @@ export type TourStep = {
    * behaves like an already-satisfied one once its predicate passes — a
    * normal Next button, on the learner's own pace, no timer. */
   noAutoAdvance?: boolean;
+  /** Marks a step as one of the moments this chapter actually exists to
+   * teach (see the failure explanation, fix each fault, confirm clean,
+   * submit) versus the surrounding orientation/browsing steps. Data only for
+   * now — nothing reads it yet. It exists so a future slice can define
+   * "taught" as reaching every hard step rather than reaching the end of the
+   * script (pending-guided-tour.md's resilience addendum, slice 3), without
+   * every step needing to be re-authored to add it retroactively. */
+  hard?: boolean;
 };

@@ -79,6 +79,7 @@ export const designEditorTour: TourStep[] = [
       "This chapter needs a SQL Database - it's highlighted below - find it, place it on the canvas, then draw an edge connecting it to the Application Server.",
     placement: "right",
     waitFor: (ctx) => ctx.presentComponentIds.includes("sql-database") && ctx.connectedComponentIds.includes("sql-database"),
+    hard: true,
   },
   {
     id: "question-pane",
@@ -121,6 +122,7 @@ export const designEditorTour: TourStep[] = [
     // away regardless of how much there is to read reads as the step being
     // skipped the instant Validate is clicked.
     noAutoAdvance: true,
+    hard: true,
   },
   {
     id: "fix-edge",
@@ -134,6 +136,7 @@ export const designEditorTour: TourStep[] = [
     title: "Fix it: correct the connection",
     body: "One connection has the wrong kind. Click the edge between Client and Application Server, then set its kind to request-flow in the Edge Inspector that appears, bottom-right.",
     waitFor: (ctx) => ctx.edgeKindById["bb-0-1-edge-client-app"] === "request-flow",
+    hard: true,
   },
   {
     id: "revalidate-clean",
@@ -144,6 +147,7 @@ export const designEditorTour: TourStep[] = [
     placement: "bottom",
     waitFor: (ctx) => ctx.lastValidationErrorCount === 0,
     noAutoAdvance: true,
+    hard: true,
   },
   {
     id: "deep-check-overview",
@@ -166,6 +170,7 @@ export const designEditorTour: TourStep[] = [
     body: "Your design is clean now - click Submit to complete this chapter.",
     placement: "bottom",
     waitFor: (ctx) => ctx.hasSubmittedPassing,
+    hard: true,
   },
   {
     id: "progress-complete",
