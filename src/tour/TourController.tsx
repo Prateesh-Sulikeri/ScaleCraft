@@ -6,11 +6,30 @@ import { useCanvasStore } from "@/canvas/store";
 import type { ComponentNodeType } from "@/canvas/types";
 import { TourOverlay, type TourInteractionState } from "./TourOverlay";
 import { designEditorTour } from "./design-editor-tour";
-import { useTourState } from "./tour-state";
+import { logTourEvent } from "./tour-log";
+import { useTourState, type TourRunState } from "./tour-state";
+import { useWatchdog } from "./use-watchdog";
 import type { TourContext } from "./types";
 
 const TOUR_SCRIPTS = { "design-editor": designEditorTour } as const;
 export type TourId = keyof typeof TOUR_SCRIPTS;
+
+/** Pure function of persisted state -> this tab's local `active`/`stepIndex`.
+ * Used both to decide the very first session (mount) and to re-decide it any
+ * time `runState` changes to a value this tab didn't itself just write (a
+ * write from another tab, forwarded via tour-state.ts's `storage` listener)
+ * — see the `lastSeenRunState` reconciliation block below for why re-running
+ * this same function on every runState change is safe rather than fighting
+ * this tab's own local writes. */
+function deriveSession(runState: TourRunState, focusMode: boolean, clampIndex: (i: number) => number) {
+  return runState.status === "unseen"
+    ? { active: true, stepIndex: 0 }
+    : runState.status === "running"
+      ? { active: true, stepIndex: clampIndex(runState.stepIndex) }
+      : runState.status === "paused" && runState.pauseReason === "surface-loss" && !focusMode
+        ? { active: true, stepIndex: clampIndex(runState.stepIndex) }
+        : { active: false, stepIndex: 0 };
+}
 
 // How long "Nice - continuing…" stays on screen after a gesture lands,
 // before the tour moves on. Short on purpose: this is acknowledgement, not
@@ -21,6 +40,14 @@ export type TourId = keyof typeof TOUR_SCRIPTS;
 // this only ever applies to a gesture the learner just performed and is
 // watching the result of. See .claude/docs/pending.md tour punch list #19.
 const ADVANCE_DELAY_MS = 600;
+
+// How long a learner can sit on an interactive step, tab in the foreground,
+// without the gesture landing, before the watchdog offers a way out. Picked
+// from the middle of pending-guided-tour.md's suggested 60-75s band: long
+// enough that a learner genuinely reading and trying isn't interrupted,
+// short enough that a real stall (missed instruction, a live bug) doesn't
+// strand them for minutes with no acknowledgement.
+const WATCHDOG_THRESHOLD_MS = 70_000;
 
 type TourControllerProps = {
   tourId: TourId;
@@ -50,6 +77,18 @@ type TourControllerProps = {
    * when there's no sidebar to portal into — focus mode unmounts it — and
    * the controls fall back to the floating position for that case. */
   idleSlot?: HTMLElement | null;
+  /** True while the canvas is in focus mode, which unmounts the header and
+   * sidebar — every `data-tour` anchor but the canvas itself. It's the one
+   * surface-loss case that doesn't already unmount TourController wholesale
+   * (navigating away or closing the tab leaves the persisted run state as
+   * "running", and the resume-on-mount logic below already treats that as
+   * "resume active, no pill" with no extra code — see pending-guided-tour.md's
+   * "Slice-3 finding" section). Used to auto-pause an active run rather than
+   * leaving a step spotlighting anchors that no longer exist, and to
+   * auto-resume the instant focus mode ends. Defaults to false so existing
+   * callers (tests, anything mounted outside a focus-mode-aware workspace)
+   * don't need to know this exists. */
+  focusMode?: boolean;
 };
 
 /**
@@ -71,6 +110,7 @@ export function TourController({
   hasSubmittedPassing,
   onResetToStarter,
   idleSlot,
+  focusMode = false,
 }: TourControllerProps) {
   const steps = TOUR_SCRIPTS[tourId];
   const { state: runState, hydrated, setState: setRunState } = useTourState(tourId);
@@ -83,7 +123,6 @@ export function TourController({
   // yet": localStorage isn't readable, or the canvas hasn't loaded.
   const [session, setSession] = useState<{ active: boolean; stepIndex: number } | null>(null);
 
-  const canUndo = useCanvasStore((s) => s.past.length > 0);
   const isComponentPickerOpen = useCanvasStore((s) => s.componentPicker);
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
   const closeComponentPicker = useCanvasStore((s) => s.closeComponentPicker);
@@ -91,20 +130,34 @@ export function TourController({
   const edges = useCanvasStore((s) => s.edges);
   const availableComponentIds = useCanvasStore((s) => s.availableComponentIds);
   const setAvailableComponentIds = useCanvasStore((s) => s.setAvailableComponentIds);
+  const setHighlightedComponentId = useCanvasStore((s) => s.setHighlightedComponentId);
 
   const clampIndex = (i: number) => Math.min(Math.max(i, 0), steps.length - 1);
 
-  // Auto-start (never seen) or resume (reloaded mid-run). `paused`,
-  // `skipped` and `completed` all deliberately stay out of the way until the
-  // learner reaches for the pill.
-  if (session === null && hydrated && hasLoadedInitialState) {
-    setSession(
-      runState.status === "unseen"
-        ? { active: true, stepIndex: 0 }
-        : runState.status === "running"
-          ? { active: true, stepIndex: clampIndex(runState.stepIndex) }
-          : { active: false, stepIndex: 0 },
-    );
+  // Auto-start (never seen) or resume (reloaded mid-run) on first mount, AND
+  // reconcile whenever `runState` changes to a value this tab didn't itself
+  // just produce — i.e. a write from another tab, forwarded through
+  // tour-state.ts's `storage` listener (mechanism 5 of the resilience
+  // addendum's multi-tab adoption: no leadership election, last writer wins,
+  // worst case is one re-narrated step). `lastSeenRunState` (not a ref —
+  // react-hooks/refs disallows a ref write during render, same reason
+  // `entry`/`requiresTracking`/`focusModeSeen` below all use useState instead
+  // of a ref) tracks the last `runState` reference this block has already
+  // reacted to; re-running is safe even for THIS tab's own writes because
+  // `deriveSession` is idempotent against whatever this tab already set
+  // locally (see its own doc comment) — a local write and its own
+  // re-derivation always agree.
+  //
+  // `skipped` and `completed` stay out of the way until the learner reaches
+  // for the pill. `paused` mostly does too, EXCEPT a surface-loss pause whose
+  // surface has already come back (e.g. a reload that happens to land while
+  // focus mode is off again, or another tab ending focus mode) - that one
+  // resumes active with no pill, same as `running`, since the pill exists for
+  // pauses the learner actually asked for.
+  const [lastSeenRunState, setLastSeenRunState] = useState<TourRunState | null>(null);
+  if (hydrated && hasLoadedInitialState && runState !== lastSeenRunState) {
+    setLastSeenRunState(runState);
+    setSession(deriveSession(runState, focusMode, clampIndex));
   }
 
   const active = session?.active ?? false;
@@ -121,27 +174,169 @@ export function TourController({
     () => nodes.filter((n): n is ComponentNodeType => n.type === "component").map((n) => n.data.componentId),
     [nodes],
   );
-  const edgeKindById = useMemo(() => {
-    const map: Record<string, string | undefined> = {};
-    for (const e of edges) map[e.id] = e.data?.kind;
-    return map;
-  }, [edges]);
+  const connectedComponentIds = useMemo(() => {
+    const connectedNodeIds = new Set<string>();
+    for (const e of edges) {
+      connectedNodeIds.add(e.source);
+      connectedNodeIds.add(e.target);
+    }
+    return nodes
+      .filter((n): n is ComponentNodeType => n.type === "component" && connectedNodeIds.has(n.id))
+      .map((n) => n.data.componentId);
+  }, [nodes, edges]);
+  const roleBasedEdges = useMemo(() => {
+    const componentIdByNodeId = new Map<string, string>();
+    for (const n of nodes) if (n.type === "component") componentIdByNodeId.set(n.id, n.data.componentId);
+    return edges.map((e) => ({
+      sourceComponentId: componentIdByNodeId.get(e.source),
+      targetComponentId: componentIdByNodeId.get(e.target),
+      kind: e.data?.kind,
+    }));
+  }, [nodes, edges]);
 
   const ctx: TourContext = useMemo(
     () => ({
-      canUndo,
       isComponentPickerOpen,
       selectedNodeId,
       presentComponentIds,
-      edgeKindById,
+      connectedComponentIds,
+      edges: roleBasedEdges,
       lastValidationErrorCount,
       hasSubmittedPassing,
     }),
-    [canUndo, isComponentPickerOpen, selectedNodeId, presentComponentIds, edgeKindById, lastValidationErrorCount, hasSubmittedPassing],
+    [
+      isComponentPickerOpen,
+      selectedNodeId,
+      presentComponentIds,
+      connectedComponentIds,
+      roleBasedEdges,
+      lastValidationErrorCount,
+      hasSubmittedPassing,
+    ],
   );
 
+  // Hard-gate-derived, order-free completion (pending-guided-tour.md's
+  // resolved "scoping decision" before this slice): the tour's own "done" is
+  // normally cursor-derived (advance() reaching the final step), but a
+  // learner who satisfies every `hard` step's condition out of script order —
+  // via Skip, a pause-and-finish-manually, or a reload after fixing things
+  // without ever reaching the end — should still have the run register as
+  // complete rather than sitting on "skipped"/"paused" forever. Reuses each
+  // hard step's own `waitFor` directly rather than a second field — it's
+  // already a pure function of live `ctx` with nothing about "is this the
+  // current step" (see the scoping decision's "what requires actually is"
+  // section for why this doesn't need `requires` instead). Same safe
+  // try/catch as `waitFor`'s own evaluation above — a throwing predicate must
+  // read as "not yet taught", never crash this check.
+  const allHardStepsTaught = useMemo(
+    () =>
+      steps
+        .filter((s) => s.hard)
+        .every((s) => {
+          if (!s.waitFor) return true;
+          try {
+            return s.waitFor(ctx);
+          } catch {
+            return false;
+          }
+        }),
+    [steps, ctx],
+  );
+
+  // Deliberately gated on `!active`: never rewrites the run out from under an
+  // in-progress step — a learner reading an active card must never have it
+  // yanked away by a background completion check. A learner who satisfies
+  // everything while the tour is actively running still finishes the normal
+  // way, through the last step's own Next/Done button; this effect only
+  // closes the Skip/pause-and-finish-manually/reload-after-solving-out-of-
+  // order gap the addendum names.
+  useEffect(() => {
+    if (active || !allHardStepsTaught || runState.status === "completed") return;
+    setRunState({ status: "completed" });
+  }, [active, allHardStepsTaught, runState.status, setRunState]);
+
   const step = steps[stepIndex];
-  const stepSatisfied = !step.waitFor || step.waitFor(ctx);
+
+  // A predicate keyed to something that can vanish (fix-edge's hardcoded
+  // starter-graph edge id, pre-airbag) must never soft-lock the step for
+  // every future user. A throw is treated as manually advanceable — same
+  // render path as a step with no waitFor at all.
+  let stepSatisfied: boolean;
+  let predicateThrewMessage: string | null = null;
+  if (!step.waitFor) {
+    stepSatisfied = true;
+  } else {
+    try {
+      stepSatisfied = step.waitFor(ctx);
+    } catch (err) {
+      stepSatisfied = true;
+      predicateThrewMessage = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  // Logging (not the satisfied/throw computation above) is pushed into an
+  // effect and deduped per step id via a ref — react-hooks/refs disallows
+  // reading or writing a ref during render, so the dedupe check itself has
+  // to live here rather than inline above.
+  const loggedThrowRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (predicateThrewMessage === null) return;
+    if (loggedThrowRef.current === step.id) return;
+    loggedThrowRef.current = step.id;
+    logTourEvent(tourId, { type: "predicate-threw", stepId: step.id, message: predicateThrewMessage });
+  }, [tourId, step.id, predicateThrewMessage]);
+
+  // requires is evaluated the same safe way as waitFor - a throwing
+  // `requires` must not be worse than not having one at all.
+  let requiresSatisfied = true;
+  if (step.requires) {
+    try {
+      requiresSatisfied = step.requires(ctx);
+    } catch {
+      requiresSatisfied = true;
+    }
+  }
+
+  // Only a true -> false transition is drift; a step that's never been
+  // satisfied yet (still being worked on) is ordinary waiting, not the
+  // world changing out from under an already-satisfied step. Tracked with
+  // the same adjust-state-during-render pattern as `entry` below, reset per
+  // step id.
+  const [requiresTracking, setRequiresTracking] = useState<{ index: number; sawTrue: boolean; broken: boolean }>({
+    index: -1,
+    sawTrue: false,
+    broken: false,
+  });
+  if (requiresTracking.index !== stepIndex) {
+    setRequiresTracking({ index: stepIndex, sawTrue: requiresSatisfied, broken: false });
+  } else if (requiresSatisfied && !requiresTracking.sawTrue) {
+    // First time this step's requirement becomes true - record it so a
+    // later false reads as drift, not as "still hasn't happened yet".
+    setRequiresTracking({ index: stepIndex, sawTrue: true, broken: false });
+  } else if (!requiresSatisfied && requiresTracking.sawTrue && !requiresTracking.broken) {
+    setRequiresTracking({ index: stepIndex, sawTrue: true, broken: true });
+  } else if (requiresSatisfied && requiresTracking.broken) {
+    setRequiresTracking({ index: stepIndex, sawTrue: true, broken: false });
+  }
+  const requiresBroken = requiresTracking.index === stepIndex && requiresTracking.broken;
+
+  const loggedRequiresBrokeRef = useRef<string | null>(null);
+  const loggedReconciledRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (requiresBroken) {
+      if (loggedRequiresBrokeRef.current === step.id) return;
+      loggedRequiresBrokeRef.current = step.id;
+      logTourEvent(tourId, { type: "requires-broke", stepId: step.id });
+      return;
+    }
+    // Only log a reconciliation for a step this tab actually saw break -
+    // moving to a fresh step (requiresBroken false because it just reset)
+    // isn't a reconciliation.
+    if (loggedRequiresBrokeRef.current === step.id && loggedReconciledRef.current !== step.id) {
+      loggedReconciledRef.current = step.id;
+      logTourEvent(tourId, { type: "reconciled-via", stepId: step.id, how: "world state matched again" });
+    }
+  }, [tourId, step.id, requiresBroken]);
 
   // Whether this step's gesture was ALREADY done the moment the step became
   // active — a resumed run, a Back navigation, or a learner who happened to
@@ -157,12 +352,35 @@ export function TourController({
   }
   const preSatisfied = entry.index === stepIndex ? entry.preSatisfied : stepSatisfied;
 
+  // A satisfied noAutoAdvance step (validate-click, revalidate-clean — see
+  // types.ts) renders exactly like a pre-satisfied one: a normal Next
+  // button, not the auto-advancing "satisfied" state. Reusing that branch
+  // rather than adding a third interactionState value also means the
+  // auto-advance effect below needs no separate opt-out — it only fires on
+  // "satisfied", which this step now never reaches.
+  const skipsAutoAdvance = stepSatisfied && step.noAutoAdvance === true;
+
   // "Start over" discards the learner's saved work, so it's two-step: the
   // first click arms it, the second one commits. Deliberately not a
   // window.confirm - nothing else in the app blocks the tab like that.
   const [resetArmed, setResetArmed] = useState(false);
 
-  const interactionState: TourInteractionState = !step.waitFor || preSatisfied ? "none" : stepSatisfied ? "satisfied" : "waiting";
+  const interactionState: TourInteractionState =
+    !step.waitFor || preSatisfied || skipsAutoAdvance ? "none" : stepSatisfied ? "satisfied" : "waiting";
+
+  // The airbag invariant covers a broken script; the watchdog covers a
+  // learner stuck on a script that works fine — genuinely waiting on a
+  // gesture they haven't found or can't perform. Foreground-time-only via
+  // useWatchdog, reset per step id, only while genuinely "waiting" (not
+  // "satisfied" mid-acknowledgement, not "none" on a step with no gesture).
+  const watchdogFired = useWatchdog(active && interactionState === "waiting", step.id, WATCHDOG_THRESHOLD_MS);
+  const loggedWatchdogRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!watchdogFired) return;
+    if (loggedWatchdogRef.current === step.id) return;
+    loggedWatchdogRef.current = step.id;
+    logTourEvent(tourId, { type: "watchdog-fired", stepId: step.id });
+  }, [tourId, step.id, watchdogFired]);
 
   function advance() {
     if (stepIndex >= steps.length - 1) {
@@ -183,9 +401,11 @@ export function TourController({
   }
 
   /** Escape / "pause" — the run stays exactly where it is and the pill
-   * offers to resume it. Distinct from Skip, which ends the run. */
-  function pause() {
-    setRunState({ status: "paused", stepIndex });
+   * offers to resume it. Distinct from Skip, which ends the run.
+   * `reason` defaults to "user" (an explicit Escape); the focus-mode effect
+   * below is the one caller that passes "surface-loss". */
+  function pause(reason: "user" | "surface-loss" = "user") {
+    setRunState({ status: "paused", stepIndex, pauseReason: reason });
     setSession({ active: false, stepIndex });
   }
 
@@ -214,6 +434,50 @@ export function TourController({
     setRunState({ status: "running", stepIndex: 0 });
     setSession({ active: true, stepIndex: 0 });
   }
+
+  // Pause the instant focus mode turns on during an active run — its host
+  // surface (header, sidebar, every data-tour anchor but the canvas) just
+  // unmounted out from under whichever step is showing, and resumes it
+  // silently the instant focus mode ends again — but only for a pause this
+  // caused; a learner who paused deliberately via Escape still gets the
+  // resume pill, not an unannounced jump back into the overlay.
+  //
+  // Adjusted during render, not in an effect, same as `entry`/
+  // `requiresTracking` above: react-hooks/set-state-in-effect flags calling
+  // this component's own `setSession` from inside a useEffect body (even via
+  // a helper like `pause()`/`resume()`), so a real prop-driven state change
+  // has to use the render-time comparison pattern instead.
+  const [focusModeSeen, setFocusModeSeen] = useState(focusMode);
+  if (focusModeSeen !== focusMode) {
+    setFocusModeSeen(focusMode);
+    if (focusMode && active) {
+      setSession({ active: false, stepIndex });
+    } else if (!focusMode && runState.status === "paused" && runState.pauseReason === "surface-loss") {
+      setSession({ active: true, stepIndex: clampIndex(runState.stepIndex) });
+    }
+  }
+
+  // The localStorage write for that pause, on the other hand, belongs in an
+  // effect (it's the "update an external system" half of the same
+  // transition — same shape as the checkpoint effect above, which already
+  // covers the resume write: once the render-time block flips `session`
+  // back to active, that effect's own `active` dependency fires and persists
+  // "running" with no extra code needed here). A second, ref-based flip
+  // detector, deliberately not the `focusModeSeen` state above — an effect
+  // can't share a flip-detector with a render-time block and stay correct,
+  // because by the time this effect runs, `active` already reflects the
+  // NEW (post-adjustment) value, not the value at the moment focus mode
+  // turned on. `runState.status === "running"` is what's still trustworthy
+  // at that point — the checkpoint effect kept it "running" for the whole
+  // stretch this was an active run.
+  const prevFocusModeRef = useRef(focusMode);
+  useEffect(() => {
+    const wasFocusMode = prevFocusModeRef.current;
+    prevFocusModeRef.current = focusMode;
+    if (focusMode && !wasFocusMode && runState.status === "running") {
+      setRunState({ status: "paused", stepIndex, pauseReason: "surface-loss" });
+    }
+  }, [focusMode, runState.status, stepIndex, setRunState]);
 
   // Auto-advances only a gesture the learner just performed while watching
   // this step — never one that was already true when the step opened (see
@@ -276,6 +540,15 @@ export function TourController({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step]);
 
+  // A step can declare `highlightComponentId` to make one specific picker
+  // item stand out (ComponentPicker.tsx's highlightedComponentId) without
+  // narrowing the palette, the way `narrowAvailableComponentIds` above
+  // does. No prior value to restore here — the highlight is entirely
+  // tour-owned, so clearing it is just setting it back to `null`.
+  useEffect(() => {
+    setHighlightedComponentId(active ? (step.highlightComponentId ?? null) : null);
+  }, [active, step, setHighlightedComponentId]);
+
   // Nothing paints until localStorage has actually been read — otherwise a
   // learner who finished the tour gets a flash of the pill (or worse, the
   // overlay) on every load.
@@ -328,6 +601,7 @@ export function TourController({
 
   return (
     <TourOverlay
+      tourId={tourId}
       step={step}
       stepIndex={stepIndex}
       stepCount={steps.length}
@@ -335,7 +609,10 @@ export function TourController({
       onBack={back}
       onSkip={skip}
       onPause={pause}
+      onSkipStep={advance}
       interactionState={interactionState}
+      watchdogFired={watchdogFired}
+      requiresBroken={requiresBroken}
     />
   );
 }

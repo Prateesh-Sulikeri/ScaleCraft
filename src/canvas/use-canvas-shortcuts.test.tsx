@@ -417,6 +417,56 @@ describe("useCanvasShortcuts", () => {
     expect(api().getState().docsPanel.focusMode).toBe(true);
   });
 
+  it("swallows hotkeys while a blocking tour step is active (tourModalActive)", () => {
+    const api = withStoreApi();
+    act(() => {
+      api().getState().addZone({ x: 0, y: 0 });
+      api().setState({
+        nodes: api().getState().nodes.map((n) => ({ ...n, selected: true })),
+      });
+      api().getState().setTourModalActive(true);
+    });
+
+    fireKey({ key: "d", ctrlKey: true });
+    expect(api().getState().nodes).toHaveLength(1);
+
+    const event = fireKey({ key: "?", code: "Slash", shiftKey: true });
+    expect(api().getState().shortcutsModalOpen).toBe(false);
+    expect(event.defaultPrevented).toBe(false);
+
+    fireKey({ key: "/" });
+    expect(api().getState().componentPicker).toBe(false);
+
+    fireKey({ key: "z", ctrlKey: true });
+    expect(api().getState().nodes).toHaveLength(1);
+  });
+
+  it("still lets Escape close the shortcuts modal or exit focus mode while tourModalActive", () => {
+    // Escape is deliberately not gated: the tour has its own Escape handler
+    // (TourOverlay.tsx) that pauses the run, and these two branches running
+    // alongside it is existing, unrelated behavior.
+    const api = withStoreApi();
+    act(() => {
+      api().getState().setFocusMode(true);
+      api().getState().setTourModalActive(true);
+    });
+
+    fireKey({ key: "Escape" });
+    expect(api().getState().docsPanel.focusMode).toBe(false);
+  });
+
+  it("does not swallow hotkeys once tourModalActive clears (an interactive tour step, or no tour at all)", () => {
+    const api = withStoreApi();
+    act(() => {
+      api().getState().setTourModalActive(true);
+      api().getState().setTourModalActive(false);
+    });
+
+    const event = fireKey({ key: "/" });
+    expect(api().getState().componentPicker).toBe(true);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it("removes its window listener on unmount", () => {
     const removeSpy = vi.spyOn(window, "removeEventListener");
     const { unmount } = renderHook(() => useCanvasShortcuts(onSave), { wrapper });

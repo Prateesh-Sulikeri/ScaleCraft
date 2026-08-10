@@ -348,4 +348,25 @@ describe("ComponentPicker", () => {
     expect(screen.getByText("Client")).toBeInTheDocument();
     expect(screen.queryByText("Application Server")).not.toBeInTheDocument();
   });
+
+  it("pre-highlights highlightedComponentId (set live, not just on open) without hiding anything else", () => {
+    // TourController.tsx sets this while a step is active — the picker is
+    // typically already open by then (opened by an earlier step), so this
+    // has to react to the id itself, not a fresh open transition.
+    const { api } = openPicker();
+    // Default active tile on open is the first Decoration tool, not a
+    // component — establishing the baseline the highlight then overrides.
+    expect(screen.getByText("Add zone").closest('[role="option"]')).toHaveAttribute("aria-selected", "true");
+
+    act(() => api.getState().setHighlightedComponentId("sql-database"));
+    expect(screen.getByText("SQL Database").closest('[role="option"]')).toHaveAttribute("aria-selected", "true");
+    // Nothing else disappeared — unlike availableComponentIds, this never
+    // filters the list.
+    expect(screen.getByText("Client")).toBeInTheDocument();
+
+    // A learner still moving the keyboard cursor themselves overrides it,
+    // same as it would override any other active tile.
+    fireEvent.keyDown(window, { key: "ArrowDown" });
+    expect(screen.getByText("SQL Database").closest('[role="option"]')).toHaveAttribute("aria-selected", "false");
+  });
 });

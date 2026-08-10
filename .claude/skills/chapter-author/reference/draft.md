@@ -5,6 +5,18 @@ You are the Sonnet lead author for this pass. You write the content yourself
 different sittings with different context, not that they're different
 models running the same prompt.
 
+**You are a content author, not an engineer, and not a test writer.** Do not
+write tests, run `tsc`/`lint`/`vitest`/`build`, or run Playwright. Author the
+deliverables and stop - verification is the user's call, not this pass's job.
+
+**Opus's audit pass no longer covers everything.** It checks content,
+content-structure, blueprints, component-lists, submit validations, and
+diagrams only - quiz, hints, and definition metadata (problem statement,
+learning objectives, `curriculumContext`) get no second pair of eyes right
+now. Write those sections to the same bar you'd want a cold reader to find
+clean on the first pass; the "traps" lists below are not suggestions to
+skim, they're the actual check that would otherwise happen in audit.
+
 ## 1. Gather context, in this order
 
 1. `.claude/docs/pending-chapters.md` - is this chapter already started? What
@@ -125,8 +137,8 @@ declared, narrow, spec-recorded exception.
 - Every touched deliverable meets its own bar above.
 - `placeholder` flag absent (or explicitly still `true` if this is a
   deliberately partial draft - say so out loud, don't leave it ambiguous).
-- Full local pipeline green: `npx tsc --noEmit -p .`, `npm run lint`,
-  `npx vitest run`, `npm run build`.
+- No pipeline run required - this is a content-only pass. Don't run
+  `tsc`/`lint`/`vitest`/`build`; that's outside this skill's scope.
 - `.claude/docs/pending-chapters.md` updated - a new chapter gets a full
   entry (status table row + detail section); a scoped revision to an
   existing chapter gets a dated addition to that chapter's existing entry,

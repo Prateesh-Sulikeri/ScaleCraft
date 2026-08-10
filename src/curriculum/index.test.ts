@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getCourse, allEntries, findEntry, findSection, slugForChapterDefinitionId } from "./index";
+import { getCourse, allEntries, findEntry, findSection, nextEntry, slugForChapterDefinitionId } from "./index";
 import { courses } from "./manifest";
 
 describe("curriculum/index", () => {
@@ -43,5 +43,30 @@ describe("curriculum/index", () => {
 
   it("slugForChapterDefinitionId returns undefined for an id with no curriculum entry", () => {
     expect(slugForChapterDefinitionId("not-a-real-definition-id")).toBeUndefined();
+  });
+
+  it("nextEntry returns the following entry in curriculum order", () => {
+    const entries = allEntries(courses["building-blocks"]);
+    expect(entries.length).toBeGreaterThan(1);
+    expect(nextEntry("building-blocks", entries[0].slug)?.slug).toBe(entries[1].slug);
+  });
+
+  it("nextEntry crosses a section boundary", () => {
+    const course = courses["building-blocks"];
+    const firstSection = course.sections[0];
+    const lastOfFirstSection = firstSection.chapters[firstSection.chapters.length - 1];
+    const entries = allEntries(course);
+    const expectedNext = entries[entries.indexOf(lastOfFirstSection) + 1];
+    expect(nextEntry("building-blocks", lastOfFirstSection.slug)?.slug).toBe(expectedNext.slug);
+  });
+
+  it("nextEntry returns undefined for the last entry in a course", () => {
+    const entries = allEntries(courses["building-blocks"]);
+    const last = entries[entries.length - 1];
+    expect(nextEntry("building-blocks", last.slug)).toBeUndefined();
+  });
+
+  it("nextEntry returns undefined for an unknown slug", () => {
+    expect(nextEntry("building-blocks", "not-a-real-slug")).toBeUndefined();
   });
 });

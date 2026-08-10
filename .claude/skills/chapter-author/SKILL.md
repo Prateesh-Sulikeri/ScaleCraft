@@ -25,6 +25,13 @@ section names the binding docs (`CURRICULUM.md`, `QUIZ_FRAMEWORK.md`,
 contracts rather than restating them. This skill is a *process* wrapper
 around that contract, not a replacement for reading it.
 
+**Scope: content authoring only, both passes.** Sonnet and Opus write
+curriculum content - lesson prose, specs, blueprints, component lists,
+validation-rule references, diagrams, quiz, hints. Neither pass writes
+tests, runs the CI pipeline (`tsc`/`lint`/`vitest`/`build`), or runs
+Playwright. That verification happens outside this skill, on the user's own
+schedule, not as part of drafting or auditing a chapter.
+
 ## Parse the invocation
 
 Two positional args, one optional flag:
@@ -68,7 +75,7 @@ Read `reference/draft.md`, then follow it. Short version: gather context
 type, `QUIZ_FRAMEWORK.md` if scope touches the quiz, `pending-chapters.md`
 for what's already decided/blocked, a already-shipped chapter as a style/
 structure precedent), author the scoped deliverable(s) yourself as Sonnet,
-run the pipeline, update the ledger, and **stop** - present the diff to the
+update the ledger, and **stop** - present the diff to the
 user and wait. Do not chain into `audit` automatically, even for a `full`
 draft. The user reads the Sonnet draft first, on its own, every time - that
 sequencing is what makes the second pass a genuine second opinion instead of
@@ -81,12 +88,23 @@ actually exists for the requested scope (refuse to "audit" nothing), spawn
 a `model: opus` Agent with the prompt template in that file filled in for
 the resolved chapter and scope, run it in the foreground (you need its
 result before you can verify it), and then **independently verify its
-self-report** before relaying anything to the user - re-run the pipeline
-yourself, spot-check at least two of its specific claims against the actual
-diff, and confirm the ledger entry it wrote is accurate. An agent's report
-of what it did is a claim, not a fact, until you've checked it against the
-working tree yourself (this is the same discipline the top-level system
-prompt asks of every subagent report - it doesn't relax for this skill).
+self-report** before relaying anything to the user - spot-check at least two
+of its specific claims against the actual diff, and confirm the ledger entry
+it wrote is accurate. An agent's report of what it did is a claim, not a
+fact, until you've checked it against the working tree yourself (this is the
+same discipline the top-level system prompt asks of every subagent report -
+it doesn't relax for this skill).
+
+**Opus's checklist is deliberately narrow, not "audit everything":** content
+(lesson prose), content-structure (mandatory sections/beat order), blueprints,
+component-lists (`availableComponentIds`/`requiredComponentIds`), submit
+validations (`validationRuleIds` and what they actually gate), and diagrams.
+Quiz, hints, and the remaining `ChapterDefinition` metadata (problem
+statement, learning objectives, `curriculumContext`) are **not** in Opus's
+scope right now - Sonnet owns getting those right in `draft` and self-checks
+them there (see the traps list in `reference/draft.md`), so Opus isn't
+re-deriving a full audit from scratch on every pass. This is a standing
+scope restriction until the user says otherwise, not a per-invocation choice.
 
 ## Constants across both modes
 
@@ -98,9 +116,11 @@ prompt asks of every subagent report - it doesn't relax for this skill).
   calls); an `audit` appends an "Opus proofread pass" subsection to the
   existing entry (what was checked, what changed and why, what was checked
   and deliberately left alone). Never batch this for later.
-- **Always finish with a green local pipeline** -
-  `npx tsc --noEmit -p .`, `npm run lint`, `npx vitest run`, `npm run build`.
-  Fix anything broken before declaring the pass done, in either mode.
+- **Never write tests, run the CI pipeline, or run Playwright.** Both modes
+  are content-authoring passes, full stop - no `npx tsc`, `npm run lint`,
+  `npx vitest`, `npm run build`, or Playwright, and no new test files. If a
+  chapter needs a new validation rule, reference/describe it; implementing
+  and testing the rule's code is engineering work outside this skill.
 - **The quiz positional-bias guard is per-chapter, not registry-wide.**
   `quiz-invariants.test.ts` catches a single chapter's single-choice answers
   clustering on one letter, a matching question's diagonal, or a pre-solved

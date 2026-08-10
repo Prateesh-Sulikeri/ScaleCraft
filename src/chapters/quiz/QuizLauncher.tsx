@@ -63,37 +63,41 @@ export function QuizLauncher({ chapter }: QuizLauncherProps) {
 
   return (
     <div className="mt-8">
-      <div className="flex items-center gap-2">
-        <h2 id="knowledge-check" className="text-lg font-semibold text-foreground">
-          Knowledge check
-        </h2>
-        {/* Same Draft treatment as the chapter title/QuestionPane — dummy
-         * quiz content on a placeholder chapter must never read as finished
-         * curriculum. */}
-        {chapter.placeholder && (
-          <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70">
-            Draft
-          </span>
-        )}
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-panel px-5 py-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 id="knowledge-check" className="text-sm font-semibold text-foreground">
+              Knowledge check
+            </h2>
+            {/* Same Draft treatment as the chapter title/QuestionPane —
+             * dummy quiz content on a placeholder chapter must never read
+             * as finished curriculum. */}
+            {chapter.placeholder && (
+              <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70">
+                Draft
+              </span>
+            )}
+          </div>
+
+          <p className="mt-0.5 text-xs text-foreground/60">
+            {chapter.quiz.length} question{chapter.quiz.length === 1 ? "" : "s"} · {EXAM_PASS_THRESHOLD}% to pass
+          </p>
+
+          {attempts.length > 0 && (
+            <p className="mt-0.5 text-xs text-foreground/60">
+              {passed ? `Passed · ${best}%` : `Attempt ${attempts.length} · Best score ${best}%`}
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={locked ? handleViewResult : () => setView("exam")}
+          className="shrink-0 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-border/40"
+        >
+          {locked ? "View your result" : attempts.length > 0 ? "Retake the quiz" : "Take the quiz"}
+        </button>
       </div>
-
-      <p className="mt-1.5 text-sm text-foreground/70">
-        {chapter.quiz.length} question{chapter.quiz.length === 1 ? "" : "s"} · {EXAM_PASS_THRESHOLD}% to pass
-      </p>
-
-      {attempts.length > 0 && (
-        <p className="mt-1 text-xs text-foreground/60">
-          {passed ? `Passed · ${best}%` : `Attempt ${attempts.length} · Best score ${best}%`}
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={locked ? handleViewResult : () => setView("exam")}
-        className="mt-3 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-border/40"
-      >
-        {locked ? "View your result" : attempts.length > 0 ? "Retake the quiz" : "Take the quiz"}
-      </button>
 
       {view === "exam" && (
         <ExamShell
