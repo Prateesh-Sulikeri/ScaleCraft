@@ -153,7 +153,8 @@ export type ChapterDefinition = {
    * §11.1's justified Concept-chapter exception (no components introduced,
    * nothing to build). Absent/true means the chapter has a canvas exercise,
    * matching every chapter authored before this field existed. Read by
-   * ChapterReader (suppresses DesignEditorCTA — there is nothing to open)
+   * ChapterReader (suppresses the exercise row in YourTurnCard — there is
+   * nothing to open)
    * and curriculum/progress.ts's deriveStatus (completion can't require a
    * chapterProgress row that Submit, unreachable, can never write — quiz
    * pass alone gates COMPLETED instead). */
