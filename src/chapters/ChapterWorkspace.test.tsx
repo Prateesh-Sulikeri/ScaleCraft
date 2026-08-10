@@ -227,6 +227,9 @@ const findEntryMock = vi.fn((_mode: string, slug: string) =>
 );
 vi.mock("@/curriculum", () => ({
   findEntry: (mode: string, slug: string) => findEntryMock(mode, slug),
+  // No test in this file asserts on "Next chapter" (see NextChapterLink.test.tsx
+  // and ChapterPassedToast.test.tsx for that) - undefined keeps it a no-op.
+  nextEntry: () => undefined,
 }));
 
 const markVisitedMock = vi.fn();

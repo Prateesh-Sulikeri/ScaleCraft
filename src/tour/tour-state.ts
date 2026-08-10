@@ -14,15 +14,29 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
  *
  * - `unseen`     — never started; auto-starts on load.
  * - `running`    — mid-tour; resumes at `stepIndex` on load.
- * - `paused`     — Escape'd out; does NOT auto-start, but the pill offers
- *                  "Resume tour" at `stepIndex` rather than a restart.
+ * - `paused`     — Escape'd out (or the tour's host surface disappeared,
+ *                  see `pauseReason`); does NOT auto-start, but the pill
+ *                  offers "Resume tour" at `stepIndex` rather than a
+ *                  restart.
  * - `skipped`    — explicitly skipped; pill offers a fresh replay.
  * - `completed`  — finished; pill offers a fresh replay.
  */
 export type TourRunState =
   | { status: "unseen" }
   | { status: "running"; stepIndex: number }
-  | { status: "paused"; stepIndex: number }
+  | {
+      status: "paused";
+      stepIndex: number;
+      /** `"user"` (or absent, for pauses persisted before this field
+       * existed) — an explicit Escape/Skip-this-run action, offered back as
+       * a resume pill. `"surface-loss"` — the tour's host surface vanished
+       * out from under an active run (today: focus mode unmounting the
+       * header/sidebar every `data-tour` anchor but the canvas lives in).
+       * Distinguishing the two matters because only the second should
+       * auto-resume the instant the surface comes back, rather than
+       * stranding the learner on a pill for a pause they never asked for. */
+      pauseReason?: "user" | "surface-loss";
+    }
   | { status: "skipped" }
   | { status: "completed" };
 
@@ -40,6 +54,20 @@ function subscribe(callback: () => void) {
   return () => listeners.delete(callback);
 }
 
+// A write from ANOTHER tab never notifies this module's own `listeners` set
+// on its own — that set only ever grows from same-tab `useSyncExternalStore`
+// subscriptions, and the native `storage` event (which DOES fire, but only
+// in tabs that didn't make the write) was never listened for at all. One
+// listener, module-scoped rather than per-tourId: `useTourState` already
+// shares this single set across every tour, and the event itself carries no
+// key we'd otherwise route by — a tab picks up any tour's cross-tab write on
+// its next render via the same getSnapshot re-check same-tab writes trigger.
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", () => {
+    listeners.forEach((listener) => listener());
+  });
+}
+
 export function tourStateKey(tourId: string) {
   return `sc-tour-${tourId}`;
 }
@@ -53,10 +81,17 @@ export function parseTourState(raw: string | null): TourRunState {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return { status: "unseen" };
-    const { status, stepIndex } = parsed as { status?: unknown; stepIndex?: unknown };
+    const { status, stepIndex, pauseReason } = parsed as { status?: unknown; stepIndex?: unknown; pauseReason?: unknown };
     if (status === "completed" || status === "skipped") return { status };
-    if (status === "running" || status === "paused") {
+    if (status === "running") {
       return { status, stepIndex: typeof stepIndex === "number" && stepIndex >= 0 ? stepIndex : 0 };
+    }
+    if (status === "paused") {
+      return {
+        status,
+        stepIndex: typeof stepIndex === "number" && stepIndex >= 0 ? stepIndex : 0,
+        ...(pauseReason === "user" || pauseReason === "surface-loss" ? { pauseReason } : {}),
+      };
     }
     return { status: "unseen" };
   } catch {
@@ -64,8 +99,12 @@ export function parseTourState(raw: string | null): TourRunState {
   }
 }
 
+/** `version` is purely additive - a door for the next change to this shape,
+ * not read by anything yet. `parseTourState` already ignores unknown keys,
+ * so today's clients (and today's already-persisted values, which have no
+ * `version` at all) need no migration. */
 export function serializeTourState(state: TourRunState): string {
-  return JSON.stringify(state);
+  return JSON.stringify({ version: 1, ...state });
 }
 
 /**

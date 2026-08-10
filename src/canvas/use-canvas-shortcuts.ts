@@ -65,6 +65,19 @@ export function isEditableTarget(target: EventTarget | null): boolean {
  * Escape closes ShortcutsModal.tsx when it's open — checked first, ahead of
  * the focus-mode-exit Escape below, so opening the modal from inside focus
  * mode and pressing Escape once closes just the modal (not both at once).
+ *
+ * While a blocking (non-interactive) guided-tour step is showing
+ * (store.tsx's tourModalActive, set by TourOverlay.tsx from its own
+ * `isModal`), every hotkey below the two Escape branches is swallowed. A
+ * blocking step has nothing for the learner to do in the app behind the
+ * tour's backdrop, so Ctrl+Z/Ctrl+D/Shift+L/`/` firing underneath it (real,
+ * reachable if focus happened to still be on the canvas from before the
+ * tour opened) would silently act on a board the step gives no on-screen
+ * indication is still live. Escape itself stays unguarded — the tour has
+ * its own Escape handler (TourOverlay.tsx) that pauses the run, and letting
+ * these two branches also run alongside it is existing, unrelated behavior
+ * this doesn't change. An *interactive* step leaves tourModalActive false,
+ * so a gesture step's real shortcuts (if any) are never touched.
  */
 export function useCanvasShortcuts(onSave: () => void) {
   const undo = useCanvasStore((s) => s.undo);
@@ -78,6 +91,7 @@ export function useCanvasShortcuts(onSave: () => void) {
   const toggleAnnotationLock = useCanvasStore((s) => s.toggleAnnotationLock);
   const componentPicker = useCanvasStore((s) => s.componentPicker);
   const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
+  const tourModalActive = useCanvasStore((s) => s.tourModalActive);
   const setFocusMode = useCanvasStore((s) => s.setFocusMode);
   const shortcutsModalOpen = useCanvasStore((s) => s.shortcutsModalOpen);
   const toggleShortcutsModal = useCanvasStore((s) => s.toggleShortcutsModal);
@@ -99,6 +113,8 @@ export function useCanvasShortcuts(onSave: () => void) {
         setFocusMode(false);
         return;
       }
+
+      if (tourModalActive) return;
 
       // Shift+/ ("?") — checked before every other branch below (including
       // the bare-`/` one right after) since it's neither a bare key nor a
@@ -189,6 +205,7 @@ export function useCanvasShortcuts(onSave: () => void) {
     toggleAnnotationLock,
     componentPicker,
     focusMode,
+    tourModalActive,
     setFocusMode,
     shortcutsModalOpen,
     toggleShortcutsModal,

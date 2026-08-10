@@ -1,7 +1,42 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { describe, it, expect, vi, afterEach, beforeAll, beforeEach } from "vitest";
+import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
+import { CanvasStoreProvider, useCanvasStoreApi } from "@/canvas/store";
 import { TourOverlay, computePopoverPosition, spotlightHole } from "./TourOverlay";
+import { dumpTourLog, clearTourLog } from "./tour-log";
 import type { TourStep } from "./types";
+
+/** TourOverlay now reads/writes store.tsx's tourModalActive (mirroring its
+ * own `isModal` into the store for use-canvas-shortcuts.ts to gate hotkeys
+ * on) — every render below needs a real provider in the tree for that. */
+function wrapper({ children }: { children: ReactNode }) {
+  return <CanvasStoreProvider>{children}</CanvasStoreProvider>;
+}
+
+/** jsdom has no ResizeObserver — this stub tracks every observed element so
+ * a test can fire a resize callback manually to simulate the card's own
+ * rendered height changing after mount (a watchdog/resolution-failed row
+ * appearing mid-step). */
+let resizeCallbacks: ResizeObserverCallback[] = [];
+function triggerResize() {
+  for (const cb of resizeCallbacks) {
+    act(() => cb([] as ResizeObserverEntry[], {} as ResizeObserver));
+  }
+}
+beforeAll(() => {
+  class ResizeObserverStub {
+    constructor(callback: ResizeObserverCallback) {
+      resizeCallbacks.push(callback);
+    }
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  global.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+});
+beforeEach(() => {
+  resizeCallbacks = [];
+});
 
 function step(overrides: Partial<TourStep> = {}): TourStep {
   return {
@@ -35,24 +70,29 @@ function stubRect(el: Element, rect: { top: number; left: number; width: number;
 
 function baseProps() {
   return {
+    tourId: "design-editor",
     stepIndex: 0,
     stepCount: 11,
     onNext: vi.fn(),
     onBack: vi.fn(),
     onSkip: vi.fn(),
     onPause: vi.fn(),
+    onSkipStep: vi.fn(),
     interactionState: "none" as const,
+    watchdogFired: false,
+    requiresBroken: false,
   };
 }
 
 afterEach(() => {
   cleanup();
   document.body.innerHTML = "";
+  clearTourLog();
 });
 
 describe("TourOverlay", () => {
   it("renders the step's title and body, and a 1-indexed step counter", () => {
-    render(<TourOverlay {...baseProps()} step={step()} stepIndex={2} stepCount={11} />);
+    render(<TourOverlay {...baseProps()} step={step()} stepIndex={2} stepCount={11} />, { wrapper });
 
     expect(screen.getByText("A step")).toBeInTheDocument();
     expect(screen.getByText("Some body copy.")).toBeInTheDocument();
@@ -61,20 +101,20 @@ describe("TourOverlay", () => {
 
   it("calls onNext when the Next button is clicked", () => {
     const props = baseProps();
-    render(<TourOverlay {...props} step={step()} />);
+    render(<TourOverlay {...props} step={step()} />, { wrapper });
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(props.onNext).toHaveBeenCalledTimes(1);
   });
 
   it("labels the Next button 'Done' on the last step", () => {
-    render(<TourOverlay {...baseProps()} step={step()} stepIndex={10} stepCount={11} />);
+    render(<TourOverlay {...baseProps()} step={step()} stepIndex={10} stepCount={11} />, { wrapper });
     expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
   });
 
   it("calls onSkip when Skip tour is clicked", () => {
     const props = baseProps();
-    render(<TourOverlay {...props} step={step()} />);
+    render(<TourOverlay {...props} step={step()} />, { wrapper });
 
     fireEvent.click(screen.getByRole("button", { name: "Skip tour" }));
     expect(props.onSkip).toHaveBeenCalledTimes(1);
@@ -85,7 +125,7 @@ describe("TourOverlay", () => {
     // confirmation and no undo. Users press it reflexively at the popover,
     // meaning "close this", not "never show me this again".
     const props = baseProps();
-    render(<TourOverlay {...props} step={step()} />);
+    render(<TourOverlay {...props} step={step()} />, { wrapper });
 
     fireEvent.keyDown(window, { key: "Escape" });
     expect(props.onPause).toHaveBeenCalledTimes(1);
@@ -95,7 +135,7 @@ describe("TourOverlay", () => {
   it("offers a Back control on every step after the first, and none on the first", () => {
     // Punch list #18: 21 steps with no way back at all.
     const props = baseProps();
-    const { rerender } = render(<TourOverlay {...props} step={step()} stepIndex={0} />);
+    const { rerender } = render(<TourOverlay {...props} step={step()} stepIndex={0} />, { wrapper });
     expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
 
     rerender(<TourOverlay {...props} step={step({ id: "step-2" })} stepIndex={1} />);
@@ -105,7 +145,7 @@ describe("TourOverlay", () => {
 
   it("calls onNext on Enter when a Next button is showing", () => {
     const props = baseProps();
-    render(<TourOverlay {...props} step={step()} />);
+    render(<TourOverlay {...props} step={step()} />, { wrapper });
 
     fireEvent.keyDown(window, { key: "Enter" });
     expect(props.onNext).toHaveBeenCalledTimes(1);
@@ -113,7 +153,7 @@ describe("TourOverlay", () => {
 
   it("omits the Next button entirely while a step is waiting on its gesture", () => {
     const props = baseProps();
-    render(<TourOverlay {...props} step={step({ waitFor: () => false })} interactionState="waiting" />);
+    render(<TourOverlay {...props} step={step({ waitFor: () => false })} interactionState="waiting" />, { wrapper });
 
     expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
     expect(screen.getByText(/try it to continue/i)).toBeInTheDocument();
@@ -125,7 +165,7 @@ describe("TourOverlay", () => {
   });
 
   it("shows encouragement copy once a waiting step's gesture is satisfied", () => {
-    render(<TourOverlay {...baseProps()} step={step({ waitFor: () => true })} interactionState="satisfied" />);
+    render(<TourOverlay {...baseProps()} step={step({ waitFor: () => true })} interactionState="satisfied" />, { wrapper });
     expect(screen.getByText(/continuing/i)).toBeInTheDocument();
   });
 
@@ -134,14 +174,14 @@ describe("TourOverlay", () => {
     // a dwell with no user action at all, so the exact moments the chapter
     // exists to teach vanished without explanation. The controller now passes
     // "none" for those, which must render a real Next button.
-    render(<TourOverlay {...baseProps()} step={step({ waitFor: () => true })} interactionState="none" />);
+    render(<TourOverlay {...baseProps()} step={step({ waitFor: () => true })} interactionState="none" />, { wrapper });
     expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
     expect(screen.queryByText(/try it to continue/i)).not.toBeInTheDocument();
   });
 
   it("Skip tour remains available even on an interactive step — never traps the user", () => {
     const props = baseProps();
-    render(<TourOverlay {...props} step={step({ waitFor: () => false })} interactionState="waiting" />);
+    render(<TourOverlay {...props} step={step({ waitFor: () => false })} interactionState="waiting" />, { wrapper });
 
     fireEvent.click(screen.getByRole("button", { name: "Skip tour" }));
     expect(props.onSkip).toHaveBeenCalledTimes(1);
@@ -149,7 +189,7 @@ describe("TourOverlay", () => {
 
   it("renders an inert full-screen backdrop for a non-interactive, untargeted step", () => {
     const props = baseProps();
-    render(<TourOverlay {...props} step={step()} />);
+    render(<TourOverlay {...props} step={step()} />, { wrapper });
 
     const dialog = screen.getByRole("dialog");
     const backdrop = dialog.querySelector(".bg-black\\/50");
@@ -163,7 +203,7 @@ describe("TourOverlay", () => {
     document.body.innerHTML = '<div data-tour="validate">Validate</div>';
     stubRect(document.querySelector('[data-tour="validate"]')!, { top: 10, left: 900, width: 32, height: 32 });
 
-    render(<TourOverlay {...baseProps()} step={step({ target: "validate" })} />);
+    render(<TourOverlay {...baseProps()} step={step({ target: "validate" })} />, { wrapper });
 
     const dialog = screen.getByRole("dialog");
     expect(dialog.querySelector(".ring-2")).not.toBeNull();
@@ -183,9 +223,7 @@ describe("TourOverlay", () => {
       height: 300,
     });
 
-    render(
-      <TourOverlay {...baseProps()} step={step({ target: "validate", spotlightAlso: ["validation-details"] })} />,
-    );
+    render(<TourOverlay {...baseProps()} step={step({ target: "validate", spotlightAlso: ["validation-details"] })} />, { wrapper });
 
     const ring = screen.getByRole("dialog").querySelector<HTMLElement>(".ring-2")!;
     // Union of both rects, plus the 8px spotlight padding: top 10 -> 2,
@@ -202,7 +240,7 @@ describe("TourOverlay", () => {
     document.body.innerHTML = '<div data-tour="canvas">Canvas</div>';
     stubRect(document.querySelector('[data-tour="canvas"]')!, { top: 50, left: 200, width: 800, height: 700 });
 
-    render(<TourOverlay {...baseProps()} step={step({ target: "canvas" })} />);
+    render(<TourOverlay {...baseProps()} step={step({ target: "canvas" })} />, { wrapper });
 
     const dialog = screen.getByRole("dialog");
     expect(dialog.getAttribute("data-tour-ambient")).toBe("true");
@@ -217,7 +255,7 @@ describe("TourOverlay", () => {
     stubRect(document.querySelector('[data-tour="canvas"]')!, { top: 50, left: 200, width: 800, height: 700 });
     stubRect(document.querySelector('[data-tour="undo-redo"]')!, { top: 10, left: 820, width: 70, height: 32 });
 
-    render(<TourOverlay {...baseProps()} step={step({ target: "canvas", popoverAnchor: "undo-redo" })} />);
+    render(<TourOverlay {...baseProps()} step={step({ target: "canvas", popoverAnchor: "undo-redo" })} />, { wrapper });
 
     expect(screen.getByRole("dialog").querySelectorAll(".ring-2")).toHaveLength(1);
   });
@@ -225,14 +263,206 @@ describe("TourOverlay", () => {
   it("docks the card instead of centering it when a declared target has left the DOM", () => {
     // The step targets the picker, but the picker is gone — the card must
     // not park itself in the middle of the live canvas.
-    render(<TourOverlay {...baseProps()} step={step({ target: "component-picker", placement: "right" })} />);
+    render(<TourOverlay {...baseProps()} step={step({ target: "component-picker", placement: "right" })} />, { wrapper });
 
     const card = screen.getByRole("dialog").querySelector<HTMLElement>(".w-80")!;
     // jsdom measures the card as 0x0, so the dock lands at the margin from
     // the bottom-right corner — the point is that it's a corner, not the
-    // centre of a 1024x768 viewport.
-    expect(card.style.left).toBe(`${1024 - 16}px`);
+    // centre of a 1024x768 viewport. The extra 40px clears xyflow's Controls
+    // widget, which is pinned to that same corner (see DOCK_CONTROLS_CLEARANCE).
+    expect(card.style.left).toBe(`${1024 - 16 - 40}px`);
     expect(card.style.top).toBe(`${768 - 16}px`);
+  });
+
+  it("repositions when the card's own rendered size changes after mount — a row appearing must not push content off-screen", () => {
+    // Regression: the watchdog row and the resolution-failed fallback both
+    // add content to the card well after its position was first computed
+    // (neither step.id, step.body, nor the viewport changes when they
+    // appear), so without this the card's bottom silently drifted past the
+    // viewport edge — invisible in jsdom, which is exactly why this test
+    // has to fake the resize rather than rely on a real layout engine.
+    render(<TourOverlay {...baseProps()} step={step({ target: "component-picker", placement: "right" })} />, { wrapper });
+    const card = screen.getByRole("dialog").querySelector<HTMLElement>(".w-80")!;
+    expect(card.style.top).toBe(`${768 - 16}px`); // jsdom measures 0-height initially, so it docks flush to the bottom
+
+    card.getBoundingClientRect = () =>
+      ({ top: 0, left: 0, width: 320, height: 400, right: 320, bottom: 400, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+    triggerResize();
+
+    expect(card.style.top).toBe(`${768 - 400 - 16}px`);
+  });
+
+  describe("resolution-failure airbag (waiting step, target never mounts)", () => {
+    it("does not offer a manual Next while the target still has time to mount", () => {
+      vi.useFakeTimers();
+      try {
+        render(<TourOverlay
+            {...baseProps()}
+            step={step({ target: "component-picker", waitFor: () => false })}
+            interactionState="waiting"
+          />, { wrapper });
+        act(() => {
+          vi.advanceTimersByTime(1000);
+        });
+        expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("falls back to a manual Next once a waiting step's target has never resolved past the grace window", () => {
+      vi.useFakeTimers();
+      try {
+        const props = baseProps();
+        render(<TourOverlay
+            {...props}
+            step={step({ target: "component-picker", waitFor: () => false })}
+            interactionState="waiting"
+          />, { wrapper });
+
+        act(() => {
+          vi.advanceTimersByTime(2500);
+        });
+
+        expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
+        expect(screen.getByText(/couldn't find what this step is pointing at/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: "Next" }));
+        expect(props.onNext).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("cancels the fallback once the target actually resolves before the window elapses", () => {
+      vi.useFakeTimers();
+      try {
+        render(<TourOverlay
+            {...baseProps()}
+            step={step({ target: "component-picker", waitFor: () => false })}
+            interactionState="waiting"
+          />, { wrapper });
+
+        act(() => {
+          vi.advanceTimersByTime(1000);
+        });
+
+        // Appended, not assigned to body.innerHTML — overwriting it would
+        // blow away the TourOverlay portal already rendered into document.body.
+        document.body.insertAdjacentHTML("beforeend", '<div data-tour="component-picker">Picker</div>');
+        stubRect(document.querySelector('[data-tour="component-picker"]')!, { top: 10, left: 10, width: 100, height: 100 });
+        act(() => {
+          vi.advanceTimersByTime(1600); // total 2600ms — past the grace window, but the target mounted mid-way
+        });
+
+        expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+        expect(screen.getByText(/try it to continue/i)).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("never fires for a step with no declared target — welcome/wrap-up cards have nothing to resolve", () => {
+      vi.useFakeTimers();
+      try {
+        render(<TourOverlay {...baseProps()} step={step({ target: null })} interactionState="none" />, { wrapper });
+        act(() => {
+          vi.advanceTimersByTime(5000);
+        });
+        expect(dumpTourLog().some((e) => e.type === "resolution-failed")).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("logs a resolution-failed event to the tour ring buffer once the grace window elapses", () => {
+      vi.useFakeTimers();
+      try {
+        render(<TourOverlay {...baseProps()} step={step({ target: "component-picker" })} />, { wrapper });
+
+        act(() => {
+          vi.advanceTimersByTime(2500);
+        });
+
+        const entries = dumpTourLog().filter((e) => e.type === "resolution-failed");
+        expect(entries).toHaveLength(1);
+        expect(entries[0]).toMatchObject({ tourId: "design-editor", stepId: "step-1", target: "component-picker" });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe("watchdog row (learner stuck without a live bug)", () => {
+    it("renders nothing extra while watchdogFired is false", () => {
+      render(<TourOverlay {...baseProps()} step={step({ waitFor: () => false })} interactionState="waiting" watchdogFired={false} />, { wrapper });
+      expect(screen.queryByText(/still here/i)).not.toBeInTheDocument();
+    });
+
+    it("shows the watchdog row once fired on a genuinely waiting step", () => {
+      render(<TourOverlay {...baseProps()} step={step({ waitFor: () => false })} interactionState="waiting" watchdogFired />, { wrapper });
+      expect(screen.getByText(/still here/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Skip this step" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Pause tour" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Report a problem" })).toBeInTheDocument();
+    });
+
+    it("does not show the row once the gesture is satisfied, even if watchdogFired stayed true", () => {
+      // interactionState flips to "satisfied"/"none" the instant the gesture
+      // lands; the row would otherwise linger telling a learner who just
+      // succeeded that they're stuck.
+      render(<TourOverlay {...baseProps()} step={step({ waitFor: () => true })} interactionState="satisfied" watchdogFired />, { wrapper });
+      expect(screen.queryByText(/still here/i)).not.toBeInTheDocument();
+    });
+
+    it("Skip this step calls onSkipStep, not onSkip — it advances one step, not the whole run", () => {
+      const props = baseProps();
+      render(<TourOverlay {...props} step={step({ waitFor: () => false })} interactionState="waiting" watchdogFired />, { wrapper });
+
+      fireEvent.click(screen.getByRole("button", { name: "Skip this step" }));
+      expect(props.onSkipStep).toHaveBeenCalledTimes(1);
+      expect(props.onSkip).not.toHaveBeenCalled();
+    });
+
+    it("Pause tour in the watchdog row calls onPause, same as Escape", () => {
+      const props = baseProps();
+      render(<TourOverlay {...props} step={step({ waitFor: () => false })} interactionState="waiting" watchdogFired />, { wrapper });
+
+      fireEvent.click(screen.getByRole("button", { name: "Pause tour" }));
+      expect(props.onPause).toHaveBeenCalledTimes(1);
+    });
+
+    it("the watchdog row's copy is identical regardless of which step fired it — never step-specific solution content", () => {
+      // pending-guided-tour.md: "restates the mechanic only, never what to
+      // fix", held precisely on the fix-it steps. Guaranteed structurally
+      // here by never interpolating step content into the row at all.
+      const { unmount } = render(<TourOverlay {...baseProps()} step={step({ id: "fix-edge", waitFor: () => false, hard: true })} interactionState="waiting" watchdogFired />, { wrapper });
+      const fixEdgeCopy = screen.getByText(/still here/i).textContent;
+      unmount();
+
+      render(<TourOverlay {...baseProps()} step={step({ id: "select-a-node", waitFor: () => false })} interactionState="waiting" watchdogFired />, { wrapper });
+      expect(screen.getByText(/still here/i).textContent).toBe(fixEdgeCopy);
+    });
+
+    it("Report a problem's href points at a GitHub new-issue page naming this tour and step", () => {
+      render(<TourOverlay {...baseProps()} tourId="design-editor" step={step({ id: "fix-edge", waitFor: () => false })} interactionState="waiting" watchdogFired />, { wrapper });
+
+      const href = screen.getByRole("link", { name: "Report a problem" }).getAttribute("href")!;
+      expect(href).toMatch(/^https:\/\/github\.com\/Prateesh-Sulikeri\/ScaleCraft\/issues\/new\?/);
+      expect(decodeURIComponent(href)).toMatch(/design-editor \/ fix-edge/);
+    });
+  });
+
+  it("the resolution-failed fallback also offers Report a problem", () => {
+    vi.useFakeTimers();
+    try {
+      render(<TourOverlay {...baseProps()} step={step({ target: "component-picker", waitFor: () => false })} interactionState="waiting" />, { wrapper });
+      act(() => {
+        vi.advanceTimersByTime(2500);
+      });
+      expect(screen.getByRole("link", { name: "Report a problem" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("anchors the card to a popoverAnchor that appears mid-step, rather than staying docked over it", () => {
@@ -240,12 +470,10 @@ describe("TourOverlay", () => {
     stubRect(document.querySelector('[data-tour="canvas"]')!, { top: 50, left: 200, width: 800, height: 700 });
     stubRect(document.querySelector('[data-tour="edge-inspector"]')!, { top: 640, left: 780, width: 220, height: 90 });
 
-    render(
-      <TourOverlay
+    render(<TourOverlay
         {...baseProps()}
         step={step({ target: "canvas", popoverAnchor: "edge-inspector", placement: "top" })}
-      />,
-    );
+      />, { wrapper });
 
     // One ring, on the inspector — and the card sits clear of it rather than
     // docked on top of the edge-kind select.
@@ -257,14 +485,14 @@ describe("TourOverlay", () => {
   it("moves focus into the dialog when a step opens", () => {
     // Punch list #15: activeElement stayed on BODY, one Tab away from the
     // header the overlay was supposedly blocking.
-    render(<TourOverlay {...baseProps()} step={step()} />);
+    render(<TourOverlay {...baseProps()} step={step()} />, { wrapper });
 
     const dialog = screen.getByRole("dialog");
     expect(dialog.contains(document.activeElement)).toBe(true);
   });
 
   it("traps Tab inside the dialog on a blocking step, and claims aria-modal only there", () => {
-    render(<TourOverlay {...baseProps()} step={step()} />);
+    render(<TourOverlay {...baseProps()} step={step()} />, { wrapper });
 
     const dialog = screen.getByRole("dialog");
     expect(dialog.getAttribute("aria-modal")).toBe("true");
@@ -281,7 +509,7 @@ describe("TourOverlay", () => {
   it("does not trap focus on a step waiting for a real gesture, and does not claim to be modal", () => {
     // Trapping here would lock a keyboard user out of the very control the
     // step is asking them to use.
-    render(<TourOverlay {...baseProps()} step={step({ waitFor: () => false })} interactionState="waiting" />);
+    render(<TourOverlay {...baseProps()} step={step({ waitFor: () => false })} interactionState="waiting" />, { wrapper });
 
     const dialog = screen.getByRole("dialog");
     expect(dialog.getAttribute("aria-modal")).toBe("false");
@@ -292,11 +520,49 @@ describe("TourOverlay", () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  it("mirrors isModal into the canvas store's tourModalActive, so use-canvas-shortcuts.ts can gate hotkeys on it", () => {
+    let api: ReturnType<typeof useCanvasStoreApi> | undefined;
+    function Capture() {
+      api = useCanvasStoreApi();
+      return null;
+    }
+
+    const props = baseProps();
+    const { rerender, unmount } = render(<TourOverlay {...props} step={step()} />, {
+      wrapper: ({ children }) => (
+        <CanvasStoreProvider>
+          <Capture />
+          {children}
+        </CanvasStoreProvider>
+      ),
+    });
+    expect(api!.getState().tourModalActive).toBe(true);
+
+    rerender(<TourOverlay {...props} step={step({ waitFor: () => false })} interactionState="waiting" />);
+    expect(api!.getState().tourModalActive).toBe(false);
+
+    unmount();
+    expect(api!.getState().tourModalActive).toBe(false);
+  });
+
   it("announces the gesture status change to screen readers", () => {
     // Punch list #16: no live region anywhere, so the "try it to continue"
     // state was invisible to a screen-reader user.
-    render(<TourOverlay {...baseProps()} step={step({ waitFor: () => false })} interactionState="waiting" />);
+    render(<TourOverlay {...baseProps()} step={step({ waitFor: () => false })} interactionState="waiting" />, { wrapper });
     expect(screen.getByRole("status")).toHaveTextContent(/try it to continue/i);
+  });
+
+  describe("requires-broke note (world drifted out from under an active step)", () => {
+    it("renders nothing extra while requiresBroken is false", () => {
+      render(<TourOverlay {...baseProps()} step={step()} requiresBroken={false} />, { wrapper });
+      expect(screen.queryByText(/something this step needs has changed/i)).not.toBeInTheDocument();
+    });
+
+    it("shows a truthful note, with a Report a problem link, once requiresBroken is true", () => {
+      render(<TourOverlay {...baseProps()} step={step()} requiresBroken />, { wrapper });
+      expect(screen.getByText(/something this step needs has changed/i)).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Report a problem" })).toBeInTheDocument();
+    });
   });
 });
 
@@ -356,7 +622,9 @@ describe("computePopoverPosition", () => {
     // vanished and the card recentred onto the canvas the learner then had
     // to click, parking itself exactly in the way.
     const pos = computePopoverPosition(null, "right", popover, viewport, "dock");
-    expect(pos).toEqual({ top: 900 - 190 - 16, left: 1440 - 320 - 16 });
+    // left leaves an extra 40px clear of xyflow's Controls widget, which is
+    // pinned to this same corner (see DOCK_CONTROLS_CLEARANCE).
+    expect(pos).toEqual({ top: 900 - 190 - 16, left: 1440 - 320 - 16 - 40 });
   });
 
   it("places the card just clear of a normal anchor on the requested side", () => {
@@ -377,7 +645,7 @@ describe("computePopoverPosition", () => {
     const canvas = { top: 50, left: 170, width: 1116, height: 842 };
     const pos = computePopoverPosition(canvas, "bottom", popover, viewport);
 
-    expect(pos.left).toBe(1440 - 320 - 16);
+    expect(pos.left).toBe(1440 - 320 - 16 - 40);
     expect(pos.top).toBe(900 - 190 - 16);
   });
 

@@ -39,6 +39,7 @@ export function ComponentPicker() {
   const setPendingComponentPlacement = useCanvasStore((s) => s.setPendingComponentPlacement);
   const customComponents = useCustomComponentsStore((s) => s.customComponents);
   const availableComponentIds = useCanvasStore((s) => s.availableComponentIds);
+  const highlightedComponentId = useCanvasStore((s) => s.highlightedComponentId);
   const upsertCustomComponent = useCustomComponentsStore((s) => s.upsertCustomComponent);
   const deleteCustomComponent = useCustomComponentsStore((s) => s.deleteCustomComponent);
   const nodes = useCanvasStore((s) => s.nodes);
@@ -48,6 +49,7 @@ export function ComponentPicker() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lastQuery, setLastQuery] = useState(query);
   const [wasOpen, setWasOpen] = useState(false);
+  const [lastHighlightedComponentId, setLastHighlightedComponentId] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<ComponentCategory>>(
     () => new Set(EMPTY_COLLAPSED),
   );
@@ -215,6 +217,23 @@ export function ComponentPicker() {
   if (query !== lastQuery) {
     setLastQuery(query);
     setActiveIndex(0);
+  }
+
+  // A tour step can ask one specific item to stand out the moment it's set
+  // (TourController.tsx, via highlightedComponentId) — reusing the same
+  // roving-active ring keyboard navigation already draws, rather than a new
+  // spotlight mechanism. Keyed on the id itself, not `isOpen`, since the
+  // picker is typically already open (from an earlier step) by the time a
+  // later step sets this — there's no fresh open transition to hook into.
+  // Only takes effect once the item genuinely resolves in the current
+  // (typically unfiltered) list; a query the learner typed themselves is
+  // never overridden.
+  if (highlightedComponentId !== lastHighlightedComponentId) {
+    setLastHighlightedComponentId(highlightedComponentId);
+    if (highlightedComponentId) {
+      const index = componentIndex.get(highlightedComponentId);
+      if (index !== undefined) setActiveIndex(index);
+    }
   }
 
   // Arrow-key navigation must reach every component regardless of collapse

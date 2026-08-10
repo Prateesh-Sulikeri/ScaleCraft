@@ -57,17 +57,16 @@ describe("DesignEditorCTA", () => {
     expect(link.textContent).toContain("→");
   });
 
-  it("renders horizontal divider line after button", () => {
+  it("renders as a task card matching QuizLauncher's row style", () => {
     const { container } = render(<DesignEditorCTA mode="building-blocks" chapterSlug="test" />);
-    const divider = container.querySelector(".h-px");
-    expect(divider).toBeInTheDocument();
-    expect(divider).toHaveClass("bg-border");
+    const wrapper = container.firstChild;
+    expect(wrapper).toHaveClass("rounded-lg", "border", "border-border");
   });
 
   it("has correct flex layout", () => {
     const { container } = render(<DesignEditorCTA mode="building-blocks" chapterSlug="test" />);
     const wrapper = container.firstChild;
-    expect(wrapper).toHaveClass("flex", "items-center", "gap-4", "mt-6");
+    expect(wrapper).toHaveClass("flex", "items-center", "justify-between", "gap-4");
   });
 
   it("works with different chapter slugs", () => {
