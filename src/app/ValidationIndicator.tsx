@@ -37,12 +37,23 @@ export function ValidationIndicator({ violations, isStale, onValidate }: Validat
   // click, but explicitly lets a click on a react-flow node through
   // (both to actually select it, and to keep the explanation open while
   // you act on it — the exact moment the app previously undermined itself).
+  //
+  // Also lets a click anywhere inside the guided tour's overlay through —
+  // the tour spotlights this exact dropdown (design-editor-tour.ts's
+  // validate-click/revalidate-clean steps, via spotlightAlso), and clicking
+  // its own Next/Back/Skip counts as "outside" by DOM position even though
+  // it isn't outside from the learner's point of view. Without this, a
+  // click on the tour's Next button closed the dropdown in the same tick
+  // the tour advanced to a step that wanted to spotlight it — it then
+  // measured as gone, so the spotlight silently dropped it. `[data-tour-
+  // step]` is TourOverlay.tsx's own portal-root marker.
   useEffect(() => {
     if (!showDropdown) return;
     const onDocMouseDown = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (containerRef.current?.contains(target)) return;
       if (target.closest(".react-flow__node")) return;
+      if (target.closest("[data-tour-step]")) return;
       setOpen(false);
     };
     document.addEventListener("mousedown", onDocMouseDown);

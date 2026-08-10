@@ -33,9 +33,9 @@ test("a section collapses and expands", async ({ page }) => {
 
 test("an unauthored row is not a link and does not navigate on click", async ({ page }) => {
   await page.goto("/building-blocks");
-  const row = page.getByText("Understanding the Problem");
+  const row = page.getByText("Communicating & Defending a Design");
   await expect(row).toBeVisible();
-  await expect(page.getByRole("link", { name: /Understanding the Problem/i })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Communicating & Defending a Design/i })).toHaveCount(0);
 
   await row.click();
   await expect(page).toHaveURL(/\/building-blocks$/);

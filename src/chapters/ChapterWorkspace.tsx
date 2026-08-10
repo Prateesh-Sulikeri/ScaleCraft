@@ -11,6 +11,7 @@ import { ShortcutsModal } from "@/app/ShortcutsModal";
 import { PageEnter } from "@/app/PageEnter";
 import { SidebarShell } from "@/app/SidebarShell";
 import { ChapterSidebar } from "./ChapterSidebar";
+import { ChapterPassedToast } from "./ChapterPassedToast";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
 import {
   useCanvasStore,
@@ -249,6 +250,11 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
   // passed a chapter days ago and reopens it should get debrief framing
   // immediately, before clicking Validate again this session.
   const [passedChapterIds, setPassedChapterIds] = useState<Set<string>>(new Set());
+  // Drives ChapterPassedToast — set only inside handleSubmit's own passed
+  // branch below, never from the hydration effect above, so the toast fires
+  // once per fresh Submit pass and not on every revisit of an
+  // already-completed chapter.
+  const [passedToastAt, setPassedToastAt] = useState<number | null>(null);
   useEffect(() => {
     if (!chapter) return;
     let cancelled = false;
@@ -350,6 +356,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
         .then(() => {
           setPassedChapterIds((prev) => new Set(prev).add(chapter.id));
           recordValidationPass(chapter.id);
+          setPassedToastAt(Date.now());
         });
     }
   };
@@ -492,6 +499,12 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
 
       <UndoToast />
       <SaveToast savedAt={lastManualSaveAt} />
+      <ChapterPassedToast
+        mode={mode}
+        chapterSlug={chapterSlug}
+        at={passedToastAt}
+        onDismiss={() => setPassedToastAt(null)}
+      />
       <ShortcutsModal />
       {chapter.editorTourId && (
         <TourController
@@ -506,6 +519,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
           hasSubmittedPassing={submitOutcome?.passed === true || chapterPassed}
           onResetToStarter={handleResetToStarter}
           idleSlot={focusMode ? null : tourSlot}
+          focusMode={focusMode}
         />
       )}
     </PageEnter>

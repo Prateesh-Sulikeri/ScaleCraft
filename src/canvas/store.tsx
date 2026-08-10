@@ -294,6 +294,28 @@ type CanvasStore = {
    * chapters filter the shared registry, they don't get their own. */
   availableComponentIds: string[] | null;
   setAvailableComponentIds: (ids: string[] | null) => void;
+  /** Which componentId ComponentPicker.tsx should pre-highlight (the same
+   * roving-active ring keyboard navigation already draws) the moment it
+   * opens, instead of defaulting to the first item. Set/cleared by
+   * TourController for a step that wants one item to stand out in an
+   * otherwise-unfiltered picker — unlike `availableComponentIds`, this
+   * doesn't hide anything else. `null` = no highlight (Sandbox and every
+   * non-tour chapter never set this). */
+  highlightedComponentId: string | null;
+  setHighlightedComponentId: (id: string | null) => void;
+  /** True while a *blocking* (non-interactive) tour step's overlay is
+   * showing — TourOverlay.tsx's own `isModal` local, mirrored here so
+   * use-canvas-shortcuts.ts can gate global hotkeys on it. A blocking step
+   * has nothing for the learner to do in the app behind the backdrop, so
+   * Ctrl+Z/Ctrl+D/Shift+L/`/` firing underneath it (previously possible if
+   * focus happened to still be on the canvas from before the tour opened)
+   * would silently act on a board the step's own copy gives no indication
+   * is still live. An *interactive* step (waitFor set) deliberately leaves
+   * this false — trapping input there would sandbox the very gesture the
+   * step is asking for. `false` for every non-tour chapter and the
+   * Sandbox, which never set it. */
+  tourModalActive: boolean;
+  setTourModalActive: (active: boolean) => void;
   /** Drives the Phase 4 "Highlight Connections"/"Highlight Zone"
    * context-menu actions — Canvas.tsx derives the highlighted node/edge id
    * sets from this each render and dims everything else via node/edge
@@ -430,6 +452,8 @@ export function createCanvasStore(): StoreApi<CanvasStore> {
   shortcutsModalOpen: false,
   pendingComponentPlacement: null,
   availableComponentIds: null,
+  highlightedComponentId: null,
+  tourModalActive: false,
   pendingUndo: null,
   past: [],
   future: [],
@@ -636,6 +660,9 @@ export function createCanvasStore(): StoreApi<CanvasStore> {
   setPendingComponentPlacement: (definition) => set({ pendingComponentPlacement: definition }),
 
   setAvailableComponentIds: (ids) => set({ availableComponentIds: ids }),
+
+  setHighlightedComponentId: (id) => set({ highlightedComponentId: id }),
+  setTourModalActive: (active) => set({ tourModalActive: active }),
 
   setHighlight: (highlight) => set({ highlight }),
   clearHighlight: () => set({ highlight: null }),

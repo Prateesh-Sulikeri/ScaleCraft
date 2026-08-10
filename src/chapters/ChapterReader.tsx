@@ -9,12 +9,48 @@ import { ReaderSidebar } from "./ReaderSidebar";
 import { ReadingProgress } from "./ReadingProgress";
 import { TableOfContents } from "./TableOfContents";
 import { DesignEditorCTA } from "./DesignEditorCTA";
+import { NextChapterLink } from "./NextChapterLink";
 import { QuizLauncher } from "./quiz/QuizLauncher";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
-import { getCourse, findEntry } from "@/curriculum";
+import { getCourse, findEntry, nextEntry } from "@/curriculum";
 import { getChapter, useChapterLesson } from "@/content/content-service";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import { appendKnowledgeCheckHeading, extractHeadings } from "./extract-headings";
+
+function splitMarkdownAtNextSection(markdown: string) {
+  const lines = markdown.split("\n");
+  const FENCE_RE = /^(```|~~~)/;
+  let inFence = false;
+  let nextIndex = -1;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const trimmed = lines[index].trim();
+    if (FENCE_RE.test(trimmed)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+
+    const headingMatch = /^(#{1,6})\s+(.+?)\s*#*$/.exec(lines[index]);
+    if (!headingMatch) continue;
+
+    const headingText = headingMatch[2].trim();
+    if (headingText === "Next") {
+      nextIndex = index;
+      break;
+    }
+  }
+
+  if (nextIndex === -1) {
+    return { beforeNext: markdown, nextSection: "", hasNextSection: false };
+  }
+
+  return {
+    beforeNext: lines.slice(0, nextIndex).join("\n").trimEnd(),
+    nextSection: lines.slice(nextIndex).join("\n").trimStart(),
+    hasNextSection: true,
+  };
+}
 
 // This is the lesson page's primary content, so it keeps SSR (no
 // ssr:false) - still a real chunk-splitting win since it pulls in
@@ -46,6 +82,7 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   // lookup so a stale/bad slug degrades to the defensive null return below.
   const entry = findEntry(mode, chapterSlug);
   const chapter = entry?.chapterDefinitionId ? (getChapter(entry.chapterDefinitionId) ?? null) : null;
+  const hasNextEntry = nextEntry(mode, chapterSlug) !== undefined;
 
   const articleRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +92,7 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   const lessonMarkdown = useChapterLesson(chapter?.id);
   const markdown = lessonMarkdown ?? chapter?.problemStatement ?? "";
   const headings = extractHeadings(markdown);
+  const { beforeNext, nextSection, hasNextSection } = splitMarkdownAtNextSection(markdown);
 
   if (!chapter || !entry) return null;
 
@@ -125,13 +163,25 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
             )}
 
             <div className="mt-8">
-              <MarkdownRenderer content={markdown} />
+              <MarkdownRenderer content={beforeNext} />
             </div>
 
             <QuizLauncher chapter={chapter} />
 
             {chapter.hasEditorExercise !== false && (
               <DesignEditorCTA mode={mode} chapterSlug={chapterSlug} />
+            )}
+
+            {hasNextSection && (
+              <div className="mt-8">
+                <MarkdownRenderer content={nextSection} />
+              </div>
+            )}
+
+            {hasNextEntry && (
+              <div className="mt-10 border-t border-border pt-6">
+                <NextChapterLink courseId={mode} chapterSlug={chapterSlug} variant="card" />
+              </div>
             )}
           </div>
         </div>

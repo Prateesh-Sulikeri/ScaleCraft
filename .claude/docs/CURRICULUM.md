@@ -508,7 +508,7 @@ loop end to end on every project.
 1. **Clarify** - ask the questions that shrink the problem (who uses it, what
    matters, what's out of scope). Taught in 1.1-1.2.
 2. **Requirements** - functional (what it does) and non-functional (how well:
-   latency, availability, consistency, durability, cost). Taught in 1.2-1.3.
+   latency, throughput, availability, durability, cost). Taught in 1.2-1.3.
 3. **Estimate** - back-of-the-envelope: users -> QPS -> storage -> bandwidth, in
    powers of ten, using the Numbers Every Engineer Should Know (1.5). Precision
    theater is banned; orders of magnitude are the deliverable. Taught in 1.4-1.5.
@@ -702,7 +702,7 @@ through Part 1: `client`, `app-server`, `sql-database` only (introduced in 1.6).
   ruthlessly (MVP vs. later). Interview: High: step 2. Exercise: staged checklist
   with feedback. Est: 15.
 - **1.3 Non-functional Requirements** - Purpose: attach numbers-shaped promises to
-  0.2's five forces (availability nines, latency budgets, consistency needs);
+  0.2's five forces (availability nines, latency budgets, throughput targets);
   recognize that NFRs, not features, drive architecture. Interview: High: step 2.
   Exercise: match NFRs to three described products; explanation per match. Est: 20.
 - **1.4 Estimating Scale** - Purpose: users -> QPS -> storage -> bandwidth in
