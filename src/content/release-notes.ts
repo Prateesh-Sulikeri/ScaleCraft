@@ -14,6 +14,17 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "4.1.0-alpha",
+    date: "2026-08-10",
+    highlights: [
+      "Six new Building Blocks chapters: 1.1 Understanding the Problem, 1.2 Functional Requirements, 1.3 Non-functional Requirements, 1.4 Estimating Scale, 1.5 Numbers Every Engineer Should Know, and 1.6 Drawing the First Architecture - a continuous URL-shortener case study, with 1.6 bringing the unit's first canvas build exercise.",
+      "New 'Next chapter' navigation once you finish a chapter: a pagination card at the bottom of the lesson, a link next to 'Back to lesson' in the sidebar, and a one-time 'Chapter complete' toast in the canvas itself the moment a Submit passes - all three used to dead-end.",
+      "Guided tour reliability pass: the tour now pauses instead of continuing silently if you switch tabs or lose window focus mid-step, stays in sync if you have the app open in multiple tabs, and completes its gated steps in any order instead of requiring a fixed sequence. Also fixed the popover drifting off its target when a step's card changed size, and the violations dropdown closing itself mid-tour.",
+      "Fixed EdgeInspector, the zoom/pan controls, and the docked tour card overlapping in the same corner - they now sit side by side. Fixed the tour's closing step still telling learners to scroll to zoom, after canvas navigation changed scroll to pan a while back.",
+      "Fixed the sidebar's 'Back to lesson' and 'Learning Path' links - clicking anywhere across the row used to navigate, not just the text or icon. Chapter Reader's sidebar also gained the ScaleCraft logo, linking back home.",
+    ],
+  },
+  {
     version: "4.0.0-alpha",
     date: "2026-08-07",
     highlights: [
