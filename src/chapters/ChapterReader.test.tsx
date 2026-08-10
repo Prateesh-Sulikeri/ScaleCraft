@@ -19,7 +19,15 @@ vi.mock("@/canvas/docs-panel/markdown/MarkdownRenderer", () => ({
   MarkdownRenderer: ({ content }: { content: string }) => <div>{content}</div>,
 }));
 
-const { mainChapter, placeholderChapter, freshMarkdownChapter, noEditorExerciseChapter, entriesBySlug, targetEntry } = vi.hoisted(() => {
+const {
+  mainChapter,
+  placeholderChapter,
+  freshMarkdownChapter,
+  nextSectionChapter,
+  noEditorExerciseChapter,
+  entriesBySlug,
+  targetEntry,
+} = vi.hoisted(() => {
   const targetEntry = {
     slug: "target",
     number: "2.3",
@@ -68,6 +76,7 @@ const { mainChapter, placeholderChapter, freshMarkdownChapter, noEditorExerciseC
   const mainChapter = { ...baseChapter, id: "ch-target" };
   const placeholderChapter = { ...baseChapter, id: "ch-placeholder", title: "Draft Chapter", placeholder: true };
   const freshMarkdownChapter = { ...baseChapter, id: "ch-fresh-markdown", title: "Fresh Markdown Chapter" };
+  const nextSectionChapter = { ...baseChapter, id: "ch-next-section", title: "Next Section Chapter" };
   const noEditorExerciseChapter = {
     ...baseChapter,
     id: "ch-no-editor-exercise",
@@ -96,6 +105,11 @@ const { mainChapter, placeholderChapter, freshMarkdownChapter, noEditorExerciseC
     slug: "fresh-markdown-slug",
     chapterDefinitionId: "ch-fresh-markdown",
   };
+  const nextSectionEntry: CurriculumChapter = {
+    ...targetEntry,
+    slug: "next-section-slug",
+    chapterDefinitionId: "ch-next-section",
+  };
   const noEditorExerciseEntry: CurriculumChapter = {
     ...targetEntry,
     slug: "no-editor-exercise-slug",
@@ -106,6 +120,7 @@ const { mainChapter, placeholderChapter, freshMarkdownChapter, noEditorExerciseC
     mainChapter,
     placeholderChapter,
     freshMarkdownChapter,
+    nextSectionChapter,
     noEditorExerciseChapter,
     targetEntry,
     entriesBySlug: {
@@ -117,13 +132,14 @@ const { mainChapter, placeholderChapter, freshMarkdownChapter, noEditorExerciseC
       "no-number-slug": noNumberEntry,
       "missing-prereq-slug": missingPrereqEntry,
       "fresh-markdown-slug": freshMarkdownEntry,
+      "next-section-slug": nextSectionEntry,
       "no-editor-exercise-slug": noEditorExerciseEntry,
     } as Record<string, CurriculumChapter>,
   };
 });
 
 vi.mock("@/content/chapters", () => ({
-  chapterRegistry: [mainChapter, placeholderChapter, freshMarkdownChapter, noEditorExerciseChapter],
+  chapterRegistry: [mainChapter, placeholderChapter, freshMarkdownChapter, nextSectionChapter, noEditorExerciseChapter],
 }));
 
 vi.mock("@/curriculum", () => ({
@@ -230,6 +246,18 @@ describe("ChapterReader - prerequisite and domain tags", () => {
     stubFetchNotFound();
     render(<ChapterReader mode="real-world-extraction" chapterSlug="target" />);
     expect(screen.getByTestId("design-editor-cta")).toBeInTheDocument();
+  });
+
+  it("renders the Next section after knowledge check and design exercise", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve("# Before\n\nContent\n\n## Next\n\nNext chapter preview") }),
+    );
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="next-section-slug" />);
+
+    const content = await screen.findByText(/Content/);
+    const nextHeading = screen.getByText(/Next chapter preview/);
+    expect(content.compareDocumentPosition(nextHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("omits the Design Editor CTA for a chapter with hasEditorExercise: false", () => {
