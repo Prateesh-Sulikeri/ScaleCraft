@@ -3333,6 +3333,939 @@ export const chapterRegistry: ChapterDefinition[] = [
     },
   },
   {
+    id: "bb-1-7-identifying-bottlenecks",
+    mode: "building-blocks",
+    title: "Identifying Bottlenecks",
+    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
+    // Spec: specs/bb-1-7-identifying-bottlenecks.spec.md. Lesson body:
+    // public/content/chapters/bb-1-7-identifying-bottlenecks.md.
+    // Reverts to Process (§4) - unlike 1.6, no components introduced. Same
+    // no-build shape as 1.1-1.5: hasEditorExercise: false, empty component/
+    // blueprint/validation-rule lists.
+    problemStatement:
+      "No canvas build this chapter - the palette is still 1.6's three components, and this " +
+      "chapter's method doesn't need a fourth. The knowledge check shows three small designs, " +
+      "each with stated component ceilings, and asks you to predict which one saturates first " +
+      "before revealing the reasoning - the predict-then-check drill this chapter is built " +
+      "around, run directly in the quiz rather than on canvas.",
+    // Five objectives (§5.2 allows 3-7): all five required categories, same
+    // Process pattern 1.1-1.5 used (no Concept-only Practical carve-out).
+    // Category tags live in the spec
+    // (specs/bb-1-7-identifying-bottlenecks.spec.md §2).
+    learningObjectives: [
+      "State the method: a system's throughput ceiling is the lowest per-component ceiling on the request path, not an average or a guess by reputation.",
+      "Distinguish a component that is slow (higher per-request latency, ceiling unchanged) from one that is unscalable (at its throughput ceiling).",
+      "Given two components' ceilings, identify today's bottleneck and explain why that answer can flip as the ceilings change.",
+      "Answer 'what breaks first?' for a shown design in under a minute, naming the ceiling-comparison mechanism rather than a memorized answer.",
+      "State, out loud, the trade-off between adding capacity before a ceiling is reached and waiting until it's real.",
+    ],
+    // §16: no components introduced this chapter (1.7 is in the no-component
+    // list alongside 1.1-1.5 and 1.8-1.11) - the three primitives stay homed
+    // at 1.6.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    // No canvas exercise, nothing to validate - same justification 1.1-1.5
+    // and 0.2-0.4 recorded.
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    // No hints - no build/Fix exercise for a hint to orient toward, same as
+    // every other no-build chapter so far (0.2-0.4, 1.1-1.5).
+    hints: [],
+    readingLinks: [],
+    // 1: Sonnet draft (2026-08-10).
+    lessonVersion: 1,
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.7 of 44.",
+      masteredConcepts: [
+        "1.6's three-component shape (client, app server, sql database) and its own specific " +
+          "answer to 'what breaks first' at today's scale - generalized here into a method that " +
+          "works on any design, not just that one.",
+        "1.6's app-server `instances` config field, reused directly in this chapter's diagram " +
+          "questions to vary which component has the lower ceiling.",
+        "1.4/1.5's numbers-comparison habit (order-of-magnitude estimation, the latency ladder) - " +
+          "the raw material any real ceiling comparison is built from.",
+      ],
+      notYetIntroducedConcepts: [
+        "Any mechanism for actually distributing traffic across more than one app-server " +
+          "instance - that's 3.4's load balancer. This chapter names that more instances CAN " +
+          "raise a ceiling without explaining how requests get distributed across them.",
+        "Read replicas, sharding, or any named way a database's ceiling could be raised - all " +
+          "later material (3.12, 3.13). This chapter treats a database's ceiling as fixed on " +
+          "purpose, since no mechanism for raising it exists yet on the taught palette.",
+      ],
+      simplifications: [
+        "Ceiling numbers in the lesson diagram and the quiz's diagram questions are round, " +
+          "illustrative figures for teaching the comparison, not measurements of any real " +
+          "component or system.",
+        "'Ceiling' is this chapter's own instructional term for a component's maximum sustained " +
+          "throughput - not an engine concept or a config field, the same status as 1.5's 'rung.'",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2-1.6's convention. Three of five are
+    // diagram-kind, directly realizing CURRICULUM §14's "predict-then-check
+    // on three presented graphs" exercise text - see spec §0 for why this is
+    // a simulator-UI degradation (pending-content.md's own named case), not a
+    // stages-UI one. Q1/Q3/Q5 share one topology (client -> app-server ->
+    // sql-database) with varying `instances` config and stated ceilings, so
+    // the same shape yields three different correct answers as the numbers
+    // change - the chapter's own central point, tested structurally.
+    quiz: [
+      {
+        id: "bb-1-7-identifying-bottlenecks-q1",
+        kind: "diagram",
+        difficulty: 1,
+        prompt:
+          "1.6's shape: one app-server instance (ceiling 1,000 req/s) feeding one database " +
+          "(ceiling 5,000 req/s). Traffic is climbing steadily. Which component saturates first?",
+        graph: {
+          nodes: [
+            { id: "c1", componentId: "client", position: { x: 40, y: 140 }, config: {} },
+            { id: "a1", componentId: "app-server", position: { x: 220, y: 140 }, config: {} },
+            { id: "d1", componentId: "sql-database", position: { x: 400, y: 140 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "c1", target: "a1", kind: "request-flow" },
+            { id: "e2", source: "a1", target: "d1", kind: "request-flow" },
+          ],
+          entryPointIds: ["c1"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "The app server - it has the lower of the two ceilings on this path.",
+            correct: true,
+            explanationMd:
+              "Correct. 1,000 req/s is lower than the database's 5,000, and the system's ceiling " +
+              "is always the lowest one on the path - this is 1.6's own answer, reached here by " +
+              "the general method instead of a one-off fact about that chapter's numbers.",
+          },
+          {
+            id: "b",
+            label: "The database - databases are usually the first thing to run out of capacity.",
+            correct: false,
+            explanationMd:
+              "A reputation-based guess, not a ceiling comparison. Here the database's stated " +
+              "ceiling is the higher of the two, so it isn't the constraint yet.",
+          },
+          {
+            id: "c",
+            label: "Both at the same time - they're connected, so they saturate together.",
+            correct: false,
+            explanationMd:
+              "Being connected doesn't make two ceilings equal. 1,000 and 5,000 are different " +
+              "numbers, and the lower one binds first.",
+          },
+          {
+            id: "d",
+            label: "The client - it's the first component on the path.",
+            correct: false,
+            explanationMd:
+              "Position on the path doesn't determine the bottleneck, and the client issues " +
+              "requests rather than serving them - it has no throughput ceiling of its own here.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-7-identifying-bottlenecks-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A request path has three components, each with a different maximum sustained " +
+          "throughput. Which one determines when the whole system starts failing under rising load?",
+        options: [
+          {
+            id: "a",
+            label: "Whichever one has the highest per-request latency.",
+            correct: false,
+            explanationMd:
+              "That's a slow component, not necessarily an unscalable one - the chapter's own " +
+              "central distinction. Latency and throughput ceiling are different measurements.",
+          },
+          {
+            id: "b",
+            label: "Whichever one has the lowest throughput ceiling.",
+            correct: true,
+            explanationMd:
+              "Correct. The system's overall ceiling is the lowest per-component ceiling on the " +
+              "path - not the average, not the priciest component, whichever number is smallest.",
+          },
+          {
+            id: "c",
+            label: "Whichever one is first in the request path.",
+            correct: false,
+            explanationMd:
+              "Position on the path is unrelated to capacity - a component can sit anywhere and " +
+              "still hold the lowest ceiling.",
+          },
+          {
+            id: "d",
+            label: "Whichever one is the most expensive to run.",
+            correct: false,
+            explanationMd: "Cost and throughput capacity are independent - neither implies the other.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-7-identifying-bottlenecks-q3",
+        kind: "diagram",
+        difficulty: 2,
+        prompt:
+          "Same shape, new numbers: the app server is now configured with 5 instances (aggregate " +
+          "ceiling 5,000 req/s). This database's ceiling is 3,000 req/s - heavier queries than " +
+          "before. Which component saturates first now?",
+        graph: {
+          nodes: [
+            { id: "c1", componentId: "client", position: { x: 40, y: 140 }, config: {} },
+            { id: "a1", componentId: "app-server", position: { x: 220, y: 140 }, config: { instances: 5 } },
+            { id: "d1", componentId: "sql-database", position: { x: 400, y: 140 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "c1", target: "a1", kind: "request-flow" },
+            { id: "e2", source: "a1", target: "d1", kind: "request-flow" },
+          ],
+          entryPointIds: ["c1"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "The app server again - it was the bottleneck last time, so it still is.",
+            correct: false,
+            explanationMd:
+              "The plausible-looking pattern-match, and wrong here: the numbers changed. 5,000 is " +
+              "now higher than the database's 3,000, so the app server is no longer the constraint.",
+          },
+          {
+            id: "b",
+            label: "The database - its 3,000 req/s ceiling is now the lower of the two.",
+            correct: true,
+            explanationMd:
+              "Correct. Same topology as Q1, opposite answer, because the numbers changed - the " +
+              "bottleneck is a comparison between today's ceilings, not a fixed property of a " +
+              "component.",
+          },
+          {
+            id: "c",
+            label: "Both at once - they're within 2,000 of each other, close enough to count as tied.",
+            correct: false,
+            explanationMd: "3,000 and 5,000 are different numbers; the lower one binds first regardless of the gap size.",
+          },
+          {
+            id: "d",
+            label: "Neither - the client is the bottleneck in this version.",
+            correct: false,
+            explanationMd: "The client still has no throughput ceiling of its own in this shape - nothing about that changed.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-7-identifying-bottlenecks-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A database's query latency has been climbing as its largest table grows - queries that " +
+          "used to return in 5ms now take 40ms - but its measured requests-per-second ceiling " +
+          "under load testing hasn't moved. Is the database now the system's bottleneck?",
+        options: [
+          {
+            id: "a",
+            label:
+              "Not necessarily - this is a slow problem (higher per-request latency), not evidence " +
+              "the database is at its throughput ceiling. The two are different failures with " +
+              "different fixes.",
+            correct: true,
+            explanationMd:
+              "Correct. Slow and unscalable are not the same failure - fixing a slow query often " +
+              "means an index or rewrite; fixing an unscalable one means adding capacity somewhere " +
+              "on the path. Nothing here shows the ceiling itself has moved.",
+          },
+          {
+            id: "b",
+            label: "Yes - any slowdown means it's now the bottleneck.",
+            correct: false,
+            explanationMd:
+              "This conflates the chapter's own central distinction. Higher latency alone doesn't " +
+              "show the throughput ceiling has been reached.",
+          },
+          {
+            id: "c",
+            label: "It doesn't matter, since the queries still return successfully.",
+            correct: false,
+            explanationMd:
+              "A real problem exists here (worth fixing), it's just the wrong category of problem - " +
+              "dismissing it isn't the correction either.",
+          },
+          {
+            id: "d",
+            label: "The app server must now be the bottleneck instead.",
+            correct: false,
+            explanationMd: "Nothing in the scenario says anything about the app server's ceiling - this is an unsupported leap.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-7-identifying-bottlenecks-q5",
+        kind: "diagram",
+        difficulty: 3,
+        prompt:
+          "Same shape, app server now at 10 instances (aggregate ceiling far above the database's " +
+          "3,000 req/s). Traffic keeps climbing toward the database's ceiling. What happens to the " +
+          "system's overall throughput ceiling if the app server adds 10 more instances on top of that?",
+        graph: {
+          nodes: [
+            { id: "c1", componentId: "client", position: { x: 40, y: 140 }, config: {} },
+            { id: "a1", componentId: "app-server", position: { x: 220, y: 140 }, config: { instances: 10 } },
+            { id: "d1", componentId: "sql-database", position: { x: 400, y: 140 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "c1", target: "a1", kind: "request-flow" },
+            { id: "e2", source: "a1", target: "d1", kind: "request-flow" },
+          ],
+          entryPointIds: ["c1"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "Nothing changes for the system's ceiling - the database is already the binding constraint.",
+            correct: true,
+            explanationMd:
+              "Correct. Once the database's fixed ceiling is the lower of the two, more app-server " +
+              "capacity doesn't raise the system's overall ceiling - it moves further from being the " +
+              "constraint, not toward it.",
+          },
+          {
+            id: "b",
+            label: "The system ceiling rises proportionally with the new app-server capacity.",
+            correct: false,
+            explanationMd:
+              "This is only true while the app server is the lower ceiling. Once the database binds, " +
+              "adding app-server capacity stops moving the system's overall number.",
+          },
+          {
+            id: "c",
+            label: "The database's own ceiling rises too, since more app-server capacity is feeding it.",
+            correct: false,
+            explanationMd: "No mechanism supports this - nothing about the database itself changed.",
+          },
+          {
+            id: "d",
+            label: "The app server becomes the bottleneck again.",
+            correct: false,
+            explanationMd:
+              "Backwards - adding even more app-server capacity moves it further from being the " +
+              "constraint, not back toward it.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-1-8-engineering-trade-offs",
+    mode: "building-blocks",
+    title: "Engineering Trade-offs",
+    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
+    // Spec: specs/bb-1-8-engineering-trade-offs.spec.md. Lesson body:
+    // public/content/chapters/bb-1-8-engineering-trade-offs.md.
+    // Process type, same no-build shape as 1.1-1.7: hasEditorExercise: false,
+    // empty component/blueprint/validation-rule lists. §16 places 1.8 in the
+    // no-component list alongside 1.1-1.5 and 1.7/1.9-1.11.
+    problemStatement:
+      "No canvas build this chapter - the palette is still 1.6's three components, and naming " +
+      "a cost doesn't need a fourth. The knowledge check presents three trade-off scenarios and " +
+      "asks you to pick the statement that names both what's bought and what's spent, not just " +
+      "the benefit - the trade-off drill this chapter is built around, run directly in the quiz.",
+    // Five objectives (§5.2 allows 3-7): all five required categories,
+    // including a real Practical objective per 1.1/1.2/1.4/1.5's precedent
+    // (Process chapters do not get the Concept-only Practical carve-out).
+    // Category tags live in the spec
+    // (specs/bb-1-8-engineering-trade-offs.spec.md §2).
+    learningObjectives: [
+      "State the reflex format 'we chose X, accepting Y, because Z' and name the five dimensions a design decision can spend: latency, consistency, complexity, money, operability.",
+      "Given a design decision, walk the five dimensions and name which ones it actually spends, not just the benefit it buys.",
+      "Answer 'what did that cost you?' for a proposed fix in one sentence, naming the specific dimension spent, inside the interview's trade-offs step (0.4 step 7).",
+      "Given three trade-off scenarios, choose the statement that names both what's bought and what's spent, and reject options claiming a cost-free choice or naming the wrong dimension.",
+      "State a decision already made in this chapter out loud in the 'we chose X, accepting Y, because Z' format, naming a real cost on both sides.",
+    ],
+    // §16: no components introduced this chapter (1.8 is in the
+    // no-component list alongside 1.1-1.5, 1.7, 1.9-1.11) - the three
+    // primitives stay homed at 1.6.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    // No canvas exercise, nothing to validate - same justification 1.1-1.7
+    // and 0.2-0.4 recorded.
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    // No hints - no build/Fix exercise for a hint to orient toward, same as
+    // every other no-build chapter so far (0.2-0.4, 1.1-1.7).
+    hints: [],
+    readingLinks: [],
+    // 1: Sonnet draft (2026-08-10).
+    lessonVersion: 1,
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.8 of 44.",
+      masteredConcepts: [
+        "1.7's bottleneck-and-ceiling vocabulary and its own 'add more app-server instances' fix, " +
+          "reused directly as this chapter's worked decision.",
+        "1.6's three-component shape and its `instances` config field, reused in the diagram and " +
+          "the 'bigger machine' comparison.",
+        "0.2's five forces (specifically cost), which this chapter refines into five sharper " +
+          "decision-spending dimensions.",
+      ],
+      notYetIntroducedConcepts: [
+        "Any mechanism for routing traffic across multiple app-server instances (3.4's load " +
+          "balancer) - named as a real cost of the 'add instances' branch without explaining how " +
+          "it would work.",
+        "The formal consistency model (strong vs. eventual, quorums, CAP) - 3.22's territory. " +
+          "'Consistency' here is a working, informal name for one of the five dimensions, not the " +
+          "deep model.",
+        "Replication, sharding, or any other named mechanism that raises a database's ceiling " +
+          "(3.12, 3.13) - not referenced in this chapter's examples.",
+      ],
+      simplifications: [
+        "The five cost dimensions (latency, consistency, complexity, money, operability) are a " +
+          "practical working set for stating trade-offs at this stage, not an exhaustive or " +
+          "formally-defined taxonomy - same status as 0.2's five forces.",
+        "'Consistency' is used here as plain language ('does everyone asking right now get the " +
+          "same answer') rather than any of the formal models 3.22 teaches.",
+        "The quiz's synchronous/asynchronous write-path example is a generic illustration, not " +
+          "tied to any specific mechanism this curriculum has introduced yet (replication is " +
+          "3.12; queues are 3.17).",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2-1.7's convention. Q2/Q4/Q5 realize
+    // CURRICULUM §14's "trade-off scenarios x3" exercise text directly - see
+    // spec §10 for why this needed no simulator/stages-UI degradation note
+    // (single/multi quiz kinds already cover this exercise shape natively).
+    quiz: [
+      {
+        id: "bb-1-8-engineering-trade-offs-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "Which of these is a COMPLETE trade-off statement, not just a benefit claim?",
+        options: [
+          {
+            id: "a",
+            label: "\"We added a cache - it's much faster now.\"",
+            correct: false,
+            explanationMd:
+              "Names a benefit only. Nothing here says what the cache costs - this is exactly the " +
+              "gap the cold open opens with.",
+          },
+          {
+            id: "b",
+            label: "\"We chose the simpler design because simpler is always better.\"",
+            correct: false,
+            explanationMd:
+              "\"Always better\" isn't a stated cost, it's an unexamined rule. No specific decision, " +
+              "no specific price.",
+          },
+          {
+            id: "c",
+            label:
+              "\"We added more app-server instances, accepting a bigger bill and more moving " +
+              "parts to run, because the app server had the lower ceiling.\"",
+            correct: true,
+            explanationMd:
+              "Correct. X (more instances), Y (bigger bill, more moving parts), and Z (the lower " +
+              "ceiling, from 1.7) are all present - the reflex this chapter trains.",
+          },
+          {
+            id: "d",
+            label: "\"We're not sure yet - it depends.\"",
+            correct: false,
+            explanationMd:
+              "Bare \"it depends\" with no named variable and no commitment isn't a trade-off " +
+              "statement, it's a non-answer (0.3's own \"it depends\" fix applies here too).",
+          },
+        ],
+      },
+      {
+        id: "bb-1-8-engineering-trade-offs-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "You're deciding between two fixes for the app-server bottleneck: add three more " +
+          "instances, or move to one much larger machine. Which statement correctly names a real " +
+          "trade-off for the 'more instances' choice?",
+        options: [
+          {
+            id: "a",
+            label:
+              "More instances buys near-linear headroom, but spends more money and adds " +
+              "operational surface - more things deployed and monitored.",
+            correct: true,
+            explanationMd:
+              "Correct. This is exactly the cost this chapter walks through: money and " +
+              "operability, not latency or consistency.",
+          },
+          {
+            id: "b",
+            label: "More instances is strictly better since it fixes the bottleneck with no downside.",
+            correct: false,
+            explanationMd:
+              "The \"free lunch\" claim this chapter warns against - every real branch spends " +
+              "something.",
+          },
+          {
+            id: "c",
+            label: "More instances mainly costs latency, since requests take longer to route.",
+            correct: false,
+            explanationMd:
+              "Nothing about adding stateless instances slows down a single request's path - " +
+              "latency is the wrong dimension here.",
+          },
+          {
+            id: "d",
+            label: "More instances costs nothing until the database also needs to scale.",
+            correct: false,
+            explanationMd:
+              "The money and complexity costs happen immediately, not on some future trigger - " +
+              "this dismisses a cost already being paid.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-8-engineering-trade-offs-q3",
+        kind: "multi",
+        difficulty: 2,
+        prompt:
+          "A team switches a write path from synchronous confirmation (every write waits for the " +
+          "follow-on step to finish before returning success) to asynchronous (return success " +
+          "immediately, finish the follow-on work in the background). Select ALL dimensions this " +
+          "change plausibly spends.",
+        options: [
+          {
+            id: "a",
+            label: "Consistency",
+            correct: true,
+            explanationMd:
+              "Correct. A reader checking immediately after the write might see the old state, " +
+              "since the background work hasn't finished yet.",
+          },
+          {
+            id: "b",
+            label: "Complexity",
+            correct: true,
+            explanationMd:
+              "Correct. Now there's background work to track and something to do if it fails " +
+              "later, after the caller has already moved on.",
+          },
+          {
+            id: "c",
+            label: "Latency",
+            correct: false,
+            explanationMd:
+              "Wrong direction: this change makes the write path faster, not slower. Latency is " +
+              "what's bought here, not spent.",
+          },
+          {
+            id: "d",
+            label: "Money",
+            correct: false,
+            explanationMd:
+              "Nothing about moving work to the background adds or removes infrastructure spend " +
+              "on its own.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-8-engineering-trade-offs-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "The bigger-machine option for the app-server bottleneck keeps everything on one " +
+          "instance. Which statement correctly names what it spends?",
+        options: [
+          {
+            id: "a",
+            label: "Nothing - a single bigger machine avoids every cost the instances option has.",
+            correct: false,
+            explanationMd:
+              "The free-lunch claim again. A bigger machine still costs money at a worse rate and " +
+              "still has a ceiling.",
+          },
+          {
+            id: "b",
+            label: "It spends consistency, since one machine can drift out of sync with itself.",
+            correct: false,
+            explanationMd:
+              "A single instance has nothing to drift from - consistency is about multiple readers " +
+              "or copies disagreeing, not one machine alone.",
+          },
+          {
+            id: "c",
+            label: "It spends operability, since one machine is harder to monitor than many.",
+            correct: false,
+            explanationMd:
+              "Backwards: one thing to watch is less operational surface than several, per this " +
+              "chapter's own text.",
+          },
+          {
+            id: "d",
+            label:
+              "It spends money at a worse rate than smaller instances, and it still has a " +
+              "ceiling of its own - just a higher one.",
+            correct: true,
+            explanationMd:
+              "Correct. Bigger machines cost more than proportionally more, and 1.7's whole point " +
+              "was that every component has a ceiling, including a large single one.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-8-engineering-trade-offs-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Two teams face the same app-server bottleneck. Team A expects slow, steady growth for " +
+          "the next year. Team B doesn't know if traffic will double next month or stay flat. " +
+          "Which pairing best matches each team to a defensible choice, with the reasoning?",
+        options: [
+          {
+            id: "a",
+            label: "Both teams should choose instances - it's the objectively better option regardless of growth pattern.",
+            correct: false,
+            explanationMd:
+              "There is no universal winner here - that's what makes this a genuine trade-off " +
+              "rather than a settled question.",
+          },
+          {
+            id: "b",
+            label:
+              "Team A leans toward the bigger machine (predictable growth makes today's " +
+              "simplicity worth a ceiling that's further off); Team B leans toward instances " +
+              "(uncertain growth makes it cheaper to be wrong in small increments than to hit a " +
+              "hard wall on one machine).",
+            correct: true,
+            explanationMd:
+              "Correct. Predictability favors paying for simplicity now; uncertainty favors the " +
+              "option that fails smaller and more often instead of all at once.",
+          },
+          {
+            id: "c",
+            label: "Both teams should choose the bigger machine - simplicity is always worth it until a real bottleneck appears.",
+            correct: false,
+            explanationMd:
+              "Same error as always-instances, opposite direction - simplicity is a real benefit, " +
+              "not an automatic win over every alternative.",
+          },
+          {
+            id: "d",
+            label:
+              "Team A leans toward instances (steady growth means frequent small additions); " +
+              "Team B leans toward the bigger machine (uncertainty means avoiding operational " +
+              "complexity).",
+            correct: false,
+            explanationMd:
+              "The pairing is inverted: steady, predictable growth is exactly when paying for " +
+              "simplicity up front pays off, and uncertainty is when a hard-to-resize single " +
+              "machine is the riskier bet.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-1-9-deep-dive-methodology",
+    mode: "building-blocks",
+    title: "Deep Dive Methodology",
+    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
+    // Spec: specs/bb-1-9-deep-dive-methodology.spec.md. Lesson body:
+    // public/content/chapters/bb-1-9-deep-dive-methodology.md.
+    // Process type, same no-build shape as 1.1-1.8: hasEditorExercise: false,
+    // empty component/blueprint/validation-rule lists. §16 places 1.9 in the
+    // no-component list alongside 1.1-1.5, 1.7-1.8, 1.10-1.11.
+    problemStatement:
+      "No canvas build this chapter - the palette is still 1.6's three components, and picking " +
+      "a deep-dive target doesn't need a fourth. The knowledge check shows a design with its " +
+      "stated requirements and asks you to pick the right deep-dive target from four candidates, " +
+      "reading why each of the others misses - the exercise this chapter is built around, run " +
+      "directly in the quiz.",
+    // Five objectives (§5.2 allows 3-7): all five required categories,
+    // including a real Practical objective per 1.1/1.2/1.4/1.5/1.8's
+    // precedent (Process chapters do not get the Concept-only Practical
+    // carve-out). Category tags live in the spec
+    // (specs/bb-1-9-deep-dive-methodology.spec.md §2).
+    learningObjectives: [
+      "State the two-question method for picking a deep-dive target: which requirement is closest to its limit right now, and which component on the path (1.7's ceiling method) is where that pressure actually lands.",
+      "Given a design and its requirements, name the correct deep-dive target and reject one chosen for familiarity, novelty, or 'cover everything a little.'",
+      "Narrate a deep dive that states the target and reason before diving, goes one level down, and explicitly resurfaces to the whole design, inside interview loop step 5 (0.4).",
+      "Given four candidate deep-dive targets for a shown design and its requirements, choose the one the evidence supports and reject options optimizing for familiarity, appearing impressive, or shallow coverage of everything.",
+      "When two requirements are both under real pressure, name both out loud and commit to which one gets the deep dive now, rather than splitting attention shallowly across both.",
+    ],
+    // §16: no components introduced this chapter (1.9 is in the
+    // no-component list alongside 1.1-1.5, 1.7-1.8, 1.10-1.11) - the three
+    // primitives stay homed at 1.6.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    // No canvas exercise, nothing to validate - same justification 1.1-1.8
+    // and 0.2-0.4 recorded.
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    // No hints - no build/Fix exercise for a hint to orient toward, same as
+    // every other no-build chapter so far (0.2-0.4, 1.1-1.8).
+    hints: [],
+    readingLinks: [],
+    // 1: Sonnet draft (2026-08-10).
+    lessonVersion: 1,
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.9 of 44.",
+      masteredConcepts: [
+        "1.3's non-functional requirements (the numbers-shaped promises attached to 0.2's five " +
+          "forces) - reused directly as the input to 'which requirement is closest to its limit.'",
+        "1.7's ceiling method (the lowest per-component ceiling on the path) - reused to confirm " +
+          "where a stressed requirement's pressure actually lands in the current design.",
+        "1.8's trade-off reflex and 0.3's 'name the variable and commit' pattern - reused for the " +
+          "one-dive-or-two decision when two requirements compete for the same time.",
+        "1.5's cross-continent round-trip figure - reused as the floor that makes a latency " +
+          "requirement point at 'wherever the request spends its time' rather than one named " +
+          "component.",
+        "1.6's three-component shape - the design every quiz scenario presents.",
+      ],
+      notYetIntroducedConcepts: [
+        "Any mechanism that actually relieves a stressed read or write path - read replicas " +
+          "(3.12), caches (3.14), sharding (3.13), or safer write/durability machinery (3.20, " +
+          "3.26). This chapter finds where the pressure is; it never proposes how to relieve it.",
+        "Load balancing or any routing across multiple app-server instances (3.4) - not " +
+          "referenced.",
+        "Geographic distribution machinery (CDNs, regions - 3.15) - the latency example names the " +
+          "distance problem without naming a fix.",
+      ],
+      simplifications: [
+        "'One level down' stays at the depth 1.6-1.8 already established (what happens " +
+          "conceptually when a read or write is handled) - it does not introduce real " +
+          "replication, durability, or storage mechanisms, all later material.",
+        "The 'two requirements under pressure at once' scenario (quiz Q5) is a designed teaching " +
+          "device for the one-dive-or-two decision, not a claim that real designs typically have " +
+          "exactly two competing pressures.",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2-1.8's convention. Q2 and Q4 directly
+    // realize CURRICULUM §14's "given a design + requirements, pick the
+    // right deep-dive target from four; explanation per option" exercise
+    // text - see spec §10 for why this needed no simulator/stages-UI
+    // degradation note (a single-choice quiz question already covers this
+    // exercise shape natively, same as 1.8's own trade-off scenarios).
+    quiz: [
+      {
+        id: "bb-1-9-deep-dive-methodology-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "Which of these is the correct method for picking a deep-dive target?",
+        options: [
+          {
+            id: "a",
+            label: "Pick the component you can explain in the most detail.",
+            correct: false,
+            explanationMd:
+              "The cold open's own failure: familiarity with a component says nothing about " +
+              "whether it's under pressure.",
+          },
+          {
+            id: "b",
+            label: "Pick whichever component sounds most advanced or interesting to discuss.",
+            correct: false,
+            explanationMd:
+              "Sounding impressive isn't evidence of pressure - this is the 'flashiest piece' " +
+              "mistake the chapter warns against.",
+          },
+          {
+            id: "c",
+            label:
+              "Pick the component where the requirement closest to breaking actually lands, " +
+              "confirmed with the ceiling method.",
+            correct: true,
+            explanationMd:
+              "Correct. Two questions, not a guess: which requirement is closest to its limit " +
+              "(1.3), and which component is where that pressure lands (1.7's ceiling method).",
+          },
+          {
+            id: "d",
+            label: "Give every component in the design equal time.",
+            correct: false,
+            explanationMd:
+              "This is 'deep-diving everything' - a shallow pass over every subsystem instead of " +
+              "real depth on the one or two that matter.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-9-deep-dive-methodology-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A URL shortener (1.6's shape: client, app server, sql database) has one requirement " +
+          "under real pressure: reads outnumber writes 1,000 to 1, and read latency must stay low " +
+          "as traffic grows. Which is the strongest deep-dive target?",
+        options: [
+          {
+            id: "a",
+            label: "The read path - how the database serves repeated reads as load rises.",
+            correct: true,
+            explanationMd:
+              "Correct. The stated requirement is entirely about reads at rising volume - that's " +
+              "exactly where the pressure lands.",
+          },
+          {
+            id: "b",
+            label: "The write path - how new short links get created.",
+            correct: false,
+            explanationMd:
+              "Nothing in the stated requirement mentions write volume or write correctness - " +
+              "this targets a dimension that isn't under pressure here.",
+          },
+          {
+            id: "c",
+            label: "The client's rendering code.",
+            correct: false,
+            explanationMd:
+              "The client isn't part of this design's throughput or latency ceiling - it issues " +
+              "requests, it doesn't serve them.",
+          },
+          {
+            id: "d",
+            label: "A little of everything, so nothing is missed.",
+            correct: false,
+            explanationMd:
+              "Deep-diving everything reads as a shallow pass, not depth - and the requirement " +
+              "already points at one specific place.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-9-deep-dive-methodology-q3",
+        kind: "multi",
+        difficulty: 2,
+        prompt:
+          "Which of these describe going 'one level down without losing the room'? Select ALL " +
+          "that apply.",
+        options: [
+          {
+            id: "a",
+            label: "State the target and the reason for it before describing any internal detail.",
+            correct: true,
+            explanationMd:
+              "Correct. Naming the plan out loud before diving is what lets the interviewer " +
+              "follow why this detail matters.",
+          },
+          {
+            id: "b",
+            label: "After the detail, reconnect it to the rest of the design in one sentence.",
+            correct: true,
+            explanationMd:
+              "Correct. This is the deliberate resurface - without it, the interviewer stops " +
+              "tracking why the dive mattered.",
+          },
+          {
+            id: "c",
+            label: "Once you start, keep going until the interviewer stops you - stopping early looks unprepared.",
+            correct: false,
+            explanationMd:
+              "This is exactly how a candidate loses the room: talking past the point where the " +
+              "detail is still serving the conversation.",
+          },
+          {
+            id: "d",
+            label: "Skip mentioning the rest of the design again - the interviewer already remembers it.",
+            correct: false,
+            explanationMd:
+              "Assuming the interviewer is still tracking the whole design without a resurface is " +
+              "the failure mode this technique exists to prevent.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-9-deep-dive-methodology-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Same shape, a different requirement this time: no write may be lost, even if the app " +
+          "server restarts mid-request. Which deep-dive target does the requirement point to?",
+        options: [
+          {
+            id: "a",
+            label: "The read path.",
+            correct: false,
+            explanationMd:
+              "The stated requirement is about writes surviving a crash - reads aren't mentioned " +
+              "and aren't under pressure here.",
+          },
+          {
+            id: "b",
+            label: "The write path - specifically how the database confirms a write actually finished.",
+            correct: true,
+            explanationMd:
+              "Correct. Durability of writes is the stated pressure; the write path is where it " +
+              "lands.",
+          },
+          {
+            id: "c",
+            label: "Add a cache in front of the database.",
+            correct: false,
+            explanationMd:
+              "Wrong dimension - a cache addresses latency and repeated reads, not durability, " +
+              "and no such mechanism is on this chapter's taught palette yet.",
+          },
+          {
+            id: "d",
+            label: "The client, since it's what the user directly interacts with.",
+            correct: false,
+            explanationMd:
+              "Direct user interaction isn't the same as being under pressure - the client has no " +
+              "durability behavior of its own here.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-9-deep-dive-methodology-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A design review surfaces two requirements under real pressure at once: a 10x read " +
+          "spike is coming, and no write may be lost. There's time for one real deep dive today. " +
+          "What's the strongest move?",
+        options: [
+          {
+            id: "a",
+            label: "Split the remaining time evenly between both, going one level down on neither.",
+            correct: false,
+            explanationMd:
+              "Two shallow dives read as two things half-understood - this is the 'one dive or " +
+              "two' mistake the chapter warns against.",
+          },
+          {
+            id: "b",
+            label: "Pick whichever one is more technically impressive to discuss.",
+            correct: false,
+            explanationMd:
+              "Impressiveness isn't evidence of pressure - both requirements need to be judged on " +
+              "how close each actually is to breaking.",
+          },
+          {
+            id: "c",
+            label: "Refuse to choose, and mention both throughout without going deep on either.",
+            correct: false,
+            explanationMd:
+              "A restatement of 0.3's own 'it depends' non-answer - naming both without " +
+              "committing to one isn't a plan.",
+          },
+          {
+            id: "d",
+            label:
+              "Name both pressures out loud, pick the one closer to breaking today for the real " +
+              "dive, and state explicitly that the other is next if time allows.",
+            correct: true,
+            explanationMd:
+              "Correct. This names the variable and commits (0.3's pattern), while keeping the " +
+              "second pressure visible instead of silently dropped.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "bb-dummy-1",
     mode: "building-blocks",
     title: "Placeholder Chapter",

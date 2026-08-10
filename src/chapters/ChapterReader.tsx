@@ -17,6 +17,41 @@ import { getChapter, useChapterLesson } from "@/content/content-service";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import { appendKnowledgeCheckHeading, extractHeadings } from "./extract-headings";
 
+function splitMarkdownAtNextSection(markdown: string) {
+  const lines = markdown.split("\n");
+  const FENCE_RE = /^(```|~~~)/;
+  let inFence = false;
+  let nextIndex = -1;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const trimmed = lines[index].trim();
+    if (FENCE_RE.test(trimmed)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+
+    const headingMatch = /^(#{1,6})\s+(.+?)\s*#*$/.exec(lines[index]);
+    if (!headingMatch) continue;
+
+    const headingText = headingMatch[2].trim();
+    if (headingText === "Next") {
+      nextIndex = index;
+      break;
+    }
+  }
+
+  if (nextIndex === -1) {
+    return { beforeNext: markdown, nextSection: "", hasNextSection: false };
+  }
+
+  return {
+    beforeNext: lines.slice(0, nextIndex).join("\n").trimEnd(),
+    nextSection: lines.slice(nextIndex).join("\n").trimStart(),
+    hasNextSection: true,
+  };
+}
+
 // This is the lesson page's primary content, so it keeps SSR (no
 // ssr:false) - still a real chunk-splitting win since it pulls in
 // react-markdown, remark/rehype plugins, CodeBlock, and MermaidBlock.
@@ -57,6 +92,7 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   const lessonMarkdown = useChapterLesson(chapter?.id);
   const markdown = lessonMarkdown ?? chapter?.problemStatement ?? "";
   const headings = extractHeadings(markdown);
+  const { beforeNext, nextSection, hasNextSection } = splitMarkdownAtNextSection(markdown);
 
   if (!chapter || !entry) return null;
 
@@ -127,13 +163,19 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
             )}
 
             <div className="mt-8">
-              <MarkdownRenderer content={markdown} />
+              <MarkdownRenderer content={beforeNext} />
             </div>
 
             <QuizLauncher chapter={chapter} />
 
             {chapter.hasEditorExercise !== false && (
               <DesignEditorCTA mode={mode} chapterSlug={chapterSlug} />
+            )}
+
+            {hasNextSection && (
+              <div className="mt-8">
+                <MarkdownRenderer content={nextSection} />
+              </div>
             )}
 
             {hasNextEntry && (
