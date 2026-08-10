@@ -172,4 +172,14 @@ describe("appendKnowledgeCheckHeading", () => {
   it("appends to an empty headings array when hasQuiz is true", () => {
     expect(appendKnowledgeCheckHeading([], true)).toEqual([{ id: "knowledge-check", text: "Knowledge check", level: 2 }]);
   });
+
+  it("inserts before the 'Next' heading, matching ChapterReader's render order", () => {
+    const headings = extractHeadings("## Intro\n\n## Next");
+    const result = appendKnowledgeCheckHeading(headings, true);
+    expect(result).toEqual([
+      { id: "intro", text: "Intro", level: 2 },
+      { id: "knowledge-check", text: "Knowledge check", level: 2 },
+      { id: "next", text: "Next", level: 2 },
+    ]);
+  });
 });

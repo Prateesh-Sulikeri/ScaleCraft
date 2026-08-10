@@ -40,12 +40,19 @@ export function extractHeadings(markdown: string): ExtractedHeading[] {
 }
 
 /**
- * Appends a synthetic "Knowledge check" entry pointing at QuizLauncher's own
+ * Inserts a synthetic "Knowledge check" entry pointing at QuizLauncher's own
  * `id="knowledge-check"` anchor — that heading lives in JSX, not the lesson
  * markdown, so extractHeadings never sees it. Level 2, matching the lesson's
  * other top-level sections; TableOfContents already filters to level >= 2.
+ * Placed right before the "Next" heading (if any) to match ChapterReader's
+ * render order, which puts the knowledge check and design exercise CTA
+ * ahead of the Next section - falls back to appending at the end for
+ * chapters with no "Next" heading.
  */
 export function appendKnowledgeCheckHeading(headings: ExtractedHeading[], hasQuiz: boolean): ExtractedHeading[] {
   if (!hasQuiz) return headings;
-  return [...headings, { id: "knowledge-check", text: "Knowledge check", level: 2 }];
+  const knowledgeCheck = { id: "knowledge-check", text: "Knowledge check", level: 2 };
+  const nextIndex = headings.findIndex((h) => h.text === "Next");
+  if (nextIndex === -1) return [...headings, knowledgeCheck];
+  return [...headings.slice(0, nextIndex), knowledgeCheck, ...headings.slice(nextIndex)];
 }
