@@ -15,6 +15,9 @@ describe("getChaptersForMode", () => {
       "bb-1-4-estimating-scale",
       "bb-1-5-numbers-every-engineer-should-know",
       "bb-1-6-drawing-the-first-architecture",
+      "bb-1-7-identifying-bottlenecks",
+      "bb-1-8-engineering-trade-offs",
+      "bb-1-9-deep-dive-methodology",
       "bb-dummy-1",
     ]);
   });
