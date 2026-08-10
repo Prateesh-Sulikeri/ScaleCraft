@@ -357,7 +357,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // No components introduced (§16 homes the first three at 1.6) and no
     // construction-family exercise - a justified Concept-chapter exception
     // per §11.1, spec §4. The chapter is Reader + knowledge check only.
-    // hasEditorExercise: false suppresses DesignEditorCTA (nothing to open)
+    // hasEditorExercise: false suppresses YourTurnCard's exercise row (nothing to open)
     // and switches curriculum/progress.ts's deriveStatus to gate COMPLETED
     // on the exam pass alone, since there is no Submit to record a
     // validation pass.

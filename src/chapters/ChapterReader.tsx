@@ -8,9 +8,8 @@ import { ThemeToggle } from "@/app/ThemeToggle";
 import { ReaderSidebar } from "./ReaderSidebar";
 import { ReadingProgress } from "./ReadingProgress";
 import { TableOfContents } from "./TableOfContents";
-import { DesignEditorCTA } from "./DesignEditorCTA";
 import { NextChapterLink } from "./NextChapterLink";
-import { QuizLauncher } from "./quiz/QuizLauncher";
+import { YourTurnCard } from "./YourTurnCard";
 import { DifficultyDots } from "@/learning-path/DifficultyDots";
 import { getCourse, findEntry, nextEntry } from "@/curriculum";
 import { getChapter, useChapterLesson } from "@/content/content-service";
@@ -166,11 +165,7 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
               <MarkdownRenderer content={beforeNext} />
             </div>
 
-            <QuizLauncher chapter={chapter} />
-
-            {chapter.hasEditorExercise !== false && (
-              <DesignEditorCTA mode={mode} chapterSlug={chapterSlug} />
-            )}
+            <YourTurnCard chapter={chapter} mode={mode} chapterSlug={chapterSlug} />
 
             {hasNextSection && (
               <div className="mt-8">
