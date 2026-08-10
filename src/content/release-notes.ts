@@ -14,6 +14,15 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "4.1.1-alpha",
+    date: "2026-08-10",
+    highlights: [
+      "Fixed 'On this page' sometimes highlighting a leftover section from the chapter you were just reading, instead of the top of the new one you just opened.",
+      "Fixed 'On this page' listing Knowledge check after Next - it now matches the order those sections actually appear on the page.",
+      "The quiz and design exercise are now one combined card at the end of each chapter instead of two separately-bordered ones, with each row's button turning green once that task is done.",
+    ],
+  },
+  {
     version: "4.1.0-alpha",
     date: "2026-08-10",
     highlights: [

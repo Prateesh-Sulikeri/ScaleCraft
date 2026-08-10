@@ -21,6 +21,15 @@ type TableOfContentsProps = {
  * page title. The "On this page" heading itself lives in ChapterReader.tsx,
  * not here - it needs to stay visible (alongside ThemeToggle) even on a
  * chapter with no headings, when this component renders nothing.
+ *
+ * The caller must key this component on the chapter (see ChapterReader.tsx)
+ * so it remounts, rather than re-rendering, on navigation. Without a remount,
+ * `activeId` from the previous chapter can survive into the new one: if the
+ * new chapter's first heading starts below the fold, the observer's first
+ * callback finds nothing intersecting and leaves `activeId` untouched, and
+ * many chapters share heading ids (e.g. the synthetic "knowledge-check" id
+ * in extract-headings.ts), so the stale id can still match a real heading
+ * in the new chapter and highlight the wrong section at scrollTop 0.
  */
 export function TableOfContents({ headings, targetRef }: TableOfContentsProps) {
   const items = headings.filter((h) => h.level >= 1);

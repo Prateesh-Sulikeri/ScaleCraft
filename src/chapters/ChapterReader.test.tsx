@@ -12,8 +12,11 @@ afterEach(() => {
 vi.mock("./ReaderSidebar", () => ({ ReaderSidebar: () => null }));
 vi.mock("./ReadingProgress", () => ({ ReadingProgress: () => null }));
 vi.mock("./TableOfContents", () => ({ TableOfContents: () => null }));
-vi.mock("./DesignEditorCTA", () => ({ DesignEditorCTA: () => <div data-testid="design-editor-cta" /> }));
-vi.mock("./quiz/QuizLauncher", () => ({ QuizLauncher: () => null }));
+vi.mock("./YourTurnCard", () => ({
+  YourTurnCard: ({ chapter, mode, chapterSlug }: { chapter: { id: string }; mode: string; chapterSlug: string }) => (
+    <div data-testid="your-turn-card" data-chapter-id={chapter.id} data-mode={mode} data-chapter-slug={chapterSlug} />
+  ),
+}));
 vi.mock("@/app/ThemeToggle", () => ({ ThemeToggle: () => null }));
 vi.mock("@/canvas/docs-panel/markdown/MarkdownRenderer", () => ({
   MarkdownRenderer: ({ content }: { content: string }) => <div>{content}</div>,
@@ -242,10 +245,13 @@ describe("ChapterReader - prerequisite and domain tags", () => {
     expect(screen.queryByText("Problem")).not.toBeInTheDocument();
   });
 
-  it("renders the Design Editor CTA for a chapter with an editor exercise (the default)", () => {
+  it("renders the Your turn card with the current chapter, mode, and slug", () => {
     stubFetchNotFound();
     render(<ChapterReader mode="real-world-extraction" chapterSlug="target" />);
-    expect(screen.getByTestId("design-editor-cta")).toBeInTheDocument();
+    const card = screen.getByTestId("your-turn-card");
+    expect(card).toHaveAttribute("data-chapter-id", "ch-target");
+    expect(card).toHaveAttribute("data-mode", "real-world-extraction");
+    expect(card).toHaveAttribute("data-chapter-slug", "target");
   });
 
   it("renders the Next section after knowledge check and design exercise", async () => {
@@ -260,9 +266,9 @@ describe("ChapterReader - prerequisite and domain tags", () => {
     expect(content.compareDocumentPosition(nextHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("omits the Design Editor CTA for a chapter with hasEditorExercise: false", () => {
+  it("renders the Your turn card for a chapter with hasEditorExercise: false too (the card itself decides what to show)", () => {
     stubFetchNotFound();
     render(<ChapterReader mode="real-world-extraction" chapterSlug="no-editor-exercise-slug" />);
-    expect(screen.queryByTestId("design-editor-cta")).not.toBeInTheDocument();
+    expect(screen.getByTestId("your-turn-card")).toHaveAttribute("data-chapter-id", "ch-no-editor-exercise");
   });
 });
