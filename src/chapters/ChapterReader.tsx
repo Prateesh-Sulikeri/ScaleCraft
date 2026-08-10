@@ -186,7 +186,10 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
             <p className="text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">On this page</p>
             <ThemeToggle />
           </div>
-          <TableOfContents headings={tocHeadings} targetRef={articleRef} />
+          {/* Keyed on the chapter so scrollspy state (activeId) resets on
+              navigation instead of carrying over a stale section from the
+              previous chapter - see TableOfContents.tsx's docstring. */}
+          <TableOfContents key={chapterSlug} headings={tocHeadings} targetRef={articleRef} />
         </aside>
       </main>
     </PageEnter>
