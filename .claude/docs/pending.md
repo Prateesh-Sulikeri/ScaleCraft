@@ -1,12 +1,15 @@
 # Release 5.0.0-alpha — Content Platform
 
-Status: **steps 1-4 (MDX pipeline, 3.4 MDX migration, walkthrough renderer,
-Load Balancer walkthrough content) plus the 5.1.0-alpha diagram pipeline are
-merged into `staging/v5.0.0-content-platform` (branch renamed from
+Status: **Engineering work for this release is complete. Steps 1-4 (MDX
+pipeline, 3.4 MDX migration, walkthrough renderer, Load Balancer walkthrough
+content) plus the 5.1.0-alpha diagram pipeline are merged into
+`staging/v5.0.0-content-platform` (branch renamed from
 `release/v5.0.0-content-platform` 2026-08-11, see Branch Remediation below).
-Glossary pilot (`feature/glossary`) is built and CI-green, not yet
-pushed/merged - next is pushing it, then the quiz diagram-question
-upgrade** (see Build Log below). Compiled 2026-08-10/11 from
+Glossary pilot (`feature/glossary`) is built, CI-green, and pushed - next is
+merging it into staging. The quiz `diagram`-question upgrade (the build
+order's last item) is deferred indefinitely, user call - too much rework for
+too little benefit. Version bumped to `5.0.0-alpha`, release notes written**
+(see Build Log below). Compiled 2026-08-10/11 from
 `.claude/docs/ScaleCraft_Future_Roadmap.md`'s
 "Alpha 5.x — Content Platform" entry (two three-bullet brainstorm items: 5.0.0
 Content Update, 5.1.0 Diagram Topology Update), turned into something buildable
@@ -399,17 +402,33 @@ then implemented exactly as planned:
   (see Branch Remediation entry above for why that's `staging/*` and not a
   real `release/*` branch). Not yet pushed/merged - next session.
 
+### 2026-08-11 - Quiz diagram-question upgrade deferred; release notes + version bump
+
+User call: the quiz `diagram`-question upgrade (last build-order item -
+swapping `ReadOnlyGraphSummary`'s plain-text list for the spatial
+walkthrough renderer) is **deferred indefinitely** - too much rework for
+too little benefit relative to the rest of this release. Not scoped for a
+future release either; revisit only if a concrete need resurfaces (e.g. a
+quiz author specifically wants spatial diagram questions). The `custom`-node
+kind for internal-mechanism diagrams (Kafka etc.) stays deferred as it
+already was, same "follow-up, not required" status.
+
+Release notes (`src/content/release-notes.ts`) and version bump written for
+what's actually shipping: MDX pipeline, 3.4 Load Balancer real content,
+walkthrough renderer, diagram auto-layout pipeline, glossary pilot.
+`VERSION`/`package.json`/`package-lock.json` bumped `4.1.1-alpha` ->
+`5.0.0-alpha` (`npm version --no-git-tag-version`, matches the "major bump"
+decision confirmed during scoping). Full CI (`tsc`, `lint`, 1715 tests,
+`next build`) clean after the bump.
+
 **Next session, pick up here:**
-1. Push `feature/glossary`, then merge into `staging/v5.0.0-content-platform`
-   (same "test before it lands on staging" bar as the walkthrough-renderer
-   merge - full CI already green this session, so should be a clean fast
-   merge).
+1. Merge `feature/glossary` into `staging/v5.0.0-content-platform` (full CI
+   already green) and push.
 2. Real-browser check of `<Ref>` (never done this session, no browser
    available): click/tap opens the popover, hover opens it on a
    mouse-capable device only, Escape/outside-click dismisses.
-3. Per the build order: quiz `diagram` questions upgraded to the
-   walkthrough renderer is the one remaining scoped item.
-4. When ready to cut a real `release/v5.0.0-content-platform` from
+3. Release 5.0.0-alpha's engineering work is otherwise complete. When ready
+   to cut a real `release/v5.0.0-content-platform` from
    `staging/v5.0.0-content-platform`, that's the user's action, not
    Claude's.
 

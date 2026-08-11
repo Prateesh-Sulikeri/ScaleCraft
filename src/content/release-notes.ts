@@ -14,6 +14,16 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "5.0.0-alpha",
+    date: "2026-08-11",
+    highlights: [
+      "3.4 Load Balancer now has a full lesson - routing, health checks, round-robin vs. least-connections, and when to add a second instance - replacing the earlier placeholder text.",
+      "New: interactive step-by-step diagrams in lesson content. The Load Balancer chapter's diagram now walks a real request from client to load balancer to app server one step at a time, with a toggle between round-robin and least-connections routing.",
+      "New: tap or hover an underlined term inline in a lesson (like \"round-robin\" in the Load Balancer chapter) for a short definition without leaving the page - the start of a growing glossary.",
+      "Lessons now compile ahead of time instead of parsing Markdown in your browser every time you open a chapter, laying the groundwork for richer interactive content in future chapters.",
+    ],
+  },
+  {
     version: "4.1.1-alpha",
     date: "2026-08-10",
     highlights: [
