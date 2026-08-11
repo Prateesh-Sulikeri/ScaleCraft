@@ -4,6 +4,7 @@ import { useState } from "react";
 import { WalkthroughEdges } from "./WalkthroughEdges";
 import { WalkthroughNodeCard } from "./WalkthroughNodeCard";
 import { WalkthroughControls } from "./WalkthroughControls";
+import { WalkthroughAlgorithmToggle } from "./WalkthroughAlgorithmToggle";
 import type { WalkthroughProps } from "./types";
 
 /**
@@ -11,7 +12,7 @@ import type { WalkthroughProps } from "./types";
  * (release 5.0.0-alpha, see .claude/docs/pending.md's Final Plan) - the
  * AlgoMaster.io-style walkthrough: a small fixed diagram, a step counter,
  * each step highlighting one node/edge with a caption, discrete state, not
- * continuous animation.
+ * continuous animation (beyond the per-step packet - see WalkthroughEdges).
  *
  * Conceptually generalizes the Guided Tour's step-sequencing idea
  * (src/tour/TourController.tsx: step index -> highlighted target -> caption
@@ -22,9 +23,12 @@ import type { WalkthroughProps } from "./types";
  * sitting inside rendered lesson prose. This is plain local step-index
  * state, nothing persisted, no canvas dependency.
  */
-export function Walkthrough({ nodes, edges, steps, aspectRatio = "12 / 5" }: WalkthroughProps) {
+export function Walkthrough({ nodes, edges, steps, viewBoxWidth, viewBoxHeight, algorithms }: WalkthroughProps) {
   const [stepIndex, setStepIndex] = useState(0);
-  const step = steps[stepIndex];
+  const [selectedAlgorithmId, setSelectedAlgorithmId] = useState(algorithms?.[0]?.id);
+
+  const baseStep = steps[stepIndex];
+  const step = (selectedAlgorithmId && baseStep?.variants?.[selectedAlgorithmId]) || baseStep;
 
   const highlightNodeIds = new Set(step?.highlightNodeIds ?? []);
   const highlightEdgeIds = new Set(step?.highlightEdgeIds ?? []);
@@ -58,16 +62,33 @@ export function Walkthrough({ nodes, edges, steps, aspectRatio = "12 / 5" }: Wal
       onKeyDown={handleKeyDown}
       className="flex flex-col gap-4 rounded-lg border border-border bg-background/60 p-4 outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
     >
-      <div className="relative w-full" style={{ aspectRatio }}>
-        <WalkthroughEdges nodes={nodes} edges={edges} highlightEdgeIds={highlightEdgeIds} dimmed={hasHighlight} />
+      {algorithms && algorithms.length > 0 && (
+        <WalkthroughAlgorithmToggle
+          algorithms={algorithms}
+          selectedId={selectedAlgorithmId}
+          onSelect={setSelectedAlgorithmId}
+        />
+      )}
+      <div className="relative w-full" style={{ aspectRatio: `${viewBoxWidth} / ${viewBoxHeight}` }}>
+        <WalkthroughEdges
+          nodes={nodes}
+          edges={edges}
+          highlightEdgeIds={highlightEdgeIds}
+          dimmed={hasHighlight}
+          animationKey={`${stepIndex}-${selectedAlgorithmId ?? ""}`}
+          viewBoxWidth={viewBoxWidth}
+          viewBoxHeight={viewBoxHeight}
+        />
         {nodes.map((node) => (
           <WalkthroughNodeCard
             key={node.id}
             node={node}
-            left={node.position.x}
-            top={node.position.y}
+            left={(node.position.x / viewBoxWidth) * 100}
+            top={(node.position.y / viewBoxHeight) * 100}
             highlighted={highlightNodeIds.has(node.id)}
             dimmed={hasHighlight && !highlightNodeIds.has(node.id)}
+            viewBoxWidth={viewBoxWidth}
+            viewBoxHeight={viewBoxHeight}
           />
         ))}
       </div>

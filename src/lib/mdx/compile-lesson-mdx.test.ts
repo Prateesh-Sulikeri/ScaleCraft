@@ -44,9 +44,11 @@ describe("compileLessonMdx", () => {
   // alone, which is enough to prove resolution works).
   it("resolves a custom <Walkthrough> tag via mdxComponents", async () => {
     const source = `<Walkthrough
+  viewBoxWidth={600}
+  viewBoxHeight={250}
   nodes={[
-    { id: "client", kind: "component", componentId: "client", position: { x: 10, y: 50 } },
-    { id: "lb", kind: "component", componentId: "load-balancer", position: { x: 90, y: 50 } },
+    { id: "client", kind: "component", componentId: "client", position: { x: 80, y: 125 } },
+    { id: "lb", kind: "component", componentId: "load-balancer", position: { x: 400, y: 125 } },
   ]}
   edges={[{ id: "e1", source: "client", target: "lb", kind: "request-flow" }]}
   steps={[{ caption: "The client sends a request.", highlightNodeIds: ["client"], highlightEdgeIds: [] }]}

@@ -4377,7 +4377,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     // dangling "cargo-cult" self-reference. See spec §13.
     // v3: embedded the interactive Walkthrough diagram (Release 5.0.0-alpha
     // step 4) after the "two edge kinds" paragraph.
-    lessonVersion: 3,
+    // v4: walkthrough v2 - new fixed-viewBox coordinates, plus a
+    // round-robin/least-connections algorithm toggle with per-step variants.
+    lessonVersion: 4,
     // Migrated to MDX (Release 5.0.0-alpha step 2 of the build order, see
     // pending.md) - first chapter to move off the legacy react-markdown
     // path. Lesson body: public/content/chapters/bb-3-4-load-balancer.mdx.

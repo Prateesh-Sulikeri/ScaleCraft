@@ -2,12 +2,11 @@ import type { EdgeKind, XY } from "@/lib/graph";
 import type { ComponentCategory } from "@/content/components/types";
 
 /**
- * A node placed in a Walkthrough diagram. `position` is NOT canvas pixels -
- * it's a percentage (0-100) of the diagram container's width/height,
- * node-center-based, so the diagram scales responsively with zero
- * measurement/ResizeObserver. Two kinds, matching the release 5.0.0-alpha
- * Final Plan (.claude/docs/pending.md): `component` for a real registry
- * entry (identical card/icon/color to the sandbox), `custom` for an
+ * A node placed in a Walkthrough diagram. `position` is a raw coordinate in
+ * the diagram's own viewBoxWidth/viewBoxHeight unit space (see
+ * WalkthroughProps) - NOT a percentage. Two kinds, matching the release
+ * 5.0.0-alpha Final Plan (.claude/docs/pending.md): `component` for a real
+ * registry entry (identical card/icon/color to the sandbox), `custom` for an
  * illustration-only node (e.g. a Kafka partition) with no registry backing -
  * both render through the same WalkthroughNodeCard so neither ever reads as
  * a second, visually distinct system. `custom` isn't exercised by the pilot
@@ -15,7 +14,19 @@ import type { ComponentCategory } from "@/content/components/types";
  * adding it later isn't a rewrite.
  */
 export type WalkthroughNode =
-  | { id: string; kind: "component"; componentId: string; position: XY }
+  | {
+      id: string;
+      kind: "component";
+      componentId: string;
+      position: XY;
+      /** Overrides the registry label on the card. Needed whenever a
+       * diagram has two instances of the same component and the captions
+       * distinguish them ("App Server 1" vs "App Server 2") - without it
+       * both cards read identically and the learner can't tell which one a
+       * step is pointing at. Also useful to shorten a long registry label
+       * that would otherwise truncate. */
+      label?: string;
+    }
   | { id: string; kind: "custom"; icon: string; label: string; category: ComponentCategory; position: XY };
 
 /** An edge between two WalkthroughNode ids, styled identically to the live
@@ -23,6 +34,14 @@ export type WalkthroughNode =
  * maps (src/canvas/edge-styles.ts) - one source of truth for what an edge
  * kind looks like everywhere it's drawn. */
 export type WalkthroughEdge = { id: string; source: string; target: string; kind: EdgeKind };
+
+/** Overrides a WalkthroughStep's caption/highlights for one specific
+ * WalkthroughAlgorithm - see WalkthroughStep.variants. */
+export type WalkthroughStepVariant = {
+  caption: string;
+  highlightNodeIds: string[];
+  highlightEdgeIds: string[];
+};
 
 /**
  * One step of the walkthrough: which nodes/edges are spotlighted, and the
@@ -42,14 +61,31 @@ export type WalkthroughStep = {
   caption: string;
   highlightNodeIds: string[];
   highlightEdgeIds: string[];
+  /** Keyed by a WalkthroughAlgorithm.id (see WalkthroughProps.algorithms) -
+   * when present and that algorithm is selected, replaces this step's
+   * caption/highlights entirely. Steps that don't differ per algorithm (most
+   * of them) omit this. */
+  variants?: Record<string, WalkthroughStepVariant>;
 };
+
+/** One toggle option for WalkthroughProps.algorithms, e.g. round-robin vs.
+ * least-connections - see WalkthroughStep.variants for how a step's content
+ * actually differs per selection. */
+export type WalkthroughAlgorithm = { id: string; label: string };
 
 export type WalkthroughProps = {
   nodes: WalkthroughNode[];
   edges: WalkthroughEdge[];
   steps: WalkthroughStep[];
-  /** CSS `aspect-ratio` for the diagram container. Default "12 / 5" suits a
-   * small, wide, few-node diagram (e.g. Client -> Load Balancer -> App
-   * Servers) - override for a taller/narrower shape. */
-  aspectRatio?: string;
+  /** The coordinate space WalkthroughNode.position is authored in - also
+   * fixes the diagram container's CSS aspect-ratio (viewBoxWidth /
+   * viewBoxHeight), so there's one number to get right, not two kept in
+   * sync by hand. */
+  viewBoxWidth: number;
+  viewBoxHeight: number;
+  /** When present, renders a small toggle above the diagram letting the
+   * learner compare outcomes (e.g. round-robin vs. least-connections) -
+   * see WalkthroughStep.variants. Omit for a walkthrough with only one
+   * possible path. */
+  algorithms?: WalkthroughAlgorithm[];
 };

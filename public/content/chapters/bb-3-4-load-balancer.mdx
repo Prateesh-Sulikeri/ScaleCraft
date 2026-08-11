@@ -41,11 +41,17 @@ of rotation without touching the request path to the other one.
 Step through it:
 
 <Walkthrough
+  viewBoxWidth={600}
+  viewBoxHeight={250}
+  algorithms={[
+    { id: "round-robin", label: "Round Robin" },
+    { id: "least-connections", label: "Least Connections" },
+  ]}
   nodes={[
-    { id: "client", kind: "component", componentId: "client", position: { x: 8, y: 50 } },
-    { id: "lb", kind: "component", componentId: "load-balancer", position: { x: 42, y: 50 } },
-    { id: "app1", kind: "component", componentId: "app-server", position: { x: 80, y: 22 } },
-    { id: "app2", kind: "component", componentId: "app-server", position: { x: 80, y: 78 } },
+    { id: "client", kind: "component", componentId: "client", position: { x: 80, y: 125 } },
+    { id: "lb", kind: "component", componentId: "load-balancer", position: { x: 296, y: 125 } },
+    { id: "app1", kind: "component", componentId: "app-server", position: { x: 520, y: 62 }, label: "App Server 1" },
+    { id: "app2", kind: "component", componentId: "app-server", position: { x: 520, y: 188 }, label: "App Server 2" },
   ]}
   edges={[
     { id: "req-lb", source: "client", target: "lb", kind: "request-flow" },
@@ -66,19 +72,40 @@ Step through it:
       highlightEdgeIds: ["hc-app1", "hc-app2"],
     },
     {
-      caption: "Round-robin picks App Server 1 to handle this request.",
+      caption: "Round-robin picks App Server 1 to handle this request - it is simply next in the rotation.",
       highlightNodeIds: ["lb", "app1"],
       highlightEdgeIds: ["req-app1"],
+      variants: {
+        "least-connections": {
+          caption: "Least-connections picks App Server 2 instead - it currently has fewer requests in flight than App Server 1.",
+          highlightNodeIds: ["lb", "app2"],
+          highlightEdgeIds: ["req-app2"],
+        },
+      },
     },
     {
-      caption: "App Server 1 answers. The client never knows which instance responded.",
+      caption: "The chosen instance answers. The client never knows which one responded.",
       highlightNodeIds: ["app1"],
       highlightEdgeIds: [],
+      variants: {
+        "least-connections": {
+          caption: "The chosen instance answers. The client never knows which one responded.",
+          highlightNodeIds: ["app2"],
+          highlightEdgeIds: [],
+        },
+      },
     },
     {
-      caption: "The next request rotates to App Server 2 - round-robin spreads load evenly across every healthy instance.",
+      caption: "The next request rotates to App Server 2 - round-robin spreads load evenly across every healthy instance, regardless of how busy each one is.",
       highlightNodeIds: ["lb", "app2"],
       highlightEdgeIds: ["req-app2"],
+      variants: {
+        "least-connections": {
+          caption: "The next request goes to whichever instance has the fewest in-flight requests at that moment - not a fixed rotation.",
+          highlightNodeIds: ["lb", "app1"],
+          highlightEdgeIds: ["req-app1"],
+        },
+      },
     },
   ]}
 />
