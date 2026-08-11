@@ -63,8 +63,9 @@ describe("authored chapter invariants", () => {
 
   it("every authored chapter has a lesson body", () => {
     for (const chapter of authored) {
-      const lessonPath = join(LESSONS_DIR, `${chapter.id}.md`);
-      expect(existsSync(lessonPath), `${chapter.id} has no lesson markdown`).toBe(true);
+      const extension = chapter.lessonFormat === "mdx" ? "mdx" : "md";
+      const lessonPath = join(LESSONS_DIR, `${chapter.id}.${extension}`);
+      expect(existsSync(lessonPath), `${chapter.id} has no lesson ${extension}`).toBe(true);
     }
   });
 

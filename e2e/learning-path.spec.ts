@@ -45,7 +45,7 @@ test("3.4 Load Balancer navigates to its chapter lesson (Chapter Reader) route",
   await page.goto("/building-blocks");
   await page.getByRole("link", { name: /3\.4.*Load Balancer/i }).click();
   await page.waitForURL("**/building-blocks/3-4-load-balancer/lesson");
-  await expect(page.getByRole("heading", { name: "Placeholder Chapter" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Load Balancer" })).toBeVisible();
 });
 
 test("the manual complete toggle flips a row to COMPLETED, bumps overall percentage, and survives a reload", async ({
