@@ -1,6 +1,7 @@
 # Release 5.0.0-alpha — Content Platform
 
-Status: **scoped and confirmed, build starting**. Compiled 2026-08-10/11 from
+Status: **build in progress - MDX pipeline landed, blocked on chapter content
+for the next two steps** (see Build Log below). Compiled 2026-08-10/11 from
 `.claude/docs/ScaleCraft_Future_Roadmap.md`'s
 "Alpha 5.x — Content Platform" entry (two three-bullet brainstorm items: 5.0.0
 Content Update, 5.1.0 Diagram Topology Update), turned into something buildable
@@ -36,7 +37,12 @@ merged). Its own remaining loose ends live in `.claude/docs/pending-chapters.md`
    e.g. Kafka partition - rendered through the same shared visual primitive so
    it never reads as a second system).
 3. **Pilot** — Load Balancer walkthrough, registry-only (`component` kind
-   only, no `custom` yet), built on the same migrated chapter.
+   only, no `custom` yet), built on the same migrated chapter. **Blocked on
+   real content:** 3.4 Load Balancer is currently placeholder (`bb-dummy-1.md`,
+   deferred to Wave 2 per `pending-chapters.md`) - confirmed 2026-08-11 to
+   author real lesson/quiz/hints/blueprints via the chapter-author skill
+   *before* the MDX/walkthrough pilot builds on it, rather than piloting
+   against dummy text.
 4. **Glossary** — `<Ref id="...">term</Ref>` authored explicitly per mention
    (no auto-detection - fragile for real content, explicit is cheap on
    hand-authored prose anyway), plain Markdown content (not MDX - short
@@ -66,6 +72,73 @@ merged). Its own remaining loose ends live in `.claude/docs/pending-chapters.md`
 (currently up to date with `origin/develop`, `0c25281`). Individual `feature/*`
 branches per unit of work underneath it, per `CLAUDE.md`'s branching
 convention. Claude pushes, never merges.
+
+---
+
+## Build Log (updated as each unit lands - append here, don't wait for release end)
+
+### 2026-08-11 — MDX pipeline (`feature/mdx-pipeline`, step 1 of the Build order) - done
+
+Server-compiles per the "preserve current logic" decision above, not static
+per-chapter imports. Per-chapter opt-in via a new `ChapterDefinition.lessonFormat?:
+"md" | "mdx"` field (default `"md"`) - nothing is migrated yet, this is
+infrastructure only.
+
+- **Shared plugin config extracted** (`markdown-plugins.ts`, `markdown-components.tsx`
+  under `src/canvas/docs-panel/markdown/`) so the legacy react-markdown path and
+  the new MDX path can't drift - `MarkdownRenderer.tsx` now imports from these
+  instead of holding its own copy.
+- **`/api/lessons/[chapterId]` route** reads a chapter's `.mdx` source from
+  `public/content/chapters/` via `fs` (not fetched), splits it at "## Next"
+  with the *existing* `splitMarkdownAtNextSection` (moved, unchanged, to
+  `src/chapters/split-markdown.ts` so both the client and this server route can
+  use it), compiles each half via `@mdx-js/mdx`'s `compile()`, returns
+  `{ raw, beforeCompiled, nextCompiled }`. TOC extraction and YourTurnCard
+  placement in `ChapterReader.tsx` still run against `raw` exactly as before -
+  confirms the "minimal rewrite" goal held.
+- **`useChapterLessonMdx` + `MdxContent.tsx`** on the client: fetch the
+  compiled JSON, `run()` it (evaluate only, no parsing) via `@mdx-js/mdx`,
+  render with the same `markdownComponents` map as the legacy path.
+  `ChapterReader.tsx` branches on `chapter.lessonFormat === "mdx"` to pick
+  between this and the legacy `useChapterLesson`/`MarkdownRenderer` pair -
+  both code paths coexist, nothing forces a chapter to migrate.
+- **Real bugs found and fixed while building this** (round-trip tests in
+  `compile-lesson-mdx.test.ts` caught both, not manual review):
+  - `getChapter` (from `content-service.ts`, `"use client"`) can't be called
+    from a server Route Handler - the route now looks the chapter up directly
+    via `chapterRegistry`.
+  - `rehypeRaw` (needed by the *legacy* pipeline so react-markdown can
+    understand literal HTML) is incompatible with MDX's own native JSX
+    parsing - it crashes on MDX's `mdxJsxFlowElement`/`mdxJsxTextElement`
+    nodes. `rehypeSanitize` doesn't recognize those nodes either and silently
+    drops them. Fix: a separate `mdxRehypePlugins` export (just `rehypeSlug`)
+    used only by the MDX compile path - sanitizing doesn't apply anyway since
+    lesson content is first-party-authored, never user input.
+- **Found, not fixed (pre-existing, already tracked):** GitHub-style callouts
+  (`> [!NOTE] ...`) are currently broken on the *legacy* react-markdown path -
+  `rehypeRaw` camelCases the `data-callout` hast property before
+  `rehypeSanitize` runs, so the schema's literal-string match misses it and
+  the property gets stripped. Already documented in
+  `MarkdownRenderer.test.tsx` with a deliberately-not-fixed tracking test
+  ("this repo's rule against unrelated fixes without approval"). Not touched
+  here. Side effect worth knowing: because the MDX path drops `rehypeRaw`
+  entirely (see above), **migrated chapters won't have this bug** - callouts
+  will render correctly in MDX chapters even though they're still broken in
+  every not-yet-migrated one.
+- **Verified:** `tsc --noEmit`, `eslint`, full `vitest run` (189 files/1644
+  tests), `next build` all clean. Manually smoke-tested the route + lesson
+  page against a throwaway `.mdx` fixture on the placeholder chapter (`bb-dummy-1`,
+  temporarily flagged `lessonFormat: "mdx"`, reverted after) - confirmed the
+  API compiles real MDX syntax (GFM tables, code fences, raw `<details>`) and
+  the lesson page renders without a server error. **Gap:** no browser tool
+  available in this session to visually confirm the client-side `run()`
+  render - only the compile step and page-load-without-error were verified
+  this way, not what actually paints in a real browser. Worth an eyeball pass
+  next session before trusting this further.
+
+**Next:** task 8 (author real 3.4 Load Balancer content via the chapter-author
+skill) blocks both "migrate Load Balancer chapter to MDX" and the walkthrough
+pilot - do that next, not more pipeline work.
 
 ---
 
