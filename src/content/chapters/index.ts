@@ -105,6 +105,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // 3: density revision pass against the new §20.6, 1262 words to 667.
     // Both 2026-08-05.
     lessonVersion: 3,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 0: Foundations - Chapter 0.1 of 44.",
       masteredConcepts: [],
@@ -383,6 +384,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // something else), captioned the diagram (§7.2), paid off the cold open,
     // and corrected two trade-off claims. See spec §10.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 0: Foundations - Chapter 0.2 of 44.",
       masteredConcepts: ["The Reader-to-Editor loop, Validate vs. Submit, and hints-on-request (0.1)."],
@@ -716,6 +718,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // had contradicted the chapter's own thesis. Also added the "it depends"
     // fix the lens claimed to teach but didn't (Q5). See spec §11.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 0: Foundations - Chapter 0.3 of 44.",
       masteredConcepts: [
@@ -1026,6 +1029,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // three loose demonstratives. Glossed QPS at first use (§18.2 rule 1)
     // and dropped a banned "just". See spec §11 and pending-chapters.md.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 0: Foundations - Chapter 0.4 of 44.",
       masteredConcepts: [
@@ -1376,6 +1380,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // real pull (§6), and simplified several long sentences (§20.1/§20.6).
     // See spec §13 and pending-chapters.md.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.1 of 44.",
       masteredConcepts: [
@@ -1716,6 +1721,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // to explain Shape Up before using it, and "In production" moved after the
     // trade-offs section to restore §5.3's beat order. See spec §13.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.2 of 44.",
       masteredConcepts: [
@@ -2050,6 +2056,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // labelled as its service-agreement figure, and "Your turn" given the
     // withheld-information line it was missing. See spec §13.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.3 of 44.",
       masteredConcepts: [
@@ -2353,6 +2360,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     //    claim fixed, lens-7 sentence made specific, "Your turn" no longer
     //    promises a bandwidth question the quiz doesn't ask.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.4 of 44.",
       masteredConcepts: [
@@ -2675,6 +2683,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     //    it matches the ladder metaphor, and roughly a dozen multi-clause
     //    sentences split. See spec §13.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.5 of 44.",
       masteredConcepts: [
@@ -3057,6 +3066,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     //    changed to the chapter's own "run out of headroom" (§10.3; saturation
     //    is 1.7's word). See spec §13.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.6 of 44.",
       masteredConcepts: [
@@ -3375,6 +3385,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     readingLinks: [],
     // 1: Sonnet draft (2026-08-10).
     lessonVersion: 1,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.7 of 44.",
       masteredConcepts: [
@@ -3702,6 +3713,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     readingLinks: [],
     // 1: Sonnet draft (2026-08-10).
     lessonVersion: 1,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.8 of 44.",
       masteredConcepts: [
@@ -4010,6 +4022,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     readingLinks: [],
     // 1: Sonnet draft (2026-08-10).
     lessonVersion: 1,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.9 of 44.",
       masteredConcepts: [

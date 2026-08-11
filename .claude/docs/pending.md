@@ -432,6 +432,34 @@ decision confirmed during scoping). Full CI (`tsc`, `lint`, 1715 tests,
    `staging/v5.0.0-content-platform`, that's the user's action, not
    Claude's.
 
+### 2026-08-11 - Remaining 13 chapters batch-migrated to MDX (not yet committed)
+
+Deviates from the Final Plan's original "pilot on Load Balancer first, not a
+big-bang rewrite" caution above - by the time this ran, the pilot (3.4) had
+already proven the pipeline in production use (walkthrough + glossary both
+built on top of it, zero MDX-compile issues found), so the user asked to
+finish the remaining chapters in one pass instead of chapter-by-chapter.
+
+- All 13 other authored chapters (0.1-0.4, 1.1-1.9) `git mv`'d `.md` -> `.mdx`
+  and given `ChapterDefinition.lessonFormat: "mdx"` in `content/chapters/index.ts`,
+  same recipe as the 3.4 Build Log entry above. `bb-dummy-1`/`rwe-dummy-1`
+  (placeholder shells) excluded - not real content.
+- **Verified before renaming:** a scratch Vitest spec ran every file through
+  the real `compileLessonMdx` (split at "## Next" first, same as the lesson
+  route) - all 13 compiled clean, no JSX/expression syntax collisions in the
+  prose. Scratch spec deleted after confirming, not committed.
+- **Verified after:** `tsc --noEmit`, `eslint .`, full `vitest run` (199
+  files/1728 tests), all clean. `next build` not yet run this pass.
+- Also deleted two now-unreferenced docs at the user's request: `public/content/chapters/bb-dummy-1.md`
+  (zero references anywhere in `src/`, superseded by `bb-3-4-load-balancer`)
+  and `.claude/docs/NEXT_STEPS.md` (a completed 2026-07/2026-07-29 MVP-push
+  snapshot, not part of CLAUDE.md's current doc set). Kept
+  `validation_agent_design.md` and `RELEASE_3.0.0_LEARNING_PATH.md` -
+  both still actively cited by `ARCHITECTURE.md`/`MILESTONES.md` as the
+  detailed record of design decisions still in effect, not just history.
+- **Not yet committed** - sitting as working-tree changes pending user
+  review.
+
 ---
 
 ## Scoping trail (how the Final Plan was reached - kept for context, not re-litigated)
