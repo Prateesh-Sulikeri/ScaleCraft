@@ -193,7 +193,7 @@ export const courses: Record<CourseId, Course> = {
             number: "1.10",
             title: "Communicating & Defending a Design",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-1-10-communicating-and-defending-a-design",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["1-9-deep-dive-methodology"],
@@ -204,7 +204,7 @@ export const courses: Record<CourseId, Course> = {
             number: "1.11",
             title: "Driving a System Design Interview",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-1-11-driving-a-system-design-interview",
             estimatedMinutes: 30,
             difficulty: "foundational",
             // §17: optional chapter, gates nothing - nothing lists this slug

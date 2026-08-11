@@ -30,8 +30,9 @@ on them.
 ## The editor
 
 A canvas, a component picker (`/` or right-click), undo/redo, an opt-in hint,
-and two buttons: Validate and Submit. A guided tour walks through it the first
-time you open the editor.
+and three buttons: Validate, Submit, and Deep Check. The first two are the loop;
+Deep Check is an optional AI review, and nothing in this chapter needs it. A
+guided tour walks through it the first time you open the editor.
 
 ## Validate and Submit
 
@@ -41,6 +42,10 @@ time you open the editor.
 | Run it | Any time, including half-built | When you think you are done |
 | Reports | Each problem, with the reason | Missing, extra, and misconnected components |
 | Gates completion | No | Yes |
+
+Structurally coherent is a specific claim, not a vague one: every component the
+chapter requires is present and wired into the design, and every connection is
+one the components at its two ends actually permit.
 
 Submit runs Validate's check first and stops there if it fails. Comparing a
 structurally broken graph against a target design produces a meaningless diff,

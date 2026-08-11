@@ -17,6 +17,52 @@ now. Write those sections to the same bar you'd want a cold reader to find
 clean on the first pass; the "traps" lists below are not suggestions to
 skim, they're the actual check that would otherwise happen in audit.
 
+## Writing register (binding for every lesson-scope pass)
+
+**Assume engineering literacy, not prerequisite knowledge.** Write like a
+senior engineer explaining system design to another engineer, not like a
+textbook introducing a field to a novice. The reader already knows what a
+cache, a server, an API, or a database is - don't define general
+engineering vocabulary from scratch. What the reader has NOT necessarily
+been taught is ScaleCraft's own curriculum: named models, numbered loops,
+components, and terms that have a home chapter later in `manifest.ts`'s
+sequence. These two categories get different treatment:
+
+- **General engineering terms with no ScaleCraft home chapter** (a DNS
+  resolver, a TCP handshake, a hash ring) - introduce just-in-time, in a
+  clause, then go straight back to the reasoning. Don't write a mini-lesson.
+  Compare: "The resolver checks its cache before querying the authoritative
+  server" (assumes too much) vs. three paragraphs on how DNS works
+  (over-explains, talks down) vs. "It asks a recursive resolver - a DNS
+  service that looks up answers on the client's behalf and caches them for
+  future requests - which checks its cache before querying the
+  authoritative server" (right level: enough to follow the reasoning, not a
+  detour). Trust the reader to Google anything they want to go deeper on.
+- **ScaleCraft-taught vocabulary with a later home chapter** (a named loop,
+  a numbered law, anything in a future chapter's `curriculumContext`) - this
+  stays forbidden inline per the vocabulary trap below; it needs a marked
+  forward tease, never a quiet definition, because the curriculum itself
+  hasn't earned the term yet. Don't confuse the two categories - a general
+  engineering term is not a forward-reference violation just because
+  ScaleCraft hasn't formally taught it.
+
+Density (§20.6) and this register reinforce each other, they don't trade
+off: cutting a sentence that over-explains a term the reader already knows
+IS a density win, not a separate concern.
+
+The prose itself: technically dense but concise, conversational but not
+casual, confident and precise, reasoning-driven rather than
+definition-driven. Prefer causal chains over inventories - X creates a
+problem, so the system needs Z; Z solves it but introduces a new constraint
+- over a flat list of facts about X. Make trade-offs explicit, use concrete
+failure scenarios rather than abstract properties. No generic AI prose: cut
+hedging, throat-clearing, and transitions that carry no information ("Let's
+explore why this matters", "As we will see", "It's worth noting that").
+Do not dumb concepts down to compensate for the terse register - density and
+simplicity are different axes; §20.2's depth calibration still governs how
+deep to go, this section only governs how much you spend explaining what's
+already assumed.
+
 ## 1. Gather context, in this order
 
 1. `.claude/docs/pending-chapters.md` - is this chapter already started? What
@@ -66,12 +112,16 @@ already shipped once each:
   memory) and create pull, not a table of contents. A tease to a chapter
   further out is a *separate*, explicitly-marked "further out" mention, not
   a replacement for the immediate one.
-- **Never reference vocabulary the learner hasn't been taught yet**
-  (§18.2 rule 1, §20.5's "never" list) - a term with a home chapter later
-  needs a marked forward tease, not inline use as if already known. Check
-  every proper-noun/numbered-thing you use (a named loop, a named model,
-  a named law) against `curriculumContext.masteredConcepts` for chapters
-  already assumed, not against your own knowledge of the whole curriculum.
+- **Never reference ScaleCraft-taught vocabulary the learner hasn't been
+  taught yet** (§18.2 rule 1, §20.5's "never" list) - a term with a home
+  chapter later needs a marked forward tease, not inline use as if already
+  known. Check every proper-noun/numbered-thing you use (a named loop, a
+  named model, a named law) against `curriculumContext.masteredConcepts`
+  for chapters already assumed, not against your own knowledge of the whole
+  curriculum. This is separate from general engineering vocabulary (see the
+  "Writing register" section above) - a term like "resolver" or "hash ring"
+  is not a forward-reference violation, it just needs a just-in-time gloss
+  if it's not universally known.
 - **Every diagram gets a one-line caption naming what to notice** (§7.2,
   §20.3) - a diagram with no caption is incomplete, not merely terse.
 - **Interview lens ends with a "what a senior answer sounds like" line**
@@ -135,6 +185,10 @@ declared, narrow, spec-recorded exception.
 ## 3. Definition of done for this pass
 
 - Every touched deliverable meets its own bar above.
+- Lesson-scoped work matches the writing register above: no inline
+  definitions of general engineering terms an engineer would already know,
+  no un-glossed ScaleCraft-taught vocabulary, reasoning-driven rather than
+  definition-driven throughout.
 - `placeholder` flag absent (or explicitly still `true` if this is a
   deliberately partial draft - say so out loud, don't leave it ambiguous).
 - No pipeline run required - this is a content-only pass. Don't run
