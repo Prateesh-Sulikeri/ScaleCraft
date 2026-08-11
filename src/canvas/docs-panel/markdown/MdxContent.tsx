@@ -6,6 +6,7 @@ import * as runtime from "react/jsx-runtime";
 import type { MDXContent } from "mdx/types";
 import { MARKDOWN_BODY_CLASSNAME } from "./markdown-plugins";
 import { markdownComponents } from "./markdown-components";
+import { mdxComponents } from "./mdx-components";
 
 /**
  * Renders a lesson body already compiled server-side by
@@ -32,7 +33,7 @@ export function MdxContent({ compiledSource }: { compiledSource: string }) {
 
   return (
     <div className={MARKDOWN_BODY_CLASSNAME}>
-      <Content components={markdownComponents} />
+      <Content components={{ ...markdownComponents, ...mdxComponents }} />
     </div>
   );
 }
