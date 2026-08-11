@@ -4375,7 +4375,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     // Instances config field (bumping it satisfies the rule but not the
     // blueprint), removed a cold-open restatement (§20.6), and corrected a
     // dangling "cargo-cult" self-reference. See spec §13.
-    lessonVersion: 2,
+    // v3: embedded the interactive Walkthrough diagram (Release 5.0.0-alpha
+    // step 4) after the "two edge kinds" paragraph.
+    lessonVersion: 3,
     // Migrated to MDX (Release 5.0.0-alpha step 2 of the build order, see
     // pending.md) - first chapter to move off the legacy react-markdown
     // path. Lesson body: public/content/chapters/bb-3-4-load-balancer.mdx.

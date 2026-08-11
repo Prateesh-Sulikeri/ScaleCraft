@@ -38,6 +38,51 @@ requests; the dashed `control` edges carry health checks - liveness
 questions, not user traffic. A failed health check takes that instance out
 of rotation without touching the request path to the other one.
 
+Step through it:
+
+<Walkthrough
+  nodes={[
+    { id: "client", kind: "component", componentId: "client", position: { x: 8, y: 50 } },
+    { id: "lb", kind: "component", componentId: "load-balancer", position: { x: 42, y: 50 } },
+    { id: "app1", kind: "component", componentId: "app-server", position: { x: 80, y: 22 } },
+    { id: "app2", kind: "component", componentId: "app-server", position: { x: 80, y: 78 } },
+  ]}
+  edges={[
+    { id: "req-lb", source: "client", target: "lb", kind: "request-flow" },
+    { id: "req-app1", source: "lb", target: "app1", kind: "request-flow" },
+    { id: "req-app2", source: "lb", target: "app2", kind: "request-flow" },
+    { id: "hc-app1", source: "lb", target: "app1", kind: "control" },
+    { id: "hc-app2", source: "lb", target: "app2", kind: "control" },
+  ]}
+  steps={[
+    {
+      caption: "The client sends its request to the Load Balancer's one public address.",
+      highlightNodeIds: ["client", "lb"],
+      highlightEdgeIds: ["req-lb"],
+    },
+    {
+      caption: "The Load Balancer already knows both App Server instances are healthy, from continuous health checks over separate control edges.",
+      highlightNodeIds: ["lb", "app1", "app2"],
+      highlightEdgeIds: ["hc-app1", "hc-app2"],
+    },
+    {
+      caption: "Round-robin picks App Server 1 to handle this request.",
+      highlightNodeIds: ["lb", "app1"],
+      highlightEdgeIds: ["req-app1"],
+    },
+    {
+      caption: "App Server 1 answers. The client never knows which instance responded.",
+      highlightNodeIds: ["app1"],
+      highlightEdgeIds: [],
+    },
+    {
+      caption: "The next request rotates to App Server 2 - round-robin spreads load evenly across every healthy instance.",
+      highlightNodeIds: ["lb", "app2"],
+      highlightEdgeIds: ["req-app2"],
+    },
+  ]}
+/>
+
 Health-check edges are conceptual in this chapter. The canvas does not yet
 accept a `control` edge between a load balancer and an app server, so the
 graph you build later uses `request-flow` edges only. The health checking is

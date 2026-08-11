@@ -3,12 +3,14 @@ import { run } from "@mdx-js/mdx";
 import * as runtime from "react/jsx-runtime";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
+import type { MDXComponents } from "mdx/types";
 import { compileLessonMdx } from "./compile-lesson-mdx";
+import { mdxComponents } from "@/canvas/docs-panel/markdown/mdx-components";
 
-async function renderMdx(source: string): Promise<string> {
+async function renderMdx(source: string, components?: MDXComponents): Promise<string> {
   const compiled = await compileLessonMdx(source);
   const mod = await run(compiled, runtime as Parameters<typeof run>[1]);
-  return renderToStaticMarkup(createElement(mod.default));
+  return renderToStaticMarkup(createElement(mod.default, components ? { components } : undefined));
 }
 
 describe("compileLessonMdx", () => {
@@ -33,5 +35,27 @@ describe("compileLessonMdx", () => {
     const html = await renderMdx("<details><summary>More</summary>hidden</details>\n");
     expect(html).toContain("<details>");
     expect(html).toContain("<summary>More</summary>");
+  });
+
+  // The exact integration point MdxContent.tsx exercises in the browser -
+  // `<Walkthrough>` only resolves if compile() leaves the JSX tag reference
+  // intact AND the caller passes mdxComponents into run()'s components prop
+  // (MdxContent.tsx merges it with markdownComponents; this test passes it
+  // alone, which is enough to prove resolution works).
+  it("resolves a custom <Walkthrough> tag via mdxComponents", async () => {
+    const source = `<Walkthrough
+  nodes={[
+    { id: "client", kind: "component", componentId: "client", position: { x: 10, y: 50 } },
+    { id: "lb", kind: "component", componentId: "load-balancer", position: { x: 90, y: 50 } },
+  ]}
+  edges={[{ id: "e1", source: "client", target: "lb", kind: "request-flow" }]}
+  steps={[{ caption: "The client sends a request.", highlightNodeIds: ["client"], highlightEdgeIds: [] }]}
+/>
+`;
+    const html = await renderMdx(source, mdxComponents);
+    expect(html).toContain("Client");
+    expect(html).toContain("Load Balancer");
+    expect(html).toContain("Step 1 of 1");
+    expect(html).toContain("The client sends a request.");
   });
 });
