@@ -1,17 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { run } from "@mdx-js/mdx";
-import * as runtime from "react/jsx-runtime";
-import { renderToStaticMarkup } from "react-dom/server";
-import { createElement } from "react";
-import type { MDXComponents } from "mdx/types";
-import { compileLessonMdx } from "./compile-lesson-mdx";
 import { mdxComponents } from "@/canvas/docs-panel/markdown/mdx-components";
-
-async function renderMdx(source: string, components?: MDXComponents): Promise<string> {
-  const compiled = await compileLessonMdx(source);
-  const mod = await run(compiled, runtime as Parameters<typeof run>[1]);
-  return renderToStaticMarkup(createElement(mod.default, components ? { components } : undefined));
-}
+import { renderMdx } from "./mdx-test-utils";
 
 describe("compileLessonMdx", () => {
   it("compiles GFM tables", async () => {

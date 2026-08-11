@@ -11,6 +11,12 @@ Content Update, 5.1.0 Diagram Topology Update), turned into something buildable
 through a live scoping conversation. This doc is the working release plan -
 update it in place as tracks land, same convention prior release docs used.
 
+**5.1.0 Diagram Topology Update is now its own scoped doc:**
+`.claude/docs/pending-diagram-pipeline.md`, compiled 2026-08-11. Phases 0-4
+built and CI-green on `feature/walkthrough-renderer`, awaiting review/merge;
+Phase 5 stays deferred. It follows this release's walkthrough renderer
+(steps 3-4 below).
+
 Release 4 is complete (guided tour + Wave 1 curriculum content, shipped and
 merged). Its own remaining loose ends live in `.claude/docs/pending-chapters.md`
 (curriculum ledger, intentionally left open) and `.claude/docs/pending-polish.md`

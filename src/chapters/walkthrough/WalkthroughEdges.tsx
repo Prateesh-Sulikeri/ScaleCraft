@@ -1,9 +1,9 @@
 import { useId } from "react";
 import { EDGE_COLOR_VAR, EDGE_DASH_ARRAY } from "@/canvas/edge-styles";
 import { HIGHLIGHT_GOLD } from "@/canvas/selection-style";
-import { computeEdgeGeometry, parseCubic } from "./geometry";
+import { parseCubic } from "./geometry";
 import { WalkthroughPacket } from "./WalkthroughPacket";
-import type { WalkthroughEdge, WalkthroughNode } from "./types";
+import type { WalkthroughEdge } from "./types";
 
 /** Arrowhead size in viewBox units. `markerUnits="userSpaceOnUse"` below
  * pins it to this regardless of stroke width, so a highlighted edge's
@@ -24,7 +24,7 @@ const ARROW = 9;
  * static highlight/dim state change stays visible either way.
  */
 export function WalkthroughEdges({
-  nodes,
+  pathById,
   edges,
   highlightEdgeIds,
   dimmed,
@@ -35,7 +35,10 @@ export function WalkthroughEdges({
   viewBoxWidth,
   viewBoxHeight,
 }: {
-  nodes: WalkthroughNode[];
+  /** Precomputed by the caller (Walkthrough.tsx, inside its normalize
+   * useMemo) - edge paths only depend on nodes/edges, not the active step,
+   * so they shouldn't be recomputed on every step change. */
+  pathById: Map<string, string>;
   edges: WalkthroughEdge[];
   highlightEdgeIds: ReadonlySet<string>;
   dimmed: boolean;
@@ -51,7 +54,6 @@ export function WalkthroughEdges({
   // Namespaced per instance: marker ids are document-global, and a lesson
   // page can render more than one walkthrough.
   const uid = useId().replace(/:/g, "");
-  const pathById = computeEdgeGeometry(nodes, edges);
 
   return (
     <svg

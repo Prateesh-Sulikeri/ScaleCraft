@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { WalkthroughEdges } from "./WalkthroughEdges";
 import { WalkthroughNodeCard } from "./WalkthroughNodeCard";
@@ -8,6 +8,8 @@ import { WalkthroughControls, WALKTHROUGH_ICON_BUTTON } from "./WalkthroughContr
 import { WalkthroughAlgorithmSelect } from "./WalkthroughAlgorithmSelect";
 import { useFullscreen, useReducedMotion } from "./hooks";
 import { useWalkthroughPlayer } from "./player";
+import { computeEdgeGeometry } from "./geometry";
+import { normalizeWalkthrough } from "./normalize";
 import type { WalkthroughProps } from "./types";
 
 /**
@@ -46,15 +48,45 @@ export function Walkthrough({
   const containerRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
   const fullscreen = useFullscreen(containerRef);
-  const { stepIndex, playing, speed, goTo, togglePlay, reset, cycleSpeed } = useWalkthroughPlayer(steps.length);
-  const [selectedAlgorithmId, setSelectedAlgorithmId] = useState(algorithms?.[0]?.id);
 
-  const baseStep = steps[stepIndex];
+  // MDX re-creates prop literals per render of the lesson body, but the
+  // lesson body renders once per chapter load, so identity-keyed useMemo is
+  // fine - this isn't recomputed on every step change. computeEdgeGeometry
+  // rides the same memo since it only depends on nodes/edges too.
+  const { resolved, issues, pathById } = useMemo(() => {
+    const { resolved, issues } = normalizeWalkthrough({
+      nodes,
+      edges,
+      steps,
+      viewBoxWidth,
+      viewBoxHeight,
+      algorithms,
+      title,
+      description,
+    });
+    return { resolved, issues, pathById: computeEdgeGeometry(resolved.nodes, resolved.edges) };
+  }, [nodes, edges, steps, viewBoxWidth, viewBoxHeight, algorithms, title, description]);
+
+  const { stepIndex, playing, speed, goTo, togglePlay, reset, cycleSpeed } = useWalkthroughPlayer(resolved.steps.length);
+  const [selectedAlgorithmId, setSelectedAlgorithmId] = useState(resolved.algorithms?.[0]?.id);
+
+  const baseStep = resolved.steps[stepIndex];
   const step = (selectedAlgorithmId && baseStep?.variants?.[selectedAlgorithmId]) || baseStep;
 
   const highlightNodeIds = new Set(step?.highlightNodeIds ?? []);
   const highlightEdgeIds = new Set(step?.highlightEdgeIds ?? []);
   const hasHighlight = highlightNodeIds.size > 0 || highlightEdgeIds.size > 0;
+
+  const devBanner =
+    process.env.NODE_ENV !== "production" && issues.length > 0 ? (
+      <div className="mb-2 space-y-0.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 dark:text-amber-400">
+        {issues.map((issue, index) => (
+          <p key={index}>
+            {issue.code}: {issue.message}
+          </p>
+        ))}
+      </div>
+    ) : null;
 
   function handleKeyDown(event: React.KeyboardEvent) {
     // Scoped to this element only (not window-level like ExamShell.tsx) -
@@ -75,106 +107,111 @@ export function Walkthrough({
     }
   }
 
-  if (steps.length === 0) return null;
+  if (resolved.steps.length === 0) return devBanner;
 
   return (
-    <div
-      ref={containerRef}
-      tabIndex={0}
-      role="group"
-      aria-roledescription="walkthrough"
-      aria-label={title ?? "Diagram walkthrough"}
-      onKeyDown={handleKeyDown}
-      className={`flex flex-col gap-3 rounded-xl border border-border p-3 outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
-        fullscreen.isFullscreen ? "h-full justify-center bg-background p-6" : "bg-background/60"
-      }`}
-    >
-      <div className="flex h-9 items-center justify-between gap-3">
-        <div className="min-w-0">
-          {title && <p className="truncate text-sm font-semibold leading-tight text-foreground">{title}</p>}
-          {description && <p className="truncate text-xs leading-tight text-foreground/60">{description}</p>}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {algorithms && algorithms.length > 1 && (
-            <WalkthroughAlgorithmSelect
-              algorithms={algorithms}
-              selectedId={selectedAlgorithmId}
-              onSelect={setSelectedAlgorithmId}
-            />
-          )}
-          <button
-            type="button"
-            onClick={reset}
-            aria-label="Reset walkthrough"
-            title="Reset to step 1"
-            className={WALKTHROUGH_ICON_BUTTON}
-          >
-            <RotateCcw size={13} aria-hidden="true" />
-          </button>
-        </div>
-      </div>
-
+    <>
+      {devBanner}
       <div
-        className="relative mx-auto w-full"
-        style={{
-          aspectRatio: `${viewBoxWidth} / ${viewBoxHeight}`,
-          // In fullscreen the limiting dimension flips from width to height:
-          // cap the width at whatever keeps the diagram inside the viewport
-          // once the surrounding bands have taken their share.
-          maxWidth: fullscreen.isFullscreen
-            ? `calc((100vh - 16rem) * ${viewBoxWidth} / ${viewBoxHeight})`
-            : undefined,
-        }}
+        ref={containerRef}
+        tabIndex={0}
+        role="group"
+        aria-roledescription="walkthrough"
+        aria-label={resolved.title ?? "Diagram walkthrough"}
+        onKeyDown={handleKeyDown}
+        className={`flex flex-col gap-3 rounded-xl border border-border p-3 outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
+          fullscreen.isFullscreen ? "h-full justify-center bg-background p-6" : "bg-background/60"
+        }`}
       >
-        <WalkthroughEdges
-          nodes={nodes}
-          edges={edges}
-          highlightEdgeIds={highlightEdgeIds}
-          dimmed={hasHighlight}
-          runId={`${stepIndex}-${selectedAlgorithmId ?? ""}`}
+        <div className="flex h-9 items-center justify-between gap-3">
+          <div className="min-w-0">
+            {resolved.title && <p className="truncate text-sm font-semibold leading-tight text-foreground">{resolved.title}</p>}
+            {resolved.description && (
+              <p className="truncate text-xs leading-tight text-foreground/60">{resolved.description}</p>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {resolved.algorithms && resolved.algorithms.length > 1 && (
+              <WalkthroughAlgorithmSelect
+                algorithms={resolved.algorithms}
+                selectedId={selectedAlgorithmId}
+                onSelect={setSelectedAlgorithmId}
+              />
+            )}
+            <button
+              type="button"
+              onClick={reset}
+              aria-label="Reset walkthrough"
+              title="Reset to step 1"
+              className={WALKTHROUGH_ICON_BUTTON}
+            >
+              <RotateCcw size={13} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+
+        <div
+          className="relative mx-auto w-full"
+          style={{
+            aspectRatio: `${resolved.viewBoxWidth} / ${resolved.viewBoxHeight}`,
+            // In fullscreen the limiting dimension flips from width to height:
+            // cap the width at whatever keeps the diagram inside the viewport
+            // once the surrounding bands have taken their share.
+            maxWidth: fullscreen.isFullscreen
+              ? `calc((100vh - 16rem) * ${resolved.viewBoxWidth} / ${resolved.viewBoxHeight})`
+              : undefined,
+          }}
+        >
+          <WalkthroughEdges
+            pathById={pathById}
+            edges={resolved.edges}
+            highlightEdgeIds={highlightEdgeIds}
+            dimmed={hasHighlight}
+            runId={`${stepIndex}-${selectedAlgorithmId ?? ""}`}
+            playing={playing}
+            speed={speed}
+            animatePackets={!reducedMotion}
+            viewBoxWidth={resolved.viewBoxWidth}
+            viewBoxHeight={resolved.viewBoxHeight}
+          />
+          {resolved.nodes.map((node) => (
+            <WalkthroughNodeCard
+              key={node.id}
+              node={node}
+              left={(node.position.x / resolved.viewBoxWidth) * 100}
+              top={(node.position.y / resolved.viewBoxHeight) * 100}
+              highlighted={highlightNodeIds.has(node.id)}
+              dimmed={hasHighlight && !highlightNodeIds.has(node.id)}
+              viewBoxWidth={resolved.viewBoxWidth}
+              viewBoxHeight={resolved.viewBoxHeight}
+            />
+          ))}
+        </div>
+
+        {/* Fixed height + line-clamp, deliberately: see the component note. A
+            caption longer than three lines is an authoring bug, not something
+            this band should grow to fit. */}
+        <div className="flex h-20 items-center justify-center rounded-lg border border-border bg-panel px-4">
+          <p aria-live="polite" className="line-clamp-3 text-center text-sm leading-relaxed text-foreground/80">
+            {step.caption}
+          </p>
+        </div>
+
+        <WalkthroughControls
+          total={resolved.steps.length}
+          currentIndex={stepIndex}
           playing={playing}
           speed={speed}
-          animatePackets={!reducedMotion}
-          viewBoxWidth={viewBoxWidth}
-          viewBoxHeight={viewBoxHeight}
+          isFullscreen={fullscreen.isFullscreen}
+          fullscreenSupported={fullscreen.supported}
+          onJump={goTo}
+          onBack={() => goTo(stepIndex - 1)}
+          onNext={() => goTo(stepIndex + 1)}
+          onTogglePlay={togglePlay}
+          onCycleSpeed={cycleSpeed}
+          onToggleFullscreen={fullscreen.toggle}
         />
-        {nodes.map((node) => (
-          <WalkthroughNodeCard
-            key={node.id}
-            node={node}
-            left={(node.position.x / viewBoxWidth) * 100}
-            top={(node.position.y / viewBoxHeight) * 100}
-            highlighted={highlightNodeIds.has(node.id)}
-            dimmed={hasHighlight && !highlightNodeIds.has(node.id)}
-            viewBoxWidth={viewBoxWidth}
-            viewBoxHeight={viewBoxHeight}
-          />
-        ))}
       </div>
-
-      {/* Fixed height + line-clamp, deliberately: see the component note. A
-          caption longer than three lines is an authoring bug, not something
-          this band should grow to fit. */}
-      <div className="flex h-20 items-center justify-center rounded-lg border border-border bg-panel px-4">
-        <p aria-live="polite" className="line-clamp-3 text-center text-sm leading-relaxed text-foreground/80">
-          {step.caption}
-        </p>
-      </div>
-
-      <WalkthroughControls
-        total={steps.length}
-        currentIndex={stepIndex}
-        playing={playing}
-        speed={speed}
-        isFullscreen={fullscreen.isFullscreen}
-        fullscreenSupported={fullscreen.supported}
-        onJump={goTo}
-        onBack={() => goTo(stepIndex - 1)}
-        onNext={() => goTo(stepIndex + 1)}
-        onTogglePlay={togglePlay}
-        onCycleSpeed={cycleSpeed}
-        onToggleFullscreen={fullscreen.toggle}
-      />
-    </div>
+    </>
   );
 }

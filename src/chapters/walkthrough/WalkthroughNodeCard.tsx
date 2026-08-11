@@ -4,7 +4,7 @@ import { categoryColorVar } from "@/canvas/category-colors";
 import { iconMap } from "@/canvas/icon-map";
 import { HIGHLIGHT_GOLD_RING } from "@/canvas/selection-style";
 import { NODE_HEIGHT, NODE_WIDTH } from "./geometry";
-import type { WalkthroughNode } from "./types";
+import type { ResolvedWalkthroughNode } from "./normalize";
 
 /**
  * A read-only, non-interactive rendering of one WalkthroughNode - a
@@ -32,7 +32,7 @@ export function WalkthroughNodeCard({
   viewBoxWidth,
   viewBoxHeight,
 }: {
-  node: WalkthroughNode;
+  node: ResolvedWalkthroughNode;
   left: number;
   top: number;
   highlighted: boolean;

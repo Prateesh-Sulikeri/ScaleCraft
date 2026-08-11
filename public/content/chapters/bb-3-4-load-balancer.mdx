@@ -22,17 +22,6 @@ can each answer any request equally well. Its two jobs are picking which
 instance gets the next request, and knowing which instances are actually
 alive to pick from.
 
-```mermaid
-flowchart LR
-  C["Client"] -->|"request-flow"| LB["Load Balancer"]
-  LB -->|"request-flow"| A1["App Server 1"]
-  LB -->|"request-flow"| A2["App Server 2"]
-  LB -.->|"control"| A1
-  LB -.->|"control"| A2
-  A1 -->|"request-flow"| D["SQL Database"]
-  A2 -->|"request-flow"| D
-```
-
 Note: two edge kinds, not one. The solid `request-flow` edges carry real
 requests; the dashed `control` edges carry health checks - liveness
 questions, not user traffic. A failed health check takes that instance out
@@ -43,17 +32,15 @@ Step through it:
 <Walkthrough
   title="Load Balancing, one request end to end"
   description="Switch the algorithm to see which instance gets picked."
-  viewBoxWidth={600}
-  viewBoxHeight={250}
   algorithms={[
     { id: "round-robin", label: "Round Robin" },
     { id: "least-connections", label: "Least Connections" },
   ]}
   nodes={[
-    { id: "client", kind: "component", componentId: "client", position: { x: 80, y: 125 } },
-    { id: "lb", kind: "component", componentId: "load-balancer", position: { x: 296, y: 125 } },
-    { id: "app1", kind: "component", componentId: "app-server", position: { x: 520, y: 62 }, label: "App Server 1" },
-    { id: "app2", kind: "component", componentId: "app-server", position: { x: 520, y: 188 }, label: "App Server 2" },
+    { id: "client", kind: "component", componentId: "client" },
+    { id: "lb", kind: "component", componentId: "load-balancer" },
+    { id: "app1", kind: "component", componentId: "app-server", label: "App Server 1" },
+    { id: "app2", kind: "component", componentId: "app-server", label: "App Server 2" },
   ]}
   edges={[
     { id: "req-lb", source: "client", target: "lb", kind: "request-flow" },
@@ -65,8 +52,7 @@ Step through it:
   steps={[
     {
       caption: "The client sends its request to the Load Balancer's one public address.",
-      highlightNodeIds: ["client", "lb"],
-      highlightEdgeIds: ["req-lb"],
+      focus: "req-lb",
     },
     {
       caption: "The Load Balancer already knows both App Server instances are healthy, from continuous health checks over separate control edges.",
@@ -75,13 +61,11 @@ Step through it:
     },
     {
       caption: "Round-robin picks App Server 1 to handle this request - it is simply next in the rotation.",
-      highlightNodeIds: ["lb", "app1"],
-      highlightEdgeIds: ["req-app1"],
+      focus: "req-app1",
       variants: {
         "least-connections": {
           caption: "Least-connections picks App Server 2 instead - it currently has fewer requests in flight than App Server 1.",
-          highlightNodeIds: ["lb", "app2"],
-          highlightEdgeIds: ["req-app2"],
+          focus: "req-app2",
         },
       },
     },
@@ -99,13 +83,11 @@ Step through it:
     },
     {
       caption: "The next request rotates to App Server 2 - round-robin spreads load evenly across every healthy instance, regardless of how busy each one is.",
-      highlightNodeIds: ["lb", "app2"],
-      highlightEdgeIds: ["req-app2"],
+      focus: "req-app2",
       variants: {
         "least-connections": {
           caption: "The next request goes to whichever instance has the fewest in-flight requests at that moment - not a fixed rotation.",
-          highlightNodeIds: ["lb", "app1"],
-          highlightEdgeIds: ["req-app1"],
+          focus: "req-app1",
         },
       },
     },

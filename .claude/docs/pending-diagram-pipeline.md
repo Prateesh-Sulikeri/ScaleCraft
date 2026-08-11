@@ -1,11 +1,13 @@
 # Release 5.1.0-alpha - Diagram Topology Update: Implementation POA
 
-Status: **scoped and specced, ready to implement.** Compiled 2026-08-11 from a
-live scoping conversation (decision record below) on top of the 5.0.0-alpha
-walkthrough renderer (`src/chapters/walkthrough/`, branch
-`feature/walkthrough-renderer`, awaiting merge). This doc is the working
-implementation plan for the diagram authoring pipeline - update it in place as
-items land. Branching strategy is handled by the user, not this doc.
+Status: **Phases 0-4 built and green (full CI pipeline passing), on
+`feature/walkthrough-renderer`, awaiting review and merge.** Phase 5 remains
+deliberately deferred - do not build without its trigger. Compiled 2026-08-11
+from a live scoping conversation (decision record below) on top of the
+5.0.0-alpha walkthrough renderer (`src/chapters/walkthrough/`). This doc is
+the working implementation plan for the diagram authoring pipeline - update
+it in place as items land. Branching strategy is handled by the user, not
+this doc.
 
 ---
 
@@ -15,29 +17,81 @@ Phases are ordered by dependency. Within a phase, items are ordered by
 implementation sequence. Check items off as they land.
 
 ### Phase 0 - Prep and cleanup
-- [ ] **P0.1** Extract `renderMdx` test helper into `src/lib/mdx/mdx-test-utils.ts`
-- [ ] **P0.2** Split walkthrough types: authoring input vs resolved internal shape
+- [x] **P0.1** Extract `renderMdx` test helper into `src/lib/mdx/mdx-test-utils.ts`
+- [x] **P0.2** Split walkthrough types: authoring input vs resolved internal shape
 
 ### Phase 1 - Normalization core (the pipeline)
-- [ ] **P1.1** `layout.ts` - auto-layout from the request-flow DAG
-- [ ] **P1.2** `normalize.ts` - shorthand expansion, validation issues, viewBox derivation
-- [ ] **P1.3** Wire `Walkthrough.tsx` through `normalizeWalkthrough` (useMemo) + dev-only issue banner
-- [ ] **P1.4** Unit tests: `layout.test.ts`, `normalize.test.ts`
+- [x] **P1.1** `layout.ts` - auto-layout from the request-flow DAG
+- [x] **P1.2** `normalize.ts` - shorthand expansion, validation issues, viewBox derivation
+- [x] **P1.3** Wire `Walkthrough.tsx` through `normalizeWalkthrough` (useMemo) + dev-only issue banner
+- [x] **P1.4** Unit tests: `layout.test.ts`, `normalize.test.ts`
 
 ### Phase 2 - Repo-wide validation harness
-- [ ] **P2.1** `walkthrough-invariants.test.ts` - compile every MDX chapter, capture props, assert zero issues
+- [x] **P2.1** `walkthrough-invariants.test.ts` - compile every MDX chapter, capture props, assert zero issues
 
 ### Phase 3 - Pilot migration and editorial rule
-- [ ] **P3.1** Migrate `bb-3-4-load-balancer.mdx` to auto-layout + `focus` shorthand
-- [ ] **P3.2** Remove the duplicate mermaid topology from 3.4; add the one-diagram-per-topology rule to CURRICULUM.md (own commit)
+- [x] **P3.1** Migrate `bb-3-4-load-balancer.mdx` to auto-layout + `focus` shorthand
+- [x] **P3.2** Remove the duplicate mermaid topology from 3.4; add the one-diagram-per-topology rule to CURRICULUM.md (own commit)
 
 ### Phase 4 - Authoring lab
-- [ ] **P4.1** `/dev/walkthrough-lab` page with fixtures, JSON editor, issue panel, layout debug overlay
-- [ ] **P4.2** Lab tests
+- [x] **P4.1** `/dev/walkthrough-lab` page with fixtures, JSON editor, issue panel, layout debug overlay
+- [x] **P4.2** Lab tests
 
 ### Phase 5 - Deferred (do NOT build without an explicit trigger)
 - [ ] **P5.1** Topology presets - only after ~10 real diagrams exist and boilerplate is still painful
 - [ ] **P5.2** Canvas-to-walkthrough export - only if a Tier 4 RWE diagram defeats auto-layout
+
+---
+
+## Completion log
+
+### 2026-08-11 - Phases 0-4 built in one session, on `feature/walkthrough-renderer`
+
+All items P0.1 through P4.2 landed. Full CI green
+(`typecheck && lint && test && build` - 1695 tests across 196 files, `next
+build` picked up `/dev/walkthrough-lab` as a new static route).
+
+- **Layout calibration held exactly**: `layout.test.ts`'s first case asserts
+  the calibration table above verbatim (viewBox 600x252, the six listed
+  centers) - the constants weren't re-tuned, they reproduced the pilot's
+  hand-placed coordinates on the first pass.
+- **3.4 migration (P3.1)**: all four `position` literals and both `viewBox*`
+  props dropped; steps 1/3/5 (and their variants) converted to `focus`
+  shorthand; steps 2/4 kept explicit per this doc's own instruction. Verified
+  via `walkthrough-invariants.test.ts` (zero issues) and a scratch
+  compile-run-render check (labels, "1 / 5" counter, step 1 caption all
+  present) - no browser available this session either, same gap prior
+  sessions logged in `pending.md`.
+- **P3.2**: the single mermaid block in 3.4 (client/lb/app1/app2 + control
+  edges + SQL Database) removed - it was the only mermaid block in the file,
+  so nothing needed to stay. Rule added to `CURRICULUM.md` §7.2 as its own
+  bullet, in the same edit as this doc (not a separate commit yet - commits
+  are the user's call per repo convention; keep them separable when
+  committing).
+- **Cycle detection**: `normalize.ts`'s `cycle` issue code is produced by its
+  own DFS cycle check, independent of `layout.ts`'s internal stack guard
+  (which only prevents a hang, per this doc's own spec for `LayoutResult`'s
+  shape not including cycle info). Not explicitly speced where this lives;
+  documented here since a future reader might look for it in `layout.ts`
+  first.
+- **`geometry.ts`'s `computeEdgeGeometry`** now takes a minimal
+  `{ id, position: XY }[]` shape instead of `WalkthroughNode[]`, to avoid a
+  circular import (`normalize.ts` -> `geometry.ts` for `NODE_WIDTH`/
+  `NODE_HEIGHT`; `geometry.ts` -> `normalize.ts` for `ResolvedWalkthroughNode`
+  would have closed the loop). Not called out in the original spec; worth
+  knowing if `ResolvedWalkthroughNode`'s shape changes later.
+- **P4.1's layout debug overlay** is a separate panel drawn from
+  `computeLayout` output, not a layer stacked directly on the live
+  `<Walkthrough>` render - the shipped component exposes no DOM offsets to
+  align against and gains no debug prop, so overlaying literally on top of
+  its internal diagram band would mean reaching into internals this doc
+  explicitly said not to touch. Functionally equivalent (same column
+  guides/viewBox bounds, from the same `computeLayout` call), just laid out
+  beside the live render instead of on top of it.
+- **Not done this session**: a real-browser visual pass on
+  `/building-blocks/.../lesson` for 3.4 (no browser tool available - same
+  gap as every prior walkthrough-renderer session) and the `merge` of
+  `feature/walkthrough-renderer` (user's call, unprompted this session).
 
 ---
 

@@ -42,6 +42,29 @@ don't).
 - `.claude/docs/MILESTONES.md` — the sequenced, currently-active roadmap from the
   scaffold to MVP. Check this before picking what to work on next.
 
+## Release build logs (in-flight engineering work)
+
+`.claude/docs/` accumulates one `pending-*.md` per release/initiative as work is
+scoped and built. Check this list before starting engineering work - `ls`-ing the
+directory misses which ones are live vs. retired:
+
+- `.claude/docs/pending.md` - Release 5.0.0-alpha (Content Platform) build log: MDX
+  lesson pipeline, 3.4 Load Balancer migration, walkthrough diagram renderer. Read
+  its Status line first - it names which steps are merged vs. still on a feature
+  branch.
+- `.claude/docs/pending-diagram-pipeline.md` - Release 5.1.0-alpha (Diagram Topology
+  Update): the implementation plan for the diagram *authoring* pipeline (auto-layout,
+  normalization/validation harness, authoring lab) that follows 5.0.0-alpha's
+  walkthrough renderer. Phased checklist - read the Status line and decision record
+  before resuming.
+- `.claude/docs/pending-simulation-engine.md` - early brainstorm for a second,
+  post-Validate simulation stage. Not scoped into a release yet.
+- `.claude/docs/pending-polish.md` - retired items consolidated out of other
+  `pending-*.md` docs once they hit ~90% complete, kept as a checklist of what's
+  still unconfirmed (mostly manual click-through passes). A source doc is deleted
+  once its items land here - if you're looking for an older `pending-*.md` this
+  session's context references and it's gone, check here first.
+
 ## Curriculum authoring
 
 - `.claude/docs/pending-chapters.md` - the completion ledger: which chapters are
@@ -94,8 +117,7 @@ don't).
   real score, pass/fail line, and attempt count against an 80% threshold — that's
   completion-gating information, not theater, and it renders with no points, streaks,
   badges, or celebration animation. Confirmed with the user (2026-07-31 pivot from an
-  earlier unlimited-retry/no-scoring model, see `.claude/docs/pending-quiz-ui.md`
-  addendum).
+  earlier unlimited-retry/no-scoring model).
 
 ## Working conventions for this repo
 

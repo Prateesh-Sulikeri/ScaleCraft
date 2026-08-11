@@ -5,9 +5,9 @@ import { STEP_HOLD_MS } from "./player";
 import type { WalkthroughEdge, WalkthroughNode, WalkthroughStep } from "./types";
 
 const nodes: WalkthroughNode[] = [
-  { id: "client", kind: "component", componentId: "client", position: { x: 70, y: 125 } },
-  { id: "lb", kind: "component", componentId: "load-balancer", position: { x: 280, y: 125 } },
-  { id: "app1", kind: "component", componentId: "app-server", position: { x: 520, y: 60 } },
+  { id: "client", kind: "component", componentId: "client" },
+  { id: "lb", kind: "component", componentId: "load-balancer" },
+  { id: "app1", kind: "component", componentId: "app-server" },
 ];
 
 const edges: WalkthroughEdge[] = [
@@ -31,25 +31,13 @@ const steps: WalkthroughStep[] = [
   },
 ];
 
-const viewBoxWidth = 600;
-const viewBoxHeight = 250;
-
 const algorithms = [
   { id: "round-robin", label: "Round Robin" },
   { id: "least-connections", label: "Least Connections" },
 ];
 
 function renderWalkthrough(props: Partial<React.ComponentProps<typeof Walkthrough>> = {}) {
-  return render(
-    <Walkthrough
-      nodes={nodes}
-      edges={edges}
-      steps={steps}
-      viewBoxWidth={viewBoxWidth}
-      viewBoxHeight={viewBoxHeight}
-      {...props}
-    />,
-  );
+  return render(<Walkthrough nodes={nodes} edges={edges} steps={steps} {...props} />);
 }
 
 describe("Walkthrough", () => {
@@ -154,5 +142,22 @@ describe("Walkthrough", () => {
     renderWalkthrough();
     fireEvent.click(screen.getByRole("button", { name: /playback speed 1x/i }));
     expect(screen.getByRole("button", { name: /playback speed 1.5x/i })).toBeInTheDocument();
+  });
+
+  it("renders the dev issue banner for a bad componentId and still renders the rest", () => {
+    renderWalkthrough({
+      nodes: [
+        { id: "client", kind: "component", componentId: "client" },
+        { id: "lb", kind: "component", componentId: "not-a-real-component" },
+      ],
+      edges: [{ id: "e1", source: "client", target: "lb", kind: "request-flow" }],
+    });
+
+    expect(screen.getByText(/unknown-component/)).toBeInTheDocument();
+    expect(screen.getByText(/not-a-real-component/)).toBeInTheDocument();
+    // The rest of the diagram still renders - a bad node doesn't take down
+    // the whole walkthrough.
+    expect(screen.getByText("Client")).toBeInTheDocument();
+    expect(screen.getByText(steps[0].caption)).toBeInTheDocument();
   });
 });

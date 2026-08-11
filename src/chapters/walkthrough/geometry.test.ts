@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { computeEdgeGeometry, parseCubic, pointOnCubic } from "./geometry";
-import type { WalkthroughEdge, WalkthroughNode } from "./types";
+import type { WalkthroughEdge } from "./types";
 
-const nodes: WalkthroughNode[] = [
-  { id: "a", kind: "component", componentId: "client", position: { x: 80, y: 125 } },
-  { id: "b", kind: "component", componentId: "load-balancer", position: { x: 300, y: 125 } },
+const nodes = [
+  { id: "a", position: { x: 80, y: 125 } },
+  { id: "b", position: { x: 300, y: 125 } },
 ];
 
 describe("parseCubic", () => {

@@ -1,6 +1,11 @@
 import { getBezierPath, Position } from "@xyflow/react";
 import type { XY } from "@/lib/graph";
-import type { WalkthroughEdge, WalkthroughNode } from "./types";
+import type { WalkthroughEdge } from "./types";
+
+/** The only shape edge geometry needs - deliberately not WalkthroughNode or
+ * ResolvedWalkthroughNode (importing the latter from normalize.ts would be
+ * circular, since normalize.ts imports NODE_WIDTH/NODE_HEIGHT from here). */
+type PositionedNode = { id: string; position: XY };
 
 /**
  * Fixed card size, in the same viewBox-unit space as WalkthroughNode.position
@@ -52,7 +57,7 @@ function anchor(center: XY, side: Position): XY {
  * perpendicular of the center-to-center direction, indexed by array
  * position, so they visually separate instead of overlapping.
  */
-export function computeEdgeGeometry(nodes: WalkthroughNode[], edges: WalkthroughEdge[]): Map<string, string> {
+export function computeEdgeGeometry(nodes: PositionedNode[], edges: WalkthroughEdge[]): Map<string, string> {
   const centerById = new Map(nodes.map((n) => [n.id, n.position]));
 
   const groups = new Map<string, WalkthroughEdge[]>();
