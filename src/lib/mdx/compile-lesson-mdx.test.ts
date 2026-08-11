@@ -49,4 +49,22 @@ describe("compileLessonMdx", () => {
     expect(html).toContain("1 / 1");
     expect(html).toContain("The client sends a request.");
   });
+
+  // Unlike Walkthrough (always a standalone block element), <Ref> is meant to
+  // sit mid-sentence - proves the tag resolves without splitting the
+  // surrounding prose into two paragraphs.
+  it("resolves a custom <Ref> tag inline, mid-paragraph, via mdxComponents", async () => {
+    const source = `The simplest routing rule is <Ref id="round-robin">round-robin</Ref>, which rotates evenly.\n`;
+    const html = await renderMdx(source, mdxComponents);
+    expect(html.match(/<p>/g)?.length).toBe(1);
+    expect(html).toContain("round-robin");
+    expect(html).toContain("<button");
+  });
+
+  it("falls back to plain text for a <Ref> with an unregistered id", async () => {
+    const source = `See <Ref id="not-a-real-term">this concept</Ref> for details.\n`;
+    const html = await renderMdx(source, mdxComponents);
+    expect(html).toContain("this concept");
+    expect(html).not.toContain("<button");
+  });
 });
