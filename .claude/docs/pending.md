@@ -1,7 +1,9 @@
 # Release 5.0.0-alpha — Content Platform
 
-Status: **build in progress - MDX pipeline landed, blocked on chapter content
-for the next two steps** (see Build Log below). Compiled 2026-08-10/11 from
+Status: **build in progress - MDX pipeline and 3.4 Load Balancer content
+(Sonnet draft + Opus proofread pass) both merged into
+`release/v5.0.0-content-platform`; next is the full CI pipeline, then the
+actual MDX migration of 3.4** (see Build Log below). Compiled 2026-08-10/11 from
 `.claude/docs/ScaleCraft_Future_Roadmap.md`'s
 "Alpha 5.x — Content Platform" entry (two three-bullet brainstorm items: 5.0.0
 Content Update, 5.1.0 Diagram Topology Update), turned into something buildable
@@ -77,7 +79,13 @@ convention. Claude pushes, never merges.
 
 ## Build Log (updated as each unit lands - append here, don't wait for release end)
 
-### 2026-08-11 — MDX pipeline (`feature/mdx-pipeline`, step 1 of the Build order) - done
+**Note on this section's own history (resolved 2026-08-11):** the two
+branches below (`feature/mdx-pipeline`, `feature/lesson-3-4-load-balancer`)
+diverged before either landed on the release branch, so this file briefly
+had two different versions of the entry below. Reconciled here on merge -
+both entries kept, shared header deduped, nothing lost.
+
+### 2026-08-11 — MDX pipeline (`feature/mdx-pipeline`, step 1 of the Build order) - done, merged into `release/v5.0.0-content-platform`
 
 Server-compiles per the "preserve current logic" decision above, not static
 per-chapter imports. Per-chapter opt-in via a new `ChapterDefinition.lessonFormat?:
@@ -136,9 +144,71 @@ infrastructure only.
   this way, not what actually paints in a real browser. Worth an eyeball pass
   next session before trusting this further.
 
-**Next:** task 8 (author real 3.4 Load Balancer content via the chapter-author
-skill) blocks both "migrate Load Balancer chapter to MDX" and the walkthrough
-pilot - do that next, not more pipeline work.
+- Pushed to `origin/feature/mdx-pipeline`. Merged into
+  `release/v5.0.0-content-platform` 2026-08-11 (user gave explicit merge
+  permission this session, overriding the usual "Claude never merges"
+  convention for this specific unblock).
+
+### 2026-08-11 — 3.4 Load Balancer content (`feature/lesson-3-4-load-balancer`) - Sonnet draft + Opus proofread pass, done, merged into `release/v5.0.0-content-platform`
+
+Real content authored via the `chapter-author` skill (`draft` mode, `full`
+scope), replacing the `bb-dummy-1` placeholder - was blocking the MDX-
+migration pilot and walkthrough-diagram pilot, which need real content to
+build against, not dummy text. Full detail in
+`.claude/docs/pending-chapters.md`'s own `## 3.4 Load Balancer` ledger entry
+and `src/content/chapters/specs/bb-3-4-load-balancer.spec.md`; short version:
+
+- All six deliverables in: spec, lesson (1,335 words post-audit), `ChapterDefinition`
+  (`bb-3-4-load-balancer`), no new validation rules (6 existing ones curated),
+  quiz (5 questions), playtest pass. `manifest.ts`'s 3-4 row repointed off
+  the dummy definition.
+- **Two real judgment calls made and documented, not silently worked
+  around** (both in the spec's §0 and in `pending-chapters.md`'s open
+  decisions #8-9):
+  1. **3.4's real prerequisite (3.3 Reverse Proxy) isn't authored yet**
+     (Group A is entirely unauthored). Authored the lesson assuming only
+     Part 0/1 (through 1.9) and 1.6's three components - no reverse-proxy/
+     DNS/firewall vocabulary anywhere; `manifest.ts`'s `prerequisiteSlugs`
+     temporarily repointed to `1-9-deep-dive-methodology` so the chapter is
+     actually reachable. Revert once Group A lands in Wave 3.
+  2. **Found a real engine gap while designing the exercise:** the registry's
+     `load-balancer`/`app-server` component contracts don't allow a
+     `control`-kind edge between them at all (checked directly against
+     `content/components/config/`, both ends declare `allowedKinds:
+     ["request-flow"]` only) - so CURRICULUM §16's "3.4 introduces edge
+     `control`" can't be exercised on canvas today. Kept `control` edges
+     illustrative only (Mermaid diagram, prose), absent from the graded
+     blueprint/starter graph. Needs an engineering follow-up
+     (add `"control"` to the relevant `allowedKinds` arrays) - flagged, not
+     fixed here, per this skill's own instruction not to hack around engine
+     gaps during a content pass.
+- Topology diagram is Mermaid, not graph-JSON, same declared exception 1.6
+  used (the Reader still can't render graph-JSON topologies - unrelated to
+  this release's walkthrough-renderer work, which is a different, purpose-
+  built spatial renderer, not a general graph-JSON block type).
+- **Opus proofread pass run 2026-08-11.** Found the `control`-edge engine
+  gap had been disclosed only to `curriculumContext.simplifications` (an
+  AI-only field, never rendered to the learner) rather than in the lesson
+  prose itself - a real learner-facing defect, fixed. Also fixed the
+  health-check diagram caption, rewrote the Cloudflare production example to
+  CURRICULUM §13's format, disambiguated "add a second instance" from the
+  app-server `Instances` config field, cut a cold-open restatement, fixed a
+  dangling self-reference. `lessonVersion` 1 -> 2. Full detail in
+  `pending-chapters.md`'s "Opus proofread pass" subsection.
+- `problemStatement` re-synced with the audit-fixed lesson wording
+  (post-audit follow-up, same session).
+- Pipeline (`tsc`/`lint`/`vitest`/`build`) not run yet - content-authoring
+  only, per the skill's scope.
+
+**Next session, pick up here:**
+1. Full CI pipeline (`tsc && lint && vitest && build`) hasn't been run
+   against the merged `release/v5.0.0-content-platform` branch yet - run
+   before trusting this further (content-only changes plus the MDX
+   infrastructure merge, low risk individually, but worth the check
+   combined).
+2. Only then: migrate 3.4 to MDX (task 2) - real content is now available
+   to migrate against, on the release branch, with both prerequisite
+   branches merged in.
 
 ---
 
