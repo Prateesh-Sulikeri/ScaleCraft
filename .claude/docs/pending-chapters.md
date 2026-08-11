@@ -46,7 +46,7 @@ checkpoints) + 32 Real World Extraction projects = 79 manifest rows.
 | 1.7 Identifying Bottlenecks | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
 | 1.8 Engineering Trade-offs | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
 | 1.9 Deep Dive Methodology | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
-| 3.4 Load Balancer | Placeholder (`bb-dummy-1`), moved to Wave 2 | - | - |
+| 3.4 Load Balancer | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-11 | `feature/lesson-3-4-load-balancer` |
 | RWE T1 Bitly | Placeholder (`rwe-dummy-1`), moved to Wave 2 | - | - |
 
 Everything else in the 79 rows is unauthored (`chapterDefinitionId: null`).
@@ -74,6 +74,15 @@ its own entry for the branch-topology decision). Sonnet draft, no Opus pass
 yet. 1.8 followed the same day on the same branch. Sonnet draft, no Opus
 pass yet. 1.9 followed the same day on the same branch. Sonnet draft, no
 Opus pass yet.
+
+**3.4 Load Balancer authored 2026-08-11**, pulled forward per
+`pending-content.md`'s own Wave 2 definition, on its own branch
+(`feature/lesson-3-4-load-balancer`, cut from
+`release/v5.0.0-content-platform` rather than the Part 1 branch above - this
+is Release 5.0.0-alpha content-platform work needing a real chapter to pilot
+against, not a Part 1 continuation). Sonnet draft, no Opus pass yet. Real
+prerequisite (3.3) isn't authored - see its own entry for the declared
+exception.
 
 ---
 
@@ -2161,6 +2170,114 @@ judgment call, not a rule any test enforces.
 
 ---
 
+## 3.4 Load Balancer
+
+- **Authored 2026-08-11 · not yet committed · branch
+  `feature/lesson-3-4-load-balancer`** (cut from
+  `release/v5.0.0-content-platform`, not from Wave 2's Part 1 branch - this
+  chapter is Release 5.0.0-alpha content-platform work, see
+  `.claude/docs/pending.md`, which needed a real chapter to pilot the MDX
+  migration and walkthrough diagram renderer against). Pulled forward per
+  `pending-content.md`'s own Wave 2 definition, replacing the `bb-dummy-1`
+  placeholder.
+- Definition id `bb-3-4-load-balancer` · manifest slug `3-4-load-balancer`
+  (`chapterDefinitionId` flipped from `bb-dummy-1` to this id in the same
+  pass).
+- Type: **Building Block**. Foundational · 35 minutes · prerequisite:
+  **1.9 (declared exception, see below - curriculum-order prerequisite is
+  3.3, not yet authored)**.
+- **Lesson length: 1,242 words** for a 35-minute estimate (1.6 was 1,209 for
+  30 minutes) - proportionate; this chapter covers two algorithms plus a
+  failure-mode shift 1.6 didn't need to.
+- Pipeline not run this pass (content-authoring only, per the skill's
+  scope).
+
+**Blocking decisions resolved before drafting (2026-08-11):**
+
+1. **Pulled forward with no real prerequisite.** Group A (3.1-3.3) is
+   entirely unauthored, and 3.3 - CURRICULUM §14's stated "Assumes" for
+   3.4 - doesn't exist as content. Left as `manifest.ts` originally had it
+   (`prerequisiteSlugs: ["3-3-reverse-proxy"]`), this chapter would be
+   permanently unreachable in the app. **Resolved:** author the lesson
+   assuming only what's actually shipped (Part 0, Part 1 through 1.9, and
+   1.6's three components) - the motivation is built entirely from 1.6's
+   own planted seed, never from reverse-proxy vocabulary. `manifest.ts`'s
+   `prerequisiteSlugs` repointed to `1-9-deep-dive-methodology`, commented
+   inline as a declared, temporary exception to revert once Group A lands
+   in Wave 3. Full reasoning in spec §0.1.
+2. **Topology diagram renderer, 3.4's own call (not an assumed extension of
+   1.6's).** Open decision #3 below named this explicitly: 3.4's diagram
+   (multiple instances, health-check `control` edges) is more complex than
+   1.6's straight line. Resolved the same way, for the same reason -
+   Mermaid, styled as the target topology, captioned narrowly for this
+   diagram only. See spec §0.2.
+3. **New finding, not anticipated by any prior doc: `control` edges aren't
+   buildable yet.** CURRICULUM §16 assigns 3.4 as introducing edge kind
+   `control`. Checked directly against the registry
+   (`content/components/config/networking.ts` and `compute.ts`): neither
+   `load-balancer.relations.outputs.allowedKinds` nor
+   `app-server.relations.inputs.allowedKinds` includes `"control"` - both
+   declare `["request-flow"]` only for this direction. A load-balancer
+   health-check edge to a backend fails `component-relations` on both
+   ends, today, for every chapter, not just this one. **Not hacked
+   around** - per this skill's own instruction to flag rather than patch
+   engine gaps during a content pass. `control` edges are taught and shown
+   in the lesson diagram (Mermaid, not engine-validated) but are absent
+   from the graded `starterGraph`/`blueprint`, which use `request-flow`
+   only. Recorded honestly in `curriculumContext.simplifications`, not
+   silently omitted. **Needs an engineering follow-up**, separate from this
+   ledger: add `"control"` to `load-balancer.relations.outputs.allowedKinds`
+   and to `app-server.relations.inputs.allowedKinds` (or a narrower,
+   load-balancer-specific contract). See open decisions below.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-4-load-balancer.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-4-load-balancer.md` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None new - 6 existing rules curated (`single-instance-load-balancer` is the namesake); justified in spec §7 |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3; Q2 and Q4 modeled on QUIZ_FRAMEWORK §8's own published Q5 and Q7 for this exact chapter |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **Required blueprint includes `sql-database`, not just the LB layer.**
+  `availableComponentIds` equals `requiredComponentIds` equals `client`,
+  `load-balancer`, `app-server`, `sql-database` - the full realistic stack
+  (two app-server instances sharing one database) rather than scoping the
+  exercise to just client/LB/app-server. Reinforces 1.6's mediation lesson
+  (the database is still only reachable through an app server) while
+  teaching the new distribution layer on top, not padding.
+- **Starter graph is under-provisioned, not mis-wired** - same "fix ships
+  symptoms" precedent as 1.6/0.1, but the fault this time is pure capacity
+  (`single-instance-load-balancer`), not an illegal edge. Everything in the
+  starter graph is legally connected; the learner adds a second instance
+  and wires it identically.
+- **One forward tease, to 3.8** (Horizontal Scaling) - checked against this
+  ledger; not already spent by an earlier chapter this wave besides 1.6's
+  own tease to 3.4 itself.
+- **Production example: Cloudflare**, chosen specifically to avoid the
+  Instagram-overclaim class of bug 1.6's Opus pass caught - a
+  decision-not-company claim ("load balancing is Cloudflare's literal core
+  product, at global scale") that doesn't require asserting anything about
+  a specific company's internal architecture.
+- **Quiz Q2 and Q4 modeled on QUIZ_FRAMEWORK §8's own Q5 and Q7** - the
+  bank's already-published examples for this exact chapter and rule -
+  reworded with a fresh graph/workload pairing, not copied verbatim.
+- **Quiz position-clustering checked by eye**: four single-kind questions
+  (Q1/Q3/Q4/Q5), correct options at b/a/c/d - four distinct positions.
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly, same as 1.6. Flagged for the next
+  reviewer to check against padding, though the word-count comparison above
+  is at least a rough sanity check.
+
+**Not yet run: Opus proofread pass.** This is a Sonnet draft only - stop
+here per the skill's contract; the user reads this draft first.
+
+---
+
 ## Open decisions blocking or shaping later chapters
 
 Raised during authoring, deliberately not resolved unilaterally. Each needs a
@@ -2220,6 +2337,13 @@ doc edit or a build decision.
    server to database"), which 3.4's own topology would have contradicted. A
    Mermaid topology is easier to overstate than a graph-JSON one, because it
    isn't constrained by the registry - caption it for *this* diagram only.
+   **3.4 authored 2026-08-11, same resolution, made explicitly rather than
+   assumed:** Mermaid, styled as the topology (client -> LB -> two app-server
+   instances -> database), captioned narrowly for this diagram only (see its
+   own spec §0.2). Still not a resolution of §7.2 itself - now two chapters'
+   worth of the same narrow exception, growing evidence this should become
+   either a sanctioned Mermaid-topology carve-out or real engineering work for
+   a graph-JSON markdown block.
 
 4. **CURRICULUM contradicts itself on what the five forces are.** §14's 0.2 row
    and §5.2 say latency / **throughput** / availability / durability / cost.
@@ -2276,6 +2400,52 @@ doc edit or a build decision.
    beats become quiz questions) rather than treating it as a new problem -
    see 1.7's own ledger entry and spec §0. Still not resolved: this is now
    two chapters' worth of evidence for the same "decide once" call.
+
+8. **`control`-kind edges aren't buildable on canvas - a real engine gap,
+   found authoring 3.4 (2026-08-11).** CURRICULUM §16 assigns 3.4 as
+   introducing edge kind `control` (health checks). Checked directly against
+   `content/components/config/networking.ts` and `compute.ts`: neither
+   `load-balancer.relations.outputs.allowedKinds` nor
+   `app-server.relations.inputs.allowedKinds` includes `"control"` - both
+   declare `["request-flow"]` only for this direction, so a load-balancer
+   health-check edge to a backend fails `component-relations` on both ends.
+   This isn't specific to 3.4's content; no registry component today accepts
+   an incoming `control` edge from a load balancer at all.
+   **Not hacked around** - 3.4's spec (§0.3) keeps `control` edges
+   illustrative only (Mermaid diagram, prose), absent from the graded
+   `starterGraph`/`blueprint`, and records the gap honestly in
+   `curriculumContext.simplifications` rather than silently omitting it.
+   **Blocks:** nothing today (3.4 shipped around it), but any later chapter
+   wanting a learner-buildable health-check/liveness edge (e.g. a future
+   revisit of 3.4, or 3.9 Service Discovery) hits the same wall. Needs an
+   engineering fix, not a content one: add `"control"` to
+   `load-balancer.relations.outputs.allowedKinds` and to
+   `app-server.relations.inputs.allowedKinds` (or a narrower,
+   load-balancer-specific contract) in `src/content/components/config/`.
+
+9. **3.4 Load Balancer authored standalone, ahead of its real prerequisite
+   (2026-08-11).** CURRICULUM §14's 3.4 row reads "Assumes: 3.3", but Group A
+   (3.1-3.3) is entirely unauthored (`chapterDefinitionId: null`), and 3.3's
+   own prerequisite chain traces back through unauthored Part 2 as well. Left
+   as `manifest.ts` originally had it, 3.4's `prerequisiteSlugs:
+   ["3-3-reverse-proxy"]` would make the chapter permanently unreachable in
+   the app (its prerequisite can never be "completed"). This is the same
+   "pulled forward" situation `pending-content.md` already named for 3.4
+   (Wave 2, ahead of Wave 3's Group A), just more literal than 1.6's version
+   of the same pattern.
+   **Resolved for 3.4:** authored assuming only Part 0, Part 1 (through 1.9),
+   and 1.6's three components - no reverse-proxy/DNS/firewall vocabulary
+   anywhere, motivation built entirely from 1.6's own planted seed instead.
+   `manifest.ts`'s `prerequisiteSlugs` repointed to `1-9-deep-dive-methodology`,
+   commented inline as a declared, temporary exception. Full reasoning in
+   3.4's spec §0.1.
+   **Blocks:** nothing today. **Needs a decision before Wave 3 authors
+   3.1-3.3:** revert 3.4's `prerequisiteSlugs` back to `["3-3-reverse-proxy"]`
+   once Group A is real, and confirm 3.4's lesson doesn't need a retroactive
+   edit once the learner *can* arrive at 3.4 having actually taken 3.3 (it
+   shouldn't - 3.4 never assumes 3.3's content, it just doesn't currently
+   require it either - but worth a second look when Group A lands rather than
+   assumed fine).
 
 ---
 

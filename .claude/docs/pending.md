@@ -1,6 +1,7 @@
 # Release 5.0.0-alpha — Content Platform
 
-Status: **scoped and confirmed, build starting**. Compiled 2026-08-10/11 from
+Status: **build in progress - MDX pipeline landed, 3.4 Load Balancer content
+drafted, both awaiting review** (see Build Log below). Compiled 2026-08-10/11 from
 `.claude/docs/ScaleCraft_Future_Roadmap.md`'s
 "Alpha 5.x — Content Platform" entry (two three-bullet brainstorm items: 5.0.0
 Content Update, 5.1.0 Diagram Topology Update), turned into something buildable
@@ -66,6 +67,104 @@ merged). Its own remaining loose ends live in `.claude/docs/pending-chapters.md`
 (currently up to date with `origin/develop`, `0c25281`). Individual `feature/*`
 branches per unit of work underneath it, per `CLAUDE.md`'s branching
 convention. Claude pushes, never merges.
+
+---
+
+## Build Log (updated as each unit lands - append here, don't wait for release end)
+
+**Note on this section's own history:** the MDX pipeline entry below was
+first written on `feature/mdx-pipeline`, committed there, then this branch
+(`feature/lesson-3-4-load-balancer`) was cut from `release/v5.0.0-content-platform`
+*before* that commit existed on the release branch - so this file reverted
+to its pre-MDX-pipeline-entry state here. Re-added below so this doc reads
+completely regardless of which branch you're looking at it from. The two
+branches' versions of this section will need reconciling (keep both entries,
+dedupe the shared header) whichever way they get merged first - not a
+conflict to be alarmed by, just normal divergence from parallel branches.
+
+### 2026-08-11 — MDX pipeline (`feature/mdx-pipeline`, step 1 of the Build order) - done, pushed, awaiting review
+
+Server-compiles per the "preserve current logic" decision above, not static
+per-chapter imports. Per-chapter opt-in via a new `ChapterDefinition.lessonFormat?:
+"md" | "mdx"` field (default `"md"`) - nothing is migrated yet, this is
+infrastructure only. Full detail in this section's `feature/mdx-pipeline`
+version; short version:
+
+- Shared plugin config extracted (`markdown-plugins.ts`, `markdown-components.tsx`)
+  so the legacy react-markdown path and the new MDX path can't drift.
+- `/api/lessons/[chapterId]` route reads a chapter's `.mdx` source server-side,
+  splits it at "## Next" with the *existing* `splitMarkdownAtNextSection`
+  (unchanged, moved to a shared module), compiles each half via `@mdx-js/mdx`.
+  TOC extraction and YourTurnCard placement still run against raw text exactly
+  as before.
+- Client fetches the compiled JSON and `run()`s it (evaluate only, no parsing).
+- Found and fixed two real bugs (server-only `getChapter` called from a Route
+  Handler; `rehypeRaw` incompatible with MDX's native JSX nodes) via round-trip
+  tests, not manual review. Found, deliberately left alone (pre-existing,
+  already tracked, not this task's job to fix): GitHub-style callouts are
+  currently broken on the legacy react-markdown path - side effect worth
+  knowing, the MDX path doesn't have this bug, so migrated chapters get
+  working callouts for free.
+- Verified: `tsc`, `eslint`, full `vitest run` (189 files/1644 tests), `next
+  build` all clean. Manually smoke-tested against a throwaway `.mdx` fixture,
+  reverted after. **Gap:** no browser tool available to visually confirm the
+  client-side render - worth an eyeball pass before trusting this further.
+- Pushed to `origin/feature/mdx-pipeline`. Not merged (user reviews first).
+
+### 2026-08-11 — 3.4 Load Balancer content (`feature/lesson-3-4-load-balancer`) - Sonnet draft done, awaiting review
+
+Real content authored via the `chapter-author` skill (`draft` mode, `full`
+scope), replacing the `bb-dummy-1` placeholder - blocks the MDX-migration
+pilot and walkthrough-diagram pilot (tasks below), which need real content to
+build against, not dummy text. Full detail in
+`.claude/docs/pending-chapters.md`'s own `## 3.4 Load Balancer` ledger entry
+and `src/content/chapters/specs/bb-3-4-load-balancer.spec.md`; short version:
+
+- All six deliverables in: spec, lesson (1,242 words), `ChapterDefinition`
+  (`bb-3-4-load-balancer`), no new validation rules (6 existing ones curated),
+  quiz (5 questions), playtest pass. `manifest.ts`'s 3-4 row repointed off
+  the dummy definition.
+- **Two real judgment calls made and documented, not silently worked
+  around** (both in the spec's §0 and in `pending-chapters.md`'s open
+  decisions #8-9):
+  1. **3.4's real prerequisite (3.3 Reverse Proxy) isn't authored yet**
+     (Group A is entirely unauthored). Authored the lesson assuming only
+     Part 0/1 (through 1.9) and 1.6's three components - no reverse-proxy/
+     DNS/firewall vocabulary anywhere; `manifest.ts`'s `prerequisiteSlugs`
+     temporarily repointed to `1-9-deep-dive-methodology` so the chapter is
+     actually reachable. Revert once Group A lands in Wave 3.
+  2. **Found a real engine gap while designing the exercise:** the registry's
+     `load-balancer`/`app-server` component contracts don't allow a
+     `control`-kind edge between them at all (checked directly against
+     `content/components/config/`, both ends declare `allowedKinds:
+     ["request-flow"]` only) - so CURRICULUM §16's "3.4 introduces edge
+     `control`" can't be exercised on canvas today. Kept `control` edges
+     illustrative only (Mermaid diagram, prose), absent from the graded
+     blueprint/starter graph, disclosed honestly in
+     `curriculumContext.simplifications`. Needs an engineering follow-up
+     (add `"control"` to the relevant `allowedKinds` arrays) - flagged, not
+     fixed here, per this skill's own instruction not to hack around engine
+     gaps during a content pass.
+- Topology diagram is Mermaid, not graph-JSON, same declared exception 1.6
+  used (the Reader still can't render graph-JSON topologies - unrelated to
+  this release's walkthrough-renderer work, which is a different, purpose-
+  built spatial renderer, not a general graph-JSON block type).
+- **Not yet run: Opus proofread pass** (`chapter-author audit`) - this is a
+  Sonnet draft only, per the skill's own stop-here-for-review contract. Do
+  that next, once the user has read this draft.
+- Pipeline (`tsc`/`lint`/`vitest`/`build`) not run - content-authoring only,
+  per the skill's scope. Not pushed.
+
+**Next session, pick up here:**
+1. User reviews the 3.4 Sonnet draft (lesson + quiz + blueprint + spec).
+2. `chapter-author audit 3.4` (Opus pass) once the draft is approved.
+3. Only then: migrate 3.4 to MDX (task 2), on top of `feature/mdx-pipeline`
+   (needs review/merge first too) - real content is the point of the pilot,
+   don't migrate the placeholder.
+4. Full CI pipeline (`tsc && lint && vitest && build`) hasn't been run
+   against `feature/lesson-3-4-load-balancer`'s changes yet - run before
+   trusting this branch further (content-only changes, low risk, but
+   `index.ts`/`manifest.ts` are real TypeScript, worth the check).
 
 ---
 
