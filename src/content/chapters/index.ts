@@ -4647,6 +4647,312 @@ export const chapterRegistry: ChapterDefinition[] = [
     },
   },
   {
+    id: "bb-1-10-communicating-and-defending-a-design",
+    mode: "building-blocks",
+    title: "Communicating & Defending a Design",
+    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
+    // Spec: specs/bb-1-10-communicating-and-defending-a-design.spec.md.
+    // Lesson body: public/content/chapters/bb-1-10-communicating-and-defending-a-design.mdx.
+    // Process type, same no-build shape as 1.1-1.9: hasEditorExercise: false,
+    // empty component/blueprint/validation-rule lists. §16 places 1.10 in
+    // the no-component list alongside 1.1-1.5, 1.7-1.9, 1.11.
+    problemStatement:
+      "No canvas build this chapter - the palette is still 1.6's three components, and reading " +
+      "a follow-up doesn't need a fourth. The knowledge check presents follow-up questions on a " +
+      "design and asks you to pick the strongest response, reading why the weaker ones fail the " +
+      "two-question test - the exercise this chapter is built around, run directly in the quiz.",
+    // Five objectives (§5.2 allows 3-7): all five required categories,
+    // including a real Practical objective per 1.1/1.2/1.4/1.5/1.8/1.9's
+    // precedent (Process chapters do not get the Concept-only Practical
+    // carve-out). Category tags live in the spec
+    // (specs/bb-1-10-communicating-and-defending-a-design.spec.md §2).
+    learningObjectives: [
+      "State the two-question test for a follow-up: does it name new evidence or only pressure, and if it's evidence, does the current design already survive it.",
+      "Given a follow-up and an existing design, decide whether the design already survives it, needs a narrow evolution of one piece, or exposes a real gap nothing taught so far addresses.",
+      "Narrate a completed design top-down before any follow-up lands, then respond to follow-ups live by applying the two-question test, defending decisions that still hold and revising the ones that don't, inside interview loop step 8 (0.4).",
+      "Given four candidate responses to a follow-up, choose the one that correctly applies the test and reject caving, stonewalling, and a full redesign of a design that mostly still holds.",
+      "When a follow-up reveals a genuine gap the taught palette can't yet fix, name the gap honestly instead of inventing an untaught mechanism or denying it exists.",
+    ],
+    // §16: no components introduced this chapter (1.10 is in the
+    // no-component list alongside 1.1-1.5, 1.7-1.9, 1.11) - the three
+    // primitives stay homed at 1.6.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    // No canvas exercise, nothing to validate - same justification 1.1-1.9
+    // and 0.2-0.4 recorded.
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    // No hints - no build/Fix exercise for a hint to orient toward, same as
+    // every other no-build chapter so far (0.2-0.4, 1.1-1.9).
+    hints: [],
+    readingLinks: [],
+    // 1: Sonnet draft (2026-08-11).
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.10 of 44.",
+      masteredConcepts: [
+        "1.3's non-functional requirements - reused as the shape of 'new evidence' a follow-up " +
+          "can name.",
+        "1.7's ceiling method - reused to check whether the current design already has headroom " +
+          "before a follow-up's stated pressure.",
+        "1.8's trade-off reflex ('we chose X, accepting Y, because Z') - reused and extended one " +
+          "clause for defending a decision that still holds.",
+        "1.9's 'state the plan before diving, then resurface' discipline - reused directly as " +
+          "this chapter's narrate-top-down-first posture, and its own closing line ('name it, " +
+          "commit, defend without defensiveness') is this chapter's subject.",
+        "1.6's three-component shape - the design every quiz scenario presents.",
+      ],
+      notYetIntroducedConcepts: [
+        "Any mechanism that makes a write survive a mid-crash restart - durability machinery " +
+          "(3.20, 3.26) is later material. The write-restart gap in this chapter's material is " +
+          "named honestly as unsolved, never patched with an invented fix.",
+        "Load balancing or any routing across multiple app-server instances (3.4) - not " +
+          "referenced, consistent with 1.9's own precedent.",
+        "1.11's specific interview time-budget breakdown - this chapter's 'time left' framing " +
+          "stays general; the minute-by-minute structure is 1.11's own material.",
+      ],
+      simplifications: [
+        "The write-survives-a-restart gap used across the lesson and quiz Q4 is a real, " +
+          "deliberately unsolved limitation at this stage, not a claim that no fix exists - " +
+          "naming it honestly is the point, not a placeholder for a future patch.",
+        "The 'one real gap, limited time' scenario (quiz Q5) is a designed teaching device, not a " +
+          "claim that real interviews always present exactly one narrow gap - same status as " +
+          "1.9's own 'two requirements at once' device.",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2-1.9's convention. The whole quiz directly
+    // realizes CURRICULUM §14's "staged - given follow-up questions, choose
+    // the strongest response and read why the others are weaker" exercise
+    // text - see spec §0 for why this needed no simulator/stages-UI
+    // degradation note (single/multi quiz kinds already cover this exercise
+    // shape natively, same fit 1.8's and 1.9's own exercises had).
+    quiz: [
+      {
+        id: "bb-1-10-communicating-and-defending-a-design-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Mid-interview, the interviewer asks: \"What if writes grow 10x?\" This follow-up is " +
+          "best read as:",
+        options: [
+          {
+            id: "a",
+            label:
+              "New input to run through the test: is this new evidence, and does the current " +
+              "design already survive it?",
+            correct: true,
+            explanationMd:
+              "Correct. A follow-up isn't a verdict on what's already drawn - it's pressure to " +
+              "read the same way 1.3's requirements and 1.7's ceiling method already taught.",
+          },
+          {
+            id: "b",
+            label: "A signal the design is wrong and should be scrapped.",
+            correct: false,
+            explanationMd:
+              "This is the cold open's own failure: reacting to new input as if it were a " +
+              "verdict, before checking whether anything actually breaks.",
+          },
+          {
+            id: "c",
+            label: "A trick question meant to be deflected without really answering it.",
+            correct: false,
+            explanationMd:
+              "Treating the interviewer as an adversary is a candidate mistake this curriculum " +
+              "warns against elsewhere (§10.2) - the follow-up is a real question with a real " +
+              "answer.",
+          },
+          {
+            id: "d",
+            label: "A cue to start over from a blank page.",
+            correct: false,
+            explanationMd:
+              "Redesigning everything when only one piece might need to change is exactly the " +
+              "cold open's failure, restated.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-10-communicating-and-defending-a-design-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A design's app-server ceiling (1.7's method) is 5,000 QPS; current traffic is 1,000 " +
+          "QPS. The interviewer asks: \"what if traffic doubles?\" What's the strongest response?",
+        options: [
+          {
+            id: "a",
+            label: "Add more app-server instances now, ahead of the growth.",
+            correct: false,
+            explanationMd:
+              "Nothing under real pressure yet - manufacturing a fix before the ceiling is close " +
+              "to breaking spends a decision the design doesn't need.",
+          },
+          {
+            id: "b",
+            label:
+              "Say so, and show the math: 2,000 QPS is still well under the app server's 5,000 " +
+              "ceiling, so nothing needs to change yet.",
+            correct: true,
+            explanationMd:
+              "Correct. New evidence, and the current design already survives it - the test's " +
+              "second question ends here, no redesign needed.",
+          },
+          {
+            id: "c",
+            label: "Add a cache in front of the database, since that's what usually helps at scale.",
+            correct: false,
+            explanationMd:
+              "Unmotivated - nothing in this scenario names a read-latency or repeated-read " +
+              "problem a cache would address, and the ceiling check hasn't even run yet.",
+          },
+          {
+            id: "d",
+            label: "Ask for the exact traffic multiplier before answering.",
+            correct: false,
+            explanationMd:
+              "The precision-theater trap (1.4) - the ceiling check works fine on the stated " +
+              "\"doubles,\" no exact figure required.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-10-communicating-and-defending-a-design-q3",
+        kind: "multi",
+        difficulty: 2,
+        prompt:
+          "Which of these correctly describe defending a decision without being defensive? " +
+          "Select ALL that apply.",
+        options: [
+          {
+            id: "a",
+            label:
+              "Restate the trade-off already named, and confirm the reason behind it still holds.",
+            correct: true,
+            explanationMd:
+              "Correct. This is 1.8's reflex extended one clause: the reason still holds, so the " +
+              "decision does too.",
+          },
+          {
+            id: "b",
+            label:
+              "If the follow-up names something the original trade-off missed, say what changed " +
+              "your mind and what's different now.",
+            correct: true,
+            explanationMd:
+              "Correct. The honest opposite of defending - real new evidence gets a real revision, " +
+              "stated out loud.",
+          },
+          {
+            id: "c",
+            label: "Repeat the original answer louder if the interviewer pushes back again.",
+            correct: false,
+            explanationMd:
+              "Volume isn't reasoning - repeating without addressing what the follow-up actually " +
+              "named is defensiveness, not defense.",
+          },
+          {
+            id: "d",
+            label: "Change the decision immediately whenever it's challenged, to seem open-minded.",
+            correct: false,
+            explanationMd:
+              "This is caving - changing course without checking whether the original reasoning " +
+              "still holds gives up ground that didn't need giving up.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-10-communicating-and-defending-a-design-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A follow-up: \"what happens if the app server restarts mid-write?\" Nothing in the " +
+          "design so far handles this. What's the strongest response?",
+        options: [
+          {
+            id: "a",
+            label: "Say the design already handles it, since app servers rarely restart.",
+            correct: false,
+            explanationMd:
+              "This is false, and interviewers can follow up on a claim like this - denying a " +
+              "real gap is worse than naming it.",
+          },
+          {
+            id: "b",
+            label: "Redesign the whole write path live to cover every edge case at once.",
+            correct: false,
+            explanationMd:
+              "The cold open's failure again - one specific gap doesn't require rebuilding " +
+              "everything else that was never in question.",
+          },
+          {
+            id: "c",
+            label:
+              "Name the gap honestly: nothing taught so far makes a write survive that, and say " +
+              "specifically what class of change would need to close it.",
+            correct: true,
+            explanationMd:
+              "Correct. A real, unaddressed gap gets named as exactly that - specific and honest " +
+              "beats invented and confident.",
+          },
+          {
+            id: "d",
+            label: "Invent a plausible-sounding mechanism on the spot so the answer feels complete.",
+            correct: false,
+            explanationMd:
+              "Bluffing a mechanism that isn't part of anything taught risks a follow-up question " +
+              "the bluff can't survive, and it isn't honest either.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-10-communicating-and-defending-a-design-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "With only a few minutes left before the interview wraps up, a follow-up reveals a " +
+          "real but narrow gap in the write path. What's the strongest move?",
+        options: [
+          {
+            id: "a",
+            label: "Redesign the write path live, in full detail, to prove the fix is understood.",
+            correct: false,
+            explanationMd:
+              "Proves the same judgment more slowly - with barely any time left, this spends " +
+              "minutes the rest of the loop may still need.",
+          },
+          {
+            id: "b",
+            label: "Skip the question and hope it doesn't come up again.",
+            correct: false,
+            explanationMd:
+              "A named gap doesn't disappear by not answering it - this reads as evasive, not " +
+              "efficient.",
+          },
+          {
+            id: "c",
+            label: "Say the gap doesn't matter at this scale, without checking whether that's true.",
+            correct: false,
+            explanationMd:
+              "An unchecked dismissal is a guess dressed up as an answer - the same failure as " +
+              "denying a real gap outright.",
+          },
+          {
+            id: "d",
+            label:
+              "Name the fix conceptually - what would change, roughly what it costs - and move on.",
+            correct: true,
+            explanationMd:
+              "Correct. Proves the same judgment faster, at the honest cost of not showing the " +
+              "detail live - the right trade when time is the scarce resource.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "rwe-dummy-1",
     mode: "real-world-extraction",
     title: "Placeholder Project",

@@ -193,7 +193,7 @@ export const courses: Record<CourseId, Course> = {
             number: "1.10",
             title: "Communicating & Defending a Design",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-1-10-communicating-and-defending-a-design",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["1-9-deep-dive-methodology"],

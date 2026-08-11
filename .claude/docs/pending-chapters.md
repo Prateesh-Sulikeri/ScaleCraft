@@ -47,6 +47,7 @@ checkpoints) + 32 Real World Extraction projects = 79 manifest rows.
 | 1.8 Engineering Trade-offs | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
 | 1.9 Deep Dive Methodology | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
 | 3.4 Load Balancer | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-11 | `feature/lesson-3-4-load-balancer` |
+| 1.10 Communicating & Defending a Design | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
 | RWE T1 Bitly | Placeholder (`rwe-dummy-1`), moved to Wave 2 | - | - |
 
 Everything else in the 79 rows is unauthored (`chapterDefinitionId: null`).
@@ -83,6 +84,14 @@ is Release 5.0.0-alpha content-platform work needing a real chapter to pilot
 against, not a Part 1 continuation). Sonnet draft, no Opus pass yet. Real
 prerequisite (3.3) isn't authored - see its own entry for the declared
 exception.
+
+**1.10 Communicating & Defending a Design followed 2026-08-11**, continuing
+Part 1 directly after 1.9 on its own new branch
+(`feature/content-1-10-communicating-and-defending-a-design`, cut from
+`release/v5.0.0-content-platform` - the original 1.7-1.9 branch no longer
+exists in this session, see its own entry above). Sonnet draft, no Opus pass
+yet. Part 1's eight-step interview loop (0.4/§10.1) is now covered end to
+end by 1.1-1.10; only the optional 1.11 remains unauthored in Part 1.
 
 ---
 
@@ -2167,6 +2176,129 @@ throughput (read replicas) from repeated-read latency (caches). If a future
 chapter's own read-path example blends both pressures again, the same
 distinction needs to be applied by eye each time - it is a recurring
 judgment call, not a rule any test enforces.
+
+---
+
+## 1.10 Communicating & Defending a Design
+
+- **Authored 2026-08-11 · not yet committed · branch
+  `feature/content-1-10-communicating-and-defending-a-design`** (cut from
+  `release/v5.0.0-content-platform` - the branch 1.7-1.9 were authored on,
+  `feature/content-1-7-identifying-bottlenecks`, no longer exists locally or
+  on `origin` in this session; 1.1-1.9's content is already present on the
+  current release branch, so continuing the sequence needed no merge, just a
+  fresh branch for this one chapter).
+- Definition id `bb-1-10-communicating-and-defending-a-design` · manifest
+  slug `1-10-communicating-and-defending-a-design` (`chapterDefinitionId`
+  flipped from `null` to this id in the same pass)
+- Type: Process (§16's no-component list, alongside 1.1-1.5, 1.7-1.9, 1.11 -
+  no type-reversion call needed). Foundational · 20 minutes (Reader +
+  knowledge check, no build) · prerequisite: 1.9.
+- **Lesson length: 1,227 words** (by `wc -w`), written once against §20.6
+  directly. Within range of 1.8's 1,234 and 1.9's 1,191, both the same
+  20-minute estimate; flagged for a second reader rather than trusted, per
+  every prior chapter's own precedent.
+- Pipeline not run this pass (content-authoring only, per the chapter-author
+  skill's standing scope - `src/content/chapters/index.test.ts`'s hardcoded
+  chapter-id list was updated to include the new id, same registry-wiring
+  touch every prior chapter needed, but `tsc`/`lint`/`vitest`/`build` were
+  not run).
+
+**No open-decision collision this chapter, same shape as 1.8/1.9.** §14's
+1.10 row promises "staged - given follow-up questions, choose the strongest
+response and read why the others are weaker" - a single/multi-choice quiz
+shape with no simulator/stages-UI dependency, the same native fit 1.8's and
+1.9's own exercises had. Realized directly as the whole quiz (all five
+questions present a follow-up and ask for the strongest response), no
+degradation, no new entry required in the "Open decisions" list below. See
+spec §0.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-10-communicating-and-defending-a-design.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-1-10-communicating-and-defending-a-design.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None - no canvas exercise, nothing to validate; justified in spec §7 |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3; the full set directly realizes CURRICULUM §14's "staged - given follow-up questions, choose the strongest response and read why the others are weaker" exercise text |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **A real quiz position-clustering bug caught and fixed during drafting,
+  not left for a second reader.** The first-drafted option order put both
+  Q1's and Q2's correct answer at position `a` - exactly the class of bug
+  0.1/0.2 shipped once and the standing per-chapter eyeball check exists to
+  catch, even though a sample of two matching letters wouldn't fail the
+  registry-wide invariant test by itself. Caught by checking the shipped
+  `index.ts` array directly rather than trusting the draft, fixed by
+  reordering Q2's four options (content unchanged, only array position) so
+  its correct answer moved to `b`. Final positions across the four
+  single-kind questions (Q1, Q2, Q4, Q5): `a`, `b`, `c`, `d` - four distinct
+  letters, re-verified after the fix. Full note in spec §10.
+- **A real Practical objective included**, per 1.1/1.2/1.4/1.5/1.8/1.9's
+  actual precedent (Process chapters do not get the Concept-only Practical
+  carve-out).
+- **Primary diagram is a decision tree (Mermaid), not a topology diagram**,
+  consistent with open decision #3 (1.6's Mermaid-as-topology exception is
+  narrow) and with 1.1/1.8/1.9's own precedent of using this shape for a
+  selection procedure.
+- **Cold open is a direct continuation of 1.9's own "Next" section**, which
+  named this exact moment in advance ("now the follow-ups start, and the
+  same 'name it, commit, defend without defensiveness' habit gets tested
+  live"). Not an invented connection - 1.9's own text predicted it, the same
+  pattern every chapter in this run of the ledger has used for its cold
+  open.
+- **Failure modes and Scaling omitted, not merged** (same choice 1.7-1.9
+  made). Optional for Process per §6; no system exists in this chapter to
+  fail or scale - the chapter teaches a judgment/communication skill applied
+  to systems whose actual failure/scaling behavior belongs to 1.6/1.7.
+- **The write-survives-a-restart gap (quiz Q4, and the lesson's applied
+  table) is deliberately left unsolved**, not glossed over or quietly
+  patched with an untaught mechanism - durability machinery is 3.20/3.26's
+  territory. `curriculumContext.notYetIntroducedConcepts` and
+  `simplifications` both record it, per §20.2's honesty requirement and
+  `pending-chapters.md`'s own open decision #10 (a simplification must be
+  stated in the prose, not just recorded in the list - this chapter does
+  both).
+- **One further-out forward tease, to 2.3 (§19's "at most one").** Checked
+  against every prior ledger entry: 3.4 (1.6), 2.2 (1.7), 3.22 (1.8), and
+  3.12 (1.9) are already spent; 2.3 (Evolution of Modern Architectures) is
+  unused. Chosen because 2.3's own purpose - the one-server-to-services
+  scaling story - is the direct continuation of this chapter's "evolve only
+  the piece that breaks" idea, applied repeatedly over time. Flagged in spec
+  §12 for a second reader to confirm the target.
+- **Dropbox (2016 move off Amazon S3) used as the production example** -
+  chosen specifically for a publicly defended trade-off under outside
+  skepticism, not for its storage architecture, which this curriculum never
+  explains. First appearance of Dropbox in this curriculum. Flagged in spec
+  §12 for a second reader to confirm this reads as the defense, not
+  implementation tourism.
+- **"Treating every follow-up as an accusation" stated on its own merit,
+  unattributed** - grepped every shipped lesson for related phrasing
+  ("adversary," "defensive," "caving," "self-correct") before finalizing and
+  found none of it taught yet, the same false-attribution check 1.9's own
+  entry performed for "deep-diving everything." See spec §9.
+- **"Connections + Preview of next" placed last in the file, after "Your
+  turn," not before "Recap."** Matches the standing convention every
+  chapter since 0.2 has actually shipped under (the combined section
+  carries both beat 14's connections and the separate mandatory "Preview of
+  next chapter" row) rather than treated as a fresh per-chapter choice.
+  Named explicitly in spec §4 so a second reader doesn't mistake it for a
+  beat-order violation.
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly at 1,227 words, proportionate to
+  1.8's and 1.9's own figures for the same 20-minute estimate. Flagged in
+  spec §12 rather than treated as settled, per every prior chapter's own
+  precedent for a self-assessed density claim.
+
+**Open note for a later pass (not resolved here):** the 2.3 forward-tease
+call above is the first time this curriculum has teased a Part 2 chapter
+from Part 1. Every prior further-out tease pointed into Part 3 (3.4, 3.12,
+3.22) or stayed within-part (2.2 from 1.7). If a future chapter's own
+forward tease also reaches across a Part boundary, this is worth confirming
+as an established pattern rather than assumed fine by default.
 
 ---
 
