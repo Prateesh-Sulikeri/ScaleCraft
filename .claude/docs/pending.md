@@ -1,9 +1,10 @@
 # Release 5.0.0-alpha — Content Platform
 
-Status: **build in progress - MDX pipeline and 3.4 Load Balancer content both
-merged into `release/v5.0.0-content-platform`; 3.4's MDX migration itself is
-now done on `feature/mdx-migrate-load-balancer` (not yet pushed); next is
-the walkthrough renderer** (see Build Log below). Compiled 2026-08-10/11 from
+Status: **build in progress - steps 1-2 (MDX pipeline, 3.4 MDX migration)
+merged into `release/v5.0.0-content-platform`; steps 3-4 (walkthrough
+renderer, Load Balancer walkthrough content) done and pushed on
+`feature/walkthrough-renderer`, awaiting merge; next is glossary and/or the
+quiz diagram-question upgrade** (see Build Log below). Compiled 2026-08-10/11 from
 `.claude/docs/ScaleCraft_Future_Roadmap.md`'s
 "Alpha 5.x — Content Platform" entry (two three-bullet brainstorm items: 5.0.0
 Content Update, 5.1.0 Diagram Topology Update), turned into something buildable
@@ -243,19 +244,80 @@ from the prior session, not a new unit of work).
   user explicitly deferred both (skipped full CI in favor of scoped
   checks; declined the browser smoke-test offer in favor of committing
   on green tests alone).
-- Committed to new branch `feature/mdx-migrate-load-balancer`, cut from
-  `release/v5.0.0-content-platform`. **Not pushed** - awaiting explicit
-  push permission per this session's convention.
+- Committed to `feature/mdx-migrate-load-balancer`, cut from
+  `release/v5.0.0-content-platform`, then pushed (explicit go-ahead) and
+  merged into `release/v5.0.0-content-platform` (explicit go-ahead, same
+  session-unblock pattern as the MDX pipeline merge above).
+
+### 2026-08-11 — Walkthrough renderer (`feature/walkthrough-renderer`, step 3 of the build order) - done, pushed, not yet merged
+
+New `src/chapters/walkthrough/` (`types.ts`, `Walkthrough.tsx`,
+`WalkthroughNodeCard.tsx`, `WalkthroughEdges.tsx`, `WalkthroughControls.tsx`,
+plus a smoke test) - the read-only, step-indexed spatial diagram planned
+above. Full design in a reviewed plan (`Plan` subagent + user approval
+before any code) - short version:
+
+- Hand-rolled SVG/CSS as planned, not React Flow. Node positions are
+  percentages (0-100) of the container, not canvas pixels - zero
+  measurement/ResizeObserver needed, responsive for free.
+- Generalizes `TourController.tsx`'s step-sequencing *idea* (index ->
+  highlight -> caption -> prev/next), not its implementation - local
+  `useState` only, no canvas-store/localStorage/watchdog dependency.
+- Node cards visually match `ComponentNode.tsx` (same icon/category-color
+  recipe via the shared `category-colors`/`icon-map` tokens) without its
+  live-canvas machinery. Highlight reuses `HIGHLIGHT_GOLD_RING` from
+  `selection-style.ts` directly - same semantic the live canvas's Highlight
+  Connections feature already uses, not a second color for the same idea.
+  Edge styling reuses `EDGE_COLOR_VAR`/`EDGE_DASH_ARRAY` as-is.
+- New `mdx-components.tsx` (separate from `markdown-components.tsx` - that
+  one's typed to react-markdown's `Components`, which can't hold a custom
+  JSX tag react-markdown never invokes) merged into `MdxContent.tsx`'s
+  `<Content components={...} />` call.
+- **Verified without a browser** (still none available this session):
+  `tsc`/`lint` clean, 5 new component tests pass, and a new
+  `compile-lesson-mdx.test.ts` case proves `<Walkthrough>` actually resolves
+  through the real compile -> run -> render path (not just that it parses).
+
+### 2026-08-11 — Load Balancer walkthrough content (step 4 of the build order) - done, pushed, not yet merged
+
+Real 5-step walkthrough embedded in `bb-3-4-load-balancer.mdx`, right after
+the existing "two edge kinds" paragraph (additive - the static mermaid
+diagram stays, this reinforces it interactively rather than replacing it):
+client request -> LB already knows both instances are healthy (health
+checks) -> round-robin picks App Server 1 -> App Server 1 answers -> next
+request rotates to App Server 2. `lessonVersion` 2 -> 3 (client cache
+freshness convention). Component/edge ids match the chapter's existing
+mermaid diagram 1:1.
+
+- **Verified without a browser:** a scratch script (not committed) rendered
+  the real chapter file through the exact compile -> run -> render path
+  `MdxContent.tsx` uses, confirming step 1's exact caption text, the "Step 1
+  of 5" counter, and all four node labels (Client/Load Balancer/App Server
+  x2) render correctly. The two other caption strings it checked came back
+  "missing" as expected, not a bug - a static render only ever shows the
+  initial step (step 1); steps 2-5 only appear after a real Next click,
+  which needs an actual browser.
+
+**Branch state:** `feature/mdx-pipeline` and `feature/lesson-3-4-load-balancer`
+both merged into `release/v5.0.0-content-platform`.
+`feature/mdx-migrate-load-balancer` also merged into
+`release/v5.0.0-content-platform`, then that updated release branch was
+merged into `feature/walkthrough-renderer` so its content-authoring step
+(which needed the `.mdx` file) could build on top - `feature/walkthrough-
+renderer` itself (renderer + content, two commits) is pushed but **not yet
+merged** into the release branch, awaiting review.
 
 **Next session, pick up here:**
-1. Push `feature/mdx-migrate-load-balancer` (needs explicit go-ahead first).
-2. Before trusting the MDX render further: a real-browser smoke test of the
-   3.4 chapter page was never done for either the pipeline infra or this
-   migration - worth doing before building the walkthrough renderer on top.
-3. Full CI pipeline still hasn't run against any of this - do it before the
-   walkthrough renderer work if risk tolerance changes.
-4. Then: walkthrough renderer (task 3) - new SVG/CSS spatial component,
-   generalized from `TourController`, per the Final Plan above.
+1. Merge `feature/walkthrough-renderer` into `release/v5.0.0-content-platform`
+   (needs explicit go-ahead/manual review first, per the usual convention).
+2. A real-browser visual/interactive smoke test of the walkthrough (Prev/
+   Next clicks, arrow keys, highlight/dim transitions) has never been done -
+   only non-browser render checks so far. Worth doing before the glossary or
+   quiz-diagram-upgrade steps build on this further.
+3. Full CI pipeline (`tsc && lint && vitest && build`) still hasn't run
+   against the full merged tree.
+4. Then, per the build order: glossary (parallel, independent track) and/or
+   quiz `diagram` questions upgraded to this renderer.
 
 ---
 
