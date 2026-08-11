@@ -428,6 +428,13 @@ these, that diagram is mandatory, not optional:
   the Reader's markdown.
 - One **primary diagram** per chapter (beat 5), introduced before its explanation.
   Supporting diagrams appear at their beat (failure diagrams in beat 9, etc.).
+- **A chapter draws a given topology exactly once.** If the same nodes/edges
+  benefit from stepping through (a request tracing a path, an algorithm
+  choosing between instances), author it as a `<Walkthrough>` (see
+  `src/chapters/walkthrough/`); otherwise author it as a static diagram
+  (Mermaid or graph JSON per the rule above). Never both a static diagram and
+  a `<Walkthrough>` for the same topology in the same chapter - the second
+  one is a maintenance liability, not reinforcement.
 - Every diagram has a one-line caption stating what to notice ("note: the replica
   edge points FROM primary TO replica - writes never flow the other way").
 - Diagram progression across a chapter should tell the scaling story: start minimal,
