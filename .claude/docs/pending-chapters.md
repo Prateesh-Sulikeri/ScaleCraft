@@ -2273,8 +2273,116 @@ judgment call, not a rule any test enforces.
   reviewer to check against padding, though the word-count comparison above
   is at least a rough sanity check.
 
-**Not yet run: Opus proofread pass.** This is a Sonnet draft only - stop
-here per the skill's contract; the user reads this draft first.
+**Opus proofread pass (2026-08-11) - run, six changes, uncommitted.**
+
+Scope: content, content-structure, blueprints, component lists, submit
+validations, diagrams. Quiz, hints and the `problemStatement` /
+`learningObjectives` / `curriculumContext` fields were out of scope and are
+untouched. No CI/typecheck/lint/test/build run (content-only pass). Full
+detail in the chapter spec's new §13.
+
+*Changed* (`lessonVersion` 1 -> 2, spec §13 lists all six):
+
+1. **The `control`-edge gap was disclosed to the AI but not to the learner.**
+   `curriculumContext.simplifications` is consumed only by `src/ai/prompt.ts`
+   (the Deep Check prompt) - it is never rendered in the Reader. So the draft
+   taught `control` edges, drew them dashed in the diagram, said "the load
+   balancer pings each instance over a `control` edge", and gave the learner
+   nothing about their being unbuildable. A learner who tried to draw one
+   would have hit a `component-relations` error with no explanation. §20.2
+   requires the honest statement in the prose *and* the `simplifications`
+   entry, not either/or. Two sentences added under the diagram caption. This
+   was the pass's strongest finding, and it generalises: **any future
+   chapter recording a limitation only in `simplifications` has disclosed it
+   to nobody who can read.**
+2. Diagram caption taught the picture as the mechanism ("losing a `control`
+   edge takes it out of rotation"). A failed health check does that; the edge
+   does not vanish. Corrected.
+3. Cloudflare example rewritten to §13's who / why / when / trade-off format.
+   "Cloudflare's core product is this exact pattern" is an overclaim (its
+   core is a global edge network; load balancing is a product it sells), and
+   "route each request to a healthy *nearby* server" smuggled in geographic
+   steering, which this chapter never teaches. **The ledger's own guard held
+   only halfway:** picking Cloudflare did avoid an internal-architecture
+   claim, but the sentence still overclaimed and skipped three quarters of
+   §13's format. Replacement is a public-product decision claim, ties
+   least-outstanding-requests back to least-connections, and names the
+   trade-off (a third party in front of every request).
+4. "Add a second app-server instance" was ambiguous against the product:
+   `app-server` has a literal `instances` config field, and
+   `single-instance-load-balancer` sums it - so bumping it to 2 clears the
+   warning, yields a clean Validate, then fails Submit with "Missing:
+   Application Server" while an Application Server is visibly on canvas.
+   Hint 2 disambiguated, but hints are never auto-surfaced. Brief now says
+   "a second box, not a higher Instances count".
+5. Cold-open restatement cut (§20.6) - paragraph 1's "something still has to
+   decide which instance gets each request" was restated whole by paragraph
+   2. Kept the stronger one.
+6. "the same cargo-cult shape the lesson just named" pointed at nothing -
+   "cargo cult" is §14's phrase, not the lesson's. Repointed at the "Common
+   mistakes" bullet that does name it.
+
+*Verified against the two documented judgment calls:*
+
+- **Vocabulary boundary (call 1) holds.** No reverse-proxy / DNS / firewall /
+  API-gateway vocabulary anywhere, including in teases. "instance", "single
+  point of failure" and "hop" all appear in 1.6's body first; "loop step 4
+  (0.4)" matches both 1.6's identical attribution and §14's "steps 4, 6";
+  `round-robin` / `least-connections` are the `load-balancer` config field's
+  literal option strings. `manifest.ts` read but not edited.
+- **`control` gap (call 2) is real and correctly diagnosed.** Re-checked the
+  registry directly: `load-balancer.relations.outputs.allowedKinds` and
+  `app-server.relations.inputs.allowedKinds` are both `["request-flow"]`.
+  The diagram-only treatment is a legitimate disclosed limitation - it just
+  was not actually disclosed anywhere the learner could see it, until now.
+
+*Verified and left alone:* blueprint is a single honest `require` (one right
+shape; a second would be invented variety), `commentary` is debrief-only, and
+the starter graph provably cannot satisfy it - `pattern.ts` binds aliases
+injectively, so one `app-server` node can never fill both `app1` and `app2`.
+The ledger's "under-provisioned, not mis-wired" claim holds: every starter
+edge passes `component-relations`. Component lists match §16. All six
+`validationRuleIds` resolve in `src/validation-engine/rules/index.ts`.
+
+*Three structural omissions were undeclared and are now declared in spec §4
+(§6 requires written justification, and silence is the thing §6 forbids):*
+the "Preview of next chapter" section previews 3.8 rather than the manifest's
+actual next chapter 3.5 (justified - §0.1 forbids the vocabulary, §19 allows
+one tease, §14's own 3.4 row names 3.8); §12's nugget devices are absent
+again; and §14's 3.4 row promises "build + config + trace" against a
+build/fix-only chapter.
+
+*Spec fact corrected:* the word-count comparison was wrong in both places -
+this ledger said 1.6 was 1,209 words and the spec said 950; `wc -w` gives
+**1,279**. The draft was therefore never long relative to 1.6, it was
+slightly thinner per minute. Post-pass body is 1,333 words for 35 minutes vs.
+1.6's 1,279 for 30 - proportionate. **Do not carry the 950/1,209 figures
+forward into another chapter's density comparison.**
+
+**New open notes raised by this pass** (numbered items below where they need
+a decision; recorded here where they are just observations):
+
+- **`single-instance-load-balancer` is severity `warning`, and
+  `runChapterValidation` derives `passed` from `errorCount` alone.** The
+  starter graph passes Validate structurally while listing one issue. The
+  exercise still works (`QuestionPane` counts every violation above `note`,
+  so the learner reads "Last validated: 1 issue" and the header pane carries
+  the full explanation, and Submit holds the line via the blueprint), but it
+  works differently from 1.6, whose fault was error-severity and failed
+  Validate outright. Not changed - severity is engine work with
+  cross-chapter reach. Worth a deliberate call: should a chapter's *namesake
+  fault* ever be warning-severity?
+- **Blueprint-drift copy is confusing for a duplicate-node blueprint.**
+  Failing Submit with one `app-server` present reports "Missing:
+  Application Server" while an Application Server is on the canvas. Correct
+  in engine terms (the second alias is unbound), misleading in learner
+  terms. Engineering note, first surfaced by this chapter because it is the
+  first blueprint requiring two nodes of one component.
+- **Resolved 2026-08-11 (post-audit, user-directed):** `problemStatement`
+  re-synced with the "Your turn" brief - now reads "Add a second App Server
+  to the canvas - a second box, not a higher Instances count on the one
+  already there," matching change 4 above instead of the stale "add a second
+  app-server instance" wording.
 
 ---
 
@@ -2372,6 +2480,13 @@ doc edit or a build decision.
    enough that the nuggets would actually earn their placement: either author
    them from 3.4 on, or amend §12 to make them optional for short Part 0/1
    chapters. Raised by the Opus pass on 0.2.
+   **The trigger fired, 2026-08-11.** 3.4 is the first Part 3 chapter
+   authored and it has no nuggets either. The Opus pass declared the omission
+   in 3.4's spec §4 rather than authoring three boxed one-liners into one
+   chapter and leaving every neighbour without them - a device with a "fixed
+   placement so learners build rhythm" cannot start mid-curriculum in a
+   single chapter. Still needs the call this decision has always asked for,
+   now overdue rather than upcoming.
 
 6. **§4's chapter-types table lists 1.3 as a Concept-type example, contradicting
    §14's own Part 1 header ("Process type" for the whole part, 1.1-1.11, no
@@ -2400,6 +2515,13 @@ doc edit or a build decision.
    beats become quiz questions) rather than treating it as a new problem -
    see 1.7's own ledger entry and spec §0. Still not resolved: this is now
    two chapters' worth of evidence for the same "decide once" call.
+   **Third instance, 2026-08-11.** §14's 3.4 row promises "build + config +
+   trace"; 3.4 ships build/fix only. The config beat degraded to lesson +
+   quiz deliberately (both algorithms are defensible, so there is no correct
+   config value to gate on - that one is a genuine content call, not a
+   missing simulator); the trace beat hit the same wall as 1.6 and 1.7.
+   Declared in 3.4's spec §4 by the Opus pass. Three chapters, one decision,
+   still deferred.
 
 8. **`control`-kind edges aren't buildable on canvas - a real engine gap,
    found authoring 3.4 (2026-08-11).** CURRICULUM §16 assigns 3.4 as
@@ -2446,6 +2568,38 @@ doc edit or a build decision.
    shouldn't - 3.4 never assumes 3.3's content, it just doesn't currently
    require it either - but worth a second look when Group A lands rather than
    assumed fine).
+
+10. **`curriculumContext.simplifications` is not a disclosure surface -
+    raised by the Opus pass on 3.4 (2026-08-11).** It is read by exactly one
+    consumer, `src/ai/prompt.ts`, which folds it into the Deep Check prompt.
+    Nothing renders it in the Reader. Every chapter authored so far has
+    treated "recorded in `simplifications`" as discharging §20.2's honesty
+    requirement; §20.2 actually asks for the simplification to be stated in
+    the prose *and* recorded in the list. 3.4 was the first chapter where
+    that mattered concretely (it taught an edge kind the canvas rejects), so
+    it got a two-sentence in-lesson disclosure. **Blocks:** nothing, but
+    every existing chapter's `simplifications` list is worth re-reading with
+    "would a learner ever notice this, and if so, does the lesson say it?"
+    in mind. Either that becomes an authoring-checklist line, or the Reader
+    grows a real surface for it.
+
+11. **Should a chapter's namesake fault ever be warning-severity? Raised by
+    the Opus pass on 3.4 (2026-08-11).** `single-instance-load-balancer` is
+    `severity: "warning"`, and `runChapterValidation` computes `passed` from
+    `errorCount` alone - so 3.4's starter graph *passes* Validate while
+    listing one issue, where 1.6's error-severity fault failed Validate
+    outright. The chapter still works (the issue and its full explanation
+    both render, and Submit gates on the blueprint), but two chapters now
+    teach "run Validate, fix what it says" with structurally different
+    feedback. **Blocks:** nothing. Needs a call before more Part 3 chapters
+    build exercises on warning-severity rules: either accept the two shapes
+    and word transition briefs accordingly, or let a chapter promote its own
+    namesake rule's severity. Engine change, not content - deliberately not
+    touched during a content pass.
+    Related engine note from the same pass: blueprint drift reports "Missing:
+    Application Server" when a blueprint needs two nodes of one component and
+    the learner has one, which reads as false to the learner. First surfaced
+    here because 3.4 is the first blueprint requiring a duplicate node.
 
 ---
 

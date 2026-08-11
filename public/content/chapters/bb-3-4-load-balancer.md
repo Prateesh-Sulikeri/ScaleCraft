@@ -1,9 +1,8 @@
 1.6 left you with one app-server instance and a warning: at 100x traffic it
 runs out of headroom, and adding a second instance doesn't solve anything by
-itself - something still has to decide which instance gets each request. You
-now have that traffic. You add a second instance. Nothing routes between
-them. Half your clients still point at the first server by habit, the second
-sits idle, and the first is exactly as overloaded as before.
+itself. You now have that traffic. You add a second server. Nothing routes
+between them - clients still address the first one, the second sits idle,
+and the first is exactly as overloaded as before.
 
 Two identical servers are not a scaling win until something distributes
 requests across them and stops sending traffic to one that's stopped
@@ -34,10 +33,15 @@ flowchart LR
   A2 -->|"request-flow"| D
 ```
 
-Note: two edge kinds, not one. The solid `request-flow` edges carry actual
-requests; the dashed `control` edges are the load balancer checking each
-instance is still alive. Losing a `control` edge to an instance takes it out
+Note: two edge kinds, not one. The solid `request-flow` edges carry real
+requests; the dashed `control` edges carry health checks - liveness
+questions, not user traffic. A failed health check takes that instance out
 of rotation without touching the request path to the other one.
+
+Health-check edges are conceptual in this chapter. The canvas does not yet
+accept a `control` edge between a load balancer and an app server, so the
+graph you build later uses `request-flow` edges only. The health checking is
+real in production; drawing it on canvas is not part of this chapter.
 
 ## Picking an instance, and knowing who's alive
 
@@ -90,10 +94,14 @@ between "degraded" and "down" during a bad deploy.
 
 ## In production
 
-Cloudflare's core product is this exact pattern, run at global scale: route
-each request to a healthy nearby server, and pull sick ones out of rotation
-automatically, across millions of domains at once. The underlying decision
-is the same one this chapter teaches - the scale is just enormous.
+Cloudflare sells load balancing as a product: you point one hostname at it,
+list your origin servers, and it distributes requests across them while
+health checks pull failed origins out of rotation. One of its steering
+policies is least-outstanding-requests - the same idea as least-connections
+above, under a different name. Customers buy it to make the previous
+section's problem someone else's: keeping the load balancer itself redundant
+becomes the provider's job. The trade-off is that a third party now sits in
+front of every request you serve, so their outage is your outage.
 
 ## Common mistakes
 
@@ -139,10 +147,11 @@ than treat it as unkillable."*
 ## Your turn
 
 The starter graph has one load balancer routing to a single app-server
-instance - the same cargo-cult shape the lesson just named: a load balancer
-over one backend balances nothing. Run Validate, read what it reports, and
-use that to decide what's missing. Add a second app-server instance, wire it
-the same way the first one is wired, get a clean Validate, then Submit.
+instance - the shape "Common mistakes" opens with: a load balancer over one
+backend balances nothing. Run Validate, read what it reports, and use that to
+decide what's missing. Add a second App Server to the canvas - a second box,
+not a higher Instances count on the one already there - and wire it the way
+the first one is wired. Get a clean Validate, then Submit.
 
 ## Next
 

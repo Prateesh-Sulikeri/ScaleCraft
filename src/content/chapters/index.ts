@@ -4279,8 +4279,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     problemStatement:
       "The starter graph has one load balancer routing to a single app-server instance - a load " +
       "balancer over one backend balances nothing. Run Validate, read what it reports, and use that " +
-      "to decide what's missing. Add a second app-server instance, wire it the same way the first " +
-      "one is wired, get a clean Validate, then Submit.",
+      "to decide what's missing. Add a second App Server to the canvas - a second box, not a higher " +
+      "Instances count on the one already there - wire it the same way the first one is wired, get " +
+      "a clean Validate, then Submit.",
     // Six objectives (§5.2 allows 3-7): all five required categories, plus a
     // second Engineering objective for the algorithm trade-off. Category
     // tags live in the spec (specs/bb-3-4-load-balancer.spec.md §2).
@@ -4361,7 +4362,19 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
     readingLinks: [],
     // 1: Sonnet draft (2026-08-11).
-    lessonVersion: 1,
+    // 2: Opus proofread pass (2026-08-11). Disclosed the control-edge engine
+    // gap in the lesson body itself (§20.2 requires the honest statement in
+    // the prose, not only in curriculumContext.simplifications, which only
+    // ever reaches the Deep Check prompt), fixed the diagram caption's
+    // "losing a control edge" mechanic (a failed check removes an instance,
+    // the edge doesn't vanish), rewrote the Cloudflare example to §13's
+    // who/why/when/trade-off format (the "core product" framing was an
+    // overclaim and "nearest healthy server" smuggled in untaught geo
+    // routing), disambiguated "add a second instance" from the app-server
+    // Instances config field (bumping it satisfies the rule but not the
+    // blueprint), removed a cold-open restatement (§20.6), and corrected a
+    // dangling "cargo-cult" self-reference. See spec §13.
+    lessonVersion: 2,
     curriculumContext: {
       position:
         "Building Blocks, Group A: Core Infrastructure - Chapter 3.4 of 44 (pulled forward per " +
