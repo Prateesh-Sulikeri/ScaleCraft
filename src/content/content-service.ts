@@ -7,6 +7,8 @@ import type { ChapterDefinition } from "./chapters/types";
 import { componentRegistry, getComponent as getComponentDefinition } from "./components/registry";
 import { getComponentDocsEntry } from "./components/manifest";
 import type { ComponentDefinition } from "./components/types";
+import { getGlossaryTerm as getGlossaryTermDefinition } from "./concepts/registry";
+import type { GlossaryTermDefinition } from "./concepts/types";
 
 /**
  * The one API surface UI code goes through for curriculum/component content
@@ -25,6 +27,12 @@ export function getChapter(id: string): ChapterDefinition | undefined {
  * consuming UI only needs one import. */
 export function getComponent(id: string): ComponentDefinition | undefined {
   return getComponentDefinition(id);
+}
+
+/** Same lookup as content/concepts/registry.ts's `getGlossaryTerm` - re-exposed
+ * here so content-consuming UI only needs one import. */
+export function getGlossaryTerm(id: string): GlossaryTermDefinition | undefined {
+  return getGlossaryTermDefinition(id);
 }
 
 /** A chapter's Chapter Reader body, fetched and cached client-side. Returns
@@ -53,7 +61,7 @@ export type ContentSearchResult =
  * Plain case-insensitive substring match over chapter title/problemStatement
  * and component label/summary - no UI wires this up yet (no search box
  * exists), same "build the primitive ahead of its consumer" pattern Phase 1
- * used for the empty examples/glossary/images content directories. Scoped to
+ * used for the empty examples/images content directories. Scoped to
  * built-in `componentRegistry`, not user-created custom components - those
  * are per-project data, not versioned content.
  */

@@ -4379,7 +4379,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     // step 4) after the "two edge kinds" paragraph.
     // v4: walkthrough v2 - new fixed-viewBox coordinates, plus a
     // round-robin/least-connections algorithm toggle with per-step variants.
-    lessonVersion: 4,
+    // v5: wrapped round-robin's first mention in a <Ref> glossary reference
+    // (Release 5.0.0-alpha glossary pilot).
+    lessonVersion: 5,
     // Migrated to MDX (Release 5.0.0-alpha step 2 of the build order, see
     // pending.md) - first chapter to move off the legacy react-markdown
     // path. Lesson body: public/content/chapters/bb-3-4-load-balancer.mdx.

@@ -1,6 +1,6 @@
 {
   "name": "scalecraft",
-  "version": "4.1.1-alpha",
+  "version": "5.0.0-alpha",
   "private": true,
   "scripts": {
     "dev": "next dev",

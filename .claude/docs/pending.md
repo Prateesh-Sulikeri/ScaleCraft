@@ -1,11 +1,15 @@
 # Release 5.0.0-alpha — Content Platform
 
-Status: **steps 1-4 (MDX pipeline, 3.4 MDX migration, walkthrough renderer,
-Load Balancer walkthrough content) plus the 5.1.0-alpha diagram pipeline are
-all merged into `staging/v5.0.0-content-platform` (branch renamed from
-`release/v5.0.0-content-platform` 2026-08-11, see Branch Remediation below);
-next is glossary and/or the quiz diagram-question upgrade** (see Build Log
-below). Compiled 2026-08-10/11 from
+Status: **Engineering work for this release is complete. Steps 1-4 (MDX
+pipeline, 3.4 MDX migration, walkthrough renderer, Load Balancer walkthrough
+content) plus the 5.1.0-alpha diagram pipeline are merged into
+`staging/v5.0.0-content-platform` (branch renamed from
+`release/v5.0.0-content-platform` 2026-08-11, see Branch Remediation below).
+Glossary pilot (`feature/glossary`) is built, CI-green, and pushed - next is
+merging it into staging. The quiz `diagram`-question upgrade (the build
+order's last item) is deferred indefinitely, user call - too much rework for
+too little benefit. Version bumped to `5.0.0-alpha`, release notes written**
+(see Build Log below). Compiled 2026-08-10/11 from
 `.claude/docs/ScaleCraft_Future_Roadmap.md`'s
 "Alpha 5.x — Content Platform" entry (two three-bullet brainstorm items: 5.0.0
 Content Update, 5.1.0 Diagram Topology Update), turned into something buildable
@@ -342,10 +346,89 @@ should reach `release/*` without being tested first. Remediation:
   pipeline, both confirmed done by the user this session (previously the
   open gap - see prior entries above).
 
+### 2026-08-11 - Glossary pilot (`feature/glossary`, build order item 4) - done, CI-green, not yet pushed
+
+Reviewed plan (2 Explore + 1 Plan subagent, user-approved before any code),
+then implemented exactly as planned:
+
+- **Data model**: `GlossaryTermDefinition` (`src/content/concepts/types.ts`)
+  - inline `body: string`, no `docsFile`/version machinery. Spec caps
+    content at "short reference snippets," well below the scale that would
+    justify the fetch/cache overhead `ComponentDefinition.docsFile` exists
+    for. No `category` field either - nothing in the spec asks for
+    category-color badging, and the two example terms don't map onto
+    `ComponentCategory` cleanly.
+- **Barrel**: `src/content/concepts/registry.ts` - flat array (matches
+  `componentRegistry`'s barrel role), `buildGlossaryRegistry` throws on a
+  duplicate id at load time, `getGlossaryTerm(id)`. Re-exposed through
+  `content-service.ts` mirroring the existing `getComponent` passthrough
+  exactly. First real term: `round-robin`.
+- **`<Ref>` component** (`src/chapters/glossary/Ref.tsx`): renders an
+  inline `<button>` (not a block element - sits mid-paragraph), built on
+  the existing Radix `Popover`/`PopoverContent`/`PopoverArrow` primitives
+  (`src/components/ui/popover.tsx`), `PopoverPrimitive.Trigger` imported
+  directly per that file's own documented composition pattern. Tap-to-open
+  is a controlled `tapOpen` boolean; hover-preview is a second `hovering`
+  boolean gated by a new `usePointerHover()` hook
+  (`src/chapters/glossary/use-pointer-hover.ts`, `matchMedia("(hover:
+  hover)")` + `useSyncExternalStore`, mirrors `use-large-screen.ts`'s
+  pattern) with a 150ms close delay so crossing from trigger to content
+  doesn't drop the popover mid-transition. Unknown id: renders children
+  plain, dev-only `console.warn`, never throws.
+- **MDX wiring**: `Ref` added to `mdxComponents`
+  (`mdx-components.tsx`) - that file's own doc comment already named
+  `<Ref>` as the next tag to land here. Confirmed (and covered by a new
+  test) that MDX resolves `<Ref>` correctly **inline, mid-paragraph**, not
+  just as a standalone block the way `<Walkthrough>` is always used.
+- **Real content**: one line in `bb-3-4-load-balancer.mdx` wrapping
+  round-robin's first defining mention only (not every later recurrence,
+  matches "authored explicitly per mention"). `lessonVersion` 4 -> 5.
+- **Scope boundary found and documented, not worked around**: `<Ref>` only
+  resolves in `lessonFormat: "mdx"` chapters - confirmed
+  `bb-3-4-load-balancer` is still the *only* chapter on that path. Quiz
+  prompts/hints and every other chapter's lesson body render through plain
+  `react-markdown` (`markdownComponents`), which can never invoke a custom
+  JSX tag. Not a bug - falls directly out of the already-agreed incremental
+  MDX migration. `<Ref>` in a Quiz hint or a `.md` chapter will just no-op
+  today; revisit once those surfaces migrate to MDX (separate, unscoped
+  work).
+- **Verified:** `tsc --noEmit`, `eslint`, full `vitest run` (199 files/1715
+  tests, 20 new), `next build` all clean. No dev lab page built (per
+  precedent - labs exist only for JSON/graph-shaped authoring surfaces,
+  plain Markdown has no analogous friction). No auto-linking, no sandbox
+  wiring, no full curriculum-wide glossary content pass - all explicitly
+  out of scope per the reviewed plan.
+- Branched as `feature/glossary` off `staging/v5.0.0-content-platform`
+  (see Branch Remediation entry above for why that's `staging/*` and not a
+  real `release/*` branch). Not yet pushed/merged - next session.
+
+### 2026-08-11 - Quiz diagram-question upgrade deferred; release notes + version bump
+
+User call: the quiz `diagram`-question upgrade (last build-order item -
+swapping `ReadOnlyGraphSummary`'s plain-text list for the spatial
+walkthrough renderer) is **deferred indefinitely** - too much rework for
+too little benefit relative to the rest of this release. Not scoped for a
+future release either; revisit only if a concrete need resurfaces (e.g. a
+quiz author specifically wants spatial diagram questions). The `custom`-node
+kind for internal-mechanism diagrams (Kafka etc.) stays deferred as it
+already was, same "follow-up, not required" status.
+
+Release notes (`src/content/release-notes.ts`) and version bump written for
+what's actually shipping: MDX pipeline, 3.4 Load Balancer real content,
+walkthrough renderer, diagram auto-layout pipeline, glossary pilot.
+`VERSION`/`package.json`/`package-lock.json` bumped `4.1.1-alpha` ->
+`5.0.0-alpha` (`npm version --no-git-tag-version`, matches the "major bump"
+decision confirmed during scoping). Full CI (`tsc`, `lint`, 1715 tests,
+`next build`) clean after the bump.
+
 **Next session, pick up here:**
-1. Per the build order: glossary (parallel, independent track) and/or
-   quiz `diagram` questions upgraded to the walkthrough renderer.
-2. When ready to cut a real `release/v5.0.0-content-platform` from
+1. Merge `feature/glossary` into `staging/v5.0.0-content-platform` (full CI
+   already green) and push.
+2. Real-browser check of `<Ref>` (never done this session, no browser
+   available): click/tap opens the popover, hover opens it on a
+   mouse-capable device only, Escape/outside-click dismisses.
+3. Release 5.0.0-alpha's engineering work is otherwise complete. When ready
+   to cut a real `release/v5.0.0-content-platform` from
    `staging/v5.0.0-content-platform`, that's the user's action, not
    Claude's.
 

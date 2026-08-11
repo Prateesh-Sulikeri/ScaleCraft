@@ -3,6 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import {
   getChapter,
   getComponent,
+  getGlossaryTerm,
   search,
   useChapterLesson,
   useComponentDocs,
@@ -30,6 +31,16 @@ describe("getComponent", () => {
 
   it("returns undefined for an unknown id", () => {
     expect(getComponent("not-a-real-component")).toBeUndefined();
+  });
+});
+
+describe("getGlossaryTerm", () => {
+  it("finds a known glossary term by id", () => {
+    expect(getGlossaryTerm("round-robin")?.title).toBe("Round Robin");
+  });
+
+  it("returns undefined for an unknown id", () => {
+    expect(getGlossaryTerm("not-a-real-term")).toBeUndefined();
   });
 });
 
