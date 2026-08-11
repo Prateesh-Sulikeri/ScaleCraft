@@ -4272,7 +4272,8 @@ export const chapterRegistry: ChapterDefinition[] = [
     // Real authored curriculum content (Wave 2, pulled forward per
     // pending-content.md, replacing the bb-dummy-1 placeholder). Spec:
     // specs/bb-3-4-load-balancer.spec.md. Lesson body:
-    // public/content/chapters/bb-3-4-load-balancer.md.
+    // public/content/chapters/bb-3-4-load-balancer.mdx (MDX since the
+    // Release 5.0.0-alpha migration - see lessonFormat below).
     // Pulled-forward exception (see spec §0): this chapter's real
     // prerequisite (3.3 Reverse Proxy) isn't authored yet - manifest.ts's
     // prerequisiteSlugs points at 1-9 instead until Group A lands.
@@ -4375,6 +4376,10 @@ export const chapterRegistry: ChapterDefinition[] = [
     // blueprint), removed a cold-open restatement (§20.6), and corrected a
     // dangling "cargo-cult" self-reference. See spec §13.
     lessonVersion: 2,
+    // Migrated to MDX (Release 5.0.0-alpha step 2 of the build order, see
+    // pending.md) - first chapter to move off the legacy react-markdown
+    // path. Lesson body: public/content/chapters/bb-3-4-load-balancer.mdx.
+    lessonFormat: "mdx",
     curriculumContext: {
       position:
         "Building Blocks, Group A: Core Infrastructure - Chapter 3.4 of 44 (pulled forward per " +
