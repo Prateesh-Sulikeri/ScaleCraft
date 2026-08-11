@@ -1,9 +1,9 @@
 # Release 5.0.0-alpha — Content Platform
 
-Status: **build in progress - MDX pipeline and 3.4 Load Balancer content
-(Sonnet draft + Opus proofread pass) both merged into
-`release/v5.0.0-content-platform`; next is the full CI pipeline, then the
-actual MDX migration of 3.4** (see Build Log below). Compiled 2026-08-10/11 from
+Status: **build in progress - MDX pipeline and 3.4 Load Balancer content both
+merged into `release/v5.0.0-content-platform`; 3.4's MDX migration itself is
+now done on `feature/mdx-migrate-load-balancer` (not yet pushed); next is
+the walkthrough renderer** (see Build Log below). Compiled 2026-08-10/11 from
 `.claude/docs/ScaleCraft_Future_Roadmap.md`'s
 "Alpha 5.x — Content Platform" entry (two three-bullet brainstorm items: 5.0.0
 Content Update, 5.1.0 Diagram Topology Update), turned into something buildable
@@ -205,10 +205,57 @@ and `src/content/chapters/specs/bb-3-4-load-balancer.spec.md`; short version:
    against the merged `release/v5.0.0-content-platform` branch yet - run
    before trusting this further (content-only changes plus the MDX
    infrastructure merge, low risk individually, but worth the check
-   combined).
-2. Only then: migrate 3.4 to MDX (task 2) - real content is now available
-   to migrate against, on the release branch, with both prerequisite
-   branches merged in.
+   combined). Skipped explicitly this session at the user's request in
+   favor of scoped checks (see below).
+2. Walkthrough renderer (task 3 of the build order) is next - the 3.4
+   MDX migration it depends on is now done (see Build Log entry below).
+
+### 2026-08-11 — 3.4 migrated to MDX (`feature/mdx-migrate-load-balancer`, step 2 of the build order) - done, not yet pushed
+
+Also found and committed separately first: 4 files (`HomeCanvas.test.tsx`,
+`content/chapters/index.test.ts`, `index.ts`, `content-service.test.ts`) had
+been left uncommitted from the prior session's `bb-dummy-1` -> 
+`bb-3-4-load-balancer` reference cleanup - `bb-dummy-1` was already gone from
+the registry, these were stale test/comment references. Committed directly
+to `release/v5.0.0-content-platform` (small, mechanical, pre-existing work
+from the prior session, not a new unit of work).
+
+- `public/content/chapters/bb-3-4-load-balancer.md` renamed to `.mdx`
+  (`git mv`, tracked as a rename).
+- `ChapterDefinition.lessonFormat: "mdx"` set on the `bb-3-4-load-balancer`
+  entry in `content/chapters/index.ts`. `ChapterReader.tsx` already gated
+  `useChapterLesson`/`useChapterLessonMdx` on this field from the pipeline
+  work - no reader-side changes needed.
+- `authoring-invariants.test.ts`'s "every authored chapter has a lesson
+  body" check hardcoded `.md` - fixed to check `.mdx` when
+  `lessonFormat === "mdx"`, `.md` otherwise (the first real chapter to
+  exercise that branch).
+- **Verified:** real MDX compile of the migrated file via `@mdx-js/mdx`
+  directly (not just the round-trip fixture test) - no JSX/expression
+  syntax collisions in the lesson prose (checked; content is plain
+  Markdown, no raw angle brackets or unescaped braces outside the mermaid
+  code fence, which MDX treats as literal text). `tsc --noEmit` clean.
+  Scoped `vitest` clean across `compile-lesson-mdx`,
+  `use-chapter-lesson-mdx`, `content-service`, `chapters/index`,
+  `authoring-invariants`, `ChapterReader`, `ChapterWorkspace`, and all of
+  `src/content` (114+40 tests). Full pipeline (lint, build, full vitest
+  run) and a real-browser visual smoke test **not done this session** -
+  user explicitly deferred both (skipped full CI in favor of scoped
+  checks; declined the browser smoke-test offer in favor of committing
+  on green tests alone).
+- Committed to new branch `feature/mdx-migrate-load-balancer`, cut from
+  `release/v5.0.0-content-platform`. **Not pushed** - awaiting explicit
+  push permission per this session's convention.
+
+**Next session, pick up here:**
+1. Push `feature/mdx-migrate-load-balancer` (needs explicit go-ahead first).
+2. Before trusting the MDX render further: a real-browser smoke test of the
+   3.4 chapter page was never done for either the pipeline infra or this
+   migration - worth doing before building the walkthrough renderer on top.
+3. Full CI pipeline still hasn't run against any of this - do it before the
+   walkthrough renderer work if risk tolerance changes.
+4. Then: walkthrough renderer (task 3) - new SVG/CSS spatial component,
+   generalized from `TourController`, per the Final Plan above.
 
 ---
 
