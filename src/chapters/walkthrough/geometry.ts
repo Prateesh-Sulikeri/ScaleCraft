@@ -96,3 +96,41 @@ export function computeEdgeGeometry(nodes: WalkthroughNode[], edges: Walkthrough
 
   return pathById;
 }
+
+/** The four control points of a single cubic bezier, in viewBox units. */
+export type CubicSegment = { p0: XY; p1: XY; p2: XY; p3: XY };
+
+/**
+ * Reads the control points back out of a `getBezierPath` result, which is
+ * always exactly one cubic ("M sx,sy C c1x,c1y c2x,c2y tx,ty") - so eight
+ * numbers in order is the whole path, and the packet's position can be
+ * computed arithmetically.
+ *
+ * Deliberately arithmetic rather than `SVGGeometryElement.getPointAtLength`:
+ * that needs a mounted, laid-out DOM node (unavailable during the first
+ * paint and unimplemented in jsdom), while this is a pure function the tests
+ * can exercise directly.
+ */
+export function parseCubic(d: string): CubicSegment | null {
+  const numbers = d.match(/-?\d*\.?\d+(?:e-?\d+)?/gi);
+  if (!numbers || numbers.length < 8) return null;
+  const [x0, y0, x1, y1, x2, y2, x3, y3] = numbers.slice(0, 8).map(Number);
+  return { p0: { x: x0, y: y0 }, p1: { x: x1, y: y1 }, p2: { x: x2, y: y2 }, p3: { x: x3, y: y3 } };
+}
+
+/** Point on `segment` at curve parameter `t` (0..1). Note t is the bezier
+ * parameter, not normalized arc length - on the shallow curves this diagram
+ * draws, the difference in apparent speed is not perceptible, and an
+ * arc-length reparameterization would cost a sampling table per edge. */
+export function pointOnCubic(segment: CubicSegment, t: number): XY {
+  const clamped = Math.min(Math.max(t, 0), 1);
+  const u = 1 - clamped;
+  const a = u * u * u;
+  const b = 3 * u * u * clamped;
+  const c = 3 * u * clamped * clamped;
+  const d = clamped * clamped * clamped;
+  return {
+    x: a * segment.p0.x + b * segment.p1.x + c * segment.p2.x + d * segment.p3.x,
+    y: a * segment.p0.y + b * segment.p1.y + c * segment.p2.y + d * segment.p3.y,
+  };
+}

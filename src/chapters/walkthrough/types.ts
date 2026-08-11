@@ -83,9 +83,15 @@ export type WalkthroughProps = {
    * sync by hand. */
   viewBoxWidth: number;
   viewBoxHeight: number;
-  /** When present, renders a small toggle above the diagram letting the
-   * learner compare outcomes (e.g. round-robin vs. least-connections) -
-   * see WalkthroughStep.variants. Omit for a walkthrough with only one
-   * possible path. */
+  /** When present (and more than one), renders a dropdown in the diagram
+   * header letting the learner compare outcomes (e.g. round-robin vs.
+   * least-connections) - see WalkthroughStep.variants. Omit for a
+   * walkthrough with only one possible path. */
   algorithms?: WalkthroughAlgorithm[];
+  /** Header line naming what the diagram shows, e.g. "Round Robin, Load
+   * Balancing". Both this and `description` are single-line and truncated -
+   * the header is a fixed-height band (see Walkthrough.tsx) so that nothing
+   * below it moves between steps. Keep them short. */
+  title?: string;
+  description?: string;
 };

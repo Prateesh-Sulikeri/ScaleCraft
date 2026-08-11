@@ -57,7 +57,7 @@ describe("compileLessonMdx", () => {
     const html = await renderMdx(source, mdxComponents);
     expect(html).toContain("Client");
     expect(html).toContain("Load Balancer");
-    expect(html).toContain("Step 1 of 1");
+    expect(html).toContain("1 / 1");
     expect(html).toContain("The client sends a request.");
   });
 });
