@@ -1,10 +1,11 @@
 # Release 5.0.0-alpha — Content Platform
 
-Status: **build in progress - steps 1-2 (MDX pipeline, 3.4 MDX migration)
-merged into `release/v5.0.0-content-platform`; steps 3-4 (walkthrough
-renderer, Load Balancer walkthrough content) done and pushed on
-`feature/walkthrough-renderer`, awaiting merge; next is glossary and/or the
-quiz diagram-question upgrade** (see Build Log below). Compiled 2026-08-10/11 from
+Status: **steps 1-4 (MDX pipeline, 3.4 MDX migration, walkthrough renderer,
+Load Balancer walkthrough content) plus the 5.1.0-alpha diagram pipeline are
+all merged into `staging/v5.0.0-content-platform` (branch renamed from
+`release/v5.0.0-content-platform` 2026-08-11, see Branch Remediation below);
+next is glossary and/or the quiz diagram-question upgrade** (see Build Log
+below). Compiled 2026-08-10/11 from
 `.claude/docs/ScaleCraft_Future_Roadmap.md`'s
 "Alpha 5.x — Content Platform" entry (two three-bullet brainstorm items: 5.0.0
 Content Update, 5.1.0 Diagram Topology Update), turned into something buildable
@@ -313,17 +314,40 @@ merged into `feature/walkthrough-renderer` so its content-authoring step
 renderer` itself (renderer + content, two commits) is pushed but **not yet
 merged** into the release branch, awaiting review.
 
+### 2026-08-11 - Branch remediation: `release/v5.0.0-content-platform` renamed to `staging/v5.0.0-content-platform`
+
+User flagged (correctly) that multiple prior merges into the release branch
+had gone in without a full pipeline run - the `mdx-migrate-load-balancer`
+merge explicitly deferred full CI, and the LB content merge was
+content-only, pipeline not run. Per the repo's branching convention, nothing
+should reach `release/*` without being tested first. Remediation:
+
+- `release/v5.0.0-content-platform` renamed to `staging/v5.0.0-content-platform`
+  (local + origin, old ref deleted, history preserved intact - nothing lost,
+  just relabeled to reflect its actual (untested-as-a-whole) status).
+- No new `release/v5.0.0-content-platform` branch was cut. Per explicit user
+  instruction: **Claude may work freely up to and including `staging/*`
+  (push, merge feature branches into staging) but must never push to or
+  merge into a `release/*` branch** - promoting staging to a real release
+  branch is the user's own call, made after their own review/testing.
+- `feature/walkthrough-renderer` (which by this point contained every
+  commit that had been on the old release branch, plus the walkthrough
+  renderer and full 5.1.0-alpha diagram pipeline, as one continuous line)
+  was run through the full pipeline (`tsc`, `lint`, `vitest run` - 1695
+  tests/196 files, `next build`) - all clean - **before** merging. Merged
+  into `staging/v5.0.0-content-platform` (`a6df623`, no conflicts), pushed
+  to origin.
+- Real-browser interactive smoke test (Prev/Next, arrow keys, highlight/dim
+  transitions) for the walkthrough, and manual verification of the diagram
+  pipeline, both confirmed done by the user this session (previously the
+  open gap - see prior entries above).
+
 **Next session, pick up here:**
-1. Merge `feature/walkthrough-renderer` into `release/v5.0.0-content-platform`
-   (needs explicit go-ahead/manual review first, per the usual convention).
-2. A real-browser visual/interactive smoke test of the walkthrough (Prev/
-   Next clicks, arrow keys, highlight/dim transitions) has never been done -
-   only non-browser render checks so far. Worth doing before the glossary or
-   quiz-diagram-upgrade steps build on this further.
-3. Full CI pipeline (`tsc && lint && vitest && build`) still hasn't run
-   against the full merged tree.
-4. Then, per the build order: glossary (parallel, independent track) and/or
-   quiz `diagram` questions upgraded to this renderer.
+1. Per the build order: glossary (parallel, independent track) and/or
+   quiz `diagram` questions upgraded to the walkthrough renderer.
+2. When ready to cut a real `release/v5.0.0-content-platform` from
+   `staging/v5.0.0-content-platform`, that's the user's action, not
+   Claude's.
 
 ---
 
