@@ -3,6 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import {
   getChapter,
   getComponent,
+  getGlossaryTerm,
   search,
   useChapterLesson,
   useComponentDocs,
@@ -15,7 +16,7 @@ afterEach(() => {
 
 describe("getChapter", () => {
   it("finds a known chapter by id", () => {
-    expect(getChapter("bb-dummy-1")?.mode).toBe("building-blocks");
+    expect(getChapter("bb-3-4-load-balancer")?.mode).toBe("building-blocks");
   });
 
   it("returns undefined for an unknown id", () => {
@@ -30,6 +31,16 @@ describe("getComponent", () => {
 
   it("returns undefined for an unknown id", () => {
     expect(getComponent("not-a-real-component")).toBeUndefined();
+  });
+});
+
+describe("getGlossaryTerm", () => {
+  it("finds a known glossary term by id", () => {
+    expect(getGlossaryTerm("round-robin")?.title).toBe("Round Robin");
+  });
+
+  it("returns undefined for an unknown id", () => {
+    expect(getGlossaryTerm("not-a-real-term")).toBeUndefined();
   });
 });
 
@@ -61,10 +72,10 @@ describe("useChapterLesson", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const { result } = renderHook(() => useChapterLesson("bb-dummy-1"));
+    const { result } = renderHook(() => useChapterLesson("bb-3-4-load-balancer"));
 
     await waitFor(() => expect(result.current).toBe("Lesson body"));
-    expect(fetchMock).toHaveBeenCalledWith("/content/chapters/bb-dummy-1.md");
+    expect(fetchMock).toHaveBeenCalledWith("/content/chapters/bb-3-4-load-balancer.md");
   });
 });
 
@@ -104,8 +115,8 @@ describe("search", () => {
   });
 
   it("matches chapters by title", () => {
-    const results = search("placeholder chapter");
-    expect(results.some((r) => r.type === "chapter" && r.id === "bb-dummy-1")).toBe(true);
+    const results = search("placeholder project");
+    expect(results.some((r) => r.type === "chapter" && r.id === "rwe-dummy-1")).toBe(true);
   });
 
   it("returns no results for a query that matches nothing", () => {

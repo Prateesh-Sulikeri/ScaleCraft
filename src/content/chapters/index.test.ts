@@ -18,7 +18,9 @@ describe("getChaptersForMode", () => {
       "bb-1-7-identifying-bottlenecks",
       "bb-1-8-engineering-trade-offs",
       "bb-1-9-deep-dive-methodology",
-      "bb-dummy-1",
+      "bb-3-4-load-balancer",
+      "bb-1-10-communicating-and-defending-a-design",
+      "bb-1-11-driving-a-system-design-interview",
     ]);
   });
 

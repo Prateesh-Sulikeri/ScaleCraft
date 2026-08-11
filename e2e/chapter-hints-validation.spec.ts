@@ -22,7 +22,7 @@ test("a hint stays collapsed until revealed, and Validate always surfaces its re
 
   await page.getByRole("link", { name: /3\.4.*Load Balancer/i }).click();
   await page.waitForURL("**/building-blocks/3-4-load-balancer/lesson");
-  await expect(page.getByText(/This is placeholder lesson content for the first Building Blocks chapter/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Load Balancer" })).toBeVisible();
 
   // Hints/Validate live on the Design Editor workspace, not the Reader
   // page (RELEASE_3.0.0_LEARNING_PATH.md Phase 4) — follow the CTA through.
@@ -30,11 +30,11 @@ test("a hint stays collapsed until revealed, and Validate always surfaces its re
   await page.waitForURL("**/building-blocks/3-4-load-balancer");
 
   // The hint's body text must not be in the DOM until explicitly revealed.
-  const hintBody = "This is a placeholder hint";
+  const hintBody = /Validate names what\'s connected and what isn\'t\./i;
   await expect(page.getByText(hintBody)).toHaveCount(0);
-  await page.getByRole("button", { name: "Show hint" }).click();
+  await page.getByRole("button", { name: "Show hint" }).first().click();
   await expect(page.getByText(hintBody)).toBeVisible();
 
   await page.getByRole("button", { name: "Validate" }).click();
-  await expect(page.getByText("Load Balancer is required for this chapter but isn't on the canvas.")).toBeVisible();
+  await expect(page.getByText(/Load Balancer distributes to a single backend instance\./i)).toBeVisible();
 });

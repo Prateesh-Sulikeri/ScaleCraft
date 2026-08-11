@@ -137,6 +137,13 @@ export type ChapterDefinition = {
    * .md file - hand-maintained here alongside the chapter it versions. See
    * `ComponentDefinition.docsVersion` for the equivalent on component docs. */
   lessonVersion?: number;
+  /** "mdx" routes the lesson through server-side MDX compilation
+   * (`/api/lessons/[chapterId]`, `useChapterLessonMdx`) instead of the
+   * legacy client-side react-markdown path - see the Release 5.0.0-alpha
+   * MDX migration in .claude/docs/pending.md. Absent/"md" is every chapter
+   * authored before this field existed; migration is per-chapter and
+   * incremental, not a big-bang rewrite. */
+  lessonFormat?: "md" | "mdx";
   /** Building Blocks only — see CurriculumContext's own doc comment. Absent
    * for real-world-extraction and for not-yet-authored placeholder chapters. */
   curriculumContext?: CurriculumContext;

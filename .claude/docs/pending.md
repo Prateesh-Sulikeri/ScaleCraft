@@ -1,11 +1,26 @@
 # Release 5.0.0-alpha — Content Platform
 
-Status: **scoped and confirmed, build starting**. Compiled 2026-08-10/11 from
+Status: **Engineering work for this release is complete. Steps 1-4 (MDX
+pipeline, 3.4 MDX migration, walkthrough renderer, Load Balancer walkthrough
+content) plus the 5.1.0-alpha diagram pipeline are merged into
+`staging/v5.0.0-content-platform` (branch renamed from
+`release/v5.0.0-content-platform` 2026-08-11, see Branch Remediation below).
+Glossary pilot (`feature/glossary`) is built, CI-green, and pushed - next is
+merging it into staging. The quiz `diagram`-question upgrade (the build
+order's last item) is deferred indefinitely, user call - too much rework for
+too little benefit. Version bumped to `5.0.0-alpha`, release notes written**
+(see Build Log below). Compiled 2026-08-10/11 from
 `.claude/docs/ScaleCraft_Future_Roadmap.md`'s
 "Alpha 5.x — Content Platform" entry (two three-bullet brainstorm items: 5.0.0
 Content Update, 5.1.0 Diagram Topology Update), turned into something buildable
 through a live scoping conversation. This doc is the working release plan -
 update it in place as tracks land, same convention prior release docs used.
+
+**5.1.0 Diagram Topology Update is now its own scoped doc:**
+`.claude/docs/pending-diagram-pipeline.md`, compiled 2026-08-11. Phases 0-4
+built and CI-green on `feature/walkthrough-renderer`, awaiting review/merge;
+Phase 5 stays deferred. It follows this release's walkthrough renderer
+(steps 3-4 below).
 
 Release 4 is complete (guided tour + Wave 1 curriculum content, shipped and
 merged). Its own remaining loose ends live in `.claude/docs/pending-chapters.md`
@@ -36,7 +51,12 @@ merged). Its own remaining loose ends live in `.claude/docs/pending-chapters.md`
    e.g. Kafka partition - rendered through the same shared visual primitive so
    it never reads as a second system).
 3. **Pilot** — Load Balancer walkthrough, registry-only (`component` kind
-   only, no `custom` yet), built on the same migrated chapter.
+   only, no `custom` yet), built on the same migrated chapter. **Blocked on
+   real content:** 3.4 Load Balancer is currently placeholder (`bb-dummy-1.md`,
+   deferred to Wave 2 per `pending-chapters.md`) - confirmed 2026-08-11 to
+   author real lesson/quiz/hints/blueprints via the chapter-author skill
+   *before* the MDX/walkthrough pilot builds on it, rather than piloting
+   against dummy text.
 4. **Glossary** — `<Ref id="...">term</Ref>` authored explicitly per mention
    (no auto-detection - fragile for real content, explicit is cheap on
    hand-authored prose anyway), plain Markdown content (not MDX - short
@@ -66,6 +86,379 @@ merged). Its own remaining loose ends live in `.claude/docs/pending-chapters.md`
 (currently up to date with `origin/develop`, `0c25281`). Individual `feature/*`
 branches per unit of work underneath it, per `CLAUDE.md`'s branching
 convention. Claude pushes, never merges.
+
+---
+
+## Build Log (updated as each unit lands - append here, don't wait for release end)
+
+**Note on this section's own history (resolved 2026-08-11):** the two
+branches below (`feature/mdx-pipeline`, `feature/lesson-3-4-load-balancer`)
+diverged before either landed on the release branch, so this file briefly
+had two different versions of the entry below. Reconciled here on merge -
+both entries kept, shared header deduped, nothing lost.
+
+### 2026-08-11 — MDX pipeline (`feature/mdx-pipeline`, step 1 of the Build order) - done, merged into `release/v5.0.0-content-platform`
+
+Server-compiles per the "preserve current logic" decision above, not static
+per-chapter imports. Per-chapter opt-in via a new `ChapterDefinition.lessonFormat?:
+"md" | "mdx"` field (default `"md"`) - nothing is migrated yet, this is
+infrastructure only.
+
+- **Shared plugin config extracted** (`markdown-plugins.ts`, `markdown-components.tsx`
+  under `src/canvas/docs-panel/markdown/`) so the legacy react-markdown path and
+  the new MDX path can't drift - `MarkdownRenderer.tsx` now imports from these
+  instead of holding its own copy.
+- **`/api/lessons/[chapterId]` route** reads a chapter's `.mdx` source from
+  `public/content/chapters/` via `fs` (not fetched), splits it at "## Next"
+  with the *existing* `splitMarkdownAtNextSection` (moved, unchanged, to
+  `src/chapters/split-markdown.ts` so both the client and this server route can
+  use it), compiles each half via `@mdx-js/mdx`'s `compile()`, returns
+  `{ raw, beforeCompiled, nextCompiled }`. TOC extraction and YourTurnCard
+  placement in `ChapterReader.tsx` still run against `raw` exactly as before -
+  confirms the "minimal rewrite" goal held.
+- **`useChapterLessonMdx` + `MdxContent.tsx`** on the client: fetch the
+  compiled JSON, `run()` it (evaluate only, no parsing) via `@mdx-js/mdx`,
+  render with the same `markdownComponents` map as the legacy path.
+  `ChapterReader.tsx` branches on `chapter.lessonFormat === "mdx"` to pick
+  between this and the legacy `useChapterLesson`/`MarkdownRenderer` pair -
+  both code paths coexist, nothing forces a chapter to migrate.
+- **Real bugs found and fixed while building this** (round-trip tests in
+  `compile-lesson-mdx.test.ts` caught both, not manual review):
+  - `getChapter` (from `content-service.ts`, `"use client"`) can't be called
+    from a server Route Handler - the route now looks the chapter up directly
+    via `chapterRegistry`.
+  - `rehypeRaw` (needed by the *legacy* pipeline so react-markdown can
+    understand literal HTML) is incompatible with MDX's own native JSX
+    parsing - it crashes on MDX's `mdxJsxFlowElement`/`mdxJsxTextElement`
+    nodes. `rehypeSanitize` doesn't recognize those nodes either and silently
+    drops them. Fix: a separate `mdxRehypePlugins` export (just `rehypeSlug`)
+    used only by the MDX compile path - sanitizing doesn't apply anyway since
+    lesson content is first-party-authored, never user input.
+- **Found, not fixed (pre-existing, already tracked):** GitHub-style callouts
+  (`> [!NOTE] ...`) are currently broken on the *legacy* react-markdown path -
+  `rehypeRaw` camelCases the `data-callout` hast property before
+  `rehypeSanitize` runs, so the schema's literal-string match misses it and
+  the property gets stripped. Already documented in
+  `MarkdownRenderer.test.tsx` with a deliberately-not-fixed tracking test
+  ("this repo's rule against unrelated fixes without approval"). Not touched
+  here. Side effect worth knowing: because the MDX path drops `rehypeRaw`
+  entirely (see above), **migrated chapters won't have this bug** - callouts
+  will render correctly in MDX chapters even though they're still broken in
+  every not-yet-migrated one.
+- **Verified:** `tsc --noEmit`, `eslint`, full `vitest run` (189 files/1644
+  tests), `next build` all clean. Manually smoke-tested the route + lesson
+  page against a throwaway `.mdx` fixture on the placeholder chapter (`bb-dummy-1`,
+  temporarily flagged `lessonFormat: "mdx"`, reverted after) - confirmed the
+  API compiles real MDX syntax (GFM tables, code fences, raw `<details>`) and
+  the lesson page renders without a server error. **Gap:** no browser tool
+  available in this session to visually confirm the client-side `run()`
+  render - only the compile step and page-load-without-error were verified
+  this way, not what actually paints in a real browser. Worth an eyeball pass
+  next session before trusting this further.
+
+- Pushed to `origin/feature/mdx-pipeline`. Merged into
+  `release/v5.0.0-content-platform` 2026-08-11 (user gave explicit merge
+  permission this session, overriding the usual "Claude never merges"
+  convention for this specific unblock).
+
+### 2026-08-11 — 3.4 Load Balancer content (`feature/lesson-3-4-load-balancer`) - Sonnet draft + Opus proofread pass, done, merged into `release/v5.0.0-content-platform`
+
+Real content authored via the `chapter-author` skill (`draft` mode, `full`
+scope), replacing the `bb-dummy-1` placeholder - was blocking the MDX-
+migration pilot and walkthrough-diagram pilot, which need real content to
+build against, not dummy text. Full detail in
+`.claude/docs/pending-chapters.md`'s own `## 3.4 Load Balancer` ledger entry
+and `src/content/chapters/specs/bb-3-4-load-balancer.spec.md`; short version:
+
+- All six deliverables in: spec, lesson (1,335 words post-audit), `ChapterDefinition`
+  (`bb-3-4-load-balancer`), no new validation rules (6 existing ones curated),
+  quiz (5 questions), playtest pass. `manifest.ts`'s 3-4 row repointed off
+  the dummy definition.
+- **Two real judgment calls made and documented, not silently worked
+  around** (both in the spec's §0 and in `pending-chapters.md`'s open
+  decisions #8-9):
+  1. **3.4's real prerequisite (3.3 Reverse Proxy) isn't authored yet**
+     (Group A is entirely unauthored). Authored the lesson assuming only
+     Part 0/1 (through 1.9) and 1.6's three components - no reverse-proxy/
+     DNS/firewall vocabulary anywhere; `manifest.ts`'s `prerequisiteSlugs`
+     temporarily repointed to `1-9-deep-dive-methodology` so the chapter is
+     actually reachable. Revert once Group A lands in Wave 3.
+  2. **Found a real engine gap while designing the exercise:** the registry's
+     `load-balancer`/`app-server` component contracts don't allow a
+     `control`-kind edge between them at all (checked directly against
+     `content/components/config/`, both ends declare `allowedKinds:
+     ["request-flow"]` only) - so CURRICULUM §16's "3.4 introduces edge
+     `control`" can't be exercised on canvas today. Kept `control` edges
+     illustrative only (Mermaid diagram, prose), absent from the graded
+     blueprint/starter graph. Needs an engineering follow-up
+     (add `"control"` to the relevant `allowedKinds` arrays) - flagged, not
+     fixed here, per this skill's own instruction not to hack around engine
+     gaps during a content pass.
+- Topology diagram is Mermaid, not graph-JSON, same declared exception 1.6
+  used (the Reader still can't render graph-JSON topologies - unrelated to
+  this release's walkthrough-renderer work, which is a different, purpose-
+  built spatial renderer, not a general graph-JSON block type).
+- **Opus proofread pass run 2026-08-11.** Found the `control`-edge engine
+  gap had been disclosed only to `curriculumContext.simplifications` (an
+  AI-only field, never rendered to the learner) rather than in the lesson
+  prose itself - a real learner-facing defect, fixed. Also fixed the
+  health-check diagram caption, rewrote the Cloudflare production example to
+  CURRICULUM §13's format, disambiguated "add a second instance" from the
+  app-server `Instances` config field, cut a cold-open restatement, fixed a
+  dangling self-reference. `lessonVersion` 1 -> 2. Full detail in
+  `pending-chapters.md`'s "Opus proofread pass" subsection.
+- `problemStatement` re-synced with the audit-fixed lesson wording
+  (post-audit follow-up, same session).
+- Pipeline (`tsc`/`lint`/`vitest`/`build`) not run yet - content-authoring
+  only, per the skill's scope.
+
+**Next session, pick up here:**
+1. Full CI pipeline (`tsc && lint && vitest && build`) hasn't been run
+   against the merged `release/v5.0.0-content-platform` branch yet - run
+   before trusting this further (content-only changes plus the MDX
+   infrastructure merge, low risk individually, but worth the check
+   combined). Skipped explicitly this session at the user's request in
+   favor of scoped checks (see below).
+2. Walkthrough renderer (task 3 of the build order) is next - the 3.4
+   MDX migration it depends on is now done (see Build Log entry below).
+
+### 2026-08-11 — 3.4 migrated to MDX (`feature/mdx-migrate-load-balancer`, step 2 of the build order) - done, not yet pushed
+
+Also found and committed separately first: 4 files (`HomeCanvas.test.tsx`,
+`content/chapters/index.test.ts`, `index.ts`, `content-service.test.ts`) had
+been left uncommitted from the prior session's `bb-dummy-1` -> 
+`bb-3-4-load-balancer` reference cleanup - `bb-dummy-1` was already gone from
+the registry, these were stale test/comment references. Committed directly
+to `release/v5.0.0-content-platform` (small, mechanical, pre-existing work
+from the prior session, not a new unit of work).
+
+- `public/content/chapters/bb-3-4-load-balancer.md` renamed to `.mdx`
+  (`git mv`, tracked as a rename).
+- `ChapterDefinition.lessonFormat: "mdx"` set on the `bb-3-4-load-balancer`
+  entry in `content/chapters/index.ts`. `ChapterReader.tsx` already gated
+  `useChapterLesson`/`useChapterLessonMdx` on this field from the pipeline
+  work - no reader-side changes needed.
+- `authoring-invariants.test.ts`'s "every authored chapter has a lesson
+  body" check hardcoded `.md` - fixed to check `.mdx` when
+  `lessonFormat === "mdx"`, `.md` otherwise (the first real chapter to
+  exercise that branch).
+- **Verified:** real MDX compile of the migrated file via `@mdx-js/mdx`
+  directly (not just the round-trip fixture test) - no JSX/expression
+  syntax collisions in the lesson prose (checked; content is plain
+  Markdown, no raw angle brackets or unescaped braces outside the mermaid
+  code fence, which MDX treats as literal text). `tsc --noEmit` clean.
+  Scoped `vitest` clean across `compile-lesson-mdx`,
+  `use-chapter-lesson-mdx`, `content-service`, `chapters/index`,
+  `authoring-invariants`, `ChapterReader`, `ChapterWorkspace`, and all of
+  `src/content` (114+40 tests). Full pipeline (lint, build, full vitest
+  run) and a real-browser visual smoke test **not done this session** -
+  user explicitly deferred both (skipped full CI in favor of scoped
+  checks; declined the browser smoke-test offer in favor of committing
+  on green tests alone).
+- Committed to `feature/mdx-migrate-load-balancer`, cut from
+  `release/v5.0.0-content-platform`, then pushed (explicit go-ahead) and
+  merged into `release/v5.0.0-content-platform` (explicit go-ahead, same
+  session-unblock pattern as the MDX pipeline merge above).
+
+### 2026-08-11 — Walkthrough renderer (`feature/walkthrough-renderer`, step 3 of the build order) - done, pushed, not yet merged
+
+New `src/chapters/walkthrough/` (`types.ts`, `Walkthrough.tsx`,
+`WalkthroughNodeCard.tsx`, `WalkthroughEdges.tsx`, `WalkthroughControls.tsx`,
+plus a smoke test) - the read-only, step-indexed spatial diagram planned
+above. Full design in a reviewed plan (`Plan` subagent + user approval
+before any code) - short version:
+
+- Hand-rolled SVG/CSS as planned, not React Flow. Node positions are
+  percentages (0-100) of the container, not canvas pixels - zero
+  measurement/ResizeObserver needed, responsive for free.
+- Generalizes `TourController.tsx`'s step-sequencing *idea* (index ->
+  highlight -> caption -> prev/next), not its implementation - local
+  `useState` only, no canvas-store/localStorage/watchdog dependency.
+- Node cards visually match `ComponentNode.tsx` (same icon/category-color
+  recipe via the shared `category-colors`/`icon-map` tokens) without its
+  live-canvas machinery. Highlight reuses `HIGHLIGHT_GOLD_RING` from
+  `selection-style.ts` directly - same semantic the live canvas's Highlight
+  Connections feature already uses, not a second color for the same idea.
+  Edge styling reuses `EDGE_COLOR_VAR`/`EDGE_DASH_ARRAY` as-is.
+- New `mdx-components.tsx` (separate from `markdown-components.tsx` - that
+  one's typed to react-markdown's `Components`, which can't hold a custom
+  JSX tag react-markdown never invokes) merged into `MdxContent.tsx`'s
+  `<Content components={...} />` call.
+- **Verified without a browser** (still none available this session):
+  `tsc`/`lint` clean, 5 new component tests pass, and a new
+  `compile-lesson-mdx.test.ts` case proves `<Walkthrough>` actually resolves
+  through the real compile -> run -> render path (not just that it parses).
+
+### 2026-08-11 — Load Balancer walkthrough content (step 4 of the build order) - done, pushed, not yet merged
+
+Real 5-step walkthrough embedded in `bb-3-4-load-balancer.mdx`, right after
+the existing "two edge kinds" paragraph (additive - the static mermaid
+diagram stays, this reinforces it interactively rather than replacing it):
+client request -> LB already knows both instances are healthy (health
+checks) -> round-robin picks App Server 1 -> App Server 1 answers -> next
+request rotates to App Server 2. `lessonVersion` 2 -> 3 (client cache
+freshness convention). Component/edge ids match the chapter's existing
+mermaid diagram 1:1.
+
+- **Verified without a browser:** a scratch script (not committed) rendered
+  the real chapter file through the exact compile -> run -> render path
+  `MdxContent.tsx` uses, confirming step 1's exact caption text, the "Step 1
+  of 5" counter, and all four node labels (Client/Load Balancer/App Server
+  x2) render correctly. The two other caption strings it checked came back
+  "missing" as expected, not a bug - a static render only ever shows the
+  initial step (step 1); steps 2-5 only appear after a real Next click,
+  which needs an actual browser.
+
+**Branch state:** `feature/mdx-pipeline` and `feature/lesson-3-4-load-balancer`
+both merged into `release/v5.0.0-content-platform`.
+`feature/mdx-migrate-load-balancer` also merged into
+`release/v5.0.0-content-platform`, then that updated release branch was
+merged into `feature/walkthrough-renderer` so its content-authoring step
+(which needed the `.mdx` file) could build on top - `feature/walkthrough-
+renderer` itself (renderer + content, two commits) is pushed but **not yet
+merged** into the release branch, awaiting review.
+
+### 2026-08-11 - Branch remediation: `release/v5.0.0-content-platform` renamed to `staging/v5.0.0-content-platform`
+
+User flagged (correctly) that multiple prior merges into the release branch
+had gone in without a full pipeline run - the `mdx-migrate-load-balancer`
+merge explicitly deferred full CI, and the LB content merge was
+content-only, pipeline not run. Per the repo's branching convention, nothing
+should reach `release/*` without being tested first. Remediation:
+
+- `release/v5.0.0-content-platform` renamed to `staging/v5.0.0-content-platform`
+  (local + origin, old ref deleted, history preserved intact - nothing lost,
+  just relabeled to reflect its actual (untested-as-a-whole) status).
+- No new `release/v5.0.0-content-platform` branch was cut. Per explicit user
+  instruction: **Claude may work freely up to and including `staging/*`
+  (push, merge feature branches into staging) but must never push to or
+  merge into a `release/*` branch** - promoting staging to a real release
+  branch is the user's own call, made after their own review/testing.
+- `feature/walkthrough-renderer` (which by this point contained every
+  commit that had been on the old release branch, plus the walkthrough
+  renderer and full 5.1.0-alpha diagram pipeline, as one continuous line)
+  was run through the full pipeline (`tsc`, `lint`, `vitest run` - 1695
+  tests/196 files, `next build`) - all clean - **before** merging. Merged
+  into `staging/v5.0.0-content-platform` (`a6df623`, no conflicts), pushed
+  to origin.
+- Real-browser interactive smoke test (Prev/Next, arrow keys, highlight/dim
+  transitions) for the walkthrough, and manual verification of the diagram
+  pipeline, both confirmed done by the user this session (previously the
+  open gap - see prior entries above).
+
+### 2026-08-11 - Glossary pilot (`feature/glossary`, build order item 4) - done, CI-green, not yet pushed
+
+Reviewed plan (2 Explore + 1 Plan subagent, user-approved before any code),
+then implemented exactly as planned:
+
+- **Data model**: `GlossaryTermDefinition` (`src/content/concepts/types.ts`)
+  - inline `body: string`, no `docsFile`/version machinery. Spec caps
+    content at "short reference snippets," well below the scale that would
+    justify the fetch/cache overhead `ComponentDefinition.docsFile` exists
+    for. No `category` field either - nothing in the spec asks for
+    category-color badging, and the two example terms don't map onto
+    `ComponentCategory` cleanly.
+- **Barrel**: `src/content/concepts/registry.ts` - flat array (matches
+  `componentRegistry`'s barrel role), `buildGlossaryRegistry` throws on a
+  duplicate id at load time, `getGlossaryTerm(id)`. Re-exposed through
+  `content-service.ts` mirroring the existing `getComponent` passthrough
+  exactly. First real term: `round-robin`.
+- **`<Ref>` component** (`src/chapters/glossary/Ref.tsx`): renders an
+  inline `<button>` (not a block element - sits mid-paragraph), built on
+  the existing Radix `Popover`/`PopoverContent`/`PopoverArrow` primitives
+  (`src/components/ui/popover.tsx`), `PopoverPrimitive.Trigger` imported
+  directly per that file's own documented composition pattern. Tap-to-open
+  is a controlled `tapOpen` boolean; hover-preview is a second `hovering`
+  boolean gated by a new `usePointerHover()` hook
+  (`src/chapters/glossary/use-pointer-hover.ts`, `matchMedia("(hover:
+  hover)")` + `useSyncExternalStore`, mirrors `use-large-screen.ts`'s
+  pattern) with a 150ms close delay so crossing from trigger to content
+  doesn't drop the popover mid-transition. Unknown id: renders children
+  plain, dev-only `console.warn`, never throws.
+- **MDX wiring**: `Ref` added to `mdxComponents`
+  (`mdx-components.tsx`) - that file's own doc comment already named
+  `<Ref>` as the next tag to land here. Confirmed (and covered by a new
+  test) that MDX resolves `<Ref>` correctly **inline, mid-paragraph**, not
+  just as a standalone block the way `<Walkthrough>` is always used.
+- **Real content**: one line in `bb-3-4-load-balancer.mdx` wrapping
+  round-robin's first defining mention only (not every later recurrence,
+  matches "authored explicitly per mention"). `lessonVersion` 4 -> 5.
+- **Scope boundary found and documented, not worked around**: `<Ref>` only
+  resolves in `lessonFormat: "mdx"` chapters - confirmed
+  `bb-3-4-load-balancer` is still the *only* chapter on that path. Quiz
+  prompts/hints and every other chapter's lesson body render through plain
+  `react-markdown` (`markdownComponents`), which can never invoke a custom
+  JSX tag. Not a bug - falls directly out of the already-agreed incremental
+  MDX migration. `<Ref>` in a Quiz hint or a `.md` chapter will just no-op
+  today; revisit once those surfaces migrate to MDX (separate, unscoped
+  work).
+- **Verified:** `tsc --noEmit`, `eslint`, full `vitest run` (199 files/1715
+  tests, 20 new), `next build` all clean. No dev lab page built (per
+  precedent - labs exist only for JSON/graph-shaped authoring surfaces,
+  plain Markdown has no analogous friction). No auto-linking, no sandbox
+  wiring, no full curriculum-wide glossary content pass - all explicitly
+  out of scope per the reviewed plan.
+- Branched as `feature/glossary` off `staging/v5.0.0-content-platform`
+  (see Branch Remediation entry above for why that's `staging/*` and not a
+  real `release/*` branch). Not yet pushed/merged - next session.
+
+### 2026-08-11 - Quiz diagram-question upgrade deferred; release notes + version bump
+
+User call: the quiz `diagram`-question upgrade (last build-order item -
+swapping `ReadOnlyGraphSummary`'s plain-text list for the spatial
+walkthrough renderer) is **deferred indefinitely** - too much rework for
+too little benefit relative to the rest of this release. Not scoped for a
+future release either; revisit only if a concrete need resurfaces (e.g. a
+quiz author specifically wants spatial diagram questions). The `custom`-node
+kind for internal-mechanism diagrams (Kafka etc.) stays deferred as it
+already was, same "follow-up, not required" status.
+
+Release notes (`src/content/release-notes.ts`) and version bump written for
+what's actually shipping: MDX pipeline, 3.4 Load Balancer real content,
+walkthrough renderer, diagram auto-layout pipeline, glossary pilot.
+`VERSION`/`package.json`/`package-lock.json` bumped `4.1.1-alpha` ->
+`5.0.0-alpha` (`npm version --no-git-tag-version`, matches the "major bump"
+decision confirmed during scoping). Full CI (`tsc`, `lint`, 1715 tests,
+`next build`) clean after the bump.
+
+**Next session, pick up here:**
+1. Merge `feature/glossary` into `staging/v5.0.0-content-platform` (full CI
+   already green) and push.
+2. Real-browser check of `<Ref>` (never done this session, no browser
+   available): click/tap opens the popover, hover opens it on a
+   mouse-capable device only, Escape/outside-click dismisses.
+3. Release 5.0.0-alpha's engineering work is otherwise complete. When ready
+   to cut a real `release/v5.0.0-content-platform` from
+   `staging/v5.0.0-content-platform`, that's the user's action, not
+   Claude's.
+
+### 2026-08-11 - Remaining 13 chapters batch-migrated to MDX (not yet committed)
+
+Deviates from the Final Plan's original "pilot on Load Balancer first, not a
+big-bang rewrite" caution above - by the time this ran, the pilot (3.4) had
+already proven the pipeline in production use (walkthrough + glossary both
+built on top of it, zero MDX-compile issues found), so the user asked to
+finish the remaining chapters in one pass instead of chapter-by-chapter.
+
+- All 13 other authored chapters (0.1-0.4, 1.1-1.9) `git mv`'d `.md` -> `.mdx`
+  and given `ChapterDefinition.lessonFormat: "mdx"` in `content/chapters/index.ts`,
+  same recipe as the 3.4 Build Log entry above. `bb-dummy-1`/`rwe-dummy-1`
+  (placeholder shells) excluded - not real content.
+- **Verified before renaming:** a scratch Vitest spec ran every file through
+  the real `compileLessonMdx` (split at "## Next" first, same as the lesson
+  route) - all 13 compiled clean, no JSX/expression syntax collisions in the
+  prose. Scratch spec deleted after confirming, not committed.
+- **Verified after:** `tsc --noEmit`, `eslint .`, full `vitest run` (199
+  files/1728 tests), all clean. `next build` not yet run this pass.
+- Also deleted two now-unreferenced docs at the user's request: `public/content/chapters/bb-dummy-1.md`
+  (zero references anywhere in `src/`, superseded by `bb-3-4-load-balancer`)
+  and `.claude/docs/NEXT_STEPS.md` (a completed 2026-07/2026-07-29 MVP-push
+  snapshot, not part of CLAUDE.md's current doc set). Kept
+  `validation_agent_design.md` and `RELEASE_3.0.0_LEARNING_PATH.md` -
+  both still actively cited by `ARCHITECTURE.md`/`MILESTONES.md` as the
+  detailed record of design decisions still in effect, not just history.
+- **Not yet committed** - sitting as working-tree changes pending user
+  review.
 
 ---
 

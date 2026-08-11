@@ -46,7 +46,9 @@ checkpoints) + 32 Real World Extraction projects = 79 manifest rows.
 | 1.7 Identifying Bottlenecks | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
 | 1.8 Engineering Trade-offs | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
 | 1.9 Deep Dive Methodology | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
-| 3.4 Load Balancer | Placeholder (`bb-dummy-1`), moved to Wave 2 | - | - |
+| 3.4 Load Balancer | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-11 | `feature/lesson-3-4-load-balancer` |
+| 1.10 Communicating & Defending a Design | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
+| 1.11 Driving a System Design Interview | **Authored (manual chapter-author-style pass, no cold audit yet)** | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
 | RWE T1 Bitly | Placeholder (`rwe-dummy-1`), moved to Wave 2 | - | - |
 
 Everything else in the 79 rows is unauthored (`chapterDefinitionId: null`).
@@ -74,6 +76,23 @@ its own entry for the branch-topology decision). Sonnet draft, no Opus pass
 yet. 1.8 followed the same day on the same branch. Sonnet draft, no Opus
 pass yet. 1.9 followed the same day on the same branch. Sonnet draft, no
 Opus pass yet.
+
+**3.4 Load Balancer authored 2026-08-11**, pulled forward per
+`pending-content.md`'s own Wave 2 definition, on its own branch
+(`feature/lesson-3-4-load-balancer`, cut from
+`release/v5.0.0-content-platform` rather than the Part 1 branch above - this
+is Release 5.0.0-alpha content-platform work needing a real chapter to pilot
+against, not a Part 1 continuation). Sonnet draft, no Opus pass yet. Real
+prerequisite (3.3) isn't authored - see its own entry for the declared
+exception.
+
+**1.10 Communicating & Defending a Design followed 2026-08-11**, continuing
+Part 1 directly after 1.9 on its own new branch
+(`feature/content-1-10-communicating-and-defending-a-design`, cut from
+`release/v5.0.0-content-platform` - the original 1.7-1.9 branch no longer
+exists in this session, see its own entry above). Sonnet draft, no Opus pass
+yet. Part 1's eight-step interview loop (0.4/§10.1) is now covered end to
+end by 1.1-1.11. 1.11 is optional and intentionally gates nothing.
 
 ---
 
@@ -2161,6 +2180,408 @@ judgment call, not a rule any test enforces.
 
 ---
 
+## 1.10 Communicating & Defending a Design
+
+- **Authored 2026-08-11 · not yet committed · branch
+  `feature/content-1-10-communicating-and-defending-a-design`** (cut from
+  `release/v5.0.0-content-platform` - the branch 1.7-1.9 were authored on,
+  `feature/content-1-7-identifying-bottlenecks`, no longer exists locally or
+  on `origin` in this session; 1.1-1.9's content is already present on the
+  current release branch, so continuing the sequence needed no merge, just a
+  fresh branch for this one chapter).
+- Definition id `bb-1-10-communicating-and-defending-a-design` · manifest
+  slug `1-10-communicating-and-defending-a-design` (`chapterDefinitionId`
+  flipped from `null` to this id in the same pass)
+- Type: Process (§16's no-component list, alongside 1.1-1.5, 1.7-1.9, 1.11 -
+  no type-reversion call needed). Foundational · 20 minutes (Reader +
+  knowledge check, no build) · prerequisite: 1.9.
+- **Lesson length: 1,227 words** (by `wc -w`), written once against §20.6
+  directly. Within range of 1.8's 1,234 and 1.9's 1,191, both the same
+  20-minute estimate; flagged for a second reader rather than trusted, per
+  every prior chapter's own precedent.
+- Pipeline not run this pass (content-authoring only, per the chapter-author
+  skill's standing scope - `src/content/chapters/index.test.ts`'s hardcoded
+  chapter-id list was updated to include the new id, same registry-wiring
+  touch every prior chapter needed, but `tsc`/`lint`/`vitest`/`build` were
+  not run).
+
+**No open-decision collision this chapter, same shape as 1.8/1.9.** §14's
+1.10 row promises "staged - given follow-up questions, choose the strongest
+response and read why the others are weaker" - a single/multi-choice quiz
+shape with no simulator/stages-UI dependency, the same native fit 1.8's and
+1.9's own exercises had. Realized directly as the whole quiz (all five
+questions present a follow-up and ask for the strongest response), no
+degradation, no new entry required in the "Open decisions" list below. See
+spec §0.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-10-communicating-and-defending-a-design.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-1-10-communicating-and-defending-a-design.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None - no canvas exercise, nothing to validate; justified in spec §7 |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3; the full set directly realizes CURRICULUM §14's "staged - given follow-up questions, choose the strongest response and read why the others are weaker" exercise text |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **A real quiz position-clustering bug caught and fixed during drafting,
+  not left for a second reader.** The first-drafted option order put both
+  Q1's and Q2's correct answer at position `a` - exactly the class of bug
+  0.1/0.2 shipped once and the standing per-chapter eyeball check exists to
+  catch, even though a sample of two matching letters wouldn't fail the
+  registry-wide invariant test by itself. Caught by checking the shipped
+  `index.ts` array directly rather than trusting the draft, fixed by
+  reordering Q2's four options (content unchanged, only array position) so
+  its correct answer moved to `b`. Final positions across the four
+  single-kind questions (Q1, Q2, Q4, Q5): `a`, `b`, `c`, `d` - four distinct
+  letters, re-verified after the fix. Full note in spec §10.
+- **A real Practical objective included**, per 1.1/1.2/1.4/1.5/1.8/1.9's
+  actual precedent (Process chapters do not get the Concept-only Practical
+  carve-out).
+- **Primary diagram is a decision tree (Mermaid), not a topology diagram**,
+  consistent with open decision #3 (1.6's Mermaid-as-topology exception is
+  narrow) and with 1.1/1.8/1.9's own precedent of using this shape for a
+  selection procedure.
+- **Cold open is a direct continuation of 1.9's own "Next" section**, which
+  named this exact moment in advance ("now the follow-ups start, and the
+  same 'name it, commit, defend without defensiveness' habit gets tested
+  live"). Not an invented connection - 1.9's own text predicted it, the same
+  pattern every chapter in this run of the ledger has used for its cold
+  open.
+- **Failure modes and Scaling omitted, not merged** (same choice 1.7-1.9
+  made). Optional for Process per §6; no system exists in this chapter to
+  fail or scale - the chapter teaches a judgment/communication skill applied
+  to systems whose actual failure/scaling behavior belongs to 1.6/1.7.
+- **The write-survives-a-restart gap (quiz Q4, and the lesson's applied
+  table) is deliberately left unsolved**, not glossed over or quietly
+  patched with an untaught mechanism - durability machinery is 3.20/3.26's
+  territory. `curriculumContext.notYetIntroducedConcepts` and
+  `simplifications` both record it, per §20.2's honesty requirement and
+  `pending-chapters.md`'s own open decision #10 (a simplification must be
+  stated in the prose, not just recorded in the list - this chapter does
+  both).
+- **One further-out forward tease, to 2.3 (§19's "at most one").** Checked
+  against every prior ledger entry: 3.4 (1.6), 2.2 (1.7), 3.22 (1.8), and
+  3.12 (1.9) are already spent; 2.3 (Evolution of Modern Architectures) is
+  unused. Chosen because 2.3's own purpose - the one-server-to-services
+  scaling story - is the direct continuation of this chapter's "evolve only
+  the piece that breaks" idea, applied repeatedly over time. Flagged in spec
+  §12 for a second reader to confirm the target.
+- **Dropbox (2016 move off Amazon S3) used as the production example** -
+  chosen specifically for a publicly defended trade-off under outside
+  skepticism, not for its storage architecture, which this curriculum never
+  explains. First appearance of Dropbox in this curriculum. Flagged in spec
+  §12 for a second reader to confirm this reads as the defense, not
+  implementation tourism.
+- **"Treating every follow-up as an accusation" stated on its own merit,
+  unattributed** - grepped every shipped lesson for related phrasing
+  ("adversary," "defensive," "caving," "self-correct") before finalizing and
+  found none of it taught yet, the same false-attribution check 1.9's own
+  entry performed for "deep-diving everything." See spec §9.
+- **"Connections + Preview of next" placed last in the file, after "Your
+  turn," not before "Recap."** Matches the standing convention every
+  chapter since 0.2 has actually shipped under (the combined section
+  carries both beat 14's connections and the separate mandatory "Preview of
+  next chapter" row) rather than treated as a fresh per-chapter choice.
+  Named explicitly in spec §4 so a second reader doesn't mistake it for a
+  beat-order violation.
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly at 1,227 words, proportionate to
+  1.8's and 1.9's own figures for the same 20-minute estimate. Flagged in
+  spec §12 rather than treated as settled, per every prior chapter's own
+  precedent for a self-assessed density claim.
+
+**Open note for a later pass (not resolved here):** the 2.3 forward-tease
+call above is the first time this curriculum has teased a Part 2 chapter
+from Part 1. Every prior further-out tease pointed into Part 3 (3.4, 3.12,
+3.22) or stayed within-part (2.2 from 1.7). If a future chapter's own
+forward tease also reaches across a Part boundary, this is worth confirming
+as an established pattern rather than assumed fine by default.
+
+---
+
+## 1.11 Driving a System Design Interview
+
+- **Authored 2026-08-11 · not yet committed · branch
+  `feature/content-1-10-communicating-and-defending-a-design`**. This is the
+  current branch, which already contains the immediate prerequisite 1.10.
+- Definition id `bb-1-11-driving-a-system-design-interview` · manifest slug
+  `1-11-driving-a-system-design-interview` (`chapterDefinitionId` changed from
+  `null` in the same pass).
+- Type: Process. Foundational · 30 minutes (Reader + knowledge check, no
+  build) · prerequisite: 1.10. Optional by curriculum design and gates no
+  later chapter.
+- **Lesson length: 1,208 words** (by `wc -w`). A density pass removed a
+  second restatement of the time budget and left the table as the single
+  source of the minute-by-minute structure.
+- `typecheck`, `lint`, the chapter-specific invariant/wiring suites (28 tests),
+  and `build` pass. The repository-wide `npm test` was attempted twice but
+  exceeded this environment's 60-second command cap while emitting existing
+  React `act(...)` warnings; it was terminated by the runner before a final
+  suite result. It needs a normal local/CI run for the ledger's full-pipeline
+  standard.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-11-driving-a-system-design-interview.spec.md` |
+| 2 | Lesson MDX | `public/content/chapters/bb-1-11-driving-a-system-design-interview.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None - no canvas exercise, justified in spec §5 |
+| 5 | Quiz | Five sequenced questions, difficulty ramp 1/1/2/2/3 |
+| 6 | Playtest pass | Spec §7 |
+
+**Judgment calls made:**
+
+- **The full staged walkthrough is quiz-realized, not silently omitted.** The
+  stages UI required by Part 1 remains absent. `pending-content.md` explicitly
+  allows this degradation: scenarios become quiz questions while the UI is
+  missing. The lesson's "Your turn" says so, the spec records the limitation,
+  and the quiz forms one miniature interview instead of five disconnected
+  recall checks.
+- **No component, canvas, validation rule, blueprint, or hint.** §16 places
+  1.11 in the no-component list. `hasEditorExercise: false` prevents progress
+  from requiring an unreachable Submit action, matching 1.1-1.5 and 1.7-1.10.
+- **Time allocation is an adaptable budget, not a script.** The 45-minute
+  table protects the order of evidence: scope, requirements, estimate,
+  architecture, pressure, then follow-ups and close. The lesson states that a
+  dangerous requirement can earn more deep-dive time.
+- **The decision-tree Mermaid is an interviewer-intent diagram, not a
+  topology.** It is within the ordinary process-flow diagram allowance and is
+  captioned with what to notice.
+- **Immediate-next preview is 2.1, verified against `manifest.ts`.** No
+  further-out tease is spent: the optional chapter closes Part 1 cleanly and
+  needs no additional forward promise.
+- **Quiz positional checks completed.** The four single-choice correct
+  positions are `b`, `a`, `d`, `c`; the ordering question is a full
+  derangement from its `correctOrder`. Every option has its own explanation.
+
+**Second-reader checks:** read the time budget as a flexible reasoning budget
+rather than memorized interview choreography; confirm the scenarios work as a
+single walkthrough; and re-check the 2.1 preview if manifest order changes.
+
+---
+
+## 3.4 Load Balancer
+
+- **Authored 2026-08-11 · not yet committed · branch
+  `feature/lesson-3-4-load-balancer`** (cut from
+  `release/v5.0.0-content-platform`, not from Wave 2's Part 1 branch - this
+  chapter is Release 5.0.0-alpha content-platform work, see
+  `.claude/docs/pending.md`, which needed a real chapter to pilot the MDX
+  migration and walkthrough diagram renderer against). Pulled forward per
+  `pending-content.md`'s own Wave 2 definition, replacing the `bb-dummy-1`
+  placeholder.
+- Definition id `bb-3-4-load-balancer` · manifest slug `3-4-load-balancer`
+  (`chapterDefinitionId` flipped from `bb-dummy-1` to this id in the same
+  pass).
+- Type: **Building Block**. Foundational · 35 minutes · prerequisite:
+  **1.9 (declared exception, see below - curriculum-order prerequisite is
+  3.3, not yet authored)**.
+- **Lesson length: 1,242 words** for a 35-minute estimate (1.6 was 1,209 for
+  30 minutes) - proportionate; this chapter covers two algorithms plus a
+  failure-mode shift 1.6 didn't need to.
+- Pipeline not run this pass (content-authoring only, per the skill's
+  scope).
+
+**Blocking decisions resolved before drafting (2026-08-11):**
+
+1. **Pulled forward with no real prerequisite.** Group A (3.1-3.3) is
+   entirely unauthored, and 3.3 - CURRICULUM §14's stated "Assumes" for
+   3.4 - doesn't exist as content. Left as `manifest.ts` originally had it
+   (`prerequisiteSlugs: ["3-3-reverse-proxy"]`), this chapter would be
+   permanently unreachable in the app. **Resolved:** author the lesson
+   assuming only what's actually shipped (Part 0, Part 1 through 1.9, and
+   1.6's three components) - the motivation is built entirely from 1.6's
+   own planted seed, never from reverse-proxy vocabulary. `manifest.ts`'s
+   `prerequisiteSlugs` repointed to `1-9-deep-dive-methodology`, commented
+   inline as a declared, temporary exception to revert once Group A lands
+   in Wave 3. Full reasoning in spec §0.1.
+2. **Topology diagram renderer, 3.4's own call (not an assumed extension of
+   1.6's).** Open decision #3 below named this explicitly: 3.4's diagram
+   (multiple instances, health-check `control` edges) is more complex than
+   1.6's straight line. Resolved the same way, for the same reason -
+   Mermaid, styled as the target topology, captioned narrowly for this
+   diagram only. See spec §0.2.
+3. **New finding, not anticipated by any prior doc: `control` edges aren't
+   buildable yet.** CURRICULUM §16 assigns 3.4 as introducing edge kind
+   `control`. Checked directly against the registry
+   (`content/components/config/networking.ts` and `compute.ts`): neither
+   `load-balancer.relations.outputs.allowedKinds` nor
+   `app-server.relations.inputs.allowedKinds` includes `"control"` - both
+   declare `["request-flow"]` only for this direction. A load-balancer
+   health-check edge to a backend fails `component-relations` on both
+   ends, today, for every chapter, not just this one. **Not hacked
+   around** - per this skill's own instruction to flag rather than patch
+   engine gaps during a content pass. `control` edges are taught and shown
+   in the lesson diagram (Mermaid, not engine-validated) but are absent
+   from the graded `starterGraph`/`blueprint`, which use `request-flow`
+   only. Recorded honestly in `curriculumContext.simplifications`, not
+   silently omitted. **Needs an engineering follow-up**, separate from this
+   ledger: add `"control"` to `load-balancer.relations.outputs.allowedKinds`
+   and to `app-server.relations.inputs.allowedKinds` (or a narrower,
+   load-balancer-specific contract). See open decisions below.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-4-load-balancer.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-4-load-balancer.md` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None new - 6 existing rules curated (`single-instance-load-balancer` is the namesake); justified in spec §7 |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3; Q2 and Q4 modeled on QUIZ_FRAMEWORK §8's own published Q5 and Q7 for this exact chapter |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **Required blueprint includes `sql-database`, not just the LB layer.**
+  `availableComponentIds` equals `requiredComponentIds` equals `client`,
+  `load-balancer`, `app-server`, `sql-database` - the full realistic stack
+  (two app-server instances sharing one database) rather than scoping the
+  exercise to just client/LB/app-server. Reinforces 1.6's mediation lesson
+  (the database is still only reachable through an app server) while
+  teaching the new distribution layer on top, not padding.
+- **Starter graph is under-provisioned, not mis-wired** - same "fix ships
+  symptoms" precedent as 1.6/0.1, but the fault this time is pure capacity
+  (`single-instance-load-balancer`), not an illegal edge. Everything in the
+  starter graph is legally connected; the learner adds a second instance
+  and wires it identically.
+- **One forward tease, to 3.8** (Horizontal Scaling) - checked against this
+  ledger; not already spent by an earlier chapter this wave besides 1.6's
+  own tease to 3.4 itself.
+- **Production example: Cloudflare**, chosen specifically to avoid the
+  Instagram-overclaim class of bug 1.6's Opus pass caught - a
+  decision-not-company claim ("load balancing is Cloudflare's literal core
+  product, at global scale") that doesn't require asserting anything about
+  a specific company's internal architecture.
+- **Quiz Q2 and Q4 modeled on QUIZ_FRAMEWORK §8's own Q5 and Q7** - the
+  bank's already-published examples for this exact chapter and rule -
+  reworded with a fresh graph/workload pairing, not copied verbatim.
+- **Quiz position-clustering checked by eye**: four single-kind questions
+  (Q1/Q3/Q4/Q5), correct options at b/a/c/d - four distinct positions.
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly, same as 1.6. Flagged for the next
+  reviewer to check against padding, though the word-count comparison above
+  is at least a rough sanity check.
+
+**Opus proofread pass (2026-08-11) - run, six changes, uncommitted.**
+
+Scope: content, content-structure, blueprints, component lists, submit
+validations, diagrams. Quiz, hints and the `problemStatement` /
+`learningObjectives` / `curriculumContext` fields were out of scope and are
+untouched. No CI/typecheck/lint/test/build run (content-only pass). Full
+detail in the chapter spec's new §13.
+
+*Changed* (`lessonVersion` 1 -> 2, spec §13 lists all six):
+
+1. **The `control`-edge gap was disclosed to the AI but not to the learner.**
+   `curriculumContext.simplifications` is consumed only by `src/ai/prompt.ts`
+   (the Deep Check prompt) - it is never rendered in the Reader. So the draft
+   taught `control` edges, drew them dashed in the diagram, said "the load
+   balancer pings each instance over a `control` edge", and gave the learner
+   nothing about their being unbuildable. A learner who tried to draw one
+   would have hit a `component-relations` error with no explanation. §20.2
+   requires the honest statement in the prose *and* the `simplifications`
+   entry, not either/or. Two sentences added under the diagram caption. This
+   was the pass's strongest finding, and it generalises: **any future
+   chapter recording a limitation only in `simplifications` has disclosed it
+   to nobody who can read.**
+2. Diagram caption taught the picture as the mechanism ("losing a `control`
+   edge takes it out of rotation"). A failed health check does that; the edge
+   does not vanish. Corrected.
+3. Cloudflare example rewritten to §13's who / why / when / trade-off format.
+   "Cloudflare's core product is this exact pattern" is an overclaim (its
+   core is a global edge network; load balancing is a product it sells), and
+   "route each request to a healthy *nearby* server" smuggled in geographic
+   steering, which this chapter never teaches. **The ledger's own guard held
+   only halfway:** picking Cloudflare did avoid an internal-architecture
+   claim, but the sentence still overclaimed and skipped three quarters of
+   §13's format. Replacement is a public-product decision claim, ties
+   least-outstanding-requests back to least-connections, and names the
+   trade-off (a third party in front of every request).
+4. "Add a second app-server instance" was ambiguous against the product:
+   `app-server` has a literal `instances` config field, and
+   `single-instance-load-balancer` sums it - so bumping it to 2 clears the
+   warning, yields a clean Validate, then fails Submit with "Missing:
+   Application Server" while an Application Server is visibly on canvas.
+   Hint 2 disambiguated, but hints are never auto-surfaced. Brief now says
+   "a second box, not a higher Instances count".
+5. Cold-open restatement cut (§20.6) - paragraph 1's "something still has to
+   decide which instance gets each request" was restated whole by paragraph
+   2. Kept the stronger one.
+6. "the same cargo-cult shape the lesson just named" pointed at nothing -
+   "cargo cult" is §14's phrase, not the lesson's. Repointed at the "Common
+   mistakes" bullet that does name it.
+
+*Verified against the two documented judgment calls:*
+
+- **Vocabulary boundary (call 1) holds.** No reverse-proxy / DNS / firewall /
+  API-gateway vocabulary anywhere, including in teases. "instance", "single
+  point of failure" and "hop" all appear in 1.6's body first; "loop step 4
+  (0.4)" matches both 1.6's identical attribution and §14's "steps 4, 6";
+  `round-robin` / `least-connections` are the `load-balancer` config field's
+  literal option strings. `manifest.ts` read but not edited.
+- **`control` gap (call 2) is real and correctly diagnosed.** Re-checked the
+  registry directly: `load-balancer.relations.outputs.allowedKinds` and
+  `app-server.relations.inputs.allowedKinds` are both `["request-flow"]`.
+  The diagram-only treatment is a legitimate disclosed limitation - it just
+  was not actually disclosed anywhere the learner could see it, until now.
+
+*Verified and left alone:* blueprint is a single honest `require` (one right
+shape; a second would be invented variety), `commentary` is debrief-only, and
+the starter graph provably cannot satisfy it - `pattern.ts` binds aliases
+injectively, so one `app-server` node can never fill both `app1` and `app2`.
+The ledger's "under-provisioned, not mis-wired" claim holds: every starter
+edge passes `component-relations`. Component lists match §16. All six
+`validationRuleIds` resolve in `src/validation-engine/rules/index.ts`.
+
+*Three structural omissions were undeclared and are now declared in spec §4
+(§6 requires written justification, and silence is the thing §6 forbids):*
+the "Preview of next chapter" section previews 3.8 rather than the manifest's
+actual next chapter 3.5 (justified - §0.1 forbids the vocabulary, §19 allows
+one tease, §14's own 3.4 row names 3.8); §12's nugget devices are absent
+again; and §14's 3.4 row promises "build + config + trace" against a
+build/fix-only chapter.
+
+*Spec fact corrected:* the word-count comparison was wrong in both places -
+this ledger said 1.6 was 1,209 words and the spec said 950; `wc -w` gives
+**1,279**. The draft was therefore never long relative to 1.6, it was
+slightly thinner per minute. Post-pass body is 1,333 words for 35 minutes vs.
+1.6's 1,279 for 30 - proportionate. **Do not carry the 950/1,209 figures
+forward into another chapter's density comparison.**
+
+**New open notes raised by this pass** (numbered items below where they need
+a decision; recorded here where they are just observations):
+
+- **`single-instance-load-balancer` is severity `warning`, and
+  `runChapterValidation` derives `passed` from `errorCount` alone.** The
+  starter graph passes Validate structurally while listing one issue. The
+  exercise still works (`QuestionPane` counts every violation above `note`,
+  so the learner reads "Last validated: 1 issue" and the header pane carries
+  the full explanation, and Submit holds the line via the blueprint), but it
+  works differently from 1.6, whose fault was error-severity and failed
+  Validate outright. Not changed - severity is engine work with
+  cross-chapter reach. Worth a deliberate call: should a chapter's *namesake
+  fault* ever be warning-severity?
+- **Blueprint-drift copy is confusing for a duplicate-node blueprint.**
+  Failing Submit with one `app-server` present reports "Missing:
+  Application Server" while an Application Server is on the canvas. Correct
+  in engine terms (the second alias is unbound), misleading in learner
+  terms. Engineering note, first surfaced by this chapter because it is the
+  first blueprint requiring two nodes of one component.
+- **Resolved 2026-08-11 (post-audit, user-directed):** `problemStatement`
+  re-synced with the "Your turn" brief - now reads "Add a second App Server
+  to the canvas - a second box, not a higher Instances count on the one
+  already there," matching change 4 above instead of the stale "add a second
+  app-server instance" wording.
+
+---
+
 ## Open decisions blocking or shaping later chapters
 
 Raised during authoring, deliberately not resolved unilaterally. Each needs a
@@ -2220,6 +2641,13 @@ doc edit or a build decision.
    server to database"), which 3.4's own topology would have contradicted. A
    Mermaid topology is easier to overstate than a graph-JSON one, because it
    isn't constrained by the registry - caption it for *this* diagram only.
+   **3.4 authored 2026-08-11, same resolution, made explicitly rather than
+   assumed:** Mermaid, styled as the topology (client -> LB -> two app-server
+   instances -> database), captioned narrowly for this diagram only (see its
+   own spec §0.2). Still not a resolution of §7.2 itself - now two chapters'
+   worth of the same narrow exception, growing evidence this should become
+   either a sanctioned Mermaid-topology carve-out or real engineering work for
+   a graph-JSON markdown block.
 
 4. **CURRICULUM contradicts itself on what the five forces are.** §14's 0.2 row
    and §5.2 say latency / **throughput** / availability / durability / cost.
@@ -2248,6 +2676,13 @@ doc edit or a build decision.
    enough that the nuggets would actually earn their placement: either author
    them from 3.4 on, or amend §12 to make them optional for short Part 0/1
    chapters. Raised by the Opus pass on 0.2.
+   **The trigger fired, 2026-08-11.** 3.4 is the first Part 3 chapter
+   authored and it has no nuggets either. The Opus pass declared the omission
+   in 3.4's spec §4 rather than authoring three boxed one-liners into one
+   chapter and leaving every neighbour without them - a device with a "fixed
+   placement so learners build rhythm" cannot start mid-curriculum in a
+   single chapter. Still needs the call this decision has always asked for,
+   now overdue rather than upcoming.
 
 6. **§4's chapter-types table lists 1.3 as a Concept-type example, contradicting
    §14's own Part 1 header ("Process type" for the whole part, 1.1-1.11, no
@@ -2276,6 +2711,91 @@ doc edit or a build decision.
    beats become quiz questions) rather than treating it as a new problem -
    see 1.7's own ledger entry and spec §0. Still not resolved: this is now
    two chapters' worth of evidence for the same "decide once" call.
+   **Third instance, 2026-08-11.** §14's 3.4 row promises "build + config +
+   trace"; 3.4 ships build/fix only. The config beat degraded to lesson +
+   quiz deliberately (both algorithms are defensible, so there is no correct
+   config value to gate on - that one is a genuine content call, not a
+   missing simulator); the trace beat hit the same wall as 1.6 and 1.7.
+   Declared in 3.4's spec §4 by the Opus pass. Three chapters, one decision,
+   still deferred.
+
+8. **`control`-kind edges aren't buildable on canvas - a real engine gap,
+   found authoring 3.4 (2026-08-11).** CURRICULUM §16 assigns 3.4 as
+   introducing edge kind `control` (health checks). Checked directly against
+   `content/components/config/networking.ts` and `compute.ts`: neither
+   `load-balancer.relations.outputs.allowedKinds` nor
+   `app-server.relations.inputs.allowedKinds` includes `"control"` - both
+   declare `["request-flow"]` only for this direction, so a load-balancer
+   health-check edge to a backend fails `component-relations` on both ends.
+   This isn't specific to 3.4's content; no registry component today accepts
+   an incoming `control` edge from a load balancer at all.
+   **Not hacked around** - 3.4's spec (§0.3) keeps `control` edges
+   illustrative only (Mermaid diagram, prose), absent from the graded
+   `starterGraph`/`blueprint`, and records the gap honestly in
+   `curriculumContext.simplifications` rather than silently omitting it.
+   **Blocks:** nothing today (3.4 shipped around it), but any later chapter
+   wanting a learner-buildable health-check/liveness edge (e.g. a future
+   revisit of 3.4, or 3.9 Service Discovery) hits the same wall. Needs an
+   engineering fix, not a content one: add `"control"` to
+   `load-balancer.relations.outputs.allowedKinds` and to
+   `app-server.relations.inputs.allowedKinds` (or a narrower,
+   load-balancer-specific contract) in `src/content/components/config/`.
+
+9. **3.4 Load Balancer authored standalone, ahead of its real prerequisite
+   (2026-08-11).** CURRICULUM §14's 3.4 row reads "Assumes: 3.3", but Group A
+   (3.1-3.3) is entirely unauthored (`chapterDefinitionId: null`), and 3.3's
+   own prerequisite chain traces back through unauthored Part 2 as well. Left
+   as `manifest.ts` originally had it, 3.4's `prerequisiteSlugs:
+   ["3-3-reverse-proxy"]` would make the chapter permanently unreachable in
+   the app (its prerequisite can never be "completed"). This is the same
+   "pulled forward" situation `pending-content.md` already named for 3.4
+   (Wave 2, ahead of Wave 3's Group A), just more literal than 1.6's version
+   of the same pattern.
+   **Resolved for 3.4:** authored assuming only Part 0, Part 1 (through 1.9),
+   and 1.6's three components - no reverse-proxy/DNS/firewall vocabulary
+   anywhere, motivation built entirely from 1.6's own planted seed instead.
+   `manifest.ts`'s `prerequisiteSlugs` repointed to `1-9-deep-dive-methodology`,
+   commented inline as a declared, temporary exception. Full reasoning in
+   3.4's spec §0.1.
+   **Blocks:** nothing today. **Needs a decision before Wave 3 authors
+   3.1-3.3:** revert 3.4's `prerequisiteSlugs` back to `["3-3-reverse-proxy"]`
+   once Group A is real, and confirm 3.4's lesson doesn't need a retroactive
+   edit once the learner *can* arrive at 3.4 having actually taken 3.3 (it
+   shouldn't - 3.4 never assumes 3.3's content, it just doesn't currently
+   require it either - but worth a second look when Group A lands rather than
+   assumed fine).
+
+10. **`curriculumContext.simplifications` is not a disclosure surface -
+    raised by the Opus pass on 3.4 (2026-08-11).** It is read by exactly one
+    consumer, `src/ai/prompt.ts`, which folds it into the Deep Check prompt.
+    Nothing renders it in the Reader. Every chapter authored so far has
+    treated "recorded in `simplifications`" as discharging §20.2's honesty
+    requirement; §20.2 actually asks for the simplification to be stated in
+    the prose *and* recorded in the list. 3.4 was the first chapter where
+    that mattered concretely (it taught an edge kind the canvas rejects), so
+    it got a two-sentence in-lesson disclosure. **Blocks:** nothing, but
+    every existing chapter's `simplifications` list is worth re-reading with
+    "would a learner ever notice this, and if so, does the lesson say it?"
+    in mind. Either that becomes an authoring-checklist line, or the Reader
+    grows a real surface for it.
+
+11. **Should a chapter's namesake fault ever be warning-severity? Raised by
+    the Opus pass on 3.4 (2026-08-11).** `single-instance-load-balancer` is
+    `severity: "warning"`, and `runChapterValidation` computes `passed` from
+    `errorCount` alone - so 3.4's starter graph *passes* Validate while
+    listing one issue, where 1.6's error-severity fault failed Validate
+    outright. The chapter still works (the issue and its full explanation
+    both render, and Submit gates on the blueprint), but two chapters now
+    teach "run Validate, fix what it says" with structurally different
+    feedback. **Blocks:** nothing. Needs a call before more Part 3 chapters
+    build exercises on warning-severity rules: either accept the two shapes
+    and word transition briefs accordingly, or let a chapter promote its own
+    namesake rule's severity. Engine change, not content - deliberately not
+    touched during a content pass.
+    Related engine note from the same pass: blueprint drift reports "Missing:
+    Application Server" when a blueprint needs two nodes of one component and
+    the learner has one, which reads as false to the learner. First surfaced
+    here because 3.4 is the first blueprint requiring a duplicate node.
 
 ---
 

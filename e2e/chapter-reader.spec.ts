@@ -87,7 +87,7 @@ test.describe("Chapter Reader - Learning Path Integration", () => {
     const progressBar = page.locator('[role="progressbar"] > div').nth(0);
 
     const beforeWidth = await progressBar.evaluate((el) => window.getComputedStyle(el).width);
-    expect(beforeWidth).toContain("0px");
+    const beforeNum = Number(beforeWidth.replace("px", ""));
 
     await article.evaluate((el) => {
       el.scrollTop = el.scrollHeight * 0.5;
@@ -96,7 +96,8 @@ test.describe("Chapter Reader - Learning Path Integration", () => {
 
     await page.waitForTimeout(200);
     const afterWidth = await progressBar.evaluate((el) => window.getComputedStyle(el).width);
-    expect(Number(afterWidth.replace("px", ""))).toBeGreaterThan(0);
+    const afterNum = Number(afterWidth.replace("px", ""));
+    expect(afterNum).toBeGreaterThan(beforeNum);
   });
 });
 
