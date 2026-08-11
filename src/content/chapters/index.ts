@@ -4953,6 +4953,246 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
   },
   {
+    id: "bb-1-11-driving-a-system-design-interview",
+    mode: "building-blocks",
+    title: "Driving a System Design Interview",
+    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
+    // Spec: specs/bb-1-11-driving-a-system-design-interview.spec.md.
+    // Lesson body: public/content/chapters/bb-1-11-driving-a-system-design-interview.mdx.
+    // §16 puts 1.11 in the no-component list. The staged exercise promised
+    // by §14 is quiz-realized while the stages UI is absent; see spec §0.
+    problemStatement:
+      "No canvas build this chapter - driving a time-bound design conversation needs no new " +
+      "component. The knowledge check runs a compact interview walkthrough: preserve the " +
+      "requirements-to-design evidence chain, answer a follow-up from that evidence, and close " +
+      "with the design's cost and next risk.",
+    // Five objectives, one per §5.2 category. Category tags and evidence live
+    // in specs/bb-1-11-driving-a-system-design-interview.spec.md §2.
+    learningObjectives: [
+      "State a useful time budget for a 45-minute interview and explain why requirements, estimates, and a close need protected time.",
+      "Classify a follow-up as changed pressure, a trade-off challenge, or a failure/limit question, then return to the relevant prior evidence.",
+      "Given a sequenced tiny-brief interview, choose the next move that keeps the design loop intact under the remaining time.",
+      "Drive an interview by naming the next reasoning move, correcting a changed assumption openly, and ending with a concise recap.",
+      "Explain a time-bound design plan without treating the time budget as a rigid script or a reason to bluff certainty.",
+    ],
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [],
+    readingLinks: [],
+    // 1: initial authored chapter (2026-08-11).
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.11 of 44 (optional).",
+      masteredConcepts: [
+        "The complete eight-step Interview Loop (0.4), lived one step at a time in 1.1-1.10.",
+        "Clarifying questions, functional requirements, and non-functional requirements (1.1-1.3).",
+        "Order-of-magnitude estimation and the precision-theater boundary (1.4-1.5).",
+        "The smallest end-to-end client, app-server, and database shape, plus a top-down narration (1.6, 1.10).",
+        "The ceiling method, trade-off reflex, deep-dive method, and two-question follow-up test (1.7-1.10).",
+      ],
+      notYetIntroducedConcepts: [
+        "The request's actual browser-to-backend path (2.1) - previewed only in this chapter's Next section.",
+        "Specific scaling mechanisms beyond the three primitives - this chapter coordinates the process and does not add a new solution palette.",
+        "A live branching stages exercise - the stages UI is not yet implemented, so the walkthrough is quiz-realized and disclosed in the lesson.",
+      ],
+      simplifications: [
+        "The 45-minute allocation is an illustrative budget for protecting the reasoning chain, not a universal interview script; the lesson says to adapt it to the brief.",
+        "The quiz presents a linear miniature interview so each decision can receive explanation; real interviews branch, backtrack, and permit more than one defensible time allocation.",
+      ],
+    },
+    quiz: [
+      {
+        id: "bb-1-11-driving-a-system-design-interview-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Two minutes into a 45-minute interview, the brief is 'design a service for sharing photos.' " +
+          "What is the strongest next move?",
+        options: [
+          {
+            id: "a",
+            label: "Start drawing the upload path so there is a concrete design to discuss.",
+            correct: false,
+            explanationMd:
+              "A concrete path helps only after the product and its pressure are known. Drawing now makes unstated assumptions expensive to unwind.",
+          },
+          {
+            id: "b",
+            label: "Ask which user flows matter, what scale matters, and what is explicitly out of scope before choosing the shape.",
+            correct: true,
+            explanationMd:
+              "Correct. This protects 1.1-1.3's evidence chain. A short set of high-leverage questions prevents solving an imagined product.",
+          },
+          {
+            id: "c",
+            label: "Estimate global storage capacity to the nearest gigabyte before asking questions.",
+            correct: false,
+            explanationMd:
+              "This is precision theater before there is even a stated traffic or retention assumption. Estimate only when it can change a decision.",
+          },
+          {
+            id: "d",
+            label: "Pick the database first, since it is the hardest decision to revise later.",
+            correct: false,
+            explanationMd:
+              "A database choice has no evidence behind it yet. Requirements create the pressure that makes any later choice defensible.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-11-driving-a-system-design-interview-q2",
+        kind: "ordering",
+        difficulty: 1,
+        prompt:
+          "You have clarified a tiny brief. Put these next moves in the order that keeps the evidence chain intact.",
+        // Full derangement: Ordering renders this authored order before the
+        // learner rearranges it.
+        options: [
+          {
+            id: "draw",
+            label: "Draw the smallest end-to-end design.",
+            correct: true,
+            explanationMd: "The diagram answers the requirements once their pressure has been estimated.",
+          },
+          {
+            id: "tradeoff",
+            label: "Name the first ceiling and the trade-off it forces.",
+            correct: true,
+            explanationMd: "A trade-off is justified after a concrete design exposes a pressure point.",
+          },
+          {
+            id: "requirements",
+            label: "State the functional requirements, non-functional requirements, and scope boundary.",
+            correct: true,
+            explanationMd: "Requirements are the evidence the rest of the interview must answer.",
+          },
+          {
+            id: "estimate",
+            label: "Estimate the order of magnitude that could change the design.",
+            correct: true,
+            explanationMd: "Estimation calibrates the requirements before the design commits to a shape.",
+          },
+        ],
+        correctOrder: ["requirements", "estimate", "draw", "tradeoff"],
+      },
+      {
+        id: "bb-1-11-driving-a-system-design-interview-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "You stated that reads dominate, then the interviewer clarifies that the product has a write-heavy ingestion flow. What is the strongest response?",
+        options: [
+          {
+            id: "a",
+            label: "Name the changed assumption, revisit the affected path, and explain which earlier decision may now change.",
+            correct: true,
+            explanationMd:
+              "Correct. The new fact is evidence, not an accusation. A narrow revision keeps the reasoning chain visible and preserves work that still holds.",
+          },
+          {
+            id: "b",
+            label: "Keep the read-heavy design because changing a diagram mid-interview looks uncertain.",
+            correct: false,
+            explanationMd:
+              "This protects appearance over correctness. Revising openly when a requirement changes is the stronger signal.",
+          },
+          {
+            id: "c",
+            label: "Discard the entire design and restart from the beginning without explaining the change.",
+            correct: false,
+            explanationMd:
+              "The new evidence may affect one path, not every decision. Starting over also removes the thread the interviewer was evaluating.",
+          },
+          {
+            id: "d",
+            label: "Argue that write volume is an implementation detail and continue to the deep dive.",
+            correct: false,
+            explanationMd:
+              "Write volume can be exactly the pressure that determines the correct deep dive. Ignoring it abandons requirement-driven design.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-11-driving-a-system-design-interview-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "At minute 31, the core design is on the board. The interviewer asks, 'what breaks first if traffic doubles?' What should drive your answer?",
+        options: [
+          {
+            id: "a",
+            label: "The component that is most familiar to explain in detail.",
+            correct: false,
+            explanationMd:
+              "Familiarity is not evidence. The deep dive belongs where the stated pressure actually lands.",
+          },
+          {
+            id: "b",
+            label: "A tour through every component so no part of the diagram is skipped.",
+            correct: false,
+            explanationMd:
+              "Breadth without prioritization spends the remaining time while avoiding the actual question.",
+          },
+          {
+            id: "c",
+            label: "A new component added immediately, because more traffic always requires more machinery.",
+            correct: false,
+            explanationMd:
+              "Check the current ceiling first. Adding machinery before identifying the limit is an unmotivated fix.",
+          },
+          {
+            id: "d",
+            label: "The lowest ceiling on the hot path, using the stated estimates to explain the symptom and response.",
+            correct: true,
+            explanationMd:
+              "Correct. This is 1.7's ceiling method used under the interview clock: evidence selects the pressure point, then the response earns its trade-off.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-11-driving-a-system-design-interview-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "With three minutes left, your design and main trade-off are clear. Which close best demonstrates control of the interview?",
+        options: [
+          {
+            id: "a",
+            label: "Introduce a second, unrelated architecture to show breadth.",
+            correct: false,
+            explanationMd:
+              "A new architecture has no time to earn its assumptions or trade-offs. It obscures the design the room has already evaluated.",
+          },
+          {
+            id: "b",
+            label: "Keep deep-diving into implementation details until the interviewer stops you.",
+            correct: false,
+            explanationMd:
+              "Detail without a close can leave the interviewer unsure what design and cost you actually chose.",
+          },
+          {
+            id: "c",
+            label: "Recap the requirement that drove the design, the cost accepted, and the next risk you would test with more time.",
+            correct: true,
+            explanationMd:
+              "Correct. This closes the evidence-to-decision loop, demonstrates trade-off ownership, and names the next honest investigation without bluffing completion.",
+          },
+          {
+            id: "d",
+            label: "Claim there are no remaining risks because the design handles the stated scale.",
+            correct: false,
+            explanationMd:
+              "A design can meet today's stated pressure and still have a next limit worth naming. Pretending otherwise blocks useful follow-ups.",
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "rwe-dummy-1",
     mode: "real-world-extraction",
     title: "Placeholder Project",

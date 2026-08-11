@@ -204,7 +204,7 @@ export const courses: Record<CourseId, Course> = {
             number: "1.11",
             title: "Driving a System Design Interview",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-1-11-driving-a-system-design-interview",
             estimatedMinutes: 30,
             difficulty: "foundational",
             // §17: optional chapter, gates nothing - nothing lists this slug

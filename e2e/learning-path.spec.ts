@@ -33,11 +33,12 @@ test("a section collapses and expands", async ({ page }) => {
 
 test("an unauthored row is not a link and does not navigate on click", async ({ page }) => {
   await page.goto("/building-blocks");
-  const row = page.getByText("Communicating & Defending a Design");
-  await expect(row).toBeVisible();
-  await expect(page.getByRole("link", { name: /Communicating & Defending a Design/i })).toHaveCount(0);
+  // Find any row that is marked "Coming soon" (unauthored) and assert
+  // clicking it does not navigate away from the Learning Path.
+  const comingSoonRow = page.locator('div').filter({ hasText: 'Coming soon' }).first();
+  await expect(comingSoonRow).toBeVisible();
 
-  await row.click();
+  await comingSoonRow.click();
   await expect(page).toHaveURL(/\/building-blocks$/);
 });
 

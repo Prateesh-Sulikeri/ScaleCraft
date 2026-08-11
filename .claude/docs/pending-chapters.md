@@ -48,6 +48,7 @@ checkpoints) + 32 Real World Extraction projects = 79 manifest rows.
 | 1.9 Deep Dive Methodology | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
 | 3.4 Load Balancer | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-11 | `feature/lesson-3-4-load-balancer` |
 | 1.10 Communicating & Defending a Design | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
+| 1.11 Driving a System Design Interview | **Authored (manual chapter-author-style pass, no cold audit yet)** | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
 | RWE T1 Bitly | Placeholder (`rwe-dummy-1`), moved to Wave 2 | - | - |
 
 Everything else in the 79 rows is unauthored (`chapterDefinitionId: null`).
@@ -91,7 +92,7 @@ Part 1 directly after 1.9 on its own new branch
 `release/v5.0.0-content-platform` - the original 1.7-1.9 branch no longer
 exists in this session, see its own entry above). Sonnet draft, no Opus pass
 yet. Part 1's eight-step interview loop (0.4/§10.1) is now covered end to
-end by 1.1-1.10; only the optional 1.11 remains unauthored in Part 1.
+end by 1.1-1.11. 1.11 is optional and intentionally gates nothing.
 
 ---
 
@@ -2299,6 +2300,69 @@ from Part 1. Every prior further-out tease pointed into Part 3 (3.4, 3.12,
 3.22) or stayed within-part (2.2 from 1.7). If a future chapter's own
 forward tease also reaches across a Part boundary, this is worth confirming
 as an established pattern rather than assumed fine by default.
+
+---
+
+## 1.11 Driving a System Design Interview
+
+- **Authored 2026-08-11 · not yet committed · branch
+  `feature/content-1-10-communicating-and-defending-a-design`**. This is the
+  current branch, which already contains the immediate prerequisite 1.10.
+- Definition id `bb-1-11-driving-a-system-design-interview` · manifest slug
+  `1-11-driving-a-system-design-interview` (`chapterDefinitionId` changed from
+  `null` in the same pass).
+- Type: Process. Foundational · 30 minutes (Reader + knowledge check, no
+  build) · prerequisite: 1.10. Optional by curriculum design and gates no
+  later chapter.
+- **Lesson length: 1,208 words** (by `wc -w`). A density pass removed a
+  second restatement of the time budget and left the table as the single
+  source of the minute-by-minute structure.
+- `typecheck`, `lint`, the chapter-specific invariant/wiring suites (28 tests),
+  and `build` pass. The repository-wide `npm test` was attempted twice but
+  exceeded this environment's 60-second command cap while emitting existing
+  React `act(...)` warnings; it was terminated by the runner before a final
+  suite result. It needs a normal local/CI run for the ledger's full-pipeline
+  standard.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-11-driving-a-system-design-interview.spec.md` |
+| 2 | Lesson MDX | `public/content/chapters/bb-1-11-driving-a-system-design-interview.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None - no canvas exercise, justified in spec §5 |
+| 5 | Quiz | Five sequenced questions, difficulty ramp 1/1/2/2/3 |
+| 6 | Playtest pass | Spec §7 |
+
+**Judgment calls made:**
+
+- **The full staged walkthrough is quiz-realized, not silently omitted.** The
+  stages UI required by Part 1 remains absent. `pending-content.md` explicitly
+  allows this degradation: scenarios become quiz questions while the UI is
+  missing. The lesson's "Your turn" says so, the spec records the limitation,
+  and the quiz forms one miniature interview instead of five disconnected
+  recall checks.
+- **No component, canvas, validation rule, blueprint, or hint.** §16 places
+  1.11 in the no-component list. `hasEditorExercise: false` prevents progress
+  from requiring an unreachable Submit action, matching 1.1-1.5 and 1.7-1.10.
+- **Time allocation is an adaptable budget, not a script.** The 45-minute
+  table protects the order of evidence: scope, requirements, estimate,
+  architecture, pressure, then follow-ups and close. The lesson states that a
+  dangerous requirement can earn more deep-dive time.
+- **The decision-tree Mermaid is an interviewer-intent diagram, not a
+  topology.** It is within the ordinary process-flow diagram allowance and is
+  captioned with what to notice.
+- **Immediate-next preview is 2.1, verified against `manifest.ts`.** No
+  further-out tease is spent: the optional chapter closes Part 1 cleanly and
+  needs no additional forward promise.
+- **Quiz positional checks completed.** The four single-choice correct
+  positions are `b`, `a`, `d`, `c`; the ordering question is a full
+  derangement from its `correctOrder`. Every option has its own explanation.
+
+**Second-reader checks:** read the time budget as a flexible reasoning budget
+rather than memorized interview choreography; confirm the scenarios work as a
+single walkthrough; and re-check the 2.1 preview if manifest order changes.
 
 ---
 
