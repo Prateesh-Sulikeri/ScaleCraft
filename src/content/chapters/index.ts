@@ -10,10 +10,10 @@ import type { ChapterDefinition } from "./types";
  *   `bb-1-1-understanding-the-problem` are real curriculum content,
  *   authored against CURRICULUM.md §5/§6 with a chapter spec in `specs/`
  *   beside each.
- * - `bb-dummy-1` and `rwe-dummy-1` are still throwaway shell fixtures
- *   (`placeholder: true`), standing in for 3.4 Load Balancer and RWE Tier 1
- *   Bitly respectively. Wave 1 replaces both - replace them, don't extend
- *   them.
+ * - `bb-dummy-1` was replaced by real content, `bb-3-4-load-balancer`
+ *   (pulled forward from Wave 3, see pending-content.md/pending-chapters.md).
+ *   `rwe-dummy-1` is still a throwaway shell fixture (`placeholder: true`),
+ *   standing in for RWE Tier 1 Bitly - replace it, don't extend it.
  *
  * Every real chapter carries a sibling spec in `specs/<id>.spec.md`: the
  * §5 blueprint filled in, plus its declared omissions, component-budget

@@ -104,7 +104,22 @@ describe("HomeCanvas", () => {
   });
 
   it("reflects a completed chapter as real progress after hydrate resolves", async () => {
-    await db.chapterProgress.put({ chapterId: "bb-dummy-1", completedAt: Date.now(), matchedBlueprintId: null });
+    await db.chapterProgress.put({
+      chapterId: "bb-3-4-load-balancer",
+      completedAt: Date.now(),
+      matchedBlueprintId: null,
+    });
+    // bb-3-4-load-balancer has a quiz, so COMPLETED also needs a passing
+    // exam attempt (see deriveStatus in curriculum/progress.ts) - a
+    // validation pass alone isn't sufficient the way it was for the old
+    // no-quiz bb-dummy-1 placeholder this test used to use.
+    await db.examAttempts.put({
+      chapterDefinitionId: "bb-3-4-load-balancer",
+      attemptNumber: 1,
+      submittedAt: Date.now(),
+      score: 100,
+      answers: [],
+    });
     render(<HomeCanvas />);
     expect(await screen.findByText("1 / 47 chapters")).toBeInTheDocument();
     expect(await screen.findByText("in progress")).toBeInTheDocument();
