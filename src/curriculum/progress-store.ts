@@ -1,5 +1,14 @@
 import { create } from "zustand";
 import { db, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
+import {
+  deleteChapterProgressSync,
+  deleteExamAttemptsSync,
+  hydrateAllChapterProgress,
+  hydrateAllCurriculumProgress,
+  hydrateAllExamAttempts,
+  syncCurriculumProgress,
+  syncExamAttempt,
+} from "@/persistence/cloud-sync";
 import type { ProgressInputs } from "./progress";
 
 /** Replace-by-attemptNumber — mirrors Dexie's own replace-by-key `put`. */
@@ -68,8 +77,16 @@ type CurriculumProgressStore = {
   inputs: () => ProgressInputs;
 };
 
-function existingRow(rowsBySlug: Map<string, CurriculumProgress>, slug: string): CurriculumProgress {
-  return rowsBySlug.get(slug) ?? { slug, manuallyCompletedAt: null, lastVisitedAt: null };
+/** Reads Dexie, never the in-memory map. Every mutator below writes Dexie
+ * first, so Dexie is always at least as fresh as memory — while memory is
+ * empty until hydrate() resolves. Deriving a full-replace `put` payload from
+ * an unhydrated store silently wiped whichever fields the caller wasn't
+ * setting: opening a chapter directly (hard load on /chapters/<slug>, where
+ * markVisited's effect runs before hydrate's) erased that chapter's
+ * manuallyCompletedAt locally AND pushed the null to the cloud, destroying the
+ * completion on every device. See pending-persistence-audit.md S1. */
+async function existingRow(slug: string): Promise<CurriculumProgress> {
+  return (await db.curriculumProgress.get(slug)) ?? { slug, manuallyCompletedAt: null, lastVisitedAt: null };
 }
 
 export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, get) => ({
@@ -82,11 +99,37 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   hydrate: async () => {
     if (get().hydrated || get().hydrating) return;
     set({ hydrating: true });
-    const [chapterProgressRows, curriculumProgressRows, examAttemptRows] = await Promise.all([
+    // Hydrate-on-empty (decision 3, pending-cloud-sync.md), per table: a
+    // fresh device has none of these three tables populated locally yet, so
+    // an empty local table pulls everything for the user from the cloud
+    // once before continuing. No merge - only fires when the table is
+    // genuinely empty.
+    let [chapterProgressRows, curriculumProgressRows, examAttemptRows] = await Promise.all([
       db.chapterProgress.toArray(),
       db.curriculumProgress.toArray(),
       db.examAttempts.toArray(),
     ]);
+    if (chapterProgressRows.length === 0) {
+      const remote = await hydrateAllChapterProgress();
+      if (remote.length > 0) {
+        await db.chapterProgress.bulkAdd(remote);
+        chapterProgressRows = remote;
+      }
+    }
+    if (curriculumProgressRows.length === 0) {
+      const remote = await hydrateAllCurriculumProgress();
+      if (remote.length > 0) {
+        await db.curriculumProgress.bulkAdd(remote);
+        curriculumProgressRows = remote;
+      }
+    }
+    if (examAttemptRows.length === 0) {
+      const remote = await hydrateAllExamAttempts();
+      if (remote.length > 0) {
+        await db.examAttempts.bulkAdd(remote);
+        examAttemptRows = remote;
+      }
+    }
     let examAttemptsByDefinition = new Map<string, ExamAttempt[]>();
     for (const attempt of examAttemptRows) {
       examAttemptsByDefinition = withExamAttempt(examAttemptsByDefinition, attempt);
@@ -101,17 +144,19 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   },
 
   markVisited: async (slug) => {
-    const row: CurriculumProgress = { ...existingRow(get().rowsBySlug, slug), lastVisitedAt: Date.now() };
+    const row: CurriculumProgress = { ...(await existingRow(slug)), lastVisitedAt: Date.now() };
     await db.curriculumProgress.put(row);
+    void syncCurriculumProgress(row);
     set((state) => ({ rowsBySlug: new Map(state.rowsBySlug).set(slug, row) }));
   },
 
   setManualComplete: async (slug, complete) => {
     const row: CurriculumProgress = {
-      ...existingRow(get().rowsBySlug, slug),
+      ...(await existingRow(slug)),
       manuallyCompletedAt: complete ? Date.now() : null,
     };
     await db.curriculumProgress.put(row);
+    void syncCurriculumProgress(row);
     set((state) => ({ rowsBySlug: new Map(state.rowsBySlug).set(slug, row) }));
   },
 
@@ -123,13 +168,14 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
 
   recordExamAttempt: async (attempt) => {
     await db.examAttempts.put(attempt);
+    void syncExamAttempt(attempt);
     set((state) => ({
       examAttemptsByDefinition: withExamAttempt(state.examAttemptsByDefinition, attempt),
     }));
   },
 
   resetChapter: async (slug, chapterDefinitionId) => {
-    const row: CurriculumProgress = { ...existingRow(get().rowsBySlug, slug), manuallyCompletedAt: null };
+    const row: CurriculumProgress = { ...(await existingRow(slug)), manuallyCompletedAt: null };
     await Promise.all([
       db.curriculumProgress.put(row),
       chapterDefinitionId ? db.chapterProgress.delete(chapterDefinitionId) : Promise.resolve(),
@@ -137,6 +183,11 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
         ? db.examAttempts.where("chapterDefinitionId").equals(chapterDefinitionId).delete()
         : Promise.resolve(),
     ]);
+    void syncCurriculumProgress(row);
+    if (chapterDefinitionId) {
+      void deleteChapterProgressSync(chapterDefinitionId);
+      void deleteExamAttemptsSync(chapterDefinitionId);
+    }
     set((state) => {
       const validationPassedDefinitionIds = new Set(state.validationPassedDefinitionIds);
       if (chapterDefinitionId) validationPassedDefinitionIds.delete(chapterDefinitionId);

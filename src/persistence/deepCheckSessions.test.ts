@@ -23,7 +23,7 @@ describe("deepCheckSessions", () => {
     await saveSession("sandbox", critique);
     const [saved] = await listSessions("sandbox");
 
-    await deleteSession(saved.id!);
+    await deleteSession(saved);
 
     expect(await listSessions("sandbox")).toEqual([]);
   });

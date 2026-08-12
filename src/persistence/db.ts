@@ -55,6 +55,12 @@ export type ChapterProgress = {
  * caller-known key for "the Nth review of this board." */
 export type DeepCheckSession = {
   id?: number;
+  /** Stable client-generated id (crypto.randomUUID()), assigned once at
+   * write time — separate from `id` above, which is Dexie's local
+   * auto-increment key and device-local. Cloud sync (src/persistence/
+   * cloud-sync.ts) keys on this instead, since `id` is meaningless across
+   * devices. */
+  syncId: string;
   saveId: string;
   createdAt: number;
   critique: AiCritique;
@@ -259,6 +265,46 @@ export class ScaleCraftDB extends Dexie {
       quizProgress: null,
       examAttempts: "[chapterDefinitionId+attemptNumber], chapterDefinitionId",
     });
+    // 6.1.0 one-time reset. Identical shape to v9 — the bump exists purely to
+    // run the clear below. Pre-6.1.0 local data was written before cloud sync
+    // and before any account isolation existed, so on a browser that ever held
+    // two accounts it is a mix of both (see pending-persistence-audit.md S2/S3).
+    // There is no way to tell whose row is whose after the fact, so the only
+    // safe move is to drop all of it and let users restart. Agreed with the
+    // user 2026-08-12 at 3 total users.
+    //
+    // Runs as a Dexie upgrade rather than an app-mount effect on purpose:
+    // opening the database runs this before any read resolves, so no component
+    // can race it and observe the stale data first.
+    //
+    // aiProfiles is cleared too, despite being local-only and never synced —
+    // it holds the AI provider API key, which is the single worst thing to
+    // leak between accounts. Users re-enter their key once.
+    this.version(10)
+      .stores({
+        saves: "id",
+        customComponents: "id",
+        chapterProgress: "chapterId",
+        aiProfiles: "id",
+        aiActiveProfile: "id",
+        deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+        curriculumProgress: "slug",
+        examAttempts: "[chapterDefinitionId+attemptNumber], chapterDefinitionId",
+      })
+      .upgrade(async (trans) => {
+        await Promise.all(
+          [
+            "saves",
+            "customComponents",
+            "chapterProgress",
+            "aiProfiles",
+            "aiActiveProfile",
+            "deepCheckSessions",
+            "curriculumProgress",
+            "examAttempts",
+          ].map((table) => trans.table(table).clear()),
+        );
+      });
   }
 }
 

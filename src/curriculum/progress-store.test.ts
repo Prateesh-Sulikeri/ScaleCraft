@@ -146,4 +146,40 @@ describe("curriculum progress store", () => {
 
     expect(useCurriculumProgressStore.getState().examAttemptsByDefinition.get("bb-dummy-1")).toEqual([seeded]);
   });
+
+  // Regression: the mutators used to build their `put` payload from the
+  // in-memory map, which is empty until hydrate() resolves. A hard load
+  // straight onto /chapters/<slug> runs markVisited's effect before
+  // hydrate's, so this wiped the completion locally and synced the null up.
+  // See pending-persistence-audit.md S1.
+  it("markVisited preserves manuallyCompletedAt when the store is not hydrated", async () => {
+    const completedAt = Date.now() - 100_000;
+    await db.curriculumProgress.put({
+      slug: "1-2-load-balancing",
+      manuallyCompletedAt: completedAt,
+      lastVisitedAt: null,
+    });
+
+    // beforeEach leaves the store unhydrated, which is the bug's precondition.
+    await useCurriculumProgressStore.getState().markVisited("1-2-load-balancing");
+
+    const row = await db.curriculumProgress.get("1-2-load-balancing");
+    expect(row?.manuallyCompletedAt).toBe(completedAt);
+    expect(row?.lastVisitedAt).not.toBeNull();
+  });
+
+  it("setManualComplete preserves lastVisitedAt when the store is not hydrated", async () => {
+    const lastVisitedAt = Date.now() - 100_000;
+    await db.curriculumProgress.put({
+      slug: "1-2-load-balancing",
+      manuallyCompletedAt: null,
+      lastVisitedAt,
+    });
+
+    await useCurriculumProgressStore.getState().setManualComplete("1-2-load-balancing", true);
+
+    const row = await db.curriculumProgress.get("1-2-load-balancing");
+    expect(row?.lastVisitedAt).toBe(lastVisitedAt);
+    expect(row?.manuallyCompletedAt).not.toBeNull();
+  });
 });

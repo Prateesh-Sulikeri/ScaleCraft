@@ -27,6 +27,7 @@ import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
+import { hydrateCustomComponents, hydrateSave } from "@/persistence/cloud-sync";
 
 // Starts minimized (see canvas/store.tsx's docsPanel default), so most
 // loads never need it - keeps its markdown-rendering weight out of the
@@ -115,14 +116,22 @@ function SandboxPageContent() {
 
   // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
   // the seed demo graph — this is what makes a refresh not lose work.
+  // Hydrate-on-empty (decision 3, pending-cloud-sync.md): no local save at
+  // all (fresh device) means try the cloud once before falling back to the
+  // seed graph. Cloud stores the domain ArchitectureGraph (not raw canvas
+  // nodes/edges - a deliberate, accepted tradeoff, see that doc), so a
+  // cloud-hydrated restore goes through loadGraph, same as the seed graph,
+  // never loadCanvasState.
   useEffect(() => {
     if (storeApi.getState().nodes.length > 0) return;
-    db.saves.get(SANDBOX_SAVE_ID).then((save) => {
+    db.saves.get(SANDBOX_SAVE_ID).then(async (save) => {
       if (storeApi.getState().nodes.length > 0) return;
       if (save) {
         loadCanvasState(save.nodes, save.edges);
       } else {
-        loadGraph(seedGraph);
+        const remote = await hydrateSave(SANDBOX_SAVE_ID);
+        if (storeApi.getState().nodes.length > 0) return;
+        loadGraph(remote?.graph ?? seedGraph);
       }
       hasLoadedInitialStateRef.current = true;
       setHasLoadedInitialState(true);
@@ -133,9 +142,20 @@ function SandboxPageContent() {
 
   // Custom components (see CreateComponentModal.tsx) are separate from the
   // canvas save above — they're registry entries, not canvas state, so this
-  // loads regardless of whether a save exists.
+  // loads regardless of whether a save exists. Hydrate-on-empty: an empty
+  // local table (fresh device) pulls the whole palette from the cloud once.
   useEffect(() => {
-    db.customComponents.toArray().then(loadCustomComponents);
+    db.customComponents.toArray().then(async (records) => {
+      if (records.length === 0) {
+        const remote = await hydrateCustomComponents();
+        if (remote.length > 0) {
+          await db.customComponents.bulkAdd(remote);
+          loadCustomComponents(remote);
+          return;
+        }
+      }
+      loadCustomComponents(records);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

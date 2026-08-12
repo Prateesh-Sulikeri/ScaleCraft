@@ -7,6 +7,7 @@ import { componentRegistry } from "@/content/components/registry";
 import { toComponentDefinition, type CustomComponentRecord } from "@/content/components/custom";
 import type { ComponentCategory, ComponentDefinition } from "@/content/components/types";
 import { db } from "@/persistence/db";
+import { deleteCustomComponentSync, syncCustomComponent } from "@/persistence/cloud-sync";
 import { filterAndGroupComponents } from "./component-search";
 import { useCanvasStore } from "./store";
 import { useCustomComponentsStore } from "./custom-components-store";
@@ -330,12 +331,14 @@ export function ComponentPicker() {
 
   const handleSaveCustom = (record: CustomComponentRecord) => {
     void db.customComponents.put(record);
+    void syncCustomComponent(record);
     upsertCustomComponent(record);
     setModal(null);
   };
 
   const handleDeleteCustom = (record: CustomComponentRecord) => {
     void db.customComponents.delete(record.id);
+    void deleteCustomComponentSync(record.id);
     deleteCustomComponent(record.id);
     setDeleteTarget(null);
   };

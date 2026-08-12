@@ -244,8 +244,8 @@ describe("DeepCheckPanel", () => {
 
   it("history view lists saved sessions for the current saveId, newest first as returned", async () => {
     const sessions: DeepCheckSession[] = [
-      { id: 2, saveId: "sandbox", createdAt: 2000, critique: { summary: "Second review", sections: [], tradeoffs: [] } },
-      { id: 1, saveId: "sandbox", createdAt: 1000, critique: { summary: "First review", sections: [], tradeoffs: [] } },
+      { id: 2, syncId: "sync-2", saveId: "sandbox", createdAt: 2000, critique: { summary: "Second review", sections: [], tradeoffs: [] } },
+      { id: 1, syncId: "sync-1", saveId: "sandbox", createdAt: 1000, critique: { summary: "First review", sections: [], tradeoffs: [] } },
     ];
     listSessionsMock.mockResolvedValue(sessions);
 
@@ -270,7 +270,7 @@ describe("DeepCheckPanel", () => {
 
   it("clicking a session in history drills into its critique via the same CritiqueView rendering, then Back returns to the list", async () => {
     const sessions: DeepCheckSession[] = [
-      { id: 1, saveId: "sandbox", createdAt: 1000, critique: { summary: "A saved review", sections: [], tradeoffs: [] } },
+      { id: 1, syncId: "sync-1", saveId: "sandbox", createdAt: 1000, critique: { summary: "A saved review", sections: [], tradeoffs: [] } },
     ];
     listSessionsMock.mockResolvedValue(sessions);
 
@@ -286,7 +286,7 @@ describe("DeepCheckPanel", () => {
 
   it("clicking the trash icon once only arms a confirmation, without deleting yet", async () => {
     const sessions: DeepCheckSession[] = [
-      { id: 1, saveId: "sandbox", createdAt: 1000, critique: { summary: "Deletable", sections: [], tradeoffs: [] } },
+      { id: 1, syncId: "sync-1", saveId: "sandbox", createdAt: 1000, critique: { summary: "Deletable", sections: [], tradeoffs: [] } },
     ];
     listSessionsMock.mockResolvedValue(sessions);
 
@@ -302,7 +302,7 @@ describe("DeepCheckPanel", () => {
 
   it("confirming the armed delete calls deleteSession and removes it from the visible list", async () => {
     const sessions: DeepCheckSession[] = [
-      { id: 1, saveId: "sandbox", createdAt: 1000, critique: { summary: "Deletable", sections: [], tradeoffs: [] } },
+      { id: 1, syncId: "sync-1", saveId: "sandbox", createdAt: 1000, critique: { summary: "Deletable", sections: [], tradeoffs: [] } },
     ];
     listSessionsMock.mockResolvedValue(sessions);
     deleteSessionMock.mockResolvedValue(undefined);
@@ -313,13 +313,13 @@ describe("DeepCheckPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Delete session" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
-    await waitFor(() => expect(deleteSessionMock).toHaveBeenCalledWith(1));
+    await waitFor(() => expect(deleteSessionMock).toHaveBeenCalledWith(expect.objectContaining({ id: 1 })));
     await waitFor(() => expect(screen.queryByText("Deletable")).not.toBeInTheDocument());
   });
 
   it("cancelling the armed delete leaves the session in place, without calling deleteSession", async () => {
     const sessions: DeepCheckSession[] = [
-      { id: 1, saveId: "sandbox", createdAt: 1000, critique: { summary: "Keep me", sections: [], tradeoffs: [] } },
+      { id: 1, syncId: "sync-1", saveId: "sandbox", createdAt: 1000, critique: { summary: "Keep me", sections: [], tradeoffs: [] } },
     ];
     listSessionsMock.mockResolvedValue(sessions);
 
@@ -336,7 +336,7 @@ describe("DeepCheckPanel", () => {
 
   it("auto-dismisses an armed delete confirmation after a timeout, without deleting", async () => {
     const sessions: DeepCheckSession[] = [
-      { id: 1, saveId: "sandbox", createdAt: 1000, critique: { summary: "Time out", sections: [], tradeoffs: [] } },
+      { id: 1, syncId: "sync-1", saveId: "sandbox", createdAt: 1000, critique: { summary: "Time out", sections: [], tradeoffs: [] } },
     ];
     listSessionsMock.mockResolvedValue(sessions);
 

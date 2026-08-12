@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { db } from "./db";
+import { syncSave } from "./cloud-sync";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
+import { toArchitectureGraph } from "@/canvas/store";
 
 /** Idle time after the last edit before autosave writes. Long enough that a
  * whole editing burst (dragging, typing, rearranging) reads as one session
@@ -97,6 +99,7 @@ export function useAutosave(
       if (shouldShow) setStatus("saving");
       try {
         await db.saves.put({ id, updatedAt: Date.now(), nodes: nodesToSave, edges: edgesToSave });
+        void syncSave(id, toArchitectureGraph(nodesToSave, edgesToSave));
         hadErrorRef.current = false;
         if (generationRef.current !== generation) return;
         if (!shouldShow) return;
