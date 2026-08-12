@@ -12,6 +12,14 @@ on:
       - release/**
       - develop
 
+# push (develop) and pull_request (develop -> main) can fire on the same
+# commit within seconds of each other; both jobs sign in the same shared
+# Clerk e2e test user, so let one finish before the other starts instead of
+# racing them against Clerk's test-instance API.
+concurrency:
+  group: ci-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
 jobs:
   verify:
     runs-on: ubuntu-latest
