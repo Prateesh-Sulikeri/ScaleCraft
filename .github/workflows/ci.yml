@@ -12,9 +12,31 @@ on:
       - release/**
       - develop
 
+# push (develop) and pull_request (develop -> main) can fire on the same
+# commit within seconds of each other; both jobs sign in the same shared
+# Clerk e2e test user, so let one finish before the other starts instead of
+# racing them against Clerk's test-instance API.
+concurrency:
+  group: ci-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+
+    # Clerk test-instance keys (not the production live keys) - required for
+    # the app to boot at all (clerkMiddleware throws without a publishable
+    # key) and for e2e/global.setup.ts to sign in a dedicated test user.
+    env:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_TEST_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_TEST_SECRET_KEY }}
+      NEXT_PUBLIC_CLERK_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+      NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL: /
+      NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL: /
+      E2E_CLERK_USER_EMAIL: ${{ secrets.E2E_CLERK_USER_EMAIL }}
+      E2E_CLERK_USER_PASSWORD: ${{ secrets.E2E_CLERK_USER_PASSWORD }}
 
     steps:
       - name: Checkout

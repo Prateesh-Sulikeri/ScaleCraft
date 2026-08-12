@@ -24,7 +24,7 @@ test("switching modes via client-side navigation never leaks canvas content betw
   // row link's accessible name ("0.1 Welcome to ScaleCraft") also contains
   // "ScaleCraft".
   await page.getByRole("link", { name: "ScaleCraft", exact: true }).click();
-  await page.waitForURL("http://localhost:3000/");
+  await page.waitForURL((url) => url.pathname === "/");
 
   await page.getByRole("link", { name: /Building Blocks/ }).click();
   await page.waitForURL("**/building-blocks");
@@ -41,7 +41,7 @@ test("switching modes via client-side navigation never leaks canvas content betw
   await page.getByRole("link", { name: "Learning Path" }).click();
   await page.waitForURL("**/building-blocks");
   await page.getByRole("link", { name: "ScaleCraft", exact: true }).click();
-  await page.waitForURL("http://localhost:3000/");
+  await page.waitForURL((url) => url.pathname === "/");
 
   await page.getByRole("link", { name: /Sandbox/ }).click();
   await page.waitForURL("**/sandbox");

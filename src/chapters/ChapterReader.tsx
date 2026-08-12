@@ -5,6 +5,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { PageEnter } from "@/app/PageEnter";
 import { ThemeToggle } from "@/app/ThemeToggle";
+import { AppUserButton } from "@/app/AppUserButton";
 import { ReaderSidebar } from "./ReaderSidebar";
 import { ReadingProgress } from "./ReadingProgress";
 import { TableOfContents } from "./TableOfContents";
@@ -166,7 +167,10 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
         <aside className="hidden w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border px-4 py-10 xl:flex">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">On this page</p>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <AppUserButton />
+            </div>
           </div>
           {/* Keyed on the chapter so scrollspy state (activeId) resets on
               navigation instead of carrying over a stale section from the
