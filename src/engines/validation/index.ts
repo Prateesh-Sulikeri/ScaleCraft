@@ -14,6 +14,8 @@ export {
 
 export { getRules, ruleRegistry } from "@/validation-engine/rules";
 export { runValidation, hasErrors } from "@/validation-engine/engine";
+export { buildGraphIndex, type GraphIndex } from "@/validation-engine/graph-index";
+export { matchPattern, type Binding, type GraphPattern } from "@/validation-engine/pattern";
 
 export type {
   ValidationRule,
