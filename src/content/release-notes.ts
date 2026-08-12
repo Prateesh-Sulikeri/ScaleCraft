@@ -14,6 +14,13 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "5.0.1-alpha",
+    date: "2026-08-12",
+    highlights: [
+      "Fixed opening a chapter from Learning Path sometimes showing a blank flash before the lesson appeared - the lesson content now starts loading the moment you hover the link, so it's ready by the time the hold animation finishes.",
+    ],
+  },
+  {
     version: "5.0.0-alpha",
     date: "2026-08-11",
     highlights: [

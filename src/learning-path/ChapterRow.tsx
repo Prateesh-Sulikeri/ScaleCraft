@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { Flag } from "lucide-react";
+import { HeldTransitionLink } from "@/app/HeldTransitionLink";
+import { preloadChapterLesson } from "@/content/content-service";
 import { ChapterStatusIcon } from "./ChapterStatusIcon";
 import { DifficultyDots } from "./DifficultyDots";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
@@ -103,9 +104,14 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
     >
       {toggleButton}
       {isAuthored ? (
-        <Link href={`/${courseId}/${entry.slug}/lesson`} className="flex min-w-0 flex-1 items-center gap-2.5">
+        <HeldTransitionLink
+          href={`/${courseId}/${entry.slug}/lesson`}
+          label={`Opening ${entry.title}\u2026`}
+          preload={() => preloadChapterLesson(entry.chapterDefinitionId ?? undefined)}
+          className="flex min-w-0 flex-1 items-center gap-2.5"
+        >
           {mainContent}
-        </Link>
+        </HeldTransitionLink>
       ) : (
         <div className="flex min-w-0 flex-1 items-center gap-2.5">{mainContent}</div>
       )}

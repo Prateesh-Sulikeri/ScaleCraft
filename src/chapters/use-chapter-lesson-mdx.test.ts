@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
-import { useChapterLessonMdx } from "./use-chapter-lesson-mdx";
+import { preloadChapterLessonMdx, useChapterLessonMdx } from "./use-chapter-lesson-mdx";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -49,6 +49,18 @@ describe("useChapterLessonMdx", () => {
 
     const second = renderHook(() => useChapterLessonMdx("unique-mdx-c", 1));
     expect(second.result.current).toEqual(data);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("makes a precompiled lesson immediately available to a later hook mount", async () => {
+    const data = { raw: "body", beforeCompiled: "compiled-preloaded", nextCompiled: null };
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(data) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await preloadChapterLessonMdx("unique-mdx-preloaded");
+    const { result } = renderHook(() => useChapterLessonMdx("unique-mdx-preloaded"));
+
+    expect(result.current).toEqual(data);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

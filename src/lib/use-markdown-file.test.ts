@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
-import { useMarkdownFile } from "./use-markdown-file";
+import { preloadMarkdownFile, useMarkdownFile } from "./use-markdown-file";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -53,6 +53,17 @@ describe("useMarkdownFile", () => {
 
     const second = renderHook(() => useMarkdownFile("/content/chapters/unique-c.md"));
     expect(second.result.current).toBe("cached content");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("makes a preloaded file immediately available to a later hook mount", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve("ready before navigation") });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await preloadMarkdownFile("/content/chapters/preloaded-reader.md");
+    const { result } = renderHook(() => useMarkdownFile("/content/chapters/preloaded-reader.md"));
+
+    expect(result.current).toBe("ready before navigation");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
