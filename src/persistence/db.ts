@@ -348,3 +348,95 @@ export class ScaleCraftDB extends Dexie {
 }
 
 export const db = new ScaleCraftDB();
+
+const STORAGE_EPOCH_KEY = "scalecraft:storage-epoch";
+const STORAGE_EPOCH = "6.1.0";
+const USER_ID_KEY = "scalecraft:userId";
+const LOCAL_STORAGE_PREFIXES = ["sc-", "scalecraft:"];
+
+function clearLocalStoragePrefixed(exceptKeys: string[]) {
+  Object.keys(localStorage)
+    .filter(
+      (key) =>
+        LOCAL_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
+        !exceptKeys.includes(key),
+    )
+    .forEach((key) => localStorage.removeItem(key));
+}
+
+let currentUserId: string | null = null;
+
+/**
+ * Release 6.1.0-alpha Phase 2 (pending-6.1.0-poa.md) — tells the `ready`
+ * check below which account is signed in. Called synchronously from
+ * LocalStateGate's render body, not a useEffect: LocalStateGate is mounted
+ * first under ProtectedLayout, so React finishes calling it before any
+ * descendant component even begins rendering, let alone runs an effect that
+ * could query Dexie. That is a stronger guarantee than mount-effect order
+ * (rejected for this precise reason — see the POA's Phase 2 checklist), and
+ * it costs nothing extra since this is a plain variable assignment.
+ *
+ * Tests that talk to the `db` singleton directly never call this, so
+ * `currentUserId` stays null and the `ready` handler below is a no-op for
+ * them — unchanged behavior, no hang.
+ */
+export function registerCurrentUserId(userId: string) {
+  currentUserId = userId;
+}
+
+/**
+ * Release 6.1.0-alpha Phase 2 — account isolation (audit S2/S10). The Dexie
+ * database and the sc-/scalecraft: localStorage keys are browser-wide, not
+ * account-scoped, so a second account signing in on a browser previously
+ * used by another inherited that account's saves, progress, exam attempts,
+ * custom components and Deep Check history.
+ *
+ * Pulled out of the `ready` handler below so it's directly callable with an
+ * isolated `ScaleCraftDB` instance in tests, without needing to fight Dexie's
+ * once-per-open `ready` timing. `db.tables` is used instead of a hardcoded
+ * table list (unlike v10's, which was a one-time migration tied to that
+ * exact schema) so a table added later is covered automatically.
+ */
+export async function reconcileLocalStateForUser(target: ScaleCraftDB, userId: string): Promise<void> {
+  let storedEpoch: string | null;
+  let storedUserId: string | null;
+  try {
+    storedEpoch = localStorage.getItem(STORAGE_EPOCH_KEY);
+    storedUserId = localStorage.getItem(USER_ID_KEY);
+  } catch {
+    return; // Private mode / disabled storage — nothing to check or clear.
+  }
+
+  if (storedEpoch !== STORAGE_EPOCH) {
+    // 6.1.0 one-time reset (Phase 0) — localStorage half. The Dexie half
+    // already ran via the version(10) upgrade; this key never made it into
+    // that migration since it predates the schema-version approach.
+    clearLocalStoragePrefixed([]);
+  } else if (storedUserId !== null && storedUserId !== userId) {
+    await Promise.all(target.tables.map((table) => table.clear()));
+    clearLocalStoragePrefixed([STORAGE_EPOCH_KEY]);
+  }
+
+  try {
+    localStorage.setItem(STORAGE_EPOCH_KEY, STORAGE_EPOCH);
+    localStorage.setItem(USER_ID_KEY, userId);
+  } catch {
+    // Private mode / disabled storage.
+  }
+}
+
+/**
+ * `db.on("ready", ..., true)` fires once per db-open (sticky so it can fire
+ * again if the connection is ever closed and reopened) and blocks every
+ * caller's query until it resolves — the same "runs before any read"
+ * guarantee the v10 epoch reset gets from living inside a Dexie version
+ * upgrade, applied here to a runtime check instead of a one-time migration.
+ */
+db.on(
+  "ready",
+  async () => {
+    if (currentUserId === null) return;
+    await reconcileLocalStateForUser(db, currentUserId);
+  },
+  true,
+);

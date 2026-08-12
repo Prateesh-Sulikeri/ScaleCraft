@@ -9,7 +9,7 @@ import { flushDirtyRows } from "@/persistence/flush-dirty";
  * other sync call in this app (see cloud-sync.ts's module doc comment) - a
  * failed flush just leaves rows dirty for the next one.
  *
- * Mounted in src/app/(protected)/layout.tsx, alongside LocalStorageReset.
+ * Mounted in src/app/(protected)/layout.tsx, alongside LocalStateGate.
  */
 export function FlushDirtyRows() {
   useEffect(() => {

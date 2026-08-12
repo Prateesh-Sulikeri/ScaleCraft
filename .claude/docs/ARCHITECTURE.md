@@ -251,6 +251,25 @@ only; they are never read by the merge predicate above.
 regaining connectivity re-pushes every dirty row. No queue, no retry scheduler —
 single-player means a flush is always safe.
 
+### Account isolation (release 6.1.0-alpha Phase 2)
+
+The Dexie database (`"scalecraft"`) and its `sc-`/`scalecraft:` localStorage keys
+are browser-wide, not account-scoped. **Decision: wipe local state on account
+change rather than keep a per-account cache** — once local is a disposable cache
+(see the sync-ordering rule above), a second cache buys nothing but complexity,
+and the per-account alternative would have required threading an async db
+accessor through every call site.
+
+`src/persistence/LocalStateGate.tsx` registers the signed-in Clerk `userId` with
+`src/persistence/db.ts` synchronously during render (not a `useEffect` — render
+order guarantees this runs before any descendant component can query Dexie,
+stronger than mount-effect ordering). `db.ts` compares it against the last
+`userId` stored in localStorage inside a `db.on("ready", ...)` handler, which
+blocks every caller's query until the comparison (and wipe, if the account
+changed) completes. A mismatch clears every Dexie table (`db.tables`, not a
+hardcoded list) and the `sc-`/`scalecraft:` localStorage keys; the cloud refills
+both on the next reconcile.
+
 ## Project structure (single Next.js app, no workspace packages yet)
 
 Folder-level module boundaries, not package boundaries — see [[TECH_STACK]] for why a

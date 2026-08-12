@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { LocalStorageReset } from "@/persistence/LocalStorageReset";
+import { LocalStateGate } from "@/persistence/LocalStateGate";
 import { FlushDirtyRows } from "@/persistence/FlushDirtyRows";
 
 // Single-player app, gated top to bottom: no route under this group is
@@ -10,10 +10,10 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await auth.protect();
+  const { userId } = await auth.protect();
   return (
     <>
-      <LocalStorageReset />
+      <LocalStateGate userId={userId} />
       <FlushDirtyRows />
       {children}
     </>

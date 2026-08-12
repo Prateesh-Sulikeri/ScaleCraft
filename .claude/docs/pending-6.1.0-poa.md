@@ -1,9 +1,9 @@
 # Release 6.1.0-alpha - Persistence POA
 
-Status: **Phases 0 and 1 landed 2026-08-12, full CI green.** Written the same
-day, after the multi-device test failure and the persistence audit that
+Status: **Phases 0, 1 and 2 landed 2026-08-12, full CI green.** Written the
+same day, after the multi-device test failure and the persistence audit that
 followed; all five open decisions resolved same-day too (see "Decisions -
-resolved" below). Phases 2-8 remain, unblocked, on the same
+resolved" below). Phases 3-8 remain, unblocked, on the same
 `feature/cloud-sync-reconciliation` branch (cut from
 `release/v6.1.0-neon-cloud-sync` - the user wants every phase of this release
 in one branch, not one per phase). This is the single running doc for the
@@ -187,22 +187,37 @@ cache, keeping two caches warm buys nothing but complexity, and the per-user
 variant requires threading an async db accessor through every call site. The
 cheap option is not a compromise here, it is the right shape.
 
-- [ ] Persist the signed-in `userId` locally (localStorage, alongside the
-      storage epoch)
-- [ ] On boot, before any read: if stored userId differs from current, delete
-      the Dexie database and clear `sc-` / `scalecraft:` localStorage keys
-- [ ] Must run before any component reads. Same ordering constraint as the v10
-      reset, so use the same mechanism rather than a mount effect
-- [ ] Extend `LocalStorageReset.tsx` into a general `LocalStateGate`, or
-      replace it, so there is one place that owns "is local state valid for
-      this user right now"
+- [x] Persist the signed-in `userId` locally (localStorage, alongside the
+      storage epoch) - `scalecraft:userId`, written by
+      `reconcileLocalStateForUser` in `src/persistence/db.ts`
+- [x] On boot, before any read: if stored userId differs from current, clear
+      every Dexie table (`db.tables`, not a hardcoded list - covers future
+      tables automatically) and the `sc-` / `scalecraft:` localStorage keys.
+      Clears table contents rather than deleting the database file itself -
+      data-equivalent, and avoids a close/reopen dance from inside Dexie's
+      `ready` handler
+- [x] Must run before any component reads. Solved without relying on mount-
+      effect order (rejected per this line): `LocalStateGate.tsx` registers
+      the signed-in userId synchronously in its render body (not a
+      `useEffect`) - it's mounted first under `ProtectedLayout`, so React
+      finishes calling it before any descendant even begins rendering, let
+      alone runs an effect that queries Dexie. `db.on("ready", ..., true)`
+      then blocks every caller's query on the reconciliation check, the same
+      way the v10 upgrade transaction blocks every query on itself
+- [x] Extended `LocalStorageReset.tsx` into `LocalStateGate.tsx` - the
+      component now only registers the userId; the epoch check and the
+      account-change wipe both live in `db.ts`'s `reconcileLocalStateForUser`,
+      so that one function owns "is local state valid for this user right
+      now." Three regression tests added in `db.test.ts`'s new "account
+      isolation" describe block, exercising an isolated `ScaleCraftDB`
+      instance directly rather than fighting `ready`'s once-per-open timing
 
 ### 2.1 localStorage is account-agnostic too (S10)
 
 `sc-tour-*`, `sc-insert-hint-dismissed`, `scalecraft:tour-log`,
 `scalecraft:deep-check-panel-width`. Not learner data, but a second account
-inherits "tour already seen" and never gets onboarding. Covered for free by the
-wipe above.
+inherits "tour already seen" and never gets onboarding. **Done** - covered by
+the same `reconcileLocalStateForUser` wipe as the Dexie tables above.
 
 ---
 
@@ -526,7 +541,7 @@ per-user cost, and the only one that grows without bound.**
 | Finding | Severity | Phase |
 |---|---|---|
 | S1 `markVisited` wipes completion | Critical | **Phase 0, done.** Guarded again by 3.3 |
-| S2 browser-wide Dexie, cross-account leak | Critical | Phase 2 |
+| S2 browser-wide Dexie, cross-account leak | Critical | **Phase 2, done** |
 | S3 backfill cross-account write | Critical | **Phase 0, done** |
 | S4 hydrate-on-empty is not sync | High | Phase 3 |
 | S5 sync failures invisible | High | Phase 6 |
@@ -534,5 +549,5 @@ per-user cost, and the only one that grows without bound.**
 | S7 asymmetric deletes | Medium | Phase 7 |
 | S8 sandbox unmount does not sync | Medium | Phase 4.2 |
 | S9 customComponents hydrate only on sandbox page | Medium | Phase 3.1 |
-| S10 localStorage account-agnostic | Low | Phase 2.1 |
+| S10 localStorage account-agnostic | Low | **Phase 2.1, done** |
 | S11 timestamps without timezone | Low | Deferred, see table above |

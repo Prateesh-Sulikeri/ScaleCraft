@@ -1,10 +1,11 @@
 import "fake-indexeddb/auto";
 import Dexie from "dexie";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   db,
   ScaleCraftDB,
   SANDBOX_SAVE_ID,
+  reconcileLocalStateForUser,
   type CanvasSave,
   type ChapterProgress,
   type CurriculumProgress,
@@ -515,6 +516,104 @@ describe("scalecraft db v10 reset (6.1.0 one-time clear)", () => {
       await reopened.open();
       expect(await reopened.saves.toArray()).toHaveLength(1);
       reopened.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+});
+
+describe("account isolation (Phase 2, pending-6.1.0-poa.md)", () => {
+  const EPOCH_KEY = "scalecraft:storage-epoch";
+  const USER_ID_KEY = "scalecraft:userId";
+  const OTHER_ACCOUNT_KEY = "sc-tour-seen";
+
+  function primeAsAlreadyOnCurrentEpoch(userId: string) {
+    localStorage.setItem(EPOCH_KEY, "6.1.0");
+    localStorage.setItem(USER_ID_KEY, userId);
+  }
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it("wipes every Dexie table and sc-/scalecraft: localStorage keys when the signed-in user changes", async () => {
+    const name = `scalecraft-account-isolation-test-${crypto.randomUUID()}`;
+    try {
+      const instance = new ScaleCraftDB(name);
+      await instance.open();
+      await instance.saves.put({
+        id: SANDBOX_SAVE_ID,
+        updatedAt: Date.now(),
+        nodes: [],
+        edges: [],
+        dirty: false,
+        syncedAt: null,
+      });
+      localStorage.setItem(OTHER_ACCOUNT_KEY, "true");
+      primeAsAlreadyOnCurrentEpoch("user-a");
+
+      await reconcileLocalStateForUser(instance, "user-b");
+
+      expect(await instance.saves.toArray()).toEqual([]);
+      expect(localStorage.getItem(OTHER_ACCOUNT_KEY)).toBeNull();
+      expect(localStorage.getItem(USER_ID_KEY)).toBe("user-b");
+      // Same-release epoch key survives an account-change wipe — it isn't
+      // account data, re-clearing it would just re-trigger the Phase 0 pass
+      // for no reason.
+      expect(localStorage.getItem(EPOCH_KEY)).toBe("6.1.0");
+
+      instance.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+
+  it("does not wipe when the same user reconciles again", async () => {
+    const name = `scalecraft-account-isolation-test-${crypto.randomUUID()}`;
+    try {
+      const instance = new ScaleCraftDB(name);
+      await instance.open();
+      await instance.saves.put({
+        id: SANDBOX_SAVE_ID,
+        updatedAt: Date.now(),
+        nodes: [],
+        edges: [],
+        dirty: false,
+        syncedAt: null,
+      });
+      primeAsAlreadyOnCurrentEpoch("user-a");
+
+      await reconcileLocalStateForUser(instance, "user-a");
+
+      expect(await instance.saves.toArray()).toHaveLength(1);
+
+      instance.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+
+  it("does not wipe on a fresh install with no stored user yet", async () => {
+    const name = `scalecraft-account-isolation-test-${crypto.randomUUID()}`;
+    try {
+      const instance = new ScaleCraftDB(name);
+      await instance.open();
+      await instance.saves.put({
+        id: SANDBOX_SAVE_ID,
+        updatedAt: Date.now(),
+        nodes: [],
+        edges: [],
+        dirty: false,
+        syncedAt: null,
+      });
+      localStorage.setItem(EPOCH_KEY, "6.1.0"); // already on-epoch, no stored userId
+
+      await reconcileLocalStateForUser(instance, "user-a");
+
+      expect(await instance.saves.toArray()).toHaveLength(1);
+      expect(localStorage.getItem(USER_ID_KEY)).toBe("user-a");
+
+      instance.close();
     } finally {
       await Dexie.delete(name);
     }
