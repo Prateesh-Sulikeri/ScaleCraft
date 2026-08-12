@@ -140,7 +140,10 @@ test.describe("Chapter Journey - Full Workflow", () => {
 });
 
 test.describe("Design Editor - Configuration", () => {
-  test("open component config panel and modify settings", async ({ page }) => {
+  // QUARANTINED - see .claude/docs/pending-e2e-quarantine.md
+  // `[class*='panel']` matches every bg-panel utility class (17 elements ->
+  // strict mode violation). Needs a real selector before it can come back.
+  test.fixme("open component config panel and modify settings", async ({ page }) => {
     await page.goto("/building-blocks/3-4-load-balancer");
 
     const nodes = page.locator(".react-flow__node");
@@ -211,7 +214,10 @@ test.describe("Design Editor - Configuration", () => {
     }
   });
 
-  test("view component documentation in inspector", async ({ page }) => {
+  // QUARANTINED - see .claude/docs/pending-e2e-quarantine.md
+  // `[class*='docs'], [class*='modal']` matches nothing once the docs button
+  // is actually clicked. Needs a real selector before it can come back.
+  test.fixme("view component documentation in inspector", async ({ page }) => {
     await page.goto("/building-blocks/3-4-load-balancer");
 
     const nodes = page.locator(".react-flow__node");

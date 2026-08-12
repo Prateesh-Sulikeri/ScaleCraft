@@ -97,7 +97,11 @@ test.describe("Canvas - Component Placement", () => {
     }
   });
 
-  test("multi-select nodes and delete them together", async ({ page }) => {
+  // QUARANTINED - see .claude/docs/pending-e2e-quarantine.md
+  // Paces the whole interaction with fixed waitForTimeout sleeps, so under CI
+  // load the ctrl-click lands before selection settles and only one node is
+  // deleted. Needs state-based waits before it can come back.
+  test.fixme("multi-select nodes and delete them together", async ({ page }) => {
     await page.goto("/sandbox");
 
     const nodes = page.locator(".react-flow__node");
