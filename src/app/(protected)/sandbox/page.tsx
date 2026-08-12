@@ -27,7 +27,7 @@ import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
-import { hydrateSave } from "@/persistence/cloud-sync";
+import { hydrateSave, syncSave } from "@/persistence/cloud-sync";
 import { reconcileRow } from "@/persistence/reconcile";
 
 // Starts minimized (see canvas/store.tsx's docsPanel default), so most
@@ -177,12 +177,16 @@ function SandboxPageContent() {
   // CanvasStoreProvider) and torn down on unmount — without this, navigating
   // away without an explicit Save would silently lose in-progress edits
   // instead of just fixing the cross-mode leak this store split was for.
-  // Mirrors the Save button's own db.saves.put shape exactly.
+  // Mirrors the Save button's own db.saves.put shape exactly. Also pushes to
+  // the cloud (Phase 4.2, pending-6.1.0-poa.md, fixes audit S8) - Sandbox has
+  // no Submit, so unmount is one of its two sync triggers alongside the
+  // explicit Save button/Ctrl+S.
   useEffect(() => {
     return () => {
       if (!hasLoadedInitialStateRef.current) return;
       const { nodes, edges } = storeApi.getState();
       void db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges, dirty: true, syncedAt: null });
+      void syncSave(SANDBOX_SAVE_ID, { nodes, edges });
     };
   }, [storeApi]);
 

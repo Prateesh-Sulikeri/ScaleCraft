@@ -31,6 +31,17 @@ export const AUTOSAVE_VISIBLE_EVERY = 2;
  * write (auto or manual) succeeds. */
 export type SaveStatus = "saved" | "saving" | "saved-recent" | "error";
 
+export type UseAutosaveOptions = {
+  /** Whether the manual saveNow() path (Save button/Ctrl+S) also pushes to
+   * the cloud, on top of its always-on local Dexie write. Defaults to true.
+   * Chapters pass false - Phase 4.2 (pending-6.1.0-poa.md) decided a
+   * chapter's canvas syncs to the cloud only on Submit, not on every manual
+   * save, so an in-progress attempt stays local-only until submitted (see
+   * 4.3's tradeoff note). Sandbox has no Submit, so manual Save is its sync
+   * trigger and keeps the default. */
+  syncOnManualSave?: boolean;
+};
+
 export type UseAutosaveResult = {
   status: SaveStatus;
   /** Writes immediately, bypassing the debounce and cancelling any pending
@@ -71,7 +82,9 @@ export function useAutosave(
   saveId: string | null,
   nodes: AnyNodeType[],
   edges: ArchitectureEdgeType[],
+  options?: UseAutosaveOptions,
 ): UseAutosaveResult {
+  const syncOnManualSave = options?.syncOnManualSave ?? true;
   const [status, setStatus] = useState<SaveStatus>("saved");
   const [lastManualSaveAt, setLastManualSaveAt] = useState<number | null>(null);
   // Bumped on every write attempt. A write's completion only applies if it's
@@ -92,7 +105,13 @@ export function useAutosave(
   const hadErrorRef = useRef(false);
 
   const write = useCallback(
-    async (id: string, nodesToSave: AnyNodeType[], edgesToSave: ArchitectureEdgeType[], visible: boolean) => {
+    async (
+      id: string,
+      nodesToSave: AnyNodeType[],
+      edgesToSave: ArchitectureEdgeType[],
+      visible: boolean,
+      sync: boolean,
+    ) => {
       const generation = ++generationRef.current;
       const shouldShow = visible || hadErrorRef.current;
       if (shouldShow) setStatus("saving");
@@ -105,7 +124,11 @@ export function useAutosave(
           dirty: true,
           syncedAt: null,
         });
-        void syncSave(id, { nodes: nodesToSave, edges: edgesToSave });
+        // Network push is opt-in per call site (Phase 4.2, pending-6.1.0-poa.md):
+        // the debounced autosave path below never syncs (it's a timer, not a
+        // meaningful event), and saveNow syncs only when the caller wants a
+        // manual save to also be a sync trigger.
+        if (sync) void syncSave(id, { nodes: nodesToSave, edges: edgesToSave });
         hadErrorRef.current = false;
         if (generationRef.current !== generation) return;
         if (!shouldShow) return;
@@ -128,7 +151,7 @@ export function useAutosave(
     debounceRef.current = setTimeout(() => {
       autosaveCountRef.current += 1;
       const visible = autosaveCountRef.current % AUTOSAVE_VISIBLE_EVERY === 0;
-      void write(saveId, nodes, edges, visible);
+      void write(saveId, nodes, edges, visible, false);
     }, AUTOSAVE_DEBOUNCE_MS);
     return () => clearTimeout(debounceRef.current);
   }, [saveId, nodes, edges, write]);
@@ -136,11 +159,11 @@ export function useAutosave(
   const saveNow = useCallback(async () => {
     if (!saveId) return;
     clearTimeout(debounceRef.current);
-    await write(saveId, nodes, edges, true);
+    await write(saveId, nodes, edges, true, syncOnManualSave);
     // hadErrorRef reflects the write() call just above, synchronously set
     // before it returned - false means that write succeeded.
     if (!hadErrorRef.current) setLastManualSaveAt(Date.now());
-  }, [saveId, nodes, edges, write]);
+  }, [saveId, nodes, edges, write, syncOnManualSave]);
 
   // Derived, not effect-driven: a null saveId means autosave is disabled
   // right now, so callers should treat status as inert (AppHeader hides the

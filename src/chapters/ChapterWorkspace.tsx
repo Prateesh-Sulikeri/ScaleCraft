@@ -235,6 +235,10 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     hasLoadedInitialState && chapter?.id ? chapterSaveId(chapter.id) : null,
     nodes,
     edges,
+    // Chapters sync to the cloud only on Submit (Phase 4.2,
+    // pending-6.1.0-poa.md), not on every manual save - see handleSubmit
+    // below for the actual push.
+    { syncOnManualSave: false },
   );
 
   // Each chapter route mounts a fresh CanvasStoreProvider (key={chapterSlug}
@@ -245,6 +249,9 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     return () => {
       if (!chapter || !hasLoadedInitialStateRef.current) return;
       const { nodes, edges } = storeApi.getState();
+      // Local-only (Phase 4.2, pending-6.1.0-poa.md): a chapter's canvas
+      // syncs to the cloud on Submit, not on every unmount/navigation. See
+      // handleSubmit below for the push.
       void db.saves.put({
         id: chapterSaveId(chapter.id),
         updatedAt: Date.now(),
@@ -253,7 +260,6 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
         dirty: true,
         syncedAt: null,
       });
-      void syncSave(chapterSaveId(chapter.id), { nodes, edges });
     };
   }, [storeApi, chapter]);
 
@@ -385,6 +391,15 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     const { evaluateChapter } = await import("@/engines/validation");
     const outcome = evaluateChapter(graph, chapter);
     const graphKey = architectureGraphTopologyKey(graph);
+    // The one cloud push a chapter's canvas gets (Phase 4.2,
+    // pending-6.1.0-poa.md) - Submit is the meaningful event, not the
+    // debounced autosave or an unmount. Local Dexie write first so the
+    // pushed state always matches what was actually submitted, even if the
+    // last debounced autosave hasn't landed yet.
+    const submittedSaveId = chapterSaveId(chapter.id);
+    void db.saves
+      .put({ id: submittedSaveId, updatedAt: Date.now(), nodes, edges, dirty: true, syncedAt: null })
+      .then(() => void syncSave(submittedSaveId, { nodes, edges }));
     setValidationOutcome(outcome);
     setValidatedGraphKey(graphKey);
     setLastValidationErrorCount(

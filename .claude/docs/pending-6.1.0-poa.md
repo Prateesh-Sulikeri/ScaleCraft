@@ -1,12 +1,14 @@
 # Release 6.1.0-alpha - Persistence POA
 
-Status: **Phases 0-3 landed 2026-08-12, full CI green.** Written the same
-day, after the multi-device test failure and the persistence audit that
-followed; all five open decisions resolved same-day too (see "Decisions -
-resolved" below). Phase 3's migration (0004_raw_canvas_state.sql) is
-generated and checked into `drizzle/` but **not yet applied to Neon** -
-`npm run db:migrate` still pending, same as Phase 0's backfill-drop
-migration. Phases 4-8 remain, unblocked, on the same
+Status: **Phases 0-3 landed 2026-08-12, Phase 4.2 landed 2026-08-12, full CI
+green.** Written the same day, after the multi-device test failure and the
+persistence audit that followed; all five open decisions resolved same-day
+too (see "Decisions - resolved" below). Phase 3's migration
+(0004_raw_canvas_state.sql) is generated and checked into `drizzle/` but
+**not yet applied to Neon** - `npm run db:migrate` still pending, same as
+Phase 0's backfill-drop migration. Phase 4.1 was measurement-only (Appendix
+A, no checklist items); 4.2 (write triggers) is done. 4.3 is a tradeoff
+note, not a checklist. Phases 5-8 remain, unblocked, on the same
 `feature/cloud-sync-reconciliation` branch (cut from
 `release/v6.1.0-neon-cloud-sync` - the user wants every phase of this release
 in one branch, not one per phase). This is the single running doc for the
@@ -389,15 +391,28 @@ state" for.
 
 ### 4.2 Decision: sync on meaningful events, not on a timer
 
-- [ ] **Chapters: push on Submit.** The chapter attempt is the unit that
+- [x] **Chapters: push on Submit.** The chapter attempt is the unit that
       matters, and Submit is the moment it becomes meaningful.
-- [ ] **Sandbox: push on explicit Save (button / Ctrl+S) and on unmount.**
+      `ChapterWorkspace.tsx`'s `handleSubmit` now writes the exact
+      submitted `nodes`/`edges` to Dexie then calls `syncSave` - unconditional
+      on pass/fail, since a submitted attempt is meaningful either way. The
+      unmount handler and `saveNow` (Save button/Ctrl+S) no longer sync for
+      chapters (see 4.3's tradeoff, confirmed).
+- [x] **Sandbox: push on explicit Save (button / Ctrl+S) and on unmount.**
       Sandbox has no Submit, so it needs its own trigger. Also fixes S8, where
       the sandbox unmount handler writes Dexie but never calls `syncSave` at
-      all, unlike `ChapterWorkspace`.
-- [ ] **Remove `syncSave` from the debounced autosave path** in
+      all, unlike `ChapterWorkspace`. Both now added directly in
+      `sandbox/page.tsx` (unmount) and via `useAutosave`'s default
+      `syncOnManualSave: true` (Save button/Ctrl+S).
+- [x] **Remove `syncSave` from the debounced autosave path** in
       `use-autosave.ts`. Local Dexie autosave is unchanged: still every 2
-      seconds, still instant, still offline-safe. Only the network write moves.
+      seconds, still instant, still offline-safe. Only the network write
+      moves. `write()` now takes an explicit `sync: boolean` - the debounced
+      effect always passes `false`; `saveNow` passes a new
+      `syncOnManualSave` hook option (default `true`, so Sandbox is
+      unaffected; `ChapterWorkspace` passes `false` so its manual Save stays
+      local-only, matching the Submit-only decision above). Three new tests
+      in `use-autosave.test.ts` assert the gating via a stubbed `fetch`.
 
 ### 4.3 The tradeoff this accepts
 
