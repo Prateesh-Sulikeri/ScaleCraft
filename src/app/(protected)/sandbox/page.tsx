@@ -27,7 +27,8 @@ import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
-import { hydrateCustomComponents, hydrateSave } from "@/persistence/cloud-sync";
+import { hydrateSave } from "@/persistence/cloud-sync";
+import { reconcileRow } from "@/persistence/reconcile";
 
 // Starts minimized (see canvas/store.tsx's docsPanel default), so most
 // loads never need it - keeps its markdown-rendering weight out of the
@@ -89,7 +90,6 @@ function SandboxPageContent() {
   const edges = useCanvasStore((s) => s.edges);
   const loadGraph = useCanvasStore((s) => s.loadGraph);
   const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
-  const loadCustomComponents = useCustomComponentsStore((s) => s.loadCustomComponents);
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
   const canUndo = useCanvasStore((s) => s.past.length > 0);
@@ -116,22 +116,33 @@ function SandboxPageContent() {
 
   // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
   // the seed demo graph — this is what makes a refresh not lose work.
-  // Hydrate-on-empty (decision 3, pending-cloud-sync.md): no local save at
-  // all (fresh device) means try the cloud once before falling back to the
-  // seed graph. Cloud stores the domain ArchitectureGraph (not raw canvas
-  // nodes/edges - a deliberate, accepted tradeoff, see that doc), so a
-  // cloud-hydrated restore goes through loadGraph, same as the seed graph,
-  // never loadCanvasState.
+  // Per-scope reconcile (Phase 3.1, pending-6.1.0-poa.md), not
+  // hydrate-on-empty: a local save no longer skips the remote check, so a
+  // newer save from another device wins even when this device has one too.
+  // Remote now carries raw canvasState (Phase 3.4), so a remote win always
+  // goes through loadCanvasState, same as local — zones/comments/Start
+  // markers survive a cross-device restore instead of the old
+  // ArchitectureGraph round-trip silently dropping them.
   useEffect(() => {
     if (storeApi.getState().nodes.length > 0) return;
-    db.saves.get(SANDBOX_SAVE_ID).then(async (save) => {
+    Promise.all([db.saves.get(SANDBOX_SAVE_ID), hydrateSave(SANDBOX_SAVE_ID)]).then(([local, remote]) => {
       if (storeApi.getState().nodes.length > 0) return;
-      if (save) {
-        loadCanvasState(save.nodes, save.edges);
+      const remoteAsSave = remote
+        ? {
+            id: SANDBOX_SAVE_ID,
+            updatedAt: remote.updatedAt,
+            nodes: remote.nodes,
+            edges: remote.edges,
+            syncedAt: remote.updatedAt,
+            dirty: false,
+          }
+        : null;
+      const winner = reconcileRow(local ?? null, remoteAsSave);
+      if (winner) {
+        if (winner !== local) void db.saves.put(winner);
+        loadCanvasState(winner.nodes, winner.edges);
       } else {
-        const remote = await hydrateSave(SANDBOX_SAVE_ID);
-        if (storeApi.getState().nodes.length > 0) return;
-        loadGraph(remote?.graph ?? seedGraph);
+        loadGraph(seedGraph);
       }
       hasLoadedInitialStateRef.current = true;
       setHasLoadedInitialState(true);
@@ -142,21 +153,13 @@ function SandboxPageContent() {
 
   // Custom components (see CreateComponentModal.tsx) are separate from the
   // canvas save above — they're registry entries, not canvas state, so this
-  // loads regardless of whether a save exists. Hydrate-on-empty: an empty
-  // local table (fresh device) pulls the whole palette from the cloud once.
+  // loads regardless of whether a save exists. Reconciles against the cloud
+  // every load (Phase 3, pending-6.1.0-poa.md), not just when the local
+  // table is empty — the store's own hydrate() owns the merge (audit S9:
+  // this used to be Sandbox-only, so a session that never visited Sandbox
+  // never reconciled customComponents at all).
   useEffect(() => {
-    db.customComponents.toArray().then(async (records) => {
-      if (records.length === 0) {
-        const remote = await hydrateCustomComponents();
-        if (remote.length > 0) {
-          await db.customComponents.bulkAdd(remote);
-          loadCustomComponents(remote);
-          return;
-        }
-      }
-      loadCustomComponents(records);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void useCustomComponentsStore.getState().hydrate();
   }, []);
 
   // Autosave-on-edit (MILESTONES.md #9) — fires once the graph stops

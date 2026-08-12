@@ -21,7 +21,16 @@ export const savedGraphs = pgTable("saved_graphs", {
   userId: text("user_id").notNull(), // Clerk user id
   /** Chapter id for a chapter attempt, or a sandbox-save id. */
   scopeId: text("scope_id").notNull(),
-  graph: jsonb("graph").notNull(), // ArchitectureGraph JSON, see src/lib/graph.ts
+  /** Raw canvas state ({ nodes: AnyNodeType[]; edges: ArchitectureEdgeType[] }),
+   * not the domain ArchitectureGraph — replaces the `graph` column (release
+   * 6.1.0-alpha Phase 3.4, pending-6.1.0-poa.md). ArchitectureGraph doesn't
+   * carry zones/comments/Start markers (see src/canvas/types.ts), so a save
+   * that round-tripped through it lost them on every cross-device restore.
+   * Under reconciliation the cloud can win over a device with local data, so
+   * that lossy round-trip stopped being an acceptable tradeoff. No migration
+   * of existing `graph` data - see the POA's Decision 2, no production data
+   * worth preserving. */
+  canvasState: jsonb("canvas_state").notNull(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 

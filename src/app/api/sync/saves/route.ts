@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
   if (!row) return NextResponse.json({ save: null });
   return NextResponse.json({
-    save: { scopeId: row.scopeId, graph: row.graph, updatedAt: row.updatedAt.getTime() },
+    save: { scopeId: row.scopeId, canvasState: row.canvasState, updatedAt: row.updatedAt.getTime() },
   });
 }
 
@@ -42,15 +42,15 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.message }, { status: 400 });
   }
-  const { scopeId, graph } = parsed.data;
+  const { scopeId, canvasState } = parsed.data;
   const id = `${userId}:${scopeId}`;
 
   const db = getDb();
   const updatedAt = new Date();
   await db
     .insert(savedGraphs)
-    .values({ id, userId, scopeId, graph, updatedAt })
-    .onConflictDoUpdate({ target: savedGraphs.id, set: { graph, updatedAt } });
+    .values({ id, userId, scopeId, canvasState, updatedAt })
+    .onConflictDoUpdate({ target: savedGraphs.id, set: { canvasState, updatedAt } });
 
   return NextResponse.json({ updatedAt: updatedAt.getTime() });
 }

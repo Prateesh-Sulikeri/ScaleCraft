@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { db, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
+import { db, type ChapterProgress, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
 import {
   deleteChapterProgressSync,
   deleteExamAttemptsSync,
@@ -9,6 +9,7 @@ import {
   syncCurriculumProgress,
   syncExamAttempt,
 } from "@/persistence/cloud-sync";
+import { reconcileRows } from "@/persistence/reconcile";
 import type { ProgressInputs } from "./progress";
 
 /** Replace-by-attemptNumber — mirrors Dexie's own replace-by-key `put`. */
@@ -97,6 +98,64 @@ async function existingRow(slug: string): Promise<CurriculumProgress> {
   );
 }
 
+function examAttemptKey(row: ExamAttempt): string {
+  return `${row.chapterDefinitionId}:${row.attemptNumber}`;
+}
+
+/**
+ * The actual reconcile pass — pulls all three tables' remote state, merges it
+ * against local via the shared last-write-wins rule (reconcile.ts /
+ * ARCHITECTURE.md "Sync ordering"), writes the rows the merge changed back to
+ * Dexie, and populates in-memory state from the merged result. Replaces the
+ * old hydrate-on-empty (decision 3, pending-cloud-sync.md), which only ever
+ * pulled the cloud once on a genuinely empty table and never again — see
+ * pending-6.1.0-poa.md Phase 3 / audit finding S4.
+ */
+async function performHydrate(
+  set: (partial: Partial<CurriculumProgressStore>) => void,
+): Promise<void> {
+  const [localChapterProgress, localCurriculumProgress, localExamAttempts] = await Promise.all([
+    db.chapterProgress.toArray(),
+    db.curriculumProgress.toArray(),
+    db.examAttempts.toArray(),
+  ]);
+  const [remoteChapterProgress, remoteCurriculumProgress, remoteExamAttempts] = await Promise.all([
+    hydrateAllChapterProgress(),
+    hydrateAllCurriculumProgress(),
+    hydrateAllExamAttempts(),
+  ]);
+
+  const chapterProgress = reconcileRows(localChapterProgress, remoteChapterProgress, (r) => r.chapterId);
+  const curriculumProgress = reconcileRows(localCurriculumProgress, remoteCurriculumProgress, (r) => r.slug);
+  const examAttempts = reconcileRows(localExamAttempts, remoteExamAttempts, examAttemptKey);
+
+  await Promise.all([
+    chapterProgress.toWrite.length > 0 ? db.chapterProgress.bulkPut(chapterProgress.toWrite) : Promise.resolve(),
+    curriculumProgress.toWrite.length > 0
+      ? db.curriculumProgress.bulkPut(curriculumProgress.toWrite)
+      : Promise.resolve(),
+    examAttempts.toWrite.length > 0 ? db.examAttempts.bulkPut(examAttempts.toWrite) : Promise.resolve(),
+  ]);
+
+  let examAttemptsByDefinition = new Map<string, ExamAttempt[]>();
+  for (const attempt of examAttempts.merged) {
+    examAttemptsByDefinition = withExamAttempt(examAttemptsByDefinition, attempt);
+  }
+  set({
+    hydrated: true,
+    hydrating: false,
+    validationPassedDefinitionIds: new Set(chapterProgress.merged.map((r: ChapterProgress) => r.chapterId)),
+    rowsBySlug: new Map(curriculumProgress.merged.map((r: CurriculumProgress) => [r.slug, r])),
+    examAttemptsByDefinition,
+  });
+}
+
+/** In-flight dedup only — NOT the "already hydrated" check, which reads
+ * `get().hydrated` instead. Cleared once the call settles, so it can never
+ * leak a stale promise across a store reset (tests reset `hydrated`/
+ * `hydrating` via setState between cases, which is what actually matters). */
+let inFlightHydrate: Promise<void> | null = null;
+
 export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, get) => ({
   hydrated: false,
   hydrating: false,
@@ -104,54 +163,18 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   rowsBySlug: new Map(),
   examAttemptsByDefinition: new Map(),
 
-  hydrate: async () => {
-    if (get().hydrated || get().hydrating) return;
+  hydrate: () => {
+    if (get().hydrated) return Promise.resolve();
+    if (inFlightHydrate) return inFlightHydrate;
     set({ hydrating: true });
-    // Hydrate-on-empty (decision 3, pending-cloud-sync.md), per table: a
-    // fresh device has none of these three tables populated locally yet, so
-    // an empty local table pulls everything for the user from the cloud
-    // once before continuing. No merge - only fires when the table is
-    // genuinely empty.
-    let [chapterProgressRows, curriculumProgressRows, examAttemptRows] = await Promise.all([
-      db.chapterProgress.toArray(),
-      db.curriculumProgress.toArray(),
-      db.examAttempts.toArray(),
-    ]);
-    if (chapterProgressRows.length === 0) {
-      const remote = await hydrateAllChapterProgress();
-      if (remote.length > 0) {
-        await db.chapterProgress.bulkAdd(remote);
-        chapterProgressRows = remote;
-      }
-    }
-    if (curriculumProgressRows.length === 0) {
-      const remote = await hydrateAllCurriculumProgress();
-      if (remote.length > 0) {
-        await db.curriculumProgress.bulkAdd(remote);
-        curriculumProgressRows = remote;
-      }
-    }
-    if (examAttemptRows.length === 0) {
-      const remote = await hydrateAllExamAttempts();
-      if (remote.length > 0) {
-        await db.examAttempts.bulkAdd(remote);
-        examAttemptRows = remote;
-      }
-    }
-    let examAttemptsByDefinition = new Map<string, ExamAttempt[]>();
-    for (const attempt of examAttemptRows) {
-      examAttemptsByDefinition = withExamAttempt(examAttemptsByDefinition, attempt);
-    }
-    set({
-      hydrated: true,
-      hydrating: false,
-      validationPassedDefinitionIds: new Set(chapterProgressRows.map((r) => r.chapterId)),
-      rowsBySlug: new Map(curriculumProgressRows.map((r) => [r.slug, r])),
-      examAttemptsByDefinition,
+    inFlightHydrate = performHydrate(set).finally(() => {
+      inFlightHydrate = null;
     });
+    return inFlightHydrate;
   },
 
   markVisited: async (slug) => {
+    await get().hydrate();
     const row: CurriculumProgress = {
       ...(await existingRow(slug)),
       lastVisitedAt: Date.now(),
@@ -164,6 +187,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   },
 
   setManualComplete: async (slug, complete) => {
+    await get().hydrate();
     const row: CurriculumProgress = {
       ...(await existingRow(slug)),
       manuallyCompletedAt: complete ? Date.now() : null,
@@ -182,6 +206,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   },
 
   recordExamAttempt: async (attempt) => {
+    await get().hydrate();
     await db.examAttempts.put(attempt);
     void syncExamAttempt(attempt);
     set((state) => ({
@@ -190,6 +215,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   },
 
   resetChapter: async (slug, chapterDefinitionId) => {
+    await get().hydrate();
     const row: CurriculumProgress = {
       ...(await existingRow(slug)),
       manuallyCompletedAt: null,

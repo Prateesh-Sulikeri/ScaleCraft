@@ -28,6 +28,8 @@ import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db, type ChapterProgress } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
 import { hydrateChapterProgress, hydrateSave, syncChapterProgress, syncSave } from "@/persistence/cloud-sync";
+import { reconcileRow } from "@/persistence/reconcile";
+import { useCustomComponentsStore } from "@/canvas/custom-components-store";
 import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { findEntry } from "@/curriculum";
@@ -138,6 +140,14 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     void hydrateProgress();
   }, [hydrateProgress]);
 
+  // Custom components (audit S9, Phase 3.1) — used to reconcile only from
+  // Sandbox's mount effect, so a session that only ever opened a chapter
+  // never pulled the cloud palette at all. ComponentPicker is reachable from
+  // here too, so this mode needs the same hydrate() call.
+  useEffect(() => {
+    void useCustomComponentsStore.getState().hydrate();
+  }, []);
+
   // Gates every write to this chapter's save slot (autosave below AND the
   // unmount-save further down) until the restore effect's async read has
   // actually resolved. Tracked twice, deliberately: `hasLoadedInitialState`
@@ -182,23 +192,27 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
       return;
     }
     let cancelled = false;
-    db.saves.get(chapterSaveId(chapter.id)).then(async (save) => {
+    const scopeId = chapterSaveId(chapter.id);
+    Promise.all([db.saves.get(scopeId), hydrateSave(scopeId)]).then(([local, remote]) => {
       if (cancelled) return;
-      if (save) {
-        loadCanvasState(save.nodes, save.edges);
+      // Per-scope reconcile (Phase 3.1, pending-6.1.0-poa.md), not
+      // hydrate-on-empty: a local save no longer skips the remote check, so
+      // a newer save from another device wins even when this device has
+      // one too. Remote now carries raw canvasState (Phase 3.4), so a
+      // remote win always goes through loadCanvasState — zones/comments/
+      // Start markers survive a cross-device restore instead of being
+      // silently dropped by the old ArchitectureGraph round-trip.
+      const remoteAsSave = remote
+        ? { id: scopeId, updatedAt: remote.updatedAt, nodes: remote.nodes, edges: remote.edges, syncedAt: remote.updatedAt, dirty: false }
+        : null;
+      const winner = reconcileRow(local ?? null, remoteAsSave);
+      if (winner) {
+        if (winner !== local) void db.saves.put(winner);
+        loadCanvasState(winner.nodes, winner.edges);
+      } else if (chapter.starterGraph) {
+        loadGraph(chapter.starterGraph);
       } else {
-        // Hydrate-on-empty (decision 3, pending-cloud-sync.md): no local
-        // attempt for this chapter at all means try the cloud before
-        // falling back to the chapter's starterGraph.
-        const remote = await hydrateSave(chapterSaveId(chapter.id));
-        if (cancelled) return;
-        if (remote) {
-          loadGraph(remote.graph);
-        } else if (chapter.starterGraph) {
-          loadGraph(chapter.starterGraph);
-        } else {
-          loadCanvasState([], []);
-        }
+        loadCanvasState([], []);
       }
       hasLoadedInitialStateRef.current = true;
       setHasLoadedInitialState(true);
@@ -239,7 +253,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
         dirty: true,
         syncedAt: null,
       });
-      void syncSave(chapterSaveId(chapter.id), toArchitectureGraph(nodes, edges));
+      void syncSave(chapterSaveId(chapter.id), { nodes, edges });
     };
   }, [storeApi, chapter]);
 
@@ -276,21 +290,22 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
   useEffect(() => {
     if (!chapter) return;
     let cancelled = false;
-    db.chapterProgress.get(chapter.id).then(async (row) => {
-      if (cancelled) return;
-      if (row) {
+    Promise.all([db.chapterProgress.get(chapter.id), hydrateChapterProgress(chapter.id)]).then(
+      async ([local, remote]) => {
+        if (cancelled) return;
+        // Per-key reconcile (Phase 3.1, pending-6.1.0-poa.md), not
+        // hydrate-on-empty: a local completion record no longer skips the
+        // remote check outright, so a newer completion from another device
+        // (rare - chapterProgress is effectively monotonic, POA 3.2) still
+        // wins instead of being silently stuck behind a stale local row.
+        const winner = reconcileRow(local ?? null, remote);
+        if (!winner) return;
+        const remoteWon = winner === remote && winner !== local;
+        if (remoteWon) await db.chapterProgress.put(winner);
         setPassedChapterIds((prev) => new Set(prev).add(chapter.id));
-        return;
-      }
-      // Hydrate-on-empty (decision 3, pending-cloud-sync.md): no local
-      // completion record for this chapter - check the cloud once before
-      // concluding it's genuinely not passed yet.
-      const remote = await hydrateChapterProgress(chapter.id);
-      if (cancelled || !remote) return;
-      await db.chapterProgress.put(remote);
-      setPassedChapterIds((prev) => new Set(prev).add(chapter.id));
-      recordValidationPass(chapter.id);
-    });
+        if (remoteWon) recordValidationPass(chapter.id);
+      },
+    );
     return () => {
       cancelled = true;
     };

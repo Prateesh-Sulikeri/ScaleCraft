@@ -1,23 +1,35 @@
 import { db, type DeepCheckSession } from "@/persistence/db";
 import type { AiCritique } from "@/ai/schema";
 import { deleteDeepCheckSessionSync, hydrateDeepCheckSessions, syncDeepCheckSession } from "@/persistence/cloud-sync";
+import { reconcileRows } from "@/persistence/reconcile";
 
 /**
  * Newest first — DeepCheckPanel's history view has no pagination, so this is
- * the full list for the given board/chapter. Hydrate-on-empty (decision 3):
- * a fresh device/browser has no local history for this saveId, so pull it
- * from the cloud once and adopt it into Dexie before returning.
+ * the full list for the given board/chapter. Reconciles against the cloud
+ * every call (Phase 3, pending-6.1.0-poa.md), not just when local is empty —
+ * sessions are append-only (POA 3.2), so this is a plain union by `syncId`;
+ * `dirty` local rows always win over a same-key remote row (reconcile.ts),
+ * which can't actually happen here since a session's id/content never
+ * changes after creation, but keeps the merge honest either way. `id`
+ * (Dexie's local auto-increment key) is device-local, so a row adopted from
+ * remote gets a fresh one on `bulkAdd` rather than carrying a foreign one in.
  */
 export async function listSessions(saveId: string): Promise<DeepCheckSession[]> {
-  let sessions = await db.deepCheckSessions.where("saveId").equals(saveId).toArray();
-  if (sessions.length === 0) {
-    const remote = await hydrateDeepCheckSessions(saveId);
-    if (remote.length > 0) {
-      await db.deepCheckSessions.bulkAdd(remote);
-      sessions = await db.deepCheckSessions.where("saveId").equals(saveId).toArray();
-    }
-  }
-  return sessions.sort((a, b) => b.createdAt - a.createdAt);
+  const [local, remote] = await Promise.all([
+    db.deepCheckSessions.where("saveId").equals(saveId).toArray(),
+    hydrateDeepCheckSessions(saveId),
+  ]);
+  const { merged, toWrite } = reconcileRows(
+    local,
+    remote as DeepCheckSession[],
+    (r) => r.syncId,
+  );
+  // toWrite is always a brand-new syncId here (append-only, no edit
+  // codepath ever makes a same-key remote row outrank an already-synced
+  // local one) - bulkAdd, not bulkPut, so Dexie assigns each a fresh local
+  // auto-increment `id` rather than risk colliding with an existing row's.
+  if (toWrite.length > 0) await db.deepCheckSessions.bulkAdd(toWrite);
+  return merged.sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export async function saveSession(saveId: string, critique: AiCritique): Promise<void> {

@@ -1,4 +1,4 @@
-import type { ArchitectureGraph } from "@/lib/graph";
+import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import {
   db,
   type ChapterProgress,
@@ -9,6 +9,10 @@ import {
   type SyncMeta,
 } from "@/persistence/db";
 import type { CustomComponentRecord } from "@/content/components/custom";
+
+/** Raw canvas nodes/edges — the shape `saves` syncs (Phase 3.4,
+ * pending-6.1.0-poa.md), not the lossy domain ArchitectureGraph. */
+type CanvasState = { nodes: AnyNodeType[]; edges: ArchitectureEdgeType[] };
 
 /**
  * Client-side wrappers for /api/sync/* (see pending-cloud-sync.md decision
@@ -60,15 +64,15 @@ async function getSync<T>(path: string): Promise<T | null> {
 
 // --- saves ---
 
-export async function syncSave(scopeId: string, graph: ArchitectureGraph): Promise<void> {
-  const result = await postSync<{ updatedAt: number }>("/api/sync/saves", { scopeId, graph });
+export async function syncSave(scopeId: string, canvasState: CanvasState): Promise<void> {
+  const result = await postSync<{ updatedAt: number }>("/api/sync/saves", { scopeId, canvasState });
   if (result) await db.saves.update(scopeId, { syncedAt: result.updatedAt, dirty: false });
 }
 
-export function hydrateSave(scopeId: string): Promise<{ graph: ArchitectureGraph; updatedAt: number } | null> {
-  return getSync<{ save: { graph: ArchitectureGraph; updatedAt: number } | null }>(
+export function hydrateSave(scopeId: string): Promise<(CanvasState & { updatedAt: number }) | null> {
+  return getSync<{ save: { canvasState: CanvasState; updatedAt: number } | null }>(
     `/api/sync/saves?scopeId=${encodeURIComponent(scopeId)}`,
-  ).then((res) => res?.save ?? null);
+  ).then((res) => (res?.save ? { ...res.save.canvasState, updatedAt: res.save.updatedAt } : null));
 }
 
 // --- customComponents ---

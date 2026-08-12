@@ -1,9 +1,12 @@
 # Release 6.1.0-alpha - Persistence POA
 
-Status: **Phases 0, 1 and 2 landed 2026-08-12, full CI green.** Written the
-same day, after the multi-device test failure and the persistence audit that
+Status: **Phases 0-3 landed 2026-08-12, full CI green.** Written the same
+day, after the multi-device test failure and the persistence audit that
 followed; all five open decisions resolved same-day too (see "Decisions -
-resolved" below). Phases 3-8 remain, unblocked, on the same
+resolved" below). Phase 3's migration (0004_raw_canvas_state.sql) is
+generated and checked into `drizzle/` but **not yet applied to Neon** -
+`npm run db:migrate` still pending, same as Phase 0's backfill-drop
+migration. Phases 4-8 remain, unblocked, on the same
 `feature/cloud-sync-reconciliation` branch (cut from
 `release/v6.1.0-neon-cloud-sync` - the user wants every phase of this release
 in one branch, not one per phase). This is the single running doc for the
@@ -221,7 +224,7 @@ the same `reconcileLocalStateForUser` wipe as the Dexie tables above.
 
 ---
 
-## Phase 3 - Read reconciliation
+## Phase 3 - Read reconciliation, done 2026-08-12
 
 The core fix. Replaces hydrate-on-empty at all six call sites. Fixes S4 and
 S6, and is what makes the multi-device test in `pending-cloud-sync.md` able to
@@ -237,6 +240,23 @@ pass at all.
 | chapterProgress, per chapter | row absent (`ChapterWorkspace.tsx:272`) | per-key reconcile |
 | deepCheckSessions | list empty (`deepCheckSessions.ts:13`) | union by syncId |
 | customComponents | table empty (`sandbox/page.tsx:148`) | per-key reconcile |
+
+**All six done.** Every table's merge routes through one shared helper,
+`src/persistence/reconcile.ts` (`reconcileRows` for bulk/list tables,
+`reconcileRow` for the single-row `saves` case) - one implementation of the
+Sync-ordering predicate instead of six. `progress-store.ts`'s `hydrate()`
+now reconciles `chapterProgress`/`curriculumProgress`/`examAttempts` for
+real (was hydrate-on-empty); `custom-components-store.ts` grew its own
+`hydrate()` for `customComponents`, called from both Sandbox's and
+ChapterWorkspace's mount effects (S9 fix - it used to be Sandbox-only, so a
+session that never opened Sandbox never reconciled that table at all);
+`deepCheckSessions.ts`'s `listSessions` unions by `syncId` on every call;
+`ChapterWorkspace.tsx`/`sandbox/page.tsx`'s save-restore effects reconcile
+per scope. The separate per-chapter `chapterProgress` read in
+`ChapterWorkspace.tsx` (line ~272, `passedChapterIds`) stayed a distinct
+call site rather than being folded into `progress-store`'s bulk hydrate -
+kept deliberately, per its own row in the table above, and its own existing
+test coverage stayed green through the change.
 
 Note the whole-table gate is the worse half of S4: `markVisited` writes a
 `curriculumProgress` row on **every chapter open**, so merely viewing one
@@ -275,9 +295,21 @@ idea a completion exists.
 completed.** Decided: mutators await a module-level `ready` promise. No API
 change to callers, impossible to forget at a call site.
 
-- [ ] Implement the `ready` promise gate, and add a regression test that
+- [x] Implement the `ready` promise gate, and add a regression test that
       mutates before reconcile resolves and asserts nothing is lost. This is
-      the single most important test in the release
+      the single most important test in the release. `progress-store.ts`'s
+      `hydrate()` is now itself the gate (memoized via `get().hydrated` plus
+      an in-flight-only module `let`, not a bare module promise, so tests
+      can reset it the same way they reset the store) - every mutator
+      (`markVisited`, `setManualComplete`, `recordExamAttempt`,
+      `resetChapter`) awaits it first. `custom-components-store.ts` gets the
+      identical gate for `customComponents`, awaited by ComponentPicker's
+      save/delete handlers. The regression test (`progress-store.test.ts`)
+      mocks `hydrateAllCurriculumProgress` with a controllable promise and
+      asserts `db.curriculumProgress.put` has NOT fired while that promise
+      is still pending, then releases it and confirms the write happens
+      after - proving the gate actually blocks, not just that both settle
+      to the right answer
 
 ### 3.4 Cloud restore is lossy, and reconciliation makes that dangerous
 
@@ -296,11 +328,26 @@ edge case. Under reconciliation **the cloud can win over a device that has
 local data**, so a user with zones on their canvas can now have them silently
 deleted by a routine sync. That is no longer an acceptable tradeoff.
 
-- [ ] Store raw canvas state in `savedGraphs`, not `ArchitectureGraph`, so the
+- [x] Store raw canvas state in `savedGraphs`, not `ArchitectureGraph`, so the
       cloud round-trip is lossless
-- [ ] Keep `toArchitectureGraph()` for validation only, which is what it is for
-- [ ] Replace the `graph` column with `canvasState` (Postgres migration; no
-      production data worth preserving)
+- [x] Keep `toArchitectureGraph()` for validation only, which is what it is for
+      (unchanged - still exists, still only called from Validate/Submit/
+      Deep Check's context assembly, never from the save/restore path)
+- [x] Replace the `graph` column with `canvasState` (Postgres migration; no
+      production data worth preserving). `drizzle/0004_raw_canvas_state.sql`:
+      `TRUNCATE` then drop `graph`/add `canvas_state` - hand-written (not
+      `drizzle-kit generate`, which needs a TTY to disambiguate a same-table
+      column swap and this session has none), verified against the schema
+      with `drizzle-kit check`/`generate` (reports "no schema changes").
+      **Not yet applied to Neon** - `npm run db:migrate` still pending, same
+      as Phase 0's backfill-drop migration. `savesBodySchema` now validates
+      `canvasState` with a loose per-node/edge schema (only `id`/`type`/
+      `source`/`target` checked - these are @xyflow/react `Node`/`Edge`
+      objects with many library-owned optional fields this route has no
+      business re-deriving a strict schema for, same convention as
+      `deepCheckSessionBodySchema`'s `critique`). `cloud-sync.ts`'s
+      `syncSave`/`hydrateSave`, `use-autosave.ts`, and `flush-dirty.ts` all
+      updated to the new wire shape.
 
 ### 3.5 Non-goals, restated
 
@@ -543,11 +590,11 @@ per-user cost, and the only one that grows without bound.**
 | S1 `markVisited` wipes completion | Critical | **Phase 0, done.** Guarded again by 3.3 |
 | S2 browser-wide Dexie, cross-account leak | Critical | **Phase 2, done** |
 | S3 backfill cross-account write | Critical | **Phase 0, done** |
-| S4 hydrate-on-empty is not sync | High | Phase 3 |
+| S4 hydrate-on-empty is not sync | High | **Phase 3, done** |
 | S5 sync failures invisible | High | Phase 6 |
-| S6 no client-side LWW | Medium | Phase 1.2, Phase 3 |
+| S6 no client-side LWW | Medium | **Phase 1.2, Phase 3, done** |
 | S7 asymmetric deletes | Medium | Phase 7 |
 | S8 sandbox unmount does not sync | Medium | Phase 4.2 |
-| S9 customComponents hydrate only on sandbox page | Medium | Phase 3.1 |
+| S9 customComponents hydrate only on sandbox page | Medium | **Phase 3.1, done** |
 | S10 localStorage account-agnostic | Low | **Phase 2.1, done** |
 | S11 timestamps without timezone | Low | Deferred, see table above |

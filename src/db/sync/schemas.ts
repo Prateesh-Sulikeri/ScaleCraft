@@ -9,31 +9,34 @@ import { z } from "zod";
  * DB boundary inside each route.
  */
 
-const graphNodeSchema = z.object({
+/** Raw canvas node/edge shape (src/canvas/types.ts's AnyNodeType /
+ * ArchitectureEdgeType), not the lossy domain ArchitectureGraph (release
+ * 6.1.0-alpha Phase 3.4, pending-6.1.0-poa.md — see schema.ts's
+ * canvasState comment for why). Loosely validated, same convention as
+ * `deepCheckSessionBodySchema`'s `critique` below: these are @xyflow/react
+ * Node/Edge objects with many optional library-owned fields (style,
+ * selected, dragging, width, height, ...) that this route has no business
+ * re-deriving a strict schema for - only the fields sync logic itself
+ * touches (`id`, the type discriminator, `source`/`target`) are checked. */
+const canvasNodeSchema = z.looseObject({
   id: z.string(),
-  componentId: z.string(),
-  position: z.object({ x: z.number(), y: z.number() }),
-  config: z.unknown(),
+  type: z.enum(["component", "zone", "comment", "start"]),
 });
 
-const graphEdgeSchema = z.object({
+const canvasEdgeSchema = z.looseObject({
   id: z.string(),
   source: z.string(),
   target: z.string(),
-  kind: z.enum(["request-flow", "control", "replication", "async"]),
 });
 
-/** Domain ArchitectureGraph (src/lib/graph.ts) — the shape the client sends
- * after running toArchitectureGraph() on the canvas nodes/edges. */
-export const architectureGraphSchema = z.object({
-  nodes: z.array(graphNodeSchema),
-  edges: z.array(graphEdgeSchema),
-  entryPointIds: z.array(z.string()),
+export const canvasStateSchema = z.object({
+  nodes: z.array(canvasNodeSchema),
+  edges: z.array(canvasEdgeSchema),
 });
 
 export const savesBodySchema = z.object({
   scopeId: z.string().min(1),
-  graph: architectureGraphSchema,
+  canvasState: canvasStateSchema,
 });
 
 const customFieldSpecSchema = z.looseObject({});

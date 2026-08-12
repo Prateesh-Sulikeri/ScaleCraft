@@ -331,14 +331,20 @@ export function ComponentPicker() {
 
   const handleSaveCustom = (record: CustomComponentRecord) => {
     const row: CustomComponentRow = { ...record, dirty: true, syncedAt: null };
-    void db.customComponents.put(row);
+    void useCustomComponentsStore
+      .getState()
+      .hydrate()
+      .then(() => db.customComponents.put(row));
     void syncCustomComponent(record);
     upsertCustomComponent(record);
     setModal(null);
   };
 
   const handleDeleteCustom = (record: CustomComponentRecord) => {
-    void db.customComponents.delete(record.id);
+    void useCustomComponentsStore
+      .getState()
+      .hydrate()
+      .then(() => db.customComponents.delete(record.id));
     void deleteCustomComponentSync(record.id);
     deleteCustomComponent(record.id);
     setDeleteTarget(null);

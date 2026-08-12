@@ -7,7 +7,6 @@ import {
   syncExamAttempt,
   syncSave,
 } from "@/persistence/cloud-sync";
-import { toArchitectureGraph } from "@/canvas/store";
 
 /**
  * Phase 1.3 of the 6.1.0 POA (pending-6.1.0-poa.md) - the useful 90% of an
@@ -31,7 +30,7 @@ export async function flushDirtyRows(): Promise<void> {
     ]);
 
   await Promise.all([
-    ...saves.map((row) => syncSave(row.id, toArchitectureGraph(row.nodes, row.edges))),
+    ...saves.map((row) => syncSave(row.id, { nodes: row.nodes, edges: row.edges })),
     ...chapterProgress.map((row) => syncChapterProgress(row)),
     ...curriculumProgress.map((row) => syncCurriculumProgress(row)),
     ...examAttempts.map((row) => syncExamAttempt(row)),
