@@ -6,6 +6,22 @@ import type { AiCritique } from "@/ai/schema";
 import type { QuizAnswer } from "@/chapters/quiz/evaluate";
 
 /**
+ * Sync bookkeeping carried on every synced local row (release 6.1.0-alpha
+ * Phase 1, .claude/docs/pending-6.1.0-poa.md) — the fields last-write-wins
+ * reconciliation (Phase 3) needs to tell "this device's edit" apart from
+ * "what the server already has." `syncedAt` is the server's own `updatedAt`
+ * from the last successful push or pull, never a client clock read — see
+ * ARCHITECTURE.md's "Sync ordering" note for why client clocks are never
+ * compared. `dirty: true` means the local row has an edit the server hasn't
+ * acknowledged yet; it also gives offline-safety for free (Phase 1.3): a
+ * flush pass just re-pushes every dirty row, no queue needed.
+ */
+export type SyncMeta = {
+  syncedAt: number | null;
+  dirty: boolean;
+};
+
+/**
  * Local-first persistence — see .claude/docs/ARCHITECTURE.md "Persistence"
  * and milestones 8-9 in MILESTONES.md. A manual Save writes here, debounced
  * autosave-on-edit (see persistence/use-autosave.ts) also writes here, and
@@ -17,7 +33,7 @@ import type { QuizAnswer } from "@/chapters/quiz/evaluate";
  * (see canvas/types.ts) and would be silently dropped by a restore that
  * went through it.
  */
-export type CanvasSave = {
+export type CanvasSave = SyncMeta & {
   id: string;
   updatedAt: number;
   nodes: AnyNodeType[];
@@ -40,7 +56,7 @@ export function chapterSaveId(chapterId: string): string {
  * reports `passed: true` (see chapters/ChapterWorkspace.tsx). Records
  * completion only; building the unlock graph from this is explicitly out of
  * scope here (§8.6, deferred). */
-export type ChapterProgress = {
+export type ChapterProgress = SyncMeta & {
   chapterId: string;
   completedAt: number;
   matchedBlueprintId: string | null;
@@ -53,7 +69,7 @@ export type ChapterProgress = {
  * Dexie's auto-incrementing primary key (`++id` in the schema below), not a
  * caller-supplied string like the other tables — there's no natural
  * caller-known key for "the Nth review of this board." */
-export type DeepCheckSession = {
+export type DeepCheckSession = SyncMeta & {
   id?: number;
   /** Stable client-generated id (crypto.randomUUID()), assigned once at
    * write time — separate from `id` above, which is Dexie's local
@@ -95,7 +111,7 @@ export type AiActiveProfile = {
  * are ever combined. Keyed by slug rather than definition id because an
  * unauthored chapter has no definition id but can still be manually marked
  * complete (a learner who read the chapter in the PDF). */
-export type CurriculumProgress = {
+export type CurriculumProgress = SyncMeta & {
   slug: string;
   /** Learner's explicit "Mark complete" toggle. null = not manually completed. */
   manuallyCompletedAt: number | null;
@@ -120,7 +136,7 @@ export type ExamQuestionAnswer = {
  * old per-question `QuizProgress` mastery model (schema v8) — the exam-mode
  * pivot scores a submitted attempt, it doesn't track individual question
  * mastery over time (see .claude/docs/pending-quiz-ui.md addendum). */
-export type ExamAttempt = {
+export type ExamAttempt = SyncMeta & {
   chapterDefinitionId: string;
   attemptNumber: number;
   submittedAt: number;
@@ -129,13 +145,20 @@ export type ExamAttempt = {
   answers: ExamQuestionAnswer[];
 };
 
+/** The stored shape of a custom component — `CustomComponentRecord` plus
+ * sync bookkeeping. Kept separate from `CustomComponentRecord` itself since
+ * that type is also the domain shape passed to `toComponentDefinition` and
+ * rendered directly by the palette; those call sites have no business
+ * knowing about `dirty`/`syncedAt`. */
+export type CustomComponentRow = SyncMeta & CustomComponentRecord;
+
 export class ScaleCraftDB extends Dexie {
   saves!: EntityTable<CanvasSave, "id">;
   /** User-created components (see CreateComponentModal.tsx /
    * content/components/custom.ts) — plain records, not live ComponentDefinitions
    * (a Zod schema instance isn't structured-clone-safe for IndexedDB;
    * toComponentDefinition rebuilds one at load time). */
-  customComponents!: EntityTable<CustomComponentRecord, "id">;
+  customComponents!: EntityTable<CustomComponentRow, "id">;
   chapterProgress!: EntityTable<ChapterProgress, "chapterId">;
   aiProfiles!: EntityTable<AiProfile, "id">;
   aiActiveProfile!: EntityTable<AiActiveProfile, "id">;
@@ -305,6 +328,22 @@ export class ScaleCraftDB extends Dexie {
           ].map((table) => trans.table(table).clear()),
         );
       });
+    // Phase 1 of the 6.1.0 POA — adds `syncedAt`/`dirty` (SyncMeta above) to
+    // every synced row, the foundation reconciliation (Phase 3) is built on.
+    // No upgrade callback: v10 just emptied every table, so there are no
+    // existing rows to backfill. `syncId` gains an index on deepCheckSessions
+    // so a sync response can look a row up and write its SyncMeta back
+    // without a full-table scan (see cloud-sync.ts's syncDeepCheckSession).
+    this.version(11).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt], syncId",
+      curriculumProgress: "slug",
+      examAttempts: "[chapterDefinitionId+attemptNumber], chapterDefinitionId",
+    });
   }
 }
 

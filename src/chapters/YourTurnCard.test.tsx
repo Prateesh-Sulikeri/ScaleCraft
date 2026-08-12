@@ -17,6 +17,8 @@ vi.mock("./exam/ExamShell", () => ({
             submittedAt: Date.now(),
             score: 100,
             answers: [],
+            dirty: false,
+            syncedAt: null,
           })
         }
       >
@@ -109,6 +111,8 @@ function attempt(overrides: Partial<ExamAttempt> = {}): ExamAttempt {
     submittedAt: Date.now(),
     score: 50,
     answers: [],
+    dirty: false,
+    syncedAt: null,
     ...overrides,
   };
 }

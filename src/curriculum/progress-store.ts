@@ -86,7 +86,15 @@ type CurriculumProgressStore = {
  * manuallyCompletedAt locally AND pushed the null to the cloud, destroying the
  * completion on every device. See pending-persistence-audit.md S1. */
 async function existingRow(slug: string): Promise<CurriculumProgress> {
-  return (await db.curriculumProgress.get(slug)) ?? { slug, manuallyCompletedAt: null, lastVisitedAt: null };
+  return (
+    (await db.curriculumProgress.get(slug)) ?? {
+      slug,
+      manuallyCompletedAt: null,
+      lastVisitedAt: null,
+      dirty: false,
+      syncedAt: null,
+    }
+  );
 }
 
 export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, get) => ({
@@ -144,7 +152,12 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   },
 
   markVisited: async (slug) => {
-    const row: CurriculumProgress = { ...(await existingRow(slug)), lastVisitedAt: Date.now() };
+    const row: CurriculumProgress = {
+      ...(await existingRow(slug)),
+      lastVisitedAt: Date.now(),
+      dirty: true,
+      syncedAt: null,
+    };
     await db.curriculumProgress.put(row);
     void syncCurriculumProgress(row);
     set((state) => ({ rowsBySlug: new Map(state.rowsBySlug).set(slug, row) }));
@@ -154,6 +167,8 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
     const row: CurriculumProgress = {
       ...(await existingRow(slug)),
       manuallyCompletedAt: complete ? Date.now() : null,
+      dirty: true,
+      syncedAt: null,
     };
     await db.curriculumProgress.put(row);
     void syncCurriculumProgress(row);
@@ -175,7 +190,12 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   },
 
   resetChapter: async (slug, chapterDefinitionId) => {
-    const row: CurriculumProgress = { ...(await existingRow(slug)), manuallyCompletedAt: null };
+    const row: CurriculumProgress = {
+      ...(await existingRow(slug)),
+      manuallyCompletedAt: null,
+      dirty: true,
+      syncedAt: null,
+    };
     await Promise.all([
       db.curriculumProgress.put(row),
       chapterDefinitionId ? db.chapterProgress.delete(chapterDefinitionId) : Promise.resolve(),

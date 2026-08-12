@@ -98,7 +98,14 @@ export function useAutosave(
       const shouldShow = visible || hadErrorRef.current;
       if (shouldShow) setStatus("saving");
       try {
-        await db.saves.put({ id, updatedAt: Date.now(), nodes: nodesToSave, edges: edgesToSave });
+        await db.saves.put({
+          id,
+          updatedAt: Date.now(),
+          nodes: nodesToSave,
+          edges: edgesToSave,
+          dirty: true,
+          syncedAt: null,
+        });
         void syncSave(id, toArchitectureGraph(nodesToSave, edgesToSave));
         hadErrorRef.current = false;
         if (generationRef.current !== generation) return;

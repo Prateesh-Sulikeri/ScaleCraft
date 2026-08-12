@@ -179,7 +179,7 @@ function SandboxPageContent() {
     return () => {
       if (!hasLoadedInitialStateRef.current) return;
       const { nodes, edges } = storeApi.getState();
-      void db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
+      void db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges, dirty: true, syncedAt: null });
     };
   }, [storeApi]);
 

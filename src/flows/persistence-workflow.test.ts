@@ -49,6 +49,8 @@ describe("Persistence workflow — save, load, export, import", () => {
       updatedAt: Date.now(),
       nodes: store.getState().nodes,
       edges: store.getState().edges,
+      dirty: false,
+      syncedAt: null,
     };
 
     await db.saves.put(canvasSave);
@@ -76,6 +78,8 @@ describe("Persistence workflow — save, load, export, import", () => {
       updatedAt: Date.now(),
       nodes: store.getState().nodes,
       edges: store.getState().edges,
+      dirty: false,
+      syncedAt: null,
     };
 
     await db.saves.put(canvasSave);

@@ -10,6 +10,8 @@ function attempt(overrides: Partial<ExamAttempt> = {}): ExamAttempt {
     submittedAt: Date.now(),
     score: 100,
     answers: [{ questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true }],
+    dirty: false,
+    syncedAt: null,
     ...overrides,
   };
 }
@@ -32,11 +34,13 @@ beforeEach(async () => {
 
 describe("curriculum progress store", () => {
   it("hydrate() reads all three Dexie tables into memory", async () => {
-    await db.chapterProgress.put({ chapterId: "bb-dummy-1", completedAt: Date.now(), matchedBlueprintId: null });
+    await db.chapterProgress.put({ chapterId: "bb-dummy-1", completedAt: Date.now(), matchedBlueprintId: null, dirty: false, syncedAt: null });
     await db.curriculumProgress.put({
       slug: "1-2-load-balancing",
       manuallyCompletedAt: null,
       lastVisitedAt: Date.now(),
+      dirty: false,
+      syncedAt: null,
     });
     const seeded = attempt();
     await db.examAttempts.put(seeded);
@@ -52,7 +56,7 @@ describe("curriculum progress store", () => {
 
   it("hydrate() is idempotent — a second call does not re-read or clear state", async () => {
     await useCurriculumProgressStore.getState().hydrate();
-    await db.chapterProgress.put({ chapterId: "late-write", completedAt: Date.now(), matchedBlueprintId: null });
+    await db.chapterProgress.put({ chapterId: "late-write", completedAt: Date.now(), matchedBlueprintId: null, dirty: false, syncedAt: null });
 
     await useCurriculumProgressStore.getState().hydrate();
 
@@ -158,6 +162,8 @@ describe("curriculum progress store", () => {
       slug: "1-2-load-balancing",
       manuallyCompletedAt: completedAt,
       lastVisitedAt: null,
+      dirty: false,
+      syncedAt: null,
     });
 
     // beforeEach leaves the store unhydrated, which is the bug's precondition.
@@ -174,6 +180,8 @@ describe("curriculum progress store", () => {
       slug: "1-2-load-balancing",
       manuallyCompletedAt: null,
       lastVisitedAt,
+      dirty: false,
+      syncedAt: null,
     });
 
     await useCurriculumProgressStore.getState().setManualComplete("1-2-load-balancing", true);

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { LocalStorageReset } from "@/persistence/LocalStorageReset";
+import { FlushDirtyRows } from "@/persistence/FlushDirtyRows";
 
 // Single-player app, gated top to bottom: no route under this group is
 // public. See CLAUDE.md - "no sign in, no app access." sign-in/sign-up
@@ -13,6 +14,7 @@ export default async function ProtectedLayout({
   return (
     <>
       <LocalStorageReset />
+      <FlushDirtyRows />
       {children}
     </>
   );

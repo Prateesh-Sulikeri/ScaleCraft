@@ -53,6 +53,8 @@ describe("ExamResults", () => {
         { questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true },
         { questionId: "q2", answer: { kind: "multi", optionIds: ["a", "b"] }, correct: true },
       ],
+      dirty: false,
+      syncedAt: null,
     };
     render(<ExamResults chapter={chapter()} attempt={attempt} onReturn={vi.fn()} />);
 
@@ -70,6 +72,8 @@ describe("ExamResults", () => {
         { questionId: "q1", answer: { kind: "single", optionId: "b" }, correct: false },
         { questionId: "q2", answer: { kind: "multi", optionIds: ["a", "b"] }, correct: true },
       ],
+      dirty: false,
+      syncedAt: null,
     };
     render(<ExamResults chapter={chapter()} attempt={attempt} onReturn={vi.fn()} />);
 
@@ -87,6 +91,8 @@ describe("ExamResults", () => {
         { questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true },
         { questionId: "q2", answer: { kind: "multi", optionIds: ["a", "b"] }, correct: true },
       ],
+      dirty: false,
+      syncedAt: null,
     };
     render(<ExamResults chapter={chapter()} attempt={attempt} onReturn={vi.fn()} />);
 
@@ -106,6 +112,8 @@ describe("ExamResults", () => {
         { questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true },
         { questionId: "q2", answer: null, correct: false },
       ],
+      dirty: false,
+      syncedAt: null,
     };
     render(<ExamResults chapter={chapter()} attempt={attempt} onReturn={vi.fn()} />);
 

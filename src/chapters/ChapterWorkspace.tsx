@@ -25,7 +25,7 @@ import { chapterRegistry } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { ChapterOutcome, ChapterValidationOutcome } from "@/engines";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
-import { chapterSaveId, db } from "@/persistence/db";
+import { chapterSaveId, db, type ChapterProgress } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
 import { hydrateChapterProgress, hydrateSave, syncChapterProgress, syncSave } from "@/persistence/cloud-sync";
 import { getComponent } from "@/content/components/registry";
@@ -231,7 +231,14 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     return () => {
       if (!chapter || !hasLoadedInitialStateRef.current) return;
       const { nodes, edges } = storeApi.getState();
-      void db.saves.put({ id: chapterSaveId(chapter.id), updatedAt: Date.now(), nodes, edges });
+      void db.saves.put({
+        id: chapterSaveId(chapter.id),
+        updatedAt: Date.now(),
+        nodes,
+        edges,
+        dirty: true,
+        syncedAt: null,
+      });
       void syncSave(chapterSaveId(chapter.id), toArchitectureGraph(nodes, edges));
     };
   }, [storeApi, chapter]);
@@ -371,10 +378,12 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     setSubmitOutcome(outcome);
     setSubmittedGraphKey(graphKey);
     if (outcome.passed) {
-      const progressRow = {
+      const progressRow: ChapterProgress = {
         chapterId: chapter.id,
         completedAt: Date.now(),
         matchedBlueprintId: outcome.matchedBlueprintId,
+        dirty: true,
+        syncedAt: null,
       };
       void db.chapterProgress
         .put(progressRow)

@@ -226,6 +226,31 @@ Local-first, cloud-synced:
 - Because every MVP user is authenticated (no anonymous/guest mode to reconcile later),
   there's no anon-to-account migration path to design — one less moving part.
 
+### Sync ordering (release 6.1.0-alpha)
+
+Every synced Dexie row carries `SyncMeta` (`src/persistence/db.ts`): `syncedAt`, the
+server's own `updatedAt` from the last successful push or pull, and `dirty`, set
+whenever a local write hasn't been acknowledged by the server yet. Reconciliation
+(`.claude/docs/pending-6.1.0-poa.md` Phase 3) reads these with one rule:
+
+```
+if (local.dirty)                            -> push local, adopt returned updatedAt
+else if (remote.updatedAt > local.syncedAt) -> adopt remote
+else                                        -> no-op
+```
+
+**Client clocks are never compared to each other.** Devices have unreliable clocks, and
+comparing one device's `Date.now()` to another's would let a skewed clock win every
+conflict forever. The only ordering authority is the server's `updatedAt`, stamped by
+the Route Handler on every `POST /api/sync/*` write and returned as `{ updatedAt }` —
+never a client-supplied timestamp. Domain timestamps a row also carries
+(`completedAt`, `submittedAt`, `createdAt`, `manuallyCompletedAt`, ...) are display data
+only; they are never read by the merge predicate above.
+
+`dirty` doubles as the offline story (Phase 1.3): a flush pass on load and on
+regaining connectivity re-pushes every dirty row. No queue, no retry scheduler —
+single-player means a flush is always safe.
+
 ## Project structure (single Next.js app, no workspace packages yet)
 
 Folder-level module boundaries, not package boundaries — see [[TECH_STACK]] for why a

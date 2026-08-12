@@ -13,7 +13,7 @@ export async function listSessions(saveId: string): Promise<DeepCheckSession[]> 
   if (sessions.length === 0) {
     const remote = await hydrateDeepCheckSessions(saveId);
     if (remote.length > 0) {
-      await db.deepCheckSessions.bulkAdd(remote.map(({ syncId, saveId, createdAt, critique }) => ({ syncId, saveId, createdAt, critique })));
+      await db.deepCheckSessions.bulkAdd(remote);
       sessions = await db.deepCheckSessions.where("saveId").equals(saveId).toArray();
     }
   }
@@ -21,7 +21,14 @@ export async function listSessions(saveId: string): Promise<DeepCheckSession[]> 
 }
 
 export async function saveSession(saveId: string, critique: AiCritique): Promise<void> {
-  const session: DeepCheckSession = { syncId: crypto.randomUUID(), saveId, createdAt: Date.now(), critique };
+  const session: DeepCheckSession = {
+    syncId: crypto.randomUUID(),
+    saveId,
+    createdAt: Date.now(),
+    critique,
+    dirty: true,
+    syncedAt: null,
+  };
   await db.deepCheckSessions.add(session);
   void syncDeepCheckSession(session);
 }

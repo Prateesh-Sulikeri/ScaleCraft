@@ -8,11 +8,11 @@ import {
   type CanvasSave,
   type ChapterProgress,
   type CurriculumProgress,
+  type CustomComponentRow,
   type DeepCheckSession,
   type ExamAttempt,
 } from "./db";
 import type { ComponentNodeType, ArchitectureEdgeType } from "@/canvas/types";
-import type { CustomComponentRecord } from "@/content/components/custom";
 
 describe("persistence db", () => {
   it("round-trips a canvas save through IndexedDB", async () => {
@@ -20,7 +20,7 @@ describe("persistence db", () => {
       { id: "n1", type: "component", position: { x: 0, y: 0 }, data: { componentId: "client", config: {} } },
     ];
     const edges: ArchitectureEdgeType[] = [{ id: "e1", source: "n1", target: "n1" }];
-    const save: CanvasSave = { id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges };
+    const save: CanvasSave = { id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges, dirty: false, syncedAt: null };
 
     await db.saves.put(save);
     const restored = await db.saves.get(SANDBOX_SAVE_ID);
@@ -29,7 +29,7 @@ describe("persistence db", () => {
   });
 
   it("round-trips a custom component record through IndexedDB (schema v2)", async () => {
-    const record: CustomComponentRecord = {
+    const record: CustomComponentRow = {
       id: "custom-1",
       category: "networking",
       label: "Rate Limiter",
@@ -48,6 +48,8 @@ describe("persistence db", () => {
           options: ["token-bucket", "sliding-window"],
         },
       ],
+      dirty: false,
+      syncedAt: null,
     };
 
     await db.customComponents.put(record);
@@ -61,6 +63,8 @@ describe("persistence db", () => {
       chapterId: "ch-1",
       completedAt: Date.now(),
       matchedBlueprintId: "cache-aside",
+      dirty: false,
+      syncedAt: null,
     };
 
     await db.chapterProgress.put(progress);
@@ -79,6 +83,8 @@ describe("persistence db", () => {
       saveId: SANDBOX_SAVE_ID,
       createdAt: Date.now(),
       critique: { summary: "s", sections: [], tradeoffs: [] },
+      dirty: false,
+      syncedAt: null,
     };
 
     const id = await db.deepCheckSessions.add(session);
@@ -112,6 +118,8 @@ describe("persistence db", () => {
       slug: "1-2-load-balancing",
       manuallyCompletedAt: null,
       lastVisitedAt: Date.now(),
+      dirty: false,
+      syncedAt: null,
     };
 
     await db.curriculumProgress.put(progress);
@@ -131,6 +139,8 @@ describe("persistence db", () => {
       submittedAt: Date.now(),
       score: 100,
       answers: [{ questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true }],
+      dirty: false,
+      syncedAt: null,
     };
 
     await db.examAttempts.put(attempt);
@@ -301,7 +311,9 @@ describe("scalecraft db v7 migration (adds curriculumProgress)", () => {
     await withFreshDbName(async (name) => {
       const legacy = legacyV6Schema(name);
       await legacy.open();
-      const existingProgress: ChapterProgress = {
+      // Untyped on purpose - a v6-era row predates SyncMeta entirely, and
+      // legacy.table() is an untyped Dexie.Table anyway.
+      const existingProgress = {
         chapterId: "bb-dummy-1",
         completedAt: Date.now(),
         matchedBlueprintId: null,
@@ -386,7 +398,9 @@ describe("scalecraft db v9 migration (quizProgress -> examAttempts)", () => {
     await withFreshDbName(async (name) => {
       const legacy = legacyV8Schema(name);
       await legacy.open();
-      const existingProgress: CurriculumProgress = {
+      // Untyped on purpose - a v8-era row predates SyncMeta entirely, and
+      // legacy.table() is an untyped Dexie.Table anyway.
+      const existingProgress = {
         slug: "1-2-load-balancing",
         manuallyCompletedAt: null,
         lastVisitedAt: Date.now(),
@@ -492,7 +506,7 @@ describe("scalecraft db v10 reset (6.1.0 one-time clear)", () => {
     try {
       const fresh = new ScaleCraftDB(name);
       await fresh.open();
-      await fresh.saves.put({ id: "sandbox", updatedAt: Date.now(), nodes: [], edges: [] });
+      await fresh.saves.put({ id: "sandbox", updatedAt: Date.now(), nodes: [], edges: [], dirty: false, syncedAt: null });
       fresh.close();
 
       // Reopening must not re-run the clear — the upgrade is version-gated,

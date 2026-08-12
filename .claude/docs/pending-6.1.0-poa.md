@@ -1,10 +1,13 @@
 # Release 6.1.0-alpha - Persistence POA
 
-Status: **Scoped and decided. No code beyond Phase 0, which already landed.**
-Written 2026-08-12 after the multi-device test failure and the persistence
-audit that followed; all five open decisions resolved the same day (see
-"Decisions - resolved" below). Phases 1-8 are unblocked. This is the single
-running doc for the rest of 6.1.0.
+Status: **Phases 0 and 1 landed 2026-08-12, full CI green.** Written the same
+day, after the multi-device test failure and the persistence audit that
+followed; all five open decisions resolved same-day too (see "Decisions -
+resolved" below). Phases 2-8 remain, unblocked, on the same
+`feature/cloud-sync-reconciliation` branch (cut from
+`release/v6.1.0-neon-cloud-sync` - the user wants every phase of this release
+in one branch, not one per phase). This is the single running doc for the
+rest of 6.1.0.
 
 Supersedes nothing, but consolidates three threads that were drifting apart:
 
@@ -106,11 +109,21 @@ type SyncMeta = {
 };
 ```
 
-- [ ] Add `SyncMeta` to the six synced row types in `src/persistence/db.ts`
-- [ ] Dexie `version(11)` adding the fields (no upgrade callback needed; v10
-      already emptied everything, so there are no rows to backfill)
-- [ ] Every write path sets `dirty: true`; every successful sync response
-      writes back `syncedAt` and clears `dirty`
+- [x] Add `SyncMeta` to the six synced row types in `src/persistence/db.ts`
+      (`CustomComponentRecord` gets a separate `CustomComponentRow` storage
+      type instead, so the domain type stays sync-agnostic for the palette/
+      `toComponentDefinition` call sites)
+- [x] Dexie `version(11)` adding the fields (no upgrade callback; v10 already
+      emptied everything). Also indexes `syncId` on `deepCheckSessions`, so
+      the sync writeback below can look a row up without a table scan
+- [x] Every write path sets `dirty: true`; every successful sync response
+      writes back `syncedAt` and clears `dirty` - centralized inside each
+      `syncX` wrapper in `cloud-sync.ts` rather than duplicated at every call
+      site. Required making `postSync` check `res.ok` (previously it didn't
+      check at all) - without that, a 400/500 response would have been
+      misread as success and incorrectly cleared `dirty`. That's the one
+      piece of Phase 6 this phase couldn't defer; the rest (status surface,
+      `getSync` fail-vs-empty) is still Phase 6's
 
 ### 1.2 Clock skew must not decide conflicts
 
@@ -132,9 +145,11 @@ else                                  -> no-op
 The routes already return `{ updatedAt }` on POST, so the plumbing exists and
 is simply unused today.
 
-- [ ] Document this rule in `ARCHITECTURE.md` alongside the schema-parity note
-- [ ] Client-supplied domain timestamps (`completedAt` etc.) stay as display
-      data only, never as conflict-resolution input
+- [x] Document this rule in `ARCHITECTURE.md` alongside the schema-parity note
+      (new "Sync ordering" subsection under Persistence)
+- [x] Client-supplied domain timestamps (`completedAt` etc.) stay as display
+      data only, never as conflict-resolution input - true by construction,
+      since nothing in this phase reads them for ordering
 
 ### 1.3 The `dirty` flag gives us offline for free
 
@@ -143,7 +158,9 @@ is simply unused today.
 regaining connectivity, flush all dirty rows. No queue table, no retry
 scheduler, no ordering guarantees. Single-player means a flush is always safe.
 
-- [ ] Flush-dirty-rows pass on app load and on `online` event
+- [x] Flush-dirty-rows pass on app load and on `online` event -
+      `src/persistence/flush-dirty.ts` + `FlushDirtyRows.tsx`, mounted in
+      `(protected)/layout.tsx` alongside `LocalStorageReset`
 
 ---
 

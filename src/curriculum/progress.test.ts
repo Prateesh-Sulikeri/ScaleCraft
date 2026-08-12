@@ -57,7 +57,14 @@ function inputs(overrides: Partial<ProgressInputs> = {}): ProgressInputs {
 }
 
 function row(overrides: Partial<CurriculumProgress> = {}): CurriculumProgress {
-  return { slug: "test-slug", manuallyCompletedAt: null, lastVisitedAt: null, ...overrides };
+  return {
+    slug: "test-slug",
+    manuallyCompletedAt: null,
+    lastVisitedAt: null,
+    dirty: false,
+    syncedAt: null,
+    ...overrides,
+  };
 }
 
 describe("deriveStatus", () => {
@@ -110,7 +117,7 @@ describe("deriveStatus", () => {
         examAttemptsByDefinition: new Map([
           [
             "with-quiz-def",
-            [{ chapterDefinitionId: "with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [] }],
+            [{ chapterDefinitionId: "with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [], dirty: false, syncedAt: null }],
           ],
         ]),
         rowsBySlug,
@@ -129,8 +136,8 @@ describe("deriveStatus", () => {
           [
             "with-quiz-def",
             [
-              { chapterDefinitionId: "with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [] },
-              { chapterDefinitionId: "with-quiz-def", attemptNumber: 2, submittedAt: Date.now(), score: 90, answers: [] },
+              { chapterDefinitionId: "with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [], dirty: false, syncedAt: null },
+              { chapterDefinitionId: "with-quiz-def", attemptNumber: 2, submittedAt: Date.now(), score: 90, answers: [], dirty: false, syncedAt: null },
             ],
           ],
         ]),
@@ -149,7 +156,7 @@ describe("deriveStatus", () => {
           examAttemptsByDefinition: new Map([
             [
               "no-editor-with-quiz-def",
-              [{ chapterDefinitionId: "no-editor-with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 90, answers: [] }],
+              [{ chapterDefinitionId: "no-editor-with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 90, answers: [], dirty: false, syncedAt: null }],
             ],
           ]),
         }),
@@ -167,7 +174,7 @@ describe("deriveStatus", () => {
           examAttemptsByDefinition: new Map([
             [
               "no-editor-with-quiz-def",
-              [{ chapterDefinitionId: "no-editor-with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 40, answers: [] }],
+              [{ chapterDefinitionId: "no-editor-with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 40, answers: [], dirty: false, syncedAt: null }],
             ],
           ]),
         }),
