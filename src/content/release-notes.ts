@@ -14,6 +14,13 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "6.0.0-alpha",
+    date: "2026-08-12",
+    highlights: [
+      "ScaleCraft now requires signing in - your first visit takes you to a sign-up/sign-in screen before you can reach the canvas.",
+    ],
+  },
+  {
     version: "5.0.1-alpha",
     date: "2026-08-12",
     highlights: [
