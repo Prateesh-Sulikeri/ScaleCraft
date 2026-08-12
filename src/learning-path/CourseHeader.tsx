@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { ThemeToggle } from "@/app/ThemeToggle";
+import { AppUserButton } from "@/app/AppUserButton";
 import { DownloadCurriculumButton } from "./DownloadCurriculumButton";
 import { OverallProgress } from "./OverallProgress";
 import type { Course } from "@/curriculum/types";
@@ -29,6 +30,7 @@ export function CourseHeader({ course, summary }: CourseHeaderProps) {
         <div className="flex items-center gap-2">
           <DownloadCurriculumButton />
           <ThemeToggle />
+          <AppUserButton />
         </div>
       </div>
 

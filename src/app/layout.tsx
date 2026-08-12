@@ -1,3 +1,4 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "@xyflow/react/dist/style.css";
@@ -43,9 +44,11 @@ export default function RootLayout({
        * backstop: nothing under body should ever produce a page-level
        * scrollbar. */}
       <body className="flex h-full flex-col overflow-hidden">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} themes={["dark", "light"]}>
+        <ClerkProvider>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} themes={["dark", "light"]}>
           <ScreenSizeGate>{children}</ScreenSizeGate>
-        </ThemeProvider>
+          </ThemeProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

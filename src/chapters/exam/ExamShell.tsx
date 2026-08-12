@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { ThemeToggle } from "@/app/ThemeToggle";
+import { AppUserButton } from "@/app/AppUserButton";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { ExamAttempt } from "@/persistence/db";
@@ -128,6 +129,7 @@ export function ExamShell({ chapter, attemptNumber, onSubmitted, onExit }: ExamS
         <p className="text-sm font-medium text-foreground">{chapter.title} - exam</p>
         <div className="flex items-center gap-1">
           <ThemeToggle />
+          <AppUserButton />
           <button
             type="button"
             onClick={handleExit}
