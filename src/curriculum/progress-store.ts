@@ -102,6 +102,12 @@ function examAttemptKey(row: ExamAttempt): string {
   return `${row.chapterDefinitionId}:${row.attemptNumber}`;
 }
 
+function buildExamAttemptsMap(attempts: ExamAttempt[]): Map<string, ExamAttempt[]> {
+  let map = new Map<string, ExamAttempt[]>();
+  for (const attempt of attempts) map = withExamAttempt(map, attempt);
+  return map;
+}
+
 /**
  * The actual reconcile pass — pulls all three tables' remote state, merges it
  * against local via the shared last-write-wins rule (reconcile.ts /
@@ -125,9 +131,26 @@ async function performHydrate(
     hydrateAllExamAttempts(),
   ]);
 
-  const chapterProgress = reconcileRows(localChapterProgress, remoteChapterProgress, (r) => r.chapterId);
-  const curriculumProgress = reconcileRows(localCurriculumProgress, remoteCurriculumProgress, (r) => r.slug);
-  const examAttempts = reconcileRows(localExamAttempts, remoteExamAttempts, examAttemptKey);
+  if (!remoteChapterProgress.ok || !remoteCurriculumProgress.ok || !remoteExamAttempts.ok) {
+    // Abort (Phase 6, pending-6.1.0-poa.md - fixes audit S5): a failed
+    // fetch must never look like "the server has nothing" and let a stale
+    // local row win a merge it was never checked against. Populate from
+    // local only, and leave `hydrated` false (not set here, still its
+    // create() default) so the next hydrate() call - the next mount or
+    // navigation - retries for real instead of being permanently stuck
+    // behind a transient network error.
+    set({
+      hydrating: false,
+      validationPassedDefinitionIds: new Set(localChapterProgress.map((r) => r.chapterId)),
+      rowsBySlug: new Map(localCurriculumProgress.map((r) => [r.slug, r])),
+      examAttemptsByDefinition: buildExamAttemptsMap(localExamAttempts),
+    });
+    return;
+  }
+
+  const chapterProgress = reconcileRows(localChapterProgress, remoteChapterProgress.data, (r) => r.chapterId);
+  const curriculumProgress = reconcileRows(localCurriculumProgress, remoteCurriculumProgress.data, (r) => r.slug);
+  const examAttempts = reconcileRows(localExamAttempts, remoteExamAttempts.data, examAttemptKey);
 
   await Promise.all([
     chapterProgress.toWrite.length > 0 ? db.chapterProgress.bulkPut(chapterProgress.toWrite) : Promise.resolve(),
@@ -137,16 +160,12 @@ async function performHydrate(
     examAttempts.toWrite.length > 0 ? db.examAttempts.bulkPut(examAttempts.toWrite) : Promise.resolve(),
   ]);
 
-  let examAttemptsByDefinition = new Map<string, ExamAttempt[]>();
-  for (const attempt of examAttempts.merged) {
-    examAttemptsByDefinition = withExamAttempt(examAttemptsByDefinition, attempt);
-  }
   set({
     hydrated: true,
     hydrating: false,
     validationPassedDefinitionIds: new Set(chapterProgress.merged.map((r: ChapterProgress) => r.chapterId)),
     rowsBySlug: new Map(curriculumProgress.merged.map((r: CurriculumProgress) => [r.slug, r])),
-    examAttemptsByDefinition,
+    examAttemptsByDefinition: buildExamAttemptsMap(examAttempts.merged),
   });
 }
 

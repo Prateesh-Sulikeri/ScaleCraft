@@ -9,10 +9,25 @@ import {
   type SyncMeta,
 } from "@/persistence/db";
 import type { CustomComponentRecord } from "@/content/components/custom";
+import { useSyncStatusStore } from "@/persistence/sync-status";
 
 /** Raw canvas nodes/edges — the shape `saves` syncs (Phase 3.4,
  * pending-6.1.0-poa.md), not the lossy domain ArchitectureGraph. */
 type CanvasState = { nodes: AnyNodeType[]; edges: ArchitectureEdgeType[] };
+
+/** Distinguishes "fetched, and there's nothing there" from "the fetch
+ * itself failed" (release 6.1.0-alpha Phase 6, pending-6.1.0-poa.md - fixes
+ * audit S5). Before this, `getSync` collapsed both into the same `T | null`
+ * -> `?? []`/`?? null` at every hydrate* call site, so a transient network
+ * error during reconciliation looked exactly like "the server has nothing,"
+ * letting a stale local row win a merge it should never have been allowed
+ * to enter. Callers that reconcile must check `ok` and abort - not
+ * proceed - on `false`. */
+export type SyncResult<T> = { ok: true; data: T } | { ok: false };
+
+function mapSync<A, B>(result: SyncResult<A>, fn: (data: A) => B): SyncResult<B> {
+  return result.ok ? { ok: true, data: fn(result.data) } : result;
+}
 
 /**
  * Client-side wrappers for /api/sync/* (see pending-cloud-sync.md decision
@@ -37,28 +52,43 @@ type CanvasState = { nodes: AnyNodeType[]; edges: ArchitectureEdgeType[] };
 async function postSync<T>(path: string, body: unknown): Promise<T | null> {
   try {
     const res = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      useSyncStatusStore.getState().markSyncError();
+      return null;
+    }
+    useSyncStatusStore.getState().markSyncOk();
     return (await res.json()) as T;
   } catch {
+    useSyncStatusStore.getState().markSyncError();
     return null;
   }
 }
 
 async function deleteSync(path: string): Promise<void> {
   try {
-    await fetch(path, { method: "DELETE" });
+    const res = await fetch(path, { method: "DELETE" });
+    if (!res.ok) {
+      useSyncStatusStore.getState().markSyncError();
+      return;
+    }
+    useSyncStatusStore.getState().markSyncOk();
   } catch {
-    // silent - see module doc comment
+    useSyncStatusStore.getState().markSyncError();
   }
 }
 
-async function getSync<T>(path: string): Promise<T | null> {
+async function getSync<T>(path: string): Promise<SyncResult<T>> {
   try {
     const res = await fetch(path);
-    if (!res.ok) return null;
-    return (await res.json()) as T;
+    if (!res.ok) {
+      useSyncStatusStore.getState().markSyncError();
+      return { ok: false };
+    }
+    useSyncStatusStore.getState().markSyncOk();
+    return { ok: true, data: (await res.json()) as T };
   } catch {
-    return null;
+    useSyncStatusStore.getState().markSyncError();
+    return { ok: false };
   }
 }
 
@@ -69,10 +99,14 @@ export async function syncSave(scopeId: string, canvasState: CanvasState): Promi
   if (result) await db.saves.update(scopeId, { syncedAt: result.updatedAt, dirty: false });
 }
 
-export function hydrateSave(scopeId: string): Promise<(CanvasState & { updatedAt: number }) | null> {
+export function deleteSaveSync(scopeId: string): Promise<void> {
+  return deleteSync(`/api/sync/saves?scopeId=${encodeURIComponent(scopeId)}`);
+}
+
+export function hydrateSave(scopeId: string): Promise<SyncResult<(CanvasState & { updatedAt: number }) | null>> {
   return getSync<{ save: { canvasState: CanvasState; updatedAt: number } | null }>(
     `/api/sync/saves?scopeId=${encodeURIComponent(scopeId)}`,
-  ).then((res) => (res?.save ? { ...res.save.canvasState, updatedAt: res.save.updatedAt } : null));
+  ).then((res) => mapSync(res, (data) => (data.save ? { ...data.save.canvasState, updatedAt: data.save.updatedAt } : null)));
 }
 
 // --- customComponents ---
@@ -86,12 +120,11 @@ export function deleteCustomComponentSync(id: string): Promise<void> {
   return deleteSync(`/api/sync/custom-components?id=${encodeURIComponent(id)}`);
 }
 
-export function hydrateCustomComponents(): Promise<CustomComponentRow[]> {
+export function hydrateCustomComponents(): Promise<SyncResult<CustomComponentRow[]>> {
   return getSync<{ components: Array<CustomComponentRecord & { updatedAt: number }> }>(
     "/api/sync/custom-components",
-  ).then(
-    (res) =>
-      res?.components.map(({ updatedAt, ...record }) => ({ ...record, syncedAt: updatedAt, dirty: false })) ?? [],
+  ).then((res) =>
+    mapSync(res, (data) => data.components.map(({ updatedAt, ...record }) => ({ ...record, syncedAt: updatedAt, dirty: false }))),
   );
 }
 
@@ -106,20 +139,22 @@ export function deleteChapterProgressSync(chapterId: string): Promise<void> {
   return deleteSync(`/api/sync/chapter-progress?chapterId=${encodeURIComponent(chapterId)}`);
 }
 
-export function hydrateChapterProgress(chapterId: string): Promise<ChapterProgress | null> {
+export function hydrateChapterProgress(chapterId: string): Promise<SyncResult<ChapterProgress | null>> {
   return getSync<{ progress: (Omit<ChapterProgress, keyof SyncMeta> & { updatedAt: number }) | null }>(
     `/api/sync/chapter-progress?chapterId=${encodeURIComponent(chapterId)}`,
-  ).then((res) => {
-    if (!res?.progress) return null;
-    const { updatedAt, ...row } = res.progress;
-    return { ...row, syncedAt: updatedAt, dirty: false };
-  });
+  ).then((res) =>
+    mapSync(res, (data) => {
+      if (!data.progress) return null;
+      const { updatedAt, ...row } = data.progress;
+      return { ...row, syncedAt: updatedAt, dirty: false };
+    }),
+  );
 }
 
-export function hydrateAllChapterProgress(): Promise<ChapterProgress[]> {
+export function hydrateAllChapterProgress(): Promise<SyncResult<ChapterProgress[]>> {
   return getSync<{ progress: Array<Omit<ChapterProgress, keyof SyncMeta> & { updatedAt: number }> }>(
     "/api/sync/chapter-progress",
-  ).then((res) => res?.progress.map(({ updatedAt, ...row }) => ({ ...row, syncedAt: updatedAt, dirty: false })) ?? []);
+  ).then((res) => mapSync(res, (data) => data.progress.map(({ updatedAt, ...row }) => ({ ...row, syncedAt: updatedAt, dirty: false }))));
 }
 
 // --- curriculumProgress ---
@@ -129,10 +164,10 @@ export async function syncCurriculumProgress(row: CurriculumProgress): Promise<v
   if (result) await db.curriculumProgress.update(row.slug, { syncedAt: result.updatedAt, dirty: false });
 }
 
-export function hydrateAllCurriculumProgress(): Promise<CurriculumProgress[]> {
+export function hydrateAllCurriculumProgress(): Promise<SyncResult<CurriculumProgress[]>> {
   return getSync<{ progress: Array<Omit<CurriculumProgress, keyof SyncMeta> & { updatedAt: number }> }>(
     "/api/sync/curriculum-progress",
-  ).then((res) => res?.progress.map(({ updatedAt, ...row }) => ({ ...row, syncedAt: updatedAt, dirty: false })) ?? []);
+  ).then((res) => mapSync(res, (data) => data.progress.map(({ updatedAt, ...row }) => ({ ...row, syncedAt: updatedAt, dirty: false }))));
 }
 
 // --- examAttempts ---
@@ -151,10 +186,10 @@ export function deleteExamAttemptsSync(chapterDefinitionId: string): Promise<voi
   return deleteSync(`/api/sync/exam-attempts?chapterDefinitionId=${encodeURIComponent(chapterDefinitionId)}`);
 }
 
-export function hydrateAllExamAttempts(): Promise<ExamAttempt[]> {
+export function hydrateAllExamAttempts(): Promise<SyncResult<ExamAttempt[]>> {
   return getSync<{ attempts: Array<Omit<ExamAttempt, keyof SyncMeta> & { updatedAt: number }> }>(
     "/api/sync/exam-attempts",
-  ).then((res) => res?.attempts.map(({ updatedAt, ...row }) => ({ ...row, syncedAt: updatedAt, dirty: false })) ?? []);
+  ).then((res) => mapSync(res, (data) => data.attempts.map(({ updatedAt, ...row }) => ({ ...row, syncedAt: updatedAt, dirty: false }))));
 }
 
 // --- deepCheckSessions ---
@@ -183,18 +218,19 @@ export function deleteDeepCheckSessionSync(syncId: string): Promise<void> {
   return deleteSync(`/api/sync/deep-check-sessions?id=${encodeURIComponent(syncId)}`);
 }
 
-export function hydrateDeepCheckSessions(saveId: string): Promise<Array<Omit<DeepCheckSession, "id">>> {
+export function hydrateDeepCheckSessions(saveId: string): Promise<SyncResult<Array<Omit<DeepCheckSession, "id">>>> {
   return getSync<{
     sessions: Array<{ id: string; saveId: string; createdAt: number; critique: DeepCheckSession["critique"]; updatedAt: number }>;
-  }>(`/api/sync/deep-check-sessions?saveId=${encodeURIComponent(saveId)}`).then(
-    (res) =>
-      res?.sessions.map((s) => ({
+  }>(`/api/sync/deep-check-sessions?saveId=${encodeURIComponent(saveId)}`).then((res) =>
+    mapSync(res, (data) =>
+      data.sessions.map((s) => ({
         syncId: s.id,
         saveId: s.saveId,
         createdAt: s.createdAt,
         critique: s.critique,
         syncedAt: s.updatedAt,
         dirty: false,
-      })) ?? [],
+      })),
+    ),
   );
 }

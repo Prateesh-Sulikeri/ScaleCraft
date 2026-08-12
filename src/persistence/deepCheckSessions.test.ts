@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { db } from "./db";
 import { listSessions, saveSession, deleteSession } from "./deepCheckSessions";
 import type { AiCritique } from "@/ai/schema";
@@ -26,5 +26,26 @@ describe("deepCheckSessions", () => {
     await deleteSession(saved);
 
     expect(await listSessions("sandbox")).toEqual([]);
+  });
+
+  it("retains only the newest 5 sessions per saveId, pruning on write", async () => {
+    await db.deepCheckSessions.clear();
+    const now = vi.spyOn(Date, "now");
+    for (let i = 0; i < 7; i++) {
+      now.mockReturnValueOnce(1000 + i);
+      await saveSession("sandbox", { ...critique, summary: `session-${i}` });
+    }
+    now.mockRestore();
+
+    const sessions = await listSessions("sandbox");
+
+    expect(sessions.map((s) => s.critique.summary)).toEqual([
+      "session-6",
+      "session-5",
+      "session-4",
+      "session-3",
+      "session-2",
+    ]);
+    expect(await db.deepCheckSessions.where("saveId").equals("sandbox").count()).toBe(5);
   });
 });

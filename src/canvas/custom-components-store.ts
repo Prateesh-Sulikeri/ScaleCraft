@@ -20,7 +20,15 @@ function stripSyncMeta(row: CustomComponentRow): CustomComponentRecord {
  */
 async function performHydrate(set: (partial: Partial<CustomComponentsStore>) => void): Promise<void> {
   const [local, remote] = await Promise.all([db.customComponents.toArray(), hydrateCustomComponents()]);
-  const { merged, toWrite } = reconcileRows(local, remote, (r) => r.id);
+  if (!remote.ok) {
+    // Abort (Phase 6, pending-6.1.0-poa.md - fixes audit S5): see
+    // progress-store.ts's identical branch for why a failed fetch can't be
+    // treated as "the cloud has nothing." `hydrated` stays false so the
+    // next hydrate() call retries.
+    set({ customComponents: local.map(stripSyncMeta) });
+    return;
+  }
+  const { merged, toWrite } = reconcileRows(local, remote.data, (r) => r.id);
   if (toWrite.length > 0) await db.customComponents.bulkPut(toWrite);
   set({ hydrated: true, customComponents: merged.map(stripSyncMeta) });
 }

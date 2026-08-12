@@ -34,6 +34,21 @@ export async function GET(request: Request) {
   });
 }
 
+export async function DELETE(request: Request) {
+  const userId = await requireUserId();
+  if (userId instanceof NextResponse) return userId;
+
+  const scopeId = new URL(request.url).searchParams.get("scopeId");
+  if (!scopeId) {
+    return NextResponse.json({ error: "scopeId is required" }, { status: 400 });
+  }
+
+  const db = getDb();
+  await db.delete(savedGraphs).where(and(eq(savedGraphs.userId, userId), eq(savedGraphs.scopeId, scopeId)));
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(request: Request) {
   const userId = await requireUserId();
   if (userId instanceof NextResponse) return userId;

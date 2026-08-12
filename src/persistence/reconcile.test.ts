@@ -60,6 +60,59 @@ describe("reconcileRows", () => {
   });
 });
 
+// Phase 8, pending-6.1.0-poa.md: the predicate must never read a client
+// clock. Proven here by construction — pickWinner only ever looks at
+// `dirty` and `syncedAt` (both server-assigned), never at a domain
+// timestamp like `completedAt`. A device with a clock an hour fast must not
+// win on the strength of that domain timestamp looking "newer."
+describe("reconcileRows — clock skew", () => {
+  type ProgressRow = SyncMeta & { chapterId: string; completedAt: number };
+
+  it("a device with a fast clock does not win against a genuinely later server sync", () => {
+    const realNow = Date.now();
+    // Device A: clock is an hour fast, so its domain timestamp looks newer,
+    // but it synced to the server FIRST (lower server-assigned syncedAt).
+    const deviceA: ProgressRow = {
+      chapterId: "bb-1",
+      completedAt: realNow + 60 * 60 * 1000,
+      dirty: false,
+      syncedAt: 100,
+    };
+    // Device B: accurate clock, domain timestamp looks older, but it
+    // synced SECOND — its syncedAt is genuinely the later server write.
+    const deviceB: ProgressRow = {
+      chapterId: "bb-1",
+      completedAt: realNow,
+      dirty: false,
+      syncedAt: 200,
+    };
+
+    const { merged } = reconcileRows([deviceA], [deviceB], (r) => r.chapterId);
+
+    expect(merged).toEqual([deviceB]);
+  });
+
+  it("a device with a slow clock still wins if its server sync is genuinely later", () => {
+    const realNow = Date.now();
+    const deviceA: ProgressRow = {
+      chapterId: "bb-1",
+      completedAt: realNow - 60 * 60 * 1000, // clock an hour slow
+      dirty: false,
+      syncedAt: 500, // but synced most recently, per the server's own clock
+    };
+    const deviceB: ProgressRow = {
+      chapterId: "bb-1",
+      completedAt: realNow,
+      dirty: false,
+      syncedAt: 300,
+    };
+
+    const { merged } = reconcileRows([deviceB], [deviceA], (r) => r.chapterId);
+
+    expect(merged).toEqual([deviceA]);
+  });
+});
+
 describe("reconcileRow", () => {
   it("returns null when neither side has a row", () => {
     expect(reconcileRow<Row>(null, null)).toBeNull();

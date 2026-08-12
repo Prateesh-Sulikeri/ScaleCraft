@@ -127,16 +127,21 @@ function SandboxPageContent() {
     if (storeApi.getState().nodes.length > 0) return;
     Promise.all([db.saves.get(SANDBOX_SAVE_ID), hydrateSave(SANDBOX_SAVE_ID)]).then(([local, remote]) => {
       if (storeApi.getState().nodes.length > 0) return;
-      const remoteAsSave = remote
-        ? {
-            id: SANDBOX_SAVE_ID,
-            updatedAt: remote.updatedAt,
-            nodes: remote.nodes,
-            edges: remote.edges,
-            syncedAt: remote.updatedAt,
-            dirty: false,
-          }
-        : null;
+      // A failed fetch (remote.ok false) collapses to the same `null` as a
+      // genuinely absent save (Phase 6, pending-6.1.0-poa.md) - either way
+      // reconcileRow falls back to whatever's local, never treating a
+      // failed fetch as authoritative "remote is empty."
+      const remoteAsSave =
+        remote.ok && remote.data
+          ? {
+              id: SANDBOX_SAVE_ID,
+              updatedAt: remote.data.updatedAt,
+              nodes: remote.data.nodes,
+              edges: remote.data.edges,
+              syncedAt: remote.data.updatedAt,
+              dirty: false,
+            }
+          : null;
       const winner = reconcileRow(local ?? null, remoteAsSave);
       if (winner) {
         if (winner !== local) void db.saves.put(winner);

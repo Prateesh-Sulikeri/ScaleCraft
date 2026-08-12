@@ -2,19 +2,26 @@ import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useCurriculumProgressStore } from "./progress-store";
 import { db, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
+import type { SyncResult } from "@/persistence/cloud-sync";
 
 // Lets one test control exactly when the reconcile pass's remote fetch
 // resolves, so it can prove markVisited's Dexie write genuinely waits for
 // it (ordering), not just that the two happen to race to the right answer.
-// Every other test gets the same "empty remote" behavior real fetch() falls
-// back to in this environment (no server, caught in cloud-sync.ts's getSync)
-// - this is a controllable stand-in for that, not a behavior change.
-let hydrateAllCurriculumProgressImpl: () => Promise<CurriculumProgress[]> = () => Promise.resolve([]);
+// All three hydrateAll* calls are mocked, not just curriculum progress -
+// real fetch() fails in this environment (no server), and since Phase 6
+// (pending-6.1.0-poa.md) that correctly aborts reconciliation rather than
+// silently treating a failed fetch as "the cloud has nothing" - leaving
+// chapterProgress/examAttempts unmocked would make every test hit that
+// abort branch instead of exercising the real merge path.
+let hydrateAllCurriculumProgressImpl: () => Promise<SyncResult<CurriculumProgress[]>> = () =>
+  Promise.resolve({ ok: true, data: [] });
 vi.mock("@/persistence/cloud-sync", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/persistence/cloud-sync")>();
   return {
     ...actual,
     hydrateAllCurriculumProgress: () => hydrateAllCurriculumProgressImpl(),
+    hydrateAllChapterProgress: () => Promise.resolve({ ok: true, data: [] }),
+    hydrateAllExamAttempts: () => Promise.resolve({ ok: true, data: [] }),
   };
 });
 
@@ -45,7 +52,7 @@ beforeEach(async () => {
   await db.curriculumProgress.clear();
   await db.chapterProgress.clear();
   await db.examAttempts.clear();
-  hydrateAllCurriculumProgressImpl = () => Promise.resolve([]);
+  hydrateAllCurriculumProgressImpl = () => Promise.resolve({ ok: true, data: [] });
 });
 
 describe("curriculum progress store", () => {
@@ -68,6 +75,35 @@ describe("curriculum progress store", () => {
     expect(state.validationPassedDefinitionIds.has("bb-dummy-1")).toBe(true);
     expect(state.rowsBySlug.get("1-2-load-balancing")?.lastVisitedAt).toBeTypeOf("number");
     expect(state.examAttemptsByDefinition.get("bb-dummy-1")).toEqual([seeded]);
+  });
+
+  // Phase 6, pending-6.1.0-poa.md - fixes audit S5: a failed remote fetch
+  // must never be treated as "the server has nothing." Before this, getSync
+  // collapsed a network error and a genuinely empty table into the same
+  // `[]`, so a transient failure looked identical to "reconciled, nothing
+  // there" - hydrated got set true anyway and never retried.
+  it("hydrate() aborts without marking hydrated when a remote fetch fails, preserving local data", async () => {
+    const completedAt = Date.now() - 100_000;
+    await db.curriculumProgress.put({
+      slug: "1-2-load-balancing",
+      manuallyCompletedAt: completedAt,
+      lastVisitedAt: Date.now(),
+      dirty: false,
+      syncedAt: Date.now(),
+    });
+    hydrateAllCurriculumProgressImpl = () => Promise.resolve({ ok: false });
+
+    await useCurriculumProgressStore.getState().hydrate();
+
+    const state = useCurriculumProgressStore.getState();
+    expect(state.hydrated).toBe(false);
+    expect(state.rowsBySlug.get("1-2-load-balancing")?.manuallyCompletedAt).toBe(completedAt);
+
+    // A later call, once the network recovers, retries for real instead of
+    // being stuck behind the earlier failure.
+    hydrateAllCurriculumProgressImpl = () => Promise.resolve({ ok: true, data: [] });
+    await useCurriculumProgressStore.getState().hydrate();
+    expect(useCurriculumProgressStore.getState().hydrated).toBe(true);
   });
 
   it("hydrate() is idempotent — a second call does not re-read or clear state", async () => {
@@ -208,7 +244,7 @@ describe("curriculum progress store", () => {
       syncedAt: null,
     });
 
-    let releaseFetch: ((rows: CurriculumProgress[]) => void) | undefined;
+    let releaseFetch: ((result: SyncResult<CurriculumProgress[]>) => void) | undefined;
     hydrateAllCurriculumProgressImpl = () =>
       new Promise((resolve) => {
         releaseFetch = resolve;
@@ -230,9 +266,12 @@ describe("curriculum progress store", () => {
     // Remote comes back with a DIFFERENT row (another chapter, synced from
     // another device) - reconciling it must not disturb the row markVisited
     // is about to touch.
-    releaseFetch([
-      { slug: "other-chapter", manuallyCompletedAt: null, lastVisitedAt: Date.now(), dirty: false, syncedAt: Date.now() },
-    ]);
+    releaseFetch({
+      ok: true,
+      data: [
+        { slug: "other-chapter", manuallyCompletedAt: null, lastVisitedAt: Date.now(), dirty: false, syncedAt: Date.now() },
+      ],
+    });
     await markVisitedPromise;
 
     expect(putSpy).toHaveBeenCalledTimes(1);

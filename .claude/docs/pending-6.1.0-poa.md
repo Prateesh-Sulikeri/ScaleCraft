@@ -1,18 +1,19 @@
 # Release 6.1.0-alpha - Persistence POA
 
-Status: **Phases 0-3 landed 2026-08-12, Phase 4.2 landed 2026-08-12, full CI
-green.** Written the same day, after the multi-device test failure and the
+Status: **Phases 0-4.2 landed 2026-08-12, Phase 5 landed 2026-08-12, Phase 6
+landed 2026-08-12, Phase 7 landed 2026-08-12, full CI green.**
+Written the same day, after the multi-device test failure and the
 persistence audit that followed; all five open decisions resolved same-day
 too (see "Decisions - resolved" below). Phase 3's migration
 (0004_raw_canvas_state.sql) is generated and checked into `drizzle/` but
 **not yet applied to Neon** - `npm run db:migrate` still pending, same as
 Phase 0's backfill-drop migration. Phase 4.1 was measurement-only (Appendix
 A, no checklist items); 4.2 (write triggers) is done. 4.3 is a tradeoff
-note, not a checklist. Phases 5-8 remain, unblocked, on the same
-`feature/cloud-sync-reconciliation` branch (cut from
-`release/v6.1.0-neon-cloud-sync` - the user wants every phase of this release
-in one branch, not one per phase). This is the single running doc for the
-rest of 6.1.0.
+note, not a checklist. Phase 5.3 is a deliberate no-op (monitor, don't cap).
+Phase 8 remains, unblocked, on the same `feature/cloud-sync-reconciliation`
+branch (cut from `release/v6.1.0-neon-cloud-sync` - the user wants every
+phase of this release in one branch, not one per phase). This is the single
+running doc for the rest of 6.1.0.
 
 Supersedes nothing, but consolidates three threads that were drifting apart:
 
@@ -441,10 +442,20 @@ no retention policy. Each row holds a full `AiCritique` at roughly 3-5 KB. Five
 runs per chapter across 79 chapters is ~395 rows, **~1.6 MB per user, double
 the entire saves footprint, and growing without limit.**
 
-- [ ] Retain the last N = 5 sessions per `saveId`, pruning on write, both
-      locally and server-side
-- [ ] Older sessions are deleted outright, not just left unsynced - AI
-      critiques are regenerable, so aggressive pruning has no real cost
+- [x] Retain the last N = 5 sessions per `saveId`, pruning on write, both
+      locally and server-side. `deepCheckSessions.ts`'s `saveSession` now
+      calls a new `pruneSessions(saveId)` after every write, which routes
+      through `listSessions` (reconcile against the cloud) rather than just
+      this device's local rows - a device that has never opened this
+      saveId's history still prunes against the true cross-device count
+      instead of under-counting and leaving the server unbounded
+- [x] Older sessions are deleted outright, not just left unsynced - AI
+      critiques are regenerable, so aggressive pruning has no real cost.
+      `pruneSessions` deletes both the local Dexie row and, via
+      `deleteDeepCheckSessionSync`, the server row. New regression test in
+      `deepCheckSessions.test.ts` saves 7 sessions and asserts only the
+      newest 5 remain, both in `listSessions`'s return and in the Dexie
+      table directly
 
 ### 5.2 `AiCritique.tradeoffs` has no length bound
 
@@ -454,14 +465,20 @@ their length. `tradeoffs[].decision` / `.cost` / `.benefit` are bare
 and gets stored. Inconsistent with the rest of the schema, and it is a storage
 and abuse surface reachable from model output.
 
-- [ ] Add `.max()` to all three, matching the existing conventions
+- [x] Add `.max()` to all three, matching the existing conventions -
+      `decision` capped at 200 (a full clause, longer than `title`'s 80),
+      `cost`/`benefit` at 400 each (short sentences, same order as `body`'s
+      1500 but scaled to how much shorter they render inline in
+      `DeepCheckPanel.tsx`'s trade-offs list). Both existing prompt.ts
+      example values sit well under these
 
 ### 5.3 Exam attempts
 
 Also append-only, bounded in practice by passing the chapter but not in
 principle. Rows are small. Monitor rather than cap.
 
-- [ ] No action now. Revisit if Appendix A's per-user figure moves
+- [x] No action now (deliberate no-op, not a deferred item) - Revisit if
+      Appendix A's per-user figure moves
 
 ---
 
@@ -481,13 +498,50 @@ indistinguishable from an empty cloud. Under Phase 3 that is worse than it
 sounds: a failed fetch during reconciliation would look like "the server has
 nothing" and could let a stale local row win.
 
-- [ ] `postSync` checks `res.ok`, keeps `dirty: true` on failure
-- [ ] `getSync` distinguishes "failed" from "empty". Reconciliation must
-      **abort**, not proceed, on a failed fetch
-- [ ] A quiet, non-blocking sync status surface. Must respect the "not a game,
+- [x] `postSync` checks `res.ok`, keeps `dirty: true` on failure - already
+      true since Phase 1.1 (every `syncX` wrapper only writes back
+      `syncedAt`/clears `dirty` on a truthy result); this phase added the
+      matching check to `deleteSync`
+- [x] `getSync` distinguishes "failed" from "empty". Reconciliation must
+      **abort**, not proceed, on a failed fetch - `getSync` now returns
+      `SyncResult<T>` (`{ ok: true, data }` or `{ ok: false }`, exported from
+      `cloud-sync.ts`) instead of `T | null`, and every `hydrate*` wrapper
+      propagates that distinction instead of collapsing it to `[]`/`null` via
+      `??`. All six reconcile call sites check `.ok` and abort on failure:
+      `progress-store.ts`'s `performHydrate` (all three tables) and
+      `custom-components-store.ts`'s `performHydrate` populate from local
+      only and leave `hydrated` false, so the next `hydrate()` call - the
+      next mount or navigation - retries for real instead of being
+      permanently stuck behind a transient network error;
+      `deepCheckSessions.ts`'s `listSessions` falls back to local-only
+      (harmless even on persistent failure, since it only means
+      under-pruning until the next successful call, and critiques are
+      regenerable per Phase 5.1); `ChapterWorkspace.tsx`'s two per-scope
+      effects (`saves`, `chapterProgress`) and `sandbox/page.tsx`'s `saves`
+      effect treat a failed fetch the same as a genuinely-absent remote row
+      (local always wins, nothing is written back), which was already safe
+      by construction there - fixed as part of the same pass because
+      `SyncResult` objects are always truthy, so the old `remote ? ... :
+      null` pattern at those three call sites would otherwise have silently
+      misread `{ ok: false }` as real data. New coverage:
+      `cloud-sync.test.ts` (fetch-fails-vs-empty distinction, dirty-on-
+      failure, status clears on recovery) and a new regression test in
+      `progress-store.test.ts` proving a failed fetch aborts without
+      marking `hydrated` and without losing local data.
+- [x] A quiet, non-blocking sync status surface. Must respect the "not a game,
       motion communicates state only" principle: no toasts on success, and
       failure is surfaced the way `use-autosave.ts` already surfaces a failed
-      local save
+      local save - new global `persistence/sync-status.ts` (`useSyncStatusStore`,
+      `"idle" | "error"`), updated by `postSync`/`getSync`/`deleteSync` in
+      `cloud-sync.ts` on every call. Surfaced via `app/CloudSyncIndicator.tsx`,
+      mounted in `AppHeader.tsx` between `ShortcutsButton` and `ThemeToggle` -
+      renders nothing while healthy, a quiet bordered icon with a tooltip
+      only once something has actually failed, clearing itself the moment
+      any sync call next succeeds. Deliberately global rather than
+      per-table (a learner doesn't need to know *which* of six tables
+      failed), separate from the Save button's existing local-write error
+      state (that one's scoped to a single `saveId`; this covers the other
+      five tables too).
 
 ---
 
@@ -508,8 +562,22 @@ relevant and the right answer depends on Phase 3's shape.
 Decided: the server's set is authoritative for a table once local has flushed
 its dirty rows. No tombstone column, no reaping schedule.
 
-- [ ] Add the missing `saves` DELETE route
-- [ ] Fix `deleteSession`'s undefined-id no-op
+- [x] Add the missing `saves` DELETE route - `src/app/api/sync/saves/route.ts`
+      gets a `DELETE` handler scoped by `scopeId` (same pattern as
+      `chapter-progress`/`exam-attempts`), and `cloud-sync.ts` gets
+      `deleteSaveSync(scopeId)`. `ChapterWorkspace.tsx`'s
+      `handleResetToStarter` now calls it alongside the existing local
+      `db.saves.delete` - chapters sync only on Submit (Phase 4.2), so
+      without this a previously-submitted attempt survived in Postgres and
+      the next reconcile pulled the discarded attempt back (resurrection).
+      Sandbox has no reset-to-starter action, so no second call site.
+- [x] Fix `deleteSession`'s undefined-id no-op - `deepCheckSessions.ts`'s
+      `deleteSession` and `pruneSessions` now guard `deleteDeepCheckSessionSync`
+      behind `if (session.syncId)`, so a row without a `syncId` no longer
+      sends `?id=undefined` and silently deletes nothing server-side. In the
+      current schema this is now structurally rare (`syncId` is a required
+      field, and the v10 wipe cleared any pre-syncId rows), but the guard is
+      cheap and makes the invariant explicit rather than assumed.
 
 ---
 
@@ -606,9 +674,9 @@ per-user cost, and the only one that grows without bound.**
 | S2 browser-wide Dexie, cross-account leak | Critical | **Phase 2, done** |
 | S3 backfill cross-account write | Critical | **Phase 0, done** |
 | S4 hydrate-on-empty is not sync | High | **Phase 3, done** |
-| S5 sync failures invisible | High | Phase 6 |
+| S5 sync failures invisible | High | **Phase 6, done** |
 | S6 no client-side LWW | Medium | **Phase 1.2, Phase 3, done** |
-| S7 asymmetric deletes | Medium | Phase 7 |
+| S7 asymmetric deletes | Medium | **Phase 7, done** |
 | S8 sandbox unmount does not sync | Medium | Phase 4.2 |
 | S9 customComponents hydrate only on sandbox page | Medium | **Phase 3.1, done** |
 | S10 localStorage account-agnostic | Low | **Phase 2.1, done** |

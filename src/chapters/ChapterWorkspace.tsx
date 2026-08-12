@@ -27,7 +27,7 @@ import type { ChapterOutcome, ChapterValidationOutcome } from "@/engines";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db, type ChapterProgress } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
-import { hydrateChapterProgress, hydrateSave, syncChapterProgress, syncSave } from "@/persistence/cloud-sync";
+import { deleteSaveSync, hydrateChapterProgress, hydrateSave, syncChapterProgress, syncSave } from "@/persistence/cloud-sync";
 import { reconcileRow } from "@/persistence/reconcile";
 import { useCustomComponentsStore } from "@/canvas/custom-components-store";
 import { getComponent } from "@/content/components/registry";
@@ -202,9 +202,15 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
       // remote win always goes through loadCanvasState — zones/comments/
       // Start markers survive a cross-device restore instead of being
       // silently dropped by the old ArchitectureGraph round-trip.
-      const remoteAsSave = remote
-        ? { id: scopeId, updatedAt: remote.updatedAt, nodes: remote.nodes, edges: remote.edges, syncedAt: remote.updatedAt, dirty: false }
-        : null;
+      // A failed fetch (remote.ok false) collapses to the same `null` as a
+      // genuinely absent save (Phase 6, pending-6.1.0-poa.md) - either way
+      // there's no remote row to win, so reconcileRow falls back to
+      // whatever's local. Never treated as authoritative "remote is
+      // empty" for a row that would otherwise beat an existing local one.
+      const remoteAsSave =
+        remote.ok && remote.data
+          ? { id: scopeId, updatedAt: remote.data.updatedAt, nodes: remote.data.nodes, edges: remote.data.edges, syncedAt: remote.data.updatedAt, dirty: false }
+          : null;
       const winner = reconcileRow(local ?? null, remoteAsSave);
       if (winner) {
         if (winner !== local) void db.saves.put(winner);
@@ -303,10 +309,14 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
         // hydrate-on-empty: a local completion record no longer skips the
         // remote check outright, so a newer completion from another device
         // (rare - chapterProgress is effectively monotonic, POA 3.2) still
-        // wins instead of being silently stuck behind a stale local row.
-        const winner = reconcileRow(local ?? null, remote);
+        // wins instead of being silently stuck behind a stale local row. A
+        // failed fetch (Phase 6) collapses to the same `null` as a
+        // genuinely absent remote row - never authoritative "empty" over
+        // an existing local one.
+        const remoteRow = remote.ok ? remote.data : null;
+        const winner = reconcileRow(local ?? null, remoteRow);
         if (!winner) return;
-        const remoteWon = winner === remote && winner !== local;
+        const remoteWon = winner === remoteRow && winner !== local;
         if (remoteWon) await db.chapterProgress.put(winner);
         setPassedChapterIds((prev) => new Set(prev).add(chapter.id));
         if (remoteWon) recordValidationPass(chapter.id);
@@ -452,8 +462,12 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     setLastValidationErrorCount(null);
     // Autosave re-writes the starter graph into this slot on the next
     // debounce; deleting first means a tab closed in between restores the
-    // starter graph rather than the discarded attempt.
+    // starter graph rather than the discarded attempt. Also deletes the
+    // cloud row (POA Phase 7, fixes audit S7) - chapters sync only on
+    // Submit (Phase 4.2), so a previously-submitted attempt would otherwise
+    // survive in Postgres and get pulled back on the next reconcile.
     void db.saves.delete(chapterSaveId(chapter.id));
+    void deleteSaveSync(chapterSaveId(chapter.id));
   };
 
   // Submit's pass is the only thing that paints every node green — a graph
