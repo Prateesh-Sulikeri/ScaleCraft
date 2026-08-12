@@ -54,3 +54,28 @@ setup("authenticate", async ({ page }) => {
 
   await page.context().storageState({ path: authFile });
 });
+
+// `next dev` compiles a route on its first request. Left to the test run,
+// that cost lands inside whichever test happens to hit each route first -
+// and on a CI runner it's slow enough to eat the whole test timeout. Pay it
+// once here, serially, before the parallel workers start.
+const WARM_ROUTES = [
+  "/",
+  "/sandbox",
+  "/building-blocks",
+  "/building-blocks/3-4-load-balancer",
+  "/building-blocks/3-4-load-balancer/lesson",
+  "/real-world-extraction",
+];
+
+setup("warm routes", async ({ browser }) => {
+  setup.skip(!process.env.CI, "dev servers are already warm locally");
+  setup.setTimeout(300_000);
+
+  const context = await browser.newContext({ storageState: authFile });
+  const page = await context.newPage();
+  for (const route of WARM_ROUTES) {
+    await page.goto(route, { waitUntil: "domcontentloaded", timeout: 120_000 });
+  }
+  await context.close();
+});
