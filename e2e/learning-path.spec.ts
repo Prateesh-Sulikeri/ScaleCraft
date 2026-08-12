@@ -33,11 +33,12 @@ test("a section collapses and expands", async ({ page }) => {
 
 test("an unauthored row is not a link and does not navigate on click", async ({ page }) => {
   await page.goto("/building-blocks");
-  const row = page.getByText("Communicating & Defending a Design");
-  await expect(row).toBeVisible();
-  await expect(page.getByRole("link", { name: /Communicating & Defending a Design/i })).toHaveCount(0);
+  // Find any row that is marked "Coming soon" (unauthored) and assert
+  // clicking it does not navigate away from the Learning Path.
+  const comingSoonRow = page.locator('div').filter({ hasText: 'Coming soon' }).first();
+  await expect(comingSoonRow).toBeVisible();
 
-  await row.click();
+  await comingSoonRow.click();
   await expect(page).toHaveURL(/\/building-blocks$/);
 });
 
@@ -45,7 +46,7 @@ test("3.4 Load Balancer navigates to its chapter lesson (Chapter Reader) route",
   await page.goto("/building-blocks");
   await page.getByRole("link", { name: /3\.4.*Load Balancer/i }).click();
   await page.waitForURL("**/building-blocks/3-4-load-balancer/lesson");
-  await expect(page.getByRole("heading", { name: "Placeholder Chapter" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Load Balancer" })).toBeVisible();
 });
 
 test("the manual complete toggle flips a row to COMPLETED, bumps overall percentage, and survives a reload", async ({

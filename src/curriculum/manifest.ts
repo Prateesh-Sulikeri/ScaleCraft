@@ -193,7 +193,7 @@ export const courses: Record<CourseId, Course> = {
             number: "1.10",
             title: "Communicating & Defending a Design",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-1-10-communicating-and-defending-a-design",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["1-9-deep-dive-methodology"],
@@ -204,7 +204,7 @@ export const courses: Record<CourseId, Course> = {
             number: "1.11",
             title: "Driving a System Design Interview",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-1-11-driving-a-system-design-interview",
             estimatedMinutes: 30,
             difficulty: "foundational",
             // §17: optional chapter, gates nothing - nothing lists this slug
@@ -305,11 +305,18 @@ export const courses: Record<CourseId, Course> = {
             title: "Load Balancer",
             kind: "chapter",
             // Re-homed from v1's 1.2 Load Balancing per §21.4's mapping
-            // table (1.2 -> 3.4) - the one authored placeholder in BB.
-            chapterDefinitionId: "bb-dummy-1",
+            // table (1.2 -> 3.4). Real content authored 2026-08-11, pulled
+            // forward per pending-content.md (replaces bb-dummy-1).
+            chapterDefinitionId: "bb-3-4-load-balancer",
             estimatedMinutes: 35,
             difficulty: "foundational",
-            prerequisiteSlugs: ["3-3-reverse-proxy"],
+            // Declared exception (chapter spec §0, pending-chapters.md):
+            // this chapter's real curriculum-order prerequisite is 3-3-
+            // reverse-proxy, but Group A (3.1-3.3) isn't authored yet - this
+            // chapter was pulled forward standalone. Points at the actual
+            // authored frontier (1.9) instead so the chapter is reachable at
+            // all. Revert to ["3-3-reverse-proxy"] once Group A lands.
+            prerequisiteSlugs: ["1-9-deep-dive-methodology"],
             domain: null,
           },
           {

@@ -50,8 +50,8 @@ and quiz Q4; 5 by the build's validate-read-fix cycle.
 | 3 Think first | "Think first" callout | Prediction prompt on what "wrong" means for a diagram. Never graded. |
 | 4 Mental model | "The loop" | One anchor sentence: a loop, not a book. |
 | 5 Visual explanation | Mermaid loop diagram | Primary diagram, placed before the prose that explains it (§8.1). Captioned on what to notice (the two backward arrows). |
-| 6 Core mechanics | "The editor" | One paragraph naming the whole surface. The tour does the walkthrough; the lesson does not duplicate 21 steps. |
-| 7 Internal mechanics | "Validate and Submit" | A comparison table plus the two-stage short-circuit and the explain-always commitment. Table chosen over prose per §20.6's scan-value rule. |
+| 6 Core mechanics | "The editor" | One paragraph naming the whole surface, including Deep Check as an optional control the chapter does not use. The tour does the walkthrough; the lesson does not duplicate its 19 steps. |
+| 7 Internal mechanics | "Validate and Submit" | A comparison table, a one-sentence definition of "structurally coherent" (the table's own term of art, §20.1), plus the two-stage short-circuit and the explain-always commitment. Table chosen over prose per §20.6's scan-value rule. |
 | 8 Trade-offs | "Hints stay closed" | Genuine two-sided decision, costs named both ways. |
 | 9 Failure modes | omitted | Optional for Concept (§6). No system under discussion to fail. |
 | 10 Scaling | omitted | Optional for Concept (§6). Not applicable. |
@@ -106,8 +106,10 @@ Track A's earlier palette also carried `load-balancer` and `cache` (homes 3.4
 and 3.14) to give the picker more to browse. Those are removed here: they are
 Group A/D components a first-session learner has no context for, and browsing
 variety is not worth two additional §16 violations. The picker still groups the
-remaining three by category, and the `fix-component` tour step narrows to
-`sql-database` regardless.
+remaining three by category, and the `picker-tour` step pre-highlights
+`sql-database` (`highlightComponentId`) so the learner is not hunting for the
+one that matters - a highlight, not a palette restriction; nothing in this
+tour uses `narrowAvailableComponentIds`.
 
 ## 7. Validation rules (deliverable 4)
 
@@ -148,11 +150,11 @@ tour. Each required move and its source:
 | Move | Taught by |
 |---|---|
 | Open the component picker | Tour step `open-picker`, which states both gestures (`/` or right-click) |
-| Place a component on the canvas | Tour step `picker-tour` explains arm-then-click; `fix-component` walks it |
-| Connect two components | Tour step `fix-component` asks for it explicitly |
+| Place a component on the canvas | Tour step `picker-tour` explains arm-then-click and walks it |
+| Connect two components | Tour step `picker-tour` asks for it explicitly (its `waitFor` requires the SQL Database placed *and* connected) |
 | Change an edge's kind | Tour step `fix-edge`, anchored to the Edge Inspector |
-| Run Validate and read the result | Lesson "What validation actually does" + tour steps `validate-intro`/`validate-click` |
-| Know that Submit is the completion gate | Lesson "Validate and Submit answer different questions" + tour `submit-intro` |
+| Run Validate and read the result | Lesson "Validate and Submit" + tour steps `validate-intro`/`validate-click` |
+| Know that Submit is the completion gate | Lesson "Validate and Submit" (the table's "Gates completion" row) + tour `submit-intro` |
 
 No move is unsourced. The chapter is self-contained by construction, which is
 the only way a first chapter can satisfy §18.2 rule 4.

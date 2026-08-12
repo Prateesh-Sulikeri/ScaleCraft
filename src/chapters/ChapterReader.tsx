@@ -15,48 +15,17 @@ import { getCourse, findEntry, nextEntry } from "@/curriculum";
 import { getChapter, useChapterLesson } from "@/content/content-service";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import { appendKnowledgeCheckHeading, extractHeadings } from "./extract-headings";
+import { splitMarkdownAtNextSection } from "./split-markdown";
+import { useChapterLessonMdx } from "./use-chapter-lesson-mdx";
 
-function splitMarkdownAtNextSection(markdown: string) {
-  const lines = markdown.split("\n");
-  const FENCE_RE = /^(```|~~~)/;
-  let inFence = false;
-  let nextIndex = -1;
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const trimmed = lines[index].trim();
-    if (FENCE_RE.test(trimmed)) {
-      inFence = !inFence;
-      continue;
-    }
-    if (inFence) continue;
-
-    const headingMatch = /^(#{1,6})\s+(.+?)\s*#*$/.exec(lines[index]);
-    if (!headingMatch) continue;
-
-    const headingText = headingMatch[2].trim();
-    if (headingText === "Next") {
-      nextIndex = index;
-      break;
-    }
-  }
-
-  if (nextIndex === -1) {
-    return { beforeNext: markdown, nextSection: "", hasNextSection: false };
-  }
-
-  return {
-    beforeNext: lines.slice(0, nextIndex).join("\n").trimEnd(),
-    nextSection: lines.slice(nextIndex).join("\n").trimStart(),
-    hasNextSection: true,
-  };
-}
-
-// This is the lesson page's primary content, so it keeps SSR (no
-// ssr:false) - still a real chunk-splitting win since it pulls in
-// react-markdown, remark/rehype plugins, CodeBlock, and MermaidBlock.
+// This is the lesson page's primary content, so both keep SSR (no
+// ssr:false) - still a real chunk-splitting win since MarkdownRenderer pulls
+// in react-markdown/remark/rehype and MdxContent pulls in @mdx-js/mdx's
+// run(), and a chapter only ever needs one or the other.
 const MarkdownRenderer = dynamic(() =>
   import("@/canvas/docs-panel/markdown/MarkdownRenderer").then((m) => m.MarkdownRenderer),
 );
+const MdxContent = dynamic(() => import("@/canvas/docs-panel/markdown/MdxContent").then((m) => m.MdxContent));
 
 type ChapterReaderProps = {
   mode: ChapterDefinition["mode"];
@@ -87,11 +56,16 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
 
   // Falls back to the chapter's problemStatement while the fetch is in
   // flight and if it 404s - same fallback convention as
-  // DocsTabContent/useComponentDocs for component docsFile.
-  const lessonMarkdown = useChapterLesson(chapter?.id);
-  const markdown = lessonMarkdown ?? chapter?.problemStatement ?? "";
+  // DocsTabContent/useComponentDocs for component docsFile. Exactly one of
+  // the two hooks below is active per chapter, gated on lessonFormat - see
+  // the MDX migration note on ChapterDefinition.lessonFormat.
+  const isMdx = chapter?.lessonFormat === "mdx";
+  const lessonMarkdown = useChapterLesson(isMdx ? undefined : chapter?.id);
+  const lessonMdx = useChapterLessonMdx(isMdx ? chapter?.id : undefined, chapter?.lessonVersion);
+  const markdown = isMdx ? (lessonMdx?.raw ?? chapter?.problemStatement ?? "") : (lessonMarkdown ?? chapter?.problemStatement ?? "");
   const headings = extractHeadings(markdown);
-  const { beforeNext, nextSection, hasNextSection } = splitMarkdownAtNextSection(markdown);
+  const { beforeNext, nextSection, hasNextSection: hasNextSectionMd } = splitMarkdownAtNextSection(markdown);
+  const hasNextSection = isMdx ? lessonMdx?.nextCompiled != null : hasNextSectionMd;
 
   if (!chapter || !entry) return null;
 
@@ -162,14 +136,22 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
             )}
 
             <div className="mt-8">
-              <MarkdownRenderer content={beforeNext} />
+              {isMdx ? (
+                lessonMdx && <MdxContent compiledSource={lessonMdx.beforeCompiled} />
+              ) : (
+                <MarkdownRenderer content={beforeNext} />
+              )}
             </div>
 
             <YourTurnCard chapter={chapter} mode={mode} chapterSlug={chapterSlug} />
 
             {hasNextSection && (
               <div className="mt-8">
-                <MarkdownRenderer content={nextSection} />
+                {isMdx ? (
+                  lessonMdx?.nextCompiled && <MdxContent compiledSource={lessonMdx.nextCompiled} />
+                ) : (
+                  <MarkdownRenderer content={nextSection} />
+                )}
               </div>
             )}
 

@@ -10,10 +10,10 @@ import type { ChapterDefinition } from "./types";
  *   `bb-1-1-understanding-the-problem` are real curriculum content,
  *   authored against CURRICULUM.md §5/§6 with a chapter spec in `specs/`
  *   beside each.
- * - `bb-dummy-1` and `rwe-dummy-1` are still throwaway shell fixtures
- *   (`placeholder: true`), standing in for 3.4 Load Balancer and RWE Tier 1
- *   Bitly respectively. Wave 1 replaces both - replace them, don't extend
- *   them.
+ * - `bb-dummy-1` was replaced by real content, `bb-3-4-load-balancer`
+ *   (pulled forward from Wave 3, see pending-content.md/pending-chapters.md).
+ *   `rwe-dummy-1` is still a throwaway shell fixture (`placeholder: true`),
+ *   standing in for RWE Tier 1 Bitly - replace it, don't extend it.
  *
  * Every real chapter carries a sibling spec in `specs/<id>.spec.md`: the
  * §5 blueprint filled in, plus its declared omissions, component-budget
@@ -105,6 +105,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // 3: density revision pass against the new §20.6, 1262 words to 667.
     // Both 2026-08-05.
     lessonVersion: 3,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 0: Foundations - Chapter 0.1 of 44.",
       masteredConcepts: [],
@@ -383,6 +384,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // something else), captioned the diagram (§7.2), paid off the cold open,
     // and corrected two trade-off claims. See spec §10.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 0: Foundations - Chapter 0.2 of 44.",
       masteredConcepts: ["The Reader-to-Editor loop, Validate vs. Submit, and hints-on-request (0.1)."],
@@ -716,6 +718,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // had contradicted the chapter's own thesis. Also added the "it depends"
     // fix the lens claimed to teach but didn't (Q5). See spec §11.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 0: Foundations - Chapter 0.3 of 44.",
       masteredConcepts: [
@@ -1026,6 +1029,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // three loose demonstratives. Glossed QPS at first use (§18.2 rule 1)
     // and dropped a banned "just". See spec §11 and pending-chapters.md.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 0: Foundations - Chapter 0.4 of 44.",
       masteredConcepts: [
@@ -1376,6 +1380,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // real pull (§6), and simplified several long sentences (§20.1/§20.6).
     // See spec §13 and pending-chapters.md.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.1 of 44.",
       masteredConcepts: [
@@ -1716,6 +1721,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // to explain Shape Up before using it, and "In production" moved after the
     // trade-offs section to restore §5.3's beat order. See spec §13.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.2 of 44.",
       masteredConcepts: [
@@ -2050,6 +2056,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // labelled as its service-agreement figure, and "Your turn" given the
     // withheld-information line it was missing. See spec §13.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.3 of 44.",
       masteredConcepts: [
@@ -2353,6 +2360,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     //    claim fixed, lens-7 sentence made specific, "Your turn" no longer
     //    promises a bandwidth question the quiz doesn't ask.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.4 of 44.",
       masteredConcepts: [
@@ -2675,6 +2683,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     //    it matches the ladder metaphor, and roughly a dozen multi-clause
     //    sentences split. See spec §13.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.5 of 44.",
       masteredConcepts: [
@@ -3057,6 +3066,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     //    changed to the chapter's own "run out of headroom" (§10.3; saturation
     //    is 1.7's word). See spec §13.
     lessonVersion: 2,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.6 of 44.",
       masteredConcepts: [
@@ -3375,6 +3385,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     readingLinks: [],
     // 1: Sonnet draft (2026-08-10).
     lessonVersion: 1,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.7 of 44.",
       masteredConcepts: [
@@ -3702,6 +3713,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     readingLinks: [],
     // 1: Sonnet draft (2026-08-10).
     lessonVersion: 1,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.8 of 44.",
       masteredConcepts: [
@@ -4010,6 +4022,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     readingLinks: [],
     // 1: Sonnet draft (2026-08-10).
     lessonVersion: 1,
+    lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.9 of 44.",
       masteredConcepts: [
@@ -4266,103 +4279,918 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
   },
   {
-    id: "bb-dummy-1",
+    id: "bb-3-4-load-balancer",
     mode: "building-blocks",
-    title: "Placeholder Chapter",
-    placeholder: true,
+    title: "Load Balancer",
+    // Real authored curriculum content (Wave 2, pulled forward per
+    // pending-content.md, replacing the bb-dummy-1 placeholder). Spec:
+    // specs/bb-3-4-load-balancer.spec.md. Lesson body:
+    // public/content/chapters/bb-3-4-load-balancer.mdx (MDX since the
+    // Release 5.0.0-alpha migration - see lessonFormat below).
+    // Pulled-forward exception (see spec §0): this chapter's real
+    // prerequisite (3.3 Reverse Proxy) isn't authored yet - manifest.ts's
+    // prerequisiteSlugs points at 1-9 instead until Group A lands.
     problemStatement:
-      "This is placeholder content for the first Building Blocks chapter - " +
-      "real lesson content (starting with load balancing, per CURRICULUM.md) " +
-      "lands in a later step. For now, this exists only to prove the chapter " +
-      "shell - list, question pane, filtered component picker - works.",
-    learningObjectives: ["Placeholder objective - real objectives arrive with real content."],
-    availableComponentIds: ["client", "load-balancer", "app-server"],
-    requiredComponentIds: ["client", "load-balancer", "app-server"],
-    // Scoped to the 4 general/structural rules only — not all 10, not none.
-    // These never reference a specific not-yet-taught component; they check
-    // whether the graph is coherent at all (nothing floating, no missing
-    // inputs, no bad cycles, edges respect each component's own declared
-    // legal connections), so they're safe at any curriculum stage. The 6
-    // domain-specific rules left out (no-direct-client-database,
-    // single-instance-load-balancer, permissive-firewall, split-brain-risk,
-    // queue-without-dead-letter-queue, orphan-read-replica) are each keyed
-    // to one specific component (database, firewall, queue, read-replica)
-    // not even in this chapter's palette (client/load-balancer/app-server)
-    // — turning those on would be pointless at best, premature at worst.
-    // This is what actually catches a malformed wiring *between components
-    // this chapter is already teaching* (e.g. a backwards Application
-    // Server -> Load Balancer edge) without rejecting on content the
-    // chapter hasn't introduced yet. Real per-chapter rule curation is
-    // still Step 5's job once this is real content, not a throwaway
-    // fixture — chapter-completion state (required components, blueprint
-    // match) is a separate mechanism, unaffected by this list either way —
-    // see chapter-outcome-violations.ts.
-    validationRuleIds: ["orphan-component", "missing-input-connection", "request-flow-cycle", "component-relations"],
-    // Throwaway, not real curriculum content — same convention as
-    // `placeholder: true` above. Exists purely so there's something concrete
-    // to click through end to end (QuestionPane's connected-count line, the
-    // pass state, the Debrief) before Step 5 authors real chapters with real
-    // blueprints. Step 5 replaces this, doesn't build on it.
+      "The starter graph has one load balancer routing to a single app-server instance - a load " +
+      "balancer over one backend balances nothing. Run Validate, read what it reports, and use that " +
+      "to decide what's missing. Add a second App Server to the canvas - a second box, not a higher " +
+      "Instances count on the one already there - wire it the same way the first one is wired, get " +
+      "a clean Validate, then Submit.",
+    // Six objectives (§5.2 allows 3-7): all five required categories, plus a
+    // second Engineering objective for the algorithm trade-off. Category
+    // tags live in the spec (specs/bb-3-4-load-balancer.spec.md §2).
+    learningObjectives: [
+      "State the two jobs a load balancer does (route requests, remove unhealthy instances) and why routing alone isn't load balancing.",
+      "Decide why a load balancer in front of a single instance adds a failure point without adding capacity.",
+      "Choose round-robin vs. least-connections for a stated workload and justify the choice against that workload's request-duration variance.",
+      "Fix a starter graph with an under-provisioned load balancer: add a second instance, wire it identically, and pass a clean Validate then Submit.",
+      "State, in an interview, what happens when one instance behind a load balancer dies, and name the follow-up risk the load balancer itself now carries.",
+      "Explain why the load balancer becomes a new single point of failure the moment it exists, and what production systems do about it.",
+    ],
+    // Cumulative palette: 1.6's three components plus this chapter's own.
+    // Required equals available - every component has a specific job in the
+    // exercise, matching 1.6's own "no optional piece" precedent.
+    availableComponentIds: ["client", "load-balancer", "app-server", "sql-database"],
+    requiredComponentIds: ["client", "load-balancer", "app-server", "sql-database"],
+    // single-instance-load-balancer is the namesake rule (fires when a
+    // load-balancer's total downstream capacity is below 2 - see the
+    // starter graph's single app-server instance below). no-direct-client-
+    // database and component-relations guard against a learner mis-wiring
+    // the fix (e.g. routing the new instance's output straight to the
+    // client, or skipping the load balancer entirely) using only rules
+    // already taught in 1.6. orphan-component, missing-input-connection and
+    // request-flow-cycle are the same structural set 1.6 curated, for the
+    // same reason: graph coherence, not untaught content.
+    validationRuleIds: [
+      "single-instance-load-balancer",
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "request-flow-cycle",
+    ],
     blueprints: [
       {
-        id: "bb-dummy-1-blueprint-throwaway",
-        label: "Client routed through a load balancer to an app server",
+        id: "bb-3-4-blueprint",
+        label: "Client through a load balancer to two app-server instances",
         require: {
-          id: "bb-dummy-1-blueprint-throwaway",
+          id: "bb-3-4-blueprint",
           nodes: [
             { alias: "client", componentId: "client" },
             { alias: "lb", componentId: "load-balancer" },
-            { alias: "app", componentId: "app-server" },
+            { alias: "app1", componentId: "app-server" },
+            { alias: "app2", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
           ],
           edges: [
-            { from: "client", to: "lb" },
-            { from: "lb", to: "app" },
+            { from: "client", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app1", kind: "request-flow" },
+            { from: "lb", to: "app2", kind: "request-flow" },
+            { from: "app1", to: "db", kind: "request-flow" },
+            { from: "app2", to: "db", kind: "request-flow" },
           ],
         },
         commentary:
-          "**Throwaway fixture, not real curriculum content.** A client should " +
-          "never depend on a single app server directly - routing through a " +
-          "load balancer means a server can be replaced or scaled without the " +
-          "client ever noticing.",
+          "Two app-server instances behind one load balancer, both still mediating access to the " +
+          "database the way 1.6 established - the load balancer adds distribution and health checking " +
+          "on top, it doesn't change who's allowed to touch the data.",
       },
     ],
     hints: [
       {
-        id: "bb-dummy-1-hint-1",
-        body: "This is a placeholder hint. Real hints are opt-in, never auto-shown - this one is no different.",
+        id: "bb-3-4-hint-1",
+        body:
+          "Validate names what's connected and what isn't. The load balancer already routes to one " +
+          "instance - how many backends does it need before \"balancing\" means anything?",
+      },
+      {
+        id: "bb-3-4-hint-2",
+        body: "Add a second App Server node from the picker (`/` or right-click), positioned like the first one.",
+      },
+      {
+        id: "bb-3-4-hint-3",
+        body:
+          "Wire the new instance exactly the way the existing one connects to the load balancer and " +
+          "the database - same edge kinds, same direction.",
       },
     ],
     readingLinks: [],
-    // Placeholder, same convention as the rest of this fixture — but real
-    // enough to exercise Deep Check's Building Blocks framing (§10.7) end
-    // to end. Approximates CURRICULUM.md's 3.4 Load Balancer entry, which
-    // this chapter stands in for per this file's own header comment.
+    // 1: Sonnet draft (2026-08-11).
+    // 2: Opus proofread pass (2026-08-11). Disclosed the control-edge engine
+    // gap in the lesson body itself (§20.2 requires the honest statement in
+    // the prose, not only in curriculumContext.simplifications, which only
+    // ever reaches the Deep Check prompt), fixed the diagram caption's
+    // "losing a control edge" mechanic (a failed check removes an instance,
+    // the edge doesn't vanish), rewrote the Cloudflare example to §13's
+    // who/why/when/trade-off format (the "core product" framing was an
+    // overclaim and "nearest healthy server" smuggled in untaught geo
+    // routing), disambiguated "add a second instance" from the app-server
+    // Instances config field (bumping it satisfies the rule but not the
+    // blueprint), removed a cold-open restatement (§20.6), and corrected a
+    // dangling "cargo-cult" self-reference. See spec §13.
+    // v3: embedded the interactive Walkthrough diagram (Release 5.0.0-alpha
+    // step 4) after the "two edge kinds" paragraph.
+    // v4: walkthrough v2 - new fixed-viewBox coordinates, plus a
+    // round-robin/least-connections algorithm toggle with per-step variants.
+    // v5: wrapped round-robin's first mention in a <Ref> glossary reference
+    // (Release 5.0.0-alpha glossary pilot).
+    lessonVersion: 5,
+    // Migrated to MDX (Release 5.0.0-alpha step 2 of the build order, see
+    // pending.md) - first chapter to move off the legacy react-markdown
+    // path. Lesson body: public/content/chapters/bb-3-4-load-balancer.mdx.
+    lessonFormat: "mdx",
     curriculumContext: {
-      position: "Building Blocks, Group A: Core Infrastructure - Chapter 3.4 of 44 (placeholder).",
+      position:
+        "Building Blocks, Group A: Core Infrastructure - Chapter 3.4 of 44 (pulled forward per " +
+        "pending-content.md; see this chapter's spec §0 for the declared prerequisite exception).",
       masteredConcepts: [
-        "Networking fundamentals and the trust perimeter (3.1)",
-        "DNS resolution and the reverse proxy's single-front-door pattern (3.2-3.3)",
+        "The Reader-to-Editor loop, Validate vs. Submit, and reading a validation explanation (0.1).",
+        "The five forces and the eight-step Interview Loop, including steps 4 and 6 (0.2-0.4).",
+        "Scoping, requirements, and estimation (1.1-1.5).",
+        "The three-tier shape - client, app server, sql database - and why the app server mediates all database access (1.6).",
+        "Systematic bottleneck-finding and trade-off/deep-dive methodology (1.7-1.9).",
       ],
       notYetIntroducedConcepts: [
-        "Statelessness and session externalization (Group B)",
-        "Distributed caching (Group D)",
-        "Read replicas and data-layer scaling (Group C)",
-        "Any queue/async/coordination concepts (Groups E-G)",
+        "The trust perimeter, DNS, and the reverse proxy's single-front-door pattern (3.1-3.3) - this chapter's real curriculum-order prerequisite, not yet authored.",
+        "API gateways and the reverse-proxy/load-balancer/gateway trio (3.5).",
+        "Horizontal scaling as its own named topic, and manufacturing more than two instances on purpose (3.8).",
+        "Statelessness and session externalization (3.6-3.7) - this chapter's app-server instances are treated as interchangeable without saying why that has to be true.",
+        "Caching, read replicas, and any data-layer scaling (Groups C-D).",
       ],
       simplifications: [
-        "One load balancer in front of two app servers is the whole lesson - no health-check tuning, no multi-region failover.",
-        "Balancing algorithm choice (round-robin vs. least-connections) is a config decision here, not a performance-tuning exercise.",
+        "Exactly two app-server instances are ever in scope. Choosing how many is 3.8's job; this chapter only teaches that more than one needs something routing between them.",
+        "Health checks (`control` edges) are taught and shown in the lesson diagram but not exercised on canvas - the registry's load-balancer/app-server relations contracts don't yet accept a control-kind edge between them (both declare allowedKinds: [\"request-flow\"] only). Flagged as an engine gap in the spec and pending-chapters.md, not worked around.",
+        "Algorithm choice (round-robin vs. least-connections) is a config decision discussed in the lesson and quiz, not enforced by a validation rule - both are legitimate for different workloads, so there is no single correct config to check for.",
       ],
     },
-    // A single unconnected node, not the solved blueprint — a starter graph
-    // that already satisfied the required-components/blueprint check would
-    // hand the exercise to the learner solved. Just enough that opening the
-    // chapter for the first time doesn't drop the learner on a blank canvas.
+    // Five questions, ramp 1/1/2/2/3. Q2 and Q4 are modeled on
+    // QUIZ_FRAMEWORK.md §8's own Q5 and Q7 (the bank's published examples
+    // for this exact chapter) - reworded with a fresh graph/workload rather
+    // than copied verbatim, matching every other chapter's practice.
+    // Position-clustering checked by eye across the four single-kind
+    // questions (Q1/Q3/Q4/Q5): correct options sit at b, a, c, d.
+    quiz: [
+      {
+        id: "bb-3-4-load-balancer-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "What does a load balancer do that simply adding a second app-server instance doesn't?",
+        options: [
+          {
+            id: "a",
+            label: "Makes each instance individually faster.",
+            correct: false,
+            explanationMd: "A load balancer doesn't speed up any single instance - it decides which instance handles which request.",
+          },
+          {
+            id: "b",
+            label: "Decides which instance gets each request, and stops sending traffic to one that's stopped answering.",
+            correct: true,
+            explanationMd:
+              "Correct. A second instance with nothing routing between them doesn't help - both jobs, " +
+              "routing and health checking, are the load balancer's.",
+          },
+          {
+            id: "c",
+            label: "Encrypts traffic between the client and the app servers.",
+            correct: false,
+            explanationMd: "Encryption isn't this component's job in this curriculum's model - nothing here changes because a load balancer exists.",
+          },
+          {
+            id: "d",
+            label: "Stores session state so either instance can serve a returning user.",
+            correct: false,
+            explanationMd: "Where session state lives is 3.7's problem - a load balancer's own job is routing and health checking, not storage.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-4-load-balancer-q2",
+        kind: "diagram",
+        difficulty: 1,
+        prompt:
+          "This design has a load balancer routing to exactly one app-server instance, which reaches " +
+          "the database. What will Validate flag, and why?",
+        graph: {
+          nodes: [
+            { id: "c1", componentId: "client", position: { x: 40, y: 100 }, config: {} },
+            { id: "lb1", componentId: "load-balancer", position: { x: 220, y: 100 }, config: {} },
+            { id: "a1", componentId: "app-server", position: { x: 400, y: 100 }, config: {} },
+            { id: "d1", componentId: "sql-database", position: { x: 580, y: 100 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "c1", target: "lb1", kind: "request-flow" },
+            { id: "e2", source: "lb1", target: "a1", kind: "request-flow" },
+            { id: "e3", source: "a1", target: "d1", kind: "request-flow" },
+          ],
+          entryPointIds: ["c1"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "Nothing - the graph is fine as drawn.",
+            correct: false,
+            explanationMd:
+              "A load balancer over exactly one instance is exactly the fault this chapter's own rule checks for - it doesn't pass silently.",
+          },
+          {
+            id: "b",
+            label: "The load balancer should also connect directly to the database.",
+            correct: false,
+            explanationMd: "A load balancer routing traffic and a load balancer touching the database are unrelated jobs - nothing here calls for that edge.",
+          },
+          {
+            id: "c",
+            label: "A load balancer over a single backend adds a hop and a failure point without adding capacity or redundancy.",
+            correct: true,
+            explanationMd:
+              "Correct - this is single-instance-load-balancer firing. Routing across one instance is " +
+              "no routing decision at all, and the load balancer is now one more thing that can fail.",
+          },
+          {
+            id: "d",
+            label: "The client should also connect directly to the app server, bypassing the load balancer.",
+            correct: false,
+            explanationMd: "That would recreate the exact problem 1.6 already ruled out - a component skipping the layer meant to mediate it.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-4-load-balancer-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A load balancer sends a periodic check to each backend instance, separate from real request traffic. What does this protect against?",
+        options: [
+          {
+            id: "a",
+            label: "Routing requests to an instance that's crashed, hung, or stopped responding.",
+            correct: true,
+            explanationMd:
+              "Correct. Without a health check, the load balancer has no way to know an instance is " +
+              "dead and keeps sending it a fair share of traffic anyway.",
+          },
+          {
+            id: "b",
+            label: "The need for TLS between the load balancer and its backends.",
+            correct: false,
+            explanationMd: "Health checks and encryption are unrelated concerns - a health-checked instance can still be unencrypted, and vice versa.",
+          },
+          {
+            id: "c",
+            label: "Round-robin sending too many requests to the same instance.",
+            correct: false,
+            explanationMd: "Round-robin's fairness is about request count, not liveness - a health check answers a different question entirely.",
+          },
+          {
+            id: "d",
+            label: "The database running out of connections.",
+            correct: false,
+            explanationMd: "A health check only looks at the app-server instances it routes to - it has no visibility into the database at all.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-4-load-balancer-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Workload A: thumbnail generation, every request takes about 20ms. Workload B: report " +
+          "generation, requests range from 200ms to 40 seconds. Best algorithm pairing?",
+        options: [
+          {
+            id: "a",
+            label: "Round-robin for both.",
+            correct: false,
+            explanationMd: "Round-robin's fairness assumption breaks under B's wide duration spread - a few long requests can pile onto one instance regardless of turn order.",
+          },
+          {
+            id: "b",
+            label: "Least-connections for both.",
+            correct: false,
+            explanationMd: "Least-connections costs more to track and buys nothing when requests are already uniform, like A's - round-robin is just as fair there, for less overhead.",
+          },
+          {
+            id: "c",
+            label: "A: round-robin (cheap and fair under uniform load); B: least-connections (long requests pile up unevenly under round-robin).",
+            correct: true,
+            explanationMd:
+              "Correct. Algorithm choice is workload-dependent - both are legitimate configs, applied to " +
+              "the workload that actually needs them.",
+          },
+          {
+            id: "d",
+            label: "Whichever algorithm is fastest to compute, for both.",
+            correct: false,
+            explanationMd: "Compute cost isn't the deciding factor here - both algorithms are cheap; the question is which one matches the workload's request-duration variance.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-4-load-balancer-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "You've put a load balancer in front of two healthy, health-checked app-server instances. " +
+          "What new failure mode did you just introduce?",
+        options: [
+          {
+            id: "a",
+            label: "No new failure mode - the load balancer only removes them.",
+            correct: false,
+            explanationMd: "The load balancer is itself a component sitting in front of everything else - it doesn't only remove risk, it also concentrates it.",
+          },
+          {
+            id: "b",
+            label: "The two app-server instances can no longer reach each other directly.",
+            correct: false,
+            explanationMd: "Nothing in this architecture ever had app-server instances talking to each other - that was never a capability that existed to lose.",
+          },
+          {
+            id: "c",
+            label: "Requests now take measurably longer because of the extra hop, and that's the main new risk.",
+            correct: false,
+            explanationMd: "An extra hop is real but minor - the risk this chapter actually teaches is availability, not latency.",
+          },
+          {
+            id: "d",
+            label:
+              "The load balancer itself is now a single point of failure - if it goes down, every " +
+              "healthy instance behind it becomes unreachable at once.",
+            correct: true,
+            explanationMd:
+              "Correct. This is why production load balancers run redundant or as a managed service - " +
+              "the goal isn't removing every single point of failure, it's moving it somewhere cheaper to make redundant.",
+          },
+        ],
+      },
+    ],
+    // Deliberately under-provisioned, matching 1.6's "fix, not find-the-bug-
+    // blind" precedent (§11.1): the load balancer and its one backend are
+    // both correctly wired to each other and to the database - nothing here
+    // is a wiring mistake, the fault is purely capacity (single-instance-
+    // load-balancer). No control edges (see curriculumContext.simplifications
+    // - the registry doesn't yet accept one between these two components).
     starterGraph: {
-      nodes: [{ id: "bb-dummy-1-starter-client", componentId: "client", position: { x: 80, y: 120 }, config: {} }],
-      edges: [],
-      entryPointIds: [],
+      nodes: [
+        { id: "bb-3-4-client", componentId: "client", position: { x: 80, y: 160 }, config: {} },
+        { id: "bb-3-4-lb", componentId: "load-balancer", position: { x: 280, y: 160 }, config: {} },
+        { id: "bb-3-4-app1", componentId: "app-server", position: { x: 480, y: 160 }, config: {} },
+        { id: "bb-3-4-db", componentId: "sql-database", position: { x: 680, y: 160 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-4-edge-client-lb", source: "bb-3-4-client", target: "bb-3-4-lb", kind: "request-flow" },
+        { id: "bb-3-4-edge-lb-app1", source: "bb-3-4-lb", target: "bb-3-4-app1", kind: "request-flow" },
+        { id: "bb-3-4-edge-app1-db", source: "bb-3-4-app1", target: "bb-3-4-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-4-client"],
     },
+  },
+  {
+    id: "bb-1-10-communicating-and-defending-a-design",
+    mode: "building-blocks",
+    title: "Communicating & Defending a Design",
+    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
+    // Spec: specs/bb-1-10-communicating-and-defending-a-design.spec.md.
+    // Lesson body: public/content/chapters/bb-1-10-communicating-and-defending-a-design.mdx.
+    // Process type, same no-build shape as 1.1-1.9: hasEditorExercise: false,
+    // empty component/blueprint/validation-rule lists. §16 places 1.10 in
+    // the no-component list alongside 1.1-1.5, 1.7-1.9, 1.11.
+    problemStatement:
+      "No canvas build this chapter - the palette is still 1.6's three components, and reading " +
+      "a follow-up doesn't need a fourth. The knowledge check presents follow-up questions on a " +
+      "design and asks you to pick the strongest response, reading why the weaker ones fail the " +
+      "two-question test - the exercise this chapter is built around, run directly in the quiz.",
+    // Five objectives (§5.2 allows 3-7): all five required categories,
+    // including a real Practical objective per 1.1/1.2/1.4/1.5/1.8/1.9's
+    // precedent (Process chapters do not get the Concept-only Practical
+    // carve-out). Category tags live in the spec
+    // (specs/bb-1-10-communicating-and-defending-a-design.spec.md §2).
+    learningObjectives: [
+      "State the two-question test for a follow-up: does it name new evidence or only pressure, and if it's evidence, does the current design already survive it.",
+      "Given a follow-up and an existing design, decide whether the design already survives it, needs a narrow evolution of one piece, or exposes a real gap nothing taught so far addresses.",
+      "Narrate a completed design top-down before any follow-up lands, then respond to follow-ups live by applying the two-question test, defending decisions that still hold and revising the ones that don't, inside interview loop step 8 (0.4).",
+      "Given four candidate responses to a follow-up, choose the one that correctly applies the test and reject caving, stonewalling, and a full redesign of a design that mostly still holds.",
+      "When a follow-up reveals a genuine gap the taught palette can't yet fix, name the gap honestly instead of inventing an untaught mechanism or denying it exists.",
+    ],
+    // §16: no components introduced this chapter (1.10 is in the
+    // no-component list alongside 1.1-1.5, 1.7-1.9, 1.11) - the three
+    // primitives stay homed at 1.6.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    // No canvas exercise, nothing to validate - same justification 1.1-1.9
+    // and 0.2-0.4 recorded.
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    // No hints - no build/Fix exercise for a hint to orient toward, same as
+    // every other no-build chapter so far (0.2-0.4, 1.1-1.9).
+    hints: [],
+    readingLinks: [],
+    // 1: Sonnet draft (2026-08-11).
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.10 of 44.",
+      masteredConcepts: [
+        "1.3's non-functional requirements - reused as the shape of 'new evidence' a follow-up " +
+          "can name.",
+        "1.7's ceiling method - reused to check whether the current design already has headroom " +
+          "before a follow-up's stated pressure.",
+        "1.8's trade-off reflex ('we chose X, accepting Y, because Z') - reused and extended one " +
+          "clause for defending a decision that still holds.",
+        "1.9's 'state the plan before diving, then resurface' discipline - reused directly as " +
+          "this chapter's narrate-top-down-first posture, and its own closing line ('name it, " +
+          "commit, defend without defensiveness') is this chapter's subject.",
+        "1.6's three-component shape - the design every quiz scenario presents.",
+      ],
+      notYetIntroducedConcepts: [
+        "Any mechanism that makes a write survive a mid-crash restart - durability machinery " +
+          "(3.20, 3.26) is later material. The write-restart gap in this chapter's material is " +
+          "named honestly as unsolved, never patched with an invented fix.",
+        "Load balancing or any routing across multiple app-server instances (3.4) - not " +
+          "referenced, consistent with 1.9's own precedent.",
+        "1.11's specific interview time-budget breakdown - this chapter's 'time left' framing " +
+          "stays general; the minute-by-minute structure is 1.11's own material.",
+      ],
+      simplifications: [
+        "The write-survives-a-restart gap used across the lesson and quiz Q4 is a real, " +
+          "deliberately unsolved limitation at this stage, not a claim that no fix exists - " +
+          "naming it honestly is the point, not a placeholder for a future patch.",
+        "The 'one real gap, limited time' scenario (quiz Q5) is a designed teaching device, not a " +
+          "claim that real interviews always present exactly one narrow gap - same status as " +
+          "1.9's own 'two requirements at once' device.",
+      ],
+    },
+    // Ramp 1/1/2/2/3, matching 0.2-1.9's convention. The whole quiz directly
+    // realizes CURRICULUM §14's "staged - given follow-up questions, choose
+    // the strongest response and read why the others are weaker" exercise
+    // text - see spec §0 for why this needed no simulator/stages-UI
+    // degradation note (single/multi quiz kinds already cover this exercise
+    // shape natively, same fit 1.8's and 1.9's own exercises had).
+    quiz: [
+      {
+        id: "bb-1-10-communicating-and-defending-a-design-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Mid-interview, the interviewer asks: \"What if writes grow 10x?\" This follow-up is " +
+          "best read as:",
+        options: [
+          {
+            id: "a",
+            label:
+              "New input to run through the test: is this new evidence, and does the current " +
+              "design already survive it?",
+            correct: true,
+            explanationMd:
+              "Correct. A follow-up isn't a verdict on what's already drawn - it's pressure to " +
+              "read the same way 1.3's requirements and 1.7's ceiling method already taught.",
+          },
+          {
+            id: "b",
+            label: "A signal the design is wrong and should be scrapped.",
+            correct: false,
+            explanationMd:
+              "This is the cold open's own failure: reacting to new input as if it were a " +
+              "verdict, before checking whether anything actually breaks.",
+          },
+          {
+            id: "c",
+            label: "A trick question meant to be deflected without really answering it.",
+            correct: false,
+            explanationMd:
+              "Treating the interviewer as an adversary is a candidate mistake this curriculum " +
+              "warns against elsewhere (§10.2) - the follow-up is a real question with a real " +
+              "answer.",
+          },
+          {
+            id: "d",
+            label: "A cue to start over from a blank page.",
+            correct: false,
+            explanationMd:
+              "Redesigning everything when only one piece might need to change is exactly the " +
+              "cold open's failure, restated.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-10-communicating-and-defending-a-design-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A design's app-server ceiling (1.7's method) is 5,000 QPS; current traffic is 1,000 " +
+          "QPS. The interviewer asks: \"what if traffic doubles?\" What's the strongest response?",
+        options: [
+          {
+            id: "a",
+            label: "Add more app-server instances now, ahead of the growth.",
+            correct: false,
+            explanationMd:
+              "Nothing under real pressure yet - manufacturing a fix before the ceiling is close " +
+              "to breaking spends a decision the design doesn't need.",
+          },
+          {
+            id: "b",
+            label:
+              "Say so, and show the math: 2,000 QPS is still well under the app server's 5,000 " +
+              "ceiling, so nothing needs to change yet.",
+            correct: true,
+            explanationMd:
+              "Correct. New evidence, and the current design already survives it - the test's " +
+              "second question ends here, no redesign needed.",
+          },
+          {
+            id: "c",
+            label: "Add a cache in front of the database, since that's what usually helps at scale.",
+            correct: false,
+            explanationMd:
+              "Unmotivated - nothing in this scenario names a read-latency or repeated-read " +
+              "problem a cache would address, and the ceiling check hasn't even run yet.",
+          },
+          {
+            id: "d",
+            label: "Ask for the exact traffic multiplier before answering.",
+            correct: false,
+            explanationMd:
+              "The precision-theater trap (1.4) - the ceiling check works fine on the stated " +
+              "\"doubles,\" no exact figure required.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-10-communicating-and-defending-a-design-q3",
+        kind: "multi",
+        difficulty: 2,
+        prompt:
+          "Which of these correctly describe defending a decision without being defensive? " +
+          "Select ALL that apply.",
+        options: [
+          {
+            id: "a",
+            label:
+              "Restate the trade-off already named, and confirm the reason behind it still holds.",
+            correct: true,
+            explanationMd:
+              "Correct. This is 1.8's reflex extended one clause: the reason still holds, so the " +
+              "decision does too.",
+          },
+          {
+            id: "b",
+            label:
+              "If the follow-up names something the original trade-off missed, say what changed " +
+              "your mind and what's different now.",
+            correct: true,
+            explanationMd:
+              "Correct. The honest opposite of defending - real new evidence gets a real revision, " +
+              "stated out loud.",
+          },
+          {
+            id: "c",
+            label: "Repeat the original answer louder if the interviewer pushes back again.",
+            correct: false,
+            explanationMd:
+              "Volume isn't reasoning - repeating without addressing what the follow-up actually " +
+              "named is defensiveness, not defense.",
+          },
+          {
+            id: "d",
+            label: "Change the decision immediately whenever it's challenged, to seem open-minded.",
+            correct: false,
+            explanationMd:
+              "This is caving - changing course without checking whether the original reasoning " +
+              "still holds gives up ground that didn't need giving up.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-10-communicating-and-defending-a-design-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A follow-up: \"what happens if the app server restarts mid-write?\" Nothing in the " +
+          "design so far handles this. What's the strongest response?",
+        options: [
+          {
+            id: "a",
+            label: "Say the design already handles it, since app servers rarely restart.",
+            correct: false,
+            explanationMd:
+              "This is false, and interviewers can follow up on a claim like this - denying a " +
+              "real gap is worse than naming it.",
+          },
+          {
+            id: "b",
+            label: "Redesign the whole write path live to cover every edge case at once.",
+            correct: false,
+            explanationMd:
+              "The cold open's failure again - one specific gap doesn't require rebuilding " +
+              "everything else that was never in question.",
+          },
+          {
+            id: "c",
+            label:
+              "Name the gap honestly: nothing taught so far makes a write survive that, and say " +
+              "specifically what class of change would need to close it.",
+            correct: true,
+            explanationMd:
+              "Correct. A real, unaddressed gap gets named as exactly that - specific and honest " +
+              "beats invented and confident.",
+          },
+          {
+            id: "d",
+            label: "Invent a plausible-sounding mechanism on the spot so the answer feels complete.",
+            correct: false,
+            explanationMd:
+              "Bluffing a mechanism that isn't part of anything taught risks a follow-up question " +
+              "the bluff can't survive, and it isn't honest either.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-10-communicating-and-defending-a-design-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "With only a few minutes left before the interview wraps up, a follow-up reveals a " +
+          "real but narrow gap in the write path. What's the strongest move?",
+        options: [
+          {
+            id: "a",
+            label: "Redesign the write path live, in full detail, to prove the fix is understood.",
+            correct: false,
+            explanationMd:
+              "Proves the same judgment more slowly - with barely any time left, this spends " +
+              "minutes the rest of the loop may still need.",
+          },
+          {
+            id: "b",
+            label: "Skip the question and hope it doesn't come up again.",
+            correct: false,
+            explanationMd:
+              "A named gap doesn't disappear by not answering it - this reads as evasive, not " +
+              "efficient.",
+          },
+          {
+            id: "c",
+            label: "Say the gap doesn't matter at this scale, without checking whether that's true.",
+            correct: false,
+            explanationMd:
+              "An unchecked dismissal is a guess dressed up as an answer - the same failure as " +
+              "denying a real gap outright.",
+          },
+          {
+            id: "d",
+            label:
+              "Name the fix conceptually - what would change, roughly what it costs - and move on.",
+            correct: true,
+            explanationMd:
+              "Correct. Proves the same judgment faster, at the honest cost of not showing the " +
+              "detail live - the right trade when time is the scarce resource.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-1-11-driving-a-system-design-interview",
+    mode: "building-blocks",
+    title: "Driving a System Design Interview",
+    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
+    // Spec: specs/bb-1-11-driving-a-system-design-interview.spec.md.
+    // Lesson body: public/content/chapters/bb-1-11-driving-a-system-design-interview.mdx.
+    // §16 puts 1.11 in the no-component list. The staged exercise promised
+    // by §14 is quiz-realized while the stages UI is absent; see spec §0.
+    problemStatement:
+      "No canvas build this chapter - driving a time-bound design conversation needs no new " +
+      "component. The knowledge check runs a compact interview walkthrough: preserve the " +
+      "requirements-to-design evidence chain, answer a follow-up from that evidence, and close " +
+      "with the design's cost and next risk.",
+    // Five objectives, one per §5.2 category. Category tags and evidence live
+    // in specs/bb-1-11-driving-a-system-design-interview.spec.md §2.
+    learningObjectives: [
+      "State a useful time budget for a 45-minute interview and explain why requirements, estimates, and a close need protected time.",
+      "Classify a follow-up as changed pressure, a trade-off challenge, or a failure/limit question, then return to the relevant prior evidence.",
+      "Given a sequenced tiny-brief interview, choose the next move that keeps the design loop intact under the remaining time.",
+      "Drive an interview by naming the next reasoning move, correcting a changed assumption openly, and ending with a concise recap.",
+      "Explain a time-bound design plan without treating the time budget as a rigid script or a reason to bluff certainty.",
+    ],
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [],
+    readingLinks: [],
+    // 1: initial authored chapter (2026-08-11).
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.11 of 44 (optional).",
+      masteredConcepts: [
+        "The complete eight-step Interview Loop (0.4), lived one step at a time in 1.1-1.10.",
+        "Clarifying questions, functional requirements, and non-functional requirements (1.1-1.3).",
+        "Order-of-magnitude estimation and the precision-theater boundary (1.4-1.5).",
+        "The smallest end-to-end client, app-server, and database shape, plus a top-down narration (1.6, 1.10).",
+        "The ceiling method, trade-off reflex, deep-dive method, and two-question follow-up test (1.7-1.10).",
+      ],
+      notYetIntroducedConcepts: [
+        "The request's actual browser-to-backend path (2.1) - previewed only in this chapter's Next section.",
+        "Specific scaling mechanisms beyond the three primitives - this chapter coordinates the process and does not add a new solution palette.",
+        "A live branching stages exercise - the stages UI is not yet implemented, so the walkthrough is quiz-realized and disclosed in the lesson.",
+      ],
+      simplifications: [
+        "The 45-minute allocation is an illustrative budget for protecting the reasoning chain, not a universal interview script; the lesson says to adapt it to the brief.",
+        "The quiz presents a linear miniature interview so each decision can receive explanation; real interviews branch, backtrack, and permit more than one defensible time allocation.",
+      ],
+    },
+    quiz: [
+      {
+        id: "bb-1-11-driving-a-system-design-interview-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Two minutes into a 45-minute interview, the brief is 'design a service for sharing photos.' " +
+          "What is the strongest next move?",
+        options: [
+          {
+            id: "a",
+            label: "Start drawing the upload path so there is a concrete design to discuss.",
+            correct: false,
+            explanationMd:
+              "A concrete path helps only after the product and its pressure are known. Drawing now makes unstated assumptions expensive to unwind.",
+          },
+          {
+            id: "b",
+            label: "Ask which user flows matter, what scale matters, and what is explicitly out of scope before choosing the shape.",
+            correct: true,
+            explanationMd:
+              "Correct. This protects 1.1-1.3's evidence chain. A short set of high-leverage questions prevents solving an imagined product.",
+          },
+          {
+            id: "c",
+            label: "Estimate global storage capacity to the nearest gigabyte before asking questions.",
+            correct: false,
+            explanationMd:
+              "This is precision theater before there is even a stated traffic or retention assumption. Estimate only when it can change a decision.",
+          },
+          {
+            id: "d",
+            label: "Pick the database first, since it is the hardest decision to revise later.",
+            correct: false,
+            explanationMd:
+              "A database choice has no evidence behind it yet. Requirements create the pressure that makes any later choice defensible.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-11-driving-a-system-design-interview-q2",
+        kind: "ordering",
+        difficulty: 1,
+        prompt:
+          "You have clarified a tiny brief. Put these next moves in the order that keeps the evidence chain intact.",
+        // Full derangement: Ordering renders this authored order before the
+        // learner rearranges it.
+        options: [
+          {
+            id: "draw",
+            label: "Draw the smallest end-to-end design.",
+            correct: true,
+            explanationMd: "The diagram answers the requirements once their pressure has been estimated.",
+          },
+          {
+            id: "tradeoff",
+            label: "Name the first ceiling and the trade-off it forces.",
+            correct: true,
+            explanationMd: "A trade-off is justified after a concrete design exposes a pressure point.",
+          },
+          {
+            id: "requirements",
+            label: "State the functional requirements, non-functional requirements, and scope boundary.",
+            correct: true,
+            explanationMd: "Requirements are the evidence the rest of the interview must answer.",
+          },
+          {
+            id: "estimate",
+            label: "Estimate the order of magnitude that could change the design.",
+            correct: true,
+            explanationMd: "Estimation calibrates the requirements before the design commits to a shape.",
+          },
+        ],
+        correctOrder: ["requirements", "estimate", "draw", "tradeoff"],
+      },
+      {
+        id: "bb-1-11-driving-a-system-design-interview-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "You stated that reads dominate, then the interviewer clarifies that the product has a write-heavy ingestion flow. What is the strongest response?",
+        options: [
+          {
+            id: "a",
+            label: "Name the changed assumption, revisit the affected path, and explain which earlier decision may now change.",
+            correct: true,
+            explanationMd:
+              "Correct. The new fact is evidence, not an accusation. A narrow revision keeps the reasoning chain visible and preserves work that still holds.",
+          },
+          {
+            id: "b",
+            label: "Keep the read-heavy design because changing a diagram mid-interview looks uncertain.",
+            correct: false,
+            explanationMd:
+              "This protects appearance over correctness. Revising openly when a requirement changes is the stronger signal.",
+          },
+          {
+            id: "c",
+            label: "Discard the entire design and restart from the beginning without explaining the change.",
+            correct: false,
+            explanationMd:
+              "The new evidence may affect one path, not every decision. Starting over also removes the thread the interviewer was evaluating.",
+          },
+          {
+            id: "d",
+            label: "Argue that write volume is an implementation detail and continue to the deep dive.",
+            correct: false,
+            explanationMd:
+              "Write volume can be exactly the pressure that determines the correct deep dive. Ignoring it abandons requirement-driven design.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-11-driving-a-system-design-interview-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "At minute 31, the core design is on the board. The interviewer asks, 'what breaks first if traffic doubles?' What should drive your answer?",
+        options: [
+          {
+            id: "a",
+            label: "The component that is most familiar to explain in detail.",
+            correct: false,
+            explanationMd:
+              "Familiarity is not evidence. The deep dive belongs where the stated pressure actually lands.",
+          },
+          {
+            id: "b",
+            label: "A tour through every component so no part of the diagram is skipped.",
+            correct: false,
+            explanationMd:
+              "Breadth without prioritization spends the remaining time while avoiding the actual question.",
+          },
+          {
+            id: "c",
+            label: "A new component added immediately, because more traffic always requires more machinery.",
+            correct: false,
+            explanationMd:
+              "Check the current ceiling first. Adding machinery before identifying the limit is an unmotivated fix.",
+          },
+          {
+            id: "d",
+            label: "The lowest ceiling on the hot path, using the stated estimates to explain the symptom and response.",
+            correct: true,
+            explanationMd:
+              "Correct. This is 1.7's ceiling method used under the interview clock: evidence selects the pressure point, then the response earns its trade-off.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-11-driving-a-system-design-interview-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "With three minutes left, your design and main trade-off are clear. Which close best demonstrates control of the interview?",
+        options: [
+          {
+            id: "a",
+            label: "Introduce a second, unrelated architecture to show breadth.",
+            correct: false,
+            explanationMd:
+              "A new architecture has no time to earn its assumptions or trade-offs. It obscures the design the room has already evaluated.",
+          },
+          {
+            id: "b",
+            label: "Keep deep-diving into implementation details until the interviewer stops you.",
+            correct: false,
+            explanationMd:
+              "Detail without a close can leave the interviewer unsure what design and cost you actually chose.",
+          },
+          {
+            id: "c",
+            label: "Recap the requirement that drove the design, the cost accepted, and the next risk you would test with more time.",
+            correct: true,
+            explanationMd:
+              "Correct. This closes the evidence-to-decision loop, demonstrates trade-off ownership, and names the next honest investigation without bluffing completion.",
+          },
+          {
+            id: "d",
+            label: "Claim there are no remaining risks because the design handles the stated scale.",
+            correct: false,
+            explanationMd:
+              "A design can meet today's stated pressure and still have a next limit worth naming. Pretending otherwise blocks useful follow-ups.",
+          },
+        ],
+      },
+    ],
   },
   {
     id: "rwe-dummy-1",

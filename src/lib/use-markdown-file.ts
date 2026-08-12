@@ -9,11 +9,41 @@ type CacheEntry = { version: number | undefined; content: string };
 // repeat visits to the same path (at the same version) skip the network
 // entirely.
 const markdownFileCache = new Map<string, CacheEntry>();
+const inFlightLoads = new Map<string, Promise<string>>();
 
 function isFresh(path: string | undefined, version: number | undefined): boolean {
   if (!path) return false;
   const cached = markdownFileCache.get(path);
   return cached !== undefined && cached.version === version;
+}
+
+function loadKey(path: string, version: number | undefined): string {
+  return `${path}\u0000${version ?? ""}`;
+}
+
+/** Start fetching a Markdown asset before the component that renders it has
+ * mounted. The hook below shares both this in-flight request and its cache,
+ * so a route transition can do the network work behind its loading overlay. */
+export function preloadMarkdownFile(path: string | undefined, version?: number): Promise<void> {
+  if (!path || isFresh(path, version)) return Promise.resolve();
+
+  const key = loadKey(path, version);
+  let load = inFlightLoads.get(key);
+  if (!load) {
+    load = fetch(path)
+      .then((res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        return res.text();
+      })
+      .then((content) => {
+        markdownFileCache.set(path, { version, content });
+        return content;
+      })
+      .finally(() => inFlightLoads.delete(key));
+    inFlightLoads.set(key, load);
+  }
+
+  return load.then(() => undefined);
 }
 
 /**
@@ -40,15 +70,10 @@ export function useMarkdownFile(path: string | undefined, version?: number): str
   useEffect(() => {
     if (!path || isFresh(path, version)) return;
     let cancelled = false;
-    fetch(path)
-      .then((res) => {
-        if (!res.ok) throw new Error(String(res.status));
-        return res.text();
-      })
-      .then((text) => {
+    preloadMarkdownFile(path, version)
+      .then(() => {
         if (cancelled) return;
-        markdownFileCache.set(path, { version, content: text });
-        setContent(text);
+        setContent(markdownFileCache.get(path)?.content ?? null);
       })
       .catch(() => {
         if (!cancelled) setContent(null);

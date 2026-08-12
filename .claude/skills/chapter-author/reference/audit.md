@@ -116,12 +116,28 @@ the quiz, hints, and definition metadata even if something there catches
 your eye; note it, don't fix it.
 
 1. **Content** - the lesson prose itself: accuracy of any factual/
-   production claims, density (§20.6 - both directions, cut what doesn't
-   earn its place AND flag what's now under-explained), voice (§20.1, no em
-   dash), whether every "Next"/preview correctly names the chapter that
-   actually comes next per `src/curriculum/manifest.ts`, whether any
-   vocabulary used has actually been taught by this point in the sequence
-   (§18.2 rule 1).
+   production claims; density (§20.6 - both directions, cut what doesn't
+   earn its place AND flag what's now under-explained); voice (§20.1, no em
+   dash) and writing register - "assume engineering literacy, not
+   prerequisite knowledge": flag any passage that defines general
+   engineering vocabulary the reader can be assumed to already know (reads
+   like a textbook glossary instead of one engineer reasoning to another),
+   and separately flag any passage that drops a general engineering term
+   with zero context when a one-clause just-in-time gloss would let the
+   reasoning land - the target is the middle ground, not either extreme
+   (e.g. "a recursive resolver - a DNS service that looks up answers on the
+   client's behalf and caches them - checks its cache" is right; a bare
+   "the resolver checks its cache" or a three-paragraph detour on how DNS
+   works are both wrong); confirm the prose is reasoning-driven (X causes Y,
+   so we introduce Z; Z solves Y but creates a new constraint) rather than
+   definition-driven or an inventory of facts; whether every "Next"/preview
+   correctly names the chapter that actually comes next per
+   `src/curriculum/manifest.ts`; whether any ScaleCraft-taught vocabulary (a
+   named loop, a numbered law, anything with a later home chapter) has
+   actually been taught by this point in the sequence (§18.2 rule 1) -
+   general engineering terms with no ScaleCraft home chapter are a separate,
+   looser bar (just-in-time gloss, not a forward-reference violation) -
+   don't conflate the two.
 2. **Content-structure** - structural completeness against §5.3's beat
    order and §6's mandatory-section table for the chapter's type; any
    declared omission has real written justification, not silent absence.

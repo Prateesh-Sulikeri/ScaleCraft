@@ -1,12 +1,15 @@
 "use client";
 
-import { useMarkdownFile } from "@/lib/use-markdown-file";
+import { preloadMarkdownFile, useMarkdownFile } from "@/lib/use-markdown-file";
 import { chapterRegistry } from "./chapters";
 import { getLessonFileUrl } from "./chapters/lessons";
 import type { ChapterDefinition } from "./chapters/types";
 import { componentRegistry, getComponent as getComponentDefinition } from "./components/registry";
 import { getComponentDocsEntry } from "./components/manifest";
 import type { ComponentDefinition } from "./components/types";
+import { getGlossaryTerm as getGlossaryTermDefinition } from "./concepts/registry";
+import type { GlossaryTermDefinition } from "./concepts/types";
+import { preloadChapterLessonMdx } from "@/chapters/use-chapter-lesson-mdx";
 
 /**
  * The one API surface UI code goes through for curriculum/component content
@@ -27,6 +30,12 @@ export function getComponent(id: string): ComponentDefinition | undefined {
   return getComponentDefinition(id);
 }
 
+/** Same lookup as content/concepts/registry.ts's `getGlossaryTerm` - re-exposed
+ * here so content-consuming UI only needs one import. */
+export function getGlossaryTerm(id: string): GlossaryTermDefinition | undefined {
+  return getGlossaryTermDefinition(id);
+}
+
 /** A chapter's Chapter Reader body, fetched and cached client-side. Returns
  * null while loading, on 404, for an unknown chapterId, or for `undefined` -
  * callers fall back to `ChapterDefinition.problemStatement` themselves, same
@@ -34,6 +43,17 @@ export function getComponent(id: string): ComponentDefinition | undefined {
 export function useChapterLesson(chapterId: string | undefined): string | null {
   const chapter = chapterId ? getChapter(chapterId) : undefined;
   return useMarkdownFile(chapter ? getLessonFileUrl(chapter.id) : undefined, chapter?.lessonVersion);
+}
+
+/** Fetches (and for MDX, compiles) a chapter's reader body ahead of a route
+ * change. This deliberately populates the same client caches the reader's
+ * hooks consume. */
+export function preloadChapterLesson(chapterId: string | undefined): Promise<void> {
+  const chapter = chapterId ? getChapter(chapterId) : undefined;
+  if (!chapter) return Promise.resolve();
+  return chapter.lessonFormat === "mdx"
+    ? preloadChapterLessonMdx(chapter.id, chapter.lessonVersion)
+    : preloadMarkdownFile(getLessonFileUrl(chapter.id), chapter.lessonVersion);
 }
 
 /** A component's optional `docsFile` body, fetched and cached client-side via
@@ -53,7 +73,7 @@ export type ContentSearchResult =
  * Plain case-insensitive substring match over chapter title/problemStatement
  * and component label/summary - no UI wires this up yet (no search box
  * exists), same "build the primitive ahead of its consumer" pattern Phase 1
- * used for the empty examples/glossary/images content directories. Scoped to
+ * used for the empty examples/images content directories. Scoped to
  * built-in `componentRegistry`, not user-created custom components - those
  * are per-project data, not versioned content.
  */
