@@ -4,10 +4,7 @@ import { useMemo, useState } from "react";
 import { Canvas } from "@/canvas/Canvas";
 import { PageEnter } from "@/app/PageEnter";
 import { useCanvasStore, toArchitectureGraph } from "@/canvas/store";
-import { buildGraphIndex } from "@/validation-engine/graph-index";
-import { matchPattern, type Binding } from "@/validation-engine/pattern";
-import { runValidation } from "@/validation-engine/engine";
-import { ruleRegistry } from "@/validation-engine/rules";
+import { buildGraphIndex, matchPattern, type Binding, runValidation, ruleRegistry } from "@/engines";
 import type { Blueprint } from "@/content/chapters/types";
 import { componentRegistry } from "@/content/components/registry";
 
