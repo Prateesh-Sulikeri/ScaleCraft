@@ -248,8 +248,9 @@ vi.mock("@/curriculum/progress-store", () => ({
 }));
 
 const routerPushMock = vi.fn();
+const routerPrefetchMock = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: routerPushMock }),
+  useRouter: () => ({ push: routerPushMock, prefetch: routerPrefetchMock }),
 }));
 
 const runValidationMock = vi.fn();
@@ -306,6 +307,7 @@ beforeEach(async () => {
   hydrateProgressMock.mockClear();
   recordValidationPassMock.mockClear();
   routerPushMock.mockClear();
+  routerPrefetchMock.mockClear();
 });
 
 afterEach(() => {
@@ -366,7 +368,7 @@ describe("ChapterWorkspace", () => {
       expect(link).toHaveAttribute("href", "/building-blocks/slug-one/lesson");
       fireEvent.click(link, { button: 0 });
       expect(routerPushMock).not.toHaveBeenCalled();
-      vi.advanceTimersByTime(1250);
+      await vi.advanceTimersByTimeAsync(1250);
       expect(routerPushMock).toHaveBeenCalledWith("/building-blocks/slug-one/lesson");
       vi.useRealTimers();
     });

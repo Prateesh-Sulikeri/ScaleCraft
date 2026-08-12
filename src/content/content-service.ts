@@ -1,6 +1,6 @@
 "use client";
 
-import { useMarkdownFile } from "@/lib/use-markdown-file";
+import { preloadMarkdownFile, useMarkdownFile } from "@/lib/use-markdown-file";
 import { chapterRegistry } from "./chapters";
 import { getLessonFileUrl } from "./chapters/lessons";
 import type { ChapterDefinition } from "./chapters/types";
@@ -9,6 +9,7 @@ import { getComponentDocsEntry } from "./components/manifest";
 import type { ComponentDefinition } from "./components/types";
 import { getGlossaryTerm as getGlossaryTermDefinition } from "./concepts/registry";
 import type { GlossaryTermDefinition } from "./concepts/types";
+import { preloadChapterLessonMdx } from "@/chapters/use-chapter-lesson-mdx";
 
 /**
  * The one API surface UI code goes through for curriculum/component content
@@ -42,6 +43,17 @@ export function getGlossaryTerm(id: string): GlossaryTermDefinition | undefined 
 export function useChapterLesson(chapterId: string | undefined): string | null {
   const chapter = chapterId ? getChapter(chapterId) : undefined;
   return useMarkdownFile(chapter ? getLessonFileUrl(chapter.id) : undefined, chapter?.lessonVersion);
+}
+
+/** Fetches (and for MDX, compiles) a chapter's reader body ahead of a route
+ * change. This deliberately populates the same client caches the reader's
+ * hooks consume. */
+export function preloadChapterLesson(chapterId: string | undefined): Promise<void> {
+  const chapter = chapterId ? getChapter(chapterId) : undefined;
+  if (!chapter) return Promise.resolve();
+  return chapter.lessonFormat === "mdx"
+    ? preloadChapterLessonMdx(chapter.id, chapter.lessonVersion)
+    : preloadMarkdownFile(getLessonFileUrl(chapter.id), chapter.lessonVersion);
 }
 
 /** A component's optional `docsFile` body, fetched and cached client-side via

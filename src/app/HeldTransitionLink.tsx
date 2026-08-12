@@ -19,6 +19,9 @@ type HeldTransitionLinkProps = {
   children: ReactNode;
   "aria-current"?: "page";
   "aria-label"?: string;
+  /** Optional work that must be ready before navigation. Used by lesson
+   * links to fetch/compile the reader body behind the branded overlay. */
+  preload?: () => Promise<unknown>;
 };
 
 /**
@@ -36,6 +39,7 @@ export function HeldTransitionLink({
   children,
   "aria-current": ariaCurrent,
   "aria-label": ariaLabel,
+  preload,
 }: HeldTransitionLinkProps) {
   const router = useRouter();
   const [navigating, setNavigating] = useState(false);
@@ -44,11 +48,28 @@ export function HeldTransitionLink({
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     setNavigating(true);
-    window.setTimeout(() => router.push(href), TRANSITION_HOLD_MS);
+    router.prefetch(href);
+    const minimumHold = new Promise<void>((resolve) => window.setTimeout(resolve, TRANSITION_HOLD_MS));
+    const preloadWork = preload ? preload().catch(() => undefined) : Promise.resolve();
+    void Promise.all([minimumHold, preloadWork]).then(() => router.push(href));
+  };
+
+  const handlePointerEnter = () => {
+    // Get a head start while the learner is deciding to click. Failures are
+    // intentionally non-blocking; the Reader retains its normal fallback.
+    if (preload) void preload().catch(() => undefined);
+    router.prefetch(href);
   };
 
   return (
-    <Link href={href} onClick={handleClick} aria-current={ariaCurrent} aria-label={ariaLabel} className={className}>
+    <Link
+      href={href}
+      onClick={handleClick}
+      onPointerEnter={handlePointerEnter}
+      aria-current={ariaCurrent}
+      aria-label={ariaLabel}
+      className={className}
+    >
       {children}
       {navigating && <LoadingTransition label={label} />}
     </Link>
