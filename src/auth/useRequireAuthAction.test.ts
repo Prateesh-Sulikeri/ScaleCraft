@@ -15,7 +15,7 @@ describe("useRequireAuthAction", () => {
   });
 
   it("runs the action directly and shows no dialog when signed in", () => {
-    vi.mocked(useAuth).mockReturnValue({ isSignedIn: true } as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: true } as ReturnType<typeof useAuth>);
     const redirectToSignIn = vi.fn();
     vi.mocked(useClerk).mockReturnValue({ redirectToSignIn } as unknown as ReturnType<typeof useClerk>);
 
@@ -29,7 +29,7 @@ describe("useRequireAuthAction", () => {
   });
 
   it("opens a confirm dialog instead of redirecting immediately when signed out", () => {
-    vi.mocked(useAuth).mockReturnValue({ isSignedIn: false } as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: false } as ReturnType<typeof useAuth>);
     const redirectToSignIn = vi.fn();
     vi.mocked(useClerk).mockReturnValue({ redirectToSignIn } as unknown as ReturnType<typeof useClerk>);
 
@@ -43,7 +43,7 @@ describe("useRequireAuthAction", () => {
   });
 
   it("redirects to sign-in with the current path only once the dialog is confirmed", () => {
-    vi.mocked(useAuth).mockReturnValue({ isSignedIn: false } as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: false } as ReturnType<typeof useAuth>);
     const redirectToSignIn = vi.fn();
     vi.mocked(useClerk).mockReturnValue({ redirectToSignIn } as unknown as ReturnType<typeof useClerk>);
 
@@ -56,8 +56,51 @@ describe("useRequireAuthAction", () => {
     expect(result.current.dialog).toBeNull();
   });
 
+  // Regression: `isSignedIn` is undefined until Clerk loads, so branching on
+  // it alone prompted a signed-in user to sign in (e2e multi-device-sync).
+  it("holds a click made before Clerk loads, then runs it once signed in resolves", () => {
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: false, isSignedIn: undefined } as ReturnType<
+      typeof useAuth
+    >);
+    vi.mocked(useClerk).mockReturnValue({ redirectToSignIn: vi.fn() } as unknown as ReturnType<
+      typeof useClerk
+    >);
+
+    const { result, rerender } = renderHook(() => useRequireAuthAction());
+    const action = vi.fn();
+    act(() => result.current.requireAuth(action));
+
+    expect(action).not.toHaveBeenCalled();
+    expect(result.current.dialog).toBeNull();
+
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: true } as ReturnType<typeof useAuth>);
+    act(() => rerender());
+
+    expect(action).toHaveBeenCalledOnce();
+    expect(result.current.dialog).toBeNull();
+  });
+
+  it("holds a click made before Clerk loads, then prompts once signed out resolves", () => {
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: false, isSignedIn: undefined } as ReturnType<
+      typeof useAuth
+    >);
+    vi.mocked(useClerk).mockReturnValue({ redirectToSignIn: vi.fn() } as unknown as ReturnType<
+      typeof useClerk
+    >);
+
+    const { result, rerender } = renderHook(() => useRequireAuthAction());
+    const action = vi.fn();
+    act(() => result.current.requireAuth(action));
+
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: false } as ReturnType<typeof useAuth>);
+    act(() => rerender());
+
+    expect(action).not.toHaveBeenCalled();
+    expect(result.current.dialog).not.toBeNull();
+  });
+
   it("dismisses the dialog and never redirects on cancel", () => {
-    vi.mocked(useAuth).mockReturnValue({ isSignedIn: false } as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: false } as ReturnType<typeof useAuth>);
     const redirectToSignIn = vi.fn();
     vi.mocked(useClerk).mockReturnValue({ redirectToSignIn } as unknown as ReturnType<typeof useClerk>);
 
