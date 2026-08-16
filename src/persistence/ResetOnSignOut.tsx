@@ -16,22 +16,36 @@ import { useCustomComponentsStore } from "@/canvas/custom-components-store";
  * RefreshFromCloud — reacts to Clerk's client-side `isSignedIn` rather than
  * relying on a document load that Phase 11 no longer guarantees happens.
  *
- * Only fires on a true->false transition, not on `isSignedIn` first
- * resolving to false for a visitor who was never signed in this session —
- * `wasSignedIn` starts at whatever useAuth() returns on mount (`undefined`
- * while loading), so a currently-signed-out visitor never trips it.
+ * Fires the first time `isSignedIn` reads `false` after having been `true`
+ * at some earlier point — not a strict last-render `true -> false` check.
+ * Clerk's `isSignedIn` can pass back through `undefined` (loading) mid
+ * sign-out before settling on `false`; a literal previous-render comparison
+ * would see `true -> undefined` (no match, skipped) then `undefined ->
+ * false` (also no match) and never fire at all, which is exactly the "still
+ * there until a hard reload" bug this component exists to prevent.
+ * `wasEverSignedIn` only ever moves forward within one sign-in/out cycle,
+ * and `hasReset` stops a `false` render from re-running this after the
+ * first one; both re-arm the moment `isSignedIn` reads `true` again, so a
+ * second sign-out in the same tab is caught too. A visitor who was never
+ * signed in this session never trips it — `wasEverSignedIn` starts `false`.
  */
 export function ResetOnSignOut() {
   const { isSignedIn } = useAuth();
-  const wasSignedIn = useRef(isSignedIn);
+  const wasEverSignedIn = useRef(false);
+  const hasReset = useRef(false);
 
   useEffect(() => {
-    if (wasSignedIn.current && isSignedIn === false) {
+    if (isSignedIn === true) {
+      wasEverSignedIn.current = true;
+      hasReset.current = false;
+      return;
+    }
+    if (isSignedIn === false && wasEverSignedIn.current && !hasReset.current) {
+      hasReset.current = true;
       useCurriculumProgressStore.getState().reset();
       useCustomComponentsStore.getState().reset();
       void clearLocalStateOnSignOut();
     }
-    wasSignedIn.current = isSignedIn;
   }, [isSignedIn]);
 
   return null;

@@ -72,4 +72,57 @@ describe("ResetOnSignOut", () => {
 
     expect(useCurriculumProgressStore.getState().hydrated).toBe(true);
   });
+
+  // Clerk's isSignedIn can pass back through undefined (loading) mid
+  // sign-out before settling on false - a strict previous-render true->false
+  // comparison would miss this entirely (true->undefined, then
+  // undefined->false, neither one a match) and never reset, which was
+  // reported as "still there until a hard reload."
+  it("still resets when isSignedIn passes through undefined on its way to false", () => {
+    useCurriculumProgressStore.setState({ hydrated: true });
+
+    mockSignedIn(true);
+    const { rerender } = render(<ResetOnSignOut />);
+
+    mockSignedIn(undefined);
+    rerender(<ResetOnSignOut />);
+    expect(useCurriculumProgressStore.getState().hydrated).toBe(true);
+
+    mockSignedIn(false);
+    rerender(<ResetOnSignOut />);
+    expect(useCurriculumProgressStore.getState().hydrated).toBe(false);
+  });
+
+  it("does not reset again on a second false render in the same sign-out", () => {
+    useCurriculumProgressStore.setState({ hydrated: true });
+    mockSignedIn(true);
+    const { rerender } = render(<ResetOnSignOut />);
+
+    mockSignedIn(false);
+    rerender(<ResetOnSignOut />);
+    // Re-hydrate in memory to prove a second `false` render doesn't wipe it
+    // again - only the first false after a true should ever reset.
+    useCurriculumProgressStore.setState({ hydrated: true });
+
+    rerender(<ResetOnSignOut />);
+    expect(useCurriculumProgressStore.getState().hydrated).toBe(true);
+  });
+
+  it("re-arms after a subsequent sign-in, so a second sign-out resets again", () => {
+    useCurriculumProgressStore.setState({ hydrated: true });
+    mockSignedIn(true);
+    const { rerender } = render(<ResetOnSignOut />);
+
+    mockSignedIn(false);
+    rerender(<ResetOnSignOut />);
+    expect(useCurriculumProgressStore.getState().hydrated).toBe(false);
+
+    mockSignedIn(true);
+    rerender(<ResetOnSignOut />);
+    useCurriculumProgressStore.setState({ hydrated: true });
+
+    mockSignedIn(false);
+    rerender(<ResetOnSignOut />);
+    expect(useCurriculumProgressStore.getState().hydrated).toBe(false);
+  });
 });
