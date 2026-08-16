@@ -20,9 +20,17 @@ export default defineConfig({
   // heavier routes, so give CI room; local (warm server) keeps the tight one.
   timeout: process.env.CI ? 90_000 : 30_000,
   expect: { timeout: process.env.CI ? 15_000 : 5_000 },
-  // Half the runner's cores compiling different routes at once is what pushes
-  // those first hits over the timeout - fewer workers, less compile contention.
-  workers: process.env.CI ? 2 : undefined,
+  // One worker, everywhere. The whole suite shares a single Clerk account, and
+  // since 6.1.0 that account's canvas/progress state lives server-side and is
+  // reconciled into any page that's open - so two specs running at once write
+  // each other's data. sandbox-persistence saves a 3-node sandbox while
+  // mode-isolation asserts the 4-node seed; design-editor mutates the 3.4
+  // chapter canvas while chapter-hints-validation validates it. Both failed
+  // that way, intermittently, depending on interleaving. Per-spec cleanup
+  // can't fix it: the conflicting write lands mid-test, after the cleanup ran.
+  // Also subsumes the old CI-only reason for capping workers (route-compile
+  // contention against a cold `next dev`).
+  workers: 1,
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
