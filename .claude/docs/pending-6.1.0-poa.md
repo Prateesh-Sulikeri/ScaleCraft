@@ -1,13 +1,23 @@
 # Release 6.1.0-alpha - Remaining Fixes
 
-Status: **Feature-complete and merged to `staging/release-6.1.0`, not shippable
-yet.** Phases 0-11 all landed; this file is now the close-out list from the
-2026-08-16 audit of the merged branch, not the build plan. The build plan (all
-eleven phases, every decision and its rationale, the storage measurements and
-the S1-S11 mapping) was replaced by this rewrite and lives in git history -
+Status: **Close-out fixes built on `fix/6.1.0-close-out` (cut from
+`staging/release-6.1.0`), 2026-08-16.** Phases 0-11 all landed on staging
+already; this file is the close-out list from the 2026-08-16 audit of that
+merged branch, not the build plan. The build plan (all eleven phases, every
+decision and its rationale, the storage measurements and the S1-S11 mapping)
+was replaced by an earlier rewrite and lives in git history -
 `git show f0db112:.claude/docs/pending-6.1.0-poa.md` for the last full version.
 Its two companions are untouched and still the evidence files:
 `pending-cloud-sync.md` and `pending-persistence-audit.md`.
+
+P1.1, P1.2, P2.1, P2.2, P2.3 (ARCHITECTURE.md half), and P2.4 are done on this
+branch, full CI green (`typecheck && lint && test && build`). Two items are
+not: **P1.3's e2e test is written but unrun** - this sandbox has no outbound
+network access to Clerk/Neon at all (DNS resolution itself fails), so `npx
+playwright test` can't complete global setup here; run it from a machine with
+real network access before merging. **P2.3's chapter Opus-proofread half** is
+content-authoring work that belongs to the `chapter-author` skill, not this
+engineering branch - still outstanding, unscheduled.
 
 Everything below is a defect or gap found *after* the phases were called done.
 Nothing here is new scope.
@@ -52,16 +62,18 @@ This is audit S2 (cross-account leak) returning through the door Phase 11
 opened. It is narrower than the original S2 (in-memory only, and the next
 sign-in still wipes Dexie correctly) but it is the same class of bug.
 
-- [ ] Reset the progress store and `custom-components-store` when `isSignedIn`
-      goes false. A store-level `reset()` beside the existing `hydrate`/`refresh`
-      is the smallest shape, driven from one component mounted in the root
-      layout next to `LocalStateGate`.
-- [ ] Decide whether sign-out should also clear Dexie, not just memory. Leaning
-      yes, treating "local is a disposable cache" (this release's core decision)
-      as the licence: the cloud refills it on next sign-in, so there is no cost,
-      and it closes the on-disk half of the same hole.
-- [ ] Regression test: hydrate as user A, flip `useAuth` to signed-out, assert
-      the store no longer exposes A's rows.
+- [x] Reset the progress store and `custom-components-store` when `isSignedIn`
+      goes false. Added `reset()` to both stores; `src/persistence/ResetOnSignOut.tsx`
+      mounts in the root layout next to `LocalStateGate` and drives it off
+      `useAuth()`'s `isSignedIn` true->false transition.
+- [x] Decided yes - sign-out also clears Dexie, not just memory.
+      `db.ts::clearLocalStateOnSignOut()` clears every table and the
+      `sc-`/`scalecraft:` localStorage keys, same licence as the existing
+      account-change wipe.
+- [x] Regression test: `ResetOnSignOut.test.tsx` hydrates both stores (and
+      writes a real Dexie row), flips `useAuth` to signed-out, asserts both
+      stores and Dexie no longer expose the row. `progress-store.test.ts` and
+      `custom-components-store.test.ts` cover `reset()` directly.
 
 ### 1.2 The eleven removed chapter URLs 404 with no redirects
 
@@ -87,14 +99,13 @@ mapping. Targets follow Phase 10's absorption table:
 | `1-10-communicating-and-defending-a-design` | `1-3-defending-the-design` |
 | `1-11-driving-a-system-design-interview` | `1-4-driving-the-interview` |
 
-- [ ] Add the redirects. `next.config`'s `redirects()` is the right home - static,
-      no request inspection needed, and it keeps `proxy.ts` a bare
-      `clerkMiddleware()`.
-- [ ] Permanent (308) or temporary (307)? Recommend **permanent**: the old slugs
-      are never coming back, and permanent is what tells the textbook's links and
-      any crawler to stop asking.
-- [ ] Test coverage that every old slug resolves rather than 404s, so a future
-      slug change cannot quietly drop one.
+- [x] Added the redirects in `next.config.ts`'s `redirects()` - both
+      `/building-blocks/<slug>` and `/building-blocks/<slug>/lesson` for all
+      eleven old slugs.
+- [x] Permanent (308), per the recommendation.
+- [x] `next.config.test.ts` asserts every old slug (and its `/lesson`
+      variant) maps to the right destination and that the redirect count is
+      exactly 22 - a future slug change dropping one fails the count.
 
 ### 1.3 Zones cross-device round trip is still unverified
 
@@ -107,11 +118,17 @@ Nothing tests it. `multi-device-sync.spec.ts` has eight cases including a sandbo
 canvas round trip, but no case ever places a zone. The migration that justified
 truncating the table is the one thing not covered.
 
-- [ ] Add a zones case to `multi-device-sync.spec.ts`: place a zone (and a Start
-      marker) on device A, save, confirm both arrive intact on device B.
-- [ ] Run it. This is the one place in the release where an e2e run is worth
-      asking for specifically, per the standing convention that e2e runs are
-      requested rather than automatic.
+- [x] Added "a zone and a Start marker placed on one device arrive intact on
+      the other" to `multi-device-sync.spec.ts` - places both via the real UI
+      (picker -> placement mode -> click), labels them distinctively, saves,
+      and asserts device B shows the same count, labels, and zone geometry
+      (320x220, the plain-click default size).
+- [ ] **Not run.** This sandbox environment has no outbound network access at
+      all (DNS resolution to Clerk's API times out even with sandboxing
+      disabled) - `npx playwright test` can't get past global setup here.
+      Run `npx playwright test e2e/multi-device-sync.spec.ts -g "zone and a
+      Start marker"` from a machine with real network access before
+      considering this item closed.
 
 ---
 
@@ -129,9 +146,13 @@ What is missing is that the discard is *silent*. `sync-status.ts` tracks
 dirty, so the count goes down and the user reads that as success. The one case
 where a real edit is genuinely lost is the one case with no signal at all.
 
-- [ ] Decide the minimum honest signal. A count of discarded-on-reconcile rows
-      surfaced through the existing `CloudSyncIndicator` is probably enough; a
-      modal is too much for something single-player makes rare.
+- [x] Decided: a count. `reconcile.ts`'s `pickWinner`/`reconcileRows`/
+      `reconcileRow` now report `discarded`; every reconciling caller
+      (progress-store, custom-components-store, the two `reconcileRow` sites
+      in ChapterWorkspace/sandbox) feeds it into a new
+      `discardedCount` on `sync-status.ts`, and `CloudSyncIndicator` shows a
+      quiet third state for it (lowest priority - dirty and pull-error both
+      outrank it).
 
 ### 2.2 `beta-allowlist.ts` is enforced nowhere
 
@@ -140,18 +161,20 @@ original scaffold ("Not yet wired to a real Clerk webhook/middleware"). Phase 11
 is what makes it matter: reading is now fully public, so nothing stands between a
 stranger and the entire curriculum, and sign-up is open.
 
-- [ ] **Decision needed, not a code fix.** Either wire the allowlist (a Clerk
-      webhook rejecting non-invited sign-ups), or delete the stub and accept that
-      reading is public and accounts are open. The current state - a file that
-      looks like a gate and is not one - is the only option worth ruling out.
+- [x] **Decided (user, 2026-08-16): delete the stub, accept open access.**
+      Removed `beta-allowlist.ts` and its test. `src/auth/README.md` and
+      `OPEN_QUESTIONS.md` rewritten to record the decision instead of
+      describing a pre-Clerk state that no longer exists.
 
 ### 2.3 Doc drift left by the phases
 
 - [ ] `pending-chapters.md`: the four new chapters still have no Opus proofread
       pass recorded. Phase 10 authored them and explicitly deferred the review.
-- [ ] `ARCHITECTURE.md` still owes the Dexie/Postgres schema-parity note carried
-      over from `pending-cloud-sync.md`. Called out there as an ongoing
-      obligation and never written.
+      **Still open** - this is content-authoring work for the `chapter-author`
+      skill, out of scope for this engineering close-out branch.
+- [x] `ARCHITECTURE.md` now has the Dexie/Postgres schema-parity note (new
+      "Schema parity" subsection under Persistence), plus a note on the
+      Account isolation section about sign-out now doing the same wipe (P1.1).
 
 ### 2.4 Flaky test will redden CI at random
 
@@ -161,8 +184,9 @@ parallel load on the merged branch, then passed 5/5 in isolation. Not caused by
 the merge - the identical tree passed a full run earlier the same session. The
 assertion races the staleness flag against validation completing.
 
-- [ ] Make the staleness assertion wait for the state it expects rather than
-      reading it immediately after the violations count settles.
+- [x] Fixed - the `is-stale` assertion now waits (`waitFor`) instead of reading
+      immediately after the violations count settles. Green 3/3 runs after
+      the fix, including under the same full-suite conditions that flaked.
 
 ---
 
@@ -202,9 +226,12 @@ not against the old build log's claims.
 
 ## Verification gate for the release
 
-- [ ] P1.1, P1.2, P1.3 closed
-- [ ] P2.4 closed so the suite is honestly green
-- [ ] Full CI: `npm run typecheck && npm run lint && npm test && npm run build`
-- [ ] `multi-device-sync.spec.ts` run green, including the new zones case
-- [ ] `staging/release-6.1.0` reviewed and merged onward by the user. Claude does
-      not merge to `develop` or `main`.
+- [x] P1.1, P1.2 closed. P1.3's test is written but not yet run (see above).
+- [x] P2.4 closed so the suite is honestly green.
+- [x] Full CI on `fix/6.1.0-close-out`: `npm run typecheck && npm run lint &&
+      npm test && npm run build` - all green.
+- [ ] `multi-device-sync.spec.ts` run green, including the new zones case -
+      **blocked**, no network access in this environment; run manually.
+- [ ] `fix/6.1.0-close-out` reviewed and merged (first into
+      `staging/release-6.1.0`, then onward) by the user. Claude does not merge
+      its own branches.

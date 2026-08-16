@@ -270,6 +270,27 @@ changed) completes. A mismatch clears every Dexie table (`db.tables`, not a
 hardcoded list) and the `sc-`/`scalecraft:` localStorage keys; the cloud refills
 both on the next reconcile.
 
+Sign-out gets the same wipe (release 6.1.0-alpha close-out P1.1, since reading
+went public in Phase 11 and Clerk's default sign-out no longer does a full
+document navigation that would have torn down the module-singleton stores on
+its own). `src/persistence/ResetOnSignOut.tsx` reacts to `useAuth()`'s
+`isSignedIn` going `true` -> `false`, resets `progress-store.ts` and
+`custom-components-store.ts` in memory, and calls
+`db.ts::clearLocalStateOnSignOut()` for the Dexie/localStorage half — the
+same "local is a disposable cache" licence as the account-change wipe above.
+
+### Schema parity (Dexie ↔ Postgres)
+
+Dexie carries its own migration history (schema v9 as of writing, with real
+shape changes like `quizProgress` -> `examAttempts`); Postgres does not
+inherit that history — its tables mirror only the *current* Dexie shape,
+created directly via `drizzle-kit generate`/`migrate` (decision recorded in
+`pending-cloud-sync.md`, "Decisions locked 2026-08-12" #5). **A future Dexie
+schema change (a new field, a new table, a renamed one) needs a matching
+Postgres migration in the same change** — `src/db/schema.ts` and Dexie's
+version block in `src/persistence/db.ts` are not kept in sync automatically,
+and nothing currently checks that they agree.
+
 ## Project structure (single Next.js app, no workspace packages yet)
 
 Folder-level module boundaries, not package boundaries — see [[TECH_STACK]] for why a
