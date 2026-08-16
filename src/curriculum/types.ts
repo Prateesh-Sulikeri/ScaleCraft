@@ -11,9 +11,9 @@ export type Difficulty = "foundational" | "intermediate" | "advanced";
 /** One row in the Learning Path. This is the curriculum *map* — a stable,
  *  content-free entry that exists whether or not a lesson has been authored.
  *  Distinct from ChapterDefinition (src/content/chapters/types.ts), which is
- *  the authored lesson itself. The manifest lists all 79 entries (47
- *  Building Blocks + 32 Real World Extraction); only 2 have a
- *  ChapterDefinition today. */
+ *  the authored lesson itself. The manifest lists all 72 entries (40
+ *  Building Blocks + 32 Real World Extraction, since Release 6.1.0-alpha
+ *  Phase 10 condensed Part 1 from 11 chapters to 4 - was 79/47 before). */
 export type CurriculumChapter = {
   /** Stable, URL-safe, globally unique. ALSO the route segment:
    *  /building-blocks/<slug>. Never change one after release — it is a
