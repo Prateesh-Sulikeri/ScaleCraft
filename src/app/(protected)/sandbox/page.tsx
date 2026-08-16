@@ -29,6 +29,7 @@ import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
 import { hydrateSave, syncSave } from "@/persistence/cloud-sync";
 import { reconcileRow } from "@/persistence/reconcile";
+import { useSyncStatusStore } from "@/persistence/sync-status";
 
 // Starts minimized (see canvas/store.tsx's docsPanel default), so most
 // loads never need it - keeps its markdown-rendering weight out of the
@@ -142,7 +143,8 @@ function SandboxPageContent() {
               dirty: false,
             }
           : null;
-      const winner = reconcileRow(local ?? null, remoteAsSave);
+      const { result: winner, discarded } = reconcileRow(local ?? null, remoteAsSave);
+      if (discarded) useSyncStatusStore.getState().recordDiscarded(1);
       if (winner) {
         if (winner !== local) void db.saves.put(winner);
         loadCanvasState(winner.nodes, winner.edges);
