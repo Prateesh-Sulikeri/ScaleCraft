@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { ReactFlow, ReactFlowProvider, Background, type Node } from "@xyflow/react";
 import { useTheme } from "next-themes";
+import { useAuth } from "@clerk/nextjs";
 import { useHasMounted } from "@/lib/use-has-mounted";
 import { ModeNode } from "@/app/ModeNode";
 import { HomeTitleNode, HOME_TITLE_NODE_WIDTH } from "@/app/HomeTitleNode";
@@ -93,10 +94,17 @@ export function HomeCanvas() {
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
   const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
+    // Phase 11 (pending-6.1.0-poa.md) — this page is public now. A
+    // signed-out visitor never hydrates: no anonymous local writes, and no
+    // point 401ing against /api/sync/*. The store's untouched empty
+    // Set/Map already renders every course at 0%/"not started", which is
+    // the correct signed-out shape.
+    if (!isSignedIn) return;
     void hydrate();
-  }, [hydrate]);
+  }, [hydrate, isSignedIn]);
 
   // Before hydrate() resolves, the store's default empty Set/Map already
   // renders every course at 0%/"not started" — the same shape a real empty

@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { useAuth, useClerk } from "@clerk/nextjs";
 import { ChapterRow } from "./ChapterRow";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { db } from "@/persistence/db";
@@ -8,6 +9,7 @@ import type { CurriculumChapter } from "@/curriculum/types";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/building-blocks",
 }));
 
 function entry(overrides: Partial<CurriculumChapter> = {}): CurriculumChapter {
@@ -125,5 +127,57 @@ describe("ChapterRow", () => {
     await waitFor(() =>
       expect(useCurriculumProgressStore.getState().rowsBySlug.get("1-2-load-balancing")?.manuallyCompletedAt).toBeNull(),
     );
+  });
+
+  // Release 6.1.0-alpha Phase 11 (pending-6.1.0-poa.md) - this row now lives
+  // on a public page. Signed out, the toggle must show AuthPromptDialog and
+  // only send the visitor to sign-in once confirmed, never writing progress
+  // beforehand (11.5's "gate at the action").
+  describe("signed out", () => {
+    beforeEach(() => {
+      vi.mocked(useAuth).mockReturnValue({ isSignedIn: false } as ReturnType<typeof useAuth>);
+    });
+
+    afterEach(() => {
+      vi.mocked(useAuth).mockReset();
+      vi.mocked(useClerk).mockReset();
+    });
+
+    it("shows the auth prompt dialog instead of redirecting immediately when the toggle is clicked", () => {
+      const redirectToSignIn = vi.fn();
+      vi.mocked(useClerk).mockReturnValue({ redirectToSignIn } as unknown as ReturnType<typeof useClerk>);
+
+      render(<ChapterRow entry={entry()} courseId="building-blocks" status="NOT_STARTED" completedByValidation={false} />);
+      fireEvent.click(screen.getByRole("button", { name: "Mark Load Balancing complete" }));
+
+      expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+      expect(redirectToSignIn).not.toHaveBeenCalled();
+      expect(useCurriculumProgressStore.getState().rowsBySlug.get("1-2-load-balancing")).toBeUndefined();
+    });
+
+    it("redirects to sign-in and never writes progress once the dialog is confirmed", async () => {
+      const redirectToSignIn = vi.fn();
+      vi.mocked(useClerk).mockReturnValue({ redirectToSignIn } as unknown as ReturnType<typeof useClerk>);
+
+      render(<ChapterRow entry={entry()} courseId="building-blocks" status="NOT_STARTED" completedByValidation={false} />);
+      fireEvent.click(screen.getByRole("button", { name: "Mark Load Balancing complete" }));
+      fireEvent.click(screen.getByRole("button", { name: "Sign in / sign up" }));
+
+      expect(redirectToSignIn).toHaveBeenCalledOnce();
+      expect(useCurriculumProgressStore.getState().rowsBySlug.get("1-2-load-balancing")).toBeUndefined();
+    });
+
+    it("dismissing the dialog never redirects and never writes progress", () => {
+      const redirectToSignIn = vi.fn();
+      vi.mocked(useClerk).mockReturnValue({ redirectToSignIn } as unknown as ReturnType<typeof useClerk>);
+
+      render(<ChapterRow entry={entry()} courseId="building-blocks" status="NOT_STARTED" completedByValidation={false} />);
+      fireEvent.click(screen.getByRole("button", { name: "Mark Load Balancing complete" }));
+      fireEvent.click(screen.getByRole("button", { name: "Not now" }));
+
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      expect(redirectToSignIn).not.toHaveBeenCalled();
+      expect(useCurriculumProgressStore.getState().rowsBySlug.get("1-2-load-balancing")).toBeUndefined();
+    });
   });
 });

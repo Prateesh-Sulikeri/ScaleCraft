@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { useCustomComponentsStore } from "@/canvas/custom-components-store";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 
@@ -11,8 +12,14 @@ const MIN_INTERVAL_MS = 2_000;
 
 /**
  * The read half of Phase 4.2's "sync on meaningful events, not on a timer"
- * (pending-6.1.0-poa.md) - FlushDirtyRows is the write half. Both are
- * mounted in src/app/(protected)/layout.tsx.
+ * (pending-6.1.0-poa.md) - FlushDirtyRows is the write half. Mounted in
+ * src/app/layout.tsx (root) since Phase 11 made most routes public - a
+ * signed-in learner reading the Learning Path or a lesson (both public now)
+ * still expects refocus to pull in what another device did, so this can no
+ * longer live behind a gated layout. Gates on `isSignedIn` itself instead:
+ * a signed-out visitor's stores are never hydrated in the first place (see
+ * progress-store.ts / custom-components-store.ts's callers), so pulling for
+ * them would only 401.
  *
  * Without this, the progress and custom-component stores are module
  * singletons that outlive client-side navigation, so their `hydrated` latch
@@ -26,7 +33,10 @@ const MIN_INTERVAL_MS = 2_000;
  * staleness it fixes. Progress rows have no such live editing surface.
  */
 export function RefreshFromCloud() {
+  const { isSignedIn } = useAuth();
+
   useEffect(() => {
+    if (!isSignedIn) return;
     let lastRunAt = 0;
     const pull = () => {
       if (document.visibilityState !== "visible") return;
@@ -45,6 +55,6 @@ export function RefreshFromCloud() {
       window.removeEventListener("focus", pull);
       window.removeEventListener("online", pull);
     };
-  }, []);
+  }, [isSignedIn]);
   return null;
 }

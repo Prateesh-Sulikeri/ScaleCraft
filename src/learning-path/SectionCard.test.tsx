@@ -10,6 +10,7 @@ import type { ProgressInputs } from "@/curriculum/progress";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/building-blocks",
 }));
 
 const section: CurriculumSection = {

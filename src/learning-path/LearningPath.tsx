@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Search } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 import { PageEnter } from "@/app/PageEnter";
 import { chapterStatusLabel } from "./ChapterStatusIcon";
 import { CourseHeader } from "./CourseHeader";
@@ -35,10 +36,16 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
   const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
+    // Phase 11 (pending-6.1.0-poa.md) — public page now. Signed-out visitors
+    // never refresh: no anonymous local writes, no point 401ing against
+    // /api/sync/*. The store's untouched empty Set/Map already renders
+    // every row as NOT_STARTED, the correct signed-out shape.
+    if (!isSignedIn) return;
     void refresh();
-  }, [refresh]);
+  }, [refresh, isSignedIn]);
 
   const inputs: ProgressInputs = useMemo(
     () => ({ validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition }),
