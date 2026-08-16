@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { useAuth } from "@clerk/nextjs";
 import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+import { useRequireAuthAction } from "@/auth/useRequireAuthAction";
 import { bestExamScore, examLocked, examPassed, EXAM_PASS_THRESHOLD } from "@/curriculum/progress";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { ExamAttempt } from "@/persistence/db";
@@ -46,6 +48,15 @@ const FAILED_BUTTON = "border-state-error bg-background text-state-error hover:b
  * passed) / "View your result" (passed, locked) once attempts exist. Passing
  * is the only thing that locks the exam - unlimited attempts otherwise.
  *
+ * The lesson reader hosting this card is public (Phase 11,
+ * pending-6.1.0-poa.md), but the quiz and the exercise both write progress,
+ * so both are gated at the click via useRequireAuthAction rather than the
+ * route - a signed-out visitor sees AuthPromptDialog before being sent to
+ * sign in. The exercise row swaps HeldTransitionLink for a plain button when
+ * signed out (same visual treatment) so the click never reaches the Design
+ * Editor's own route guard - that guard still exists as a backstop, but the
+ * dialog is what a signed-out learner actually sees.
+ *
  * Each row's button is neutral until there's something to report: green
  * once that row's task is done (quiz passed / exercise validated), red on
  * an attempted-but-not-passed quiz - never on the exercise row, which has
@@ -55,6 +66,8 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
   const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
   const recordExamAttempt = useCurriculumProgressStore((s) => s.recordExamAttempt);
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
+  const { requireAuth, dialog } = useRequireAuthAction();
+  const { isSignedIn } = useAuth();
 
   const [view, setView] = useState<null | "exam" | "results">(null);
   const [viewedAttempt, setViewedAttempt] = useState<ExamAttempt | null>(null);
@@ -120,7 +133,7 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
 
             <button
               type="button"
-              onClick={locked ? handleViewResult : () => setView("exam")}
+              onClick={() => requireAuth(locked ? handleViewResult : () => setView("exam"))}
               className={`shrink-0 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${quizButtonClass}`}
             >
               {locked ? "View your result" : attempts.length > 0 ? "Retake the quiz" : "Take the quiz"}
@@ -138,13 +151,23 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
                 Build it on the canvas and get validated against this chapter&apos;s target design.
               </p>
             </div>
-            <HeldTransitionLink
-              href={`/${mode}/${chapterSlug}`}
-              label="Opening the Design Editor…"
-              className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${exerciseButtonClass}`}
-            >
-              Begin exercise <span aria-hidden="true">&#8594;</span>
-            </HeldTransitionLink>
+            {isSignedIn ? (
+              <HeldTransitionLink
+                href={`/${mode}/${chapterSlug}`}
+                label="Opening the Design Editor…"
+                className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${exerciseButtonClass}`}
+              >
+                Begin exercise <span aria-hidden="true">&#8594;</span>
+              </HeldTransitionLink>
+            ) : (
+              <button
+                type="button"
+                onClick={() => requireAuth(() => {})}
+                className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${exerciseButtonClass}`}
+              >
+                Begin exercise <span aria-hidden="true">&#8594;</span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -161,6 +184,8 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
       {view === "results" && viewedAttempt && (
         <ExamResults chapter={chapter} attempt={viewedAttempt} onReturn={() => setView(null)} />
       )}
+
+      {dialog}
     </div>
   );
 }

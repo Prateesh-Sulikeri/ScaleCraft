@@ -234,4 +234,44 @@ describe("useAutosave", () => {
       timeout: AUTOSAVE_DEBOUNCE_MS + 1000,
     });
   });
+
+  // Phase 4.2, pending-6.1.0-poa.md: the debounced path never pushes to the
+  // cloud (only saveNow can, and only when the caller opts in) - a timer
+  // firing is never a "meaningful event."
+  describe("cloud sync gating (Phase 4.2)", () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it("never pushes to the cloud on a debounced autosave", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ updatedAt: 1 }), { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+      renderHook(() => useAutosave("save-1", [nodeA], edges));
+
+      await wait(AUTOSAVE_DEBOUNCE_MS + 200);
+      expect(await db.saves.get("save-1")).toBeDefined();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("pushes to the cloud on saveNow by default", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ updatedAt: 1 }), { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+      const { result } = renderHook(() => useAutosave("save-1", [nodeA], edges));
+
+      await result.current.saveNow();
+      expect(fetchMock).toHaveBeenCalledWith("/api/sync/saves", expect.objectContaining({ method: "POST" }));
+    });
+
+    it("does not push to the cloud on saveNow when syncOnManualSave is false", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ updatedAt: 1 }), { status: 200 }));
+      vi.stubGlobal("fetch", fetchMock);
+      const { result } = renderHook(() =>
+        useAutosave("save-1", [nodeA], edges, { syncOnManualSave: false }),
+      );
+
+      await result.current.saveNow();
+      expect(await db.saves.get("save-1")).toBeDefined();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  });
 });

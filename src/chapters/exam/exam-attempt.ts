@@ -30,5 +30,7 @@ export function buildAttempt(
     submittedAt: Date.now(),
     score,
     answers,
+    dirty: true,
+    syncedAt: null,
   };
 }

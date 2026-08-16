@@ -1,5 +1,16 @@
 import { create } from "zustand";
-import { db, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
+import { db, type ChapterProgress, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
+import {
+  deleteChapterProgressSync,
+  deleteExamAttemptsSync,
+  hydrateAllChapterProgress,
+  hydrateAllCurriculumProgress,
+  hydrateAllExamAttempts,
+  syncCurriculumProgress,
+  syncExamAttempt,
+} from "@/persistence/cloud-sync";
+import { reconcileRows } from "@/persistence/reconcile";
+import { useSyncStatusStore } from "@/persistence/sync-status";
 import type { ProgressInputs } from "./progress";
 
 /** Replace-by-attemptNumber — mirrors Dexie's own replace-by-key `put`. */
@@ -40,6 +51,15 @@ type CurriculumProgressStore = {
   /** Reads all three Dexie tables into memory. Idempotent, safe to call from
    *  every mounting surface — bails if already hydrated or in flight. */
   hydrate: () => Promise<void>;
+  /** Same reconcile pass as `hydrate`, minus the already-hydrated bail. The
+   *  store is a module singleton that outlives client-side navigation, so
+   *  `hydrate`'s latch meant a tab reconciled exactly once per full page
+   *  load and never saw another device's writes again. Callers: the pull
+   *  triggers in RefreshFromCloud.tsx, the Learning Path's mount, and every
+   *  mutator below (which composes a whole-row payload out of local state,
+   *  so it has to be looking at the newest row before it writes - see
+   *  markVisited). */
+  refresh: () => Promise<void>;
   /** Called by ChapterWorkspace on mount. Writes lastVisitedAt (preserving
    *  any existing manuallyCompletedAt) and updates memory. */
   markVisited: (slug: string) => Promise<void>;
@@ -66,11 +86,112 @@ type CurriculumProgressStore = {
   resetChapter: (slug: string, chapterDefinitionId: string | null) => Promise<void>;
   /** Derived selector helper so callers never rebuild ProgressInputs by hand. */
   inputs: () => ProgressInputs;
+  /** In-memory only, no Dexie/cloud I/O — clears this account's rows out of
+   *  the singleton on sign-out (close-out P1.1) so the next signed-out or
+   *  signed-in-as-someone-else render can't still see them. Dexie itself is
+   *  wiped separately by db.ts's clearLocalStateOnSignOut. */
+  reset: () => void;
 };
 
-function existingRow(rowsBySlug: Map<string, CurriculumProgress>, slug: string): CurriculumProgress {
-  return rowsBySlug.get(slug) ?? { slug, manuallyCompletedAt: null, lastVisitedAt: null };
+/** Reads Dexie, never the in-memory map. Every mutator below writes Dexie
+ * first, so Dexie is always at least as fresh as memory — while memory is
+ * empty until hydrate() resolves. Deriving a full-replace `put` payload from
+ * an unhydrated store silently wiped whichever fields the caller wasn't
+ * setting: opening a chapter directly (hard load on /chapters/<slug>, where
+ * markVisited's effect runs before hydrate's) erased that chapter's
+ * manuallyCompletedAt locally AND pushed the null to the cloud, destroying the
+ * completion on every device. See pending-persistence-audit.md S1. */
+async function existingRow(slug: string): Promise<CurriculumProgress> {
+  return (
+    (await db.curriculumProgress.get(slug)) ?? {
+      slug,
+      manuallyCompletedAt: null,
+      lastVisitedAt: null,
+      dirty: false,
+      syncedAt: null,
+    }
+  );
 }
+
+function examAttemptKey(row: ExamAttempt): string {
+  return `${row.chapterDefinitionId}:${row.attemptNumber}`;
+}
+
+function buildExamAttemptsMap(attempts: ExamAttempt[]): Map<string, ExamAttempt[]> {
+  let map = new Map<string, ExamAttempt[]>();
+  for (const attempt of attempts) map = withExamAttempt(map, attempt);
+  return map;
+}
+
+/**
+ * The actual reconcile pass — pulls all three tables' remote state, merges it
+ * against local via the shared last-write-wins rule (reconcile.ts /
+ * ARCHITECTURE.md "Sync ordering"), writes the rows the merge changed back to
+ * Dexie, and populates in-memory state from the merged result. Replaces the
+ * old hydrate-on-empty (decision 3, pending-cloud-sync.md), which only ever
+ * pulled the cloud once on a genuinely empty table and never again — see
+ * pending-6.1.0-poa.md Phase 3 / audit finding S4.
+ */
+async function performHydrate(
+  set: (partial: Partial<CurriculumProgressStore>) => void,
+): Promise<void> {
+  const [localChapterProgress, localCurriculumProgress, localExamAttempts] = await Promise.all([
+    db.chapterProgress.toArray(),
+    db.curriculumProgress.toArray(),
+    db.examAttempts.toArray(),
+  ]);
+  const [remoteChapterProgress, remoteCurriculumProgress, remoteExamAttempts] = await Promise.all([
+    hydrateAllChapterProgress(),
+    hydrateAllCurriculumProgress(),
+    hydrateAllExamAttempts(),
+  ]);
+
+  if (!remoteChapterProgress.ok || !remoteCurriculumProgress.ok || !remoteExamAttempts.ok) {
+    // Abort (Phase 6, pending-6.1.0-poa.md - fixes audit S5): a failed
+    // fetch must never look like "the server has nothing" and let a stale
+    // local row win a merge it was never checked against. Populate from
+    // local only, and leave `hydrated` false (not set here, still its
+    // create() default) so the next hydrate() call - the next mount or
+    // navigation - retries for real instead of being permanently stuck
+    // behind a transient network error.
+    set({
+      hydrating: false,
+      validationPassedDefinitionIds: new Set(localChapterProgress.map((r) => r.chapterId)),
+      rowsBySlug: new Map(localCurriculumProgress.map((r) => [r.slug, r])),
+      examAttemptsByDefinition: buildExamAttemptsMap(localExamAttempts),
+    });
+    return;
+  }
+
+  const chapterProgress = reconcileRows(localChapterProgress, remoteChapterProgress.data, (r) => r.chapterId);
+  const curriculumProgress = reconcileRows(localCurriculumProgress, remoteCurriculumProgress.data, (r) => r.slug);
+  const examAttempts = reconcileRows(localExamAttempts, remoteExamAttempts.data, examAttemptKey);
+
+  const discarded = chapterProgress.discarded + curriculumProgress.discarded + examAttempts.discarded;
+  if (discarded > 0) useSyncStatusStore.getState().recordDiscarded(discarded);
+
+  await Promise.all([
+    chapterProgress.toWrite.length > 0 ? db.chapterProgress.bulkPut(chapterProgress.toWrite) : Promise.resolve(),
+    curriculumProgress.toWrite.length > 0
+      ? db.curriculumProgress.bulkPut(curriculumProgress.toWrite)
+      : Promise.resolve(),
+    examAttempts.toWrite.length > 0 ? db.examAttempts.bulkPut(examAttempts.toWrite) : Promise.resolve(),
+  ]);
+
+  set({
+    hydrated: true,
+    hydrating: false,
+    validationPassedDefinitionIds: new Set(chapterProgress.merged.map((r: ChapterProgress) => r.chapterId)),
+    rowsBySlug: new Map(curriculumProgress.merged.map((r: CurriculumProgress) => [r.slug, r])),
+    examAttemptsByDefinition: buildExamAttemptsMap(examAttempts.merged),
+  });
+}
+
+/** In-flight dedup only — NOT the "already hydrated" check, which reads
+ * `get().hydrated` instead. Cleared once the call settles, so it can never
+ * leak a stale promise across a store reset (tests reset `hydrated`/
+ * `hydrating` via setState between cases, which is what actually matters). */
+let inFlightHydrate: Promise<void> | null = null;
 
 export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, get) => ({
   hydrated: false,
@@ -79,39 +200,47 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   rowsBySlug: new Map(),
   examAttemptsByDefinition: new Map(),
 
-  hydrate: async () => {
-    if (get().hydrated || get().hydrating) return;
+  hydrate: () => {
+    if (get().hydrated) return Promise.resolve();
+    return get().refresh();
+  },
+
+  refresh: () => {
+    if (inFlightHydrate) return inFlightHydrate;
     set({ hydrating: true });
-    const [chapterProgressRows, curriculumProgressRows, examAttemptRows] = await Promise.all([
-      db.chapterProgress.toArray(),
-      db.curriculumProgress.toArray(),
-      db.examAttempts.toArray(),
-    ]);
-    let examAttemptsByDefinition = new Map<string, ExamAttempt[]>();
-    for (const attempt of examAttemptRows) {
-      examAttemptsByDefinition = withExamAttempt(examAttemptsByDefinition, attempt);
-    }
-    set({
-      hydrated: true,
-      hydrating: false,
-      validationPassedDefinitionIds: new Set(chapterProgressRows.map((r) => r.chapterId)),
-      rowsBySlug: new Map(curriculumProgressRows.map((r) => [r.slug, r])),
-      examAttemptsByDefinition,
+    inFlightHydrate = performHydrate(set).finally(() => {
+      inFlightHydrate = null;
     });
+    return inFlightHydrate;
   },
 
   markVisited: async (slug) => {
-    const row: CurriculumProgress = { ...existingRow(get().rowsBySlug, slug), lastVisitedAt: Date.now() };
+    // refresh, not hydrate: the row this composes is a full-row overwrite
+    // (the sync API has no partial update), so writing one built from a
+    // stale local copy silently erases whatever another device changed in
+    // the meantime - opening a chapter would un-complete it everywhere.
+    await get().refresh();
+    const row: CurriculumProgress = {
+      ...(await existingRow(slug)),
+      lastVisitedAt: Date.now(),
+      dirty: true,
+      syncedAt: null,
+    };
     await db.curriculumProgress.put(row);
+    void syncCurriculumProgress(row);
     set((state) => ({ rowsBySlug: new Map(state.rowsBySlug).set(slug, row) }));
   },
 
   setManualComplete: async (slug, complete) => {
+    await get().refresh(); // full-row overwrite, see markVisited
     const row: CurriculumProgress = {
-      ...existingRow(get().rowsBySlug, slug),
+      ...(await existingRow(slug)),
       manuallyCompletedAt: complete ? Date.now() : null,
+      dirty: true,
+      syncedAt: null,
     };
     await db.curriculumProgress.put(row);
+    void syncCurriculumProgress(row);
     set((state) => ({ rowsBySlug: new Map(state.rowsBySlug).set(slug, row) }));
   },
 
@@ -122,14 +251,22 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   },
 
   recordExamAttempt: async (attempt) => {
+    await get().hydrate();
     await db.examAttempts.put(attempt);
+    void syncExamAttempt(attempt);
     set((state) => ({
       examAttemptsByDefinition: withExamAttempt(state.examAttemptsByDefinition, attempt),
     }));
   },
 
   resetChapter: async (slug, chapterDefinitionId) => {
-    const row: CurriculumProgress = { ...existingRow(get().rowsBySlug, slug), manuallyCompletedAt: null };
+    await get().refresh(); // full-row overwrite, see markVisited
+    const row: CurriculumProgress = {
+      ...(await existingRow(slug)),
+      manuallyCompletedAt: null,
+      dirty: true,
+      syncedAt: null,
+    };
     await Promise.all([
       db.curriculumProgress.put(row),
       chapterDefinitionId ? db.chapterProgress.delete(chapterDefinitionId) : Promise.resolve(),
@@ -137,6 +274,11 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
         ? db.examAttempts.where("chapterDefinitionId").equals(chapterDefinitionId).delete()
         : Promise.resolve(),
     ]);
+    void syncCurriculumProgress(row);
+    if (chapterDefinitionId) {
+      void deleteChapterProgressSync(chapterDefinitionId);
+      void deleteExamAttemptsSync(chapterDefinitionId);
+    }
     set((state) => {
       const validationPassedDefinitionIds = new Set(state.validationPassedDefinitionIds);
       if (chapterDefinitionId) validationPassedDefinitionIds.delete(chapterDefinitionId);
@@ -153,5 +295,15 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   inputs: () => {
     const { validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition } = get();
     return { validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition };
+  },
+
+  reset: () => {
+    set({
+      hydrated: false,
+      hydrating: false,
+      validationPassedDefinitionIds: new Set(),
+      rowsBySlug: new Map(),
+      examAttemptsByDefinition: new Map(),
+    });
   },
 }));

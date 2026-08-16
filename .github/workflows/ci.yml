@@ -27,6 +27,11 @@ jobs:
     # Clerk test-instance keys (not the production live keys) - required for
     # the app to boot at all (clerkMiddleware throws without a publishable
     # key) and for e2e/global.setup.ts to sign in a dedicated test user.
+    # DATABASE_URL - required since release 6.1.0-alpha's cloud sync; without
+    # it src/db/client.ts throws on every request that touches persistence,
+    # which is most of the app. The repo secret existing on its own does
+    # nothing - it has to be explicitly mapped into the job's env like every
+    # other secret here.
     env:
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_TEST_PUBLISHABLE_KEY }}
       CLERK_SECRET_KEY: ${{ secrets.CLERK_TEST_SECRET_KEY }}
@@ -37,6 +42,7 @@ jobs:
       NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL: /
       E2E_CLERK_USER_EMAIL: ${{ secrets.E2E_CLERK_USER_EMAIL }}
       E2E_CLERK_USER_PASSWORD: ${{ secrets.E2E_CLERK_USER_PASSWORD }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
       - name: Checkout

@@ -7,7 +7,7 @@ import type { ChapterDefinition } from "./types";
  * - `bb-0-1-welcome`, `bb-0-2-what-is-system-design`,
  *   `bb-0-3-interview-design-vs-production-engineering`,
  *   `bb-0-4-the-system-design-lifecycle`, and
- *   `bb-1-1-understanding-the-problem` are real curriculum content,
+ *   `bb-1-1-framing-the-problem` are real curriculum content,
  *   authored against CURRICULUM.md §5/§6 with a chapter spec in `specs/`
  *   beside each.
  * - `bb-dummy-1` was replaced by real content, `bb-3-4-load-balancer`
@@ -107,7 +107,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     lessonVersion: 3,
     lessonFormat: "mdx",
     curriculumContext: {
-      position: "Building Blocks, Part 0: Foundations - Chapter 0.1 of 44.",
+      position: "Building Blocks, Part 0: Foundations - Chapter 0.1 of 37.",
       masteredConcepts: [],
       notYetIntroducedConcepts: ["Everything - this is the first chapter in the curriculum."],
       // Transcribed from the chapter spec's §5 (specs/bb-0-1-welcome.spec.md).
@@ -386,7 +386,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     lessonVersion: 2,
     lessonFormat: "mdx",
     curriculumContext: {
-      position: "Building Blocks, Part 0: Foundations - Chapter 0.2 of 44.",
+      position: "Building Blocks, Part 0: Foundations - Chapter 0.2 of 37.",
       masteredConcepts: ["The Reader-to-Editor loop, Validate vs. Submit, and hints-on-request (0.1)."],
       notYetIntroducedConcepts: [
         "Non-functional requirements as numeric targets - that's 1.3.",
@@ -720,7 +720,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     lessonVersion: 2,
     lessonFormat: "mdx",
     curriculumContext: {
-      position: "Building Blocks, Part 0: Foundations - Chapter 0.3 of 44.",
+      position: "Building Blocks, Part 0: Foundations - Chapter 0.3 of 37.",
       masteredConcepts: [
         "The Reader-to-Editor loop and the interview-shaped framing of a validation failure (0.1).",
         "The five forces and 'no force under pressure, no justified complexity' (0.2).",
@@ -1031,7 +1031,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     lessonVersion: 2,
     lessonFormat: "mdx",
     curriculumContext: {
-      position: "Building Blocks, Part 0: Foundations - Chapter 0.4 of 44.",
+      position: "Building Blocks, Part 0: Foundations - Chapter 0.4 of 37.",
       masteredConcepts: [
         "The five forces and 'no force under pressure, no justified complexity' (0.2).",
         "The interview register and production register, judged against the same test on different clocks (0.3).",
@@ -1311,37 +1311,35 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
   },
+  // --- Phase 10 (6.1.0-alpha) condense: new 1.1-1.4 replace old 1.1-1.11 ---
+  // See .claude/docs/pending-6.1.0-poa.md Phase 10 and
+  // .claude/docs/pending-chapters.md's "1.1 Framing the Problem" entry.
+  // Added alongside the old eleven, not yet wired into manifest.ts and not
+  // yet replacing them - that happens in the engineering pass once all four
+  // new chapters are authored (POA Phase 10, 10.5).
   {
-    id: "bb-1-1-understanding-the-problem",
+    id: "bb-1-1-framing-the-problem",
     mode: "building-blocks",
-    title: "Understanding the Problem",
-    // Real authored content (Wave 2 chapter 1 - first Part 1 chapter, see
-    // pending-content.md). Spec:
-    // specs/bb-1-1-understanding-the-problem.spec.md. Lesson body:
-    // public/content/chapters/bb-1-1-understanding-the-problem.md.
+    title: "Framing the Problem",
+    // Real authored content (Phase 10 condense of old 1.1-1.5 into one
+    // chapter). Spec: specs/bb-1-1-framing-the-problem.spec.md. Lesson body:
+    // public/content/chapters/bb-1-1-framing-the-problem.mdx.
     problemStatement:
-      "A clarifying question only earns its place if a different answer would change the design - " +
-      "everything else is conversation. This chapter teaches that one test, and where to look for " +
-      "the questions worth asking (scope, scale, usage pattern, non-negotiables). No build: the " +
-      "knowledge check gives you a brief and a list of candidate questions, and asks you to pick " +
-      "only the ones that pass the test.",
-    // Five objectives - all five §5.2 categories present. Process chapters
-    // don't get the Concept-only Practical carve-out (spec §2); Practical is
-    // honestly exercised by the quiz's multi-select question standing in for
-    // CURRICULUM §14's staged exercise (spec §5 - stages UI doesn't exist yet,
-    // per pending-content.md's documented degradation).
+      "A decision - a clarifying question, a candidate feature, a claimed number, a digit of " +
+      "precision - earns the time it costs only if a different answer would change what you build. " +
+      "This chapter teaches that one test, applied to the Interview Loop's first three steps: " +
+      "clarify, requirements (functional and non-functional), and estimate. No build: the knowledge " +
+      "check covers all three steps, and none of the answers are given away in advance.",
     learningObjectives: [
-      "Knowledge - State the test that decides whether a candidate clarifying question is worth asking: would a different answer change the design.",
-      "Engineering - Apply the test to a list of candidate questions for a brief and identify which ones would materially change the architecture.",
-      "Interview - Ask two or three targeted clarifying questions inside the interview's small clarify-and-scope budget, instead of reciting a checklist or skipping the step.",
-      "Practical - Given a brief and a list of candidate clarifying questions, select exactly the ones that pass the test.",
-      "Communication - Name, out loud, which specific design decision a clarifying question's answer would flip.",
+      "Knowledge - State the shared test that decides whether a clarifying question, a candidate feature, or a claimed number is worth the time it costs: would a different answer change what you build.",
+      "Engineering - Apply the test to sort a feature list into Must/Should/Could/Won't and to pick which clarifying questions are worth asking.",
+      "Interview - Turn a vague requirement into a defensible number (latency, throughput, availability, durability, cost) and an order-of-magnitude estimate, inside the interview's small clarify-through-estimate budget.",
+      "Practical - Given a brief, a list of candidate clarifying questions, and a list of candidate features, correctly identify which ones pass the test.",
+      "Communication - Name, out loud, which specific design decision a clarifying answer, a Must-have cut, or a chosen number would flip.",
     ],
-    // No components introduced (§16 homes the three primitives at 1.6) and no
-    // construction-family exercise - the staged exercise CURRICULUM §14
-    // specifies degrades to the quiz's multi-select question (spec §5),
-    // pending-content.md's documented approach for Part 1 chapters until the
-    // stages UI lands.
+    // No components introduced (§16 homes the three primitives at the next
+    // chapter, Designing the System) and no construction-family exercise -
+    // same justified Process-chapter pattern the absorbed chapters used.
     availableComponentIds: [],
     requiredComponentIds: [],
     validationRuleIds: [],
@@ -1349,67 +1347,65 @@ export const chapterRegistry: ChapterDefinition[] = [
     hasEditorExercise: false,
     hints: [
       {
-        id: "bb-1-1-hint-1",
+        id: "bb-1-1-framing-hint-1",
         body:
-          "Not sure if a question counts? Ask: if the answer came back the opposite way, would you " +
-          "draw something different? If not, it's not a clarifying question.",
+          "Stuck on whether something (a question, a feature, a number) is worth the time? Ask: if the " +
+          "answer came back the opposite way, would you build something different? If not, skip it.",
       },
       {
-        id: "bb-1-1-hint-2",
+        id: "bb-1-1-framing-hint-2",
         body:
-          "A question can sound technical and still fail the test - database choice and programming " +
-          "language don't change the shape of the architecture, even though they sound like design " +
-          "decisions.",
+          "For Must vs. the rest: does the system fail its core job without this feature, or does it " +
+          "just become less nice to use? Only the first one is Must.",
       },
       {
-        id: "bb-1-1-hint-3",
+        id: "bb-1-1-framing-hint-3",
         body:
-          "Check the four categories - scope, scale, usage pattern, non-negotiables - for whichever " +
-          "one is still unpinned in the brief you're given. Not every category needs a question every " +
-          "time.",
+          "A non-functional requirement should be a number you could check on a dashboard, not a word " +
+          "like \"fast\" or \"reliable.\" If you can't test it, it isn't finished being specified.",
+      },
+      {
+        id: "bb-1-1-framing-hint-4",
+        body:
+          "Before computing a ratio from scratch, check the landmark table - RAM, SSD, same-datacenter, " +
+          "disk, cross-continent. One of those five is almost always what the question is really asking.",
       },
     ],
     readingLinks: [],
-    // 2: Opus pass. Fixed the cache/read-replica claim (a read:write ratio
-    // does not make either "close to mandatory" - 0.2 splits them on repeated
-    // rows vs. read capacity), removed an invented "0.4's ~5-10 minutes of 45"
-    // budget 0.4 never taught, corrected "0.4's dotted arrow starts right
-    // here" (it runs step 8 -> step 2), reframed database choice as a decision
-    // rather than "changes nothing" (3.11 would contradict that), dropped
-    // unsupported \n line breaks from the Mermaid labels, gave the 1.2 preview
-    // real pull (§6), and simplified several long sentences (§20.1/§20.6).
-    // See spec §13 and pending-chapters.md.
-    lessonVersion: 2,
+    lessonVersion: 1,
     lessonFormat: "mdx",
     curriculumContext: {
-      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.1 of 44.",
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.1 of 37.",
       masteredConcepts: [
-        "The five forces, and the cache / read-replica example used to illustrate them (0.2).",
+        "The five forces (0.2): latency, throughput, availability, durability, cost.",
         "The interview register and the production register, judged against the same test on different clocks (0.3).",
-        "The Interview Loop's eight steps, with clarify as step 1 (0.4).",
+        "The Interview Loop's eight steps, with clarify/requirements/estimate as steps 1-3 (0.4).",
       ],
       notYetIntroducedConcepts: [
-        "Any specific component or edge kind - none are introduced until 1.6.",
-        "Functional and non-functional requirements as formal categories - 1.2 and 1.3 turn today's clarifying answers into those.",
-        "Estimation math and the numbers-every-engineer-should-know landmarks - 1.4-1.5.",
+        "Any specific component or edge kind - none are introduced until the next chapter, Designing the System.",
+        "High-level design, deep dives, and bottleneck analysis - loop steps 4-6, taught next.",
+        "Trade-off statements and defending a design under follow-ups - loop steps 7-8.",
       ],
       simplifications: [
-        "The four categories (scope, scale, usage pattern, non-negotiables) cover most real clarifying " +
-          "questions but aren't an exhaustive taxonomy - a working set for this stage, not a formula.",
-        "CURRICULUM.md §14 specifies this chapter's exercise as a staged pick-4-of-10 flow; the stages " +
-          "UI doesn't exist yet, so it's realized here as a quiz multi-select question instead (see the " +
-          "chapter spec §5) - the skill tested is the same, the mechanic is simpler.",
+        "The four clarifying categories (scope, scale, usage pattern, non-negotiables) cover most real " +
+          "clarifying questions but aren't an exhaustive taxonomy - a working set for this stage, not a " +
+          "formula.",
+        "CURRICULUM.md §14's original per-chapter staged exercises (pick-4-of-10, a staged checklist, " +
+          "staged estimation buckets) are realized here as ordinary quiz questions instead - the stages " +
+          "UI doesn't exist yet (see the chapter spec §5), the same documented degradation the absorbed " +
+          "chapters used.",
       ],
     },
-    // Ramp 1/1/2/2/3, matching 0.2/0.3/0.4's convention. Q1 models and
-    // expands QUIZ_FRAMEWORK.md §6's own Q1 (same URL-shortener scenario),
-    // also standing in for CURRICULUM §14's staged exercise (spec §5). Q2-Q5
-    // are original. Correct-position spread (c, a, d, b for the four
-    // single-kind questions) checked by eye against the clustering bug fixed
-    // in 0.1/0.2.
+    // 12 questions (Process-chapter exception, QUIZ_FRAMEWORK.md §2), ramp
+    // 4/6/2 across difficulty 1/2/3 (33/50/17, close to the 30/45/25 target).
+    // At least one question per absorbed topic: clarify (Q1), functional
+    // requirements (Q3, Q10), non-functional requirements (Q2, Q4, Q7),
+    // estimation (Q5, Q6), landmark numbers (Q8, Q9), synthesis across steps
+    // (Q11, Q12). Correct-position spread for the 11 single/estimate-kind
+    // questions checked by eye: a x3, b x2, c x3, d x3 - no clustering.
     quiz: [
       {
-        id: "bb-1-1-understanding-the-problem-q1",
+        id: "bb-1-1-framing-the-problem-q1",
         kind: "multi",
         difficulty: 1,
         prompt:
@@ -1421,16 +1417,16 @@ export const chapterRegistry: ChapterDefinition[] = [
             label: "What's the expected read-to-write ratio?",
             correct: true,
             explanationMd:
-              "A 1000:1 ratio makes caching and read replicas close to mandatory; a near-1:1 ratio " +
-              "doesn't. The answer decides an entire branch of the design.",
+              "A 1000:1 ratio sends the design work to the read path; near 1:1 flips it to the write " +
+              "path - a real fork, and the same number estimation reuses later.",
           },
           {
             id: "b",
             label: "What programming language should I use?",
             correct: false,
             explanationMd:
-              "Neither answer changes the architecture - this asks the interviewer to design for you, " +
-              "not a question about the problem.",
+              "Neither answer changes the architecture - a decision you make, not a fact about the " +
+              "problem.",
           },
           {
             id: "c",
@@ -1438,7 +1434,7 @@ export const chapterRegistry: ChapterDefinition[] = [
             correct: true,
             explanationMd:
               "Scale in orders of magnitude changes whether a single database is plausible at all, and " +
-              "sets up 1.4's estimation work later.",
+              "feeds directly into estimation.",
           },
           {
             id: "d",
@@ -1454,7 +1450,7 @@ export const chapterRegistry: ChapterDefinition[] = [
             correct: true,
             explanationMd:
               "A non-negotiable: \"yes\" means a cleanup/expiry subsystem exists at all; \"no\" means it " +
-              "doesn't. That's a real fork, not a detail.",
+              "doesn't - and it can move a feature straight into the Must-have list.",
           },
           {
             id: "f",
@@ -1481,1528 +1477,420 @@ export const chapterRegistry: ChapterDefinition[] = [
         ],
       },
       {
-        id: "bb-1-1-understanding-the-problem-q2",
+        id: "bb-1-1-framing-the-problem-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt: "Which of these is a non-functional requirement, not a feature?",
+        options: [
+          {
+            id: "a",
+            label: "Users can create a short link.",
+            correct: false,
+            explanationMd: "A feature: what the system does, not how well it does it.",
+          },
+          {
+            id: "b",
+            label: "Users can view their click history.",
+            correct: false,
+            explanationMd: "Also a feature.",
+          },
+          {
+            id: "c",
+            label: "Redirects complete in under 200 ms at p99.",
+            correct: true,
+            explanationMd:
+              "A performance promise, a functional requirement's \"how well\" partner - the definition " +
+              "of non-functional.",
+          },
+          {
+            id: "d",
+            label: "Users can set a custom alias.",
+            correct: false,
+            explanationMd: "A feature.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-1-framing-the-problem-q3",
         kind: "single",
         difficulty: 1,
         prompt:
-          "A teammate suggests asking \"what testing framework should we use for this?\" as a " +
-          "clarifying question before designing the system. Is this a clarifying question by this " +
-          "chapter's test?",
-        options: [
-          {
-            id: "a",
-            label: "Yes - any question asked before drawing the design counts as clarifying.",
-            correct: false,
-            explanationMd:
-              "Timing isn't the test. A question asked early can still fail it if no answer would " +
-              "change the design.",
-          },
-          {
-            id: "b",
-            label: "Yes - testing strategy is technically part of system design.",
-            correct: false,
-            explanationMd:
-              "True in a broad sense, but irrelevant here - the test is whether a different answer " +
-              "changes the architecture, not whether the topic is design-adjacent.",
-          },
-          {
-            id: "c",
-            label: "No - a different answer wouldn't change the architecture, so it fails the test.",
-            correct: true,
-            explanationMd:
-              "Correct. Neither \"Jest\" nor \"Vitest\" changes a single box or edge in the resulting " +
-              "design - the defining property of a non-clarifying question.",
-          },
-          {
-            id: "d",
-            label: "No - because it doesn't fall under scope, scale, usage pattern, or non-negotiables.",
-            correct: false,
-            explanationMd:
-              "Right conclusion, wrong reasoning - the four categories are where to look, not the test " +
-              "itself. A question can sit in a category and still fail it.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-1-understanding-the-problem-q3",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "A candidate spends the first 15 minutes of a 45-minute interview asking clarifying " +
-          "questions before drawing anything. What's the most likely problem?",
+          "For the URL shortener, clarifying confirmed links must expire after a year. Which bucket " +
+          "does \"automatic expiry\" belong in, and why?",
         options: [
           {
             id: "a",
             label:
-              "The candidate is burning the interview's small clarify-and-scope budget, leaving less " +
-              "time for the design itself.",
+              "Must - the confirmed answer means a shortener that keeps every link forever isn't the " +
+              "system that was asked for.",
             correct: true,
             explanationMd:
-              "Correct. 0.4 already put clarify and requirements at roughly 5-10 of the interview's 45 " +
-              "minutes combined - 15 minutes on clarify alone eats into design time directly.",
+              "Correct. A confirmed clarifying answer can move a feature straight into Must, even though " +
+              "expiry might sound like polish on a different brief.",
           },
           {
             id: "b",
-            label: "None - more clarifying questions always produce a better design.",
+            label: "Should - it protects the core job but isn't strictly required.",
             correct: false,
             explanationMd:
-              "Only questions that pass the test improve the design; past that point, more questions " +
-              "just spend the clock without changing anything.",
+              "Expiry isn't optional polish here - the clarifying answer made it part of the core job " +
+              "itself, not something that just protects it.",
           },
           {
             id: "c",
-            label: "Clarifying should happen only after a first draft is already on the board.",
+            label: "Could - real value, nothing core depends on it.",
             correct: false,
-            explanationMd:
-              "This is the cold open's own mistake restated as a rule - drawing before scoping is what " +
-              "forces the redraw in the first place.",
+            explanationMd: "Wrong bucket: a specific clarifying answer moved this out of Could.",
           },
           {
             id: "d",
-            label: "The interviewer will conclude the candidate doesn't understand the problem.",
+            label: "Won't (this pass) - deferred and written down.",
             correct: false,
-            explanationMd:
-              "About appearances, not the real cost - the actual issue is the spent clock, not how it " +
-              "looks to be asking questions.",
+            explanationMd: "The opposite of what was confirmed.",
           },
         ],
       },
       {
-        id: "bb-1-1-understanding-the-problem-q4",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "\"Design a chat app.\" A candidate asks: \"should messages be end-to-end encrypted?\" Is " +
-          "this worth asking?",
-        options: [
-          {
-            id: "a",
-            label: "No - encryption is a security detail, not an architecture question.",
-            correct: false,
-            explanationMd:
-              "It sounds like an implementation detail the way database choice does, but the answer " +
-              "here actually changes what the server can do - see option d.",
-          },
-          {
-            id: "b",
-            label: "No - all messaging apps use end-to-end encryption by default, so the answer is already known.",
-            correct: false,
-            explanationMd:
-              "Not a safe default to assume, and beside the point - the question is whether the answer " +
-              "would change the design, not what's typical.",
-          },
-          {
-            id: "c",
-            label: "Yes - but only because compliance requirements always require asking about encryption.",
-            correct: false,
-            explanationMd:
-              "Compliance can be a reason to ask, but it's not this question's reason - the design " +
-              "impact holds even with no compliance requirement in play.",
-          },
-          {
-            id: "d",
-            label:
-              "Yes - a different answer changes what the server can do with message content (search, " +
-              "moderation, storage), which is a real architecture fork.",
-            correct: true,
-            explanationMd:
-              "Correct. End-to-end encrypted means the server can't read message content at all - " +
-              "search and moderation features built server-side become impossible, not just harder.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-1-understanding-the-problem-q5",
-        kind: "single",
-        difficulty: 3,
-        prompt:
-          "You ask \"read-heavy or write-heavy?\" and the interviewer answers \"read-heavy, about " +
-          "1000:1.\" Which of 0.2's five forces does this answer most directly start to pin down?",
-        options: [
-          {
-            id: "a",
-            label: "Durability - reads don't touch how safely data is stored.",
-            correct: false,
-            explanationMd:
-              "Durability is about not losing data once written - a read:write ratio doesn't speak to " +
-              "that at all.",
-          },
-          {
-            id: "b",
-            label:
-              "Latency and throughput - it decides whether caching and a read replica are worth the " +
-              "added complexity.",
-            correct: true,
-            explanationMd:
-              "Correct. A heavy read skew is exactly the signal 0.2 used for when a cache pays for " +
-              "itself - it's a latency/throughput trade before it's anything else.",
-          },
-          {
-            id: "c",
-            label: "Cost only - caching is primarily a cost-cutting move.",
-            correct: false,
-            explanationMd:
-              "Cost is a real secondary effect (0.2's own cache example), but \"only\" is too narrow - " +
-              "the primary driver is latency and throughput, not cost.",
-          },
-          {
-            id: "d",
-            label: "None of the five - read:write ratio is a scale detail, not a force.",
-            correct: false,
-            explanationMd:
-              "The ratio itself is a usage-pattern fact, but what it *does* to the design is exactly " +
-              "how a force operates - it changes which trade-off matters.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "bb-1-2-functional-requirements",
-    mode: "building-blocks",
-    title: "Functional Requirements",
-    // Real authored content (Wave 2, second Part 1 chapter). Spec:
-    // specs/bb-1-2-functional-requirements.spec.md. Lesson body:
-    // public/content/chapters/bb-1-2-functional-requirements.md.
-    problemStatement:
-      "A feature only belongs on the system's Must-have list if the system fails at its core job " +
-      "without it - everything else is Should, Could, or Won't (this pass), and writing the cut " +
-      "list down is what keeps it cut. This chapter teaches that test and the Must/Should/Could/" +
-      "Won't vocabulary for scoping a feature list ruthlessly. No build: the knowledge check gives " +
-      "you a brief and a list of candidate features and asks you to sort them.",
-    // Five objectives - all five §5.2 categories present, same as 1.1 (Process
-    // chapters don't get the Concept-only Practical carve-out). Practical is
-    // exercised by the quiz's multi-select question standing in for CURRICULUM
-    // §14's staged checklist exercise (spec §5 - stages UI doesn't exist yet).
-    learningObjectives: [
-      "Knowledge - State the test that decides whether a feature belongs on the Must-have list: the system fails its core job without it.",
-      "Engineering - Sort a list of candidate features for a brief into Must, Should, Could, and Won't using that test.",
-      "Interview - Name the Must-have list crisply and state why one or two features are deliberately deferred, inside the interview's requirements step.",
-      "Practical - Given a brief and a list of candidate features, select exactly the ones that belong on the Must-have list.",
-      "Communication - State out loud why a specific feature was cut, not just that it was cut.",
-    ],
-    // No components introduced (§16 homes the three primitives at 1.6) and no
-    // construction-family exercise - same degradation as 1.1: the staged
-    // checklist CURRICULUM §14 specifies becomes the quiz's multi-select
-    // question (spec §5) until the stages UI lands.
-    availableComponentIds: [],
-    requiredComponentIds: [],
-    validationRuleIds: [],
-    blueprints: [],
-    hasEditorExercise: false,
-    hints: [
-      {
-        id: "bb-1-2-hint-1",
-        body:
-          "Ask whether the system's one job would actually fail without this feature - not whether " +
-          "the feature would be nice to have.",
-      },
-      {
-        id: "bb-1-2-hint-2",
-        body:
-          "If a feature only makes sense because a clarifying question's answer confirmed it (1.1), " +
-          "that confirmed answer is what moves it into Must - not your intuition about what this " +
-          "kind of product usually has.",
-      },
-      {
-        id: "bb-1-2-hint-3",
-        body:
-          "Should, Could, and Won't aren't \"no\" - they're \"not this pass.\" Write the deferred " +
-          "ones down instead of silently dropping them.",
-      },
-    ],
-    readingLinks: [],
-    // 2: Opus proofread pass (2026-08-08), driven by user feedback that the
-    // chapter dragged and didn't cohere. Cold open no longer states the answer
-    // before the think-first prompt (and "five features" now matches the seven
-    // listed), the primary diagram became a four-outcome router so the test and
-    // the MoSCoW buckets are one model instead of two (this also drops the
-    // near-identical decision-tree echo of 1.1), "In production" was rewritten
-    // to explain Shape Up before using it, and "In production" moved after the
-    // trade-offs section to restore §5.3's beat order. See spec §13.
-    lessonVersion: 2,
-    lessonFormat: "mdx",
-    curriculumContext: {
-      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.2 of 44.",
-      masteredConcepts: [
-        "The clarifying-question test from 1.1, and its URL shortener worked example (heavy read " +
-          "skew, confirmed link expiry).",
-        "The Interview Loop's eight steps, with requirements as step 2 (0.4).",
-      ],
-      notYetIntroducedConcepts: [
-        "Non-functional requirements as a formal category - numbers-shaped promises like latency, " +
-          "availability, consistency, durability, cost (1.3).",
-        "Any specific component or edge kind - none are introduced until 1.6.",
-        "Estimation math and the numbers-every-engineer-should-know landmarks (1.4-1.5).",
-      ],
-      simplifications: [
-        "Must/Should/Could/Won't (MoSCoW) is one popular prioritization scheme, not the only valid " +
-          "one - a working vocabulary for this stage, not a claim it's the single correct method.",
-        "CURRICULUM.md §14 specifies this chapter's exercise as a staged checklist with feedback; " +
-          "the stages UI doesn't exist yet, so it's realized here as a quiz multi-select question " +
-          "instead (see the chapter spec §5), the same documented degradation pattern 1.1 used.",
-      ],
-    },
-    // Ramp 1/1/2/2/3, matching 0.2/0.3/0.4/1.1's convention. Q1 stands in for
-    // CURRICULUM §14's staged checklist exercise (spec §5), continuing 1.1's
-    // URL shortener brief for continuity across the loop's first two steps.
-    // Q2-Q5 are original. Correct-position spread for the four single-kind
-    // questions (b, a, c, d) checked by eye against the clustering bug fixed
-    // in 0.1/0.2.
-    quiz: [
-      {
-        id: "bb-1-2-functional-requirements-q1",
-        kind: "multi",
-        difficulty: 1,
-        prompt:
-          "Same URL shortener brief as 1.1, now confirmed: heavy read skew, and links expire after " +
-          "a year. Select ALL of the following that belong on the Must-have list.",
-        options: [
-          {
-            id: "a",
-            label: "Create a short link from a long URL.",
-            correct: true,
-            explanationMd: "Half of the core job. The system has no product at all without it.",
-          },
-          {
-            id: "b",
-            label: "Redirect a short link to its original URL.",
-            correct: true,
-            explanationMd: "The other half of the core job - create with no redirect is not a product either.",
-          },
-          {
-            id: "c",
-            label: "Automatically expire links once the confirmed date passes.",
-            correct: true,
-            explanationMd:
-              "The confirmed non-negotiable from 1.1 moved this into Must - a fact about this brief, " +
-              "not an assumption about URL shorteners in general.",
-          },
-          {
-            id: "d",
-            label: "Custom vanity aliases.",
-            correct: false,
-            explanationMd:
-              "Real value, but the core loop works fine with random codes - Could, not Must, for this " +
-              "brief's audience.",
-          },
-          {
-            id: "e",
-            label: "A dashboard of click counts.",
-            correct: false,
-            explanationMd:
-              "Nothing in the confirmed brief requires it. Won't (this pass) - write it down rather " +
-              "than build it now.",
-          },
-          {
-            id: "f",
-            label: "Reject a malformed URL before shortening it.",
-            correct: false,
-            explanationMd:
-              "Should, not Must - it makes the core job safe, but the core job (create, redirect) " +
-              "still exists without this check.",
-          },
-          {
-            id: "g",
-            label: "User accounts to manage links.",
-            correct: false,
-            explanationMd: "Won't (this pass) - nothing in the brief makes accounts part of the core job.",
-          },
-          {
-            id: "h",
-            label: "QR code generation for each short link.",
-            correct: false,
-            explanationMd: "Could - genuinely useful, no dependency on create-and-redirect working.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-2-functional-requirements-q2",
+        id: "bb-1-1-framing-the-problem-q4",
         kind: "single",
         difficulty: 1,
         prompt:
-          "A ticket-booking app's brief says: \"search must return results in under 300 ms, and " +
-          "users can filter results by date.\" Which part is a functional requirement?",
+          "A teammate says the checkout API needs to be \"highly available.\" What's missing before " +
+          "this becomes a real requirement?",
         options: [
           {
             id: "a",
-            label: "\"Returns results in under 300 ms.\"",
+            label: "Nothing - \"highly available\" is specific enough to design against.",
             correct: false,
-            explanationMd:
-              "A promise about how well the system performs, not what it does - a non-functional " +
-              "requirement (1.3's territory).",
+            explanationMd: "An adjective can't be tested; nobody can prove or disprove a feeling.",
           },
           {
             id: "b",
-            label: "\"Users can filter results by date.\"",
-            correct: true,
-            explanationMd:
-              "Correct. A specific thing the system does - exactly the kind of feature the " +
-              "Must/Should/Could/Won't test sorts.",
+            label: "A description of which cloud region it runs in.",
+            correct: false,
+            explanationMd: "Doesn't turn the adjective into a testable promise.",
           },
           {
             id: "c",
-            label: "Both are functional requirements.",
+            label: "A list of features it depends on.",
             correct: false,
-            explanationMd:
-              "The latency line says nothing about what the system does, only how well it does " +
-              "something else - not a feature.",
-          },
-          {
-            id: "d",
-            label: "Neither - both are implementation details the interviewer should specify.",
-            correct: false,
-            explanationMd:
-              "Filtering by date is a real feature choice, not an implementation detail like database " +
-              "choice or language (1.1).",
-          },
-        ],
-      },
-      {
-        id: "bb-1-2-functional-requirements-q3",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "Halfway through a build, a teammate says: \"wait, doesn't this need user accounts? I " +
-          "assumed that was obvious.\" The feature was never discussed in scoping. What's the " +
-          "actual failure here?",
-        options: [
-          {
-            id: "a",
-            label:
-              "The Won't-have list was never written down, so an assumed feature could sneak back " +
-              "in as if it had always been in scope.",
-            correct: true,
-            explanationMd:
-              "Correct. The category isn't what failed - the missing write-down is what let an " +
-              "assumption stand in for a decision.",
-          },
-          {
-            id: "b",
-            label: "The feature should have been built from the start - user accounts are always Must-have.",
-            correct: false,
-            explanationMd:
-              "Whether it's Must depends on the brief and the audience, not a blanket rule about the " +
-              "product category.",
-          },
-          {
-            id: "c",
-            label: "Nothing went wrong - catching a missing feature mid-build is exactly what code review is for.",
-            correct: false,
-            explanationMd:
-              "The problem isn't that it surfaced - it's that whatever decision was made about it was " +
-              "never written down for the team to check against.",
-          },
-          {
-            id: "d",
-            label: "The team should have built every conceivable feature to avoid this exact conversation.",
-            correct: false,
-            explanationMd: "This chapter's own cold open, just moved later into the build instead of the interview.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-2-functional-requirements-q4",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "Team A sells branded short links to marketing departments. Team B is building a personal " +
-          "tool for one person's own links. Where does \"custom aliases\" belong for each?",
-        options: [
-          {
-            id: "a",
-            label: "Must for both - custom aliases are always a core URL-shortener feature.",
-            correct: false,
-            explanationMd:
-              "The category depends on the audience the brief establishes, not the product category " +
-              "in general.",
-          },
-          {
-            id: "b",
-            label: "Could for both - branding is a marketing concern, never part of the core job.",
-            correct: false,
-            explanationMd:
-              "True for Team B, not Team A - for a product sold to marketing teams, branded links are " +
-              "the reason the product gets used at all.",
-          },
-          {
-            id: "c",
-            label:
-              "Must for Team A, Could for Team B - the same feature sits in a different bucket " +
-              "because the audience changes what \"the core job\" means.",
-            correct: true,
-            explanationMd:
-              "Correct. Team A's product is unusable for its actual customers without it; Team B's " +
-              "core loop works fine with random codes.",
-          },
-          {
-            id: "d",
-            label: "Won't for both - aliases are polish, not a real requirement.",
-            correct: false,
-            explanationMd: "Dismisses the audience-dependent judgment call entirely - wrong for Team A specifically.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-2-functional-requirements-q5",
-        kind: "single",
-        difficulty: 3,
-        prompt:
-          "In 1.1, \"do we need click analytics?\" was worth asking because a different answer " +
-          "changes the design. Suppose the interviewer answers yes. Where does \"click-count " +
-          "dashboard\" move on today's list?",
-        options: [
-          {
-            id: "a",
-            label: "It stays Won't (this pass) - analytics is never core to a URL shortener.",
-            correct: false,
-            explanationMd:
-              "The sort responds to the confirmed brief, not a fixed rule about URL shorteners - the " +
-              "same reasoning that put expiry in Must.",
-          },
-          {
-            id: "b",
-            label: "It moves to Could - a confirmed answer only ever adds optional value.",
-            correct: false,
-            explanationMd:
-              "A \"yes\" to a question that changes the design redefines the core job - it doesn't " +
-              "just add an extra.",
-          },
-          {
-            id: "c",
-            label: "Nothing changes - 1.1's questions only affect scale and architecture, not the feature list.",
-            correct: false,
-            explanationMd:
-              "1.1's own test (would a different answer change the design) applies to feature scope " +
-              "exactly as much as topology - that's the bridge this chapter builds.",
+            explanationMd: "Unrelated to making the availability claim testable.",
           },
           {
             id: "d",
             label:
-              "It moves to Must - a confirmed \"yes\" to a non-negotiable clarifying question makes " +
-              "the feature part of the system's actual job, the same way expiry did.",
+              "A number - a percentage of uptime, converted to the downtime budget it implies.",
             correct: true,
             explanationMd:
-              "Correct. A confirmed answer from 1.1 is exactly what moved expiry into Must here too - " +
-              "the same mechanism, a different feature.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "bb-1-3-non-functional-requirements",
-    mode: "building-blocks",
-    title: "Non-functional Requirements",
-    // Real authored content (Wave 2, third Part 1 chapter). Spec:
-    // specs/bb-1-3-non-functional-requirements.spec.md. Lesson body:
-    // public/content/chapters/bb-1-3-non-functional-requirements.md.
-    problemStatement:
-      "A non-functional requirement is a functional requirement's how well partner (1.2) - stated " +
-      "as a number you'd defend, not an adjective you'd say. This chapter turns 0.2's five forces " +
-      "into their measurable shapes (a latency budget, a throughput floor, an availability " +
-      "percentage, a durability tolerance, a cost ceiling) and teaches why the number, not the " +
-      "feeling, is what actually constrains a design. No build: the knowledge check gives you " +
-      "three described products and asks you to match each to the number that dominates it.",
-    // Five objectives - all five §5.2 categories present, same as 1.1/1.2
-    // (Process chapters don't get the Concept-only Practical carve-out).
-    // Practical is exercised by the quiz's matching question standing in for
-    // CURRICULUM §14's own exercise description (spec §5 - no stages UI
-    // needed here, unlike 1.1/1.2's degradation, since §14's own row never
-    // called this one "staged").
-    learningObjectives: [
-      "Knowledge - State what makes a promise a non-functional requirement: a number about how well the system performs, not what it does, tied to one of 0.2's five forces.",
-      "Engineering - Translate a described product's dominant pressure into the NFR-shaped number that actually constrains its design (a latency budget, an availability target, a durability tolerance) instead of a vague adjective.",
-      "Interview - State a non-functional requirement as a number with a stated reason, instead of an adjective like 'fast' or 'reliable', inside the interview's requirements step.",
-      "Practical - Given three described products, match each to the number that actually dominates its design.",
-      "Communication - Justify why one force is prioritized over another for a given product, naming the cost of buying the extra nine or the tighter budget.",
-    ],
-    // No components introduced (§16 homes the three primitives at 1.6) and no
-    // construction-family exercise - same pattern 1.1/1.2 established for
-    // Part 1's no-build Process chapters.
-    availableComponentIds: [],
-    requiredComponentIds: [],
-    validationRuleIds: [],
-    blueprints: [],
-    hasEditorExercise: false,
-    hints: [
-      {
-        id: "bb-1-3-hint-1",
-        body:
-          "Read the requirement and ask: is it a number you could check against a dashboard, or is " +
-          "it an adjective like \"fast\" or \"reliable\" that nobody could actually test?",
-      },
-      {
-        id: "bb-1-3-hint-2",
-        body:
-          "Ask which single force (0.2) this product's worst failure story is about - what actually " +
-          "goes wrong for the user, and which of the five forces does that belong to?",
-      },
-      {
-        id: "bb-1-3-hint-3",
-        body:
-          "Durability answers \"is the data still there\"; availability answers \"can I reach it " +
-          "right now.\" Don't let one product's number stand in for the other.",
-      },
-    ],
-    readingLinks: [],
-    // 2: Opus proofread pass (2026-08-09). Density fix - the primary diagram
-    // and the core-mechanics table stated the same force-to-number-shape
-    // mapping twice, so the table's middle column was cut and it now carries
-    // worked examples only. Also: p99 defined at first use, a false
-    // "availability compounds the same way" bridge rewritten, "buys back 10x
-    // less downtime" -> "cuts downtime tenfold" (body + recap), the senior
-    // line's "fifth nine" -> "fourth nine" (it sits at 99.9%), S3's 99.9%
-    // labelled as its service-agreement figure, and "Your turn" given the
-    // withheld-information line it was missing. See spec §13.
-    lessonVersion: 2,
-    lessonFormat: "mdx",
-    curriculumContext: {
-      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.3 of 44.",
-      masteredConcepts: [
-        "0.2's five forces (latency, throughput, availability, durability, cost) and that they " +
-          "trade against each other.",
-        "1.2's Must/Should/Could/Won't feature list - the thing this chapter attaches numeric " +
-          "promises to.",
-        "The Interview Loop's eight steps, with requirements as step 2 (0.4).",
-      ],
-      notYetIntroducedConcepts: [
-        "Estimation math - turning a user count into QPS, storage, and bandwidth (1.4-1.5). This " +
-          "chapter names the shape of the number; deriving it from scale is next.",
-        "Any specific component or edge kind - none are introduced until 1.6.",
-        "Consistency as a formal design concern, deferred to 3.22 - not one of the five forces this " +
-          "curriculum teaches (0.2).",
-      ],
-      simplifications: [
-        "Nines-to-downtime figures use a 365.25-day year and standard rounding - illustrative, not " +
-          "exact SLA legal language.",
-        "Real NFR-setting also weighs measured historical data and business risk tolerance, " +
-          "compressed here into \"name the dominant force and defend the number.\"",
-      ],
-    },
-    // Ramp 1/1/2/2/3, matching 0.2/0.3/0.4/1.1/1.2's convention. Q1 stands in
-    // for CURRICULUM §14's own exercise ("match NFRs to three described
-    // products; explanation per match") directly - no degradation flag
-    // needed, unlike 1.1/1.2's staged-exercise substitutions. Q2-Q5 are
-    // original. Correct-position spread for the four single-kind questions
-    // (b, c, a, d) checked by eye against the clustering bug fixed in 0.1/0.2.
-    quiz: [
-      {
-        id: "bb-1-3-non-functional-requirements-q1",
-        kind: "matching",
-        difficulty: 1,
-        prompt: "Match each product to the number that actually dominates its design.",
-        // Option order is a full derangement against pairs' order below
-        // (durability, throughput, latency vs. pairs' latency, durability,
-        // throughput) - no pair's correct option sits at its own index.
-        options: [
-          {
-            id: "durability-nfr",
-            label: "99.999999999% durability - a stored file is essentially never lost",
-            correct: true,
-            explanationMd:
-              "A scan can't be re-taken from that moment - losing the file is unrecoverable in a way " +
-              "a slow load never is.",
-          },
-          {
-            id: "throughput-nfr",
-            label: "Accepts 50,000 votes in the same three minutes without dropping any",
-            correct: true,
-            explanationMd:
-              "The whole risk is the concurrent spike; each individual vote landing a few hundred ms " +
-              "slower barely matters.",
-          },
-          {
-            id: "latency-nfr",
-            label: "p99 response time under 150 ms",
-            correct: true,
-            explanationMd:
-              "Someone standing on a curb expects the app to feel instant - a slow response reads as " +
-              "broken, not busy.",
-          },
-        ],
-        pairs: [
-          ["A ride-hailing app's driver-match request, tapped by someone standing on a curb", "latency-nfr"],
-          [
-            "A hospital archiving every patient's MRI scan for the legally required 7 years, with no way to re-take an old scan",
-            "durability-nfr",
-          ],
-          [
-            "A conference Q&A app collecting audience up-votes during the single most-attended talk of the day",
-            "throughput-nfr",
-          ],
-        ],
-      },
-      {
-        id: "bb-1-3-non-functional-requirements-q2",
-        kind: "single",
-        difficulty: 1,
-        prompt: "Which of these is a properly stated non-functional requirement?",
-        options: [
-          {
-            id: "a",
-            label: "The checkout page should feel snappy.",
-            correct: false,
-            explanationMd: "\"Snappy\" isn't a number - nobody can check it against a dashboard.",
-          },
-          {
-            id: "b",
-            label: "p99 checkout latency under 300 ms.",
-            correct: true,
-            explanationMd: "Correct. A percentile, a number, and a unit - testable and specific.",
-          },
-          {
-            id: "c",
-            label: "Users can apply a discount code at checkout.",
-            correct: false,
-            explanationMd:
-              "This is what the system does, not how well it does it - a functional requirement " +
-              "(1.2), not an NFR.",
-          },
-          {
-            id: "d",
-            label: "The system should be reliable.",
-            correct: false,
-            explanationMd: "Same problem as \"snappy\" - an adjective nobody can measure or defend.",
+              "Correct. \"99.9% uptime, measured monthly\" can be checked against a dashboard; \"highly " +
+              "available\" cannot.",
           },
         ],
       },
       {
-        id: "bb-1-3-non-functional-requirements-q3",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "A team is deciding between 99.9% and 99.99% availability for an internal reporting tool " +
-          "12 employees check during business hours. What's the strongest argument against the " +
-          "extra nine?",
-        options: [
-          {
-            id: "a",
-            label: "It's technically impossible to reach 99.99% without a full multi-region deployment.",
-            correct: false,
-            explanationMd: "Possible, just not free - this overstates the barrier.",
-          },
-          {
-            id: "b",
-            label: "Nines don't matter for internal tools, only customer-facing ones.",
-            correct: false,
-            explanationMd:
-              "A blanket rule, not a judgment - some internal tools (a deploy pipeline) genuinely " +
-              "need high availability. This one's usage pattern is the real reason, not its " +
-              "internal label.",
-          },
-          {
-            id: "c",
-            label:
-              "The extra nine buys back about 8 hours of yearly downtime, but the failover " +
-              "machinery and on-call burden it costs aren't justified by a tool 12 people check " +
-              "during business hours.",
-            correct: true,
-            explanationMd:
-              "Correct. The number isn't free, and nothing here describes a force under enough " +
-              "pressure to justify the cost (0.2's cost force).",
-          },
-          {
-            id: "d",
-            label: "There's no real difference between the two numbers.",
-            correct: false,
-            explanationMd:
-              "The nines table says otherwise - roughly 8 hours a year versus roughly 53 minutes a " +
-              "year, a real gap.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-3-non-functional-requirements-q4",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "A candidate says: \"the system needs to be highly available and fast.\" What's the " +
-          "interviewer's strongest follow-up?",
-        options: [
-          {
-            id: "a",
-            label: "\"Give me a number for each, and tell me why not a different one.\"",
-            correct: true,
-            explanationMd:
-              "Correct - forcing the adjective into something the design can actually be checked " +
-              "against is the whole move this chapter teaches.",
-          },
-          {
-            id: "b",
-            label: "Nothing - the candidate named the right forces.",
-            correct: false,
-            explanationMd: "Naming the forces (0.2) is step one; nothing here is a number yet.",
-          },
-          {
-            id: "c",
-            label: "\"Which programming language will you use to achieve that?\"",
-            correct: false,
-            explanationMd:
-              "Language is a decision for the candidate to make (1.1), not a fact that changes the " +
-              "NFR.",
-          },
-          {
-            id: "d",
-            label: "Move on to the next requirement - availability and speed are always assumed.",
-            correct: false,
-            explanationMd: "Assuming a force needs no number skips the entire point of this chapter.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-3-non-functional-requirements-q5",
-        kind: "single",
-        difficulty: 3,
-        prompt:
-          "A teammate says: \"99.999999999% durability and 99.99% availability are basically the " +
-          "same guarantee, restated twice.\" What's wrong with that claim?",
-        options: [
-          {
-            id: "a",
-            label:
-              "Nothing's wrong - both numbers describe how trustworthy the system is, so they can " +
-              "be quoted interchangeably.",
-            correct: false,
-            explanationMd:
-              "Interchanging them hides a real gap: a system can hold every byte perfectly while " +
-              "being completely unreachable, or the reverse (0.2).",
-          },
-          {
-            id: "b",
-            label: "Durability is just a stricter version of availability - more nines, same idea.",
-            correct: false,
-            explanationMd:
-              "Not the same axis - one asks whether a write survives, the other asks whether the " +
-              "system answers right now. More nines doesn't turn one into the other.",
-          },
-          {
-            id: "c",
-            label: "The claim is right for storage systems, but wrong for compute systems.",
-            correct: false,
-            explanationMd:
-              "Invents a boundary the two forces don't actually have - the distinction (0.2) applies " +
-              "to any system that stores something, not a storage-versus-compute split.",
-          },
-          {
-            id: "d",
-            label:
-              "They measure different failures - durability asks whether a write survives, " +
-              "availability asks whether the system answers right now, and a system can fail one " +
-              "without failing the other.",
-            correct: true,
-            explanationMd:
-              "Correct. S3's own two numbers make this concrete: a lost byte and a brief outage are " +
-              "different failures with different engineering answers.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "bb-1-4-estimating-scale",
-    mode: "building-blocks",
-    title: "Estimating Scale",
-    // Real authored content (Wave 2, fourth Part 1 chapter). Spec:
-    // specs/bb-1-4-estimating-scale.spec.md. Lesson body:
-    // public/content/chapters/bb-1-4-estimating-scale.md.
-    problemStatement:
-      "Estimation turns a daily volume into an order of magnitude - QPS, storage, bandwidth - using " +
-      "a day's ~10^5-second shortcut, never a precise figure. This chapter teaches when that " +
-      "estimate actually changes a design decision (a number sitting near a real threshold) and " +
-      "when refining it further is wasted effort (a number nowhere close to one). No build: the " +
-      "knowledge check gives you a product's daily volume and asks you to pick the right " +
-      "order-of-magnitude bucket for each output in turn.",
-    // Five objectives - all five §5.2 categories present, same as 1.1/1.2/1.3
-    // (Process chapters don't get the Concept-only Practical carve-out).
-    // Practical is exercised by the quiz's estimate-kind questions standing in
-    // for CURRICULUM §14's own staged bucket-choice exercise (spec §5 - same
-    // stages-UI degradation pattern 1.1/1.2 used).
-    learningObjectives: [
-      "Knowledge - State the ~10^5-seconds-a-day shortcut and explain why an order-of-magnitude answer, not a precise one, is estimation's actual deliverable.",
-      "Engineering - Convert a product's daily volume into average QPS, peak QPS, storage, and bandwidth, and identify which of those numbers actually changes a design decision.",
-      "Interview - State an estimate as a round number with the benchmark named, in a couple of minutes, instead of computing a precise figure.",
-      "Practical - Given a product's daily volume, choose the correct order-of-magnitude bucket for QPS, storage, and bandwidth, with a stated reason.",
-      "Communication - Justify why a peak-load estimate deserves more scrutiny than a storage estimate for a specific product, naming the threshold each one is or isn't near.",
-    ],
-    // No components introduced (§16 homes the three primitives at 1.6) and no
-    // construction-family exercise - same no-build Process pattern 1.1/1.2/1.3
-    // established.
-    availableComponentIds: [],
-    requiredComponentIds: [],
-    validationRuleIds: [],
-    blueprints: [],
-    hasEditorExercise: false,
-    hints: [
-      {
-        id: "bb-1-4-hint-1",
-        body:
-          "Convert the daily number into a rate first - divide by about 10^5 seconds in a day - " +
-          "before worrying about anything else.",
-      },
-      {
-        id: "bb-1-4-hint-2",
-        body:
-          "A rate by itself isn't the whole answer - ask whether a peak multiplier (2-10x, from the " +
-          "product's own usage pattern) would push that rate past a threshold that matters.",
-      },
-      {
-        id: "bb-1-4-hint-3",
-        body:
-          "Check whether the number you're estimating is close to a threshold that would change the " +
-          "design, or comfortably far from one - that's what decides how much precision it's worth.",
-      },
-    ],
-    readingLinks: [],
-    // 1: Sonnet draft (2026-08-09).
-    // 2: Opus proofread (2026-08-09) - diagram's storage/bandwidth branches
-    //    corrected to match the prose, caption's "bandwidth doesn't spike"
-    //    claim fixed, lens-7 sentence made specific, "Your turn" no longer
-    //    promises a bandwidth question the quiz doesn't ask.
-    lessonVersion: 2,
-    lessonFormat: "mdx",
-    curriculumContext: {
-      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.4 of 44.",
-      masteredConcepts: [
-        "0.4's loop step 3 (users -> QPS -> storage -> bandwidth) and that estimation runs in " +
-          "powers of ten, never precise figures.",
-        "1.1's clarifying-question test and its 1000:1 read:write ratio example for the URL " +
-          "shortener, confirmed here as the real number for that brief.",
-        "1.3's non-functional requirements (p99 latency, availability) as the numbers a design has " +
-          "to satisfy - this chapter estimates the load those numbers have to hold up under.",
-      ],
-      notYetIntroducedConcepts: [
-        "The landmark latency/throughput/storage ratios (RAM vs. disk vs. network, same-datacenter " +
-          "vs. cross-continent) - 1.5's own material, deliberately not front-loaded here.",
-        "Any specific component or edge kind - none are introduced until 1.6.",
-        "How a peak-QPS number actually gets handled architecturally (more than one machine, a way " +
-          "to add more) - 1.6 onward. This chapter only identifies which number would force that " +
-          "decision, not how the decision gets built.",
-      ],
-      simplifications: [
-        "Bytes-per-record and bytes-per-response figures are illustrative round numbers (\"call it " +
-          "500 bytes\"), not measured - the skill being taught is picking a defensible round number " +
-          "and stating it, not precision.",
-        "A day is treated as ~10^5 seconds (actual: 86,400) throughout - that rounding is the " +
-          "chapter's own point, not an error to correct.",
-      ],
-    },
-    // Ramp 1/1/2/2/3, matching 0.2/0.3/0.4/1.1/1.2/1.3's convention. Q1-Q2
-    // stand in for CURRICULUM §14's own "staged estimation with
-    // order-of-magnitude buckets" exercise (spec §5 - same stages-UI
-    // degradation 1.1/1.2 used), using the `estimate` quiz kind
-    // (QUIZ_FRAMEWORK §2's bucket-choice format) on a fresh product rather
-    // than the lesson's own URL-shortener numbers, so the check tests
-    // transfer, not recall. Q3-Q5 are original. Correct-position spread for
-    // the three single-kind questions (c, a, d) checked by eye against the
-    // clustering bug fixed in 0.1/0.2.
-    quiz: [
-      {
-        id: "bb-1-4-estimating-scale-q1",
+        id: "bb-1-1-framing-the-problem-q5",
         kind: "estimate",
-        difficulty: 1,
+        difficulty: 2,
         prompt:
-          "A photo-sharing app has 50 million daily active users, each opening the feed about 4 " +
-          "times a day. What's the order of magnitude for average feed-load QPS?",
+          "A photo-sharing app serves 20 million photo views a day. Order of magnitude, roughly what's " +
+          "the average QPS?",
         options: [
-          {
-            id: "a",
-            label: "~20 requests per second",
-            correct: false,
-            explanationMd:
-              "Off by two orders of magnitude - 200 million opens a day is nowhere near this small " +
-              "once divided by ~10^5 seconds.",
-          },
+          { id: "a", label: "~20 QPS", correct: false, explanationMd: "Off by four orders of magnitude." },
           {
             id: "b",
-            label: "~2,000 requests per second",
+            label: "~200 QPS",
             correct: true,
             explanationMd:
-              "Correct. 50M x 4 = 200 million opens a day; divided by ~10^5 seconds a day lands at " +
-              "about 2,000 QPS.",
+              "2×10^7 requests over ~10^5 seconds/day is ~200 - divide by the power of ten, don't reach " +
+              "for a calculator.",
           },
-          {
-            id: "c",
-            label: "~200,000 requests per second",
-            correct: false,
-            explanationMd:
-              "This treats the daily total itself as a per-second rate - dividing by seconds in a " +
-              "day is the step that's missing.",
-          },
-          {
-            id: "d",
-            label: "~20,000,000 requests per second",
-            correct: false,
-            explanationMd:
-              "This is roughly the daily total, not a rate - a request every day isn't the same " +
-              "unit as a request every second.",
-          },
+          { id: "c", label: "~20,000 QPS", correct: false, explanationMd: "Off by two orders of magnitude." },
+          { id: "d", label: "~2,000,000 QPS", correct: false, explanationMd: "That's the daily total, not a rate." },
         ],
       },
       {
-        id: "bb-1-4-estimating-scale-q2",
+        id: "bb-1-1-framing-the-problem-q6",
         kind: "estimate",
-        difficulty: 1,
-        prompt:
-          "That same app logs one analytics row per feed-open, about 200 bytes each, kept for 90 " +
-          "days. What's the order of magnitude for total stored analytics data?",
-        options: [
-          {
-            id: "a",
-            label: "~4 megabytes",
-            correct: false,
-            explanationMd:
-              "Off by six orders of magnitude - 200 million rows a day for 90 days is far more than " +
-              "a few thousand rows' worth of data.",
-          },
-          {
-            id: "b",
-            label: "~4 gigabytes",
-            correct: false,
-            explanationMd:
-              "Off by three orders of magnitude - a single day's rows alone (200 million x 200 " +
-              "bytes) already clear a gigabyte before 90 days of accumulation.",
-          },
-          {
-            id: "c",
-            label: "~4 terabytes",
-            correct: true,
-            explanationMd:
-              "Correct. 200 million rows/day x 90 days x 200 bytes lands around 3.6 trillion bytes " +
-              "- a few terabytes, the point where a single ordinary database's disk stops being the " +
-              "obvious answer.",
-          },
-          {
-            id: "d",
-            label: "~4 petabytes",
-            correct: false,
-            explanationMd:
-              "Overshoots by three orders of magnitude - petabyte scale needs a much larger daily " +
-              "volume or a much longer retention window than this brief states.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-4-estimating-scale-q3",
-        kind: "single",
         difficulty: 2,
         prompt:
-          "Average feed-load QPS for that app is about 2,000. A viral post could spike traffic well " +
-          "above that average. What's the strongest way to account for it?",
+          "That same app averages ~200 QPS. Which is the most defensible peak estimate to design around?",
         options: [
           {
             id: "a",
-            label: "Assume peak equals average, since averages already smooth out spikes.",
+            label: "Also ~200 QPS - peak equals average.",
             correct: false,
-            explanationMd:
-              "An average is a daily mean by construction - it can't also describe a short burst " +
-              "above it.",
+            explanationMd: "Ignores that real traffic bursts above average.",
           },
           {
             id: "b",
-            label: "Always assume peak is exactly 100x average, regardless of the product.",
+            label: "~20,000 QPS - always plan for 100x average.",
             correct: false,
-            explanationMd:
-              "A fixed multiplier ignores the product's own usage pattern - the right multiplier is " +
-              "a judgment (2-10x, occasionally more for something genuinely viral), not a constant.",
+            explanationMd: "100x is not a fixed constant; it isn't grounded in this product's usage pattern.",
           },
           {
             id: "c",
             label:
-              "Multiply average by a small factor (2-10x) based on how bursty this product's usage " +
-              "pattern actually is, then check whether that crosses a real capacity threshold.",
+              "Somewhere between ~400 and ~2,000 QPS - a 2-10x multiple chosen from the product's usage " +
+              "pattern.",
             correct: true,
             explanationMd:
-              "Correct. The multiplier comes from the product, not a formula, and the whole point is " +
-              "finding out whether the peak number crosses into territory that changes what gets " +
-              "built.",
+              "Peak is a small multiple of average, sized from how bursty the product's own traffic " +
+              "actually is - not a fixed constant either way.",
           },
           {
             id: "d",
-            label: "Skip peak entirely, since only creates spike, not reads.",
+            label: "Impossible to estimate without exact traffic logs.",
             correct: false,
-            explanationMd:
-              "Reads spike too - a viral post drives redirects and feed-loads, not new links or new " +
-              "posts.",
+            explanationMd: "Order-of-magnitude estimation is exactly the tool for exactly this situation.",
           },
         ],
       },
       {
-        id: "bb-1-4-estimating-scale-q4",
+        id: "bb-1-1-framing-the-problem-q7",
         kind: "single",
         difficulty: 2,
         prompt:
-          "A teammate spends fifteen minutes computing this app's storage figure down to the exact " +
-          "byte, after already rounding it to \"a few terabytes.\" What's the strongest critique?",
+          "A service moves its availability target from 99.9% to 99.99%. What does that one extra nine " +
+          "actually buy, and cost?",
         options: [
           {
             id: "a",
             label:
-              "The order-of-magnitude answer already told you it needs real infrastructure beyond " +
-              "a single database's disk - more decimal places wouldn't change that decision.",
+              "About 8 fewer hours of downtime a year, and roughly an order of magnitude more " +
+              "engineering to hold it.",
             correct: true,
             explanationMd:
-              "Correct. Once a number has already crossed the threshold that matters, refining it " +
-              "further is exactly the wasted precision this chapter opened with.",
+              "Correct. Each extra nine cuts downtime tenfold and costs roughly an order of magnitude " +
+              "more engineering - real machinery, not a free upgrade.",
           },
           {
             id: "b",
-            label: "None - more precision is always better.",
+            label: "About 8 fewer minutes of downtime, for free.",
             correct: false,
-            explanationMd:
-              "More precision costs time; it's only worth spending when the answer is close enough " +
-              "to a threshold that it could flip which side you land on.",
+            explanationMd: "Understates the time saved and ignores the real engineering cost.",
           },
           {
             id: "c",
-            label: "The estimate should have been in bytes from the start, never terabytes.",
+            label: "Nothing measurable - nines above 99.9% are marketing.",
             correct: false,
-            explanationMd:
-              "The unit is cosmetic - terabytes and bytes describe the same number; the critique is " +
-              "about spending time, not which unit was chosen.",
+            explanationMd: "The nines-to-downtime table converts each one into real, checkable hours.",
           },
           {
             id: "d",
-            label: "Storage never matters enough to estimate at all.",
+            label: "A guarantee the service never goes down.",
             correct: false,
-            explanationMd:
-              "It mattered enough here to change the answer from \"any database\" to \"real " +
-              "infrastructure\" - the critique is about over-precision, not skipping the estimate.",
+            explanationMd: "No availability number is a zero-downtime guarantee.",
           },
         ],
       },
       {
-        id: "bb-1-4-estimating-scale-q5",
+        id: "bb-1-1-framing-the-problem-q8",
+        kind: "single",
+        difficulty: 2,
+        prompt: "Reading a row from SSD instead of from RAM (a cache hit) costs roughly:",
+        options: [
+          { id: "a", label: "About the same.", correct: false, explanationMd: "RAM and SSD are not the same order of magnitude." },
+          { id: "b", label: "~2x slower.", correct: false, explanationMd: "Understates the real gap." },
+          { id: "c", label: "~1,000,000x slower.", correct: false, explanationMd: "Overstates the gap by several orders of magnitude." },
+          {
+            id: "d",
+            label: "On the order of 10-100x slower.",
+            correct: true,
+            explanationMd:
+              "The ratio, not the raw nanoseconds, is what changes designs - it's why a memory cache " +
+              "pays for itself.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-1-framing-the-problem-q9",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Which is typically faster: a network round trip to another machine in the same datacenter, " +
+          "or a seek on that same machine's local disk?",
+        options: [
+          {
+            id: "a",
+            label: "The local disk seek - local always beats network.",
+            correct: false,
+            explanationMd: "The exact assumption this chapter's landmark table contradicts.",
+          },
+          {
+            id: "b",
+            label: "The same-datacenter network round trip.",
+            correct: true,
+            explanationMd:
+              "The counter-intuitive pair: reaching a nearby machine's memory usually beats reading your " +
+              "own disk, which is why a memory cache sits between an app server and its database at all.",
+          },
+          { id: "c", label: "They're always identical.", correct: false, explanationMd: "The gap is roughly an order of magnitude, not zero." },
+          {
+            id: "d",
+            label: "Neither - it depends entirely on the cloud provider.",
+            correct: false,
+            explanationMd: "The ratio is a property of the hardware and the network, not the vendor.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-1-framing-the-problem-q10",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Custom aliases (choosing your own short code instead of a random one) is Must-have for a " +
+          "marketing team's branded-link tool, but Could for a personal link shortener. Why does the " +
+          "same feature land in different buckets?",
+        options: [
+          {
+            id: "a",
+            label: "Marketing teams pay more, so they get more features.",
+            correct: false,
+            explanationMd: "Pricing has nothing to do with the Must-have test.",
+          },
+          {
+            id: "b",
+            label: "Custom aliases are technically harder to build for marketing use.",
+            correct: false,
+            explanationMd: "The feature is the same feature either way - implementation difficulty isn't the test.",
+          },
+          {
+            id: "c",
+            label:
+              "The audience decides what the system's core job is - for one, branded links ARE the " +
+              "product; for the other, the core loop works fine with random codes.",
+            correct: true,
+            explanationMd:
+              "Correct. The Must-have test asks whether the core job fails without the feature, and the " +
+              "audience is what defines the core job.",
+          },
+          {
+            id: "d",
+            label: "The MoSCoW test is inconsistent and doesn't apply to judgment calls.",
+            correct: false,
+            explanationMd: "The test is consistent - it's the audience-dependent input that changes.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-1-framing-the-problem-q11",
         kind: "single",
         difficulty: 3,
         prompt:
-          "A teammate claims: \"Since the URL shortener's storage and bandwidth came out tiny, " +
-          "estimation barely mattered for that system.\" What's the strongest correction?",
+          "In the URL shortener example, the 1000:1 ratio from clarifying, the expiry answer from " +
+          "requirements, and the storage estimate from step 3 are related how?",
         options: [
           {
             id: "a",
-            label: "Estimation only matters for large-scale systems, not modest ones.",
-            correct: false,
+            label:
+              "Each answer feeds the next step directly - the ratio becomes the actual traffic split " +
+              "used in estimation, and the expiry promise becomes the retention window storage " +
+              "multiplies by.",
+            correct: true,
             explanationMd:
-              "The URL shortener is modest and estimation still mattered - for peak QPS, just not " +
-              "for the other two numbers.",
+              "Correct. The loop's steps aren't independent boxes; each one spends an answer a prior " +
+              "step already bought instead of recomputing from scratch.",
           },
           {
             id: "b",
-            label:
-              "All four numbers matter equally on every system, so this one was actually a rare " +
-              "exception.",
+            label: "They're independent facts that happen to appear in the same interview.",
             correct: false,
-            explanationMd:
-              "The opposite pattern - which numbers matter varies by system, and this system " +
-              "happened to have exactly one that did.",
+            explanationMd: "Each later step directly reuses an earlier answer as real input, not coincidence.",
           },
           {
             id: "c",
-            label:
-              "Since three of four numbers turned out tiny, none of them were worth computing in " +
-              "the first place.",
+            label: "Only the ratio matters; expiry and storage are unrelated details.",
             correct: false,
-            explanationMd:
-              "You don't know a number is tiny until you check it - skipping the check isn't the " +
-              "lesson, computing it quickly and moving on is.",
+            explanationMd: "Expiry directly sets the retention window the storage estimate depends on.",
+          },
+          {
+            id: "d",
+            label: "The estimate should be computed first, then checked against the earlier answers.",
+            correct: false,
+            explanationMd: "Reverses the loop's actual order - estimation depends on requirements, not the reverse.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-1-framing-the-problem-q12",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A candidate spends 20 of their 45 interview minutes on clarifying, requirements, and " +
+          "estimation combined, then rushes the high-level design. What's the most accurate read?",
+        options: [
+          {
+            id: "a",
+            label: "Strong work - thoroughness on the fundamentals is always rewarded.",
+            correct: false,
+            explanationMd: "Thoroughness that starves the rest of the loop isn't strength.",
+          },
+          {
+            id: "b",
+            label: "Fine, as long as every number was precise to the decimal.",
+            correct: false,
+            explanationMd: "Decimal precision is exactly the wasted effort this chapter warns against.",
+          },
+          {
+            id: "c",
+            label: "Irrelevant - the clock doesn't matter as long as the final design is correct.",
+            correct: false,
+            explanationMd: "The interview's fixed clock is part of what's being evaluated, not incidental.",
           },
           {
             id: "d",
             label:
-              "It mattered for peak QPS, the one number that sat near a real threshold - estimation " +
-              "matters exactly where a number is close enough to a threshold to change the design, " +
-              "and this system had exactly one such number.",
+              "A budgeting mistake - these three steps together are worth roughly 10-15 minutes; the " +
+              "overrun starved the steps that actually produce the architecture.",
             correct: true,
             explanationMd:
-              "Correct. Storage and bandwidth being trivial here doesn't mean estimation didn't " +
-              "matter - it means estimation is what revealed they didn't.",
+              "Correct. Clarify and requirements together get roughly 5-10 minutes, estimation about 5 " +
+              "more - the rest of the loop still needs the other 30.",
           },
         ],
       },
     ],
   },
   {
-    id: "bb-1-5-numbers-every-engineer-should-know",
+    id: "bb-1-2-designing-the-system",
     mode: "building-blocks",
-    title: "Numbers Every Engineer Should Know",
-    // Real authored content (Wave 2, fifth Part 1 chapter). Spec:
-    // specs/bb-1-5-numbers-every-engineer-should-know.spec.md. Lesson body:
-    // public/content/chapters/bb-1-5-numbers-every-engineer-should-know.md.
-    problemStatement:
-      "Some numbers are cheaper to memorize outright than to derive live - the latency ladder from RAM " +
-      "through SSD, a same-datacenter network hop, a disk seek, and a cross-continent network hop, each " +
-      "roughly one to two orders of magnitude past the one before, with one pair that swaps order. This " +
-      "chapter teaches the ladder and the ratios between its rungs, not just the raw figures. No build: " +
-      "the knowledge check asks you to rank a short list of operations fastest to slowest using the " +
-      "ladder, then estimate the rough total latency of a request built from a stated combination of them.",
-    // Five objectives - all five §5.2 categories present (Process chapters
-    // don't get the Concept-only Practical carve-out, same as 1.1-1.4).
-    learningObjectives: [
-      "Knowledge - State the five-rung latency ladder (RAM, SSD, same-datacenter network, disk seek, cross-continent network) in the correct relative order without deriving it from scratch.",
-      "Engineering - Decide whether a design's dominant latency cost is a compute problem or a data-locality problem, by naming which rung of the ladder a given operation sits on.",
-      "Interview - Quantify a cache's or a nearby copy's benefit as a rough order-of-magnitude number, using the ladder, instead of a bare 'it's faster.'",
-      "Practical - Given a short list of operations, rank them fastest to slowest using the ladder's ratios, and estimate the order-of-magnitude latency of a request built from a stated combination of them.",
-      "Communication - Explain in one sentence why a same-datacenter network round trip can beat a local disk seek, naming the physical reason.",
-    ],
-    // No components introduced (§16 homes the three primitives at 1.6) and no
-    // construction-family exercise - same no-build Process pattern
-    // 1.1/1.2/1.3/1.4 established.
-    availableComponentIds: [],
-    requiredComponentIds: [],
-    validationRuleIds: [],
-    blueprints: [],
-    hasEditorExercise: false,
-    hints: [
-      {
-        id: "bb-1-5-hint-1",
-        body:
-          "Start from the ends of the ladder you're most sure of - RAM is the fastest, cross-continent " +
-          "network is the slowest - then place the rest relative to those two.",
-      },
-      {
-        id: "bb-1-5-hint-2",
-        body:
-          "A disk seek is mechanical - something physically has to move. A same-datacenter network hop " +
-          "is electrical. That difference is worth thinking about when you're unsure which one wins.",
-      },
-      {
-        id: "bb-1-5-hint-3",
-        body:
-          "For the estimate drill, find the single slowest operation in the combination first - the " +
-          "total is dominated by that one, not the precise sum of all of them.",
-      },
-    ],
-    readingLinks: [],
-    // 1: Sonnet draft (2026-08-09).
-    // 2: Opus proofread (2026-08-09) - "rung" now defined at first use and the
-    //    ladder given one fixed orientation (was used to mean both faster and
-    //    slower), the RAM/SSD/network ratio chain made arithmetically
-    //    consistent (SSD "~10s of microseconds" -> "~10 microseconds",
-    //    SSD -> datacenter edge "~10x" -> "~50x"), the diagram flipped to TD so
-    //    it matches the ladder metaphor, and roughly a dozen multi-clause
-    //    sentences split. See spec §13.
-    lessonVersion: 2,
-    lessonFormat: "mdx",
-    curriculumContext: {
-      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.5 of 44.",
-      masteredConcepts: [
-        "1.4's estimation shortcut (~10^5 seconds/day) and its own distinction between a number worth " +
-          "deriving and a number that's already close enough to a threshold that refining it wastes " +
-          "time - reapplied here to numbers worth memorizing instead of deriving at all.",
-        "0.2's five forces, specifically the cache force (a cache buys latency by keeping hot data " +
-          "closer than its source) - this chapter supplies the physical ratios that force explains.",
-        "1.3's non-functional requirements as numbers-shaped promises (p99 latency, availability) - the " +
-          "budgets this chapter's ladder has to fit inside.",
-      ],
-      notYetIntroducedConcepts: [
-        "Any specific component or edge kind - none are introduced until 1.6.",
-        "Named replication or consistency mechanisms for keeping a nearby copy in sync - referenced " +
-          "only as 'a real mechanism' here, taught starting 3.12 and 3.22.",
-        "CDNs, regions, or any named way of placing data near users - 1.5 teaches only the raw latency " +
-          "gap those mechanisms close, not the mechanisms themselves (home: 3.15 and later).",
-      ],
-      simplifications: [
-        "The ladder's figures are order-of-magnitude landmarks, not measured benchmarks for any " +
-          "specific vendor or hardware generation - real numbers vary by SSD generation, network path, " +
-          "and workload. The ratio between rungs is the durable fact; the exact millisecond isn't.",
-        "\"Same-datacenter\" and \"cross-continent\" stand in for the two ends of the network-distance " +
-          "spectrum worth having memorized, not an exhaustive list of real network distances.",
-      ],
-    },
-    // Ramp 1/1/2/2/3, matching 0.2-1.4's convention. Q1 (ordering) and Q2
-    // (estimate) directly realize CURRICULUM §14's "ranking + estimation
-    // drills" exercise - not a stages-UI degradation like 1.1/1.2/1.4's,
-    // since §14's row never calls this exercise "staged" (same non-
-    // degradation judgment call 1.3 made). Q3-Q5 are original, modeled on
-    // QUIZ_FRAMEWORK §6's own Q5/Q6 (already written against this chapter)
-    // without reusing their wording. Correct-position spread for the three
-    // single-kind questions (c, a, d) checked by eye against the clustering
-    // bug fixed in 0.1/0.2.
-    quiz: [
-      {
-        id: "bb-1-5-numbers-every-engineer-should-know-q1",
-        kind: "ordering",
-        difficulty: 1,
-        prompt:
-          "Order these five operations from fastest to slowest: a RAM reference, an SSD read, a " +
-          "same-datacenter network round trip, a local disk seek, a cross-continent network round trip.",
-        // Full derangement against correctOrder - Ordering.tsx shows this
-        // array's authored order with no shuffle, so a naturally-ordered
-        // draft would ship pre-solved.
-        options: [
-          {
-            id: "ssd",
-            label: "SSD read",
-            correct: true,
-            explanationMd:
-              "Second - roughly 10-100x slower than a RAM reference, but no moving parts, so still far " +
-              "ahead of anything on this list involving a network or a spinning disk.",
-          },
-          {
-            id: "cross",
-            label: "Cross-continent network round trip",
-            correct: true,
-            explanationMd:
-              "Last - bounded by real physical distance and the cables a signal has to cross; roughly " +
-              "150-300x the same-datacenter round trip, and no code shortens that floor.",
-          },
-          {
-            id: "ram",
-            label: "RAM reference",
-            correct: true,
-            explanationMd: "First - electrical, a few nanoseconds, the fastest rung on the ladder.",
-          },
-          {
-            id: "samedc",
-            label: "Same-datacenter network round trip",
-            correct: true,
-            explanationMd:
-              "Third - pays queuing and OS overhead on top of wire speed, but that wire is measured in " +
-              "feet, which is why it still beats a disk seek.",
-          },
-          {
-            id: "disk",
-            label: "Local disk seek",
-            correct: true,
-            explanationMd:
-              "Fourth, not third - a physical arm moving across a spinning platter is a real mechanical " +
-              "delay, slower than a network hop to the machine next door.",
-          },
-        ],
-        correctOrder: ["ram", "ssd", "samedc", "disk", "cross"],
-      },
-      {
-        id: "bb-1-5-numbers-every-engineer-should-know-q2",
-        kind: "estimate",
-        difficulty: 1,
-        prompt:
-          "A request does one RAM lookup, then one same-datacenter network round trip to another " +
-          "service. What's the order of magnitude for the pair's total latency?",
-        options: [
-          {
-            id: "a",
-            label: "~1 microsecond",
-            correct: false,
-            explanationMd:
-              "This ignores the network hop entirely - a same-datacenter round trip alone runs closer " +
-              "to a millisecond, a thousand times slower than this.",
-          },
-          {
-            id: "b",
-            label: "~1 millisecond",
-            correct: true,
-            explanationMd:
-              "Correct. The RAM lookup (~100 ns) is negligible next to the same-datacenter round trip " +
-              "(~0.5-1 ms), which dominates the pair's total.",
-          },
-          {
-            id: "c",
-            label: "~1 second",
-            correct: false,
-            explanationMd:
-              "Roughly a thousand times too slow for one same-datacenter hop - that scale of delay " +
-              "usually means several hops, not one, or a cross-continent leg in the mix.",
-          },
-          {
-            id: "d",
-            label: "~100 seconds",
-            correct: false,
-            explanationMd:
-              "Nothing on this ladder costs anywhere near this much - even a cross-continent round trip " +
-              "is roughly five orders of magnitude faster than this.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-5-numbers-every-engineer-should-know-q3",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "An engineer designs a service to read straight from local disk instead of adding a small " +
-          "cache reachable over the datacenter network, reasoning that \"local is always faster than " +
-          "the network.\" What's the strongest critique?",
-        options: [
-          {
-            id: "a",
-            label: "The critique is wrong - local disk is always faster than any network hop.",
-            correct: false,
-            explanationMd:
-              "This is exactly the assumption the ladder disproves - a same-datacenter round trip is " +
-              "typically faster than a disk seek, not slower.",
-          },
-          {
-            id: "b",
-            label: "The engineer should have used a faster CPU instead of worrying about storage at all.",
-            correct: false,
-            explanationMd:
-              "A faster CPU doesn't touch either the disk-seek delay or the network round trip - neither " +
-              "is a compute cost.",
-          },
-          {
-            id: "c",
-            label:
-              "The assumption is backwards for this pair: a disk seek is typically slower than a " +
-              "same-datacenter network round trip, which is exactly why fetching from a nearby cache " +
-              "over the network can beat reading local disk.",
-            correct: true,
-            explanationMd:
-              "Correct. This is the ladder's one out-of-order pair, and it's the reason large-scale " +
-              "services put a memory cache between the app tier and the database in the first place.",
-          },
-          {
-            id: "d",
-            label: "Neither disk nor network latency matters once the response is compressed.",
-            correct: false,
-            explanationMd:
-              "Compression shrinks payload size, not the seek delay or the round-trip time being " +
-              "compared here - it addresses a different cost entirely.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-5-numbers-every-engineer-should-know-q4",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "A service's cross-continent API calls add roughly 150 ms per round trip. Which change " +
-          "actually addresses that cost?",
-        options: [
-          {
-            id: "a",
-            label:
-              "Serve the request from a location physically closer to the user - a cross-continent " +
-              "round trip's ~150 ms is mostly the distance a signal has to travel, not code running slowly.",
-            correct: true,
-            explanationMd:
-              "Correct. Distance sets a physical floor on round-trip time; the only way to lower it is " +
-              "to shorten the distance.",
-          },
-          {
-            id: "b",
-            label: "Give the origin server more CPU cores.",
-            correct: false,
-            explanationMd:
-              "More compute doesn't touch a physical-distance floor - the 150 ms isn't being spent " +
-              "processing the request.",
-          },
-          {
-            id: "c",
-            label: "Compress the response body further.",
-            correct: false,
-            explanationMd:
-              "Compression shrinks transfer time, a small fraction of the total next to the propagation " +
-              "delay a cross-continent hop pays regardless of payload size.",
-          },
-          {
-            id: "d",
-            label: "Retry the request automatically if it seems slow.",
-            correct: false,
-            explanationMd:
-              "A retry pays the same ~150 ms again - it doesn't reduce the cost, it repeats it.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-5-numbers-every-engineer-should-know-q5",
-        kind: "single",
-        difficulty: 3,
-        prompt:
-          "1.4 taught you to compute an order-of-magnitude estimate from first principles and spend " +
-          "extra precision only where a number sits near a real threshold. How does that rule apply to " +
-          "this chapter's landmark ratios?",
-        options: [
-          {
-            id: "a",
-            label: "It doesn't - these ratios should always be re-derived from physics for accuracy.",
-            correct: false,
-            explanationMd:
-              "1.4 never asked for re-derivation by default - it endorsed a memorized shortcut " +
-              "(~10^5 seconds/day) precisely to avoid rebuilding a number from scratch each time.",
-          },
-          {
-            id: "b",
-            label:
-              "Since these ratios are memorized constants, no engineer should ever bother measuring a " +
-              "real system's actual numbers.",
-            correct: false,
-            explanationMd:
-              "This overcorrects - 1.4's rule is to spend precision where an estimate sits near a real " +
-              "threshold, not to never measure anything.",
-          },
-          {
-            id: "c",
-            label:
-              "The two rules are unrelated - 1.4 was about traffic volume and this chapter is about " +
-              "physical latency, so they don't share a lesson.",
-            correct: false,
-            explanationMd:
-              "Both chapters teach the same rule (order of magnitude first, precision only where it " +
-              "earns its keep) applied to two different kinds of numbers.",
-          },
-          {
-            id: "d",
-            label:
-              "The rule is identical: memorize the ladder as a fast default, and spend time measuring a " +
-              "system's real numbers only when an estimate built from the ladder lands close enough to " +
-              "a threshold to matter.",
-            correct: true,
-            explanationMd:
-              "Correct. The ladder is this chapter's version of 1.4's ~10^5-seconds shortcut - a fast " +
-              "default good enough until a real threshold says otherwise.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "bb-1-6-drawing-the-first-architecture",
-    mode: "building-blocks",
-    title: "Drawing the First Architecture",
-    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
-    // Spec: specs/bb-1-6-drawing-the-first-architecture.spec.md. Lesson body:
-    // public/content/chapters/bb-1-6-drawing-the-first-architecture.md.
-    // First Building Block chapter (§4) - 1.1-1.5 were Concept/Process with
-    // no components, no starterGraph, no blueprints. This one has all three
-    // for real, plus §16's formal introduction of the three primitives that
-    // 0.1 only borrowed as narrow scenery.
+    title: "Designing the System",
+    // Real authored content (Phase 10 condense of old 1.6 Drawing the First
+    // Architecture + old 1.7 Identifying Bottlenecks + old 1.9 Deep Dive
+    // Methodology into one chapter). Spec:
+    // specs/bb-1-2-designing-the-system.spec.md. Lesson body:
+    // public/content/chapters/bb-1-2-designing-the-system.mdx.
+    // Building Block type (not Process), because it carries a real canvas
+    // build - the first one in the condensed Part 1. §10.3's must-survive
+    // requirement (POA Phase 10): the component introduction and the first
+    // Fix exercise are preserved intact from old 1.6 - same
+    // available/required component ids, same validation rules, same
+    // blueprint, same starterGraph. Only the surrounding lesson prose (now
+    // also covering old 1.7's bottleneck method and old 1.9's deep-dive
+    // targeting) and the quiz/hints changed.
     problemStatement:
       "The starter design on the canvas skips the app server: the client is wired straight to " +
       "the database. No tour walks you through this one. Run Validate, read what it reports, and " +
       "use that to decide what to add and what to rewire. Add the missing component, route both " +
-      "edges through it, get a clean Validate, then Submit.",
-    // Six objectives (§5.2 allows 3-7): all five required categories, plus a
-    // second Engineering objective for the two beats (Failure modes,
-    // Scaling) that are mandatory for Building Block but were optional for
-    // every Concept/Process chapter so far. Category tags live in the spec
-    // (specs/bb-1-6-drawing-the-first-architecture.spec.md §2).
+      "edges through it, get a clean Validate, then Submit. The lesson also covers finding a " +
+      "system's bottleneck (loop step 6) and picking a deep-dive target (loop step 5), both " +
+      "exercised by the knowledge check rather than a second build.",
     learningObjectives: [
       "State the job each of the three primitive components does, and why the app server sits between the other two.",
       "Decide why a client should never connect directly to a database, naming the concrete risk it creates.",
-      "Identify what breaks first in a one-app-server design, and state qualitatively what changes at 10x and 100x traffic.",
       "Fix a starter graph that skips the app server: add the missing component, route both edges through it, and pass a clean Validate then Submit.",
-      "Produce a defensible first architecture for a simple product in under a minute, naming each component's job as you draw it.",
+      "Find a system's bottleneck by comparing component ceilings, and distinguish a slow component from an unscalable one.",
+      "Pick a deep-dive target using two questions - which requirement is closest to its limit, and which component is where that pressure lands.",
+      "State qualitatively what changes at 10x and 100x traffic for a simple three-tier design.",
       "Explain, in your own words, why the no-direct-client-database validation failure fires and what it is protecting against.",
     ],
-    // §16's audit row for 1.6 exactly: client, app-server, sql-database is
-    // this chapter's home, not a borrowed exception. The exercise requires
-    // all three - a minimal three-tier build has no optional piece, so
-    // required equals available.
+    // §16's audit row for the component-introduction chapter, unchanged from
+    // old 1.6: client, app-server, sql-database, all three required.
     availableComponentIds: ["client", "app-server", "sql-database"],
     requiredComponentIds: ["client", "app-server", "sql-database"],
-    // no-direct-client-database is the chapter's namesake rule (fires on the
-    // starter graph's client -> sql-database edge regardless of edge kind).
-    // component-relations fires on the same edge for an independent reason:
-    // BOTH endpoint contracts reject it (client's outputs.allowedCategories is
-    // ["networking","compute"], sql-database's inputs.allowedCategories is
-    // ["compute","caching"]), and since component-relations.ts tests
-    // !outputCategoryOk first, the message the learner reads names the
-    // Client's output rules, not the database's input rules. The other three
-    // rules fire on graph coherence, not on any concept this chapter hasn't
-    // taught, so they can't surface an idea ahead of its home chapter. None of
-    // them reports the absent app-server - that comes from
-    // runChapterValidation's missingRequiredComponentIds check over
-    // requiredComponentIds (chapter-outcome.ts), not from a rule.
+    // Unchanged from old 1.6 - see that chapter's own comment (preserved
+    // below) for why component-relations' message names the client's output
+    // rules rather than the database's input rules.
     validationRuleIds: [
       "no-direct-client-database",
       "component-relations",
@@ -3012,10 +1900,10 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
     blueprints: [
       {
-        id: "bb-1-6-blueprint",
+        id: "bb-1-2-blueprint",
         label: "Client through an app server to a database",
         require: {
-          id: "bb-1-6-blueprint",
+          id: "bb-1-2-blueprint",
           nodes: [
             { alias: "client", componentId: "client" },
             { alias: "app", componentId: "app-server" },
@@ -3034,55 +1922,46 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
     hints: [
       {
-        id: "bb-1-6-hint-1",
+        id: "bb-1-2-hint-1",
         body:
           "Validate names what's on the canvas and what's missing. Of the three jobs - receive, " +
           "decide, store - which one has no component doing it yet?",
       },
       {
-        id: "bb-1-6-hint-2",
+        id: "bb-1-2-hint-2",
         body:
           "The picker (`/` or right-click) has all three components available. The missing one " +
           "belongs between the two already present, not beside them.",
       },
       {
-        id: "bb-1-6-hint-3",
+        id: "bb-1-2-hint-3",
         body:
           "A request-flow edge already runs straight from the client to the database. Once the " +
           "missing piece is placed, decide what happens to that edge rather than leaving it where it is.",
       },
+      {
+        id: "bb-1-2-hint-4",
+        body:
+          "For a bottleneck question: a system's ceiling is always its lowest number on the path, " +
+          "never the average of every component's ceiling.",
+      },
     ],
     readingLinks: [],
-    // 1: Sonnet draft (2026-08-09).
-    // 2: Opus proofread (2026-08-09) - diagram caption no longer claims
-    //    request-flow "only ever" runs client -> app -> db (false as a general
-    //    claim about the edge kind, and 3.4 breaks it) nor that the exercise
-    //    checks "one rule" (five are curated, and the starter graph's one bad
-    //    edge trips two), the Instagram example rewritten to a defensible
-    //    claim (it overclaimed a single primary Postgres "serving millions of
-    //    users"; by then Instagram had many app servers and sharded Postgres),
-    //    "Next" given the backward connections §19 requires in beat 14 (it had
-    //    none - 1.4/1.5 both carry them), and the senior line's "saturate"
-    //    changed to the chapter's own "run out of headroom" (§10.3; saturation
-    //    is 1.7's word). See spec §13.
-    lessonVersion: 2,
+    lessonVersion: 1,
     lessonFormat: "mdx",
     curriculumContext: {
-      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.6 of 44.",
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.2 of 37.",
       masteredConcepts: [
         "The Reader-to-Editor loop, Validate vs. Submit, and reading a validation explanation (0.1).",
         "The five forces: latency, throughput, availability, durability, cost (0.2).",
-        "Interview vs. production registers, and the eight-step Interview Loop, including step 4 (0.3-0.4).",
-        "Scoping a problem with clarifying questions (1.1) and functional requirements (1.2).",
-        "Non-functional requirements as numbers-shaped promises (1.3).",
-        "Order-of-magnitude estimation, including this chapter's own running system's 1000:1 read:write ratio (1.4).",
-        "The latency ladder and its ratios, referenced here as headroom/saturation language (1.5).",
+        "The eight-step Interview Loop (0.4), and the shared test behind clarify/requirements/estimate (new 1.1).",
+        "This system's own 1000:1 read:write ratio, latency budget, and landmark ratios (new 1.1).",
       ],
       notYetIntroducedConcepts: [
         "Multiple app-server instances and routing traffic across them - a load balancer (3.4).",
         "Caching (3.14), read replicas and NoSQL (3.11-3.12).",
-        "Formal, systematic bottleneck-finding methodology (1.7) - this chapter applies the idea informally, once.",
         "Real authentication/authorization mechanics - named as the app server's job, not implemented.",
+        "Trade-off statements and defending a design under follow-ups - loop steps 7-8, taught next.",
       ],
       simplifications: [
         "Only one app-server instance is ever in scope. The instances config field exists on the " +
@@ -3093,17 +1972,23 @@ export const chapterRegistry: ChapterDefinition[] = [
           "the client must not be it.",
         "The database is treated as a single, undifferentiated store. SQL vs. NoSQL, replication, and " +
           "read replicas are all later material (3.11-3.12) and are not previewed here.",
+        "Bottleneck ceilings and deep-dive targets are stated in quiz prompts as given numbers, not " +
+          "derived on canvas - the same quiz-realized pattern old 1.7/1.9 used for their own " +
+          "predict-then-check and target-picking exercises.",
       ],
     },
-    // Five questions, ramp 1/1/2/2/3 (matching 0.2-1.5's convention). Q2 is
-    // modeled on QUIZ_FRAMEWORK.md §6's own Q7 - the bank's published
-    // example for this exact chapter and rule - reworded and re-laid-out
-    // rather than copied verbatim. Position-clustering checked by eye across
-    // the four single-kind questions (Q1/Q3/Q4/Q5): correct options sit at
-    // b, a, c, d - four distinct positions.
+    // 13 questions (condensed-chapter exception, QUIZ_FRAMEWORK.md §2), ramp
+    // 4/6/3 across difficulty 1/2/3 (31/46/23, close to 30/45/25). At least
+    // one question per absorbed topic: build/design (Q1-Q4, old 1.6),
+    // bottleneck/ceiling (Q5-Q8, old 1.7), deep-dive targeting (Q9-Q10, old
+    // 1.9), synthesis (Q11-Q13). Q2 reuses old 1.6's own diagram-question
+    // shape and graph almost exactly, since the Fix exercise it tests is
+    // preserved intact per POA §10.3. Position-clustering checked by eye
+    // across the 11 single-kind questions: a x3, b x3, c x3, d x2 - no
+    // clustering.
     quiz: [
       {
-        id: "bb-1-6-drawing-the-first-architecture-q1",
+        id: "bb-1-2-designing-the-system-q1",
         kind: "single",
         difficulty: 1,
         prompt: "What is the app server's job in the three-tier shape you just built?",
@@ -3139,7 +2024,7 @@ export const chapterRegistry: ChapterDefinition[] = [
         ],
       },
       {
-        id: "bb-1-6-drawing-the-first-architecture-q2",
+        id: "bb-1-2-designing-the-system-q2",
         kind: "diagram",
         difficulty: 1,
         prompt:
@@ -3195,9 +2080,9 @@ export const chapterRegistry: ChapterDefinition[] = [
         ],
       },
       {
-        id: "bb-1-6-drawing-the-first-architecture-q3",
+        id: "bb-1-2-designing-the-system-q3",
         kind: "single",
-        difficulty: 2,
+        difficulty: 1,
         prompt:
           "no-direct-client-database fires on a client-to-database edge no matter what kind that " +
           "edge is given. Why?",
@@ -3218,17 +2103,15 @@ export const chapterRegistry: ChapterDefinition[] = [
             correct: false,
             explanationMd:
               "There is no kind filter on this rule at all - checking only one kind would let the same " +
-              "illegal connection dodge the rule by picking a different kind, which is exactly what the " +
-              "rule is written to prevent.",
+              "illegal connection dodge the rule by picking a different kind.",
           },
           {
             id: "c",
             label: "It only fires if the database initiates the connection.",
             correct: false,
             explanationMd:
-              "A database has no legal outgoing path to a client at all in this registry - this " +
-              "distinction doesn't apply here. The rule fires on the client-to-database direction, " +
-              "never the reverse.",
+              "A database has no legal outgoing path to a client at all in this registry - the rule " +
+              "fires on the client-to-database direction, never the reverse.",
           },
           {
             id: "d",
@@ -3241,11 +2124,10 @@ export const chapterRegistry: ChapterDefinition[] = [
         ],
       },
       {
-        id: "bb-1-6-drawing-the-first-architecture-q4",
+        id: "bb-1-2-designing-the-system-q4",
         kind: "single",
-        difficulty: 2,
-        prompt:
-          "Today's design has exactly one app-server instance. It crashes. What happens?",
+        difficulty: 1,
+        prompt: "Today's design has exactly one app-server instance. It crashes. What happens?",
         options: [
           {
             id: "a",
@@ -3280,7 +2162,244 @@ export const chapterRegistry: ChapterDefinition[] = [
         ],
       },
       {
-        id: "bb-1-6-drawing-the-first-architecture-q5",
+        id: "bb-1-2-designing-the-system-q5",
+        kind: "diagram",
+        difficulty: 2,
+        prompt:
+          "Client -> one app-server instance -> sql database. The app server sustains roughly 800 " +
+          "req/s; the database sustains roughly 5,000 req/s of this workload. As traffic climbs, " +
+          "which component saturates first?",
+        graph: {
+          nodes: [
+            { id: "c1", componentId: "client", position: { x: 40, y: 100 }, config: {} },
+            { id: "a1", componentId: "app-server", position: { x: 220, y: 100 }, config: {} },
+            { id: "d1", componentId: "sql-database", position: { x: 400, y: 100 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "c1", target: "a1", kind: "request-flow" },
+            { id: "e2", source: "a1", target: "d1", kind: "request-flow" },
+          ],
+          entryPointIds: ["c1"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "The database - it always saturates first.",
+            correct: false,
+            explanationMd:
+              "Not here: 5,000 req/s is the higher ceiling of the two. \"Databases always break first\" " +
+              "is reputation, not a comparison of today's numbers.",
+          },
+          {
+            id: "b",
+            label: "The app server - it has the lower ceiling on this path.",
+            correct: true,
+            explanationMd:
+              "Correct. A system's ceiling is the lowest ceiling on the path, and 800 is lower than " +
+              "5,000 here - a fact about these numbers, not a permanent rule about app servers.",
+          },
+          {
+            id: "c",
+            label: "The client - it originates the traffic.",
+            correct: false,
+            explanationMd: "The client has no ceiling of its own in this model - it isn't serving requests, it's issuing them.",
+          },
+          {
+            id: "d",
+            label: "Both at exactly the same traffic level.",
+            correct: false,
+            explanationMd: "The two ceilings are different numbers, so they aren't reached at the same traffic level.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-2-designing-the-system-q6",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A database's individual queries get slower as a table grows, but its requests-per-second " +
+          "ceiling hasn't moved. Is this a bottleneck?",
+        options: [
+          {
+            id: "a",
+            label: "Yes - anything getting worse under load is the bottleneck by definition.",
+            correct: false,
+            explanationMd: "Conflates \"slow\" with \"unscalable\" - the two are different problems with different fixes.",
+          },
+          {
+            id: "b",
+            label:
+              "Not yet a capacity bottleneck - it's a slow problem (worth fixing with an index or " +
+              "query rewrite), not a hard ceiling.",
+            correct: true,
+            explanationMd:
+              "Correct. Throughput ceiling and per-request latency are different measurements - one can " +
+              "move without the other.",
+          },
+          {
+            id: "c",
+            label: "No - only the app server can ever be a bottleneck.",
+            correct: false,
+            explanationMd: "Any component on the path can be the lowest-ceiling one, given the right numbers.",
+          },
+          {
+            id: "d",
+            label: "It's unmeasurable without a simulator.",
+            correct: false,
+            explanationMd: "The distinction (ceiling moved vs. didn't) is exactly what's given in the scenario - no simulator needed.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-2-designing-the-system-q7",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "App-server instances are added until the app server is no longer the bottleneck. What " +
+          "happens to the system's ceiling next?",
+        options: [
+          {
+            id: "a",
+            label: "There is no ceiling anymore - the system scales indefinitely.",
+            correct: false,
+            explanationMd: "The database primary's ceiling is still there, and now it's the binding one.",
+          },
+          {
+            id: "b",
+            label:
+              "The database's ceiling becomes the system's ceiling instead, even though nothing " +
+              "about the database changed.",
+            correct: true,
+            explanationMd:
+              "Correct. A single database primary's ceiling stays roughly fixed regardless of app-tier " +
+              "capacity - only the comparison moved, not the database itself.",
+          },
+          {
+            id: "c",
+            label: "The client becomes the bottleneck.",
+            correct: false,
+            explanationMd: "The client has no ceiling of its own in this model.",
+          },
+          {
+            id: "d",
+            label: "The app server remains the bottleneck regardless of how many instances exist.",
+            correct: false,
+            explanationMd: "Directly contradicts the premise - adding instances is exactly what raised its ceiling.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-2-designing-the-system-q8",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A known future ceiling is still months away. What does this chapter say about adding " +
+          "capacity now versus waiting?",
+        options: [
+          {
+            id: "a",
+            label: "Always preempt - waiting is always the wrong call.",
+            correct: false,
+            explanationMd: "Stated as genuinely two-sided - preempting has a real cost too (complexity today for a wall that might arrive later or not at all).",
+          },
+          {
+            id: "b",
+            label: "Always wait - premature scaling is always wasted effort.",
+            correct: false,
+            explanationMd: "Also one-sided - waiting risks a scramble under load, which has its own real cost.",
+          },
+          {
+            id: "c",
+            label:
+              "Neither is free; the right call depends on how expensive an outage is versus how " +
+              "confidently the growth curve can be predicted.",
+            correct: true,
+            explanationMd: "Correct. Both options have a named cost - this is a genuine trade-off, not a rule with one right answer.",
+          },
+          {
+            id: "d",
+            label: "The choice doesn't matter as long as the ceiling is known.",
+            correct: false,
+            explanationMd: "Knowing the ceiling doesn't remove the trade-off between paying now and paying (differently) later.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-2-designing-the-system-q9",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A design's read traffic is about to grow 10x and is already the tightest requirement; " +
+          "the write path has generous headroom. Which is the defensible deep-dive target, and why?",
+        options: [
+          {
+            id: "a",
+            label:
+              "The read path - it's the requirement closest to its limit, and that's where the " +
+              "pressure lands.",
+            correct: true,
+            explanationMd:
+              "Correct. Both questions point the same way here: which requirement is closest to " +
+              "breaking, and which component is where that pressure lands.",
+          },
+          {
+            id: "b",
+            label: "The write path - writes are always the harder problem to explain.",
+            correct: false,
+            explanationMd: "Not supported by this scenario's own numbers - the pressure named here is on reads.",
+          },
+          {
+            id: "c",
+            label: "Whichever one the candidate personally knows better.",
+            correct: false,
+            explanationMd: "Exactly the failure mode this chapter names - picking by comfort instead of by evidence.",
+          },
+          {
+            id: "d",
+            label: "Both, split evenly.",
+            correct: false,
+            explanationMd: "Splitting when only one requirement is genuinely under pressure reads as two shallow answers instead of one real one.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-2-designing-the-system-q10",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A candidate spends eight minutes deep-diving one component's internals and never connects " +
+          "it back to the rest of the design. What's the failure, and the fix?",
+        options: [
+          {
+            id: "a",
+            label:
+              "Losing the room - the fix is a deliberate resurface, one sentence reconnecting the " +
+              "detail to the whole design.",
+            correct: true,
+            explanationMd: "Correct. Going deep is fine; disappearing into it without ever coming back up is what loses the interviewer.",
+          },
+          {
+            id: "b",
+            label: "Nothing is wrong - more depth is always better.",
+            correct: false,
+            explanationMd: "Depth without a return trip is exactly the failure mode this chapter names.",
+          },
+          {
+            id: "c",
+            label: "The candidate picked the wrong component entirely.",
+            correct: false,
+            explanationMd: "The scenario doesn't say the target was wrong - it says the candidate never came back up, a separate problem.",
+          },
+          {
+            id: "d",
+            label: "The fix is to avoid deep dives altogether.",
+            correct: false,
+            explanationMd: "Deep dives are the point of loop step 5 - the fix is resurfacing, not avoiding depth.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-2-designing-the-system-q11",
         kind: "single",
         difficulty: 3,
         prompt: "Traffic grows 100x, using only today's three components. What's the first real limitation?",
@@ -3303,9 +2422,7 @@ export const chapterRegistry: ChapterDefinition[] = [
             id: "c",
             label: "Nothing changes; the shape still works at any scale.",
             correct: false,
-            explanationMd:
-              "Directly contradicted by what this chapter teaches: at 100x, one app-server instance " +
-              "genuinely cannot serve the load.",
+            explanationMd: "Directly contradicted by what this chapter teaches: at 100x, one app-server instance genuinely cannot serve the load.",
           },
           {
             id: "d",
@@ -3319,960 +2436,754 @@ export const chapterRegistry: ChapterDefinition[] = [
           },
         ],
       },
+      {
+        id: "bb-1-2-designing-the-system-q12",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Two requirements are both genuinely close to breaking at once. This chapter's advice on " +
+          "splitting the remaining deep-dive time evenly between them is:",
+        options: [
+          {
+            id: "a",
+            label: "Always do it - fairness between requirements is the safest default.",
+            correct: false,
+            explanationMd: "The chapter's actual position is narrower than this - see the correct option.",
+          },
+          {
+            id: "b",
+            label:
+              "Defensible only when both pressures are genuinely close to breaking - otherwise two " +
+              "shallow dives read as two things half-understood.",
+            correct: true,
+            explanationMd:
+              "Correct. Splitting is usually wrong because it trades a demonstrated real dive for two " +
+              "shallow ones - it's only defensible in the genuinely-both-critical case this question " +
+              "describes.",
+          },
+          {
+            id: "c",
+            label: "Never do it - always pick exactly one target no matter what.",
+            correct: false,
+            explanationMd: "Too absolute - the chapter allows splitting specifically when both pressures are real.",
+          },
+          {
+            id: "d",
+            label: "It depends entirely on which requirement was mentioned first.",
+            correct: false,
+            explanationMd: "Order of mention isn't the chapter's test - closeness to breaking is.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-2-designing-the-system-q13",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "You've found the app server has the lowest ceiling on the path (the bottleneck method), " +
+          "and separately picked the read path as the deep-dive target because throughput is closest " +
+          "to its limit (the deep-dive method). How are these two findings related?",
+        options: [
+          {
+            id: "a",
+            label:
+              "They're coincidentally about the same system - the two methods are otherwise " +
+              "unrelated.",
+            correct: false,
+            explanationMd: "Understates the connection - both methods run the identical requirement-to-component comparison.",
+          },
+          {
+            id: "b",
+            label:
+              "They're the same underlying comparison asked as two different questions - which " +
+              "requirement is under pressure, and which component that pressure lands on.",
+            correct: true,
+            explanationMd:
+              "Correct. \"What's the bottleneck\" and \"where should I go deeper\" both reduce to " +
+              "comparing requirements against components - this chapter's own \"two methods, one " +
+              "comparison\" point.",
+          },
+          {
+            id: "c",
+            label: "The bottleneck method is only for Building Block chapters; deep-dive targeting is unrelated.",
+            correct: false,
+            explanationMd: "Not a real distinction - both methods apply to any architecture, regardless of chapter type.",
+          },
+          {
+            id: "d",
+            label: "Whichever finding came first should be discarded in favor of the second.",
+            correct: false,
+            explanationMd: "Both findings are valid and reinforce each other - neither one invalidates the other.",
+          },
+        ],
+      },
     ],
     // Deliberately broken, matching 0.1's own "two real, distinct issues"
     // pattern (§11.1 - fix exercises ship symptoms, never "find the bug"
-    // blind):
+    // blind), unchanged from old 1.6:
     //  1. app-server (a required component) is entirely absent.
     //  2. The one edge present runs client -> sql-database directly, kind
-    //     "request-flow" (the only kind a client may legally emit at all -
-    //     see content/components/config/networking.ts's relations). It is
-    //     illegal because of what it connects, not because of its kind -
-    //     the more realistic and more instructive fault, and the reason
-    //     no-direct-client-database checks endpoints unconditionally on
-    //     kind (see that rule's own module comment).
+    //     request-flow - illegal because of what it connects, not because of
+    //     its kind - the more realistic and more instructive fault, and the
+    //     reason no-direct-client-database checks endpoints unconditionally
+    //     on kind (see that rule's own module comment).
     starterGraph: {
       nodes: [
-        { id: "bb-1-6-client", componentId: "client", position: { x: 80, y: 140 }, config: {} },
-        { id: "bb-1-6-sql-database", componentId: "sql-database", position: { x: 400, y: 140 }, config: {} },
+        { id: "bb-1-2-client", componentId: "client", position: { x: 80, y: 140 }, config: {} },
+        { id: "bb-1-2-sql-database", componentId: "sql-database", position: { x: 400, y: 140 }, config: {} },
       ],
       edges: [
-        { id: "bb-1-6-edge-client-db", source: "bb-1-6-client", target: "bb-1-6-sql-database", kind: "request-flow" },
+        { id: "bb-1-2-edge-client-db", source: "bb-1-2-client", target: "bb-1-2-sql-database", kind: "request-flow" },
       ],
-      entryPointIds: ["bb-1-6-client"],
+      entryPointIds: ["bb-1-2-client"],
     },
   },
   {
-    id: "bb-1-7-identifying-bottlenecks",
+    id: "bb-1-3-defending-the-design",
     mode: "building-blocks",
-    title: "Identifying Bottlenecks",
-    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
-    // Spec: specs/bb-1-7-identifying-bottlenecks.spec.md. Lesson body:
-    // public/content/chapters/bb-1-7-identifying-bottlenecks.md.
-    // Reverts to Process (§4) - unlike 1.6, no components introduced. Same
-    // no-build shape as 1.1-1.5: hasEditorExercise: false, empty component/
-    // blueprint/validation-rule lists.
+    title: "Defending the Design",
+    // Real authored content (Phase 10 condense of old 1.8 Engineering
+    // Trade-offs + old 1.10 Communicating & Defending a Design into one
+    // chapter). Spec: specs/bb-1-3-defending-the-design.spec.md. Lesson
+    // body: public/content/chapters/bb-1-3-defending-the-design.mdx.
     problemStatement:
-      "No canvas build this chapter - the palette is still 1.6's three components, and this " +
-      "chapter's method doesn't need a fourth. The knowledge check shows three small designs, " +
-      "each with stated component ceilings, and asks you to predict which one saturates first " +
-      "before revealing the reasoning - the predict-then-check drill this chapter is built " +
-      "around, run directly in the quiz rather than on canvas.",
-    // Five objectives (§5.2 allows 3-7): all five required categories, same
-    // Process pattern 1.1-1.5 used (no Concept-only Practical carve-out).
-    // Category tags live in the spec
-    // (specs/bb-1-7-identifying-bottlenecks.spec.md §2).
+      "Every real design decision buys something and spends something, and every follow-up is " +
+      "new input to weigh, not a verdict on what you already drew. This chapter teaches both: the " +
+      "trade-off reflex (we chose X, accepting Y, because Z) and the follow-up test (new evidence " +
+      "or only pressure, and does the design already survive it). No build: the knowledge check " +
+      "covers both loop steps.",
     learningObjectives: [
-      "State the method: a system's throughput ceiling is the lowest per-component ceiling on the request path, not an average or a guess by reputation.",
-      "Distinguish a component that is slow (higher per-request latency, ceiling unchanged) from one that is unscalable (at its throughput ceiling).",
-      "Given two components' ceilings, identify today's bottleneck and explain why that answer can flip as the ceilings change.",
-      "Answer 'what breaks first?' for a shown design in under a minute, naming the ceiling-comparison mechanism rather than a memorized answer.",
-      "State, out loud, the trade-off between adding capacity before a ceiling is reached and waiting until it's real.",
+      "Knowledge - State the three-part trade-off statement and the five dimensions a decision commonly spends.",
+      "Engineering - Given a decision, identify which dimensions it genuinely spends versus leaves untouched.",
+      "Interview - Read a follow-up as new evidence or only pressure, and decide whether the current design already survives it before changing anything.",
+      "Practical - Given trade-off and follow-up scenarios, pick the response that names both what's bought and spent, or that correctly evolves only the piece that breaks.",
+      "Communication - Defend a decision by restating why its reason still holds, or name honestly what changed when it doesn't.",
     ],
-    // §16: no components introduced this chapter (1.7 is in the no-component
-    // list alongside 1.1-1.5 and 1.8-1.11) - the three primitives stay homed
-    // at 1.6.
+    // No components introduced - Process type, same as every non-build Part
+    // 1 chapter. The palette is still the previous chapter's three
+    // components; this chapter adds no fourth.
     availableComponentIds: [],
     requiredComponentIds: [],
-    // No canvas exercise, nothing to validate - same justification 1.1-1.5
-    // and 0.2-0.4 recorded.
     validationRuleIds: [],
     blueprints: [],
     hasEditorExercise: false,
-    // No hints - no build/Fix exercise for a hint to orient toward, same as
-    // every other no-build chapter so far (0.2-0.4, 1.1-1.5).
-    hints: [],
+    hints: [
+      {
+        id: "bb-1-3-hint-1",
+        body:
+          "A trade-off statement is incomplete until it names what was spent, not just what was " +
+          "fixed. Check the five dimensions - latency, consistency, complexity, money, operability - " +
+          "against the decision.",
+      },
+      {
+        id: "bb-1-3-hint-2",
+        body:
+          "\"It's a bit more complex\" doesn't name a dimension. Which specific one - more moving " +
+          "parts, more to monitor, more to deploy - actually changed?",
+      },
+      {
+        id: "bb-1-3-hint-3",
+        body:
+          "For a follow-up: ask whether it's genuinely new evidence or just pressure on a choice " +
+          "already made. Only evidence can justify changing the design.",
+      },
+      {
+        id: "bb-1-3-hint-4",
+        body:
+          "If the design already survives the new evidence, the right move is to say so and explain " +
+          "why - not to redesign something that doesn't need it.",
+      },
+    ],
     readingLinks: [],
-    // 1: Sonnet draft (2026-08-10).
     lessonVersion: 1,
     lessonFormat: "mdx",
     curriculumContext: {
-      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.7 of 44.",
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.3 of 37.",
       masteredConcepts: [
-        "1.6's three-component shape (client, app server, sql database) and its own specific " +
-          "answer to 'what breaks first' at today's scale - generalized here into a method that " +
-          "works on any design, not just that one.",
-        "1.6's app-server `instances` config field, reused directly in this chapter's diagram " +
-          "questions to vary which component has the lower ceiling.",
-        "1.4/1.5's numbers-comparison habit (order-of-magnitude estimation, the latency ladder) - " +
-          "the raw material any real ceiling comparison is built from.",
+        "The three-tier shape, component ceilings, and deep-dive targeting (new 1.2).",
+        "The five forces (0.2) and this system's own requirements and estimates (new 1.1).",
+        "The eight-step Interview Loop, including steps 7-8 (0.4).",
       ],
       notYetIntroducedConcepts: [
-        "Any mechanism for actually distributing traffic across more than one app-server " +
-          "instance - that's 3.4's load balancer. This chapter names that more instances CAN " +
-          "raise a ceiling without explaining how requests get distributed across them.",
-        "Read replicas, sharding, or any named way a database's ceiling could be raised - all " +
-          "later material (3.12, 3.13). This chapter treats a database's ceiling as fixed on " +
-          "purpose, since no mechanism for raising it exists yet on the taught palette.",
+        "The full consistency model - strong vs. eventual, quorums, CAP (3.22). \"Consistency\" here is a working name, not the full model.",
+        "Durability machinery that would let a write survive a mid-crash restart (3.20, 3.26) - named as a real, currently-unsolved gap, not glossed over.",
+        "Running the full eight-step loop under a real interview clock - the next chapter.",
       ],
       simplifications: [
-        "Ceiling numbers in the lesson diagram and the quiz's diagram questions are round, " +
-          "illustrative figures for teaching the comparison, not measurements of any real " +
-          "component or system.",
-        "'Ceiling' is this chapter's own instructional term for a component's maximum sustained " +
-          "throughput - not an engine concept or a config field, the same status as 1.5's 'rung.'",
+        "The write-survives-a-restart gap is deliberately left unsolved, not quietly patched with an " +
+          "untaught mechanism - stated honestly in the lesson body, not just recorded here.",
+        "\"Consistency\" is used as a working name for one of the five spend dimensions, not the full " +
+          "strong/eventual/quorum model that arrives at 3.22.",
       ],
     },
-    // Ramp 1/1/2/2/3, matching 0.2-1.6's convention. Three of five are
-    // diagram-kind, directly realizing CURRICULUM §14's "predict-then-check
-    // on three presented graphs" exercise text - see spec §0 for why this is
-    // a simulator-UI degradation (pending-content.md's own named case), not a
-    // stages-UI one. Q1/Q3/Q5 share one topology (client -> app-server ->
-    // sql-database) with varying `instances` config and stated ceilings, so
-    // the same shape yields three different correct answers as the numbers
-    // change - the chapter's own central point, tested structurally.
+    // 13 questions (condensed-chapter exception, QUIZ_FRAMEWORK.md §2), ramp
+    // 4/6/3. At least one question per absorbed topic: trade-off reflex (Q1-
+    // Q5, old 1.8), follow-up reading (Q6-Q10, old 1.10), synthesis (Q11-
+    // Q13). Position-clustering checked by eye across the 12 single-kind
+    // questions (all but Q3, which is multi): a x3, b x3, c x3, d x3 - no
+    // clustering.
     quiz: [
       {
-        id: "bb-1-7-identifying-bottlenecks-q1",
-        kind: "diagram",
-        difficulty: 1,
-        prompt:
-          "1.6's shape: one app-server instance (ceiling 1,000 req/s) feeding one database " +
-          "(ceiling 5,000 req/s). Traffic is climbing steadily. Which component saturates first?",
-        graph: {
-          nodes: [
-            { id: "c1", componentId: "client", position: { x: 40, y: 140 }, config: {} },
-            { id: "a1", componentId: "app-server", position: { x: 220, y: 140 }, config: {} },
-            { id: "d1", componentId: "sql-database", position: { x: 400, y: 140 }, config: {} },
-          ],
-          edges: [
-            { id: "e1", source: "c1", target: "a1", kind: "request-flow" },
-            { id: "e2", source: "a1", target: "d1", kind: "request-flow" },
-          ],
-          entryPointIds: ["c1"],
-        },
-        options: [
-          {
-            id: "a",
-            label: "The app server - it has the lower of the two ceilings on this path.",
-            correct: true,
-            explanationMd:
-              "Correct. 1,000 req/s is lower than the database's 5,000, and the system's ceiling " +
-              "is always the lowest one on the path - this is 1.6's own answer, reached here by " +
-              "the general method instead of a one-off fact about that chapter's numbers.",
-          },
-          {
-            id: "b",
-            label: "The database - databases are usually the first thing to run out of capacity.",
-            correct: false,
-            explanationMd:
-              "A reputation-based guess, not a ceiling comparison. Here the database's stated " +
-              "ceiling is the higher of the two, so it isn't the constraint yet.",
-          },
-          {
-            id: "c",
-            label: "Both at the same time - they're connected, so they saturate together.",
-            correct: false,
-            explanationMd:
-              "Being connected doesn't make two ceilings equal. 1,000 and 5,000 are different " +
-              "numbers, and the lower one binds first.",
-          },
-          {
-            id: "d",
-            label: "The client - it's the first component on the path.",
-            correct: false,
-            explanationMd:
-              "Position on the path doesn't determine the bottleneck, and the client issues " +
-              "requests rather than serving them - it has no throughput ceiling of its own here.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-7-identifying-bottlenecks-q2",
+        id: "bb-1-3-defending-the-design-q1",
         kind: "single",
         difficulty: 1,
-        prompt:
-          "A request path has three components, each with a different maximum sustained " +
-          "throughput. Which one determines when the whole system starts failing under rising load?",
+        prompt: "Which of these is a COMPLETE trade-off statement?",
         options: [
           {
             id: "a",
-            label: "Whichever one has the highest per-request latency.",
+            label: "We added more app-server instances.",
             correct: false,
-            explanationMd:
-              "That's a slow component, not necessarily an unscalable one - the chapter's own " +
-              "central distinction. Latency and throughput ceiling are different measurements.",
+            explanationMd: "Names the decision (X) only - no reason, no cost.",
           },
           {
             id: "b",
-            label: "Whichever one has the lowest throughput ceiling.",
-            correct: true,
-            explanationMd:
-              "Correct. The system's overall ceiling is the lowest per-component ceiling on the " +
-              "path - not the average, not the priciest component, whichever number is smallest.",
-          },
-          {
-            id: "c",
-            label: "Whichever one is first in the request path.",
-            correct: false,
-            explanationMd:
-              "Position on the path is unrelated to capacity - a component can sit anywhere and " +
-              "still hold the lowest ceiling.",
-          },
-          {
-            id: "d",
-            label: "Whichever one is the most expensive to run.",
-            correct: false,
-            explanationMd: "Cost and throughput capacity are independent - neither implies the other.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-7-identifying-bottlenecks-q3",
-        kind: "diagram",
-        difficulty: 2,
-        prompt:
-          "Same shape, new numbers: the app server is now configured with 5 instances (aggregate " +
-          "ceiling 5,000 req/s). This database's ceiling is 3,000 req/s - heavier queries than " +
-          "before. Which component saturates first now?",
-        graph: {
-          nodes: [
-            { id: "c1", componentId: "client", position: { x: 40, y: 140 }, config: {} },
-            { id: "a1", componentId: "app-server", position: { x: 220, y: 140 }, config: { instances: 5 } },
-            { id: "d1", componentId: "sql-database", position: { x: 400, y: 140 }, config: {} },
-          ],
-          edges: [
-            { id: "e1", source: "c1", target: "a1", kind: "request-flow" },
-            { id: "e2", source: "a1", target: "d1", kind: "request-flow" },
-          ],
-          entryPointIds: ["c1"],
-        },
-        options: [
-          {
-            id: "a",
-            label: "The app server again - it was the bottleneck last time, so it still is.",
-            correct: false,
-            explanationMd:
-              "The plausible-looking pattern-match, and wrong here: the numbers changed. 5,000 is " +
-              "now higher than the database's 3,000, so the app server is no longer the constraint.",
-          },
-          {
-            id: "b",
-            label: "The database - its 3,000 req/s ceiling is now the lower of the two.",
-            correct: true,
-            explanationMd:
-              "Correct. Same topology as Q1, opposite answer, because the numbers changed - the " +
-              "bottleneck is a comparison between today's ceilings, not a fixed property of a " +
-              "component.",
-          },
-          {
-            id: "c",
-            label: "Both at once - they're within 2,000 of each other, close enough to count as tied.",
-            correct: false,
-            explanationMd: "3,000 and 5,000 are different numbers; the lower one binds first regardless of the gap size.",
-          },
-          {
-            id: "d",
-            label: "Neither - the client is the bottleneck in this version.",
-            correct: false,
-            explanationMd: "The client still has no throughput ceiling of its own in this shape - nothing about that changed.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-7-identifying-bottlenecks-q4",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "A database's query latency has been climbing as its largest table grows - queries that " +
-          "used to return in 5ms now take 40ms - but its measured requests-per-second ceiling " +
-          "under load testing hasn't moved. Is the database now the system's bottleneck?",
-        options: [
-          {
-            id: "a",
             label:
-              "Not necessarily - this is a slow problem (higher per-request latency), not evidence " +
-              "the database is at its throughput ceiling. The two are different failures with " +
-              "different fixes.",
+              "We added more app-server instances, accepting more infrastructure cost and " +
+              "operational surface, because the app server has the lower ceiling today.",
             correct: true,
-            explanationMd:
-              "Correct. Slow and unscalable are not the same failure - fixing a slow query often " +
-              "means an index or rewrite; fixing an unscalable one means adding capacity somewhere " +
-              "on the path. Nothing here shows the ceiling itself has moved.",
-          },
-          {
-            id: "b",
-            label: "Yes - any slowdown means it's now the bottleneck.",
-            correct: false,
-            explanationMd:
-              "This conflates the chapter's own central distinction. Higher latency alone doesn't " +
-              "show the throughput ceiling has been reached.",
+            explanationMd: "Correct. All three blanks filled: X (the decision), Y (what it spends), Z (why).",
           },
           {
             id: "c",
-            label: "It doesn't matter, since the queries still return successfully.",
+            label: "We added more app-server instances because the app server was the bottleneck.",
             correct: false,
-            explanationMd:
-              "A real problem exists here (worth fixing), it's just the wrong category of problem - " +
-              "dismissing it isn't the correction either.",
+            explanationMd: "Names X and Z, but not Y - the cost is still missing.",
           },
           {
             id: "d",
-            label: "The app server must now be the bottleneck instead.",
+            label: "Adding more app-server instances is the right call here.",
             correct: false,
-            explanationMd: "Nothing in the scenario says anything about the app server's ceiling - this is an unsupported leap.",
+            explanationMd: "A verdict, not a trade-off statement - none of X, Y, or Z is stated explicitly.",
           },
         ],
       },
       {
-        id: "bb-1-7-identifying-bottlenecks-q5",
-        kind: "diagram",
-        difficulty: 3,
-        prompt:
-          "Same shape, app server now at 10 instances (aggregate ceiling far above the database's " +
-          "3,000 req/s). Traffic keeps climbing toward the database's ceiling. What happens to the " +
-          "system's overall throughput ceiling if the app server adds 10 more instances on top of that?",
-        graph: {
-          nodes: [
-            { id: "c1", componentId: "client", position: { x: 40, y: 140 }, config: {} },
-            { id: "a1", componentId: "app-server", position: { x: 220, y: 140 }, config: { instances: 10 } },
-            { id: "d1", componentId: "sql-database", position: { x: 400, y: 140 }, config: {} },
-          ],
-          edges: [
-            { id: "e1", source: "c1", target: "a1", kind: "request-flow" },
-            { id: "e2", source: "a1", target: "d1", kind: "request-flow" },
-          ],
-          entryPointIds: ["c1"],
-        },
-        options: [
-          {
-            id: "a",
-            label: "Nothing changes for the system's ceiling - the database is already the binding constraint.",
-            correct: true,
-            explanationMd:
-              "Correct. Once the database's fixed ceiling is the lower of the two, more app-server " +
-              "capacity doesn't raise the system's overall ceiling - it moves further from being the " +
-              "constraint, not toward it.",
-          },
-          {
-            id: "b",
-            label: "The system ceiling rises proportionally with the new app-server capacity.",
-            correct: false,
-            explanationMd:
-              "This is only true while the app server is the lower ceiling. Once the database binds, " +
-              "adding app-server capacity stops moving the system's overall number.",
-          },
-          {
-            id: "c",
-            label: "The database's own ceiling rises too, since more app-server capacity is feeding it.",
-            correct: false,
-            explanationMd: "No mechanism supports this - nothing about the database itself changed.",
-          },
-          {
-            id: "d",
-            label: "The app server becomes the bottleneck again.",
-            correct: false,
-            explanationMd:
-              "Backwards - adding even more app-server capacity moves it further from being the " +
-              "constraint, not back toward it.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "bb-1-8-engineering-trade-offs",
-    mode: "building-blocks",
-    title: "Engineering Trade-offs",
-    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
-    // Spec: specs/bb-1-8-engineering-trade-offs.spec.md. Lesson body:
-    // public/content/chapters/bb-1-8-engineering-trade-offs.md.
-    // Process type, same no-build shape as 1.1-1.7: hasEditorExercise: false,
-    // empty component/blueprint/validation-rule lists. §16 places 1.8 in the
-    // no-component list alongside 1.1-1.5 and 1.7/1.9-1.11.
-    problemStatement:
-      "No canvas build this chapter - the palette is still 1.6's three components, and naming " +
-      "a cost doesn't need a fourth. The knowledge check presents three trade-off scenarios and " +
-      "asks you to pick the statement that names both what's bought and what's spent, not just " +
-      "the benefit - the trade-off drill this chapter is built around, run directly in the quiz.",
-    // Five objectives (§5.2 allows 3-7): all five required categories,
-    // including a real Practical objective per 1.1/1.2/1.4/1.5's precedent
-    // (Process chapters do not get the Concept-only Practical carve-out).
-    // Category tags live in the spec
-    // (specs/bb-1-8-engineering-trade-offs.spec.md §2).
-    learningObjectives: [
-      "State the reflex format 'we chose X, accepting Y, because Z' and name the five dimensions a design decision can spend: latency, consistency, complexity, money, operability.",
-      "Given a design decision, walk the five dimensions and name which ones it actually spends, not just the benefit it buys.",
-      "Answer 'what did that cost you?' for a proposed fix in one sentence, naming the specific dimension spent, inside the interview's trade-offs step (0.4 step 7).",
-      "Given three trade-off scenarios, choose the statement that names both what's bought and what's spent, and reject options claiming a cost-free choice or naming the wrong dimension.",
-      "State a decision already made in this chapter out loud in the 'we chose X, accepting Y, because Z' format, naming a real cost on both sides.",
-    ],
-    // §16: no components introduced this chapter (1.8 is in the
-    // no-component list alongside 1.1-1.5, 1.7, 1.9-1.11) - the three
-    // primitives stay homed at 1.6.
-    availableComponentIds: [],
-    requiredComponentIds: [],
-    // No canvas exercise, nothing to validate - same justification 1.1-1.7
-    // and 0.2-0.4 recorded.
-    validationRuleIds: [],
-    blueprints: [],
-    hasEditorExercise: false,
-    // No hints - no build/Fix exercise for a hint to orient toward, same as
-    // every other no-build chapter so far (0.2-0.4, 1.1-1.7).
-    hints: [],
-    readingLinks: [],
-    // 1: Sonnet draft (2026-08-10).
-    lessonVersion: 1,
-    lessonFormat: "mdx",
-    curriculumContext: {
-      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.8 of 44.",
-      masteredConcepts: [
-        "1.7's bottleneck-and-ceiling vocabulary and its own 'add more app-server instances' fix, " +
-          "reused directly as this chapter's worked decision.",
-        "1.6's three-component shape and its `instances` config field, reused in the diagram and " +
-          "the 'bigger machine' comparison.",
-        "0.2's five forces (specifically cost), which this chapter refines into five sharper " +
-          "decision-spending dimensions.",
-      ],
-      notYetIntroducedConcepts: [
-        "Any mechanism for routing traffic across multiple app-server instances (3.4's load " +
-          "balancer) - named as a real cost of the 'add instances' branch without explaining how " +
-          "it would work.",
-        "The formal consistency model (strong vs. eventual, quorums, CAP) - 3.22's territory. " +
-          "'Consistency' here is a working, informal name for one of the five dimensions, not the " +
-          "deep model.",
-        "Replication, sharding, or any other named mechanism that raises a database's ceiling " +
-          "(3.12, 3.13) - not referenced in this chapter's examples.",
-      ],
-      simplifications: [
-        "The five cost dimensions (latency, consistency, complexity, money, operability) are a " +
-          "practical working set for stating trade-offs at this stage, not an exhaustive or " +
-          "formally-defined taxonomy - same status as 0.2's five forces.",
-        "'Consistency' is used here as plain language ('does everyone asking right now get the " +
-          "same answer') rather than any of the formal models 3.22 teaches.",
-        "The quiz's synchronous/asynchronous write-path example is a generic illustration, not " +
-          "tied to any specific mechanism this curriculum has introduced yet (replication is " +
-          "3.12; queues are 3.17).",
-      ],
-    },
-    // Ramp 1/1/2/2/3, matching 0.2-1.7's convention. Q2/Q4/Q5 realize
-    // CURRICULUM §14's "trade-off scenarios x3" exercise text directly - see
-    // spec §10 for why this needed no simulator/stages-UI degradation note
-    // (single/multi quiz kinds already cover this exercise shape natively).
-    quiz: [
-      {
-        id: "bb-1-8-engineering-trade-offs-q1",
+        id: "bb-1-3-defending-the-design-q2",
         kind: "single",
         difficulty: 1,
-        prompt: "Which of these is a COMPLETE trade-off statement, not just a benefit claim?",
+        prompt: "\"Every added instance is a real line on the bill\" names which spend dimension?",
         options: [
-          {
-            id: "a",
-            label: "\"We added a cache - it's much faster now.\"",
-            correct: false,
-            explanationMd:
-              "Names a benefit only. Nothing here says what the cache costs - this is exactly the " +
-              "gap the cold open opens with.",
-          },
-          {
-            id: "b",
-            label: "\"We chose the simpler design because simpler is always better.\"",
-            correct: false,
-            explanationMd:
-              "\"Always better\" isn't a stated cost, it's an unexamined rule. No specific decision, " +
-              "no specific price.",
-          },
-          {
-            id: "c",
-            label:
-              "\"We added more app-server instances, accepting a bigger bill and more moving " +
-              "parts to run, because the app server had the lower ceiling.\"",
-            correct: true,
-            explanationMd:
-              "Correct. X (more instances), Y (bigger bill, more moving parts), and Z (the lower " +
-              "ceiling, from 1.7) are all present - the reflex this chapter trains.",
-          },
-          {
-            id: "d",
-            label: "\"We're not sure yet - it depends.\"",
-            correct: false,
-            explanationMd:
-              "Bare \"it depends\" with no named variable and no commitment isn't a trade-off " +
-              "statement, it's a non-answer (0.3's own \"it depends\" fix applies here too).",
-          },
+          { id: "a", label: "Latency", correct: false, explanationMd: "Latency is about request time, not spend." },
+          { id: "b", label: "Money", correct: true, explanationMd: "Correct. A literal infrastructure/operational cost is the money dimension." },
+          { id: "c", label: "Consistency", correct: false, explanationMd: "Consistency is about whether concurrent readers see the same answer, not cost." },
+          { id: "d", label: "Operability", correct: false, explanationMd: "Operability is about day-to-day running difficulty, a related but distinct dimension from the bill itself." },
         ],
       },
       {
-        id: "bb-1-8-engineering-trade-offs-q2",
-        kind: "single",
-        difficulty: 1,
-        prompt:
-          "You're deciding between two fixes for the app-server bottleneck: add three more " +
-          "instances, or move to one much larger machine. Which statement correctly names a real " +
-          "trade-off for the 'more instances' choice?",
-        options: [
-          {
-            id: "a",
-            label:
-              "More instances buys near-linear headroom, but spends more money and adds " +
-              "operational surface - more things deployed and monitored.",
-            correct: true,
-            explanationMd:
-              "Correct. This is exactly the cost this chapter walks through: money and " +
-              "operability, not latency or consistency.",
-          },
-          {
-            id: "b",
-            label: "More instances is strictly better since it fixes the bottleneck with no downside.",
-            correct: false,
-            explanationMd:
-              "The \"free lunch\" claim this chapter warns against - every real branch spends " +
-              "something.",
-          },
-          {
-            id: "c",
-            label: "More instances mainly costs latency, since requests take longer to route.",
-            correct: false,
-            explanationMd:
-              "Nothing about adding stateless instances slows down a single request's path - " +
-              "latency is the wrong dimension here.",
-          },
-          {
-            id: "d",
-            label: "More instances costs nothing until the database also needs to scale.",
-            correct: false,
-            explanationMd:
-              "The money and complexity costs happen immediately, not on some future trigger - " +
-              "this dismisses a cost already being paid.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-8-engineering-trade-offs-q3",
+        id: "bb-1-3-defending-the-design-q3",
         kind: "multi",
-        difficulty: 2,
+        difficulty: 1,
         prompt:
-          "A team switches a write path from synchronous confirmation (every write waits for the " +
-          "follow-on step to finish before returning success) to asynchronous (return success " +
-          "immediately, finish the follow-on work in the background). Select ALL dimensions this " +
-          "change plausibly spends.",
+          "\"We added more app-server instances\" (the app server is stateless). Select ALL " +
+          "dimensions this decision genuinely spends.",
         options: [
           {
             id: "a",
-            label: "Consistency",
+            label: "Money",
             correct: true,
-            explanationMd:
-              "Correct. A reader checking immediately after the write might see the old state, " +
-              "since the background work hasn't finished yet.",
+            explanationMd: "Every added instance is a real infrastructure cost.",
           },
           {
             id: "b",
-            label: "Complexity",
-            correct: true,
-            explanationMd:
-              "Correct. Now there's background work to track and something to do if it fails " +
-              "later, after the caller has already moved on.",
-          },
-          {
-            id: "c",
             label: "Latency",
             correct: false,
-            explanationMd:
-              "Wrong direction: this change makes the write path faster, not slower. Latency is " +
-              "what's bought here, not spent.",
-          },
-          {
-            id: "d",
-            label: "Money",
-            correct: false,
-            explanationMd:
-              "Nothing about moving work to the background adds or removes infrastructure spend " +
-              "on its own.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-8-engineering-trade-offs-q4",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "The bigger-machine option for the app-server bottleneck keeps everything on one " +
-          "instance. Which statement correctly names what it spends?",
-        options: [
-          {
-            id: "a",
-            label: "Nothing - a single bigger machine avoids every cost the instances option has.",
-            correct: false,
-            explanationMd:
-              "The free-lunch claim again. A bigger machine still costs money at a worse rate and " +
-              "still has a ceiling.",
-          },
-          {
-            id: "b",
-            label: "It spends consistency, since one machine can drift out of sync with itself.",
-            correct: false,
-            explanationMd:
-              "A single instance has nothing to drift from - consistency is about multiple readers " +
-              "or copies disagreeing, not one machine alone.",
+            explanationMd: "Unaffected - adding instances doesn't change how long one request takes.",
           },
           {
             id: "c",
-            label: "It spends operability, since one machine is harder to monitor than many.",
+            label: "Consistency",
             correct: false,
-            explanationMd:
-              "Backwards: one thing to watch is less operational surface than several, per this " +
-              "chapter's own text.",
+            explanationMd: "Unaffected - a stateless app server means which instance answers never changes the answer.",
           },
           {
             id: "d",
-            label:
-              "It spends money at a worse rate than smaller instances, and it still has a " +
-              "ceiling of its own - just a higher one.",
+            label: "Complexity",
             correct: true,
-            explanationMd:
-              "Correct. Bigger machines cost more than proportionally more, and 1.7's whole point " +
-              "was that every component has a ceiling, including a large single one.",
+            explanationMd: "More instances is more moving parts and more independent failure modes.",
+          },
+          {
+            id: "e",
+            label: "Operability",
+            correct: true,
+            explanationMd: "More instances means more things deployed, monitored, and eventually routed across.",
           },
         ],
       },
       {
-        id: "bb-1-8-engineering-trade-offs-q5",
+        id: "bb-1-3-defending-the-design-q4",
+        kind: "single",
+        difficulty: 1,
+        prompt: "Which of these actually names a spend dimension?",
+        options: [
+          { id: "a", label: "\"It's a bit more complex.\"", correct: false, explanationMd: "Vague - names no specific dimension or mechanism." },
+          {
+            id: "b",
+            label: "\"More operational surface, more things to monitor.\"",
+            correct: true,
+            explanationMd: "Correct. Specific and checkable against the operability dimension.",
+          },
+          { id: "c", label: "\"It's not great, honestly.\"", correct: false, explanationMd: "Not a cost statement at all." },
+          { id: "d", label: "\"Some trade-offs exist.\"", correct: false, explanationMd: "Acknowledges trade-offs exist without naming any." },
+        ],
+      },
+      {
+        id: "bb-1-3-defending-the-design-q5",
+        kind: "single",
+        difficulty: 2,
+        prompt: "Between adding more app-server instances and moving to one bigger machine, which is correct?",
+        options: [
+          {
+            id: "a",
+            label: "More instances is always correct - horizontal scaling is always the better choice.",
+            correct: false,
+            explanationMd: "Too absolute - a bigger machine buys back real simplicity, at a real cost.",
+          },
+          {
+            id: "b",
+            label: "A bigger machine is always correct - fewer moving parts always wins.",
+            correct: false,
+            explanationMd: "Also too absolute - it still has a ceiling of its own, and costs money at a worse rate.",
+          },
+          {
+            id: "c",
+            label:
+              "Neither is simply correct - steady growth favors the bigger machine's simplicity, " +
+              "uncertain growth favors instances since the ceiling problem returns slower.",
+            correct: true,
+            explanationMd: "Correct. Both options are genuinely defensible, depending on the growth pattern - that's the point of a real trade-off.",
+          },
+          {
+            id: "d",
+            label: "It doesn't matter which one is picked.",
+            correct: false,
+            explanationMd: "It does matter - the two options have different real costs, just not a universal winner.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-3-defending-the-design-q6",
+        kind: "single",
+        difficulty: 2,
+        prompt: "\"Why not just use a bigger machine?\" after you've already justified adding instances. This follow-up is:",
+        options: [
+          {
+            id: "a",
+            label: "New evidence - a real requirement changed.",
+            correct: false,
+            explanationMd: "Nothing about the requirements changed - this challenges a choice already made.",
+          },
+          {
+            id: "b",
+            label: "Only pressure - a challenge to a decision already made, unless it names something the trade-off missed.",
+            correct: true,
+            explanationMd: "Correct. The move is to defend: restate what more instances buys and costs.",
+          },
+          { id: "c", label: "A sign the original design was wrong.", correct: false, explanationMd: "A challenge is not automatically a verdict." },
+          { id: "d", label: "Impossible to classify without more information.", correct: false, explanationMd: "The test above classifies it directly: no new fact was introduced." },
+        ],
+      },
+      {
+        id: "bb-1-3-defending-the-design-q7",
+        kind: "single",
+        difficulty: 2,
+        prompt: "Writes grow 10x (real new evidence), and the write path already has enough headroom to absorb it. What's the right move?",
+        options: [
+          {
+            id: "a",
+            label: "Redesign the write path anyway, to be safe.",
+            correct: false,
+            explanationMd: "Unnecessary - the test's second question (does it already survive) answered yes.",
+          },
+          {
+            id: "b",
+            label: "Say so, and explain why the current design already handles it - no redesign.",
+            correct: true,
+            explanationMd: "Correct. New evidence that the design already survives needs acknowledgment, not a rebuild.",
+          },
+          { id: "c", label: "Ignore the question and move on.", correct: false, explanationMd: "The follow-up still deserves an answer, even a short one." },
+          { id: "d", label: "Erase the diagram and start over.", correct: false, explanationMd: "The cold open's own failure mode - the design didn't need to change at all here." },
+        ],
+      },
+      {
+        id: "bb-1-3-defending-the-design-q8",
+        kind: "single",
+        difficulty: 2,
+        prompt: "Writes grow 10x (real new evidence), and the write path does NOT already have headroom. What's the right move?",
+        options: [
+          {
+            id: "a",
+            label: "Evolve only the piece that breaks, not the whole design.",
+            correct: true,
+            explanationMd: "Correct. A real gap gets a targeted fix - the rest of the design that isn't implicated stays as it was.",
+          },
+          { id: "b", label: "Say the design already handles it.", correct: false, explanationMd: "Contradicts the premise - it doesn't already have headroom." },
+          { id: "c", label: "Redesign the entire system from scratch.", correct: false, explanationMd: "The cold open's own failure - a full redesign when one piece needs to change." },
+          { id: "d", label: "Defend the original decision without changing anything.", correct: false, explanationMd: "Defending only makes sense when the reason still holds - here it doesn't." },
+        ],
+      },
+      {
+        id: "bb-1-3-defending-the-design-q9",
+        kind: "single",
+        difficulty: 2,
+        prompt: "Defending a decision extends the trade-off statement by which clause?",
+        options: [
+          {
+            id: "a",
+            label: "\"...and Z hasn't changed, so X still holds.\"",
+            correct: true,
+            explanationMd: "Correct. Defending reuses the same X/Y/Z reflex, adding a check on whether the reason still holds.",
+          },
+          { id: "b", label: "\"...and here is a completely new design.\"", correct: false, explanationMd: "That's redesigning, not defending." },
+          { id: "c", label: "\"...trust me, it's fine.\"", correct: false, explanationMd: "Not a defensible claim - names nothing." },
+          { id: "d", label: "\"...the interviewer is wrong to ask.\"", correct: false, explanationMd: "Treats the follow-up as an accusation instead of input to test - exactly the mistake this chapter names." },
+        ],
+      },
+      {
+        id: "bb-1-3-defending-the-design-q10",
+        kind: "single",
+        difficulty: 2,
+        prompt: "A follow-up exposes a real, small gap with almost no interview time left. What's the more defensible move?",
+        options: [
+          {
+            id: "a",
+            label: "Redesign it live in full detail regardless of time.",
+            correct: false,
+            explanationMd: "Spends minutes the rest of the loop may need, for a gap that's already been named.",
+          },
+          {
+            id: "b",
+            label: "Name the fix conceptually - what would change and roughly what it costs - without drawing it live.",
+            correct: true,
+            explanationMd: "Correct. Proves the same judgment faster when time is short; drawing it live is the better call only when time allows.",
+          },
+          { id: "c", label: "Deny the gap exists.", correct: false, explanationMd: "The gap is real - naming it honestly is stronger than denying it." },
+          { id: "d", label: "Change the subject.", correct: false, explanationMd: "Leaves the follow-up unanswered, which reads worse than a short honest answer." },
+        ],
+      },
+      {
+        id: "bb-1-3-defending-the-design-q11",
         kind: "single",
         difficulty: 3,
         prompt:
-          "Two teams face the same app-server bottleneck. Team A expects slow, steady growth for " +
-          "the next year. Team B doesn't know if traffic will double next month or stay flat. " +
-          "Which pairing best matches each team to a defensible choice, with the reasoning?",
+          "A candidate names a decision's cost correctly (X/Y/Z), then later gets a follow-up that " +
+          "genuinely changes Z. What should happen to X?",
         options: [
           {
             id: "a",
-            label: "Both teams should choose instances - it's the objectively better option regardless of growth pattern.",
+            label: "X must stay unchanged - defending means never changing a decision.",
             correct: false,
-            explanationMd:
-              "There is no universal winner here - that's what makes this a genuine trade-off " +
-              "rather than a settled question.",
+            explanationMd: "Defending only holds while Z holds - this scenario says Z changed.",
           },
           {
             id: "b",
             label:
-              "Team A leans toward the bigger machine (predictable growth makes today's " +
-              "simplicity worth a ceiling that's further off); Team B leans toward instances " +
-              "(uncertain growth makes it cheaper to be wrong in small increments than to hit a " +
-              "hard wall on one machine).",
+              "X should be reconsidered - if the reason (Z) that justified it no longer holds, the " +
+              "honest move is naming what changed and updating the design.",
             correct: true,
             explanationMd:
-              "Correct. Predictability favors paying for simplicity now; uncertainty favors the " +
-              "option that fails smaller and more often instead of all at once.",
+              "Correct. \"Z hasn't changed, so X still holds\" only works while Z is true - when it " +
+              "isn't, the honest opposite applies.",
           },
+          { id: "c", label: "X and Z are independent - X never depends on Z.", correct: false, explanationMd: "Z is literally the stated reason for X - they're linked by construction." },
+          { id: "d", label: "The whole design should be redrawn from scratch.", correct: false, explanationMd: "Evolves only the piece the changed reason actually touches, not everything." },
+        ],
+      },
+      {
+        id: "bb-1-3-defending-the-design-q12",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Dropbox's 2016 move off S3 is used as this chapter's production example. What does it " +
+          "actually illustrate?",
+        options: [
           {
-            id: "c",
-            label: "Both teams should choose the bigger machine - simplicity is always worth it until a real bottleneck appears.",
+            id: "a",
+            label: "The specific storage architecture Dropbox built.",
             correct: false,
-            explanationMd:
-              "Same error as always-instances, opposite direction - simplicity is a real benefit, " +
-              "not an automatic win over every alternative.",
+            explanationMd: "This curriculum never explains Dropbox's storage implementation - that's not the point of the example.",
           },
           {
-            id: "d",
+            id: "b",
             label:
-              "Team A leans toward instances (steady growth means frequent small additions); " +
-              "Team B leans toward the bigger machine (uncertainty means avoiding operational " +
-              "complexity).",
-            correct: false,
+              "A trade-off named and defended in public under real skepticism, running the same " +
+              "evidence-vs-pressure test this chapter teaches.",
+            correct: true,
             explanationMd:
-              "The pairing is inverted: steady, predictable growth is exactly when paying for " +
-              "simplicity up front pays off, and uncertainty is when a hard-to-resize single " +
-              "machine is the riskier bet.",
+              "Correct. Dropbox treated \"why not stay on S3?\" as real evidence, confirmed the existing " +
+              "setup didn't already survive it, and defended the resulting trade-off with numbers.",
           },
+          { id: "c", label: "Proof that leaving a cloud provider is always the right move.", correct: false, explanationMd: "Presented as a defensible decision at their specific scale, not a general recommendation - §9 lens 9." },
+          { id: "d", label: "An example of caving to outside pressure.", correct: false, explanationMd: "The opposite - they held their ground and explained the reasoning, rather than reversing course." },
+        ],
+      },
+      {
+        id: "bb-1-3-defending-the-design-q13",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A candidate hears \"what if this needs to work globally?\", immediately says \"you're " +
+          "right, let me redo this,\" and erases the whole diagram before checking anything. What " +
+          "mistake is this?",
+        options: [
+          {
+            id: "a",
+            label: "Refusing to budge - holding a decision that no longer fits.",
+            correct: false,
+            explanationMd: "The opposite happened here - the candidate changed course immediately, not held firm.",
+          },
+          {
+            id: "b",
+            label:
+              "Caving immediately - changing the design the moment it's challenged, without checking " +
+              "whether the original reasoning still holds.",
+            correct: true,
+            explanationMd: "Correct. The follow-up test was skipped entirely - no check for new evidence, no check for existing headroom.",
+          },
+          { id: "c", label: "Vague cost language.", correct: false, explanationMd: "The mistake here isn't about naming a cost - it's about reacting before testing." },
+          { id: "d", label: "This is the correct response to any follow-up.", correct: false, explanationMd: "Directly contradicted by the chapter's own follow-up test - most paths don't end in a full redesign." },
         ],
       },
     ],
   },
   {
-    id: "bb-1-9-deep-dive-methodology",
+    id: "bb-1-4-driving-the-interview",
     mode: "building-blocks",
-    title: "Deep Dive Methodology",
-    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
-    // Spec: specs/bb-1-9-deep-dive-methodology.spec.md. Lesson body:
-    // public/content/chapters/bb-1-9-deep-dive-methodology.md.
-    // Process type, same no-build shape as 1.1-1.8: hasEditorExercise: false,
-    // empty component/blueprint/validation-rule lists. §16 places 1.9 in the
-    // no-component list alongside 1.1-1.5, 1.7-1.8, 1.10-1.11.
+    title: "Driving the Interview",
+    // Real authored content (Phase 10 renumber of old 1.11 Driving a System
+    // Design Interview - single source chapter, not a multi-chapter
+    // condense like new 1.1-1.3, so content carried forward nearly
+    // unchanged. Spec: specs/bb-1-4-driving-the-interview.spec.md. Lesson
+    // body: public/content/chapters/bb-1-4-driving-the-interview.mdx.
+    // §16 puts this in the no-component list. Optional, gates nothing -
+    // same as old 1.11.
     problemStatement:
-      "No canvas build this chapter - the palette is still 1.6's three components, and picking " +
-      "a deep-dive target doesn't need a fourth. The knowledge check shows a design with its " +
-      "stated requirements and asks you to pick the right deep-dive target from four candidates, " +
-      "reading why each of the others misses - the exercise this chapter is built around, run " +
-      "directly in the quiz.",
-    // Five objectives (§5.2 allows 3-7): all five required categories,
-    // including a real Practical objective per 1.1/1.2/1.4/1.5/1.8's
-    // precedent (Process chapters do not get the Concept-only Practical
-    // carve-out). Category tags live in the spec
-    // (specs/bb-1-9-deep-dive-methodology.spec.md §2).
+      "No canvas build this chapter - driving a time-bound design conversation needs no new " +
+      "component. The knowledge check runs a compact interview walkthrough: preserve the " +
+      "requirements-to-design evidence chain, answer a follow-up from that evidence, and close " +
+      "with the design's cost and next risk.",
     learningObjectives: [
-      "State the two-question method for picking a deep-dive target: which requirement is closest to its limit right now, and which component on the path (1.7's ceiling method) is where that pressure actually lands.",
-      "Given a design and its requirements, name the correct deep-dive target and reject one chosen for familiarity, novelty, or 'cover everything a little.'",
-      "Narrate a deep dive that states the target and reason before diving, goes one level down, and explicitly resurfaces to the whole design, inside interview loop step 5 (0.4).",
-      "Given four candidate deep-dive targets for a shown design and its requirements, choose the one the evidence supports and reject options optimizing for familiarity, appearing impressive, or shallow coverage of everything.",
-      "When two requirements are both under real pressure, name both out loud and commit to which one gets the deep dive now, rather than splitting attention shallowly across both.",
+      "State a useful time budget for a 45-minute interview and explain why requirements, estimates, and a close need protected time.",
+      "Classify a follow-up as changed pressure, a trade-off challenge, or a failure/limit question, then return to the relevant prior evidence.",
+      "Given a sequenced tiny-brief interview, choose the next move that keeps the design loop intact under the remaining time.",
+      "Drive an interview by naming the next reasoning move, correcting a changed assumption openly, and ending with a concise recap.",
+      "Explain a time-bound design plan without treating the time budget as a rigid script or a reason to bluff certainty.",
     ],
-    // §16: no components introduced this chapter (1.9 is in the
-    // no-component list alongside 1.1-1.5, 1.7-1.8, 1.10-1.11) - the three
-    // primitives stay homed at 1.6.
     availableComponentIds: [],
     requiredComponentIds: [],
-    // No canvas exercise, nothing to validate - same justification 1.1-1.8
-    // and 0.2-0.4 recorded.
     validationRuleIds: [],
     blueprints: [],
     hasEditorExercise: false,
-    // No hints - no build/Fix exercise for a hint to orient toward, same as
-    // every other no-build chapter so far (0.2-0.4, 1.1-1.8).
     hints: [],
     readingLinks: [],
-    // 1: Sonnet draft (2026-08-10).
     lessonVersion: 1,
     lessonFormat: "mdx",
     curriculumContext: {
-      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.9 of 44.",
+      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.4 of 37 (optional).",
       masteredConcepts: [
-        "1.3's non-functional requirements (the numbers-shaped promises attached to 0.2's five " +
-          "forces) - reused directly as the input to 'which requirement is closest to its limit.'",
-        "1.7's ceiling method (the lowest per-component ceiling on the path) - reused to confirm " +
-          "where a stressed requirement's pressure actually lands in the current design.",
-        "1.8's trade-off reflex and 0.3's 'name the variable and commit' pattern - reused for the " +
-          "one-dive-or-two decision when two requirements compete for the same time.",
-        "1.5's cross-continent round-trip figure - reused as the floor that makes a latency " +
-          "requirement point at 'wherever the request spends its time' rather than one named " +
-          "component.",
-        "1.6's three-component shape - the design every quiz scenario presents.",
+        "The complete eight-step Interview Loop (0.4), lived across new 1.1-1.3.",
+        "The shared clarify/requirements/estimate test and landmark ratios (new 1.1).",
+        "The smallest end-to-end client/app-server/database shape, the ceiling method, and deep-dive targeting (new 1.2).",
+        "The trade-off reflex and the follow-up test for evolving or defending a decision (new 1.3).",
       ],
       notYetIntroducedConcepts: [
-        "Any mechanism that actually relieves a stressed read or write path - read replicas " +
-          "(3.12), caches (3.14), sharding (3.13), or safer write/durability machinery (3.20, " +
-          "3.26). This chapter finds where the pressure is; it never proposes how to relieve it.",
-        "Load balancing or any routing across multiple app-server instances (3.4) - not " +
-          "referenced.",
-        "Geographic distribution machinery (CDNs, regions - 3.15) - the latency example names the " +
-          "distance problem without naming a fix.",
+        "The request's actual browser-to-backend path (2.1) - previewed only in this chapter's Next section.",
+        "Specific scaling mechanisms beyond the three primitives - this chapter coordinates the process and does not add a new solution palette.",
+        "A live branching stages exercise - the stages UI is not yet implemented, so the walkthrough is quiz-realized and disclosed in the lesson.",
       ],
       simplifications: [
-        "'One level down' stays at the depth 1.6-1.8 already established (what happens " +
-          "conceptually when a read or write is handled) - it does not introduce real " +
-          "replication, durability, or storage mechanisms, all later material.",
-        "The 'two requirements under pressure at once' scenario (quiz Q5) is a designed teaching " +
-          "device for the one-dive-or-two decision, not a claim that real designs typically have " +
-          "exactly two competing pressures.",
+        "The 45-minute allocation is an illustrative budget for protecting the reasoning chain, not a universal interview script; the lesson says to adapt it to the brief.",
+        "The quiz presents a linear miniature interview so each decision can receive explanation; real interviews branch, backtrack, and permit more than one defensible time allocation.",
       ],
     },
-    // Ramp 1/1/2/2/3, matching 0.2-1.8's convention. Q2 and Q4 directly
-    // realize CURRICULUM §14's "given a design + requirements, pick the
-    // right deep-dive target from four; explanation per option" exercise
-    // text - see spec §10 for why this needed no simulator/stages-UI
-    // degradation note (a single-choice quiz question already covers this
-    // exercise shape natively, same as 1.8's own trade-off scenarios).
+    // Unchanged from old 1.11: 5 questions, ramp 1/1/2/2/3. Not a condensed
+    // chapter (single source, old 1.11 -> new 1.4), so the condensed-chapter
+    // quiz exception does not apply - the ordinary 3-6 range still governs,
+    // and 5 was already correctly sized. Only ids and old-numbering
+    // cross-references in explanations were updated (old "1.1-1.3"/"1.7" ->
+    // "the requirements chapter"/"the ceiling method", matching new 1.1/1.2).
     quiz: [
       {
-        id: "bb-1-9-deep-dive-methodology-q1",
-        kind: "single",
-        difficulty: 1,
-        prompt: "Which of these is the correct method for picking a deep-dive target?",
-        options: [
-          {
-            id: "a",
-            label: "Pick the component you can explain in the most detail.",
-            correct: false,
-            explanationMd:
-              "The cold open's own failure: familiarity with a component says nothing about " +
-              "whether it's under pressure.",
-          },
-          {
-            id: "b",
-            label: "Pick whichever component sounds most advanced or interesting to discuss.",
-            correct: false,
-            explanationMd:
-              "Sounding impressive isn't evidence of pressure - this is the 'flashiest piece' " +
-              "mistake the chapter warns against.",
-          },
-          {
-            id: "c",
-            label:
-              "Pick the component where the requirement closest to breaking actually lands, " +
-              "confirmed with the ceiling method.",
-            correct: true,
-            explanationMd:
-              "Correct. Two questions, not a guess: which requirement is closest to its limit " +
-              "(1.3), and which component is where that pressure lands (1.7's ceiling method).",
-          },
-          {
-            id: "d",
-            label: "Give every component in the design equal time.",
-            correct: false,
-            explanationMd:
-              "This is 'deep-diving everything' - a shallow pass over every subsystem instead of " +
-              "real depth on the one or two that matter.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-9-deep-dive-methodology-q2",
+        id: "bb-1-4-driving-the-interview-q1",
         kind: "single",
         difficulty: 1,
         prompt:
-          "A URL shortener (1.6's shape: client, app server, sql database) has one requirement " +
-          "under real pressure: reads outnumber writes 1,000 to 1, and read latency must stay low " +
-          "as traffic grows. Which is the strongest deep-dive target?",
+          "Two minutes into a 45-minute interview, the brief is 'design a service for sharing photos.' " +
+          "What is the strongest next move?",
         options: [
           {
             id: "a",
-            label: "The read path - how the database serves repeated reads as load rises.",
-            correct: true,
+            label: "Start drawing the upload path so there is a concrete design to discuss.",
+            correct: false,
             explanationMd:
-              "Correct. The stated requirement is entirely about reads at rising volume - that's " +
-              "exactly where the pressure lands.",
+              "A concrete path helps only after the product and its pressure are known. Drawing now makes unstated assumptions expensive to unwind.",
           },
           {
             id: "b",
-            label: "The write path - how new short links get created.",
-            correct: false,
+            label: "Ask which user flows matter, what scale matters, and what is explicitly out of scope before choosing the shape.",
+            correct: true,
             explanationMd:
-              "Nothing in the stated requirement mentions write volume or write correctness - " +
-              "this targets a dimension that isn't under pressure here.",
+              "Correct. This protects the requirements chain from Framing the Problem. A short set of high-leverage questions prevents solving an imagined product.",
           },
           {
             id: "c",
-            label: "The client's rendering code.",
+            label: "Estimate global storage capacity to the nearest gigabyte before asking questions.",
             correct: false,
             explanationMd:
-              "The client isn't part of this design's throughput or latency ceiling - it issues " +
-              "requests, it doesn't serve them.",
+              "This is precision theater before there is even a stated traffic or retention assumption. Estimate only when it can change a decision.",
           },
           {
             id: "d",
-            label: "A little of everything, so nothing is missed.",
+            label: "Pick the database first, since it is the hardest decision to revise later.",
             correct: false,
             explanationMd:
-              "Deep-diving everything reads as a shallow pass, not depth - and the requirement " +
-              "already points at one specific place.",
+              "A database choice has no evidence behind it yet. Requirements create the pressure that makes any later choice defensible.",
           },
         ],
       },
       {
-        id: "bb-1-9-deep-dive-methodology-q3",
-        kind: "multi",
-        difficulty: 2,
+        id: "bb-1-4-driving-the-interview-q2",
+        kind: "ordering",
+        difficulty: 1,
         prompt:
-          "Which of these describe going 'one level down without losing the room'? Select ALL " +
-          "that apply.",
+          "You have clarified a tiny brief. Put these next moves in the order that keeps the evidence chain intact.",
+        // Full derangement: Ordering renders this authored order before the
+        // learner rearranges it.
         options: [
           {
-            id: "a",
-            label: "State the target and the reason for it before describing any internal detail.",
+            id: "draw",
+            label: "Draw the smallest end-to-end design.",
             correct: true,
-            explanationMd:
-              "Correct. Naming the plan out loud before diving is what lets the interviewer " +
-              "follow why this detail matters.",
+            explanationMd: "The diagram answers the requirements once their pressure has been estimated.",
           },
           {
-            id: "b",
-            label: "After the detail, reconnect it to the rest of the design in one sentence.",
+            id: "tradeoff",
+            label: "Name the first ceiling and the trade-off it forces.",
             correct: true,
-            explanationMd:
-              "Correct. This is the deliberate resurface - without it, the interviewer stops " +
-              "tracking why the dive mattered.",
+            explanationMd: "A trade-off is justified after a concrete design exposes a pressure point.",
           },
           {
-            id: "c",
-            label: "Once you start, keep going until the interviewer stops you - stopping early looks unprepared.",
-            correct: false,
-            explanationMd:
-              "This is exactly how a candidate loses the room: talking past the point where the " +
-              "detail is still serving the conversation.",
+            id: "requirements",
+            label: "State the functional requirements, non-functional requirements, and scope boundary.",
+            correct: true,
+            explanationMd: "Requirements are the evidence the rest of the interview must answer.",
           },
           {
-            id: "d",
-            label: "Skip mentioning the rest of the design again - the interviewer already remembers it.",
-            correct: false,
-            explanationMd:
-              "Assuming the interviewer is still tracking the whole design without a resurface is " +
-              "the failure mode this technique exists to prevent.",
+            id: "estimate",
+            label: "Estimate the order of magnitude that could change the design.",
+            correct: true,
+            explanationMd: "Estimation calibrates the requirements before the design commits to a shape.",
           },
         ],
+        correctOrder: ["requirements", "estimate", "draw", "tradeoff"],
       },
       {
-        id: "bb-1-9-deep-dive-methodology-q4",
+        id: "bb-1-4-driving-the-interview-q3",
         kind: "single",
         difficulty: 2,
         prompt:
-          "Same shape, a different requirement this time: no write may be lost, even if the app " +
-          "server restarts mid-request. Which deep-dive target does the requirement point to?",
+          "You stated that reads dominate, then the interviewer clarifies that the product has a write-heavy ingestion flow. What is the strongest response?",
         options: [
           {
             id: "a",
-            label: "The read path.",
-            correct: false,
+            label: "Name the changed assumption, revisit the affected path, and explain which earlier decision may now change.",
+            correct: true,
             explanationMd:
-              "The stated requirement is about writes surviving a crash - reads aren't mentioned " +
-              "and aren't under pressure here.",
+              "Correct. The new fact is evidence, not an accusation. A narrow revision keeps the reasoning chain visible and preserves work that still holds.",
           },
           {
             id: "b",
-            label: "The write path - specifically how the database confirms a write actually finished.",
-            correct: true,
+            label: "Keep the read-heavy design because changing a diagram mid-interview looks uncertain.",
+            correct: false,
             explanationMd:
-              "Correct. Durability of writes is the stated pressure; the write path is where it " +
-              "lands.",
+              "This protects appearance over correctness. Revising openly when a requirement changes is the stronger signal.",
           },
           {
             id: "c",
-            label: "Add a cache in front of the database.",
+            label: "Discard the entire design and restart from the beginning without explaining the change.",
             correct: false,
             explanationMd:
-              "Wrong dimension - a cache addresses latency and repeated reads, not durability, " +
-              "and no such mechanism is on this chapter's taught palette yet.",
+              "The new evidence may affect one path, not every decision. Starting over also removes the thread the interviewer was evaluating.",
           },
           {
             id: "d",
-            label: "The client, since it's what the user directly interacts with.",
+            label: "Argue that write volume is an implementation detail and continue to the deep dive.",
             correct: false,
             explanationMd:
-              "Direct user interaction isn't the same as being under pressure - the client has no " +
-              "durability behavior of its own here.",
+              "Write volume can be exactly the pressure that determines the correct deep dive. Ignoring it abandons requirement-driven design.",
           },
         ],
       },
       {
-        id: "bb-1-9-deep-dive-methodology-q5",
+        id: "bb-1-4-driving-the-interview-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "At minute 31, the core design is on the board. The interviewer asks, 'what breaks first if traffic doubles?' What should drive your answer?",
+        options: [
+          {
+            id: "a",
+            label: "The component that is most familiar to explain in detail.",
+            correct: false,
+            explanationMd:
+              "Familiarity is not evidence. The deep dive belongs where the stated pressure actually lands.",
+          },
+          {
+            id: "b",
+            label: "A tour through every component so no part of the diagram is skipped.",
+            correct: false,
+            explanationMd:
+              "Breadth without prioritization spends the remaining time while avoiding the actual question.",
+          },
+          {
+            id: "c",
+            label: "A new component added immediately, because more traffic always requires more machinery.",
+            correct: false,
+            explanationMd:
+              "Check the current ceiling first. Adding machinery before identifying the limit is an unmotivated fix.",
+          },
+          {
+            id: "d",
+            label: "The lowest ceiling on the hot path, using the stated estimates to explain the symptom and response.",
+            correct: true,
+            explanationMd:
+              "Correct. This is the ceiling method from Designing the System, used under the interview clock: evidence selects the pressure point, then the response earns its trade-off.",
+          },
+        ],
+      },
+      {
+        id: "bb-1-4-driving-the-interview-q5",
         kind: "single",
         difficulty: 3,
         prompt:
-          "A design review surfaces two requirements under real pressure at once: a 10x read " +
-          "spike is coming, and no write may be lost. There's time for one real deep dive today. " +
-          "What's the strongest move?",
+          "With three minutes left, your design and main trade-off are clear. Which close best demonstrates control of the interview?",
         options: [
           {
             id: "a",
-            label: "Split the remaining time evenly between both, going one level down on neither.",
+            label: "Introduce a second, unrelated architecture to show breadth.",
             correct: false,
             explanationMd:
-              "Two shallow dives read as two things half-understood - this is the 'one dive or " +
-              "two' mistake the chapter warns against.",
+              "A new architecture has no time to earn its assumptions or trade-offs. It obscures the design the room has already evaluated.",
           },
           {
             id: "b",
-            label: "Pick whichever one is more technically impressive to discuss.",
+            label: "Keep deep-diving into implementation details until the interviewer stops you.",
             correct: false,
             explanationMd:
-              "Impressiveness isn't evidence of pressure - both requirements need to be judged on " +
-              "how close each actually is to breaking.",
+              "Detail without a close can leave the interviewer unsure what design and cost you actually chose.",
           },
           {
             id: "c",
-            label: "Refuse to choose, and mention both throughout without going deep on either.",
-            correct: false,
+            label: "Recap the requirement that drove the design, the cost accepted, and the next risk you would test with more time.",
+            correct: true,
             explanationMd:
-              "A restatement of 0.3's own 'it depends' non-answer - naming both without " +
-              "committing to one isn't a plan.",
+              "Correct. This closes the evidence-to-decision loop, demonstrates trade-off ownership, and names the next honest investigation without bluffing completion.",
           },
           {
             id: "d",
-            label:
-              "Name both pressures out loud, pick the one closer to breaking today for the real " +
-              "dive, and state explicitly that the other is next if time allows.",
-            correct: true,
+            label: "Claim there are no remaining risks because the design handles the stated scale.",
+            correct: false,
             explanationMd:
-              "Correct. This names the variable and commits (0.3's pattern), while keeping the " +
-              "second pressure visible instead of silently dropped.",
+              "A design can meet today's stated pressure and still have a next limit worth naming. Pretending otherwise blocks useful follow-ups.",
           },
         ],
       },
@@ -4401,7 +3312,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     lessonFormat: "mdx",
     curriculumContext: {
       position:
-        "Building Blocks, Group A: Core Infrastructure - Chapter 3.4 of 44 (pulled forward per " +
+        "Building Blocks, Group A: Core Infrastructure - Chapter 3.4 of 37 (pulled forward per " +
         "pending-content.md; see this chapter's spec §0 for the declared prerequisite exception).",
       masteredConcepts: [
         "The Reader-to-Editor loop, Validate vs. Submit, and reading a validation explanation (0.1).",
@@ -4645,552 +3556,6 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-4-client"],
     },
-  },
-  {
-    id: "bb-1-10-communicating-and-defending-a-design",
-    mode: "building-blocks",
-    title: "Communicating & Defending a Design",
-    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
-    // Spec: specs/bb-1-10-communicating-and-defending-a-design.spec.md.
-    // Lesson body: public/content/chapters/bb-1-10-communicating-and-defending-a-design.mdx.
-    // Process type, same no-build shape as 1.1-1.9: hasEditorExercise: false,
-    // empty component/blueprint/validation-rule lists. §16 places 1.10 in
-    // the no-component list alongside 1.1-1.5, 1.7-1.9, 1.11.
-    problemStatement:
-      "No canvas build this chapter - the palette is still 1.6's three components, and reading " +
-      "a follow-up doesn't need a fourth. The knowledge check presents follow-up questions on a " +
-      "design and asks you to pick the strongest response, reading why the weaker ones fail the " +
-      "two-question test - the exercise this chapter is built around, run directly in the quiz.",
-    // Five objectives (§5.2 allows 3-7): all five required categories,
-    // including a real Practical objective per 1.1/1.2/1.4/1.5/1.8/1.9's
-    // precedent (Process chapters do not get the Concept-only Practical
-    // carve-out). Category tags live in the spec
-    // (specs/bb-1-10-communicating-and-defending-a-design.spec.md §2).
-    learningObjectives: [
-      "State the two-question test for a follow-up: does it name new evidence or only pressure, and if it's evidence, does the current design already survive it.",
-      "Given a follow-up and an existing design, decide whether the design already survives it, needs a narrow evolution of one piece, or exposes a real gap nothing taught so far addresses.",
-      "Narrate a completed design top-down before any follow-up lands, then respond to follow-ups live by applying the two-question test, defending decisions that still hold and revising the ones that don't, inside interview loop step 8 (0.4).",
-      "Given four candidate responses to a follow-up, choose the one that correctly applies the test and reject caving, stonewalling, and a full redesign of a design that mostly still holds.",
-      "When a follow-up reveals a genuine gap the taught palette can't yet fix, name the gap honestly instead of inventing an untaught mechanism or denying it exists.",
-    ],
-    // §16: no components introduced this chapter (1.10 is in the
-    // no-component list alongside 1.1-1.5, 1.7-1.9, 1.11) - the three
-    // primitives stay homed at 1.6.
-    availableComponentIds: [],
-    requiredComponentIds: [],
-    // No canvas exercise, nothing to validate - same justification 1.1-1.9
-    // and 0.2-0.4 recorded.
-    validationRuleIds: [],
-    blueprints: [],
-    hasEditorExercise: false,
-    // No hints - no build/Fix exercise for a hint to orient toward, same as
-    // every other no-build chapter so far (0.2-0.4, 1.1-1.9).
-    hints: [],
-    readingLinks: [],
-    // 1: Sonnet draft (2026-08-11).
-    lessonVersion: 1,
-    lessonFormat: "mdx",
-    curriculumContext: {
-      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.10 of 44.",
-      masteredConcepts: [
-        "1.3's non-functional requirements - reused as the shape of 'new evidence' a follow-up " +
-          "can name.",
-        "1.7's ceiling method - reused to check whether the current design already has headroom " +
-          "before a follow-up's stated pressure.",
-        "1.8's trade-off reflex ('we chose X, accepting Y, because Z') - reused and extended one " +
-          "clause for defending a decision that still holds.",
-        "1.9's 'state the plan before diving, then resurface' discipline - reused directly as " +
-          "this chapter's narrate-top-down-first posture, and its own closing line ('name it, " +
-          "commit, defend without defensiveness') is this chapter's subject.",
-        "1.6's three-component shape - the design every quiz scenario presents.",
-      ],
-      notYetIntroducedConcepts: [
-        "Any mechanism that makes a write survive a mid-crash restart - durability machinery " +
-          "(3.20, 3.26) is later material. The write-restart gap in this chapter's material is " +
-          "named honestly as unsolved, never patched with an invented fix.",
-        "Load balancing or any routing across multiple app-server instances (3.4) - not " +
-          "referenced, consistent with 1.9's own precedent.",
-        "1.11's specific interview time-budget breakdown - this chapter's 'time left' framing " +
-          "stays general; the minute-by-minute structure is 1.11's own material.",
-      ],
-      simplifications: [
-        "The write-survives-a-restart gap used across the lesson and quiz Q4 is a real, " +
-          "deliberately unsolved limitation at this stage, not a claim that no fix exists - " +
-          "naming it honestly is the point, not a placeholder for a future patch.",
-        "The 'one real gap, limited time' scenario (quiz Q5) is a designed teaching device, not a " +
-          "claim that real interviews always present exactly one narrow gap - same status as " +
-          "1.9's own 'two requirements at once' device.",
-      ],
-    },
-    // Ramp 1/1/2/2/3, matching 0.2-1.9's convention. The whole quiz directly
-    // realizes CURRICULUM §14's "staged - given follow-up questions, choose
-    // the strongest response and read why the others are weaker" exercise
-    // text - see spec §0 for why this needed no simulator/stages-UI
-    // degradation note (single/multi quiz kinds already cover this exercise
-    // shape natively, same fit 1.8's and 1.9's own exercises had).
-    quiz: [
-      {
-        id: "bb-1-10-communicating-and-defending-a-design-q1",
-        kind: "single",
-        difficulty: 1,
-        prompt:
-          "Mid-interview, the interviewer asks: \"What if writes grow 10x?\" This follow-up is " +
-          "best read as:",
-        options: [
-          {
-            id: "a",
-            label:
-              "New input to run through the test: is this new evidence, and does the current " +
-              "design already survive it?",
-            correct: true,
-            explanationMd:
-              "Correct. A follow-up isn't a verdict on what's already drawn - it's pressure to " +
-              "read the same way 1.3's requirements and 1.7's ceiling method already taught.",
-          },
-          {
-            id: "b",
-            label: "A signal the design is wrong and should be scrapped.",
-            correct: false,
-            explanationMd:
-              "This is the cold open's own failure: reacting to new input as if it were a " +
-              "verdict, before checking whether anything actually breaks.",
-          },
-          {
-            id: "c",
-            label: "A trick question meant to be deflected without really answering it.",
-            correct: false,
-            explanationMd:
-              "Treating the interviewer as an adversary is a candidate mistake this curriculum " +
-              "warns against elsewhere (§10.2) - the follow-up is a real question with a real " +
-              "answer.",
-          },
-          {
-            id: "d",
-            label: "A cue to start over from a blank page.",
-            correct: false,
-            explanationMd:
-              "Redesigning everything when only one piece might need to change is exactly the " +
-              "cold open's failure, restated.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-10-communicating-and-defending-a-design-q2",
-        kind: "single",
-        difficulty: 1,
-        prompt:
-          "A design's app-server ceiling (1.7's method) is 5,000 QPS; current traffic is 1,000 " +
-          "QPS. The interviewer asks: \"what if traffic doubles?\" What's the strongest response?",
-        options: [
-          {
-            id: "a",
-            label: "Add more app-server instances now, ahead of the growth.",
-            correct: false,
-            explanationMd:
-              "Nothing under real pressure yet - manufacturing a fix before the ceiling is close " +
-              "to breaking spends a decision the design doesn't need.",
-          },
-          {
-            id: "b",
-            label:
-              "Say so, and show the math: 2,000 QPS is still well under the app server's 5,000 " +
-              "ceiling, so nothing needs to change yet.",
-            correct: true,
-            explanationMd:
-              "Correct. New evidence, and the current design already survives it - the test's " +
-              "second question ends here, no redesign needed.",
-          },
-          {
-            id: "c",
-            label: "Add a cache in front of the database, since that's what usually helps at scale.",
-            correct: false,
-            explanationMd:
-              "Unmotivated - nothing in this scenario names a read-latency or repeated-read " +
-              "problem a cache would address, and the ceiling check hasn't even run yet.",
-          },
-          {
-            id: "d",
-            label: "Ask for the exact traffic multiplier before answering.",
-            correct: false,
-            explanationMd:
-              "The precision-theater trap (1.4) - the ceiling check works fine on the stated " +
-              "\"doubles,\" no exact figure required.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-10-communicating-and-defending-a-design-q3",
-        kind: "multi",
-        difficulty: 2,
-        prompt:
-          "Which of these correctly describe defending a decision without being defensive? " +
-          "Select ALL that apply.",
-        options: [
-          {
-            id: "a",
-            label:
-              "Restate the trade-off already named, and confirm the reason behind it still holds.",
-            correct: true,
-            explanationMd:
-              "Correct. This is 1.8's reflex extended one clause: the reason still holds, so the " +
-              "decision does too.",
-          },
-          {
-            id: "b",
-            label:
-              "If the follow-up names something the original trade-off missed, say what changed " +
-              "your mind and what's different now.",
-            correct: true,
-            explanationMd:
-              "Correct. The honest opposite of defending - real new evidence gets a real revision, " +
-              "stated out loud.",
-          },
-          {
-            id: "c",
-            label: "Repeat the original answer louder if the interviewer pushes back again.",
-            correct: false,
-            explanationMd:
-              "Volume isn't reasoning - repeating without addressing what the follow-up actually " +
-              "named is defensiveness, not defense.",
-          },
-          {
-            id: "d",
-            label: "Change the decision immediately whenever it's challenged, to seem open-minded.",
-            correct: false,
-            explanationMd:
-              "This is caving - changing course without checking whether the original reasoning " +
-              "still holds gives up ground that didn't need giving up.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-10-communicating-and-defending-a-design-q4",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "A follow-up: \"what happens if the app server restarts mid-write?\" Nothing in the " +
-          "design so far handles this. What's the strongest response?",
-        options: [
-          {
-            id: "a",
-            label: "Say the design already handles it, since app servers rarely restart.",
-            correct: false,
-            explanationMd:
-              "This is false, and interviewers can follow up on a claim like this - denying a " +
-              "real gap is worse than naming it.",
-          },
-          {
-            id: "b",
-            label: "Redesign the whole write path live to cover every edge case at once.",
-            correct: false,
-            explanationMd:
-              "The cold open's failure again - one specific gap doesn't require rebuilding " +
-              "everything else that was never in question.",
-          },
-          {
-            id: "c",
-            label:
-              "Name the gap honestly: nothing taught so far makes a write survive that, and say " +
-              "specifically what class of change would need to close it.",
-            correct: true,
-            explanationMd:
-              "Correct. A real, unaddressed gap gets named as exactly that - specific and honest " +
-              "beats invented and confident.",
-          },
-          {
-            id: "d",
-            label: "Invent a plausible-sounding mechanism on the spot so the answer feels complete.",
-            correct: false,
-            explanationMd:
-              "Bluffing a mechanism that isn't part of anything taught risks a follow-up question " +
-              "the bluff can't survive, and it isn't honest either.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-10-communicating-and-defending-a-design-q5",
-        kind: "single",
-        difficulty: 3,
-        prompt:
-          "With only a few minutes left before the interview wraps up, a follow-up reveals a " +
-          "real but narrow gap in the write path. What's the strongest move?",
-        options: [
-          {
-            id: "a",
-            label: "Redesign the write path live, in full detail, to prove the fix is understood.",
-            correct: false,
-            explanationMd:
-              "Proves the same judgment more slowly - with barely any time left, this spends " +
-              "minutes the rest of the loop may still need.",
-          },
-          {
-            id: "b",
-            label: "Skip the question and hope it doesn't come up again.",
-            correct: false,
-            explanationMd:
-              "A named gap doesn't disappear by not answering it - this reads as evasive, not " +
-              "efficient.",
-          },
-          {
-            id: "c",
-            label: "Say the gap doesn't matter at this scale, without checking whether that's true.",
-            correct: false,
-            explanationMd:
-              "An unchecked dismissal is a guess dressed up as an answer - the same failure as " +
-              "denying a real gap outright.",
-          },
-          {
-            id: "d",
-            label:
-              "Name the fix conceptually - what would change, roughly what it costs - and move on.",
-            correct: true,
-            explanationMd:
-              "Correct. Proves the same judgment faster, at the honest cost of not showing the " +
-              "detail live - the right trade when time is the scarce resource.",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "bb-1-11-driving-a-system-design-interview",
-    mode: "building-blocks",
-    title: "Driving a System Design Interview",
-    // Real authored curriculum content (Wave 2, Part 1, pending-content.md).
-    // Spec: specs/bb-1-11-driving-a-system-design-interview.spec.md.
-    // Lesson body: public/content/chapters/bb-1-11-driving-a-system-design-interview.mdx.
-    // §16 puts 1.11 in the no-component list. The staged exercise promised
-    // by §14 is quiz-realized while the stages UI is absent; see spec §0.
-    problemStatement:
-      "No canvas build this chapter - driving a time-bound design conversation needs no new " +
-      "component. The knowledge check runs a compact interview walkthrough: preserve the " +
-      "requirements-to-design evidence chain, answer a follow-up from that evidence, and close " +
-      "with the design's cost and next risk.",
-    // Five objectives, one per §5.2 category. Category tags and evidence live
-    // in specs/bb-1-11-driving-a-system-design-interview.spec.md §2.
-    learningObjectives: [
-      "State a useful time budget for a 45-minute interview and explain why requirements, estimates, and a close need protected time.",
-      "Classify a follow-up as changed pressure, a trade-off challenge, or a failure/limit question, then return to the relevant prior evidence.",
-      "Given a sequenced tiny-brief interview, choose the next move that keeps the design loop intact under the remaining time.",
-      "Drive an interview by naming the next reasoning move, correcting a changed assumption openly, and ending with a concise recap.",
-      "Explain a time-bound design plan without treating the time budget as a rigid script or a reason to bluff certainty.",
-    ],
-    availableComponentIds: [],
-    requiredComponentIds: [],
-    validationRuleIds: [],
-    blueprints: [],
-    hasEditorExercise: false,
-    hints: [],
-    readingLinks: [],
-    // 1: initial authored chapter (2026-08-11).
-    lessonVersion: 1,
-    lessonFormat: "mdx",
-    curriculumContext: {
-      position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.11 of 44 (optional).",
-      masteredConcepts: [
-        "The complete eight-step Interview Loop (0.4), lived one step at a time in 1.1-1.10.",
-        "Clarifying questions, functional requirements, and non-functional requirements (1.1-1.3).",
-        "Order-of-magnitude estimation and the precision-theater boundary (1.4-1.5).",
-        "The smallest end-to-end client, app-server, and database shape, plus a top-down narration (1.6, 1.10).",
-        "The ceiling method, trade-off reflex, deep-dive method, and two-question follow-up test (1.7-1.10).",
-      ],
-      notYetIntroducedConcepts: [
-        "The request's actual browser-to-backend path (2.1) - previewed only in this chapter's Next section.",
-        "Specific scaling mechanisms beyond the three primitives - this chapter coordinates the process and does not add a new solution palette.",
-        "A live branching stages exercise - the stages UI is not yet implemented, so the walkthrough is quiz-realized and disclosed in the lesson.",
-      ],
-      simplifications: [
-        "The 45-minute allocation is an illustrative budget for protecting the reasoning chain, not a universal interview script; the lesson says to adapt it to the brief.",
-        "The quiz presents a linear miniature interview so each decision can receive explanation; real interviews branch, backtrack, and permit more than one defensible time allocation.",
-      ],
-    },
-    quiz: [
-      {
-        id: "bb-1-11-driving-a-system-design-interview-q1",
-        kind: "single",
-        difficulty: 1,
-        prompt:
-          "Two minutes into a 45-minute interview, the brief is 'design a service for sharing photos.' " +
-          "What is the strongest next move?",
-        options: [
-          {
-            id: "a",
-            label: "Start drawing the upload path so there is a concrete design to discuss.",
-            correct: false,
-            explanationMd:
-              "A concrete path helps only after the product and its pressure are known. Drawing now makes unstated assumptions expensive to unwind.",
-          },
-          {
-            id: "b",
-            label: "Ask which user flows matter, what scale matters, and what is explicitly out of scope before choosing the shape.",
-            correct: true,
-            explanationMd:
-              "Correct. This protects 1.1-1.3's evidence chain. A short set of high-leverage questions prevents solving an imagined product.",
-          },
-          {
-            id: "c",
-            label: "Estimate global storage capacity to the nearest gigabyte before asking questions.",
-            correct: false,
-            explanationMd:
-              "This is precision theater before there is even a stated traffic or retention assumption. Estimate only when it can change a decision.",
-          },
-          {
-            id: "d",
-            label: "Pick the database first, since it is the hardest decision to revise later.",
-            correct: false,
-            explanationMd:
-              "A database choice has no evidence behind it yet. Requirements create the pressure that makes any later choice defensible.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-11-driving-a-system-design-interview-q2",
-        kind: "ordering",
-        difficulty: 1,
-        prompt:
-          "You have clarified a tiny brief. Put these next moves in the order that keeps the evidence chain intact.",
-        // Full derangement: Ordering renders this authored order before the
-        // learner rearranges it.
-        options: [
-          {
-            id: "draw",
-            label: "Draw the smallest end-to-end design.",
-            correct: true,
-            explanationMd: "The diagram answers the requirements once their pressure has been estimated.",
-          },
-          {
-            id: "tradeoff",
-            label: "Name the first ceiling and the trade-off it forces.",
-            correct: true,
-            explanationMd: "A trade-off is justified after a concrete design exposes a pressure point.",
-          },
-          {
-            id: "requirements",
-            label: "State the functional requirements, non-functional requirements, and scope boundary.",
-            correct: true,
-            explanationMd: "Requirements are the evidence the rest of the interview must answer.",
-          },
-          {
-            id: "estimate",
-            label: "Estimate the order of magnitude that could change the design.",
-            correct: true,
-            explanationMd: "Estimation calibrates the requirements before the design commits to a shape.",
-          },
-        ],
-        correctOrder: ["requirements", "estimate", "draw", "tradeoff"],
-      },
-      {
-        id: "bb-1-11-driving-a-system-design-interview-q3",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "You stated that reads dominate, then the interviewer clarifies that the product has a write-heavy ingestion flow. What is the strongest response?",
-        options: [
-          {
-            id: "a",
-            label: "Name the changed assumption, revisit the affected path, and explain which earlier decision may now change.",
-            correct: true,
-            explanationMd:
-              "Correct. The new fact is evidence, not an accusation. A narrow revision keeps the reasoning chain visible and preserves work that still holds.",
-          },
-          {
-            id: "b",
-            label: "Keep the read-heavy design because changing a diagram mid-interview looks uncertain.",
-            correct: false,
-            explanationMd:
-              "This protects appearance over correctness. Revising openly when a requirement changes is the stronger signal.",
-          },
-          {
-            id: "c",
-            label: "Discard the entire design and restart from the beginning without explaining the change.",
-            correct: false,
-            explanationMd:
-              "The new evidence may affect one path, not every decision. Starting over also removes the thread the interviewer was evaluating.",
-          },
-          {
-            id: "d",
-            label: "Argue that write volume is an implementation detail and continue to the deep dive.",
-            correct: false,
-            explanationMd:
-              "Write volume can be exactly the pressure that determines the correct deep dive. Ignoring it abandons requirement-driven design.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-11-driving-a-system-design-interview-q4",
-        kind: "single",
-        difficulty: 2,
-        prompt:
-          "At minute 31, the core design is on the board. The interviewer asks, 'what breaks first if traffic doubles?' What should drive your answer?",
-        options: [
-          {
-            id: "a",
-            label: "The component that is most familiar to explain in detail.",
-            correct: false,
-            explanationMd:
-              "Familiarity is not evidence. The deep dive belongs where the stated pressure actually lands.",
-          },
-          {
-            id: "b",
-            label: "A tour through every component so no part of the diagram is skipped.",
-            correct: false,
-            explanationMd:
-              "Breadth without prioritization spends the remaining time while avoiding the actual question.",
-          },
-          {
-            id: "c",
-            label: "A new component added immediately, because more traffic always requires more machinery.",
-            correct: false,
-            explanationMd:
-              "Check the current ceiling first. Adding machinery before identifying the limit is an unmotivated fix.",
-          },
-          {
-            id: "d",
-            label: "The lowest ceiling on the hot path, using the stated estimates to explain the symptom and response.",
-            correct: true,
-            explanationMd:
-              "Correct. This is 1.7's ceiling method used under the interview clock: evidence selects the pressure point, then the response earns its trade-off.",
-          },
-        ],
-      },
-      {
-        id: "bb-1-11-driving-a-system-design-interview-q5",
-        kind: "single",
-        difficulty: 3,
-        prompt:
-          "With three minutes left, your design and main trade-off are clear. Which close best demonstrates control of the interview?",
-        options: [
-          {
-            id: "a",
-            label: "Introduce a second, unrelated architecture to show breadth.",
-            correct: false,
-            explanationMd:
-              "A new architecture has no time to earn its assumptions or trade-offs. It obscures the design the room has already evaluated.",
-          },
-          {
-            id: "b",
-            label: "Keep deep-diving into implementation details until the interviewer stops you.",
-            correct: false,
-            explanationMd:
-              "Detail without a close can leave the interviewer unsure what design and cost you actually chose.",
-          },
-          {
-            id: "c",
-            label: "Recap the requirement that drove the design, the cost accepted, and the next risk you would test with more time.",
-            correct: true,
-            explanationMd:
-              "Correct. This closes the evidence-to-decision loop, demonstrates trade-off ownership, and names the next honest investigation without bluffing completion.",
-          },
-          {
-            id: "d",
-            label: "Claim there are no remaining risks because the design handles the stated scale.",
-            correct: false,
-            explanationMd:
-              "A design can meet today's stated pressure and still have a next limit worth naming. Pretending otherwise blocks useful follow-ups.",
-          },
-        ],
-      },
-    ],
   },
   {
     id: "rwe-dummy-1",

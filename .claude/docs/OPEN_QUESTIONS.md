@@ -16,12 +16,6 @@ to grow before it hardens into the persisted data format.
 
 ## Needs a short spike before/while building (owner: you)
 
-**Clerk's closed-beta allowlist mechanics.** Assumed Clerk's invite/waitlist feature
-cleanly supports "admin adds a specific list of emails, everyone else is blocked." Worth
-a 30-minute check against Clerk's current docs before wiring auth — if it's awkward for
-a single-digit/low-double-digit beta, a hand-rolled allowlist table + magic link may be
-less friction than fighting a feature not built for this exact shape.
-
 **Icon asset set.** [[DESIGN_LANGUAGE]] recommends starting from Lucide and composing
 custom icons only where needed, rather than commissioning a bespoke set up front.
 **Trigger**: once the MVP component list (from the two chapters) is finalized, do a
@@ -47,6 +41,12 @@ lighter DSL or authoring helper is worth building. Not a concern yet.
 see [[MVP_SCOPE]]. ScaleCraft post-beta is single-player: an individual logs in and
 works through it alone, closer to a self-paced course than a shared workspace. Don't
 let persistence or graph-state design pay any tax for eventual multiplayer support.
+
+**Closed-beta sign-up allowlist.** Decided 2026-08-16 (`pending-6.1.0-poa.md` P2.2):
+reading is fully public since Phase 11 and sign-up stays open, no invited-email gate.
+The unwired `beta-allowlist.ts` stub was deleted rather than built out — a file that
+looked like a gate and wasn't one was worse than no gate. Revisit only if there's a
+concrete reason to close sign-up again (abuse, cost), not by default.
 
 ## Business/sequencing (owner: you, no technical dependency)
 

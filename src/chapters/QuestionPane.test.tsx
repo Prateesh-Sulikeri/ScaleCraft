@@ -436,7 +436,7 @@ describe("QuestionPane", () => {
       const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" }), makeQuestion({ id: "q2" })] });
       useCurriculumProgressStore.setState({
         examAttemptsByDefinition: new Map([
-          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [] }]],
+          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [], dirty: false, syncedAt: null }]],
         ]),
       });
       renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: true }) });
@@ -448,7 +448,7 @@ describe("QuestionPane", () => {
       const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" })] });
       useCurriculumProgressStore.setState({
         examAttemptsByDefinition: new Map([
-          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 80, answers: [] }]],
+          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 80, answers: [], dirty: false, syncedAt: null }]],
         ]),
       });
       renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: true }) });

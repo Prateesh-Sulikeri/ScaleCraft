@@ -1,9 +1,11 @@
 # Release 6.1.0-alpha - Neon Cloud User-Space Migration: Scoping
 
-Status: **Scoping in progress - not ready to build.** Started 2026-08-12,
-right after 6.0.0's Clerk auth work landed on `feature/clerk-auth` (production
-DNS still propagating). This is the running scoping doc for this release -
-update in place as decisions land, per this project's scoping convention.
+Status: **Scoping decisions locked 2026-08-12. Ready to build.** Started
+2026-08-12, right after 6.0.0's Clerk auth work landed (now merged to
+`main`/`develop`, `feature/clerk-auth` deleted post-merge). Branch:
+`release/v6.1.0-neon-cloud-sync`, cut from `develop`, version bumped to
+`6.1.0-alpha`. This is the running scoping doc for this release - update in
+place as decisions land, per this project's scoping convention.
 
 ---
 
@@ -43,9 +45,9 @@ second half of MILESTONES.md item 10 ("Auth + cloud sync").
      living inside `AiSettings` should almost certainly never leave the
      browser - syncing it makes this app a secret store for zero product
      benefit. Treating this as an explicit non-goal, not an oversight.
-   - *Your call*: customComponents. Cross-device-useful in theory, but it's
-     another table + route + sync path for what's likely light usage.
-     Proposing we defer it out of 6.1.0 v1 unless you disagree.
+   - **Decided: include.** customComponents syncs too - a 6th synced table
+     alongside saves, chapterProgress, curriculumProgress, examAttempts,
+     deepCheckSessions. Only aiProfiles/aiActiveProfile stay local-only.
 
 2. **Sync trigger: write-through or background?**
    Local Dexie writes must stay instant/offline-safe (existing autosave
@@ -82,9 +84,9 @@ second half of MILESTONES.md item 10 ("Auth + cloud sync").
 6. **Docs/stub cleanup - 6.0.0 or 6.1.0?**
    `beta-allowlist.ts` plus its OPEN_QUESTIONS.md entry and the closed-beta
    language in ARCHITECTURE.md/MVP_SCOPE.md are stale now that you've decided
-   on open signup. Flagging this as a 6.0.0 cleanup item (it's an auth
-   decision, not a sync one) so it doesn't get silently dropped while we
-   focus on this doc.
+   on open signup. **Decided: separate chore, out of this release's scope.**
+   Track as its own `chore/*` branch off `develop`, not bundled into
+   6.1.0-neon-cloud-sync.
 
 ## Explicitly out of scope for 6.1.0 unless you object
 
@@ -94,11 +96,179 @@ second half of MILESTONES.md item 10 ("Auth + cloud sync").
   principle.
 - GDPR/data-export/delete-my-data tooling: solo/pre-beta project, revisit if
   it ever gets real users.
-- customComponents sync: proposed default is defer, see item 1.
+---
+
+## Decisions locked 2026-08-12
+
+1. **Synced tables (6):** saves, chapterProgress, curriculumProgress,
+   examAttempts, deepCheckSessions, customComponents. **Local-only (2):**
+   aiProfiles, aiActiveProfile.
+2. **Sync trigger:** debounced background POST to a Route Handler after a
+   successful local Dexie write, reusing `use-autosave.ts`'s debounce. No
+   offline queue/retry infra - a failed sync just retries on next write/load.
+3. **Read path:** Dexie-first, always. One-shot pull from Postgres to
+   hydrate Dexie only when a scope has no local row and the user is
+   authenticated. No sync-merge engine.
+4. **Conflict resolution:** last-write-wins by `updatedAt`. No merge logic.
+5. **Schema parity:** Postgres tables mirror the *current* Dexie shape only
+   (not its v1-v9 history). Future Dexie changes need a matching Postgres
+   migration going forward - note this in ARCHITECTURE.md once shipped.
+6. **beta-allowlist.ts / stale closed-beta docs cleanup:** out of scope for
+   this release - separate `chore/*` branch off `develop`.
+
+## Explicitly out of scope for 6.1.0
+
+- Anon -> account data migration: not needed, the whole app is already gated
+  behind sign-in, no anonymous mode ever existed.
+- Multi-device real-time merge/conflict UI: rejected per the no-multiplayer
+  principle.
+- GDPR/data-export/delete-my-data tooling: solo/pre-beta project, revisit if
+  it ever gets real users.
+- beta-allowlist.ts / closed-beta docs cleanup: tracked separately, see
+  decision 6 above.
 
 ---
 
 ## Scoped items (tracking checklist)
 
-Empty until the decisions above land - filled in once scoping is done, same
-pattern as `pending-diagram-pipeline.md`.
+- [x] Provision Neon database + set `DATABASE_URL` in Vercel env (dev/preview/prod).
+      Initially all three Vercel environments shared one Neon branch (`main`,
+      id `br-summer-breeze-aww4iph2`). Fixed 2026-08-12: Preview already
+      auto-branches per deployment (Vercel's Neon integration, no setup
+      needed); Development now points at its own branch (`development`, id
+      `br-billowing-field-awvgzzbt`, host `ep-sweet-union-awxmuy08`) via
+      per-environment `DATABASE_URL`/`DATABASE_URL_UNPOOLED` entries in
+      Vercel (previously one shared "All Environments" entry). The
+      `neondb_owner` role password was rotated on both branches during this
+      change after an accidental exposure in a terminal session - if a
+      future `DATABASE_URL` connection ever fails with an auth error, that's
+      likely why; check Vercel's current env var value, not this doc, for
+      the live credential.
+- [x] `src/db/schema.ts`: add tables for chapterProgress, curriculumProgress,
+      examAttempts, deepCheckSessions, customComponents (mirroring current
+      Dexie shapes), keyed by Clerk `userId`
+- [x] `drizzle-kit generate` + `drizzle-kit migrate` for the new tables.
+      Applied and verified against the real Neon DB (all 6 tables present,
+      columns match schema.ts). Note: this WSL2 environment's `fetch` (and
+      `@neondatabase/serverless`) intermittently fails with `ETIMEDOUT` on
+      IPv6 candidates - `--dns-result-order=ipv4first` alone doesn't fix it
+      reliably, only forcing `family: 4` on the underlying connection does.
+      Retry `db:migrate` a few times if it fails with a fetch error; it's
+      networking flakiness, not a migration problem.
+- [x] Route Handlers: POST (write-through sync) + GET (one-shot hydrate) per
+      synced table/scope. Six routes under `src/app/api/sync/<table>/route.ts`
+      (saves, custom-components, chapter-progress, curriculum-progress,
+      exam-attempts, deep-check-sessions), each auth-gated via
+      `src/db/sync/auth.ts::requireUserId()` (Route Handlers aren't covered by
+      the `(protected)` layout's `auth.protect()` - that only gates pages).
+      POST bodies validated with per-table Zod schemas in
+      `src/db/sync/schemas.ts`; upserts via `onConflictDoUpdate` on each
+      table's natural key, server always stamps `updatedAt = now()`.
+      `savedGraphs.graph` stores the domain `ArchitectureGraph` (client runs
+      `toArchitectureGraph()` before POSTing) per explicit user decision
+      2026-08-12 - **zones are dropped on cross-device restore**, a known,
+      accepted tradeoff, not a bug. `deepCheckSessions.id` must be a stable
+      client-generated id assigned once per session before its first sync
+      (Dexie's local auto-increment id doesn't survive cross-device) - not
+      yet wired, see next checklist item. No DELETE routes yet (e.g.
+      removing a custom component doesn't propagate) - out of scope for this
+      item, revisit when wiring the write path if it matters in practice.
+      Verified: typecheck/lint clean, all 6 routes correctly 401 on
+      unauthenticated requests against the real dev server. Full
+      authenticated round-trip not yet verified (needs a signed-in session -
+      deferred to the manual click-through checklist item).
+- [x] Wire debounced background sync into each table's existing Dexie write
+      path. `saves` reuses `use-autosave.ts`'s existing debounce (one call
+      site fixes both sandbox and chapters); the other five tables sync
+      fire-and-forget right after their (already-infrequent) Dexie write via
+      `src/persistence/cloud-sync.ts`. `deepCheckSessions` gained a new
+      `syncId` field (client `crypto.randomUUID()`, unindexed - no Dexie
+      version bump) since its local auto-increment `id` is device-local.
+      Added DELETE routes (chapter-progress, exam-attempts bulk,
+      custom-components, deep-check-sessions) not in the original Route
+      Handler pass - needed so `progress-store.ts`'s `resetChapter` (redo a
+      chapter) propagates, not just adds/updates.
+- [x] Wire Dexie-first read with Postgres hydrate-on-empty for authenticated
+      users, per table/scope. Six call sites: sandbox page (saves,
+      customComponents), ChapterWorkspace (saves, chapterProgress),
+      progress-store's `hydrate()` (chapterProgress, curriculumProgress,
+      examAttempts - each checked/hydrated independently, per-table).
+      `chapter-progress`/`curriculum-progress`/`exam-attempts` GET routes now
+      support two modes: `?scope=` for one row, no query for every row for
+      the user (needed for progress-store's bulk hydrate - not anticipated
+      in the original Route Handler pass either).
+- [x] Last-write-wins conflict handling via `updatedAt` comparison on sync.
+      Turned out to need no extra code: hydrate-on-empty only ever adopts a
+      remote row when local has none at all (never a merge), and every POST
+      unconditionally overwrites with `updatedAt = now()` server-side - so
+      whichever device's write reaches the server last already wins, by
+      construction.
+- [x] One-time backfill for pre-existing local data (added mid-session,
+      2026-08-12 - not in the original scoped list). Found via the first
+      real multi-device test: a user's local Dexie data that predates this
+      whole feature (e.g. chapters completed before cloud sync existed)
+      never gets pushed by the normal write-path sync, since that only
+      fires on *new* writes going forward. New `userSyncState` table
+      (migration 0002) is a one-row-per-user switch: `GET
+      /api/sync/backfill` tells a device whether to push; the first device
+      to see `backfilled: false` pushes every local table once via
+      `src/persistence/backfill.ts`, then `POST`s to mark the user done.
+      Every other device for that account just sees `backfilled: true` and
+      relies on the hydrate-on-empty already wired - it never re-pushes,
+      even if its own local state is empty or stale. Mounted once at
+      `src/app/(protected)/layout.tsx` via `BackfillOnMount.tsx` (not
+      AppHeader - that's canvas-only, absent from the Learning Path home
+      page, so not a universal-enough mount point). Existing
+      `deepCheckSessions` rows saved before `syncId` existed get one
+      assigned retroactively during backfill rather than being silently
+      dropped.
+- [x] **REVERTED 2026-08-12: the backfill above is removed entirely.** See
+      the addendum at the end of this doc.
+- [ ] ARCHITECTURE.md: note the Dexie<->Postgres schema-parity obligation
+      going forward
+- [ ] Manual multi-device click-through: save on device A, load on device B,
+      confirm hydrate; edit both, confirm last-write-wins. First real attempt
+      (2026-08-12, Chrome vs. Edge, same account) caught the backfill gap
+      above rather than confirming success - retry now that it's fixed.
+      **Still blocked:** see audit finding S4, hydrate-on-empty does not
+      propagate updates to a device that already holds local data, so this
+      test cannot pass as written until that is re-decided.
+
+---
+
+## Addendum 2026-08-12: backfill removed, one-time local reset instead
+
+A persistence audit (`.claude/docs/pending-persistence-audit.md`) found that
+the one-time backfill could push one account's local data into a *different*
+account's cloud rows: the Dexie database is a single browser-wide
+`"scalecraft"` store with no userId dimension and no sign-out cleanup, so a
+second account signing in on the same browser reads the first account's data
+and, with `backfilled: false` on the server, pushes all of it up under its own
+userId (audit S2/S3).
+
+**Decision (user):** remove the backfill flow outright. It cannot distinguish
+"this local data belongs to this account" from "someone else left this here",
+and a user may legitimately want data in one account and not another.
+
+Removed:
+- `src/persistence/backfill.ts`, `src/persistence/BackfillOnMount.tsx`
+- `src/app/api/sync/backfill/route.ts`
+- `userSyncState` table + `getBackfillStatus`/`markBackfillComplete`
+- migration `drizzle/0003_light_the_stranger.sql` drops `user_sync_state`
+
+Replaced by a one-time local reset at 6.1.0, accepted at 3 total users:
+- **Dexie:** `db.ts` version(10) clears every table on upgrade. Done as a
+  schema bump, not a mount effect, so it runs before any read can race it.
+  aiProfiles is cleared too despite being local-only - it holds the AI
+  provider API key, the worst thing to leak between accounts. Users re-enter
+  their key once.
+- **localStorage:** `src/persistence/LocalStorageReset.tsx`, epoch-gated on
+  `scalecraft:storage-epoch`, clears the `sc-` and `scalecraft:` prefixes.
+
+Also fixed in the same pass: audit S1, a reproduced data-loss bug where
+`markVisited` wiped a chapter's `manuallyCompletedAt` and synced the null up.
+Unrelated to stale storage, so the reset would not have covered it.
+
+**The reset does not fix S2 structurally.** Account isolation still depends on
+nobody sharing a browser between accounts; the contamination recurs on the
+next account switch. Wipe-on-user-change is the recommended follow-up.

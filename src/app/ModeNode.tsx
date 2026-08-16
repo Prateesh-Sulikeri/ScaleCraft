@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import type { CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import type { NodeProps } from "@xyflow/react";
 import { modeColorVar, modeIcon, modeLabel, modeTagline } from "@/lib/modes";
 import type { ModeNodeType } from "@/app/HomeCanvas";
 import { LoadingTransition } from "@/app/LoadingTransition";
 import { ProgressBar } from "@/learning-path/ProgressBar";
+import { useRequireAuthAction } from "@/auth/useRequireAuthAction";
 
 const NODE_WIDTH = 300;
 const NODE_HEIGHT = 310;
@@ -71,6 +74,8 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
   const Icon = modeIcon[mode];
   const router = useRouter();
   const [navigating, setNavigating] = useState(false);
+  const { isLoaded, isSignedIn } = useAuth();
+  const { requireAuth, dialog } = useRequireAuthAction();
 
   // Modifier/non-primary clicks (open in new tab, etc.) get the browser's
   // native handling, unintercepted — only a plain left-click gets the
@@ -84,10 +89,33 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
   // Blocks/Real World Extraction land on the Learning Path first now (a
   // plain curriculum list, no canvas at all), too light to need a hold —
   // so those two fall through to the native, unintercepted Link click.
+  //
+  // Sandbox is also the only mode still route-gated ((protected)/layout.tsx's
+  // auth.protect()) — a signed-out click used to hit that guard directly,
+  // an unexplained hard bounce to Clerk's sign-in with no context, unlike
+  // every other progress-writing action in the app (quiz launch, mark
+  // complete, the exercise row in YourTurnCard.tsx), which shows
+  // AuthPromptDialog first via useRequireAuthAction. Same treatment here:
+  // a signed-out click never reaches the route guard, the dialog does.
+  //
+  // Gated on `isLoaded`, not just `isSignedIn` — Clerk's isSignedIn is
+  // `undefined` (not `false`) for a brief window right after a page load
+  // while the client SDK is still resolving the session, and a plain
+  // `!isSignedIn` check can't tell that apart from "genuinely signed out."
+  // A real user essentially never clicks in that window, but an automated
+  // click immediately after page.goto() can - a signed-in visitor would
+  // incorrectly see the sign-in prompt. While unresolved, falls through to
+  // the normal navigation instead of guessing; a truly signed-out visitor
+  // who slips through this narrow window still hits auth.protect()'s
+  // existing hard-redirect backstop, same as before this dialog existed.
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (!href || mode !== "sandbox") return;
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
+    if (isLoaded && !isSignedIn) {
+      requireAuth(() => {});
+      return;
+    }
     setNavigating(true);
     window.setTimeout(() => router.push(href), TRANSITION_HOLD_MS);
   };
@@ -164,15 +192,27 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
 
   if (href) {
     return (
-      <Link
-        href={href}
-        onClick={handleClick}
-        style={{ width: NODE_WIDTH, height: NODE_HEIGHT, "--accent": color } as CSSProperties}
-        className="group relative flex flex-col gap-4 overflow-hidden rounded-lg border border-border bg-panel p-6 transition-[border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-0.5 hover:border-[color:color-mix(in_srgb,var(--accent)_45%,var(--border))] hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
-      >
-        {body}
-        {navigating && <LoadingTransition label={`Crafting your ${modeLabel[mode]}…`} />}
-      </Link>
+      <>
+        <Link
+          href={href}
+          onClick={handleClick}
+          style={{ width: NODE_WIDTH, height: NODE_HEIGHT, "--accent": color } as CSSProperties}
+          className="group relative flex flex-col gap-4 overflow-hidden rounded-lg border border-border bg-panel p-6 transition-[border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-0.5 hover:border-[color:color-mix(in_srgb,var(--accent)_45%,var(--border))] hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+        >
+          {body}
+          {navigating && <LoadingTransition label={`Crafting your ${modeLabel[mode]}…`} />}
+        </Link>
+        {/* A sibling of Link, not a child — React portals bubble events
+         * through the React tree, not the DOM tree, so a click inside the
+         * dialog (e.g. "Not now") would otherwise also reach Link's onClick
+         * and immediately reopen what it just closed. Portaled to
+         * document.body rather than rendered in place because this node
+         * sits inside react-flow's transform-positioned wrapper, which
+         * would turn AuthPromptDialog's `fixed` positioning into "fixed to
+         * this node" instead of "fixed to the viewport" (same reasoning as
+         * AnnotationEditor.tsx's portal). */}
+        {dialog && createPortal(dialog, document.body)}
+      </>
     );
   }
 
