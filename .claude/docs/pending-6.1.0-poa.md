@@ -1,19 +1,44 @@
 # Release 6.1.0-alpha - Persistence POA
 
-Status: **Phases 0-4.2 landed 2026-08-12, Phase 5 landed 2026-08-12, Phase 6
-landed 2026-08-12, Phase 7 landed 2026-08-12, full CI green.**
-Written the same day, after the multi-device test failure and the
-persistence audit that followed; all five open decisions resolved same-day
-too (see "Decisions - resolved" below). Phase 3's migration
-(0004_raw_canvas_state.sql) is generated and checked into `drizzle/` but
-**not yet applied to Neon** - `npm run db:migrate` still pending, same as
-Phase 0's backfill-drop migration. Phase 4.1 was measurement-only (Appendix
-A, no checklist items); 4.2 (write triggers) is done. 4.3 is a tradeoff
-note, not a checklist. Phase 5.3 is a deliberate no-op (monitor, don't cap).
-Phase 8 remains, unblocked, on the same `feature/cloud-sync-reconciliation`
-branch (cut from `release/v6.1.0-neon-cloud-sync` - the user wants every
-phase of this release in one branch, not one per phase). This is the single
-running doc for the rest of 6.1.0.
+Status: **Phases 0-7 landed 2026-08-12, full CI green. Both pending Neon
+migrations applied 2026-08-16** (0003 backfill-table drop, 0004
+graph->canvas_state swap). Written the same day as the phases, after the
+multi-device test failure and the persistence audit that followed; all five
+open decisions resolved same-day too (see "Decisions - resolved" below).
+Phase 4.1 was measurement-only (Appendix A, no checklist items); 4.2 (write
+triggers) is done. 4.3 is a tradeoff note, not a checklist. Phase 5.3 is a
+deliberate no-op (monitor, don't cap). Phase 8 landed 2026-08-16 (automated
+multi-device suite + the three staleness bugs it found), on the same
+`feature/cloud-sync-reconciliation` branch (cut from
+`release/v6.1.0-neon-cloud-sync` - the user wants every phase of this
+release in one branch, not one per phase). This is the single running doc
+for the rest of 6.1.0.
+
+**Scope freeze, 2026-08-16.** Phases 9, 10 and 11 below close the release.
+The user confirmed "that's it for 6.1.0" when adding 10 and 11 - nothing
+else goes in. 9 is uncommitted work carried over from Phase 8's findings;
+10 and 11 are new and have not been started. Sonnet picks these up next
+session; read Phase 8.2/8.3 first for the context they assume.
+
+**2026-08-16 migration note:** applying the migrations surfaced two
+pre-existing issues, both fixed in this pass. (1) `0004_raw_canvas_state.sql`
+was missing `--> statement-breakpoint` markers between its three statements,
+so Neon's HTTP driver rejected it as a multi-statement query ("cannot insert
+multiple commands into a prepared statement") - added, file now applies
+cleanly. (2) `user_sync_state` had already been dropped from Neon out of
+band (predating this session), so migration 0003's `DROP TABLE` failed with
+"table does not exist" even though drizzle's tracking table had never
+recorded 0003 as applied - resolved by inserting the tracking row directly
+(hash of the file content + its journal timestamp) since the DB was already
+in 0003's target state. Separately, this WSL2 environment's Node process
+could not reach Neon at all via `fetch` (`ETIMEDOUT`/`ENETUNREACH` on every
+resolved address) despite `curl` and raw `net.connect` working fine - caused
+by Node's Happy-Eyeballs address autoselection; `--no-network-family-
+autoselection` fixed it. The same bug 500'd `/api/sync/*` in the dev server,
+which reaches Neon from the same Node process. The flag is now baked into
+`package.json`'s `dev`/`start`/`db:migrate` scripts (appended to any
+inherited `$NODE_OPTIONS`), so no manual env var is needed - it only
+disables IPv4/IPv6 racing, not IPv6, so it is a no-op on healthy networks.
 
 Supersedes nothing, but consolidates three threads that were drifting apart:
 
@@ -73,7 +98,7 @@ Done, verified, full CI green. Recorded here so the sequence reads whole.
       route, `userSyncState`, and the client wrappers. Migration
       `drizzle/0003_light_the_stranger.sql` drops the table. It could push one
       account's local data into another account's cloud rows (audit S3).
-      **Not yet applied to Neon: `npm run db:migrate` still pending.**
+      Applied to Neon 2026-08-16 (see status note above).
 - [x] **One-time 6.1.0 local reset.** Dexie `version(10)` clears every table on
       upgrade; a schema bump rather than a mount effect, so it cannot be raced
       by a component reading first. localStorage cleared by
@@ -342,8 +367,9 @@ deleted by a routine sync. That is no longer an acceptable tradeoff.
       `drizzle-kit generate`, which needs a TTY to disambiguate a same-table
       column swap and this session has none), verified against the schema
       with `drizzle-kit check`/`generate` (reports "no schema changes").
-      **Not yet applied to Neon** - `npm run db:migrate` still pending, same
-      as Phase 0's backfill-drop migration. `savesBodySchema` now validates
+      Applied to Neon 2026-08-16, along with Phase 0's backfill-drop
+      migration (see status note above; the file needed a
+      `statement-breakpoint` fix first). `savesBodySchema` now validates
       `canvasState` with a loose per-node/edge schema (only `id`/`type`/
       `source`/`target` checked - these are @xyflow/react `Node`/`Edge`
       objects with many library-owned optional fields this route has no
@@ -594,7 +620,403 @@ its dirty rows. No tombstone column, no reaping schedule.
       B, sign in as a second account, confirm zero data from the first is
       visible
 - [ ] Manual: zones survive a cross-device round trip (3.4)
-- [ ] Full CI: `npm run typecheck && npm run lint && npm test && npm run build`
+- [x] Full CI: `npm run typecheck && npm run lint && npm test && npm run build`
+      (2026-08-16, green: 201 files / 1763 tests, build clean)
+
+### 8.1 Automated multi-device suite - added 2026-08-16
+
+`e2e/multi-device-sync.spec.ts` replaces most of the manual click-through
+above. Two Playwright `BrowserContext`s with explicitly empty storage state
+are two devices - separate IndexedDB, separate localStorage, one Clerk
+account. Note that an argument-less `browser.newContext()` inherits the
+project's `storageState` (the shared E2E user), which is the opposite of a
+fresh device; the empty state has to be passed.
+
+Runs against the standard E2E user by default, or any account via
+`MULTI_DEVICE_EMAIL` / `MULTI_DEVICE_PASSWORD`. Eight cases: fresh-device
+pull, hard reload, client-side navigation, window refocus, chapterProgress
+round trip, offline edit flush, the stale-write clobber below, and a sandbox
+canvas round trip.
+
+### 8.2 What the first run found (2026-08-16)
+
+Phases 1-7 were all correct in the case they were tested in - a *cold load*.
+Everything that reads the cloud reads it once, on a full page load, and the
+`hydrated` latch in the two module-singleton stores (`progress-store.ts`,
+`custom-components-store.ts`) then makes every later call a no-op for the
+life of the tab. Since the app is an App Router SPA, "the life of the tab" is
+the whole session. Three failures, one root cause:
+
+| Symptom | Severity |
+|---|---|
+| Navigating back to the Learning Path client-side shows stale progress | High |
+| Alt-tabbing between two windows never converges; only F5 works | High |
+| **A stale device opening a chapter erases another device's completion** | Critical |
+
+The third is the serious one and is S1 returning through a different door.
+`markVisited` still composes a *whole-row* payload (the sync API has no
+partial update) out of local state; Phase 0/3.3 fixed it reading an
+unhydrated store, but a *stale* hydrated store is just as wrong. Device B
+sitting on a lesson page, device A completes that chapter, B walks into the
+Design Editor - B pushes `manuallyCompletedAt: null` and the server's LWW
+accepts it. Reproduced, then fixed, then re-verified.
+
+### 8.3 The fix
+
+- `refresh()` on both singleton stores: the same reconcile pass as
+  `hydrate()` minus the already-hydrated bail. `hydrate()` is now just
+  "ensure at least once" and delegates to it.
+- `src/persistence/RefreshFromCloud.tsx`, mounted next to `FlushDirtyRows`
+  in `(protected)/layout.tsx` - the read half of 4.2's event-driven sync.
+  Pulls on `visibilitychange`/`focus`/`online`, 2s minimum interval so a tab
+  switch's paired events collapse into one.
+- `LearningPath` mounts with `refresh()`, not `hydrate()`, so client-side
+  navigation back to it re-reads.
+- Every full-row mutator (`markVisited`, `setManualComplete`,
+  `resetChapter`) awaits `refresh()` before composing its payload. This is
+  3.3's invariant tightened from "hydrated" to "freshly reconciled."
+
+`saves` is deliberately excluded from the refocus pull: replacing a canvas
+under a learner mid-edit is worse than the staleness. It still reconciles
+per-scope on mount.
+
+### 8.4 Not a sync problem
+
+The websocket errors in the console are `ws://localhost:3000/_next/webpack-hmr`
+- Next's dev hot-reload socket reconnecting. No app code opens a websocket
+(verified by surveying every socket a session opens). They do not exist in a
+production build and have nothing to do with sync.
+
+---
+
+## Phase 9 - Close out the sync work
+
+Everything here is on `feature/cloud-sync-reconciliation`, uncommitted as of
+2026-08-16. Phase 8's fixes are done and CI-green; these are the loose ends
+that fixing them exposed.
+
+### 9.0 Accepted, no work required
+
+Two risks were raised and the user accepted both rather than mitigating them.
+Recorded so nobody re-opens them.
+
+- **Clerk dev -> prod instance discontinuity.** The instance is `pk_test_`, a
+  development instance. A Clerk production instance has a separate user pool
+  and different `user_...` ids, so every row now in Neon is orphaned the
+  moment prod keys go in, and `reconcileLocalStateForUser` wipes local Dexie
+  on the changed id. **The user has already told users their progress will be
+  wiped and wants exactly that.** Sync tracks from the cutover forward. No
+  migration, no id remap.
+- **Migration 0004 truncates `saved_graphs`.** Same call, same reason. Alpha,
+  restricted prod, wipe is intended.
+
+This conveniently removes the orphan-row problem Phase 10 would otherwise
+create: the eight Part 1 slugs that disappear have no progress rows to strand.
+
+### 9.1 A failed push can go permanently silent
+
+Three things compound into a user who diverges forever with no signal:
+
+| | |
+|---|---|
+| `reconcile.ts` `pickWinner` | `if (local.dirty) return local` - a row that can never push wins reconciliation forever |
+| `cloud-sync.ts` `postSync` | leaves `dirty: true` on any non-2xx, so a 400 retries forever and never succeeds |
+| `sync-status.ts` | one global boolean; `markSyncOk()` clears it on *any* success |
+
+Phase 8.3 made the third one materially worse: `RefreshFromCloud` fires four
+GETs on every window focus, so a failed POST's warning icon is cleared within
+seconds by unrelated pull successes. Before 8.3 sync calls were rare enough
+that the flag roughly tracked reality.
+
+- [ ] Split push failure from pull failure in `sync-status.ts`. A successful
+      pull must not clear a push error - they are different claims about the
+      world
+- [ ] Surface persistence, not a transient boolean: "N rows have failed to
+      sync" is the honest signal, and it is the one that catches the
+      permanently-dirty row. Count from `db.*.filter(r => r.dirty)`, the same
+      query `flush-dirty.ts` already runs
+- [ ] `CloudSyncIndicator.tsx`'s tooltip copy currently promises "will sync
+      automatically once this resolves" - true for a transient failure, a lie
+      for a row that 400s. Reword once the above distinguishes them
+- [ ] Decide whether a row that has failed N times should stop being retried
+      on every mount and every `online` event. Recommendation: keep retrying
+      (cheap, single-user) but stop letting it silently win reconciliation -
+      a dirty row older than its remote counterpart by more than one sync
+      cycle is a bug, not a pending write
+
+### 9.2 `learning-path.spec.ts` is not idempotent
+
+It asserts `0 / 32 chapters`, marks Bitly complete, and never cleans up. It
+passes today only by winning a race against the cloud hydrate - measured
+2026-08-16:
+
+```
+immediately:            0 / 32 chapters
+after hydrate settles:  1 / 32 chapters
+```
+
+The E2E user's cloud now permanently holds a completed Bitly. Any timing
+change turns the `0 / 32` assertion into a hard failure, and the `47 chapter
+rows` / status-icon counts drift the same way as cloud state accumulates.
+
+- [ ] Reset server state in a fixture before the assertions, not after.
+      `multi-device-sync.spec.ts`'s `resetSlugs` helper is the pattern - lift
+      it somewhere shared rather than copying it
+- [ ] Make the assertion wait for the hydrate to settle instead of racing it,
+      so it tests the real rendered state
+- [ ] Audit the other count assertions in that file against the same problem
+      (`47 chapter rows`, `10 sections`) - and note Phase 10 changes 47 to 39
+      regardless
+
+### 9.3 Known gaps, deliberately left
+
+- **`saves` is excluded from the refocus pull** (8.3). Two devices editing
+  the same canvas still diverge until a reload. Replacing a canvas under a
+  learner mid-edit is worse than the staleness
+- **Residual clobber race.** `refresh()` coalesces onto an in-flight call, so
+  a mutator awaiting a refresh that *started* before another device's write
+  still composes from stale data. ~1s window. The structural fix is a
+  partial-update sync API so a client never transmits fields it did not
+  change - every write today is a whole-row overwrite, which is what made S1
+  possible twice. Not in 6.1.0
+- **Read economics changed.** Appendix A measured writes. Focus-driven pulls
+  are now the dominant read source (4 calls per focus, 2s throttle). Trivial
+  for one user; the appendix no longer describes the traffic
+
+---
+
+## Phase 10 - Condense Building Blocks Part 1
+
+**Why:** eleven chapters is psychologically heavy for what is explicitly the
+*basics*. A learner opening Part 1 and seeing 11 rows reads it as a mountain
+before they have read a sentence. Condense to **3 chapters**, raise the
+per-chapter quiz count to compensate for the lost assessment surface, and
+hold the ≤15 minute per-chapter read convention.
+
+### 10.1 Read the arithmetic before starting
+
+| | Now | After |
+|---|---|---|
+| Chapters | 11 | 3 |
+| Est. minutes | 245 (20+15+20+25+20+30+25+20+20+20+30) | ≤45 (3 × 15) |
+
+**This is an 82% cut. It is a rewrite, not a merge.** Sonnet must treat the
+existing eleven chapters as *source material* for three new ones, not as
+sections to staple together. Stapling produces a 245-minute chapter with
+three headings. CURRICULUM.md §20.6 (information density, binding) is the
+governing rule: every sentence introduces a concept, clarifies a hard one, or
+reinforces one with a real example. Everything else is what gets cut to reach
+45 minutes.
+
+All eleven are already authored (see `pending-chapters.md` rows 40-51), so
+the raw material exists and none of it needs inventing.
+
+### 10.2 Proposed split, along the Interview Loop's own seams
+
+Part 1's structural bet is one chapter per Interview Loop step (§10.1, eight
+steps). Three chapters means grouping those eight into three arcs. The
+grouping below keeps §10.1's "Taught in" pointers repointable and keeps each
+new chapter one coherent *phase* of the loop rather than an arbitrary third.
+
+| New | Title (proposed) | Loop steps | Absorbs |
+|---|---|---|---|
+| 1.1 | Framing the Problem | 1-3 clarify, requirements, estimate | 1.1, 1.2, 1.3, 1.4, 1.5 |
+| 1.2 | Designing the System | 4-6 high-level design, deep dive, bottlenecks | 1.6, 1.7, 1.9 |
+| 1.3 | Defending the Design | 7-8 trade-offs, evolve and defend | 1.8, 1.10, 1.11 |
+
+Slugs/ids follow the existing convention (`1-1-framing-the-problem` /
+`bb-1-1-framing-the-problem`). Titles are a proposal, not a decision - see
+10.6.
+
+### 10.3 What must survive the cut
+
+Four things are product machinery, not prose, and cutting them breaks code or
+downstream chapters. Named explicitly so a density pass does not eat them.
+
+- **1.6's component introduction.** `client`, `app-server`, `sql-database`
+  and the `request-flow` edge kind are introduced there and are the entire
+  Part 1 palette (§14, §16 component budget). Every later chapter assumes
+  they exist by the end of Part 1. Must land in new 1.2
+- **1.6's first Fix exercise.** The starter graph wires client straight to
+  the database and `no-direct-client-database` fires - deliberately the
+  learner's first encounter with the core product loop (validation explains
+  reasoning). This is a designed first impression, not filler. Must survive
+  intact
+- **1.5's landmark numbers.** Referenced by every later estimation. Do not
+  delete - compress. A single reference table scans better than five pages of
+  prose and is explicitly preferred by §20.6. Consider whether it belongs in
+  new 1.1 or as a standing reference page; that is a real choice, make it
+  consciously and record it
+- **1.11's optionality.** It is currently optional and gates nothing (nothing
+  lists its slug as a prerequisite; Part 2 hangs off 1.10). Folding it into a
+  mandatory chapter silently removes a documented affordance. Either keep the
+  material clearly marked optional within new 1.3, or drop it and say so
+
+### 10.4 Quiz count
+
+QUIZ_FRAMEWORK.md §2 currently reads: *"chapter quizzes stay small (3-6
+questions, drawn from or modeled on these banks)"*. Three chapters carrying
+the assessment load of eleven needs more than 6.
+
+- [ ] **Edit QUIZ_FRAMEWORK.md §2 first, in its own commit.** CLAUDE.md is
+      explicit: when content needs something the framework forbids, propose a
+      doc edit in its own commit, never author around it silently
+- [ ] Recommendation: 10-12 questions for these three chapters, framed as an
+      exception for condensed Process chapters rather than a blanket raise -
+      a 3-question Part 3 block chapter is still right
+- [ ] §6's Part 1 bank already holds 11+ questions and is section-level. It
+      is the source; check coverage per new chapter rather than authoring
+      fresh questions first
+- [ ] Note the threshold interaction: 80% of 12 questions is 10 correct. More
+      questions makes the pass line stricter in absolute terms, not looser.
+      Confirm that is intended before authoring
+- [ ] §3's difficulty ramp (30/45/25 across levels 1/2/3) must still hold at
+      the larger size
+
+### 10.5 Everything downstream that names these chapters
+
+Not optional cleanup - the app has hard references and the test suite has
+hard counts.
+
+- [ ] `src/curriculum/manifest.ts` - Part 1's `chapters` array; `estimatedMinutes`;
+      and the `prerequisiteSlugs` chain. **2.1 currently hangs off
+      `1-10-communicating-and-defending-a-design`** and must be repointed;
+      new 1.1 hangs off `0-4-the-system-design-lifecycle`
+- [ ] `src/content/chapters/index.ts` - eleven `ChapterDefinition`s become
+      three (registry ids at lines ~1315-4018 and 4650-4956)
+- [ ] `src/content/chapters/specs/bb-1-*.spec.md` and
+      `public/content/chapters/bb-1-*.md` - eleven pairs become three
+- [ ] Blueprints, hints and walkthrough diagrams belonging to the absorbed
+      chapters. `walkthrough-invariants.test.ts` must stay at zero issues
+- [ ] CURRICULUM.md: §5 inventory (line ~206 reads "Part 1 ... (11 chapters)"),
+      §10.1's eight "Taught in" pointers, §14's eleven briefs, §11.1's
+      concept-chapter list (line ~1145 reads "1.1-1.5, 1.7-1.11"), §19's
+      dependency graph (~1162), §21's ASCII map (~1474-1480)
+- [ ] `e2e/learning-path.spec.ts` - `47 chapter rows` becomes 39. See 9.2,
+      which touches the same assertions
+- [ ] `authoring-invariants.test.ts`, `src/content/chapters/index.test.ts`
+- [ ] `pending-chapters.md` - append an entry per new chapter as it is
+      finished, and mark the eleven superseded. That entry is the last step
+      before committing a chapter, not a batch job at the end
+
+### 10.6 Decisions this phase needs from the user
+
+Do not start authoring until these are answered. Each changes the output
+materially.
+
+1. **Are the three titles and the 1-3/4-6/7-8 loop grouping right?** 10.2 is
+   a proposal. An alternative grouping (for example splitting on "before the
+   canvas / on the canvas / after the canvas") is defensible
+2. **Where do 1.5's landmark numbers live?** Inside new 1.1, or promoted to a
+   standing reference page outside the chapter flow
+3. **Does 1.11's interview-driving material survive at all?** It is optional
+   today and the most cuttable 30 minutes in the part
+4. **Is 10-12 the right quiz size**, and is it a Process-chapter exception or
+   a blanket framework change
+
+### 10.7 Route this through the right skill
+
+`chapter-author` is the skill for this (Sonnet drafts, Opus proofreads). It
+is scoped to content authoring only - no tests, no CI, no Playwright. The
+manifest/registry/test edits in 10.5 are plain engineering work and do not go
+through it.
+
+---
+
+## Phase 11 - Read without an account
+
+**Why:** the only thing that genuinely requires an account is *tracking and
+saving progress*. Requiring sign-in to read a chapter is a wall in front of
+the product's best sales pitch. Reading becomes public; anything that writes
+progress prompts for sign-in, and the learner chooses.
+
+### 11.1 Where the gate lives today
+
+`src/proxy.ts` is a bare `clerkMiddleware()` with no route protection. All
+gating is one line: `auth.protect()` in `src/app/(protected)/layout.tsx`.
+That is the whole mechanism, which makes this change smaller than it sounds.
+
+| Surface | Today | After |
+|---|---|---|
+| `/building-blocks`, `/real-world-extraction` | gated | **public** (read-only, no progress shown) |
+| `/{mode}/{slug}/lesson` (ChapterReader) | gated | **public** |
+| `/{mode}/{slug}` (Design Editor) | gated | gated - it is an exercise |
+| Exam / quiz | gated | gated |
+| `/sandbox` | gated | gated |
+
+### 11.2 The complete write surface that needs a gate
+
+Every one of these writes progress. This is the exhaustive list - anything
+not here does not need an auth check.
+
+| Write | Trigger |
+|---|---|
+| `progress-store.markVisited` | ChapterWorkspace mount |
+| `progress-store.setManualComplete` | Learning Path row toggle |
+| `progress-store.recordExamAttempt` | quiz submit |
+| `progress-store.resetChapter` | Learning Path row reset |
+| `db.chapterProgress.put` + `syncChapterProgress` | ChapterWorkspace passing Submit |
+| `use-autosave` -> `db.saves` + `syncSave` | canvas edit |
+| `custom-components-store` upsert/delete | ComponentPicker |
+| `deepCheckSessions.saveSession` | Deep Check run |
+
+Useful accident: **the lesson reader does not write.** `ReaderSidebar` only
+calls `hydrate()`. So making the reader public needs no write-gating at all,
+only the read-path handling in 11.4.
+
+### 11.3 The decision that shapes everything: no anonymous local state
+
+**Recommendation: signed out means no local writes at all.** Not "write to
+Dexie and merge on sign-in."
+
+The merge path looks friendly and is a trap. `reconcileLocalStateForUser`
+wipes local state when `storedUserId` changes, but a signed-out session never
+stamps a user id - so `storedUserId` is null, the wipe branch is skipped, and
+whatever anonymous state accumulated gets silently *adopted* into the first
+account that signs in on that browser. That is audit S2 (cross-account leak)
+coming back through a door we opened ourselves. Refusing to write while
+signed out sidesteps it completely, and it matches the user's framing: the
+account is what progress tracking is *for*.
+
+- [ ] Confirm this with the user before building. If they want anonymous
+      progress that survives sign-in, it is a materially larger phase and
+      needs its own merge semantics
+
+### 11.4 Read path when signed out
+
+- [ ] `/api/sync/*` returns 401 when signed out. `cloud-sync.ts` swallows it
+      and calls `markSyncError()`, so a signed-out reader gets a permanent
+      "Cloud sync failed" icon for behaving correctly. Short-circuit the
+      hydrate/refresh calls when there is no session rather than letting them
+      401 - `RefreshFromCloud` and `FlushDirtyRows` both need the same guard
+- [ ] `LocalStateGate` takes a `userId` and cannot mount signed out. Decide
+      what the protected layout becomes when the group no longer implies a
+      session
+- [ ] The Learning Path renders progress from an empty store when signed out,
+      which is already the correct "everything NOT_STARTED" shape. Confirm it
+      reads as an invitation rather than as broken - this is a
+      `/impeccable` question, not a correctness one
+
+### 11.5 The prompt itself
+
+- [ ] Gate at the *action*, not the route, wherever the action sits inside a
+      public page (the Learning Path's mark-complete toggle is the main one).
+      A route-level gate is right for the Design Editor, sandbox and exam,
+      which are whole pages that are exercises
+- [ ] Preserve intent across sign-in. A learner who clicks "mark complete"
+      and signs in should land back on that chapter with the action applied,
+      not on the home canvas. Clerk's `redirectUrl` carries this
+- [ ] Copy matters here and should not be scolding. The learner is being
+      offered progress tracking, not denied access. Run it through
+      `/impeccable clarify`
+
+### 11.6 Convention change to record
+
+CLAUDE.md and the saved project memory both state the standing convention as
+"whole app gated, UserButton always right of ThemeToggle everywhere." This
+phase supersedes the first half. Update both, and decide what the header
+shows signed out (a Sign in affordance in the same slot is the obvious
+answer).
 
 ---
 
@@ -670,7 +1092,7 @@ per-user cost, and the only one that grows without bound.**
 
 | Finding | Severity | Phase |
 |---|---|---|
-| S1 `markVisited` wipes completion | Critical | **Phase 0, done.** Guarded again by 3.3 |
+| S1 `markVisited` wipes completion | Critical | **Phase 0, done.** Guarded again by 3.3, then by 8.3 (a *stale* store clobbers just as an unhydrated one did) |
 | S2 browser-wide Dexie, cross-account leak | Critical | **Phase 2, done** |
 | S3 backfill cross-account write | Critical | **Phase 0, done** |
 | S4 hydrate-on-empty is not sync | High | **Phase 3, done** |
