@@ -181,21 +181,27 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
 
   if (href) {
     return (
-      <Link
-        href={href}
-        onClick={handleClick}
-        style={{ width: NODE_WIDTH, height: NODE_HEIGHT, "--accent": color } as CSSProperties}
-        className="group relative flex flex-col gap-4 overflow-hidden rounded-lg border border-border bg-panel p-6 transition-[border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-0.5 hover:border-[color:color-mix(in_srgb,var(--accent)_45%,var(--border))] hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
-      >
-        {body}
-        {navigating && <LoadingTransition label={`Crafting your ${modeLabel[mode]}…`} />}
-        {/* Portaled to document.body, not rendered inline — this node sits
-         * inside react-flow's transform-positioned wrapper, which would turn
-         * AuthPromptDialog's `fixed` positioning into "fixed to this node"
-         * instead of "fixed to the viewport" (same reasoning as
+      <>
+        <Link
+          href={href}
+          onClick={handleClick}
+          style={{ width: NODE_WIDTH, height: NODE_HEIGHT, "--accent": color } as CSSProperties}
+          className="group relative flex flex-col gap-4 overflow-hidden rounded-lg border border-border bg-panel p-6 transition-[border-color,box-shadow,transform] duration-150 ease-out hover:-translate-y-0.5 hover:border-[color:color-mix(in_srgb,var(--accent)_45%,var(--border))] hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+        >
+          {body}
+          {navigating && <LoadingTransition label={`Crafting your ${modeLabel[mode]}…`} />}
+        </Link>
+        {/* A sibling of Link, not a child — React portals bubble events
+         * through the React tree, not the DOM tree, so a click inside the
+         * dialog (e.g. "Not now") would otherwise also reach Link's onClick
+         * and immediately reopen what it just closed. Portaled to
+         * document.body rather than rendered in place because this node
+         * sits inside react-flow's transform-positioned wrapper, which
+         * would turn AuthPromptDialog's `fixed` positioning into "fixed to
+         * this node" instead of "fixed to the viewport" (same reasoning as
          * AnnotationEditor.tsx's portal). */}
         {dialog && createPortal(dialog, document.body)}
-      </Link>
+      </>
     );
   }
 
