@@ -385,6 +385,24 @@ export function registerCurrentUserId(userId: string) {
 }
 
 /**
+ * Close-out P1.1 (pending-6.1.0-poa.md) — sign-out had nowhere to put the
+ * signed-in account's local state: Dexie and the sc-/scalecraft:
+ * localStorage keys are browser-wide, so they survived the client-side
+ * navigation Clerk's default sign-out does to the now-public home page.
+ * Treats local state as a disposable cache (this release's core decision,
+ * same licence reconcileLocalStateForUser already relies on) — the cloud
+ * refills it on next sign-in, so wiping here costs nothing. Clearing
+ * STORAGE_EPOCH_KEY/USER_ID_KEY along with everything else is fine: the next
+ * sign-in's reconcileLocalStateForUser treats a missing epoch the same as a
+ * stale one and re-stamps both.
+ */
+export async function clearLocalStateOnSignOut(): Promise<void> {
+  currentUserId = null;
+  await Promise.all(db.tables.map((table) => table.clear()));
+  clearLocalStoragePrefixed([]);
+}
+
+/**
  * Release 6.1.0-alpha Phase 2 — account isolation (audit S2/S10). The Dexie
  * database and the sc-/scalecraft: localStorage keys are browser-wide, not
  * account-scoped, so a second account signing in on a browser previously

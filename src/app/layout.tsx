@@ -7,6 +7,7 @@ import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
 import { ScreenSizeGate } from "./ScreenSizeGate";
 import { LocalStateGate } from "@/persistence/LocalStateGate";
+import { ResetOnSignOut } from "@/persistence/ResetOnSignOut";
 import { FlushDirtyRows } from "@/persistence/FlushDirtyRows";
 import { RefreshFromCloud } from "@/persistence/RefreshFromCloud";
 
@@ -56,6 +57,7 @@ export default async function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} themes={["dark", "light"]}>
           <ScreenSizeGate>
             <LocalStateGate userId={userId} />
+            <ResetOnSignOut />
             <FlushDirtyRows />
             <RefreshFromCloud />
             {children}
