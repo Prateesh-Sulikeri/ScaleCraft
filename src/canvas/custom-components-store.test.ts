@@ -57,4 +57,17 @@ describe("custom components store", () => {
 
     expect(useCustomComponentsStore.getState().customComponents.map((c) => c.id)).toEqual(["a", "b"]);
   });
+
+  // Close-out P1.1 - sign-out has to clear the singleton in memory, or a
+  // second account signing in on the same browser sees the previous
+  // account's custom components until a hard reload.
+  it("reset() clears the list and the hydrated flag", () => {
+    useCustomComponentsStore.setState({ hydrated: true });
+    useCustomComponentsStore.getState().upsertCustomComponent(record());
+
+    useCustomComponentsStore.getState().reset();
+
+    expect(useCustomComponentsStore.getState().customComponents).toEqual([]);
+    expect(useCustomComponentsStore.getState().hydrated).toBe(false);
+  });
 });

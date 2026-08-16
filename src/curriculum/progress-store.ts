@@ -10,6 +10,7 @@ import {
   syncExamAttempt,
 } from "@/persistence/cloud-sync";
 import { reconcileRows } from "@/persistence/reconcile";
+import { useSyncStatusStore } from "@/persistence/sync-status";
 import type { ProgressInputs } from "./progress";
 
 /** Replace-by-attemptNumber — mirrors Dexie's own replace-by-key `put`. */
@@ -85,6 +86,11 @@ type CurriculumProgressStore = {
   resetChapter: (slug: string, chapterDefinitionId: string | null) => Promise<void>;
   /** Derived selector helper so callers never rebuild ProgressInputs by hand. */
   inputs: () => ProgressInputs;
+  /** In-memory only, no Dexie/cloud I/O — clears this account's rows out of
+   *  the singleton on sign-out (close-out P1.1) so the next signed-out or
+   *  signed-in-as-someone-else render can't still see them. Dexie itself is
+   *  wiped separately by db.ts's clearLocalStateOnSignOut. */
+  reset: () => void;
 };
 
 /** Reads Dexie, never the in-memory map. Every mutator below writes Dexie
@@ -160,6 +166,9 @@ async function performHydrate(
   const chapterProgress = reconcileRows(localChapterProgress, remoteChapterProgress.data, (r) => r.chapterId);
   const curriculumProgress = reconcileRows(localCurriculumProgress, remoteCurriculumProgress.data, (r) => r.slug);
   const examAttempts = reconcileRows(localExamAttempts, remoteExamAttempts.data, examAttemptKey);
+
+  const discarded = chapterProgress.discarded + curriculumProgress.discarded + examAttempts.discarded;
+  if (discarded > 0) useSyncStatusStore.getState().recordDiscarded(discarded);
 
   await Promise.all([
     chapterProgress.toWrite.length > 0 ? db.chapterProgress.bulkPut(chapterProgress.toWrite) : Promise.resolve(),
@@ -286,5 +295,15 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   inputs: () => {
     const { validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition } = get();
     return { validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition };
+  },
+
+  reset: () => {
+    set({
+      hydrated: false,
+      hydrating: false,
+      validationPassedDefinitionIds: new Set(),
+      rowsBySlug: new Map(),
+      examAttemptsByDefinition: new Map(),
+    });
   },
 }));

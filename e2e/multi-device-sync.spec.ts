@@ -347,4 +347,73 @@ test.describe("multi-device sync", () => {
     await expect(b.page.locator(".react-flow__node"), "device B should load A's saved canvas")
       .toHaveCount(3, { timeout: 15_000 });
   });
+
+  // Close-out P1.3 - the one unproven claim in the release. Phase 3.4
+  // replaced saved_graphs' `graph` column with raw `canvasState` and
+  // TRUNCATEd the table specifically because ArchitectureGraph does not
+  // carry zones or Start markers, so a reconciliation pass built on that
+  // lossy shape could silently delete a learner's zones. Nothing exercised
+  // that claim until now.
+  test("a zone and a Start marker placed on one device arrive intact on the other", async ({
+    browser,
+  }) => {
+    const a = await openDevice(browser, "A");
+    await a.page.request.delete("/api/sync/saves?scopeId=sandbox");
+
+    await a.page.goto("/sandbox");
+    await expect(a.page.locator(".react-flow__node")).toHaveCount(4);
+
+    // The seed graph's four nodes cluster near the pane's top-left after
+    // fitView; place decorations in the bottom-right/top-right so the
+    // plain-click placement never lands on top of one of them.
+    const pane = a.page.locator(".react-flow__pane");
+
+    await pane.click({ button: "right", position: { x: 900, y: 550 } });
+    await expect(a.page.getByRole("dialog")).toBeVisible();
+    await a.page.getByText("Add zone", { exact: true }).click();
+    // Placement mode swaps the pane for a full-bleed crosshair overlay
+    // (Canvas.tsx) that owns the mousedown - a click on .react-flow__pane
+    // itself wouldn't reach the placement handler while it's up.
+    await a.page.locator(".cursor-crosshair").click({ position: { x: 900, y: 550 } });
+    await a.page.getByRole("button", { name: "Done" }).click();
+    await a.page.locator(".react-flow__node-zone input").fill("E2E Zone");
+
+    await pane.click({ button: "right", position: { x: 900, y: 120 } });
+    await expect(a.page.getByRole("dialog")).toBeVisible();
+    // The picker's tool is labeled "Add flag"; it places what the rest of
+    // the app calls a Start marker (StartNode.tsx / addStartMarker).
+    await a.page.getByText("Add flag", { exact: true }).click();
+    await a.page.locator(".cursor-crosshair").click({ position: { x: 900, y: 120 } });
+    await a.page.getByRole("button", { name: "Done" }).click();
+    await a.page.locator(".react-flow__node-start input").fill("E2E Flag");
+
+    await expect(a.page.locator(".react-flow__node")).toHaveCount(6);
+
+    const push = a.page.waitForResponse(
+      (r) => r.url().includes("/api/sync/saves") && r.request().method() === "POST",
+    );
+    await a.page.getByRole("button", { name: "Save" }).click();
+    expect((await push).status(), "device A save push").toBe(200);
+
+    const b = await openDevice(browser, "B");
+    await b.page.goto("/sandbox");
+    await expect(b.page.locator(".react-flow__node"), "device B should load A's full saved canvas")
+      .toHaveCount(6, { timeout: 15_000 });
+
+    const zoneOnB = b.page.locator(".react-flow__node-zone");
+    await expect(zoneOnB).toHaveCount(1);
+    await expect(zoneOnB.locator("input"), "zone label should survive the round trip").toHaveValue(
+      "E2E Zone",
+    );
+    // The plain-click fallback size (Canvas.tsx's ANNOTATION_DEFAULTS.zone) -
+    // confirms the rectangle's geometry round-trips, not just its existence.
+    await expect(zoneOnB.locator("> div").first()).toHaveCSS("width", "320px");
+    await expect(zoneOnB.locator("> div").first()).toHaveCSS("height", "220px");
+
+    const startOnB = b.page.locator(".react-flow__node-start");
+    await expect(startOnB).toHaveCount(1);
+    await expect(startOnB.locator("input"), "Start marker label should survive the round trip").toHaveValue(
+      "E2E Flag",
+    );
+  });
 });

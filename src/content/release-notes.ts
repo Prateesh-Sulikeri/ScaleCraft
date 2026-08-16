@@ -14,6 +14,18 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "6.1.0-alpha",
+    date: "2026-08-16",
+    highlights: [
+      "Reading is now public - browse the Learning Path and any chapter's lesson without an account. Signing in is only needed to save progress, take quizzes, or open Sandbox.",
+      "Your progress and custom components now sync automatically across devices, and refresh when you switch back to an already-open tab - no more reload needed to see what another device did.",
+      "Sandbox now shows the same \"sign in to continue\" prompt as quizzes and mark-complete when you click it signed out, instead of bouncing you straight to the sign-in page.",
+      "Signing out now clears your progress from the screen immediately instead of leaving the previous account's data visible until a reload.",
+      "Fixed eleven old Building Blocks chapter links from the recent Part 1 reorganization 404ing instead of redirecting to their new chapter.",
+      "If a sync ever loses an edit to a newer change from another device (rare), you'll now see a small indicator instead of it disappearing silently.",
+    ],
+  },
+  {
     version: "6.0.0-alpha",
     date: "2026-08-12",
     highlights: [

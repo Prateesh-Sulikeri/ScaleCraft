@@ -359,4 +359,34 @@ describe("curriculum progress store", () => {
     expect(row?.manuallyCompletedAt).toBe(completedAt);
     expect(row?.lastVisitedAt).not.toBeNull();
   });
+
+  // Close-out P1.1 - sign-out has to clear the singleton in memory, not just
+  // Dexie, or the previous account's rows keep rendering on the now-public
+  // Home canvas until a hard reload.
+  it("reset() clears an already-hydrated store back to its unhydrated shape", async () => {
+    hydrateAllCurriculumProgressImpl = () =>
+      Promise.resolve({
+        ok: true,
+        data: [
+          {
+            slug: "1-2-load-balancing",
+            manuallyCompletedAt: Date.now(),
+            lastVisitedAt: null,
+            dirty: false,
+            syncedAt: Date.now(),
+          },
+        ],
+      });
+    await useCurriculumProgressStore.getState().hydrate();
+    expect(useCurriculumProgressStore.getState().rowsBySlug.has("1-2-load-balancing")).toBe(true);
+
+    useCurriculumProgressStore.getState().reset();
+
+    const state = useCurriculumProgressStore.getState();
+    expect(state.hydrated).toBe(false);
+    expect(state.hydrating).toBe(false);
+    expect(state.rowsBySlug.size).toBe(0);
+    expect(state.validationPassedDefinitionIds.size).toBe(0);
+    expect(state.examAttemptsByDefinition.size).toBe(0);
+  });
 });

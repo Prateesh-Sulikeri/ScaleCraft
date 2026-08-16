@@ -3,6 +3,7 @@ import type { CustomComponentRecord } from "@/content/components/custom";
 import { db, type CustomComponentRow } from "@/persistence/db";
 import { hydrateCustomComponents } from "@/persistence/cloud-sync";
 import { reconcileRows } from "@/persistence/reconcile";
+import { useSyncStatusStore } from "@/persistence/sync-status";
 
 function stripSyncMeta(row: CustomComponentRow): CustomComponentRecord {
   const { id, category, label, icon, summary, docs, hasInput, hasOutput, fields } = row;
@@ -28,7 +29,8 @@ async function performHydrate(set: (partial: Partial<CustomComponentsStore>) => 
     set({ customComponents: local.map(stripSyncMeta) });
     return;
   }
-  const { merged, toWrite } = reconcileRows(local, remote.data, (r) => r.id);
+  const { merged, toWrite, discarded } = reconcileRows(local, remote.data, (r) => r.id);
+  if (discarded > 0) useSyncStatusStore.getState().recordDiscarded(discarded);
   if (toWrite.length > 0) await db.customComponents.bulkPut(toWrite);
   set({ hydrated: true, customComponents: merged.map(stripSyncMeta) });
 }
@@ -69,6 +71,10 @@ type CustomComponentsStore = {
   /** Direct in-memory replace, no Dexie/cloud I/O — used by tests and by
    *  `hydrate()` itself once it has the merged result in hand. */
   loadCustomComponents: (records: CustomComponentRecord[]) => void;
+  /** In-memory only — clears this account's custom components out of the
+   *  singleton on sign-out (close-out P1.1). See progress-store.ts's
+   *  identical `reset` for the full reasoning. */
+  reset: () => void;
 };
 
 export const useCustomComponentsStore = create<CustomComponentsStore>((set, get) => ({
@@ -105,5 +111,9 @@ export const useCustomComponentsStore = create<CustomComponentsStore>((set, get)
 
   loadCustomComponents: (records) => {
     set({ customComponents: records });
+  },
+
+  reset: () => {
+    set({ customComponents: [], hydrated: false });
   },
 }));

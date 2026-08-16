@@ -29,6 +29,7 @@ import { chapterSaveId, db, type ChapterProgress } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
 import { deleteSaveSync, hydrateChapterProgress, hydrateSave, syncChapterProgress, syncSave } from "@/persistence/cloud-sync";
 import { reconcileRow } from "@/persistence/reconcile";
+import { useSyncStatusStore } from "@/persistence/sync-status";
 import { useCustomComponentsStore } from "@/canvas/custom-components-store";
 import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
@@ -211,7 +212,8 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
         remote.ok && remote.data
           ? { id: scopeId, updatedAt: remote.data.updatedAt, nodes: remote.data.nodes, edges: remote.data.edges, syncedAt: remote.data.updatedAt, dirty: false }
           : null;
-      const winner = reconcileRow(local ?? null, remoteAsSave);
+      const { result: winner, discarded } = reconcileRow(local ?? null, remoteAsSave);
+      if (discarded) useSyncStatusStore.getState().recordDiscarded(1);
       if (winner) {
         if (winner !== local) void db.saves.put(winner);
         loadCanvasState(winner.nodes, winner.edges);
@@ -314,7 +316,8 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
         // genuinely absent remote row - never authoritative "empty" over
         // an existing local one.
         const remoteRow = remote.ok ? remote.data : null;
-        const winner = reconcileRow(local ?? null, remoteRow);
+        const { result: winner, discarded } = reconcileRow(local ?? null, remoteRow);
+        if (discarded) useSyncStatusStore.getState().recordDiscarded(1);
         if (!winner) return;
         const remoteWon = winner === remoteRow && winner !== local;
         if (remoteWon) await db.chapterProgress.put(winner);

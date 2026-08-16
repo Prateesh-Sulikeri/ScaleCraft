@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { useAuth } from "@clerk/nextjs";
 import type { NodeProps } from "@xyflow/react";
 import { ModeNode } from "./ModeNode";
 import type { ModeNodeType } from "./HomeCanvas";
@@ -7,6 +8,9 @@ import type { ModeNodeType } from "./HomeCanvas";
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
+  // useRequireAuthAction (pulled in transitively via the Sandbox auth gate)
+  // needs this to build the sign-in redirect's return URL.
+  usePathname: () => "/",
 }));
 
 function makeNodeProps(data: ModeNodeType["data"]): NodeProps<ModeNodeType> {
@@ -27,6 +31,11 @@ describe("ModeNode", () => {
   afterEach(() => {
     push.mockClear();
     vi.useRealTimers();
+    // Restores (rather than mockReset()) the vitest.setup.ts default -
+    // other tests in this file rely on that default implicitly instead of
+    // setting it themselves, so a bare reset would leave them destructuring
+    // `useAuth()`'s return value off `undefined` depending on run order.
+    vi.mocked(useAuth).mockReturnValue({ isSignedIn: true } as ReturnType<typeof useAuth>);
   });
 
   it("renders as a disabled, non-navigable card when there's no href", () => {
@@ -81,6 +90,42 @@ describe("ModeNode", () => {
 
     fireEvent.click(link, { button: 0, metaKey: true });
     expect(screen.queryByText(/Crafting your Sandbox/)).not.toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  // Sandbox is the one mode still route-gated (auth.protect()) - a
+  // signed-out click used to hit that guard directly, an unexplained hard
+  // bounce with no context, unlike every other progress-writing action in
+  // the app.
+  it("shows the sign-in prompt instead of navigating when signed out", () => {
+    vi.mocked(useAuth).mockReturnValue({ isSignedIn: false } as ReturnType<typeof useAuth>);
+    render(<ModeNode {...makeNodeProps({ mode: "sandbox", href: "/sandbox" })} />);
+    const link = screen.getByRole("link", { name: /Sandbox/ });
+
+    fireEvent.click(link, { button: 0 });
+
+    expect(screen.getByRole("alertdialog", { name: /sign in required/i })).toBeInTheDocument();
+    expect(screen.queryByText(/Crafting your Sandbox/)).not.toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  // Regression: the dialog is portaled to document.body, and React portals
+  // bubble events through the React tree, not the DOM tree - with the
+  // portal nested inside <Link onClick={handleClick}>, clicking "Not now"
+  // also reached handleClick, which (still signed out) immediately reopened
+  // the dialog it had just closed. The portal now renders as a sibling of
+  // Link instead.
+  it("closes the sign-in prompt on 'Not now' and does not reopen it", () => {
+    vi.mocked(useAuth).mockReturnValue({ isSignedIn: false } as ReturnType<typeof useAuth>);
+    render(<ModeNode {...makeNodeProps({ mode: "sandbox", href: "/sandbox" })} />);
+    const link = screen.getByRole("link", { name: /Sandbox/ });
+
+    fireEvent.click(link, { button: 0 });
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /not now/i }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
   });
 });
