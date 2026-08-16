@@ -50,6 +50,15 @@ type CurriculumProgressStore = {
   /** Reads all three Dexie tables into memory. Idempotent, safe to call from
    *  every mounting surface — bails if already hydrated or in flight. */
   hydrate: () => Promise<void>;
+  /** Same reconcile pass as `hydrate`, minus the already-hydrated bail. The
+   *  store is a module singleton that outlives client-side navigation, so
+   *  `hydrate`'s latch meant a tab reconciled exactly once per full page
+   *  load and never saw another device's writes again. Callers: the pull
+   *  triggers in RefreshFromCloud.tsx, the Learning Path's mount, and every
+   *  mutator below (which composes a whole-row payload out of local state,
+   *  so it has to be looking at the newest row before it writes - see
+   *  markVisited). */
+  refresh: () => Promise<void>;
   /** Called by ChapterWorkspace on mount. Writes lastVisitedAt (preserving
    *  any existing manuallyCompletedAt) and updates memory. */
   markVisited: (slug: string) => Promise<void>;
@@ -184,6 +193,10 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
 
   hydrate: () => {
     if (get().hydrated) return Promise.resolve();
+    return get().refresh();
+  },
+
+  refresh: () => {
     if (inFlightHydrate) return inFlightHydrate;
     set({ hydrating: true });
     inFlightHydrate = performHydrate(set).finally(() => {
@@ -193,7 +206,11 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   },
 
   markVisited: async (slug) => {
-    await get().hydrate();
+    // refresh, not hydrate: the row this composes is a full-row overwrite
+    // (the sync API has no partial update), so writing one built from a
+    // stale local copy silently erases whatever another device changed in
+    // the meantime - opening a chapter would un-complete it everywhere.
+    await get().refresh();
     const row: CurriculumProgress = {
       ...(await existingRow(slug)),
       lastVisitedAt: Date.now(),
@@ -206,7 +223,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   },
 
   setManualComplete: async (slug, complete) => {
-    await get().hydrate();
+    await get().refresh(); // full-row overwrite, see markVisited
     const row: CurriculumProgress = {
       ...(await existingRow(slug)),
       manuallyCompletedAt: complete ? Date.now() : null,
@@ -234,7 +251,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   },
 
   resetChapter: async (slug, chapterDefinitionId) => {
-    await get().hydrate();
+    await get().refresh(); // full-row overwrite, see markVisited
     const row: CurriculumProgress = {
       ...(await existingRow(slug)),
       manuallyCompletedAt: null,

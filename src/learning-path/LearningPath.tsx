@@ -27,14 +27,18 @@ const SCROLL_TOP_THRESHOLD = 400;
  */
 export function LearningPath({ courseId }: { courseId: CourseId }) {
   const course = getCourse(courseId);
-  const hydrate = useCurriculumProgressStore((s) => s.hydrate);
+  // refresh, not hydrate: this component remounts on every client-side
+  // navigation back to the Learning Path, and that is exactly when a learner
+  // expects to see what another device did. hydrate()'s already-hydrated
+  // bail would make it a no-op for the rest of the tab's life.
+  const refresh = useCurriculumProgressStore((s) => s.refresh);
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
   const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
 
   useEffect(() => {
-    void hydrate();
-  }, [hydrate]);
+    void refresh();
+  }, [refresh]);
 
   const inputs: ProgressInputs = useMemo(
     () => ({ validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition }),

@@ -60,6 +60,10 @@ type CustomComponentsStore = {
    *  (Phase 3.3's invariant: no mutator runs before its table's
    *  reconciliation has completed). */
   hydrate: () => Promise<void>;
+  /** The same pass without the already-hydrated bail - the pull triggers in
+   *  RefreshFromCloud.tsx, so a long-lived tab keeps seeing other devices'
+   *  components. See progress-store.ts's `refresh` for the full reasoning. */
+  refresh: () => Promise<void>;
   upsertCustomComponent: (record: CustomComponentRecord) => void;
   deleteCustomComponent: (id: string) => void;
   /** Direct in-memory replace, no Dexie/cloud I/O — used by tests and by
@@ -73,6 +77,10 @@ export const useCustomComponentsStore = create<CustomComponentsStore>((set, get)
 
   hydrate: () => {
     if (get().hydrated) return Promise.resolve();
+    return get().refresh();
+  },
+
+  refresh: () => {
     if (inFlightHydrate) return inFlightHydrate;
     inFlightHydrate = performHydrate(set).finally(() => {
       inFlightHydrate = null;

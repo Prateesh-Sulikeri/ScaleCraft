@@ -299,4 +299,64 @@ describe("curriculum progress store", () => {
     expect(row?.lastVisitedAt).toBe(lastVisitedAt);
     expect(row?.manuallyCompletedAt).not.toBeNull();
   });
+
+  it("refresh() reconciles again even when the store is already hydrated", async () => {
+    await useCurriculumProgressStore.getState().hydrate();
+    expect(useCurriculumProgressStore.getState().rowsBySlug.size).toBe(0);
+
+    // Another device completes a chapter after this tab already hydrated.
+    hydrateAllCurriculumProgressImpl = () =>
+      Promise.resolve({
+        ok: true,
+        data: [
+          {
+            slug: "1-2-load-balancing",
+            manuallyCompletedAt: Date.now(),
+            lastVisitedAt: null,
+            dirty: false,
+            syncedAt: Date.now(),
+          },
+        ],
+      });
+
+    await useCurriculumProgressStore.getState().hydrate();
+    expect(
+      useCurriculumProgressStore.getState().rowsBySlug.get("1-2-load-balancing"),
+      "hydrate() is the ensure-once path and must stay a no-op",
+    ).toBeUndefined();
+
+    await useCurriculumProgressStore.getState().refresh();
+    expect(
+      useCurriculumProgressStore.getState().rowsBySlug.get("1-2-load-balancing")?.manuallyCompletedAt,
+    ).not.toBeNull();
+  });
+
+  it("markVisited pulls the newest remote row before composing its write", async () => {
+    // This tab hydrated when the chapter was not complete...
+    await useCurriculumProgressStore.getState().hydrate();
+
+    // ...another device then completed it. Without a forced reconcile,
+    // markVisited would compose its full-row payload from the stale local
+    // copy and push manuallyCompletedAt: null, erasing that completion.
+    const completedAt = Date.now();
+    hydrateAllCurriculumProgressImpl = () =>
+      Promise.resolve({
+        ok: true,
+        data: [
+          {
+            slug: "1-2-load-balancing",
+            manuallyCompletedAt: completedAt,
+            lastVisitedAt: null,
+            dirty: false,
+            syncedAt: Date.now(),
+          },
+        ],
+      });
+
+    await useCurriculumProgressStore.getState().markVisited("1-2-load-balancing");
+
+    const row = await db.curriculumProgress.get("1-2-load-balancing");
+    expect(row?.manuallyCompletedAt).toBe(completedAt);
+    expect(row?.lastVisitedAt).not.toBeNull();
+  });
 });
