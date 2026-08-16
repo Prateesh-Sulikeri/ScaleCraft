@@ -34,8 +34,10 @@ describe("curriculum manifest invariants", () => {
     }
   });
 
-  it("has 47 Building Blocks entries", () => {
-    expect(allEntries(courses["building-blocks"])).toHaveLength(47);
+  it("has 40 Building Blocks entries", () => {
+    // 47 before Release 6.1.0-alpha Phase 10 condensed Part 1 from 11
+    // chapters to 4 (47 - 11 + 4 = 40). See pending-6.1.0-poa.md Phase 10.
+    expect(allEntries(courses["building-blocks"])).toHaveLength(40);
   });
 
   it("has 32 Real World Extraction entries", () => {

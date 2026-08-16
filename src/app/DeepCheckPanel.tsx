@@ -381,10 +381,10 @@ function HistoryView({
     return () => clearTimeout(timeout);
   }, [confirmingId]);
 
-  const handleDelete = async (id: number) => {
-    await deleteSession(id);
-    setSessions((prev) => prev?.filter((s) => s.id !== id) ?? prev);
-    setSelected((prev) => (prev?.id === id ? null : prev));
+  const handleDelete = async (session: DeepCheckSession) => {
+    await deleteSession(session);
+    setSessions((prev) => prev?.filter((s) => s.id !== session.id) ?? prev);
+    setSelected((prev) => (prev?.id === session.id ? null : prev));
     setConfirmingId(null);
   };
 
@@ -430,7 +430,7 @@ function HistoryView({
           {confirmingId === session.id ? (
             <div className="flex shrink-0 items-center gap-1.5">
               <button
-                onClick={() => handleDelete(session.id!)}
+                onClick={() => handleDelete(session)}
                 className="text-xs font-medium text-state-error hover:underline"
               >
                 Delete

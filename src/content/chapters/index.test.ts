@@ -9,18 +9,11 @@ describe("getChaptersForMode", () => {
       "bb-0-2-what-is-system-design",
       "bb-0-3-interview-design-vs-production-engineering",
       "bb-0-4-the-system-design-lifecycle",
-      "bb-1-1-understanding-the-problem",
-      "bb-1-2-functional-requirements",
-      "bb-1-3-non-functional-requirements",
-      "bb-1-4-estimating-scale",
-      "bb-1-5-numbers-every-engineer-should-know",
-      "bb-1-6-drawing-the-first-architecture",
-      "bb-1-7-identifying-bottlenecks",
-      "bb-1-8-engineering-trade-offs",
-      "bb-1-9-deep-dive-methodology",
+      "bb-1-1-framing-the-problem",
+      "bb-1-2-designing-the-system",
+      "bb-1-3-defending-the-design",
+      "bb-1-4-driving-the-interview",
       "bb-3-4-load-balancer",
-      "bb-1-10-communicating-and-defending-a-design",
-      "bb-1-11-driving-a-system-design-interview",
     ]);
   });
 

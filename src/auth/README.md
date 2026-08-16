@@ -1,11 +1,12 @@
 # Auth
 
-Not wired into `src/app/layout.tsx` yet — deliberately. `ClerkProvider` requires
-`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` at runtime; wiring it in before
-a Clerk project exists would make `npm run dev` crash for anyone without those keys set.
-See `.claude/docs/OPEN_QUESTIONS.md` ("Clerk's closed-beta allowlist mechanics") — that
-spike needs to happen before this gets wired in for real.
+Clerk is wired into `src/app/layout.tsx` (`ClerkProvider`). Reading is public — most
+routes render for a signed-out visitor (release 6.1.0-alpha Phase 11) — and only
+progress-write actions (mark-complete, quiz launch) gate on sign-in, via
+`useRequireAuthAction`.
 
-`beta-allowlist.ts` sketches the intended shape (check an invited-email list before
-allowing sign-in) so the plan is captured in code, not just in the docs — implement it
-once a Clerk project + keys exist.
+Sign-up is open, no invite list. A closed-beta allowlist (`beta-allowlist.ts`) was
+scaffolded early on but never wired to anything and was deleted in the 6.1.0 close-out
+(`pending-6.1.0-poa.md` P2.2) as a deliberate decision, not an oversight — reading being
+public made a stub that looked like a gate and wasn't one worse than no gate at all. See
+`.claude/docs/OPEN_QUESTIONS.md` for the record of that decision if this needs revisiting.

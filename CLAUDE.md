@@ -57,6 +57,14 @@ directory misses which ones are live vs. retired:
   normalization/validation harness, authoring lab) that follows 5.0.0-alpha's
   walkthrough renderer. Phased checklist - read the Status line and decision record
   before resuming.
+- `.claude/docs/pending-6.1.0-poa.md` - **Release 6.1.0-alpha, the live plan of
+  action.** Start here for anything persistence-related. Phased POA covering
+  sync reconciliation, account isolation, write triggers/storage economics,
+  retention, and delete semantics. Phase 0 has landed; everything else is
+  scoped and blocked on five open decisions listed near the end. Its two
+  companions are read-only evidence: `pending-cloud-sync.md` (what 6.1.0
+  originally built and why) and `pending-persistence-audit.md` (findings
+  S1-S11, mapped to phases in the POA's Appendix B).
 - `.claude/docs/pending-simulation-engine.md` - early brainstorm for a second,
   post-Validate simulation stage. Not scoped into a release yet.
 - `.claude/docs/pending-polish.md` - retired items consolidated out of other

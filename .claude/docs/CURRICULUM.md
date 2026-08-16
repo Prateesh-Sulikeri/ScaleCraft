@@ -183,7 +183,7 @@ always at exactly one frontier stage but continuously exercises all earlier ones
 | 3. Interactions | Traces how blocks compose; predicts request paths and data flow | Part 2, Part 3 exercises, simulator traces | Trace/predict exercises |
 | 4. Trade-offs | Chooses between defensible options and names the cost | Trade-off exercises everywhere; §9 lenses | Trade-off scenarios + quiz |
 | 5. Design | Assembles a whole system from an ambiguous brief | Part 1 process + checkpoints + RWE Phase B | Checkpoints R1-R3, RWE passes |
-| 6. Defend | Justifies decisions under follow-up pressure; drives the conversation | Part 1.10-1.11, Interview lens sections, retrospective quizzes | RWE debrief quizzes ([[QUIZ_FRAMEWORK]]) |
+| 6. Defend | Justifies decisions under follow-up pressure; drives the conversation | Part 1.3-1.4, Interview lens sections, retrospective quizzes | RWE debrief quizzes ([[QUIZ_FRAMEWORK]]) |
 | 7. Critique | Reviews an existing design; finds what breaks first and what to change | Fix-the-Architecture at scale, RWE stretch scenarios, debrief comparisons | Tier 4-5 RWE, R3 |
 
 Authoring rule: every chapter states (in its metadata, §5.1) which stages it trains.
@@ -195,7 +195,7 @@ like they skipped five chapters" (§18).
 
 ## 3. Curriculum structure overview
 
-**Building Blocks** (the taught track): 5 parts, 44 chapters, 3 checkpoints.
+**Building Blocks** (the taught track): 5 parts, 37 chapters, 3 checkpoints.
 **Real World Extraction** (the applied track): 32 projects in 5 difficulty tiers.
 **Sandbox**: always unlocked, no curriculum role beyond free practice. Nothing ever
 locks Sandbox.
@@ -203,7 +203,7 @@ locks Sandbox.
 ```
 BUILDING BLOCKS
   Part 0  Foundations                    (4 chapters)   what the discipline is
-  Part 1  Engineering Design Process     (11 chapters)  the interview loop, taught first
+  Part 1  Engineering Design Process     (4 chapters)   the interview loop, taught first
   Part 2  Journey of a Request           (3 chapters)   the spatial map
   Part 3  Building Blocks                (26 chapters, 7 groups)
             Core Infrastructure . Compute . Data . Performance   -> Checkpoint R1
@@ -233,7 +233,7 @@ sections are mandatory (§6) and which exercise mix applies (§11).
 
 | Type | What it is | Examples | Editor exercise |
 |---|---|---|---|
-| **Concept** | Teaches an idea with no (or minimal) new topology | 0.2, 1.3, 3.13 | Small: config, trade-off pick, or trace |
+| **Concept** | Teaches an idea with no (or minimal) new topology | 0.2, 3.13 | Small: config, trade-off pick, or trace |
 | **Building Block** | Introduces 1-3 registry components | 3.4 Load Balancer | Full: build/completion/fix, the default |
 | **Process** | Teaches a step of the design workflow | 1.4 Estimating Scale | Staged: gated in-chapter stages |
 | **Checkpoint** | Blank-canvas re-demonstration, no new material | R1-R3 | The chapter IS the exercise |
@@ -512,24 +512,29 @@ defining feature of the product.
 Eight steps. Part 1 devotes roughly one chapter per step; RWE Phase A/B walk the
 loop end to end on every project.
 
+Taught in condensed form as of Release 6.1.0-alpha Phase 10 (2026-08-16): Part
+1 is 3 mandatory chapters + 1 optional capstone, not one chapter per step. Each
+"Taught in" line below names the chapter that actually carries it now; see
+Phase 10 in `pending-6.1.0-poa.md` for the old-to-new mapping.
+
 1. **Clarify** - ask the questions that shrink the problem (who uses it, what
-   matters, what's out of scope). Taught in 1.1-1.2.
+   matters, what's out of scope). Taught in 1.1.
 2. **Requirements** - functional (what it does) and non-functional (how well:
-   latency, throughput, availability, durability, cost). Taught in 1.2-1.3.
+   latency, throughput, availability, durability, cost). Taught in 1.1.
 3. **Estimate** - back-of-the-envelope: users -> QPS -> storage -> bandwidth, in
-   powers of ten, using the Numbers Every Engineer Should Know (1.5). Precision
-   theater is banned; orders of magnitude are the deliverable. Taught in 1.4-1.5.
+   powers of ten, using the landmark ratios also taught in 1.1. Precision
+   theater is banned; orders of magnitude are the deliverable. Taught in 1.1.
 4. **High-level design** - the first architecture: entry point, compute, data,
-   drawn before any deep dive. Taught in 1.6.
+   drawn before any deep dive. Taught in 1.2.
 5. **Deep dive** - pick the one or two subsystems the requirements stress and go
-   one level down. Taught in 1.9.
+   one level down. Taught in 1.2.
 6. **Bottlenecks and failure** - what breaks first, what fails, single points of
-   failure. Taught in 1.7.
+   failure. Taught in 1.2.
 7. **Trade-offs and alternatives** - name the roads not taken and their costs.
-   Taught in 1.8.
+   Taught in 1.3.
 8. **Evolve and defend** - respond to follow-ups ("now make it global", "10x the
    writes"), defend decisions without defensiveness, drive the conversation.
-   Taught in 1.10-1.11.
+   Taught in 1.3-1.4 (1.4 optional).
 
 ### 10.2 Interviewer-intent literacy
 
@@ -563,7 +568,7 @@ Six types, all expressible with existing `ChapterDefinition` + validation machin
 |---|---|---|---|
 | **Build** | Blank/near-blank canvas, constrained palette | Active construction | The default from mid-Part-3 on |
 | **Completion** | Substantial starter graph, add the missing piece | Worked-example fading | Heavy early in Part 3, gone by Reliability |
-| **Fix-the-Architecture** | Deliberately broken starter graph | Productive failure; validation explanations become the primary text | ≥1 per Part 3 group; introduced in 1.6 |
+| **Fix-the-Architecture** | Deliberately broken starter graph | Productive failure; validation explanations become the primary text | ≥1 per Part 3 group; introduced in 1.2 |
 | **Config** | Correct topology, tune per-node config | "Architecture includes configuration" | 3.4, 3.13, 3.14, 3.17, 3.24 |
 | **Trace / Predict-then-check** | State a prediction, then simulate or validate | Retrieval + immediate feedback | Part 2 throughout; 3.4, 3.14, 3.17, 3.26 |
 | **Trade-off scenario** | 2+ presented graphs/configs, pick per scenario, read reasoning | Judgment under multiple right answers | 3.7, 3.11, 3.19, 3.22, all RWE Phase B |
@@ -684,7 +689,7 @@ work.
   Est: 15.
 - **0.3 Interview Design vs. Production Engineering** - Purpose: distinguish the
   two registers (§1.5) so every later Interview lens / Production note lands in the
-  right box. Assumes: 0.2. Prepares for: 1.11, every Interview lens. Interview:
+  right box. Assumes: 0.2. Prepares for: 1.4, every Interview lens. Interview:
   High: meta. Exercise: none (quiz-weighted). Est: 15.
 - **0.4 The System Design Lifecycle** - Purpose: preview the Interview Loop (§10.1)
   as a map of Part 1; the learner sees the whole workflow once before living each
@@ -692,64 +697,50 @@ work.
   itself. Exercise: ordering exercise (arrange the eight steps; explanation per
   placement). Est: 15.
 
-### Part 1 - Engineering Design Process  *(Process type, foundational, stages 1+4+5)*
+### Part 1 - Engineering Design Process  *(3 mandatory Process + Building Block, 1 optional Process, foundational, stages 1+2+4+5)*
 
 *Why this part exists and comes this early:* the defining structural bet of the
 curriculum (§1.4). The design method is taught on tiny, familiar systems (a blog, a
 todo app) using only the three primitive components, so the method itself is the
-only new material. Every chapter is one Interview Loop step made concrete. Palette
-through Part 1: `client`, `app-server`, `sql-database` only (introduced in 1.6).
+only new material. Palette through Part 1: `client`, `app-server`, `sql-database`
+only (introduced in 1.2).
 
-- **1.1 Understanding the Problem** - Purpose: turn an ambiguous one-line brief
-  into scoped intent via clarifying questions. Assumes: Part 0. Prepares for: 1.2,
-  every RWE brief. Interview: High: step 1. Exercise: staged - given a vague brief,
-  pick the 4 highest-value clarifying questions from 10; feedback explains what
-  each answer would change. Est: 20.
-- **1.2 Functional Requirements** - Purpose: extract what the system must do; scope
-  ruthlessly (MVP vs. later). Interview: High: step 2. Exercise: staged checklist
-  with feedback. Est: 15.
-- **1.3 Non-functional Requirements** - Purpose: attach numbers-shaped promises to
-  0.2's five forces (availability nines, latency budgets, throughput targets);
-  recognize that NFRs, not features, drive architecture. Interview: High: step 2.
-  Exercise: match NFRs to three described products; explanation per match. Est: 20.
-- **1.4 Estimating Scale** - Purpose: users -> QPS -> storage -> bandwidth in
-  powers of ten; when estimation changes a design decision and when it's theater.
-  Interview: High: step 3. Exercise: staged estimation with order-of-magnitude
-  buckets (no precision theater; bucket-choice with explanations). Est: 25.
-- **1.5 Numbers Every Engineer Should Know** - Purpose: internalize the latency /
-  throughput / storage landmark numbers and, more importantly, their *ratios* (RAM
-  vs. disk vs. network; a datacenter round trip vs. cross-continent). Interview:
-  High: step 3. Exercise: ranking + estimation drills. Est: 20.
-- **1.6 Drawing the First Architecture** - Purpose: produce the minimal viable
-  architecture from requirements; first canvas build. **New: `client`,
-  `app-server`, `sql-database`; edge kind `request-flow`.** Also the learner's
-  first Fix exercise: a starter graph wires client straight to the database; the
-  validation explanation (`no-direct-client-database`) is deliberately their first
-  encounter with the core product loop. Interview: High: step 4. Exercise: build +
-  fix + simulator trace. Est: 30.
-- **1.7 Identifying Bottlenecks** - Purpose: apply "what breaks first" (§9 lens 5)
-  systematically: single points of failure, saturation order, the difference
-  between slow and unscalable. Interview: High: step 6. Exercise:
-  predict-then-check on three presented graphs - name the first component to
-  saturate, then simulate. Est: 25.
-- **1.8 Engineering Trade-offs** - Purpose: make trade-off statements ("we chose X,
-  accepting Y, because Z") a reflex; introduce the cost dimensions (latency,
-  consistency, complexity, money, operability). Interview: High: step 7. Exercise:
-  trade-off scenarios ×3. Est: 20.
-- **1.9 Deep Dive Methodology** - Purpose: choose WHAT to deep-dive (the subsystem
-  the NFRs stress) and how to go one level down without losing the room.
-  Interview: High: step 5. Exercise: given a design + requirements, pick the right
-  deep-dive target from four; explanation per option. Est: 20.
-- **1.10 Communicating & Defending a Design** - Purpose: narrate a design top-down,
-  handle follow-ups as invitations, defend without defensiveness. Interview: High:
-  step 8. Exercise: staged - given follow-up questions, choose the strongest
-  response and read why the others are weaker. Est: 20.
-- **1.11 Driving a System Design Interview** *(optional chapter)* - Purpose: run
-  the whole loop under time structure; interviewer-intent literacy (§10.2);
-  common candidate mistakes. Marked optional: learners on a pure production track
-  may skip without gating anything (nothing lists 1.11 as a prerequisite).
-  Interview: High: all steps. Exercise: full staged walkthrough on a tiny brief.
-  Est: 30.
+**Condensed from 11 chapters to 4 in Release 6.1.0-alpha Phase 10 (2026-08-16)**,
+each new chapter now covering multiple adjacent Interview Loop steps rather than
+one step per chapter - eleven chapters read as a mountain before Part 1's content
+was even opened. Full old-to-new mapping, source-material accounting, and the
+resolved decisions behind the split live in `pending-6.1.0-poa.md` Phase 10; the
+eleven original chapters' own authoring history stays in `pending-chapters.md` as
+a source-material record.
+
+- **1.1 Framing the Problem** - Purpose: turn an ambiguous brief into a scoped,
+  measured, order-of-magnitude-estimated problem statement - loop steps 1-3
+  (clarify, requirements, estimate) as one shared test: a decision earns its time
+  only if a different answer would change what gets built. Assumes: Part 0.
+  Prepares for: 1.2, every RWE brief. Interview: High: steps 1-3. Exercise: quiz-
+  realized (clarifying questions, MoSCoW sort, NFR-number matching, order-of-
+  magnitude estimation - no staged UI yet). Est: 15.
+- **1.2 Designing the System** - Purpose: produce the minimal viable architecture
+  from requirements, find what breaks first, and pick a defensible deep-dive
+  target - loop steps 4-6 in one chapter. **New: `client`, `app-server`,
+  `sql-database`; edge kind `request-flow`.** Also the learner's first Fix
+  exercise: a starter graph wires client straight to the database; the validation
+  explanation (`no-direct-client-database`) is deliberately their first encounter
+  with the core product loop. Interview: High: steps 4-6. Exercise: build + fix
+  (the same exercise old 1.6 shipped) + quiz covering the ceiling method and
+  deep-dive targeting. Est: 25 (the only one of the four carrying a real build).
+- **1.3 Defending the Design** - Purpose: name what a design decision costs (the
+  X/Y/Z trade-off reflex across latency, consistency, complexity, money,
+  operability) and handle a follow-up as new evidence to test, not a verdict to
+  react to - loop steps 7-8. Interview: High: steps 7-8. Exercise: quiz-realized
+  trade-off and follow-up scenarios. Est: 15.
+- **1.4 Driving the Interview** *(optional chapter)* - Purpose: run the whole loop
+  under time structure; interviewer-intent literacy (§10.2); common candidate
+  mistakes. Marked optional: learners on a pure production track may skip without
+  gating anything (nothing lists 1.4 as a prerequisite; 2.1 hangs off 1.3).
+  Interview: High: all steps. Exercise: quiz-realized walkthrough on a tiny brief
+  (unchanged from old 1.11, only renumbered - a single-source chapter, not a
+  condense). Est: 30.
 
 ### Part 2 - Journey of a Request  *(Concept, foundational, stage 3)*
 
@@ -766,7 +757,7 @@ form of forward reference (§19).
   order the stops, then follow a simulated token through a presented graph. Est: 20.
 - **2.2 Where Can Things Go Wrong?** - Purpose: revisit the same journey
   failure-first: every hop is a failure point; timeouts, partial failure, and the
-  meaning of "the site is down." Prepares for: 1.7's skill applied spatially; the
+  meaning of "the site is down." Prepares for: 1.2's ceiling-finding skill applied spatially; the
   Reliability group. Interview: High: step 6. Exercise: predict-the-failure on the
   2.1 trace ("DNS fails - what does the user see?"). Est: 20.
 - **2.3 Evolution of Modern Architectures** - Purpose: the scaling-evolution story
@@ -1123,7 +1114,7 @@ in any palette before its home chapter.
 
 | Chapter | Introduces |
 |---|---|
-| 1.6 | `client`, `app-server`, `sql-database` + edge `request-flow` |
+| 1.2 | `client`, `app-server`, `sql-database` + edge `request-flow` |
 | 3.1 | `firewall` |
 | 3.2 | `browser`, `dns` |
 | 3.3 | `reverse-proxy` |
@@ -1142,7 +1133,7 @@ in any palette before its home chapter.
 | 3.23 | `lock-service` |
 | 3.26 | `leader`, `follower` |
 
-Concept chapters with no component (0.x, 1.1-1.5, 1.7-1.11, 2.x, 3.6-3.10, 3.13,
+Concept chapters with no component (0.x, 1.1, 1.3, 1.4, 2.x, 3.6-3.10, 3.13,
 3.21, 3.24, 3.25) are intentional - see each chapter's Type. No new components are
 required for the full curriculum, including all of RWE: WhatsApp's connection
 servers, sharding, regions, and rate limiters are config, rules, and canvas
@@ -1179,7 +1170,7 @@ graph TD
   T4 -. any 2 .-> T5[RWE Tier 5]
 ```
 
-Sandbox has no node: always unlocked. 1.11 is optional and gates nothing. Locked
+Sandbox has no node: always unlocked. 1.4 is optional and gates nothing. Locked
 chapters remain visible with their prerequisite listed - progressive disclosure of
 the map itself, which also tells the learner *why* the order exists.
 
@@ -1191,7 +1182,7 @@ the map itself, which also tells the learner *why* the order exists.
 
 | Stage | Palette | Scaffold | Validation posture | New-component rate |
 |---|---|---|---|---|
-| Parts 0-2 | 0 -> 3 | Presented diagrams; tiny builds | Prescriptive | 3 once (1.6) |
+| Parts 0-2 | 0 -> 3 | Presented diagrams; tiny builds | Prescriptive | 3 once (1.2) |
 | Groups A-B | 4 -> 10 | Completion-heavy | Prescriptive | ≤2/chapter |
 | Groups C-D | 11 -> 16 | Mixed build/fix | Prescriptive, more config | ≤2/chapter |
 | Groups E-G | 17 -> 27 | Build-first, blank-canvas default | Prescriptive | ≤3 (3.17 only) |
@@ -1472,12 +1463,8 @@ BUILDING BLOCKS
     0.1 Welcome to ScaleCraft            0.2 What is System Design?
     0.3 Interview vs. Production          0.4 The System Design Lifecycle
   Part 1 · Engineering Design Process
-    1.1 Understanding the Problem         1.2 Functional Requirements
-    1.3 Non-functional Requirements       1.4 Estimating Scale
-    1.5 Numbers Every Engineer Should Know
-    1.6 Drawing the First Architecture    1.7 Identifying Bottlenecks
-    1.8 Engineering Trade-offs            1.9 Deep Dive Methodology
-    1.10 Communicating & Defending        1.11 Driving the Interview (optional)
+    1.1 Framing the Problem               1.2 Designing the System
+    1.3 Defending the Design              1.4 Driving the Interview (optional)
   Part 2 · Journey of a Request
     2.1 From Browser to Backend           2.2 Where Can Things Go Wrong?
     2.3 Evolution of Modern Architectures

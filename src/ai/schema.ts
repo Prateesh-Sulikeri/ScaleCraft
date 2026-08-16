@@ -15,9 +15,9 @@ export const aiCritiqueSchema = z.object({
   tradeoffs: z
     .array(
       z.object({
-        decision: z.string(),
-        cost: z.string(),
-        benefit: z.string(),
+        decision: z.string().max(200),
+        cost: z.string().max(400),
+        benefit: z.string().max(400),
       }),
     )
     .max(5)

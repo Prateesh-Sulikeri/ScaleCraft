@@ -29,6 +29,30 @@ function createMockObserver(
 
 vi.stubGlobal("IntersectionObserver", createMockObserver);
 
+let lastResizeObserverInstance: MockResizeObserver | null = null;
+
+// Standing in for the real one so the "headings not painted yet" re-scan
+// (TableOfContents.tsx's ResizeObserver) can be driven manually below,
+// instead of jsdom throwing on `new ResizeObserver(...)` (unimplemented).
+class MockResizeObserver {
+  callback: ResizeObserverCallback;
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
+  }
+
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+
+function createMockResizeObserver(callback: ResizeObserverCallback): MockResizeObserver {
+  lastResizeObserverInstance = new MockResizeObserver(callback);
+  return lastResizeObserverInstance;
+}
+
+vi.stubGlobal("ResizeObserver", createMockResizeObserver);
+
 const { TableOfContents } = await import("./TableOfContents");
 
 /** Attaches targetRef to a real, mounted DOM node containing an element for
@@ -78,6 +102,7 @@ describe("TableOfContents", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     lastObserverInstance = null;
+    lastResizeObserverInstance = null;
   });
 
   it("renders navigation with h2+ headings", () => {
@@ -231,8 +256,32 @@ describe("TableOfContents", () => {
     expect(lastObserverInstance!.observe).toHaveBeenCalledTimes(testHeadings.length);
   });
 
-  it("never instantiates an observer when none of the headings resolve to a DOM element", () => {
+  it("still creates the observer (with no elements to watch yet) when none of the headings resolve to a DOM element at mount", () => {
+    // Regression coverage for the "always highlights Knowledge check" bug:
+    // the observer must exist and be ready to pick up headings that paint
+    // later (lesson body is a dynamically-imported chunk rendering markdown
+    // fetched client-side), not bail out permanently on an empty first pass.
     render(<Harness headings={testHeadings} domHeadingIds={[]} />);
-    expect(lastObserverInstance).toBeNull();
+    expect(lastObserverInstance).not.toBeNull();
+    expect(lastObserverInstance!.observe).not.toHaveBeenCalled();
+  });
+
+  it("picks up headings that paint into the DOM after mount, without the headings prop changing", () => {
+    const { container } = render(<Harness headings={testHeadings} domHeadingIds={[]} />);
+    expect(lastObserverInstance!.observe).not.toHaveBeenCalled();
+
+    // Simulate the lesson body's dynamically-imported content finishing its
+    // async load and painting real heading elements into the article - the
+    // same DOM change a growing MarkdownRenderer/MdxContent subtree causes.
+    act(() => {
+      for (const h of testHeadings) {
+        const el = document.createElement("div");
+        el.id = h.id;
+        container.appendChild(el);
+      }
+      lastResizeObserverInstance!.callback([], lastResizeObserverInstance as unknown as ResizeObserver);
+    });
+
+    expect(lastObserverInstance!.observe).toHaveBeenCalledTimes(testHeadings.length);
   });
 });
