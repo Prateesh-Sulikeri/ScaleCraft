@@ -1,5 +1,6 @@
 import { clerk } from "@clerk/testing/playwright";
 import { test, expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { resetSlugs } from "./helpers";
 
 /**
  * Multi-device cloud sync (release 6.1.0-alpha, pending-6.1.0-poa.md).
@@ -91,16 +92,6 @@ async function markComplete(device: Device, title: RegExp) {
   await expect.poll(() => statusOf(device.page, title)).toMatch(/completed/i);
 }
 
-/** Wipes the slugs this spec touches straight on the server. */
-async function resetSlugs(device: Device, slugs: string[]) {
-  for (const slug of slugs) {
-    const res = await device.page.request.post("/api/sync/curriculum-progress", {
-      data: { slug, manuallyCompletedAt: null, lastVisitedAt: null },
-    });
-    expect(res.status(), `reset ${slug}`).toBe(200);
-  }
-}
-
 test.describe("multi-device sync", () => {
   test.describe.configure({ mode: "serial" });
   test.setTimeout(120_000);
@@ -117,7 +108,7 @@ test.describe("multi-device sync", () => {
 
   test("a fresh device pulls what another device already wrote", async ({ browser }) => {
     const a = await openDevice(browser, "A");
-    await resetSlugs(a, [SLUG_LIFECYCLE]);
+    await resetSlugs(a.page.request, [SLUG_LIFECYCLE]);
 
     await a.page.goto("/building-blocks");
     await expect(a.page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -138,7 +129,7 @@ test.describe("multi-device sync", () => {
   test("a warm device picks up a change after a hard reload", async ({ browser }) => {
     const a = await openDevice(browser, "A");
     const b = await openDevice(browser, "B");
-    await resetSlugs(a, [SLUG_WHAT_IS]);
+    await resetSlugs(a.page.request, [SLUG_WHAT_IS]);
 
     await b.page.goto("/building-blocks");
     await expect.poll(() => statusOf(b.page, TITLE_WHAT_IS)).toMatch(/not started|in progress/i);
@@ -159,7 +150,7 @@ test.describe("multi-device sync", () => {
   test("a warm device picks up a change on client-side navigation", async ({ browser }) => {
     const a = await openDevice(browser, "A");
     const b = await openDevice(browser, "B");
-    await resetSlugs(a, [SLUG_INTERVIEW]);
+    await resetSlugs(a.page.request, [SLUG_INTERVIEW]);
 
     await b.page.goto("/building-blocks");
     await expect.poll(() => statusOf(b.page, TITLE_INTERVIEW)).toMatch(/not started|in progress/i);
@@ -187,7 +178,7 @@ test.describe("multi-device sync", () => {
   }) => {
     const a = await openDevice(browser, "A");
     const b = await openDevice(browser, "B");
-    await resetSlugs(a, [SLUG_LIFECYCLE]);
+    await resetSlugs(a.page.request, [SLUG_LIFECYCLE]);
 
     await b.page.goto("/building-blocks");
     await expect.poll(() => statusOf(b.page, TITLE_LIFECYCLE)).toMatch(/not started|in progress/i);
@@ -267,7 +258,7 @@ test.describe("multi-device sync", () => {
 
   test("an offline edit flushes to the cloud and reaches the other device", async ({ browser }) => {
     const a = await openDevice(browser, "A");
-    await resetSlugs(a, [SLUG_WHAT_IS]);
+    await resetSlugs(a.page.request, [SLUG_WHAT_IS]);
 
     await a.page.goto("/building-blocks");
     await expect(a.page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -301,7 +292,7 @@ test.describe("multi-device sync", () => {
   }) => {
     const a = await openDevice(browser, "A");
     const b = await openDevice(browser, "B");
-    await resetSlugs(a, [SLUG_LOAD_BALANCER]);
+    await resetSlugs(a.page.request, [SLUG_LOAD_BALANCER]);
 
     // B loads the chapter's lesson - its progress store hydrates here and
     // then never refreshes for the rest of the session.

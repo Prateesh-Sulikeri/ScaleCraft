@@ -47,33 +47,55 @@ function mapSync<A, B>(result: SyncResult<A>, fn: (data: A) => B): SyncResult<B>
  * `dirty` cleared. A non-2xx or network failure resolves `postSync` to
  * `null`, so a failed push leaves `dirty: true` for the next write or the
  * Phase 1.3 flush pass to retry - it must never look like a successful sync.
+ *
+ * Push failure is surfaced via `dirtyCount`, not a boolean (Phase 9.1) - see
+ * sync-status.ts. `refreshDirtyCount` recomputes it after every push attempt,
+ * so it's a lagging-by-one-write signal on the success path (the caller's
+ * own `dirty: false` writeback hasn't landed yet when this runs) but exact on
+ * failure, since the row was already dirty before the attempt started.
+ * flush-dirty.ts does a final recount after its whole batch, which is exact
+ * either way.
  */
+
+async function countDirtyRows(): Promise<number> {
+  const counts = await Promise.all([
+    db.saves.filter((row) => row.dirty).count(),
+    db.chapterProgress.filter((row) => row.dirty).count(),
+    db.curriculumProgress.filter((row) => row.dirty).count(),
+    db.examAttempts.filter((row) => row.dirty).count(),
+    db.deepCheckSessions.filter((row) => row.dirty).count(),
+    db.customComponents.filter((row) => row.dirty).count(),
+  ]);
+  return counts.reduce((total, count) => total + count, 0);
+}
+
+export async function refreshDirtyCount(): Promise<void> {
+  useSyncStatusStore.getState().setDirtyCount(await countDirtyRows());
+}
 
 async function postSync<T>(path: string, body: unknown): Promise<T | null> {
   try {
     const res = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-    if (!res.ok) {
-      useSyncStatusStore.getState().markSyncError();
-      return null;
-    }
-    useSyncStatusStore.getState().markSyncOk();
+    if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
-    useSyncStatusStore.getState().markSyncError();
     return null;
+  } finally {
+    await refreshDirtyCount();
   }
 }
 
 async function deleteSync(path: string): Promise<void> {
   try {
     const res = await fetch(path, { method: "DELETE" });
-    if (!res.ok) {
-      useSyncStatusStore.getState().markSyncError();
-      return;
-    }
-    useSyncStatusStore.getState().markSyncOk();
-  } catch {
-    useSyncStatusStore.getState().markSyncError();
+    if (!res.ok) console.error(`[sync] delete failed: ${path} (${res.status})`);
+  } catch (err) {
+    console.error(`[sync] delete failed: ${path}`, err);
+  } finally {
+    // Deletes don't leave a dirty row behind to count (the caller already
+    // removed its local copy), so this can't surface a failed delete on its
+    // own - it just keeps the count accurate if the delete raced a push.
+    await refreshDirtyCount();
   }
 }
 
@@ -81,13 +103,13 @@ async function getSync<T>(path: string): Promise<SyncResult<T>> {
   try {
     const res = await fetch(path);
     if (!res.ok) {
-      useSyncStatusStore.getState().markSyncError();
+      useSyncStatusStore.getState().markPullError();
       return { ok: false };
     }
-    useSyncStatusStore.getState().markSyncOk();
+    useSyncStatusStore.getState().markPullOk();
     return { ok: true, data: (await res.json()) as T };
   } catch {
-    useSyncStatusStore.getState().markSyncError();
+    useSyncStatusStore.getState().markPullError();
     return { ok: false };
   }
 }

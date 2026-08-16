@@ -1,5 +1,6 @@
 import { db } from "@/persistence/db";
 import {
+  refreshDirtyCount,
   syncChapterProgress,
   syncCurriculumProgress,
   syncCustomComponent,
@@ -37,4 +38,10 @@ export async function flushDirtyRows(): Promise<void> {
     ...deepCheckSessions.map((row) => syncDeepCheckSession(row)),
     ...customComponents.map((row) => syncCustomComponent(row)),
   ]);
+
+  // Each syncX call above already refreshes the count mid-flight, but on the
+  // success path that happens before its own dirty:false writeback lands
+  // (cloud-sync.ts). This final recount is exact - every writeback in this
+  // batch has resolved by now.
+  await refreshDirtyCount();
 }

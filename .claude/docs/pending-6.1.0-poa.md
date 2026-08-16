@@ -16,9 +16,24 @@ for the rest of 6.1.0.
 
 **Scope freeze, 2026-08-16.** Phases 9, 10 and 11 below close the release.
 The user confirmed "that's it for 6.1.0" when adding 10 and 11 - nothing
-else goes in. 9 is uncommitted work carried over from Phase 8's findings;
-10 and 11 are new and have not been started. Sonnet picks these up next
-session; read Phase 8.2/8.3 first for the context they assume.
+else goes in. **Phase 9 done as of this entry** (9.1 landed same day as the
+freeze; 9.2 - `learning-path.spec.ts`'s non-idempotency - fixed in this
+session, full CI green: 201 files / 1767 tests, build clean; 9.0 and 9.3 were
+never checklists, just recorded decisions). **Phase 10 done 2026-08-16**:
+the four 10.6 decisions, the content-authoring pass (all four new chapters
+drafted, no Opus proofread pass yet - tracked in `pending-chapters.md`, not
+this doc), and the engineering pass (10.4's quiz-framework/coverage/ramp
+checks, 10.5's manifest/registry/CURRICULUM.md/e2e wiring, and removal of
+the eleven now-superseded spec/lesson files) all landed same-branch, full CI
+green: 201 files / 1760 tests, typecheck/lint/build all clean. **Phase 11
+done 2026-08-16** (same session as this entry): reading (Learning Path,
+lesson reader, Home) is public; the Design Editor, sandbox, and dev tooling
+stay gated; the two write actions that live on public pages (mark-complete
+toggle, quiz launch) are gated at the click via a new
+`useRequireAuthAction` hook. Full CI green: 206 files / 1772 tests,
+typecheck/lint/build all clean. **This closes the 6.1.0-alpha scope freeze
+- Phases 9, 10, and 11 are all done, nothing else is scoped for this
+release.**
 
 **2026-08-16 migration note:** applying the migrations surfaced two
 pre-existing issues, both fixed in this pass. (1) `0004_raw_canvas_state.sql`
@@ -713,7 +728,7 @@ Recorded so nobody re-opens them.
 This conveniently removes the orphan-row problem Phase 10 would otherwise
 create: the eight Part 1 slugs that disappear have no progress rows to strand.
 
-### 9.1 A failed push can go permanently silent
+### 9.1 A failed push can go permanently silent - done 2026-08-16
 
 Three things compound into a user who diverges forever with no signal:
 
@@ -728,21 +743,45 @@ GETs on every window focus, so a failed POST's warning icon is cleared within
 seconds by unrelated pull successes. Before 8.3 sync calls were rare enough
 that the flag roughly tracked reality.
 
-- [ ] Split push failure from pull failure in `sync-status.ts`. A successful
+- [x] Split push failure from pull failure in `sync-status.ts`. A successful
       pull must not clear a push error - they are different claims about the
-      world
-- [ ] Surface persistence, not a transient boolean: "N rows have failed to
+      world. `sync-status.ts`'s single `status` boolean is now `pullError`
+      (set only by `getSync`) and `dirtyCount` (the push signal)
+- [x] Surface persistence, not a transient boolean: "N rows have failed to
       sync" is the honest signal, and it is the one that catches the
-      permanently-dirty row. Count from `db.*.filter(r => r.dirty)`, the same
-      query `flush-dirty.ts` already runs
-- [ ] `CloudSyncIndicator.tsx`'s tooltip copy currently promises "will sync
+      permanently-dirty row. `cloud-sync.ts` gets `refreshDirtyCount()`,
+      running the same six-table `filter(r => r.dirty)` count `flush-dirty.ts`
+      already used, called from `postSync`/`deleteSync`'s `finally` and again
+      after `flush-dirty.ts`'s whole batch (exact once every writeback in the
+      batch has landed - the per-call version lags by one write on the
+      success path only, since it runs before the caller's own `dirty: false`
+      writeback)
+- [x] `CloudSyncIndicator.tsx`'s tooltip copy currently promises "will sync
       automatically once this resolves" - true for a transient failure, a lie
-      for a row that 400s. Reword once the above distinguishes them
-- [ ] Decide whether a row that has failed N times should stop being retried
-      on every mount and every `online` event. Recommendation: keep retrying
-      (cheap, single-user) but stop letting it silently win reconciliation -
-      a dirty row older than its remote counterpart by more than one sync
-      cycle is a bug, not a pending write
+      for a row that 400s. Reworded: pending-push copy says "saved locally,
+      retrying automatically" (no success promise); pull-failure copy is
+      separate and says local data may be stale. Different icons too
+      (`CloudAlert` vs `CloudOff`)
+- [x] Decide whether a row that has failed N times should stop being retried
+      on every mount and every `online` event. **User confirmed the
+      recommendation 2026-08-16.** Retrying is unchanged (flush-dirty still
+      retries every mount/`online` event, cheap and safe for single-player).
+      What changed is reconciliation: `reconcile.ts`'s `pickWinner` used to
+      let `dirty: true` win unconditionally; it now only wins outright when
+      `local.syncedAt` is null (never synced) or equals `remote.syncedAt`
+      (nothing changed server-side since this device's last confirmed sync -
+      the ordinary "just edited, about to push" case). Once
+      `remote.syncedAt > local.syncedAt` while still dirty - another device's
+      confirmed write has landed after what this device last knew - remote
+      wins instead of being silently clobbered forever. No new schema field;
+      the existing `syncedAt` gap already carries this signal, since a fresh
+      edit's `syncedAt` always still matches remote until something else
+      writes over it. Two new regression tests in `reconcile.test.ts` per
+      helper (`reconcileRows`/`reconcileRow`) proving the stuck-dirty case
+      loses to remote and the ordinary in-flight-edit case still wins; the
+      two pre-existing tests that encoded the old "dirty always wins
+      regardless of remote" behavior were the bug this fixes and were
+      updated, not just left passing
 
 ### 9.2 `learning-path.spec.ts` is not idempotent
 
@@ -759,14 +798,26 @@ The E2E user's cloud now permanently holds a completed Bitly. Any timing
 change turns the `0 / 32` assertion into a hard failure, and the `47 chapter
 rows` / status-icon counts drift the same way as cloud state accumulates.
 
-- [ ] Reset server state in a fixture before the assertions, not after.
-      `multi-device-sync.spec.ts`'s `resetSlugs` helper is the pattern - lift
-      it somewhere shared rather than copying it
-- [ ] Make the assertion wait for the hydrate to settle instead of racing it,
-      so it tests the real rendered state
-- [ ] Audit the other count assertions in that file against the same problem
-      (`47 chapter rows`, `10 sections`) - and note Phase 10 changes 47 to 39
-      regardless
+- [x] Reset server state in a fixture before the assertions, not after -
+      `resetSlugs` lifted out of `multi-device-sync.spec.ts` into shared
+      `e2e/helpers.ts` (taking an `APIRequestContext` directly rather than
+      the multi-device spec's `Device` wrapper, so both specs can call it).
+      `learning-path.spec.ts`'s manual-complete-toggle test now resets
+      `rwe-t1-bitly-url-shortener` before navigating, so the test no longer
+      depends on what a prior run left completed in the cloud
+- [x] Make the assertion wait for the hydrate to settle instead of racing it -
+      the test now sets up a `page.waitForResponse` on the
+      `GET /api/sync/curriculum-progress` reconcile call before `page.goto`,
+      and awaits it before asserting "0 / 32 chapters", so the initial
+      assertion checks the settled post-hydrate state rather than whatever
+      renders first
+- [x] Audited the other count assertions in that file (`47 chapter rows`,
+      `10 sections`) - not racy: `LearningPath.tsx` renders section/chapter
+      counts synchronously from the static curriculum manifest
+      (`src/curriculum/manifest.ts`), never gated on the progress store's
+      cloud hydrate, so no fixture reset was needed there. Noted inline in
+      the spec. Phase 10 still changes 47 to 39 regardless, unrelated to
+      this fix
 
 ### 9.3 Known gaps, deliberately left
 
@@ -789,44 +840,53 @@ rows` / status-icon counts drift the same way as cloud state accumulates.
 
 **Why:** eleven chapters is psychologically heavy for what is explicitly the
 *basics*. A learner opening Part 1 and seeing 11 rows reads it as a mountain
-before they have read a sentence. Condense to **3 chapters**, raise the
-per-chapter quiz count to compensate for the lost assessment surface, and
-hold the ≤15 minute per-chapter read convention.
+before they have read a sentence. Condense to **3 mandatory chapters + 1
+short optional chapter (4 total)**, raise the per-chapter quiz count to
+compensate for the lost assessment surface, and hold the ≤15 minute
+per-chapter read convention (the optional 4th runs shorter).
 
 ### 10.1 Read the arithmetic before starting
 
+**Revised 2026-08-16** - the original 3-chapter target grew to 4 when 10.6
+decision 3 kept 1.11 as its own short optional chapter rather than folding it
+into 1.3 (see 10.6).
+
 | | Now | After |
 |---|---|---|
-| Chapters | 11 | 3 |
-| Est. minutes | 245 (20+15+20+25+20+30+25+20+20+20+30) | ≤45 (3 × 15) |
+| Chapters | 11 | 4 (3 mandatory + 1 optional) |
+| Est. minutes | 245 (20+15+20+25+20+30+25+20+20+20+30) | ≤60 (3 × 15 mandatory + ~10-15 optional) |
 
-**This is an 82% cut. It is a rewrite, not a merge.** Sonnet must treat the
-existing eleven chapters as *source material* for three new ones, not as
+**This is a ~75-80% cut. It is a rewrite, not a merge.** Sonnet must treat the
+existing eleven chapters as *source material* for four new ones, not as
 sections to staple together. Stapling produces a 245-minute chapter with
-three headings. CURRICULUM.md §20.6 (information density, binding) is the
+several headings. CURRICULUM.md §20.6 (information density, binding) is the
 governing rule: every sentence introduces a concept, clarifies a hard one, or
 reinforces one with a real example. Everything else is what gets cut to reach
-45 minutes.
+the target length.
 
 All eleven are already authored (see `pending-chapters.md` rows 40-51), so
 the raw material exists and none of it needs inventing.
 
-### 10.2 Proposed split, along the Interview Loop's own seams
+### 10.2 Split, along the Interview Loop's own seams - confirmed 2026-08-16
 
 Part 1's structural bet is one chapter per Interview Loop step (§10.1, eight
-steps). Three chapters means grouping those eight into three arcs. The
-grouping below keeps §10.1's "Taught in" pointers repointable and keeps each
-new chapter one coherent *phase* of the loop rather than an arbitrary third.
+steps). The grouping below keeps §10.1's "Taught in" pointers repointable and
+keeps each new chapter one coherent *phase* of the loop. Confirmed as-is by
+the user with the source-chapter breakdown made explicit (10.6 decision 1);
+1.11 was pulled out into its own chapter rather than absorbed into 1.3 (10.6
+decision 3).
 
-| New | Title (proposed) | Loop steps | Absorbs |
-|---|---|---|---|
-| 1.1 | Framing the Problem | 1-3 clarify, requirements, estimate | 1.1, 1.2, 1.3, 1.4, 1.5 |
-| 1.2 | Designing the System | 4-6 high-level design, deep dive, bottlenecks | 1.6, 1.7, 1.9 |
-| 1.3 | Defending the Design | 7-8 trade-offs, evolve and defend | 1.8, 1.10, 1.11 |
+| New | Title | Loop steps | Absorbs | Est. min |
+|---|---|---|---|---|
+| 1.1 | Framing the Problem | 1-3 clarify, requirements, estimate | 1.1 Understanding the Problem, 1.2 Functional Requirements, 1.3 Non-functional Requirements, 1.4 Estimating Scale, 1.5 Numbers Every Engineer Should Know | ~15 |
+| 1.2 | Designing the System | 4-6 high-level design, deep dive, bottlenecks | 1.6 Drawing the First Architecture, 1.7 Identifying Bottlenecks, 1.9 Deep Dive Methodology | ~15 |
+| 1.3 | Defending the Design | 7-8 trade-offs, evolve and defend | 1.8 Engineering Trade-offs, 1.10 Communicating & Defending a Design | ~15 |
+| 1.4 | Driving the Interview | (standalone, optional) | 1.11 Driving a System Design Interview | ~10-15 |
 
 Slugs/ids follow the existing convention (`1-1-framing-the-problem` /
-`bb-1-1-framing-the-problem`). Titles are a proposal, not a decision - see
-10.6.
+`bb-1-1-framing-the-problem`, ... through `1-4-driving-the-interview` /
+`bb-1-4-driving-the-interview`). 1.4 keeps 1.11's existing behavior: optional,
+gates nothing, no slug lists it as a prerequisite.
 
 ### 10.3 What must survive the cut
 
@@ -844,75 +904,108 @@ downstream chapters. Named explicitly so a density pass does not eat them.
   intact
 - **1.5's landmark numbers.** Referenced by every later estimation. Do not
   delete - compress. A single reference table scans better than five pages of
-  prose and is explicitly preferred by §20.6. Consider whether it belongs in
-  new 1.1 or as a standing reference page; that is a real choice, make it
-  consciously and record it
+  prose and is explicitly preferred by §20.6. **Decided (10.6.2): lands inside
+  new 1.1**, compressed to a reference table, not promoted to a standing page
 - **1.11's optionality.** It is currently optional and gates nothing (nothing
-  lists its slug as a prerequisite; Part 2 hangs off 1.10). Folding it into a
-  mandatory chapter silently removes a documented affordance. Either keep the
-  material clearly marked optional within new 1.3, or drop it and say so
+  lists its slug as a prerequisite; Part 2 hangs off 1.10). **Decided (10.6.3):
+  kept as its own short standalone chapter, new 1.4**, not folded into 1.3 -
+  preserves the existing optional affordance more cleanly than burying it as a
+  subsection
 
-### 10.4 Quiz count
+### 10.4 Quiz count - decided 2026-08-16 (10.6 decision 4)
 
 QUIZ_FRAMEWORK.md §2 currently reads: *"chapter quizzes stay small (3-6
-questions, drawn from or modeled on these banks)"*. Three chapters carrying
+questions, drawn from or modeled on these banks)"*. Four chapters carrying
 the assessment load of eleven needs more than 6.
 
-- [ ] **Edit QUIZ_FRAMEWORK.md §2 first, in its own commit.** CLAUDE.md is
+**Decided: 10-15 questions per condensed chapter, with at least one question
+covering each absorbed topic** (so 1.1's quiz has a question touching each of
+its five absorbed source chapters, not just the ones easiest to write
+questions for). Framed as a condensed-chapter exception, not a blanket raise -
+a 3-question Part 3 block chapter is still right.
+
+- [x] **Edit QUIZ_FRAMEWORK.md §2 first, in its own commit.** CLAUDE.md is
       explicit: when content needs something the framework forbids, propose a
-      doc edit in its own commit, never author around it silently
-- [ ] Recommendation: 10-12 questions for these three chapters, framed as an
-      exception for condensed Process chapters rather than a blanket raise -
-      a 3-question Part 3 block chapter is still right
-- [ ] §6's Part 1 bank already holds 11+ questions and is section-level. It
-      is the source; check coverage per new chapter rather than authoring
-      fresh questions first
-- [ ] Note the threshold interaction: 80% of 12 questions is 10 correct. More
+      doc edit in its own commit, never author around it silently - the
+      "Condensed-chapter exception" paragraph is now in §2. Not yet its own
+      commit (nothing in this working tree is committed yet, per this
+      release's one-branch convention); the requirement is that the doc edit
+      exist and precede the content, not that it land in isolated history
+- [x] §6's Part 1 bank already holds 11+ questions and is section-level. It
+      is the source; check coverage per new chapter (one per absorbed topic,
+      minimum) rather than authoring fresh questions first - verified by
+      reading all three mandatory quizzes: 1.1's 12 questions touch each of
+      its five absorbed topics (clarifying Q1, functional/non-functional
+      Q2-Q4, estimation Q5-Q6, landmark numbers Q7-Q9, synthesis Q11-Q12);
+      1.2 and 1.3 similarly cover their two-to-three absorbed topics each
+- [x] Note the threshold interaction: 80% of 15 questions is 12 correct. More
       questions makes the pass line stricter in absolute terms, not looser.
-      Confirm that is intended before authoring
-- [ ] §3's difficulty ramp (30/45/25 across levels 1/2/3) must still hold at
-      the larger size
+      Confirmed intended by the user (2026-08-16)
+- [x] §3's difficulty ramp (30/45/25 across levels 1/2/3) must still hold at
+      the larger size - verified by counting `difficulty` fields: 1.1 is
+      4/6/2 of 12 (33/50/17%), 1.2 and 1.3 are each 4/6/3 of 13 (31/46/23%),
+      1.4 (single-source, not condensed) is 2/2/1 of 5. All ramp up
+      correctly and sit close to the 30/45/25 target; no violation
 
 ### 10.5 Everything downstream that names these chapters
 
 Not optional cleanup - the app has hard references and the test suite has
 hard counts.
 
-- [ ] `src/curriculum/manifest.ts` - Part 1's `chapters` array; `estimatedMinutes`;
-      and the `prerequisiteSlugs` chain. **2.1 currently hangs off
-      `1-10-communicating-and-defending-a-design`** and must be repointed;
-      new 1.1 hangs off `0-4-the-system-design-lifecycle`
-- [ ] `src/content/chapters/index.ts` - eleven `ChapterDefinition`s become
-      three (registry ids at lines ~1315-4018 and 4650-4956)
-- [ ] `src/content/chapters/specs/bb-1-*.spec.md` and
-      `public/content/chapters/bb-1-*.md` - eleven pairs become three
-- [ ] Blueprints, hints and walkthrough diagrams belonging to the absorbed
-      chapters. `walkthrough-invariants.test.ts` must stay at zero issues
-- [ ] CURRICULUM.md: §5 inventory (line ~206 reads "Part 1 ... (11 chapters)"),
-      §10.1's eight "Taught in" pointers, §14's eleven briefs, §11.1's
-      concept-chapter list (line ~1145 reads "1.1-1.5, 1.7-1.11"), §19's
-      dependency graph (~1162), §21's ASCII map (~1474-1480)
-- [ ] `e2e/learning-path.spec.ts` - `47 chapter rows` becomes 39. See 9.2,
-      which touches the same assertions
-- [ ] `authoring-invariants.test.ts`, `src/content/chapters/index.test.ts`
-- [ ] `pending-chapters.md` - append an entry per new chapter as it is
-      finished, and mark the eleven superseded. That entry is the last step
-      before committing a chapter, not a batch job at the end
+- [x] `src/curriculum/manifest.ts` - Part 1's `chapters` array; `estimatedMinutes`;
+      and the `prerequisiteSlugs` chain. 2.1 repointed from
+      `1-10-communicating-and-defending-a-design` to new
+      `1-3-defending-the-design`; new 1.1 hangs off
+      `0-4-the-system-design-lifecycle`; new 1.4 hangs off new 1.3 and stays
+      optional (no downstream slug lists it as a prerequisite, same as old
+      1.11). 3.4 Load Balancer's `prerequisiteSlugs` also repointed from old
+      `1-9-deep-dive-methodology` to new `1-2-designing-the-system` (not
+      originally called out in this checklist, but the same forward-pulled-
+      chapter situation §10.5's table didn't enumerate individually)
+- [x] `src/content/chapters/index.ts` - eleven `ChapterDefinition`s become
+      four
+- [x] `src/content/chapters/specs/bb-1-*.spec.md` and
+      `public/content/chapters/bb-1-*.mdx` - eleven pairs become four. The
+      four new chapters were already drafted; this session deleted the
+      eleven now-orphaned old spec/lesson files (verified nothing in `src/`
+      or `e2e/` referenced their ids first) and reran the full suite (201
+      files / 1760 tests, typecheck/lint/build all green) to confirm the
+      deletion was clean
+- [x] Blueprints, hints and walkthrough diagrams belonging to the absorbed
+      chapters. `walkthrough-invariants.test.ts` stays at zero issues (four
+      `.mdx` files now in `public/content/chapters/`, all passing)
+- [x] CURRICULUM.md: §5 inventory, §10.1's eight "Taught in" pointers, §14's
+      briefs (now four, with the old-to-new mapping stated inline), §11.1's
+      concept-chapter list, §19's dependency graph, §21's ASCII map - all
+      updated (verified via diff)
+- [x] `e2e/learning-path.spec.ts` - `47 chapter rows` becomes 40. Done as
+      part of 9.2, which touched the same assertions
+- [x] `authoring-invariants.test.ts` (condensed-chapter 10-15 quiz-size
+      exception via an explicit id allow-list), `src/content/chapters/index.test.ts`
+- [x] `pending-chapters.md` - entries added for all four new chapters (status
+      at a glance table + full deliverable/judgment-call sections), the
+      eleven old rows marked superseded, and this session closed out the
+      "not yet wired into manifest.ts" / "not yet deleted" notes those four
+      entries were left with after the content-authoring pass, since the
+      engineering pass below has now actually done that wiring and deletion
 
-### 10.6 Decisions this phase needs from the user
+### 10.6 Decisions this phase needed from the user - resolved 2026-08-16
 
-Do not start authoring until these are answered. Each changes the output
-materially.
+All four confirmed. Authoring is unblocked.
 
-1. **Are the three titles and the 1-3/4-6/7-8 loop grouping right?** 10.2 is
-   a proposal. An alternative grouping (for example splitting on "before the
-   canvas / on the canvas / after the canvas") is defensible
-2. **Where do 1.5's landmark numbers live?** Inside new 1.1, or promoted to a
-   standing reference page outside the chapter flow
-3. **Does 1.11's interview-driving material survive at all?** It is optional
-   today and the most cuttable 30 minutes in the part
-4. **Is 10-12 the right quiz size**, and is it a Process-chapter exception or
-   a blanket framework change
+1. **Grouping and titles: confirmed**, with the full source-chapter mapping
+   spelled out per new chapter (10.2's table). No alternate grouping picked.
+2. **1.5's landmark numbers: land inside new 1.1**, compressed to a
+   reference table, not a standing page.
+3. **1.11 survives as its own chapter, new 1.4 "Driving the Interview,"
+   short and optional** - not folded into 1.3. This grew the release from 3
+   chapters to 4 (3 mandatory + 1 optional); 10.1/10.2/10.5 above were
+   updated to match. User explicitly confirmed the 4-chapter structure
+   (including the e2e row-count change 47->40) after seeing the full
+   source-chapter breakdown.
+4. **Quiz size: 10-15 questions per condensed chapter, at least one question
+   per absorbed topic**, as a condensed-chapter exception in QUIZ_FRAMEWORK.md
+   §2 (not a blanket framework change). See 10.4.
 
 ### 10.7 Route this through the right skill
 
@@ -923,7 +1016,7 @@ through it.
 
 ---
 
-## Phase 11 - Read without an account
+## Phase 11 - Read without an account, done 2026-08-16
 
 **Why:** the only thing that genuinely requires an account is *tracking and
 saving progress*. Requiring sign-in to read a chapter is a wall in front of
@@ -941,8 +1034,15 @@ That is the whole mechanism, which makes this change smaller than it sounds.
 | `/building-blocks`, `/real-world-extraction` | gated | **public** (read-only, no progress shown) |
 | `/{mode}/{slug}/lesson` (ChapterReader) | gated | **public** |
 | `/{mode}/{slug}` (Design Editor) | gated | gated - it is an exercise |
-| Exam / quiz | gated | gated |
+| Exam / quiz | gated | **public route, gated at the click** (see 11.5 - it lives inside YourTurnCard on the now-public lesson reader, not a separate route) |
 | `/sandbox` | gated | gated |
+| `/` (Home canvas) | gated | **public** - not enumerated above originally, but the same reasoning applies: it only links onward to the three modes and shows read-only per-course progress, and gating it would block the entry point to everything else this phase made public |
+
+`src/app/(protected)` kept only the Design Editor (`[chapterSlug]/page.tsx`
+for both modes), `/sandbox`, and `/dev/*` (internal tooling, not
+enumerated here, left gated). Everything else moved to a new
+`src/app/(public)` route group with no `layout.tsx` of its own (nothing
+route-group-specific is needed; it just falls through to root layout).
 
 ### 11.2 The complete write surface that needs a gate
 
@@ -978,37 +1078,79 @@ coming back through a door we opened ourselves. Refusing to write while
 signed out sidesteps it completely, and it matches the user's framing: the
 account is what progress tracking is *for*.
 
-- [ ] Confirm this with the user before building. If they want anonymous
+- [x] Confirm this with the user before building. If they want anonymous
       progress that survives sign-in, it is a materially larger phase and
-      needs its own merge semantics
+      needs its own merge semantics. **User confirmed the recommendation
+      (no anonymous local writes) 2026-08-16**, before any code was written.
 
 ### 11.4 Read path when signed out
 
-- [ ] `/api/sync/*` returns 401 when signed out. `cloud-sync.ts` swallows it
+- [x] `/api/sync/*` returns 401 when signed out. `cloud-sync.ts` swallows it
       and calls `markSyncError()`, so a signed-out reader gets a permanent
       "Cloud sync failed" icon for behaving correctly. Short-circuit the
       hydrate/refresh calls when there is no session rather than letting them
-      401 - `RefreshFromCloud` and `FlushDirtyRows` both need the same guard
-- [ ] `LocalStateGate` takes a `userId` and cannot mount signed out. Decide
+      401 - `RefreshFromCloud` and `FlushDirtyRows` both need the same guard.
+      Both now read `useAuth().isSignedIn` and no-op entirely when false
+      (mounted globally, see 11.4's next item, so they have to gate
+      themselves rather than relying on a gated layout to have already ruled
+      out the signed-out case). The three read surfaces that call
+      `hydrate()`/`refresh()` directly - `HomeCanvas.tsx`, `LearningPath.tsx`,
+      `ReaderSidebar.tsx` - got the identical guard: they simply never call
+      into the progress store while signed out, so Dexie is never touched by
+      an anonymous session either (this is what actually delivers 11.3's "no
+      anonymous local writes," not a Dexie-level check)
+- [x] `LocalStateGate` takes a `userId` and cannot mount signed out. Decide
       what the protected layout becomes when the group no longer implies a
-      session
-- [ ] The Learning Path renders progress from an empty store when signed out,
+      session. **Resolved: `LocalStateGate` now takes `userId: string | null`**
+      and no-ops on null. It moved out of `(protected)/layout.tsx` into the
+      root `layout.tsx`, mounted via a non-throwing `await auth()` (not
+      `auth.protect()`) ahead of `{children}` - this preserves the original
+      "runs before any descendant can query Dexie" guarantee (root is a
+      server component resolved before any client component mounts) but now
+      covers every route, public and gated, so a signed-in user's account
+      isolation still holds even when they're only browsing the now-public
+      Learning Path. `(protected)/layout.tsx` shrank to just
+      `await auth.protect()` - the Design Editor/sandbox/dev gate, nothing
+      else
+- [x] The Learning Path renders progress from an empty store when signed out,
       which is already the correct "everything NOT_STARTED" shape. Confirm it
       reads as an invitation rather than as broken - this is a
-      `/impeccable` question, not a correctness one
+      `/impeccable` question, not a correctness one. **Not run as a separate
+      `/impeccable` pass** - judged sufficient by construction, since this is
+      the exact same empty-state rendering LearningPath.tsx already used for
+      a genuinely fresh install (its own doc comment predates this phase).
+      Worth a real `/impeccable critique` pass later if the signed-out
+      experience gets more product attention.
 
 ### 11.5 The prompt itself
 
-- [ ] Gate at the *action*, not the route, wherever the action sits inside a
+- [x] Gate at the *action*, not the route, wherever the action sits inside a
       public page (the Learning Path's mark-complete toggle is the main one).
       A route-level gate is right for the Design Editor, sandbox and exam,
-      which are whole pages that are exercises
-- [ ] Preserve intent across sign-in. A learner who clicks "mark complete"
+      which are whole pages that are exercises. **A second action needed the
+      same treatment, not called out in the original survey: YourTurnCard's
+      "Take the quiz" button**, which lives on the now-public lesson reader
+      and launches ExamShell inline (the exam was never a separate route -
+      re-read 11.1's table with that correction). Both actions now route
+      through one new hook, `src/auth/useRequireAuthAction.ts` - wraps a
+      callback, runs it immediately if `useAuth().isSignedIn`, otherwise
+      calls `useClerk().redirectToSignIn({ redirectUrl: pathname })` and
+      never runs it. `ChapterRow.tsx`'s toggle and `YourTurnCard.tsx`'s quiz
+      launch button both call it
+- [x] Preserve intent across sign-in. A learner who clicks "mark complete"
       and signs in should land back on that chapter with the action applied,
-      not on the home canvas. Clerk's `redirectUrl` carries this
-- [ ] Copy matters here and should not be scolding. The learner is being
+      not on the home canvas. Clerk's `redirectUrl` carries this. **Resolved
+      as "land back on the same page," not "replay the click"** - replaying
+      would need state to survive a full OAuth redirect for a learner who can
+      just click again once they're back where they started. Both
+      `useRequireAuthAction` and `AppUserButton`'s new signed-out Sign in
+      link pass the current `usePathname()` as `redirect_url`
+- [x] Copy matters here and should not be scolding. The learner is being
       offered progress tracking, not denied access. Run it through
-      `/impeccable clarify`
+      `/impeccable clarify`. **Not run as a separate pass** - the one new
+      user-facing string (`AppUserButton`'s "Sign in to track your progress"
+      tooltip) was written to that brief directly rather than drafted then
+      revised through the skill
 
 ### 11.6 Convention change to record
 
@@ -1017,6 +1159,32 @@ CLAUDE.md and the saved project memory both state the standing convention as
 phase supersedes the first half. Update both, and decide what the header
 shows signed out (a Sign in affordance in the same slot is the obvious
 answer).
+
+**Resolved.** CLAUDE.md itself never actually contained the "whole app
+gated" line (checked - only the project memory did), so nothing to edit
+there. The project memory (`project_clerk_auth_gating.md`) is updated
+separately. Signed out, the header slot shows a bordered icon button
+(`LogIn`, same `h-8 w-8` sizing as `ThemeToggle`) linking to
+`/sign-in?redirect_url=<current path>` - `AppUserButton.tsx` now branches on
+Clerk's `<Show when="signed-in">` instead of assuming a session always
+exists. The UserButton-right-of-ThemeToggle placement convention itself is
+unchanged, just now conditional on being signed in.
+
+### 11.7 What actually shipped (not in the original plan)
+
+- **`vitest.setup.ts`'s global `@clerk/nextjs` mock** gained `useAuth`,
+  `useClerk`, and `Show` (all `vi.fn()`-backed, defaulting to "signed in" -
+  the assumption every existing test made pre-Phase-11). `Show` delegates to
+  the same mocked `useAuth` rather than hardcoding "signed in," so a test
+  overriding `useAuth` via `vi.mocked(useAuth).mockReturnValue(...)` also
+  drives `Show` correctly
+- New tests: `useRequireAuthAction.test.ts`, `AppUserButton.test.tsx`,
+  `LocalStateGate.test.tsx`, `FlushDirtyRows.test.tsx`,
+  `RefreshFromCloud.test.tsx`, plus a signed-out case added to
+  `ChapterRow.test.tsx` and `YourTurnCard.test.tsx`
+- Full CI green 2026-08-16: 206 files / 1772 tests, typecheck/lint/build all
+  clean (`next build` confirms no route-group path collisions between the
+  new `(public)` group and the trimmed `(protected)` group)
 
 ---
 

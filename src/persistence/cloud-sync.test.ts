@@ -6,7 +6,7 @@ import { useSyncStatusStore } from "./sync-status";
 
 beforeEach(async () => {
   await db.saves.clear();
-  useSyncStatusStore.setState({ status: "idle" });
+  useSyncStatusStore.setState({ pullError: false, dirtyCount: 0 });
 });
 
 afterEach(() => {
@@ -20,13 +20,13 @@ afterEach(() => {
 // actually round-trips through a real hydrate*/sync* wrapper, not just
 // getSync in isolation.
 describe("cloud-sync failure reporting", () => {
-  it("hydrateSave returns ok:false and marks sync status as error when the fetch itself fails", async () => {
+  it("hydrateSave returns ok:false and marks pullError when the fetch itself fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
 
     const result = await hydrateSave("scope-1");
 
     expect(result).toEqual({ ok: false });
-    expect(useSyncStatusStore.getState().status).toBe("error");
+    expect(useSyncStatusStore.getState().pullError).toBe(true);
   });
 
   it("hydrateSave returns ok:true with null data for a genuinely empty save - distinct from a failure", async () => {
@@ -35,10 +35,10 @@ describe("cloud-sync failure reporting", () => {
     const result = await hydrateSave("scope-1");
 
     expect(result).toEqual({ ok: true, data: null });
-    expect(useSyncStatusStore.getState().status).toBe("idle");
+    expect(useSyncStatusStore.getState().pullError).toBe(false);
   });
 
-  it("a failed push keeps the local row dirty and marks sync status as error", async () => {
+  it("a failed push keeps the local row dirty and reflects it in dirtyCount", async () => {
     await db.saves.put({ id: "scope-1", updatedAt: 1, nodes: [], edges: [], dirty: true, syncedAt: null });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 500 })));
 
@@ -46,17 +46,25 @@ describe("cloud-sync failure reporting", () => {
 
     const row = await db.saves.get("scope-1");
     expect(row?.dirty).toBe(true);
-    expect(useSyncStatusStore.getState().status).toBe("error");
+    expect(useSyncStatusStore.getState().dirtyCount).toBeGreaterThan(0);
   });
 
-  it("a subsequent successful sync clears a previous error status and the dirty flag", async () => {
-    useSyncStatusStore.setState({ status: "error" });
+  it("a subsequent successful sync clears the dirty flag; dirtyCount reflects it once the writeback lands", async () => {
     await db.saves.put({ id: "scope-1", updatedAt: 1, nodes: [], edges: [], dirty: true, syncedAt: null });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ updatedAt: 42 }), { status: 200 })));
 
     await syncSave("scope-1", { nodes: [], edges: [] });
 
-    expect(useSyncStatusStore.getState().status).toBe("idle");
     expect((await db.saves.get("scope-1"))?.dirty).toBe(false);
+  });
+
+  it("a successful pull clears pullError but never touches dirtyCount - they're independent claims", async () => {
+    useSyncStatusStore.setState({ pullError: true, dirtyCount: 3 });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ save: null }), { status: 200 })));
+
+    await hydrateSave("scope-1");
+
+    expect(useSyncStatusStore.getState().pullError).toBe(false);
+    expect(useSyncStatusStore.getState().dirtyCount).toBe(3);
   });
 });

@@ -23,12 +23,31 @@ describe("reconcileRows", () => {
     expect(toWrite).toEqual([]);
   });
 
-  it("dirty local always wins over remote, regardless of remote's updatedAt", () => {
+  it("dirty local wins when remote hasn't moved past what local last synced (the ordinary in-flight edit)", () => {
     const local = row({ id: "a", value: "local-pending", dirty: true, syncedAt: 100 });
-    const remote = row({ id: "a", value: "remote-newer", syncedAt: 999 });
+    const remote = row({ id: "a", value: "remote-same", syncedAt: 100 });
     const { merged, toWrite } = reconcileRows([local], [remote], (r) => r.id);
     expect(merged).toEqual([local]);
     expect(toWrite).toEqual([]);
+  });
+
+  it("dirty local never synced at all still wins outright - nothing to compare it against yet", () => {
+    const local = row({ id: "a", value: "brand-new-edit", dirty: true, syncedAt: null });
+    const remote = row({ id: "a", value: "remote-existing", syncedAt: 999 });
+    const { merged, toWrite } = reconcileRows([local], [remote], (r) => r.id);
+    expect(merged).toEqual([local]);
+    expect(toWrite).toEqual([]);
+  });
+
+  it("Phase 9.1: remote wins over a dirty local row that has fallen behind a confirmed newer write", () => {
+    // local synced at t=100, then got dirty again but never made it back to
+    // the server - meanwhile a confirmed write (another device) landed at
+    // t=999. That gap means local's dirty edit is stale, not pending.
+    const local = row({ id: "a", value: "stuck-dirty", dirty: true, syncedAt: 100 });
+    const remote = row({ id: "a", value: "confirmed-newer", syncedAt: 999 });
+    const { merged, toWrite } = reconcileRows([local], [remote], (r) => r.id);
+    expect(merged).toEqual([remote]);
+    expect(toWrite).toEqual([remote]);
   });
 
   it("remote wins when it is strictly newer than local's last known sync", () => {
@@ -128,9 +147,15 @@ describe("reconcileRow", () => {
     expect(reconcileRow(local, null)).toEqual(local);
   });
 
-  it("keeps dirty local over a newer remote", () => {
-    const local = row({ value: "pending", dirty: true, syncedAt: 1 });
-    const remote = row({ value: "newer", syncedAt: 999 });
+  it("keeps dirty local when remote hasn't moved past local's last sync", () => {
+    const local = row({ value: "pending", dirty: true, syncedAt: 100 });
+    const remote = row({ value: "same", syncedAt: 100 });
     expect(reconcileRow(local, remote)).toEqual(local);
+  });
+
+  it("Phase 9.1: adopts remote over a dirty local row stuck behind a confirmed newer write", () => {
+    const local = row({ value: "stuck-dirty", dirty: true, syncedAt: 1 });
+    const remote = row({ value: "confirmed-newer", syncedAt: 999 });
+    expect(reconcileRow(local, remote)).toEqual(remote);
   });
 });
