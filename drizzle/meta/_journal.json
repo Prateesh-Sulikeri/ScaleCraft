@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1786537079942,
+      "tag": "0000_shiny_ink",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786538221133,
+      "tag": "0001_vengeful_juggernaut",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786541854991,
+      "tag": "0002_ancient_alex_wilder",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786543720468,
+      "tag": "0003_light_the_stranger",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786554321000,
+      "tag": "0004_raw_canvas_state",
+      "breakpoints": true
+    }
+  ]
+}

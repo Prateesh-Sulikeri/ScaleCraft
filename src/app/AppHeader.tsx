@@ -13,6 +13,7 @@ import { BoardMenu } from "@/app/BoardMenu";
 import { ModeBadge } from "@/app/ModeBadge";
 import { ShortcutsButton } from "@/app/ShortcutsButton";
 import { AppUserButton } from "@/app/AppUserButton";
+import { CloudSyncIndicator } from "@/app/CloudSyncIndicator";
 import type { ValidationViolation } from "@/engines";
 import type { DeepCheckContext } from "@/ai/prompt";
 import type { AppMode } from "@/lib/modes";
@@ -219,6 +220,7 @@ export function AppHeader({
             </button>
           </Tooltip>
           <ShortcutsButton />
+          <CloudSyncIndicator />
           <ThemeToggle />
           <AppUserButton />
         </div>

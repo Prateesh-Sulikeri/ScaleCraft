@@ -1,11 +1,11 @@
 {
   "name": "scalecraft",
-  "version": "6.0.0-alpha",
+  "version": "6.1.0-alpha",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS=\"$NODE_OPTIONS --no-network-family-autoselection\" next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "NODE_OPTIONS=\"$NODE_OPTIONS --no-network-family-autoselection\" next start",
     "analyze": "next experimental-analyze -o",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -13,8 +13,8 @@
     "test:flows": "NODE_ENV=test vitest run src/flows",
     "test:coverage": "NODE_ENV=test vitest run --coverage",
     "test:e2e": "playwright test",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
+    "db:migrate": "NODE_OPTIONS=\"$NODE_OPTIONS --no-network-family-autoselection\" dotenv -e .env.local -- node scripts/migrate.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
@@ -61,6 +61,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.10",
+    "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",

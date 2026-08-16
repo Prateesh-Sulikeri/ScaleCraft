@@ -16,8 +16,13 @@ content met the authoring bar or what got flagged along the way.
 > stale) are exactly what gets forgotten. If a chapter is started and abandoned,
 > record that too, with the reason.
 
-**Scope of the curriculum:** 47 Building Blocks entries (44 chapters + 3
-checkpoints) + 32 Real World Extraction projects = 79 manifest rows.
+**Scope of the curriculum:** 40 Building Blocks entries (37 chapters + 3
+checkpoints) + 32 Real World Extraction projects = 72 manifest rows, after
+Release 6.1.0-alpha Phase 10 condensed Part 1 from 11 chapters to 4
+(2026-08-16; was 47/44/79 before). The engineering pass (manifest.ts,
+`index.ts` registry, CURRICULUM.md, QUIZ_FRAMEWORK.md, e2e/test assertions,
+and removal of the eleven superseded spec/lesson files) landed the same day,
+full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 
 > **Information density is the standing bar for every chapter.** CURRICULUM.md
 > §20.6 is binding and outranks every other style rule: optimize for knowledge
@@ -37,19 +42,23 @@ checkpoints) + 32 Real World Extraction projects = 79 manifest rows.
 | 0.2 What is System Design? | **Authored (Opus proofread pass done)** | 2026-08-06 | `feature/content-0-1-welcome` (commit `d290339`) |
 | 0.3 Interview Design vs. Production Engineering | **Authored + Opus pass (lesson scope)** | 2026-08-06 | `feature/content-0-1-welcome` |
 | 0.4 The System Design Lifecycle | **Authored + Opus pass (lesson scope)** | 2026-08-06 | `feature/content-0-1-welcome` |
-| 1.1 Understanding the Problem | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-08 | `feature/content-1-1-understanding-the-problem` |
-| 1.2 Functional Requirements | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-08 | `feature/content-1-1-understanding-the-problem` |
-| 1.3 Non-functional Requirements | **Authored + Opus pass (lesson/spec scope)** | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
-| 1.4 Estimating Scale | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
-| 1.5 Numbers Every Engineer Should Know | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
-| 1.6 Drawing the First Architecture | **Authored + Opus pass (full scope)** | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
-| 1.7 Identifying Bottlenecks | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
-| 1.8 Engineering Trade-offs | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
-| 1.9 Deep Dive Methodology | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
-| 3.4 Load Balancer | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-11 | `feature/lesson-3-4-load-balancer` |
-| 1.10 Communicating & Defending a Design | **Authored (Sonnet draft, no Opus pass yet)** | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
+| 1.1 Understanding the Problem | **Superseded 2026-08-16** by new 1.1 Framing the Problem (Phase 10) - record kept below | 2026-08-08 | `feature/content-1-1-understanding-the-problem` |
+| 1.2 Functional Requirements | **Superseded 2026-08-16** by new 1.1 Framing the Problem (Phase 10) - record kept below | 2026-08-08 | `feature/content-1-1-understanding-the-problem` |
+| 1.3 Non-functional Requirements | **Superseded 2026-08-16** by new 1.1 Framing the Problem (Phase 10) - record kept below | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
+| 1.4 Estimating Scale | **Superseded 2026-08-16** by new 1.1 Framing the Problem (Phase 10) - record kept below | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
+| 1.5 Numbers Every Engineer Should Know | **Superseded 2026-08-16** by new 1.1 Framing the Problem (Phase 10) - record kept below | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
+| 1.6 Drawing the First Architecture | **Superseded 2026-08-16** by new 1.2 Designing the System (Phase 10) - build/validation/blueprint carried forward intact, record kept below | 2026-08-09 | `feature/content-1-1-understanding-the-problem` |
+| 1.7 Identifying Bottlenecks | **Superseded 2026-08-16** by new 1.2 Designing the System (Phase 10) - record kept below | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
+| 1.8 Engineering Trade-offs | **Superseded 2026-08-16** by new 1.3 Defending the Design (Phase 10) - record kept below | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
+| 1.9 Deep Dive Methodology | **Superseded 2026-08-16** by new 1.2 Designing the System (Phase 10) - record kept below | 2026-08-10 | `feature/content-1-7-identifying-bottlenecks` |
+| 3.4 Load Balancer | **Authored (Sonnet draft, no Opus pass yet)** - unaffected by Phase 10, `prerequisiteSlugs` repointed from old `1-9-deep-dive-methodology` to new `1-2-designing-the-system` | 2026-08-11 | `feature/lesson-3-4-load-balancer` |
+| 1.10 Communicating & Defending a Design | **Superseded 2026-08-16** by new 1.3 Defending the Design (Phase 10) - record kept below | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
 | 1.11 Driving a System Design Interview | **Authored (manual chapter-author-style pass, no cold audit yet)** | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
 | RWE T1 Bitly | Placeholder (`rwe-dummy-1`), moved to Wave 2 | - | - |
+| **1.1 Framing the Problem** (Phase 10 condense, replaces old 1.1-1.5) | **Authored, wired into manifest.ts, old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
+| **1.2 Designing the System** (Phase 10 condense, replaces old 1.6/1.7/1.9) | **Authored, wired into manifest.ts, old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
+| **1.3 Defending the Design** (Phase 10 condense, replaces old 1.8/1.10) | **Authored, wired into manifest.ts (incl. 2.1's repoint), old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
+| **1.4 Driving the Interview** (Phase 10 renumber of old 1.11, optional) | **Authored, wired into manifest.ts, old source removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
 
 Everything else in the 79 rows is unauthored (`chapterDefinitionId: null`).
 
@@ -702,7 +711,293 @@ revision comment, per the 0.2/0.3 convention.
 
 ---
 
-## 1.1 Understanding the Problem
+## 1.1 Framing the Problem (Phase 10 condense - NEW)
+
+- **Authored 2026-08-16 · not yet committed · branch
+  `feature/cloud-sync-reconciliation`** (per the standing rule for this
+  release: every 6.1.0 phase lands on one branch, not one per phase - see
+  `.claude/docs/pending-6.1.0-poa.md`'s Status line).
+- Definition id `bb-1-1-framing-the-problem` · manifest slug
+  `1-1-framing-the-problem` (wired into `manifest.ts` by the Phase 10
+  engineering pass, 2026-08-16)
+- Type: Process · foundational · ~15 min (Reader + knowledge check, no
+  build) · prerequisite: 0.4
+- **Replaces old 1.1 Understanding the Problem, 1.2 Functional Requirements,
+  1.3 Non-functional Requirements, 1.4 Estimating Scale, and 1.5 Numbers
+  Every Engineer Should Know.** Their `ChapterDefinition`s, manifest rows,
+  specs, and lesson files were removed by the Phase 10 engineering pass
+  (2026-08-16); their detail sections stay below, unchanged, as the
+  source-material record only.
+- **Lesson length: not yet measured with `wc -w`** (content-authoring pass
+  only, no shell commands run per the `chapter-author` skill's scope) -
+  visibly longer than a typical 15-minute chapter, justified in the spec §12
+  as proportionate to a 5-chapters-into-1 compression ratio plus two
+  mandatory content requirements (the landmark table must survive per POA
+  §10.3; functional and non-functional requirements each need their own
+  table). Flagged for a second reader, same as every prior Part 1 chapter's
+  own precedent.
+- Pipeline run by the Phase 10 engineering pass (2026-08-16):
+  `tsc`/`lint`/`vitest`/`build` all green, including the registry-wiring
+  touches (`index.test.ts`'s hardcoded id list, `authoring-invariants.test.ts`'s
+  quiz-size assertion).
+
+**Deliverables (6 of 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-1-framing-the-problem.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-1-1-framing-the-problem.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` (new entry; old 1.1-1.5 entries removed) |
+| 4 | Validation rules | None - no canvas exercise, nothing to validate; justified in spec §8 |
+| 5 | Quiz | 12 questions (Process-chapter exception, QUIZ_FRAMEWORK.md §2), ramp 4/6/2 across difficulty 1/2/3, at least one question per absorbed topic |
+| 6 | Playtest pass | Spec §10 - still a manual click-through, not run this pass |
+
+**Done (Phase 10 engineering pass, 2026-08-16):** manifest.ts wiring (slug,
+`prerequisiteSlugs` for downstream chapters, `estimatedMinutes`).
+
+**Judgment calls made:**
+
+- **One unifying test replaces four separate ones.** Old 1.1/1.2/1.3/1.4
+  each taught their own single-purpose test (clarifying-question test,
+  Must-have test, number-not-adjective distinction, order-of-magnitude
+  discipline). This chapter states one general test - "a decision earns its
+  time only if a different answer would change what you build" - and applies
+  it three times. This is new synthesis, not restatement of any one source
+  chapter, and is the chapter's main §20.6 density win over stapling five
+  lessons together. Flagged in spec §0/§3 for a second reader to confirm it
+  reads as a genuine unifying insight rather than a forced one.
+- **A single continuous cold open replaces five separate ones**, following
+  the interviewer through clarify -> requirements -> estimate in one scene,
+  mirroring the loop's own progression instead of five separate URL-shortener
+  vignettes.
+- **New beat 7 ("What ties the three steps together") has no precedent in
+  any source chapter.** Each old chapter's own "Next" section gestured at
+  continuity (e.g. old 1.4 confirming 1.1's ratio as "the real number"), but
+  none of them stated the general principle that loop steps consume each
+  other's outputs. Added because five separate chapters compressing into one
+  makes this connective tissue newly visible and newly worth stating
+  explicitly - exercised by quiz Q11.
+- **Only one production example kept** (Amazon S3's two numbers, from old
+  1.3), cutting old 1.2's Basecamp example and old 1.4's WhatsApp example.
+  Justified in spec §4: three examples for ~15 minutes of content would be
+  disproportionate, and S3's example ties most directly to this chapter's
+  own NFR material. Flagged in spec §12 for a second reader to confirm
+  neither cut example was doing load-bearing work.
+- **1.5's landmark ratio table survives as a table, not a diagram**, per the
+  Phase 10 resolved decision (POA §10.6.2) - compressed rather than promoted
+  to a standing reference page, landing inside this chapter as originally
+  decided.
+- **Quiz Q11/Q12 are new question types** testing the beat-7 synthesis point
+  directly - no direct precedent in any of the five source chapters' own
+  quizzes, since none of them individually had cross-step synthesis to test.
+  Flagged in spec §12 for a second reader to confirm they test real
+  understanding rather than trivia about this chapter's own narrative
+  choices.
+- **Position-clustering checked by eye**, per the standing instruction from
+  0.1/0.2's shipped bug. 11 single/estimate-kind questions (Q2-Q12); correct
+  options land at a×3, b×2, c×3, d×3 - no clustering.
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly, aiming for maximum compression from
+  the outset given the 5-to-1 ratio. Flagged here per every prior Part 1
+  chapter's own precedent of flagging a self-assessed density claim for the
+  next reviewer to check rather than trust.
+
+**Not done (out of `chapter-author` draft mode's scope, still open):** no
+Opus audit pass. Everything else - `tsc`/`lint`/`vitest`/`build`, manifest.ts
+wiring, and removal of old 1.1-1.5's `ChapterDefinition`s, specs, and lesson
+files - was completed by the Phase 10 engineering pass (2026-08-16); their
+own ledger entries below stay in place as a source-material record only.
+
+---
+
+## 1.2 Designing the System (Phase 10 condense - NEW)
+
+- **Authored 2026-08-16 · not yet committed · branch
+  `feature/cloud-sync-reconciliation`**.
+- Definition id `bb-1-2-designing-the-system` · manifest slug
+  `1-2-designing-the-system` (wired into `manifest.ts` by the Phase 10
+  engineering pass, 2026-08-16)
+- Type: **Building Block** (not Process - see spec §0). ~25 minutes (Reader
+  + a real Editor build) · prerequisite: new 1.1.
+- **Replaces old 1.6 Drawing the First Architecture, 1.7 Identifying
+  Bottlenecks, and 1.9 Deep Dive Methodology.** Their `ChapterDefinition`s,
+  manifest rows, specs, and lesson files were removed by the Phase 10
+  engineering pass (2026-08-16); their detail sections stay below unchanged,
+  as source-material record only.
+- Pipeline run by the Phase 10 engineering pass (2026-08-16):
+  `tsc`/`lint`/`vitest`/`build` all green.
+
+**Deliverables (6 of 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-2-designing-the-system.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-1-2-designing-the-system.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` (new entry; old 1.6/1.7/1.9 entries removed) |
+| 4 | Validation rules | Unchanged from old 1.6 - same five rules, same blueprint, same `starterGraph` (§10.3 must-survive) |
+| 5 | Quiz | 13 questions (condensed-chapter exception), ramp 4/6/3, at least one question per absorbed topic |
+| 6 | Playtest pass | Spec §9 - still a manual click-through, not run this pass |
+
+**Done (Phase 10 engineering pass, 2026-08-16):** manifest.ts wiring, same
+as new 1.1.
+
+**Judgment calls made:**
+
+- **§10.3's must-survive requirement honored literally.** Old 1.6's
+  `availableComponentIds`, `requiredComponentIds`, `validationRuleIds`,
+  `blueprints`, and `starterGraph` all carried forward unchanged (only ids
+  renamed from `bb-1-6-*` to `bb-1-2-*`). Old 1.6's quiz Q1-Q5 also carried
+  forward essentially verbatim (Q5 renumbered to Q11). Full accounting in
+  spec §1.
+- **Chapter type changed from Process to Building Block**, since the
+  combined chapter still ships a real canvas exercise (old 1.6's), which
+  makes Failure modes, Scaling, and Production examples all mandatory per
+  §6 - all three are genuinely present, not merged away. Documented in spec
+  §0.
+- **The topology diagram and the abstract ceiling diagram merged into one.**
+  Old 1.6's plain three-box Mermaid diagram now carries example ceiling
+  numbers on the app server and database, doing the job of both old 1.6's
+  topology diagram and old 1.7's separate abstract "Stage 1/2/3" ceiling
+  diagram - without redrawing the same topology twice, which §7.2
+  prohibits. Flagged in spec §11 for a second reader to confirm this reads
+  as doing double duty cleanly.
+- **New synthesis beat ("Two methods for looking closer")** states that old
+  1.7's bottleneck method and old 1.9's deep-dive targeting method are the
+  same underlying comparison asked as two different questions - no
+  precedent in either source chapter individually. Exercised by quiz Q13.
+  Same pattern new 1.1's own beat 7 established for this release.
+  Flagged in spec §11 for a second reader.
+- **Estimated time set to ~25 minutes, not the flat ~15-minute Phase 10
+  planning average** - honestly reflects that this is the only one of the
+  four new chapters carrying a real build, the same way old 1.6 alone ran
+  30 minutes against 1.1-1.5's 15-25. Flagged prominently in spec §11 for
+  the user to confirm the deviation is intentional, not a miss.
+- **Only one production example kept** (Instagram, from old 1.6), cutting
+  old 1.7's Twitter and old 1.9's Amazon examples - same reasoning new
+  1.1's own cuts used (§5 of this chapter's spec).
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly. Flagged per every prior chapter's
+  own precedent.
+
+**Not done (still open):** no Opus audit pass. Everything else was completed
+by the Phase 10 engineering pass (2026-08-16).
+
+---
+
+## 1.3 Defending the Design (Phase 10 condense - NEW)
+
+- **Authored 2026-08-16 · not yet committed · branch
+  `feature/cloud-sync-reconciliation`**.
+- Definition id `bb-1-3-defending-the-design` · manifest slug
+  `1-3-defending-the-design` (wired into `manifest.ts` by the Phase 10
+  engineering pass, 2026-08-16, **including 2.1's `prerequisiteSlugs`
+  repoint** from old `1-10-communicating-and-defending-a-design`).
+- Type: Process. ~15 minutes (Reader + knowledge check, no build) ·
+  prerequisite: new 1.2.
+- **Replaces old 1.8 Engineering Trade-offs and 1.10 Communicating &
+  Defending a Design.** Their `ChapterDefinition`s, manifest rows, specs,
+  and lesson files were removed by the Phase 10 engineering pass
+  (2026-08-16); detail sections stay below unchanged, as source-material
+  record only.
+- Pipeline run by the Phase 10 engineering pass (2026-08-16):
+  `tsc`/`lint`/`vitest`/`build` all green.
+
+**Deliverables (6 of 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-3-defending-the-design.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-1-3-defending-the-design.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` (new entry; old 1.8/1.10 entries removed) |
+| 4 | Validation rules | None - no canvas exercise |
+| 5 | Quiz | 13 questions (condensed-chapter exception), ramp 4/6/3 |
+| 6 | Playtest pass | Spec §6 - still a manual click-through, not run this pass |
+
+**Judgment calls made:**
+
+- **The chapter's synthesis was already present in the source material,
+  not invented this pass.** Old 1.10's own text states "defending reuses
+  1.8's own trade-off reflex, extended one clause" - this chapter's beat 7
+  structure follows that existing connection directly, unlike new 1.1's and
+  1.2's beat 7 sections, which had to state a genuinely new unifying idea
+  across source chapters that didn't reference each other that way.
+  Flagged in spec §7 so a reviewer doesn't over-credit this chapter for
+  synthesis the source material already did.
+- **Only Dropbox kept as the production example**, cutting old 1.8's Uber
+  example - Dropbox alone covers both loop steps (naming a trade-off,
+  defending it under public challenge) where Uber illustrated only one
+  dimension. Same cut-to-one-example pattern as new 1.1/1.2.
+- **Failure modes/scaling omitted** - optional for Process, no system to
+  fail or scale on its own, same as both source chapters.
+- **Trade-offs (§6 beat 8) folded into core mechanics and internal
+  mechanics rather than given a separate section** - the chapter's whole
+  subject already is trade-offs, so a dedicated beat-8 section would
+  restate rather than add anything (permitted under §6's adjacent-sections
+  merge rule).
+- **2.1's `prerequisiteSlugs` repointed** from old
+  `1-10-communicating-and-defending-a-design` to new
+  `1-3-defending-the-design` - done by the Phase 10 engineering pass
+  (2026-08-16), per the POA's Phase 10 §10.5 checklist.
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly.
+
+**Not done (still open):** no Opus audit pass. Everything else was
+completed by the Phase 10 engineering pass (2026-08-16).
+
+---
+
+## 1.4 Driving the Interview (Phase 10 renumber - NEW)
+
+- **Authored 2026-08-16 · not yet committed · branch
+  `feature/cloud-sync-reconciliation`**.
+- Definition id `bb-1-4-driving-the-interview` · manifest slug
+  `1-4-driving-the-interview` (wired into `manifest.ts` by the Phase 10
+  engineering pass, 2026-08-16).
+- Type: Process. 30 minutes · prerequisite: new 1.3. **Optional, gates
+  nothing** - unchanged from old 1.11.
+- **Renumbers old 1.11 Driving a System Design Interview - not a
+  multi-chapter condense** (single source, single destination), so content
+  carried forward nearly verbatim rather than rewritten. Old 1.11's
+  `ChapterDefinition`, manifest row, spec, and lesson file were removed by
+  the Phase 10 engineering pass (2026-08-16); its detail section stays
+  below unchanged, as source-material record only.
+- Pipeline run by the Phase 10 engineering pass (2026-08-16):
+  `tsc`/`lint`/`vitest`/`build` all green.
+
+**Deliverables (6 of 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-1-4-driving-the-interview.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-1-4-driving-the-interview.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` (new entry; old 1.11 entry removed) |
+| 4 | Validation rules | None - no canvas exercise |
+| 5 | Quiz | 5 questions, unchanged from old 1.11 (see below) |
+| 6 | Playtest pass | Spec §5 - still a manual click-through, not run this pass |
+
+**Judgment calls made:**
+
+- **Quiz deliberately NOT resized to 10-15.** The condensed-chapter
+  exception in QUIZ_FRAMEWORK.md §2 applies to chapters absorbing multiple
+  prior source chapters; this one absorbs exactly one (old 1.11), so the
+  ordinary 3-6 range governs and old 1.11's already-correct 5 questions
+  carried forward with only ids renamed and two explanation strings'
+  old-chapter-number references updated to name new chapters by title.
+- **Estimated time kept at 30 minutes**, not shortened to Phase 10's
+  "~10-15 for optional" planning language - this chapter has real content
+  of its own (running all eight loop steps under a clock), not five
+  chapters' worth of material to compress. Flagged in spec §1 as a
+  deliberate choice, not an oversight.
+- **`curriculumContext.masteredConcepts` rewritten** to cite new 1.1-1.3
+  instead of old 1.1-1.10, condensed to name what those three chapters
+  actually teach.
+
+**Not done (still open):** no Opus audit pass. Everything else was
+completed by the Phase 10 engineering pass (2026-08-16).
+
+---
+
+## 1.1 Understanding the Problem (superseded by Phase 10's new 1.1 above - prose kept as source-material record; spec/lesson files removed 2026-08-16)
 
 - **Authored 2026-08-08 · not yet committed · branch
   `feature/content-1-1-understanding-the-problem`** (cut from

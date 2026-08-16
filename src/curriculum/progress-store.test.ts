@@ -1,7 +1,29 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useCurriculumProgressStore } from "./progress-store";
-import { db, type ExamAttempt } from "@/persistence/db";
+import { db, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
+import type { SyncResult } from "@/persistence/cloud-sync";
+
+// Lets one test control exactly when the reconcile pass's remote fetch
+// resolves, so it can prove markVisited's Dexie write genuinely waits for
+// it (ordering), not just that the two happen to race to the right answer.
+// All three hydrateAll* calls are mocked, not just curriculum progress -
+// real fetch() fails in this environment (no server), and since Phase 6
+// (pending-6.1.0-poa.md) that correctly aborts reconciliation rather than
+// silently treating a failed fetch as "the cloud has nothing" - leaving
+// chapterProgress/examAttempts unmocked would make every test hit that
+// abort branch instead of exercising the real merge path.
+let hydrateAllCurriculumProgressImpl: () => Promise<SyncResult<CurriculumProgress[]>> = () =>
+  Promise.resolve({ ok: true, data: [] });
+vi.mock("@/persistence/cloud-sync", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/persistence/cloud-sync")>();
+  return {
+    ...actual,
+    hydrateAllCurriculumProgress: () => hydrateAllCurriculumProgressImpl(),
+    hydrateAllChapterProgress: () => Promise.resolve({ ok: true, data: [] }),
+    hydrateAllExamAttempts: () => Promise.resolve({ ok: true, data: [] }),
+  };
+});
 
 function attempt(overrides: Partial<ExamAttempt> = {}): ExamAttempt {
   return {
@@ -10,6 +32,8 @@ function attempt(overrides: Partial<ExamAttempt> = {}): ExamAttempt {
     submittedAt: Date.now(),
     score: 100,
     answers: [{ questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true }],
+    dirty: false,
+    syncedAt: null,
     ...overrides,
   };
 }
@@ -28,15 +52,18 @@ beforeEach(async () => {
   await db.curriculumProgress.clear();
   await db.chapterProgress.clear();
   await db.examAttempts.clear();
+  hydrateAllCurriculumProgressImpl = () => Promise.resolve({ ok: true, data: [] });
 });
 
 describe("curriculum progress store", () => {
   it("hydrate() reads all three Dexie tables into memory", async () => {
-    await db.chapterProgress.put({ chapterId: "bb-dummy-1", completedAt: Date.now(), matchedBlueprintId: null });
+    await db.chapterProgress.put({ chapterId: "bb-dummy-1", completedAt: Date.now(), matchedBlueprintId: null, dirty: false, syncedAt: null });
     await db.curriculumProgress.put({
       slug: "1-2-load-balancing",
       manuallyCompletedAt: null,
       lastVisitedAt: Date.now(),
+      dirty: false,
+      syncedAt: null,
     });
     const seeded = attempt();
     await db.examAttempts.put(seeded);
@@ -50,9 +77,38 @@ describe("curriculum progress store", () => {
     expect(state.examAttemptsByDefinition.get("bb-dummy-1")).toEqual([seeded]);
   });
 
+  // Phase 6, pending-6.1.0-poa.md - fixes audit S5: a failed remote fetch
+  // must never be treated as "the server has nothing." Before this, getSync
+  // collapsed a network error and a genuinely empty table into the same
+  // `[]`, so a transient failure looked identical to "reconciled, nothing
+  // there" - hydrated got set true anyway and never retried.
+  it("hydrate() aborts without marking hydrated when a remote fetch fails, preserving local data", async () => {
+    const completedAt = Date.now() - 100_000;
+    await db.curriculumProgress.put({
+      slug: "1-2-load-balancing",
+      manuallyCompletedAt: completedAt,
+      lastVisitedAt: Date.now(),
+      dirty: false,
+      syncedAt: Date.now(),
+    });
+    hydrateAllCurriculumProgressImpl = () => Promise.resolve({ ok: false });
+
+    await useCurriculumProgressStore.getState().hydrate();
+
+    const state = useCurriculumProgressStore.getState();
+    expect(state.hydrated).toBe(false);
+    expect(state.rowsBySlug.get("1-2-load-balancing")?.manuallyCompletedAt).toBe(completedAt);
+
+    // A later call, once the network recovers, retries for real instead of
+    // being stuck behind the earlier failure.
+    hydrateAllCurriculumProgressImpl = () => Promise.resolve({ ok: true, data: [] });
+    await useCurriculumProgressStore.getState().hydrate();
+    expect(useCurriculumProgressStore.getState().hydrated).toBe(true);
+  });
+
   it("hydrate() is idempotent — a second call does not re-read or clear state", async () => {
     await useCurriculumProgressStore.getState().hydrate();
-    await db.chapterProgress.put({ chapterId: "late-write", completedAt: Date.now(), matchedBlueprintId: null });
+    await db.chapterProgress.put({ chapterId: "late-write", completedAt: Date.now(), matchedBlueprintId: null, dirty: false, syncedAt: null });
 
     await useCurriculumProgressStore.getState().hydrate();
 
@@ -145,5 +201,162 @@ describe("curriculum progress store", () => {
     await useCurriculumProgressStore.getState().resetChapter("some-slug", null);
 
     expect(useCurriculumProgressStore.getState().examAttemptsByDefinition.get("bb-dummy-1")).toEqual([seeded]);
+  });
+
+  // Regression: the mutators used to build their `put` payload from the
+  // in-memory map, which is empty until hydrate() resolves. A hard load
+  // straight onto /chapters/<slug> runs markVisited's effect before
+  // hydrate's, so this wiped the completion locally and synced the null up.
+  // See pending-persistence-audit.md S1.
+  it("markVisited preserves manuallyCompletedAt when the store is not hydrated", async () => {
+    const completedAt = Date.now() - 100_000;
+    await db.curriculumProgress.put({
+      slug: "1-2-load-balancing",
+      manuallyCompletedAt: completedAt,
+      lastVisitedAt: null,
+      dirty: false,
+      syncedAt: null,
+    });
+
+    // beforeEach leaves the store unhydrated, which is the bug's precondition.
+    await useCurriculumProgressStore.getState().markVisited("1-2-load-balancing");
+
+    const row = await db.curriculumProgress.get("1-2-load-balancing");
+    expect(row?.manuallyCompletedAt).toBe(completedAt);
+    expect(row?.lastVisitedAt).not.toBeNull();
+  });
+
+  // Phase 3.3, pending-6.1.0-poa.md: "the single most important test in the
+  // release" - proves the ready-promise gate is a real block on the
+  // in-flight reconcile, not just a coincidence of both settling to the
+  // right answer. A markVisited call fired while a slow remote fetch is
+  // still in flight must not touch Dexie until that fetch (and the merge it
+  // feeds) has actually finished - otherwise it's building its `put`
+  // payload from a `existingRow` read that could race the reconcile's own
+  // writeback, which is exactly how S1 happened the first time.
+  it("markVisited's Dexie write waits for an in-flight reconcile to fully resolve before touching Dexie", async () => {
+    const completedAt = Date.now() - 100_000;
+    await db.curriculumProgress.put({
+      slug: "1-2-load-balancing",
+      manuallyCompletedAt: completedAt,
+      lastVisitedAt: null,
+      dirty: false,
+      syncedAt: null,
+    });
+
+    let releaseFetch: ((result: SyncResult<CurriculumProgress[]>) => void) | undefined;
+    hydrateAllCurriculumProgressImpl = () =>
+      new Promise((resolve) => {
+        releaseFetch = resolve;
+      });
+
+    const putSpy = vi.spyOn(db.curriculumProgress, "put");
+    const markVisitedPromise = useCurriculumProgressStore.getState().markVisited("1-2-load-balancing");
+
+    // Wait until the reconcile pass has actually reached the remote fetch
+    // (its local Dexie reads go through fake-indexeddb's real async layer,
+    // not just microtasks, so this can take more than a couple of ticks) -
+    // without letting that fetch resolve yet. If the gate isn't real, the
+    // write already happened by the time we get here.
+    while (!releaseFetch) {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    expect(putSpy).not.toHaveBeenCalled();
+
+    // Remote comes back with a DIFFERENT row (another chapter, synced from
+    // another device) - reconciling it must not disturb the row markVisited
+    // is about to touch.
+    releaseFetch({
+      ok: true,
+      data: [
+        { slug: "other-chapter", manuallyCompletedAt: null, lastVisitedAt: Date.now(), dirty: false, syncedAt: Date.now() },
+      ],
+    });
+    await markVisitedPromise;
+
+    expect(putSpy).toHaveBeenCalledTimes(1);
+    const row = await db.curriculumProgress.get("1-2-load-balancing");
+    expect(row?.manuallyCompletedAt).toBe(completedAt);
+    expect(row?.lastVisitedAt).not.toBeNull();
+    expect((await db.curriculumProgress.get("other-chapter"))?.lastVisitedAt).not.toBeNull();
+
+    putSpy.mockRestore();
+  });
+
+  it("setManualComplete preserves lastVisitedAt when the store is not hydrated", async () => {
+    const lastVisitedAt = Date.now() - 100_000;
+    await db.curriculumProgress.put({
+      slug: "1-2-load-balancing",
+      manuallyCompletedAt: null,
+      lastVisitedAt,
+      dirty: false,
+      syncedAt: null,
+    });
+
+    await useCurriculumProgressStore.getState().setManualComplete("1-2-load-balancing", true);
+
+    const row = await db.curriculumProgress.get("1-2-load-balancing");
+    expect(row?.lastVisitedAt).toBe(lastVisitedAt);
+    expect(row?.manuallyCompletedAt).not.toBeNull();
+  });
+
+  it("refresh() reconciles again even when the store is already hydrated", async () => {
+    await useCurriculumProgressStore.getState().hydrate();
+    expect(useCurriculumProgressStore.getState().rowsBySlug.size).toBe(0);
+
+    // Another device completes a chapter after this tab already hydrated.
+    hydrateAllCurriculumProgressImpl = () =>
+      Promise.resolve({
+        ok: true,
+        data: [
+          {
+            slug: "1-2-load-balancing",
+            manuallyCompletedAt: Date.now(),
+            lastVisitedAt: null,
+            dirty: false,
+            syncedAt: Date.now(),
+          },
+        ],
+      });
+
+    await useCurriculumProgressStore.getState().hydrate();
+    expect(
+      useCurriculumProgressStore.getState().rowsBySlug.get("1-2-load-balancing"),
+      "hydrate() is the ensure-once path and must stay a no-op",
+    ).toBeUndefined();
+
+    await useCurriculumProgressStore.getState().refresh();
+    expect(
+      useCurriculumProgressStore.getState().rowsBySlug.get("1-2-load-balancing")?.manuallyCompletedAt,
+    ).not.toBeNull();
+  });
+
+  it("markVisited pulls the newest remote row before composing its write", async () => {
+    // This tab hydrated when the chapter was not complete...
+    await useCurriculumProgressStore.getState().hydrate();
+
+    // ...another device then completed it. Without a forced reconcile,
+    // markVisited would compose its full-row payload from the stale local
+    // copy and push manuallyCompletedAt: null, erasing that completion.
+    const completedAt = Date.now();
+    hydrateAllCurriculumProgressImpl = () =>
+      Promise.resolve({
+        ok: true,
+        data: [
+          {
+            slug: "1-2-load-balancing",
+            manuallyCompletedAt: completedAt,
+            lastVisitedAt: null,
+            dirty: false,
+            syncedAt: Date.now(),
+          },
+        ],
+      });
+
+    await useCurriculumProgressStore.getState().markVisited("1-2-load-balancing");
+
+    const row = await db.curriculumProgress.get("1-2-load-balancing");
+    expect(row?.manuallyCompletedAt).toBe(completedAt);
+    expect(row?.lastVisitedAt).not.toBeNull();
   });
 });

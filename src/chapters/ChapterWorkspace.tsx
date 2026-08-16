@@ -25,8 +25,11 @@ import { chapterRegistry } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { ChapterOutcome, ChapterValidationOutcome } from "@/engines";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
-import { chapterSaveId, db } from "@/persistence/db";
+import { chapterSaveId, db, type ChapterProgress } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
+import { deleteSaveSync, hydrateChapterProgress, hydrateSave, syncChapterProgress, syncSave } from "@/persistence/cloud-sync";
+import { reconcileRow } from "@/persistence/reconcile";
+import { useCustomComponentsStore } from "@/canvas/custom-components-store";
 import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { findEntry } from "@/curriculum";
@@ -137,6 +140,14 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     void hydrateProgress();
   }, [hydrateProgress]);
 
+  // Custom components (audit S9, Phase 3.1) — used to reconcile only from
+  // Sandbox's mount effect, so a session that only ever opened a chapter
+  // never pulled the cloud palette at all. ComponentPicker is reachable from
+  // here too, so this mode needs the same hydrate() call.
+  useEffect(() => {
+    void useCustomComponentsStore.getState().hydrate();
+  }, []);
+
   // Gates every write to this chapter's save slot (autosave below AND the
   // unmount-save further down) until the restore effect's async read has
   // actually resolved. Tracked twice, deliberately: `hasLoadedInitialState`
@@ -181,10 +192,29 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
       return;
     }
     let cancelled = false;
-    db.saves.get(chapterSaveId(chapter.id)).then((save) => {
+    const scopeId = chapterSaveId(chapter.id);
+    Promise.all([db.saves.get(scopeId), hydrateSave(scopeId)]).then(([local, remote]) => {
       if (cancelled) return;
-      if (save) {
-        loadCanvasState(save.nodes, save.edges);
+      // Per-scope reconcile (Phase 3.1, pending-6.1.0-poa.md), not
+      // hydrate-on-empty: a local save no longer skips the remote check, so
+      // a newer save from another device wins even when this device has
+      // one too. Remote now carries raw canvasState (Phase 3.4), so a
+      // remote win always goes through loadCanvasState — zones/comments/
+      // Start markers survive a cross-device restore instead of being
+      // silently dropped by the old ArchitectureGraph round-trip.
+      // A failed fetch (remote.ok false) collapses to the same `null` as a
+      // genuinely absent save (Phase 6, pending-6.1.0-poa.md) - either way
+      // there's no remote row to win, so reconcileRow falls back to
+      // whatever's local. Never treated as authoritative "remote is
+      // empty" for a row that would otherwise beat an existing local one.
+      const remoteAsSave =
+        remote.ok && remote.data
+          ? { id: scopeId, updatedAt: remote.data.updatedAt, nodes: remote.data.nodes, edges: remote.data.edges, syncedAt: remote.data.updatedAt, dirty: false }
+          : null;
+      const winner = reconcileRow(local ?? null, remoteAsSave);
+      if (winner) {
+        if (winner !== local) void db.saves.put(winner);
+        loadCanvasState(winner.nodes, winner.edges);
       } else if (chapter.starterGraph) {
         loadGraph(chapter.starterGraph);
       } else {
@@ -211,6 +241,10 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     hasLoadedInitialState && chapter?.id ? chapterSaveId(chapter.id) : null,
     nodes,
     edges,
+    // Chapters sync to the cloud only on Submit (Phase 4.2,
+    // pending-6.1.0-poa.md), not on every manual save - see handleSubmit
+    // below for the actual push.
+    { syncOnManualSave: false },
   );
 
   // Each chapter route mounts a fresh CanvasStoreProvider (key={chapterSlug}
@@ -221,7 +255,17 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     return () => {
       if (!chapter || !hasLoadedInitialStateRef.current) return;
       const { nodes, edges } = storeApi.getState();
-      void db.saves.put({ id: chapterSaveId(chapter.id), updatedAt: Date.now(), nodes, edges });
+      // Local-only (Phase 4.2, pending-6.1.0-poa.md): a chapter's canvas
+      // syncs to the cloud on Submit, not on every unmount/navigation. See
+      // handleSubmit below for the push.
+      void db.saves.put({
+        id: chapterSaveId(chapter.id),
+        updatedAt: Date.now(),
+        nodes,
+        edges,
+        dirty: true,
+        syncedAt: null,
+      });
     };
   }, [storeApi, chapter]);
 
@@ -258,13 +302,31 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
   useEffect(() => {
     if (!chapter) return;
     let cancelled = false;
-    db.chapterProgress.get(chapter.id).then((row) => {
-      if (cancelled || !row) return;
-      setPassedChapterIds((prev) => new Set(prev).add(chapter.id));
-    });
+    Promise.all([db.chapterProgress.get(chapter.id), hydrateChapterProgress(chapter.id)]).then(
+      async ([local, remote]) => {
+        if (cancelled) return;
+        // Per-key reconcile (Phase 3.1, pending-6.1.0-poa.md), not
+        // hydrate-on-empty: a local completion record no longer skips the
+        // remote check outright, so a newer completion from another device
+        // (rare - chapterProgress is effectively monotonic, POA 3.2) still
+        // wins instead of being silently stuck behind a stale local row. A
+        // failed fetch (Phase 6) collapses to the same `null` as a
+        // genuinely absent remote row - never authoritative "empty" over
+        // an existing local one.
+        const remoteRow = remote.ok ? remote.data : null;
+        const winner = reconcileRow(local ?? null, remoteRow);
+        if (!winner) return;
+        const remoteWon = winner === remoteRow && winner !== local;
+        if (remoteWon) await db.chapterProgress.put(winner);
+        setPassedChapterIds((prev) => new Set(prev).add(chapter.id));
+        if (remoteWon) recordValidationPass(chapter.id);
+      },
+    );
     return () => {
       cancelled = true;
     };
+    // recordValidationPass is a stable zustand store action.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapter]);
   const currentGraphKey = useMemo(
     () => architectureGraphTopologyKey(toArchitectureGraph(nodes, edges)),
@@ -339,6 +401,15 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     const { evaluateChapter } = await import("@/engines/validation");
     const outcome = evaluateChapter(graph, chapter);
     const graphKey = architectureGraphTopologyKey(graph);
+    // The one cloud push a chapter's canvas gets (Phase 4.2,
+    // pending-6.1.0-poa.md) - Submit is the meaningful event, not the
+    // debounced autosave or an unmount. Local Dexie write first so the
+    // pushed state always matches what was actually submitted, even if the
+    // last debounced autosave hasn't landed yet.
+    const submittedSaveId = chapterSaveId(chapter.id);
+    void db.saves
+      .put({ id: submittedSaveId, updatedAt: Date.now(), nodes, edges, dirty: true, syncedAt: null })
+      .then(() => void syncSave(submittedSaveId, { nodes, edges }));
     setValidationOutcome(outcome);
     setValidatedGraphKey(graphKey);
     setLastValidationErrorCount(
@@ -347,13 +418,17 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     setSubmitOutcome(outcome);
     setSubmittedGraphKey(graphKey);
     if (outcome.passed) {
+      const progressRow: ChapterProgress = {
+        chapterId: chapter.id,
+        completedAt: Date.now(),
+        matchedBlueprintId: outcome.matchedBlueprintId,
+        dirty: true,
+        syncedAt: null,
+      };
       void db.chapterProgress
-        .put({
-          chapterId: chapter.id,
-          completedAt: Date.now(),
-          matchedBlueprintId: outcome.matchedBlueprintId,
-        })
+        .put(progressRow)
         .then(() => {
+          void syncChapterProgress(progressRow);
           setPassedChapterIds((prev) => new Set(prev).add(chapter.id));
           recordValidationPass(chapter.id);
           setPassedToastAt(Date.now());
@@ -387,8 +462,12 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     setLastValidationErrorCount(null);
     // Autosave re-writes the starter graph into this slot on the next
     // debounce; deleting first means a tab closed in between restores the
-    // starter graph rather than the discarded attempt.
+    // starter graph rather than the discarded attempt. Also deletes the
+    // cloud row (POA Phase 7, fixes audit S7) - chapters sync only on
+    // Submit (Phase 4.2), so a previously-submitted attempt would otherwise
+    // survive in Postgres and get pulled back on the next reconcile.
     void db.saves.delete(chapterSaveId(chapter.id));
+    void deleteSaveSync(chapterSaveId(chapter.id));
   };
 
   // Submit's pass is the only thing that paints every node green — a graph

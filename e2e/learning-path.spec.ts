@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { resetSlugs } from "./helpers";
 
 /**
  * End-to-end guard for the Learning Path (RELEASE_3.0.0_LEARNING_PATH.md
@@ -9,15 +10,23 @@ import { test, expect } from "@playwright/test";
  * can't — real navigation and persistence across a reload.
  */
 
-test("renders all 10 sections and 47 chapter rows for Building Blocks", async ({ page }) => {
+// The Learning Path's curriculum manifest is static (src/curriculum/manifest.ts) -
+// section/chapter counts render from it synchronously and don't depend on the
+// progress store's cloud hydrate, so these two counts are not racy the way the
+// manual-complete-toggle test below is (see pending-6.1.0-poa.md 9.2).
+const BITLY_SLUG = "rwe-t1-bitly-url-shortener";
+
+test("renders all 10 sections and 40 chapter rows for Building Blocks", async ({ page }) => {
   await page.goto("/building-blocks");
   await expect(page.getByRole("heading", { level: 1, name: "Building Blocks" })).toBeVisible();
 
   const sectionToggles = page.getByRole("button", { name: /^(part|group) /i });
   await expect(sectionToggles).toHaveCount(10);
 
+  // 40, not 47 - Release 6.1.0-alpha Phase 10 condensed Part 1 from 11
+  // chapters to 4 (47 - 11 + 4 = 40). See pending-6.1.0-poa.md Phase 10.
   const rows = page.getByRole("img", { name: /completed|in progress|not started/i });
-  await expect(rows).toHaveCount(47);
+  await expect(rows).toHaveCount(40);
 });
 
 test("a section collapses and expands", async ({ page }) => {
@@ -52,7 +61,18 @@ test("3.4 Load Balancer navigates to its chapter lesson (Chapter Reader) route",
 test("the manual complete toggle flips a row to COMPLETED, bumps overall percentage, and survives a reload", async ({
   page,
 }) => {
+  // Reset server state before asserting, not after - a prior run's dirty
+  // completion otherwise races the cloud hydrate on load (pending-6.1.0-poa.md
+  // 9.2): local starts empty ("0/32"), then the reconcile pull can flip it to
+  // "1/32" mid-test if this row was left completed by an earlier run.
+  await resetSlugs(page.request, [BITLY_SLUG]);
+
+  const hydrated = page.waitForResponse(
+    (r) => r.url().includes("/api/sync/curriculum-progress") && r.request().method() === "GET",
+  );
   await page.goto("/real-world-extraction");
+  await hydrated;
+
   const row = page.locator("li").filter({ hasText: "Bitly" });
   const toggle = row.getByRole("button", { name: /mark.*complete/i });
 

@@ -82,6 +82,16 @@ Bank sizes: chapter quizzes stay small (3-6 questions, drawn from or modeled on
 these banks); the banks below are section-level (10-14 each) and also back the
 optional Review affordance and RWE retrospective quizzes.
 
+**Condensed-chapter exception:** a chapter that deliberately condenses
+several prior source chapters into one (e.g. Building Blocks Part 1's
+1.1-1.3, each absorbing what used to be 3-5 separate chapters, regardless of
+whether the condensed chapter's own type is Process or Building Block)
+carries a proportionally larger quiz: 10-15 questions, with at least one
+question covering each absorbed topic, so compression doesn't also compress
+assessment coverage. This is scoped to condensed chapters specifically, not
+a blanket raise - an ordinary 3-question Part 3 block chapter is still
+correctly sized at 3-6.
+
 ## 3. Authoring rules
 
 - Prompt states a concrete situation in ≤4 sentences; the question is one sentence.

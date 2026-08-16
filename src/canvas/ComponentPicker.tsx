@@ -6,7 +6,8 @@ import { Flag, MessageSquare, Plus, Search, SquareDashedBottom } from "lucide-re
 import { componentRegistry } from "@/content/components/registry";
 import { toComponentDefinition, type CustomComponentRecord } from "@/content/components/custom";
 import type { ComponentCategory, ComponentDefinition } from "@/content/components/types";
-import { db } from "@/persistence/db";
+import { db, type CustomComponentRow } from "@/persistence/db";
+import { deleteCustomComponentSync, syncCustomComponent } from "@/persistence/cloud-sync";
 import { filterAndGroupComponents } from "./component-search";
 import { useCanvasStore } from "./store";
 import { useCustomComponentsStore } from "./custom-components-store";
@@ -329,13 +330,22 @@ export function ComponentPicker() {
   }, [isOpen, flatCount, activeIndex, filteredTools, flatComponentItems]);
 
   const handleSaveCustom = (record: CustomComponentRecord) => {
-    void db.customComponents.put(record);
+    const row: CustomComponentRow = { ...record, dirty: true, syncedAt: null };
+    void useCustomComponentsStore
+      .getState()
+      .hydrate()
+      .then(() => db.customComponents.put(row));
+    void syncCustomComponent(record);
     upsertCustomComponent(record);
     setModal(null);
   };
 
   const handleDeleteCustom = (record: CustomComponentRecord) => {
-    void db.customComponents.delete(record.id);
+    void useCustomComponentsStore
+      .getState()
+      .hydrate()
+      .then(() => db.customComponents.delete(record.id));
+    void deleteCustomComponentSync(record.id);
     deleteCustomComponent(record.id);
     setDeleteTarget(null);
   };

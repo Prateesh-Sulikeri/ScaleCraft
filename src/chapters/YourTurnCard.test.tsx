@@ -1,8 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { useAuth, useClerk } from "@clerk/nextjs";
 import { YourTurnCard } from "./YourTurnCard";
 import type { ChapterDefinition, QuizQuestion } from "@/content/chapters/types";
 import type { ExamAttempt } from "@/persistence/db";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/building-blocks/test-chapter/lesson",
+}));
 
 vi.mock("./exam/ExamShell", () => ({
   ExamShell: (props: { attemptNumber: number; onSubmitted: (a: ExamAttempt) => void; onExit: () => void }) => (
@@ -17,6 +22,8 @@ vi.mock("./exam/ExamShell", () => ({
             submittedAt: Date.now(),
             score: 100,
             answers: [],
+            dirty: false,
+            syncedAt: null,
           })
         }
       >
@@ -109,6 +116,8 @@ function attempt(overrides: Partial<ExamAttempt> = {}): ExamAttempt {
     submittedAt: Date.now(),
     score: 50,
     answers: [],
+    dirty: false,
+    syncedAt: null,
     ...overrides,
   };
 }
@@ -282,6 +291,77 @@ describe("YourTurnCard", () => {
 
       expect(screen.queryByTestId("exam-results")).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "View your result" })).toBeInTheDocument();
+    });
+  });
+
+  // Release 6.1.0-alpha Phase 11 (pending-6.1.0-poa.md) - the lesson reader
+  // hosting this card is public now. Signed out, "Take the quiz" and "Begin
+  // exercise" must show AuthPromptDialog instead of launching ExamShell /
+  // navigating, and only redirect to sign-in once the dialog is confirmed
+  // (11.5's "gate at the action").
+  describe("signed out", () => {
+    beforeEach(() => {
+      vi.mocked(useAuth).mockReturnValue({ isSignedIn: false } as ReturnType<typeof useAuth>);
+    });
+
+    afterEach(() => {
+      vi.mocked(useAuth).mockReset();
+      vi.mocked(useClerk).mockReset();
+    });
+
+    it("shows the auth prompt dialog instead of opening ExamShell when 'Take the quiz' is clicked", () => {
+      const redirectToSignIn = vi.fn();
+      vi.mocked(useClerk).mockReturnValue({ redirectToSignIn } as unknown as ReturnType<typeof useClerk>);
+
+      renderCard(makeChapter({ quiz: [makeQuestion()] }));
+      fireEvent.click(screen.getByRole("button", { name: "Take the quiz" }));
+
+      expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+      expect(redirectToSignIn).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("exam-shell")).not.toBeInTheDocument();
+    });
+
+    it("redirects to sign-in only after confirming the dialog from 'Take the quiz'", () => {
+      const redirectToSignIn = vi.fn();
+      vi.mocked(useClerk).mockReturnValue({ redirectToSignIn } as unknown as ReturnType<typeof useClerk>);
+
+      renderCard(makeChapter({ quiz: [makeQuestion()] }));
+      fireEvent.click(screen.getByRole("button", { name: "Take the quiz" }));
+      fireEvent.click(screen.getByRole("button", { name: "Sign in / sign up" }));
+
+      expect(redirectToSignIn).toHaveBeenCalledOnce();
+      expect(screen.queryByTestId("exam-shell")).not.toBeInTheDocument();
+    });
+
+    it("dismissing the dialog never redirects and never opens ExamShell", () => {
+      const redirectToSignIn = vi.fn();
+      vi.mocked(useClerk).mockReturnValue({ redirectToSignIn } as unknown as ReturnType<typeof useClerk>);
+
+      renderCard(makeChapter({ quiz: [makeQuestion()] }));
+      fireEvent.click(screen.getByRole("button", { name: "Take the quiz" }));
+      fireEvent.click(screen.getByRole("button", { name: "Not now" }));
+
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      expect(redirectToSignIn).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("exam-shell")).not.toBeInTheDocument();
+    });
+
+    it("renders the exercise CTA as a plain button, not a navigable link", () => {
+      renderCard(makeChapter({ quiz: undefined }));
+      expect(screen.queryByRole("link", { name: /begin exercise/i })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /begin exercise/i })).toBeInTheDocument();
+    });
+
+    it("redirects to sign-in only after confirming the dialog from 'Begin exercise'", () => {
+      const redirectToSignIn = vi.fn();
+      vi.mocked(useClerk).mockReturnValue({ redirectToSignIn } as unknown as ReturnType<typeof useClerk>);
+
+      renderCard(makeChapter({ quiz: undefined }));
+      fireEvent.click(screen.getByRole("button", { name: /begin exercise/i }));
+      expect(redirectToSignIn).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole("button", { name: "Sign in / sign up" }));
+      expect(redirectToSignIn).toHaveBeenCalledOnce();
     });
   });
 });
