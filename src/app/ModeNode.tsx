@@ -74,7 +74,7 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
   const Icon = modeIcon[mode];
   const router = useRouter();
   const [navigating, setNavigating] = useState(false);
-  const { isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
   const { requireAuth, dialog } = useRequireAuthAction();
 
   // Modifier/non-primary clicks (open in new tab, etc.) get the browser's
@@ -97,11 +97,22 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
   // complete, the exercise row in YourTurnCard.tsx), which shows
   // AuthPromptDialog first via useRequireAuthAction. Same treatment here:
   // a signed-out click never reaches the route guard, the dialog does.
+  //
+  // Gated on `isLoaded`, not just `isSignedIn` — Clerk's isSignedIn is
+  // `undefined` (not `false`) for a brief window right after a page load
+  // while the client SDK is still resolving the session, and a plain
+  // `!isSignedIn` check can't tell that apart from "genuinely signed out."
+  // A real user essentially never clicks in that window, but an automated
+  // click immediately after page.goto() can - a signed-in visitor would
+  // incorrectly see the sign-in prompt. While unresolved, falls through to
+  // the normal navigation instead of guessing; a truly signed-out visitor
+  // who slips through this narrow window still hits auth.protect()'s
+  // existing hard-redirect backstop, same as before this dialog existed.
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (!href || mode !== "sandbox") return;
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    if (!isSignedIn) {
+    if (isLoaded && !isSignedIn) {
       requireAuth(() => {});
       return;
     }

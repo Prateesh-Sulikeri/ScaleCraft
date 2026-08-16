@@ -98,7 +98,7 @@ describe("ModeNode", () => {
   // bounce with no context, unlike every other progress-writing action in
   // the app.
   it("shows the sign-in prompt instead of navigating when signed out", () => {
-    vi.mocked(useAuth).mockReturnValue({ isSignedIn: false } as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: false } as ReturnType<typeof useAuth>);
     render(<ModeNode {...makeNodeProps({ mode: "sandbox", href: "/sandbox" })} />);
     const link = screen.getByRole("link", { name: /Sandbox/ });
 
@@ -116,7 +116,7 @@ describe("ModeNode", () => {
   // the dialog it had just closed. The portal now renders as a sibling of
   // Link instead.
   it("closes the sign-in prompt on 'Not now' and does not reopen it", () => {
-    vi.mocked(useAuth).mockReturnValue({ isSignedIn: false } as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: false } as ReturnType<typeof useAuth>);
     render(<ModeNode {...makeNodeProps({ mode: "sandbox", href: "/sandbox" })} />);
     const link = screen.getByRole("link", { name: /Sandbox/ });
 
@@ -127,5 +127,24 @@ describe("ModeNode", () => {
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(push).not.toHaveBeenCalled();
+  });
+
+  // Regression (found via a real CI e2e failure, not speculative): Clerk's
+  // isSignedIn reads `undefined`, not `false`, for a brief window right
+  // after a page load while the client SDK is still resolving the session -
+  // a signed-in visitor whose click lands in that window must not see the
+  // sign-in prompt just because isSignedIn hasn't resolved to `true` yet.
+  it("falls through to normal navigation while auth is still loading, rather than assuming signed out", () => {
+    vi.useFakeTimers();
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: false, isSignedIn: undefined } as ReturnType<typeof useAuth>);
+    render(<ModeNode {...makeNodeProps({ mode: "sandbox", href: "/sandbox" })} />);
+    const link = screen.getByRole("link", { name: /Sandbox/ });
+
+    fireEvent.click(link, { button: 0 });
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getByText(/Crafting your Sandbox/)).toBeInTheDocument();
+    vi.advanceTimersByTime(1250);
+    expect(push).toHaveBeenCalledWith("/sandbox");
   });
 });

@@ -14,6 +14,14 @@ test("switching modes via client-side navigation never leaks canvas content betw
 }) => {
   await page.goto("/");
 
+  // A leftover cloud save from another spec (e.g. multi-device-sync.spec.ts's
+  // sandbox test, which deletes a node and saves 3) would otherwise load
+  // instead of the 4-node seed graph this test asserts against - reconcile
+  // pulls the real saved state now (Phase 3.4), not a fresh local-only Dexie
+  // per run. Deleted after the page load above so this request rides an
+  // already-refreshed Clerk session, not a possibly-stale one.
+  await page.request.delete("/api/sync/saves?scopeId=sandbox");
+
   await page.getByRole("link", { name: /Sandbox/ }).click();
   await page.waitForURL("**/sandbox");
   await expect(page.locator(".react-flow__node")).toHaveCount(4);

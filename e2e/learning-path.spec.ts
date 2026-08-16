@@ -61,6 +61,15 @@ test("3.4 Load Balancer navigates to its chapter lesson (Chapter Reader) route",
 test("the manual complete toggle flips a row to COMPLETED, bumps overall percentage, and survives a reload", async ({
   page,
 }) => {
+  // Load a page before the bare API call below - global.setup.ts's
+  // storageState snapshot is captured once at the very start of the whole
+  // suite, and page.request replays those cookies as-is with no refresh of
+  // its own. A page load lets Clerk's client SDK (mounted on every route via
+  // the root layout) refresh the session first; a bare API call this far
+  // into a multi-minute run can otherwise hit a session that's expired
+  // since that snapshot was taken and 401.
+  await page.goto("/real-world-extraction");
+
   // Reset server state before asserting, not after - a prior run's dirty
   // completion otherwise races the cloud hydrate on load (pending-6.1.0-poa.md
   // 9.2): local starts empty ("0/32"), then the reconcile pull can flip it to
@@ -70,7 +79,7 @@ test("the manual complete toggle flips a row to COMPLETED, bumps overall percent
   const hydrated = page.waitForResponse(
     (r) => r.url().includes("/api/sync/curriculum-progress") && r.request().method() === "GET",
   );
-  await page.goto("/real-world-extraction");
+  await page.reload();
   await hydrated;
 
   const row = page.locator("li").filter({ hasText: "Bitly" });
