@@ -6,6 +6,7 @@ import { preloadChapterLesson } from "@/content/content-service";
 import { ChapterStatusIcon } from "./ChapterStatusIcon";
 import { DifficultyDots } from "./DifficultyDots";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
+import { useRequireAuthAction } from "@/auth/useRequireAuthAction";
 import type { CourseId, CurriculumChapter, ChapterStatus } from "@/curriculum/types";
 
 type ChapterRowProps = {
@@ -23,6 +24,7 @@ type ChapterRowProps = {
 export function ChapterRow({ entry, courseId, status, completedByValidation }: ChapterRowProps) {
   const setManualComplete = useCurriculumProgressStore((s) => s.setManualComplete);
   const resetChapter = useCurriculumProgressStore((s) => s.resetChapter);
+  const { requireAuth, dialog } = useRequireAuthAction();
   const isAuthored = entry.chapterDefinitionId !== null;
   const isCompleted = status === "COMPLETED";
   // A checkpoint is a blank-canvas re-demonstration gating the next group,
@@ -40,11 +42,13 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (completedByValidation) {
-          void resetChapter(entry.slug, entry.chapterDefinitionId);
-        } else {
-          void setManualComplete(entry.slug, !isCompleted);
-        }
+        requireAuth(() => {
+          if (completedByValidation) {
+            void resetChapter(entry.slug, entry.chapterDefinitionId);
+          } else {
+            void setManualComplete(entry.slug, !isCompleted);
+          }
+        });
       }}
       aria-label={
         completedByValidation
@@ -120,6 +124,7 @@ export function ChapterRow({ entry, courseId, status, completedByValidation }: C
           &rarr;
         </span>
       )}
+      {dialog}
     </div>
   );
 }

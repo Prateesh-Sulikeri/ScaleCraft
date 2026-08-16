@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { CurriculumSectionList } from "./CurriculumSectionList";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
@@ -28,10 +29,16 @@ export function ReaderSidebar({ course, chapterSlug }: ReaderSidebarProps) {
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
   const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
+    // Phase 11 (pending-6.1.0-poa.md) — the reader is public now. Signed-out
+    // visitors never hydrate: no anonymous local writes, no point 401ing
+    // against /api/sync/*. The store's untouched empty Set/Map already
+    // renders every row as NOT_STARTED, the correct signed-out shape.
+    if (!isSignedIn) return;
     void hydrate();
-  }, [hydrate]);
+  }, [hydrate, isSignedIn]);
 
   const inputs: ProgressInputs = useMemo(
     () => ({ validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition }),

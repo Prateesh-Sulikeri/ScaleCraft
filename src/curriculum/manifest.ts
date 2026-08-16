@@ -8,8 +8,10 @@ import type { Course, CourseId } from "./types";
  * (see src/persistence/db.ts's CurriculumProgress), so a rename after
  * release orphans progress rows and breaks bookmarks.
  *
- * This is the v3 curriculum (79 entries: 47 Building Blocks + 32 Real World
- * Extraction), migrated from the v1 26+5 map per §21.4. Only two entries
+ * This is the v3 curriculum (72 entries: 40 Building Blocks + 32 Real World
+ * Extraction, since Release 6.1.0-alpha Phase 10 condensed Part 1 from 11
+ * chapters to 4 - was 79/47 before), migrated from the v1 26+5 map per
+ * §21.4. Only two entries
  * have a real `chapterDefinitionId` in 3.0.0 — every other entry is a real
  * curriculum row with no authored lesson behind it yet
  * (src/content/chapters/index.ts's chapterRegistry stays throwaway/dummy
@@ -87,129 +89,53 @@ export const courses: Record<CourseId, Course> = {
         summary:
           "The defining structural bet of the curriculum: the design method is taught on tiny, " +
           "familiar systems using only the three primitive components, so the method itself " +
-          "is the only new material.",
+          "is the only new material. Condensed from 11 chapters to 4 (3 mandatory + 1 optional) " +
+          "in Release 6.1.0-alpha Phase 10 - see .claude/docs/pending-6.1.0-poa.md.",
         chapters: [
           {
-            slug: "1-1-understanding-the-problem",
+            slug: "1-1-framing-the-problem",
             number: "1.1",
-            title: "Understanding the Problem",
+            title: "Framing the Problem",
             kind: "chapter",
-            chapterDefinitionId: "bb-1-1-understanding-the-problem",
-            estimatedMinutes: 20,
+            chapterDefinitionId: "bb-1-1-framing-the-problem",
+            estimatedMinutes: 15,
             difficulty: "foundational",
             prerequisiteSlugs: ["0-4-the-system-design-lifecycle"],
             domain: null,
           },
           {
-            slug: "1-2-functional-requirements",
+            slug: "1-2-designing-the-system",
             number: "1.2",
-            title: "Functional Requirements",
+            title: "Designing the System",
             kind: "chapter",
-            chapterDefinitionId: "bb-1-2-functional-requirements",
+            chapterDefinitionId: "bb-1-2-designing-the-system",
+            estimatedMinutes: 25,
+            difficulty: "foundational",
+            prerequisiteSlugs: ["1-1-framing-the-problem"],
+            domain: null,
+          },
+          {
+            slug: "1-3-defending-the-design",
+            number: "1.3",
+            title: "Defending the Design",
+            kind: "chapter",
+            chapterDefinitionId: "bb-1-3-defending-the-design",
             estimatedMinutes: 15,
             difficulty: "foundational",
-            prerequisiteSlugs: ["1-1-understanding-the-problem"],
+            prerequisiteSlugs: ["1-2-designing-the-system"],
             domain: null,
           },
           {
-            slug: "1-3-non-functional-requirements",
-            number: "1.3",
-            title: "Non-functional Requirements",
-            kind: "chapter",
-            chapterDefinitionId: "bb-1-3-non-functional-requirements",
-            estimatedMinutes: 20,
-            difficulty: "foundational",
-            prerequisiteSlugs: ["1-2-functional-requirements"],
-            domain: null,
-          },
-          {
-            slug: "1-4-estimating-scale",
+            slug: "1-4-driving-the-interview",
             number: "1.4",
-            title: "Estimating Scale",
+            title: "Driving the Interview",
             kind: "chapter",
-            chapterDefinitionId: "bb-1-4-estimating-scale",
-            estimatedMinutes: 25,
-            difficulty: "foundational",
-            prerequisiteSlugs: ["1-3-non-functional-requirements"],
-            domain: null,
-          },
-          {
-            slug: "1-5-numbers-every-engineer-should-know",
-            number: "1.5",
-            title: "Numbers Every Engineer Should Know",
-            kind: "chapter",
-            chapterDefinitionId: "bb-1-5-numbers-every-engineer-should-know",
-            estimatedMinutes: 20,
-            difficulty: "foundational",
-            prerequisiteSlugs: ["1-4-estimating-scale"],
-            domain: null,
-          },
-          {
-            slug: "1-6-drawing-the-first-architecture",
-            number: "1.6",
-            title: "Drawing the First Architecture",
-            kind: "chapter",
-            chapterDefinitionId: "bb-1-6-drawing-the-first-architecture",
+            chapterDefinitionId: "bb-1-4-driving-the-interview",
             estimatedMinutes: 30,
             difficulty: "foundational",
-            prerequisiteSlugs: ["1-5-numbers-every-engineer-should-know"],
-            domain: null,
-          },
-          {
-            slug: "1-7-identifying-bottlenecks",
-            number: "1.7",
-            title: "Identifying Bottlenecks",
-            kind: "chapter",
-            chapterDefinitionId: "bb-1-7-identifying-bottlenecks",
-            estimatedMinutes: 25,
-            difficulty: "foundational",
-            prerequisiteSlugs: ["1-6-drawing-the-first-architecture"],
-            domain: null,
-          },
-          {
-            slug: "1-8-engineering-trade-offs",
-            number: "1.8",
-            title: "Engineering Trade-offs",
-            kind: "chapter",
-            chapterDefinitionId: "bb-1-8-engineering-trade-offs",
-            estimatedMinutes: 20,
-            difficulty: "foundational",
-            prerequisiteSlugs: ["1-7-identifying-bottlenecks"],
-            domain: null,
-          },
-          {
-            slug: "1-9-deep-dive-methodology",
-            number: "1.9",
-            title: "Deep Dive Methodology",
-            kind: "chapter",
-            chapterDefinitionId: "bb-1-9-deep-dive-methodology",
-            estimatedMinutes: 20,
-            difficulty: "foundational",
-            prerequisiteSlugs: ["1-8-engineering-trade-offs"],
-            domain: null,
-          },
-          {
-            slug: "1-10-communicating-and-defending-a-design",
-            number: "1.10",
-            title: "Communicating & Defending a Design",
-            kind: "chapter",
-            chapterDefinitionId: "bb-1-10-communicating-and-defending-a-design",
-            estimatedMinutes: 20,
-            difficulty: "foundational",
-            prerequisiteSlugs: ["1-9-deep-dive-methodology"],
-            domain: null,
-          },
-          {
-            slug: "1-11-driving-a-system-design-interview",
-            number: "1.11",
-            title: "Driving a System Design Interview",
-            kind: "chapter",
-            chapterDefinitionId: "bb-1-11-driving-a-system-design-interview",
-            estimatedMinutes: 30,
-            difficulty: "foundational",
-            // §17: optional chapter, gates nothing - nothing lists this slug
-            // as a prerequisite. Part 2 hangs off 1.10, not off this one.
-            prerequisiteSlugs: ["1-10-communicating-and-defending-a-design"],
+            // Optional chapter, gates nothing - nothing lists this slug as a
+            // prerequisite. 2.1 hangs off 1.3 directly.
+            prerequisiteSlugs: ["1-3-defending-the-design"],
             domain: null,
           },
         ],
@@ -230,8 +156,10 @@ export const courses: Record<CourseId, Course> = {
             chapterDefinitionId: null,
             estimatedMinutes: 20,
             difficulty: "foundational",
-            // §17: hangs off 1.10 - 1.11 is optional and gates nothing.
-            prerequisiteSlugs: ["1-10-communicating-and-defending-a-design"],
+            // §17: hangs off 1.3 - 1.4 is optional and gates nothing.
+            // Repointed from old "1-10-communicating-and-defending-a-design"
+            // in Phase 10's Part 1 condense (POA §10.5).
+            prerequisiteSlugs: ["1-3-defending-the-design"],
             domain: null,
           },
           {
@@ -314,9 +242,11 @@ export const courses: Record<CourseId, Course> = {
             // this chapter's real curriculum-order prerequisite is 3-3-
             // reverse-proxy, but Group A (3.1-3.3) isn't authored yet - this
             // chapter was pulled forward standalone. Points at the actual
-            // authored frontier (1.9) instead so the chapter is reachable at
-            // all. Revert to ["3-3-reverse-proxy"] once Group A lands.
-            prerequisiteSlugs: ["1-9-deep-dive-methodology"],
+            // authored frontier (new 1.2, which now carries the deep-dive
+            // methodology old 1.9 taught, per Phase 10's Part 1 condense)
+            // instead so the chapter is reachable at all. Revert to
+            // ["3-3-reverse-proxy"] once Group A lands.
+            prerequisiteSlugs: ["1-2-designing-the-system"],
             domain: null,
           },
           {

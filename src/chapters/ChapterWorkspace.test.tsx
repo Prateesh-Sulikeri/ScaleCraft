@@ -339,6 +339,8 @@ describe("ChapterWorkspace", () => {
         },
       ],
       edges: [],
+      dirty: false,
+      syncedAt: null,
     });
 
     await renderWorkspace("slug-one");

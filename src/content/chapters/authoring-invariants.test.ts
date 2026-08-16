@@ -115,11 +115,28 @@ describe("authored chapter invariants", () => {
 describe("authored quiz invariants", () => {
   const quizzed = authored.filter((c) => c.quiz && c.quiz.length > 0);
 
-  it("chapter quizzes hold 3-6 questions", () => {
+  // QUIZ_FRAMEWORK.md §2's condensed-chapter exception (added Release
+  // 6.1.0-alpha Phase 10): a chapter that deliberately condenses several
+  // prior source chapters into one carries 10-15 questions instead of the
+  // ordinary 3-6, so compression doesn't also compress assessment coverage.
+  // Explicit allow-list, not a heuristic, so a chapter can't silently drift
+  // outside 3-6 without a deliberate addition here.
+  const CONDENSED_CHAPTER_IDS = new Set([
+    "bb-1-1-framing-the-problem",
+    "bb-1-2-designing-the-system",
+    "bb-1-3-defending-the-design",
+  ]);
+
+  it("chapter quizzes hold 3-6 questions, or 10-15 for a declared condensed chapter", () => {
     for (const chapter of quizzed) {
       const count = chapter.quiz?.length ?? 0;
-      expect(count, `${chapter.id} has ${count} questions, outside QUIZ_FRAMEWORK §2's 3-6`).toBeGreaterThanOrEqual(3);
-      expect(count, `${chapter.id} has ${count} questions, outside QUIZ_FRAMEWORK §2's 3-6`).toBeLessThanOrEqual(6);
+      if (CONDENSED_CHAPTER_IDS.has(chapter.id)) {
+        expect(count, `${chapter.id} has ${count} questions, outside the condensed-chapter 10-15`).toBeGreaterThanOrEqual(10);
+        expect(count, `${chapter.id} has ${count} questions, outside the condensed-chapter 10-15`).toBeLessThanOrEqual(15);
+      } else {
+        expect(count, `${chapter.id} has ${count} questions, outside QUIZ_FRAMEWORK §2's 3-6`).toBeGreaterThanOrEqual(3);
+        expect(count, `${chapter.id} has ${count} questions, outside QUIZ_FRAMEWORK §2's 3-6`).toBeLessThanOrEqual(6);
+      }
     }
   });
 

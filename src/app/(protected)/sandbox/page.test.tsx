@@ -197,8 +197,12 @@ describe("SandboxPage", () => {
   it("running Validate against the seed graph reports zero violations and clears staleness", async () => {
     await renderSandbox();
     fireEvent.click(screen.getByTestId("validate-btn"));
+    // Both assertions wait rather than the second reading synchronously
+    // right after the first resolves — violations and checkedGraphKey are
+    // set via two separate setState calls in handleValidate, so a loaded
+    // test run can observe the first commit before the second lands.
     await waitFor(() => expect(screen.getByTestId("violations-count")).toHaveTextContent("0"));
-    expect(screen.getByTestId("is-stale")).toHaveTextContent("false");
+    await waitFor(() => expect(screen.getByTestId("is-stale")).toHaveTextContent("false"));
   });
 
   it("marks the result stale once the graph changes after a Validate run", async () => {

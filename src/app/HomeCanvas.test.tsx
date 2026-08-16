@@ -7,6 +7,9 @@ import { db } from "@/persistence/db";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+  // ModeNode's Sandbox auth gate (useRequireAuthAction) needs this to build
+  // the sign-in redirect's return URL.
+  usePathname: () => "/",
 }));
 
 beforeEach(async () => {
@@ -98,7 +101,7 @@ describe("HomeCanvas", () => {
     render(<HomeCanvas />);
     // Default store state (before hydrate() resolves) is already the
     // correct "not started" shape — no separate loading state to wait out.
-    expect(await screen.findByText("0 / 47 chapters")).toBeInTheDocument();
+    expect(await screen.findByText("0 / 40 chapters")).toBeInTheDocument();
     expect(await screen.findByText("0 / 32 chapters")).toBeInTheDocument();
     expect(screen.queryByText(/^0 \/ 0 chapters/)).not.toBeInTheDocument();
   });
@@ -108,6 +111,8 @@ describe("HomeCanvas", () => {
       chapterId: "bb-3-4-load-balancer",
       completedAt: Date.now(),
       matchedBlueprintId: null,
+      dirty: false,
+      syncedAt: null,
     });
     // bb-3-4-load-balancer has a quiz, so COMPLETED also needs a passing
     // exam attempt (see deriveStatus in curriculum/progress.ts) - a
@@ -119,9 +124,11 @@ describe("HomeCanvas", () => {
       submittedAt: Date.now(),
       score: 100,
       answers: [],
+      dirty: false,
+      syncedAt: null,
     });
     render(<HomeCanvas />);
-    expect(await screen.findByText("1 / 47 chapters")).toBeInTheDocument();
+    expect(await screen.findByText("1 / 40 chapters")).toBeInTheDocument();
     expect(await screen.findByText("in progress")).toBeInTheDocument();
   });
 });

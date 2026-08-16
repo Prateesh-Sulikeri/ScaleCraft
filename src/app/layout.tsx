@@ -1,10 +1,15 @@
 import { ClerkProvider } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
 import { ScreenSizeGate } from "./ScreenSizeGate";
+import { LocalStateGate } from "@/persistence/LocalStateGate";
+import { ResetOnSignOut } from "@/persistence/ResetOnSignOut";
+import { FlushDirtyRows } from "@/persistence/FlushDirtyRows";
+import { RefreshFromCloud } from "@/persistence/RefreshFromCloud";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -21,11 +26,15 @@ export const metadata: Metadata = {
   description: "An interactive system architecture laboratory.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Not auth.protect() — root wraps every route, public and gated alike
+  // (release 6.1.0-alpha Phase 11, pending-6.1.0-poa.md). A null userId is
+  // the normal signed-out case, not an error to redirect on.
+  const { userId } = await auth();
   return (
     <html
       lang="en"
@@ -46,7 +55,13 @@ export default function RootLayout({
       <body className="flex h-full flex-col overflow-hidden">
         <ClerkProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} themes={["dark", "light"]}>
-          <ScreenSizeGate>{children}</ScreenSizeGate>
+          <ScreenSizeGate>
+            <LocalStateGate userId={userId} />
+            <ResetOnSignOut />
+            <FlushDirtyRows />
+            <RefreshFromCloud />
+            {children}
+          </ScreenSizeGate>
           </ThemeProvider>
         </ClerkProvider>
       </body>

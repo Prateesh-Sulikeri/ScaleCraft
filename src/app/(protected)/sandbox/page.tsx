@@ -27,6 +27,9 @@ import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
+import { hydrateSave, syncSave } from "@/persistence/cloud-sync";
+import { reconcileRow } from "@/persistence/reconcile";
+import { useSyncStatusStore } from "@/persistence/sync-status";
 
 // Starts minimized (see canvas/store.tsx's docsPanel default), so most
 // loads never need it - keeps its markdown-rendering weight out of the
@@ -88,7 +91,6 @@ function SandboxPageContent() {
   const edges = useCanvasStore((s) => s.edges);
   const loadGraph = useCanvasStore((s) => s.loadGraph);
   const loadCanvasState = useCanvasStore((s) => s.loadCanvasState);
-  const loadCustomComponents = useCustomComponentsStore((s) => s.loadCustomComponents);
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
   const canUndo = useCanvasStore((s) => s.past.length > 0);
@@ -115,12 +117,37 @@ function SandboxPageContent() {
 
   // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
   // the seed demo graph — this is what makes a refresh not lose work.
+  // Per-scope reconcile (Phase 3.1, pending-6.1.0-poa.md), not
+  // hydrate-on-empty: a local save no longer skips the remote check, so a
+  // newer save from another device wins even when this device has one too.
+  // Remote now carries raw canvasState (Phase 3.4), so a remote win always
+  // goes through loadCanvasState, same as local — zones/comments/Start
+  // markers survive a cross-device restore instead of the old
+  // ArchitectureGraph round-trip silently dropping them.
   useEffect(() => {
     if (storeApi.getState().nodes.length > 0) return;
-    db.saves.get(SANDBOX_SAVE_ID).then((save) => {
+    Promise.all([db.saves.get(SANDBOX_SAVE_ID), hydrateSave(SANDBOX_SAVE_ID)]).then(([local, remote]) => {
       if (storeApi.getState().nodes.length > 0) return;
-      if (save) {
-        loadCanvasState(save.nodes, save.edges);
+      // A failed fetch (remote.ok false) collapses to the same `null` as a
+      // genuinely absent save (Phase 6, pending-6.1.0-poa.md) - either way
+      // reconcileRow falls back to whatever's local, never treating a
+      // failed fetch as authoritative "remote is empty."
+      const remoteAsSave =
+        remote.ok && remote.data
+          ? {
+              id: SANDBOX_SAVE_ID,
+              updatedAt: remote.data.updatedAt,
+              nodes: remote.data.nodes,
+              edges: remote.data.edges,
+              syncedAt: remote.data.updatedAt,
+              dirty: false,
+            }
+          : null;
+      const { result: winner, discarded } = reconcileRow(local ?? null, remoteAsSave);
+      if (discarded) useSyncStatusStore.getState().recordDiscarded(1);
+      if (winner) {
+        if (winner !== local) void db.saves.put(winner);
+        loadCanvasState(winner.nodes, winner.edges);
       } else {
         loadGraph(seedGraph);
       }
@@ -133,10 +160,13 @@ function SandboxPageContent() {
 
   // Custom components (see CreateComponentModal.tsx) are separate from the
   // canvas save above — they're registry entries, not canvas state, so this
-  // loads regardless of whether a save exists.
+  // loads regardless of whether a save exists. Reconciles against the cloud
+  // every load (Phase 3, pending-6.1.0-poa.md), not just when the local
+  // table is empty — the store's own hydrate() owns the merge (audit S9:
+  // this used to be Sandbox-only, so a session that never visited Sandbox
+  // never reconciled customComponents at all).
   useEffect(() => {
-    db.customComponents.toArray().then(loadCustomComponents);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void useCustomComponentsStore.getState().hydrate();
   }, []);
 
   // Autosave-on-edit (MILESTONES.md #9) — fires once the graph stops
@@ -154,12 +184,16 @@ function SandboxPageContent() {
   // CanvasStoreProvider) and torn down on unmount — without this, navigating
   // away without an explicit Save would silently lose in-progress edits
   // instead of just fixing the cross-mode leak this store split was for.
-  // Mirrors the Save button's own db.saves.put shape exactly.
+  // Mirrors the Save button's own db.saves.put shape exactly. Also pushes to
+  // the cloud (Phase 4.2, pending-6.1.0-poa.md, fixes audit S8) - Sandbox has
+  // no Submit, so unmount is one of its two sync triggers alongside the
+  // explicit Save button/Ctrl+S.
   useEffect(() => {
     return () => {
       if (!hasLoadedInitialStateRef.current) return;
       const { nodes, edges } = storeApi.getState();
-      void db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges });
+      void db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges, dirty: true, syncedAt: null });
+      void syncSave(SANDBOX_SAVE_ID, { nodes, edges });
     };
   }, [storeApi]);
 

@@ -1,18 +1,19 @@
 import "fake-indexeddb/auto";
 import Dexie from "dexie";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   db,
   ScaleCraftDB,
   SANDBOX_SAVE_ID,
+  reconcileLocalStateForUser,
   type CanvasSave,
   type ChapterProgress,
   type CurriculumProgress,
+  type CustomComponentRow,
   type DeepCheckSession,
   type ExamAttempt,
 } from "./db";
 import type { ComponentNodeType, ArchitectureEdgeType } from "@/canvas/types";
-import type { CustomComponentRecord } from "@/content/components/custom";
 
 describe("persistence db", () => {
   it("round-trips a canvas save through IndexedDB", async () => {
@@ -20,7 +21,7 @@ describe("persistence db", () => {
       { id: "n1", type: "component", position: { x: 0, y: 0 }, data: { componentId: "client", config: {} } },
     ];
     const edges: ArchitectureEdgeType[] = [{ id: "e1", source: "n1", target: "n1" }];
-    const save: CanvasSave = { id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges };
+    const save: CanvasSave = { id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges, dirty: false, syncedAt: null };
 
     await db.saves.put(save);
     const restored = await db.saves.get(SANDBOX_SAVE_ID);
@@ -29,7 +30,7 @@ describe("persistence db", () => {
   });
 
   it("round-trips a custom component record through IndexedDB (schema v2)", async () => {
-    const record: CustomComponentRecord = {
+    const record: CustomComponentRow = {
       id: "custom-1",
       category: "networking",
       label: "Rate Limiter",
@@ -48,6 +49,8 @@ describe("persistence db", () => {
           options: ["token-bucket", "sliding-window"],
         },
       ],
+      dirty: false,
+      syncedAt: null,
     };
 
     await db.customComponents.put(record);
@@ -61,6 +64,8 @@ describe("persistence db", () => {
       chapterId: "ch-1",
       completedAt: Date.now(),
       matchedBlueprintId: "cache-aside",
+      dirty: false,
+      syncedAt: null,
     };
 
     await db.chapterProgress.put(progress);
@@ -75,9 +80,12 @@ describe("persistence db", () => {
 
   it("round-trips a deepCheckSession through IndexedDB with an auto-assigned id (schema v5)", async () => {
     const session: DeepCheckSession = {
+      syncId: "sync-1",
       saveId: SANDBOX_SAVE_ID,
       createdAt: Date.now(),
       critique: { summary: "s", sections: [], tradeoffs: [] },
+      dirty: false,
+      syncedAt: null,
     };
 
     const id = await db.deepCheckSessions.add(session);
@@ -111,6 +119,8 @@ describe("persistence db", () => {
       slug: "1-2-load-balancing",
       manuallyCompletedAt: null,
       lastVisitedAt: Date.now(),
+      dirty: false,
+      syncedAt: null,
     };
 
     await db.curriculumProgress.put(progress);
@@ -130,6 +140,8 @@ describe("persistence db", () => {
       submittedAt: Date.now(),
       score: 100,
       answers: [{ questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true }],
+      dirty: false,
+      syncedAt: null,
     };
 
     await db.examAttempts.put(attempt);
@@ -179,7 +191,14 @@ describe("scalecraft db v6 migration (aiSettings -> aiProfiles)", () => {
     }
   }
 
-  it("migrates a real configured aiSettings row into the first profile, and activates it", async () => {
+  // The v6 upgrade callback used to be observable end to end: a configured
+  // aiSettings row became the user's first profile. v10's reset (see db.ts)
+  // now clears every table on the way past, so a v5 install opened at the
+  // current schema lands empty no matter what it held. What still has to hold
+  // is that the whole v1->v10 chain runs without throwing and that the dropped
+  // store is really gone — the v6 callback's own logic is exercised on the way
+  // through, it just has no surviving output. See pending-persistence-audit.md.
+  it("runs the v6 aiSettings upgrade without throwing, then clears it at v10", async () => {
     await withFreshDbName(async (name) => {
       const legacy = legacyV5Schema(name);
       await legacy.open();
@@ -198,22 +217,10 @@ describe("scalecraft db v6 migration (aiSettings -> aiProfiles)", () => {
       const upgraded = new ScaleCraftDB(name);
       await upgraded.open();
 
-      const profiles = await upgraded.aiProfiles.toArray();
-      expect(profiles).toHaveLength(1);
-      expect(profiles[0]).toMatchObject({
-        name: "Default",
-        providerId: "xai",
-        model: "grok-4",
-        apiKey: "sk-legacy",
-        depth: "deep",
-        tone: "encouraging",
-        level: "advanced",
-      });
-      expect(profiles[0].id).toBeTruthy();
-      expect(profiles[0].createdAt).toBeTypeOf("number");
-
-      const active = await upgraded.aiActiveProfile.get("default");
-      expect(active?.profileId).toBe(profiles[0].id);
+      // The legacy API key must not survive into the reset app — it is exactly
+      // the value the reset exists to clear off shared browsers.
+      expect(await upgraded.aiProfiles.toArray()).toEqual([]);
+      expect(await upgraded.aiActiveProfile.get("default")).toBeUndefined();
 
       // The dropped store is really gone, not just unused.
       expect((upgraded as unknown as Record<string, unknown>).aiSettings).toBeUndefined();
@@ -301,11 +308,13 @@ describe("scalecraft db v7 migration (adds curriculumProgress)", () => {
     }
   }
 
-  it("opens a v6 database at v7 with chapterProgress rows intact and curriculumProgress present and empty", async () => {
+  it("opens a v6 database at the current schema with every store present and cleared by v10", async () => {
     await withFreshDbName(async (name) => {
       const legacy = legacyV6Schema(name);
       await legacy.open();
-      const existingProgress: ChapterProgress = {
+      // Untyped on purpose - a v6-era row predates SyncMeta entirely, and
+      // legacy.table() is an untyped Dexie.Table anyway.
+      const existingProgress = {
         chapterId: "bb-dummy-1",
         completedAt: Date.now(),
         matchedBlueprintId: null,
@@ -316,7 +325,8 @@ describe("scalecraft db v7 migration (adds curriculumProgress)", () => {
       const upgraded = new ScaleCraftDB(name);
       await upgraded.open();
 
-      expect(await upgraded.chapterProgress.get("bb-dummy-1")).toEqual(existingProgress);
+      // Was "rows intact" before v10's reset landed.
+      expect(await upgraded.chapterProgress.toArray()).toEqual([]);
       expect(await upgraded.curriculumProgress.toArray()).toEqual([]);
 
       upgraded.close();
@@ -385,11 +395,13 @@ describe("scalecraft db v9 migration (quizProgress -> examAttempts)", () => {
     }
   }
 
-  it("opens a v8 database at v9 with curriculumProgress rows intact, quizProgress gone, and examAttempts present and empty", async () => {
+  it("opens a v8 database at the current schema with quizProgress gone and everything cleared by v10", async () => {
     await withFreshDbName(async (name) => {
       const legacy = legacyV8Schema(name);
       await legacy.open();
-      const existingProgress: CurriculumProgress = {
+      // Untyped on purpose - a v8-era row predates SyncMeta entirely, and
+      // legacy.table() is an untyped Dexie.Table anyway.
+      const existingProgress = {
         slug: "1-2-load-balancing",
         manuallyCompletedAt: null,
         lastVisitedAt: Date.now(),
@@ -405,11 +417,205 @@ describe("scalecraft db v9 migration (quizProgress -> examAttempts)", () => {
       const upgraded = new ScaleCraftDB(name);
       await upgraded.open();
 
-      expect(await upgraded.curriculumProgress.get("1-2-load-balancing")).toEqual(existingProgress);
+      // Was "rows intact" before v10's reset landed.
+      expect(await upgraded.curriculumProgress.toArray()).toEqual([]);
       expect(await upgraded.examAttempts.toArray()).toEqual([]);
       expect((upgraded as unknown as Record<string, unknown>).quizProgress).toBeUndefined();
 
       upgraded.close();
     });
+  });
+});
+
+/**
+ * The 6.1.0 one-time reset (db.ts's version(10)). Pre-6.1.0 local data was
+ * written with no account isolation at all, so on a shared browser it is a mix
+ * of two users' rows with no way to tell them apart after the fact — see
+ * .claude/docs/pending-persistence-audit.md S2/S3. Every table goes, including
+ * the never-synced aiProfiles, because that one holds the AI provider API key.
+ *
+ * Asserted against a v9 install specifically: that is the version real users
+ * are on going into this release.
+ */
+describe("scalecraft db v10 reset (6.1.0 one-time clear)", () => {
+  function legacyV9Schema(name: string): Dexie {
+    const legacy = new Dexie(name);
+    legacy.version(9).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt]",
+      curriculumProgress: "slug",
+      examAttempts: "[chapterDefinitionId+attemptNumber], chapterDefinitionId",
+    });
+    return legacy;
+  }
+
+  it("clears every table, including the local-only AI profile holding the API key", async () => {
+    const name = `scalecraft-v10-reset-test-${crypto.randomUUID()}`;
+    try {
+      const legacy = legacyV9Schema(name);
+      await legacy.open();
+      await Promise.all([
+        legacy.table("saves").put({ id: "sandbox", updatedAt: Date.now(), nodes: [], edges: [] }),
+        legacy.table("chapterProgress").put({ chapterId: "bb-1", completedAt: Date.now(), matchedBlueprintId: null }),
+        legacy.table("curriculumProgress").put({ slug: "1-1", manuallyCompletedAt: Date.now(), lastVisitedAt: null }),
+        legacy.table("examAttempts").put({
+          chapterDefinitionId: "bb-1",
+          attemptNumber: 1,
+          submittedAt: Date.now(),
+          score: 90,
+          answers: [],
+        }),
+        legacy.table("aiProfiles").put({
+          id: crypto.randomUUID(),
+          name: "Default",
+          providerId: "anthropic",
+          model: "claude-opus-5",
+          apiKey: "sk-should-not-survive",
+          depth: "standard",
+          tone: "direct",
+          level: "intermediate",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        }),
+      ]);
+      legacy.close();
+
+      const upgraded = new ScaleCraftDB(name);
+      await upgraded.open();
+
+      expect(await upgraded.saves.toArray()).toEqual([]);
+      expect(await upgraded.customComponents.toArray()).toEqual([]);
+      expect(await upgraded.chapterProgress.toArray()).toEqual([]);
+      expect(await upgraded.curriculumProgress.toArray()).toEqual([]);
+      expect(await upgraded.examAttempts.toArray()).toEqual([]);
+      expect(await upgraded.deepCheckSessions.toArray()).toEqual([]);
+      expect(await upgraded.aiProfiles.toArray()).toEqual([]);
+      expect(await upgraded.aiActiveProfile.toArray()).toEqual([]);
+
+      upgraded.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+
+  it("leaves a fresh install alone — no upgrade runs, tables come up empty", async () => {
+    const name = `scalecraft-v10-fresh-test-${crypto.randomUUID()}`;
+    try {
+      const fresh = new ScaleCraftDB(name);
+      await fresh.open();
+      await fresh.saves.put({ id: "sandbox", updatedAt: Date.now(), nodes: [], edges: [], dirty: false, syncedAt: null });
+      fresh.close();
+
+      // Reopening must not re-run the clear — the upgrade is version-gated,
+      // not a wipe-on-every-open.
+      const reopened = new ScaleCraftDB(name);
+      await reopened.open();
+      expect(await reopened.saves.toArray()).toHaveLength(1);
+      reopened.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+});
+
+describe("account isolation (Phase 2, pending-6.1.0-poa.md)", () => {
+  const EPOCH_KEY = "scalecraft:storage-epoch";
+  const USER_ID_KEY = "scalecraft:userId";
+  const OTHER_ACCOUNT_KEY = "sc-tour-seen";
+
+  function primeAsAlreadyOnCurrentEpoch(userId: string) {
+    localStorage.setItem(EPOCH_KEY, "6.1.0");
+    localStorage.setItem(USER_ID_KEY, userId);
+  }
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it("wipes every Dexie table and sc-/scalecraft: localStorage keys when the signed-in user changes", async () => {
+    const name = `scalecraft-account-isolation-test-${crypto.randomUUID()}`;
+    try {
+      const instance = new ScaleCraftDB(name);
+      await instance.open();
+      await instance.saves.put({
+        id: SANDBOX_SAVE_ID,
+        updatedAt: Date.now(),
+        nodes: [],
+        edges: [],
+        dirty: false,
+        syncedAt: null,
+      });
+      localStorage.setItem(OTHER_ACCOUNT_KEY, "true");
+      primeAsAlreadyOnCurrentEpoch("user-a");
+
+      await reconcileLocalStateForUser(instance, "user-b");
+
+      expect(await instance.saves.toArray()).toEqual([]);
+      expect(localStorage.getItem(OTHER_ACCOUNT_KEY)).toBeNull();
+      expect(localStorage.getItem(USER_ID_KEY)).toBe("user-b");
+      // Same-release epoch key survives an account-change wipe — it isn't
+      // account data, re-clearing it would just re-trigger the Phase 0 pass
+      // for no reason.
+      expect(localStorage.getItem(EPOCH_KEY)).toBe("6.1.0");
+
+      instance.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+
+  it("does not wipe when the same user reconciles again", async () => {
+    const name = `scalecraft-account-isolation-test-${crypto.randomUUID()}`;
+    try {
+      const instance = new ScaleCraftDB(name);
+      await instance.open();
+      await instance.saves.put({
+        id: SANDBOX_SAVE_ID,
+        updatedAt: Date.now(),
+        nodes: [],
+        edges: [],
+        dirty: false,
+        syncedAt: null,
+      });
+      primeAsAlreadyOnCurrentEpoch("user-a");
+
+      await reconcileLocalStateForUser(instance, "user-a");
+
+      expect(await instance.saves.toArray()).toHaveLength(1);
+
+      instance.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+
+  it("does not wipe on a fresh install with no stored user yet", async () => {
+    const name = `scalecraft-account-isolation-test-${crypto.randomUUID()}`;
+    try {
+      const instance = new ScaleCraftDB(name);
+      await instance.open();
+      await instance.saves.put({
+        id: SANDBOX_SAVE_ID,
+        updatedAt: Date.now(),
+        nodes: [],
+        edges: [],
+        dirty: false,
+        syncedAt: null,
+      });
+      localStorage.setItem(EPOCH_KEY, "6.1.0"); // already on-epoch, no stored userId
+
+      await reconcileLocalStateForUser(instance, "user-a");
+
+      expect(await instance.saves.toArray()).toHaveLength(1);
+      expect(localStorage.getItem(USER_ID_KEY)).toBe("user-a");
+
+      instance.close();
+    } finally {
+      await Dexie.delete(name);
+    }
   });
 });

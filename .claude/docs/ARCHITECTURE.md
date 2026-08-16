@@ -226,6 +226,71 @@ Local-first, cloud-synced:
 - Because every MVP user is authenticated (no anonymous/guest mode to reconcile later),
   there's no anon-to-account migration path to design — one less moving part.
 
+### Sync ordering (release 6.1.0-alpha)
+
+Every synced Dexie row carries `SyncMeta` (`src/persistence/db.ts`): `syncedAt`, the
+server's own `updatedAt` from the last successful push or pull, and `dirty`, set
+whenever a local write hasn't been acknowledged by the server yet. Reconciliation
+(`.claude/docs/pending-6.1.0-poa.md` Phase 3) reads these with one rule:
+
+```
+if (local.dirty)                            -> push local, adopt returned updatedAt
+else if (remote.updatedAt > local.syncedAt) -> adopt remote
+else                                        -> no-op
+```
+
+**Client clocks are never compared to each other.** Devices have unreliable clocks, and
+comparing one device's `Date.now()` to another's would let a skewed clock win every
+conflict forever. The only ordering authority is the server's `updatedAt`, stamped by
+the Route Handler on every `POST /api/sync/*` write and returned as `{ updatedAt }` —
+never a client-supplied timestamp. Domain timestamps a row also carries
+(`completedAt`, `submittedAt`, `createdAt`, `manuallyCompletedAt`, ...) are display data
+only; they are never read by the merge predicate above.
+
+`dirty` doubles as the offline story (Phase 1.3): a flush pass on load and on
+regaining connectivity re-pushes every dirty row. No queue, no retry scheduler —
+single-player means a flush is always safe.
+
+### Account isolation (release 6.1.0-alpha Phase 2)
+
+The Dexie database (`"scalecraft"`) and its `sc-`/`scalecraft:` localStorage keys
+are browser-wide, not account-scoped. **Decision: wipe local state on account
+change rather than keep a per-account cache** — once local is a disposable cache
+(see the sync-ordering rule above), a second cache buys nothing but complexity,
+and the per-account alternative would have required threading an async db
+accessor through every call site.
+
+`src/persistence/LocalStateGate.tsx` registers the signed-in Clerk `userId` with
+`src/persistence/db.ts` synchronously during render (not a `useEffect` — render
+order guarantees this runs before any descendant component can query Dexie,
+stronger than mount-effect ordering). `db.ts` compares it against the last
+`userId` stored in localStorage inside a `db.on("ready", ...)` handler, which
+blocks every caller's query until the comparison (and wipe, if the account
+changed) completes. A mismatch clears every Dexie table (`db.tables`, not a
+hardcoded list) and the `sc-`/`scalecraft:` localStorage keys; the cloud refills
+both on the next reconcile.
+
+Sign-out gets the same wipe (release 6.1.0-alpha close-out P1.1, since reading
+went public in Phase 11 and Clerk's default sign-out no longer does a full
+document navigation that would have torn down the module-singleton stores on
+its own). `src/persistence/ResetOnSignOut.tsx` reacts to `useAuth()`'s
+`isSignedIn` going `true` -> `false`, resets `progress-store.ts` and
+`custom-components-store.ts` in memory, and calls
+`db.ts::clearLocalStateOnSignOut()` for the Dexie/localStorage half — the
+same "local is a disposable cache" licence as the account-change wipe above.
+
+### Schema parity (Dexie ↔ Postgres)
+
+Dexie carries its own migration history (schema v9 as of writing, with real
+shape changes like `quizProgress` -> `examAttempts`); Postgres does not
+inherit that history — its tables mirror only the *current* Dexie shape,
+created directly via `drizzle-kit generate`/`migrate` (decision recorded in
+`pending-cloud-sync.md`, "Decisions locked 2026-08-12" #5). **A future Dexie
+schema change (a new field, a new table, a renamed one) needs a matching
+Postgres migration in the same change** — `src/db/schema.ts` and Dexie's
+version block in `src/persistence/db.ts` are not kept in sync automatically,
+and nothing currently checks that they agree.
+
 ## Project structure (single Next.js app, no workspace packages yet)
 
 Folder-level module boundaries, not package boundaries — see [[TECH_STACK]] for why a
