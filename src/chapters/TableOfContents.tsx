@@ -39,9 +39,6 @@ export function TableOfContents({ headings, targetRef }: TableOfContentsProps) {
     const root = targetRef.current;
     if (!root || items.length === 0) return;
 
-    const elements = items.map((h) => document.getElementById(h.id)).filter((el): el is HTMLElement => el !== null);
-    if (elements.length === 0) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries.filter((e) => e.isIntersecting);
@@ -54,8 +51,34 @@ export function TableOfContents({ headings, targetRef }: TableOfContentsProps) {
       { root, rootMargin: "0px 0px -70% 0px", threshold: 0 },
     );
 
-    for (const el of elements) observer.observe(el);
-    return () => observer.disconnect();
+    // The lesson body (MarkdownRenderer/MdxContent) is a dynamically
+    // imported chunk rendering markdown fetched client-side, so most heading
+    // ids don't exist in the DOM yet on this first pass - only YourTurnCard's
+    // static "knowledge-check" h2 does. Re-scanning is decoupled from the
+    // `headings` dependency below (extracted from markdown *text*, which can
+    // settle before the chunk finishes loading and painting), so watch the
+    // container for growth and pick up newly-painted headings as they
+    // appear, instead of relying on a single scan at effect-setup time.
+    const observed = new Set<string>();
+    const watchAvailableHeadings = () => {
+      for (const h of items) {
+        if (observed.has(h.id)) continue;
+        const el = document.getElementById(h.id);
+        if (!el) continue;
+        observed.add(h.id);
+        observer.observe(el);
+      }
+    };
+
+    watchAvailableHeadings();
+
+    const resizeObserver = new ResizeObserver(watchAvailableHeadings);
+    for (const child of root.children) resizeObserver.observe(child);
+
+    return () => {
+      observer.disconnect();
+      resizeObserver.disconnect();
+    };
     // Re-run only when the container or the heading set changes - `items` is
     // a fresh array every render (derived from `headings`), so depending on
     // it directly would re-run the effect every render for no reason.
