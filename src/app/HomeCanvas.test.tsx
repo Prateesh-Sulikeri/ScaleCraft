@@ -7,6 +7,9 @@ import { db } from "@/persistence/db";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+  // ModeNode's Sandbox auth gate (useRequireAuthAction) needs this to build
+  // the sign-in redirect's return URL.
+  usePathname: () => "/",
 }));
 
 beforeEach(async () => {

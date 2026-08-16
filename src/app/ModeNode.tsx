@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import type { CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import type { NodeProps } from "@xyflow/react";
 import { modeColorVar, modeIcon, modeLabel, modeTagline } from "@/lib/modes";
 import type { ModeNodeType } from "@/app/HomeCanvas";
 import { LoadingTransition } from "@/app/LoadingTransition";
 import { ProgressBar } from "@/learning-path/ProgressBar";
+import { useRequireAuthAction } from "@/auth/useRequireAuthAction";
 
 const NODE_WIDTH = 300;
 const NODE_HEIGHT = 310;
@@ -71,6 +74,8 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
   const Icon = modeIcon[mode];
   const router = useRouter();
   const [navigating, setNavigating] = useState(false);
+  const { isSignedIn } = useAuth();
+  const { requireAuth, dialog } = useRequireAuthAction();
 
   // Modifier/non-primary clicks (open in new tab, etc.) get the browser's
   // native handling, unintercepted — only a plain left-click gets the
@@ -84,10 +89,22 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
   // Blocks/Real World Extraction land on the Learning Path first now (a
   // plain curriculum list, no canvas at all), too light to need a hold —
   // so those two fall through to the native, unintercepted Link click.
+  //
+  // Sandbox is also the only mode still route-gated ((protected)/layout.tsx's
+  // auth.protect()) — a signed-out click used to hit that guard directly,
+  // an unexplained hard bounce to Clerk's sign-in with no context, unlike
+  // every other progress-writing action in the app (quiz launch, mark
+  // complete, the exercise row in YourTurnCard.tsx), which shows
+  // AuthPromptDialog first via useRequireAuthAction. Same treatment here:
+  // a signed-out click never reaches the route guard, the dialog does.
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     if (!href || mode !== "sandbox") return;
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
+    if (!isSignedIn) {
+      requireAuth(() => {});
+      return;
+    }
     setNavigating(true);
     window.setTimeout(() => router.push(href), TRANSITION_HOLD_MS);
   };
@@ -172,6 +189,12 @@ export function ModeNode({ data }: NodeProps<ModeNodeType>) {
       >
         {body}
         {navigating && <LoadingTransition label={`Crafting your ${modeLabel[mode]}…`} />}
+        {/* Portaled to document.body, not rendered inline — this node sits
+         * inside react-flow's transform-positioned wrapper, which would turn
+         * AuthPromptDialog's `fixed` positioning into "fixed to this node"
+         * instead of "fixed to the viewport" (same reasoning as
+         * AnnotationEditor.tsx's portal). */}
+        {dialog && createPortal(dialog, document.body)}
       </Link>
     );
   }
