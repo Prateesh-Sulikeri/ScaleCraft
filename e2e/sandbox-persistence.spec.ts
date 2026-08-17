@@ -8,6 +8,15 @@ import { test, expect } from "@playwright/test";
  * a real browser reload actually restores from it).
  */
 test("an explicit Save persists a canvas edit across a full page reload", async ({ page }) => {
+  await page.goto("/");
+
+  // Whatever the last spec left in the shared account's sandbox would load
+  // instead of the 4-node seed this test edits from (it saw 6 nodes once the
+  // suite went single-worker and the ordering changed). Same reset
+  // mode-isolation.spec.ts does, for the same reason - and after a page load,
+  // so the request rides an already-refreshed Clerk session.
+  await page.request.delete("/api/sync/saves?scopeId=sandbox");
+
   await page.goto("/sandbox");
 
   const nodes = page.locator(".react-flow__node");

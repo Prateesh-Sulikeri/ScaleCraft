@@ -135,7 +135,7 @@ describe("ChapterRow", () => {
   // beforehand (11.5's "gate at the action").
   describe("signed out", () => {
     beforeEach(() => {
-      vi.mocked(useAuth).mockReturnValue({ isSignedIn: false } as ReturnType<typeof useAuth>);
+      vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: false } as ReturnType<typeof useAuth>);
     });
 
     afterEach(() => {

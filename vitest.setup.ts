@@ -15,7 +15,7 @@ afterEach(() => {
 // routes public, when the whole app sat behind auth.protect(). Tests that
 // exercise the signed-out path override these per-case via
 // vi.mocked(useAuth).mockReturnValue(...).
-const mockUseAuth = vi.fn(() => ({ isSignedIn: true }));
+const mockUseAuth = vi.fn(() => ({ isLoaded: true, isSignedIn: true }));
 
 vi.mock("@clerk/nextjs", () => ({
   ClerkProvider: ({ children }: { children?: React.ReactNode }) => children ?? null,
