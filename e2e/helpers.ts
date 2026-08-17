@@ -14,7 +14,20 @@ export async function resetSandbox(page: Page) {
   await page.goto("/");
   await page.request.delete("/api/sync/saves?scopeId=sandbox");
   await page.goto("/sandbox");
-  await expect(page.locator(".react-flow__node")).toHaveCount(SANDBOX_SEED_NODES);
+
+  // The sandbox canvas syncs on every autosave (no syncOnManualSave: false on
+  // its useAutosave), so the previous spec's push can land *after* the delete
+  // above - its context is torn down, but the request is already in flight
+  // server-side. One re-clear absorbs that; failing here otherwise shows up as
+  // an unrelated spec asserting 4 nodes and getting 3.
+  const nodes = page.locator(".react-flow__node");
+  try {
+    await expect(nodes).toHaveCount(SANDBOX_SEED_NODES, { timeout: 5_000 });
+  } catch {
+    await page.request.delete("/api/sync/saves?scopeId=sandbox");
+    await page.reload();
+    await expect(nodes).toHaveCount(SANDBOX_SEED_NODES);
+  }
 }
 
 /** The 3.4 Load Balancer chapter, which most workspace specs exercise.
@@ -105,4 +118,41 @@ export async function resetExamAttempts(page: Page) {
     `/api/sync/exam-attempts?chapterDefinitionId=${encodeURIComponent("bb-" + CHAPTER_SLUG)}`,
   );
   expect(res.status(), "reset exam attempts").toBe(200);
+}
+
+/** Wipes this account's custom components. They sync per account, so
+ *  otherwise every run inherits the ones the last run created and the
+ *  palette counts drift. */
+export async function resetCustomComponents(page: Page) {
+  await page.goto("/");
+  const res = await page.request.get("/api/sync/custom-components");
+  expect(res.status(), "list custom components").toBe(200);
+  const { components } = (await res.json()) as { components: { id: string }[] };
+  for (const { id } of components) {
+    await page.request.delete(`/api/sync/custom-components?id=${encodeURIComponent(id)}`);
+  }
+}
+
+/** Opens the component picker over the sandbox canvas (pane right-click). */
+export async function openComponentPicker(page: Page): Promise<Locator> {
+  // Wait for the canvas to have rendered its nodes first. Right after a
+  // reload the pane exists before React Flow has hydrated, and the
+  // right-click is swallowed - the picker then never opens.
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+
+  await page.locator(".react-flow__pane").click({ button: "right", position: { x: 20, y: 20 } });
+  const picker = page.getByRole("dialog", { name: "Add a component" });
+  await expect(picker).toBeVisible();
+  return picker;
+}
+
+/** Completes a component placement armed by selecting it in the picker.
+ *  Selection only sets pendingComponentPlacement; Canvas.tsx then puts a
+ *  full-screen overlay over the pane to capture the positioning click, so
+ *  clicking `.react-flow__pane` is intercepted and never lands. */
+export async function placePendingComponent(page: Page, label: string) {
+  await expect(page.getByText(`Click to place ${label}`)).toBeVisible();
+  await page
+    .locator("div.absolute.inset-0.cursor-pointer")
+    .click({ position: { x: 250, y: 250 } });
 }

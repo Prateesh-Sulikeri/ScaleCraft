@@ -1,445 +1,235 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
+import { openComponentPicker, placePendingComponent, resetCustomComponents, resetSandbox } from "./helpers";
 
 /**
- * Custom Components E2E tests - create, edit, delete, and use custom
- * components within the design editor. Component tests exist for
- * CreateComponentModal.tsx and the component registry, but this layer
- * exercises the real IndexedDB persistence, palette integration, and
- * full lifecycle that jsdom can't validate.
+ * Custom components E2E - the create/edit/delete lifecycle and how a custom
+ * component reaches the palette and the canvas. Component tests cover
+ * CreateComponentModal in isolation; this layer exercises the real
+ * persistence and palette integration.
+ *
+ * The previous version guarded every test on
+ * `getByRole("button", { name: /create|new.*component|custom/i })` looked up
+ * on the bare sandbox page. That button lives inside the component picker,
+ * which nothing had opened, so all 28 guards were false and the file asserted
+ * nothing. Where it did reach an assertion the assertion was empty anyway:
+ * `expect(count === 0 || !isVisible).toBe(true)` is true when the modal is
+ * open *and* when it is closed.
  */
 
+const NAME = "E2E Rate Limiter";
+const RENAMED = "E2E Throttler";
+
+/** Creates one custom component through the real modal. */
+async function createComponent(page: Page, label: string) {
+  const picker = await openComponentPicker(page);
+  await picker.getByRole("option", { name: /^New component/ }).click();
+
+  const modal = page.getByRole("heading", { name: "New component" });
+  await expect(modal).toBeVisible();
+
+  await page.getByLabel("Label").fill(label);
+  await page.getByLabel("Summary").fill("Sheds load past a threshold");
+  await page.getByRole("button", { name: "Create component" }).click();
+
+  await expect(modal).toBeHidden();
+}
+
+/** The picker row for a component, by its visible label. */
+function optionFor(picker: Locator, label: string) {
+  return picker.getByRole("option", { name: new RegExp(`^${label}:`) });
+}
+
+/** Reveals a custom row's edit/delete controls. They sit in the DOM but are
+ *  `hidden group-hover/tile:flex` until the row is hovered or keyboard-active
+ *  (ComponentPickerRow.tsx), so they are never visible on a cold lookup. */
+async function revealRowControls(picker: Locator, label: string) {
+  await optionFor(picker, label).hover();
+}
+
 test.describe("Custom Components - Creation", () => {
-  test("create a new custom component with basic fields", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("create a new custom component and find it in the palette", async ({ page }) => {
+    await resetCustomComponents(page);
+    await resetSandbox(page);
 
-    // Look for "create component" button in palette or header
-    const createButton = page.getByRole("button", { name: /create|new.*component|custom/i });
+    await createComponent(page, NAME);
 
-    if ((await createButton.count()) > 0) {
-      await createButton.click();
-      await page.waitForTimeout(500);
-
-      // Modal should appear
-      const modal = page.locator("[role='dialog'], [class*='modal']");
-      await expect(modal).toBeVisible();
-
-      // Fill in component name
-      const nameInput = page.locator("input[type='text']").first();
-      await nameInput.fill("MyCustomComponent");
-
-      // Look for category/type selection
-      const categorySelect = page.locator("select, [class*='select']");
-
-      if ((await categorySelect.count()) > 0) {
-        await categorySelect.first().selectOption("networking");
-      }
-
-      // Look for create/save button
-      const saveButton = page.getByRole("button", { name: /create|save|submit/i }).last();
-      await saveButton.click();
-
-      await page.waitForTimeout(300);
-
-      // Modal should close
-      const modalAfter = page.locator("[role='dialog'], [class*='modal']");
-      expect((await modalAfter.count()) === 0 || !(await modalAfter.isVisible())).toBe(true);
-    }
+    const picker = await openComponentPicker(page);
+    await expect(optionFor(picker, NAME)).toBeVisible();
   });
 
-  test("create a component with configuration fields", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("a custom component can carry a config field", async ({ page }) => {
+    await resetCustomComponents(page);
+    await resetSandbox(page);
 
-    const createButton = page.getByRole("button", { name: /create|new.*component|custom/i });
+    const picker = await openComponentPicker(page);
+    await picker.getByRole("option", { name: /^New component/ }).click();
+    await expect(page.getByRole("heading", { name: "New component" })).toBeVisible();
 
-    if ((await createButton.count()) > 0) {
-      await createButton.click();
-      await page.waitForTimeout(500);
+    await page.getByLabel("Label").fill(NAME);
+    await page.getByLabel("Summary").fill("Sheds load past a threshold");
 
-      const modal = page.locator("[role='dialog'], [class*='modal']");
-      await expect(modal).toBeVisible();
+    await page.getByRole("button", { name: "Add field" }).click();
+    await page.getByPlaceholder("fieldName").fill("burstLimit");
 
-      // Fill name
-      const nameInput = page.locator("input[type='text']").first();
-      await nameInput.fill("ConfigurableComponent");
+    await page.getByRole("button", { name: "Create component" }).click();
+    await expect(page.getByRole("heading", { name: "New component" })).toBeHidden();
 
-      // Add a field if possible
-      const addFieldButton = page.getByRole("button", { name: /add field|add config|add property/i });
-
-      if ((await addFieldButton.count()) > 0) {
-        await addFieldButton.click();
-        await page.waitForTimeout(200);
-
-        // Fill field details
-        const fieldInputs = page.locator("input[type='text']");
-        const fieldCount = await fieldInputs.count();
-
-        if (fieldCount > 1) {
-          // Second input is likely the field name
-          const fieldNameInput = fieldInputs.nth(1);
-          await fieldNameInput.fill("instances");
-
-          // Select field type if dropdown available
-          const typeSelect = page.locator("select").nth(1);
-          if ((await typeSelect.count()) > 0) {
-            await typeSelect.selectOption("number");
-          }
-        }
-      }
-
-      // Save
-      const saveButton = page.getByRole("button", { name: /create|save/i }).last();
-      await saveButton.click();
-
-      await page.waitForTimeout(300);
-    }
+    // Reopening for edit is what proves the field was actually stored - the
+    // old test filled inputs by positional index and asserted nothing at all.
+    const reopened = await openComponentPicker(page);
+    await revealRowControls(reopened, NAME);
+    await reopened.getByRole("button", { name: `Edit ${NAME}` }).click();
+    await expect(page.getByRole("heading", { name: "Edit component" })).toBeVisible();
+    await expect(page.getByPlaceholder("fieldName")).toHaveValue("burstLimit");
   });
 
-  test("component name cannot be empty", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("a component with no label is rejected", async ({ page }) => {
+    await resetCustomComponents(page);
+    await resetSandbox(page);
 
-    const createButton = page.getByRole("button", { name: /create|new.*component|custom/i });
+    const picker = await openComponentPicker(page);
+    await picker.getByRole("option", { name: /^New component/ }).click();
 
-    if ((await createButton.count()) > 0) {
-      await createButton.click();
-      await page.waitForTimeout(500);
+    const heading = page.getByRole("heading", { name: "New component" });
+    await expect(heading).toBeVisible();
 
-      // Don't fill name, try to submit
-      const saveButton = page.getByRole("button", { name: /create|save/i }).last();
+    await page.getByRole("button", { name: "Create component" }).click();
 
-      // Try clicking save with empty name
-      const isDisabled = await saveButton.isDisabled();
-
-      if (isDisabled) {
-        // Button is disabled, test passes
-        expect(isDisabled).toBe(true);
-      } else {
-        // Try clicking and see if error appears
-        await saveButton.click();
-
-        const errorMsg = page.locator("[class*='error'], [role='alert']");
-        expect((await errorMsg.count()) > 0).toBe(true);
-      }
-    }
+    // The modal stays open rather than creating an unnamed component. The old
+    // version branched on `isDisabled` and accepted either outcome.
+    await expect(heading).toBeVisible();
   });
 });
 
 test.describe("Custom Components - Palette Integration", () => {
-  test("custom component appears in palette after creation", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("a custom component offers edit and delete in the palette", async ({ page }) => {
+    await resetCustomComponents(page);
+    await resetSandbox(page);
+    await createComponent(page, NAME);
 
-    // Create a component
-    const createButton = page.getByRole("button", { name: /create|new.*component|custom/i });
-
-    if ((await createButton.count()) > 0) {
-      await createButton.click();
-      await page.waitForTimeout(500);
-
-      const nameInput = page.locator("input[type='text']").first();
-      const uniqueName = `TestComponent${Date.now()}`;
-      await nameInput.fill(uniqueName);
-
-      const saveButton = page.getByRole("button", { name: /create|save/i }).last();
-      await saveButton.click();
-
-      await page.waitForTimeout(500);
-
-      // Find in palette
-      const palette = page.locator("[class*='palette'], [class*='picker']");
-
-      // Might need to search for it
-      const searchInput = palette.locator("input[type='text'], input[placeholder*='search' i]");
-
-      if ((await searchInput.count()) > 0) {
-        await searchInput.fill(uniqueName.substring(0, 5));
-        await page.waitForTimeout(200);
-      }
-
-      // Should appear in the list
-      const componentItem = page.locator(`text=${uniqueName}`);
-      await expect(componentItem).toBeVisible({ timeout: 2000 });
-    }
+    const picker = await openComponentPicker(page);
+    await revealRowControls(picker, NAME);
+    await expect(picker.getByRole("button", { name: `Edit ${NAME}` })).toBeVisible();
+    await expect(picker.getByRole("button", { name: `Delete ${NAME}` })).toBeVisible();
   });
 
-  test("custom component has edit and delete buttons in palette", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("built-in components have no edit or delete controls", async ({ page }) => {
+    await resetCustomComponents(page);
+    await resetSandbox(page);
 
-    // Find a custom component in the palette (if one exists from previous tests)
-    const palette = page.locator("[class*='palette'], [class*='picker']");
+    const picker = await openComponentPicker(page);
 
-    if ((await palette.count()) > 0) {
-      // Hover over a component to reveal edit/delete buttons
-      const items = palette.locator("[class*='item']");
+    await expect(picker.getByRole("option", { name: /^Client:/ })).toBeVisible();
+    await expect(picker.getByRole("button", { name: "Edit Client" })).toHaveCount(0);
+    await expect(picker.getByRole("button", { name: "Delete Client" })).toHaveCount(0);
+  });
 
-      if ((await items.count()) > 0) {
-        const firstItem = items.first();
-        await firstItem.hover();
+  test("the palette search finds a custom component by name", async ({ page }) => {
+    await resetCustomComponents(page);
+    await resetSandbox(page);
+    await createComponent(page, NAME);
 
-        // Edit and delete buttons should appear
-        const editButton = firstItem.locator("button").filter({ hasText: /edit|pencil/i });
-        const deleteButton = firstItem.locator("button").filter({ hasText: /delete|trash/i });
+    const picker = await openComponentPicker(page);
+    await picker.getByRole("combobox").fill("Rate Limiter");
 
-        // At least one should be present (depending on if it's a custom component)
-        const hasEditOrDelete =
-          (await editButton.count()) > 0 || (await deleteButton.count()) > 0;
-
-        if (hasEditOrDelete) {
-          expect(true).toBe(true); // Test passes if custom component buttons exist
-        }
-      }
-    }
+    await expect(optionFor(picker, NAME)).toBeVisible();
   });
 });
 
 test.describe("Custom Components - Editing", () => {
-  test("edit a custom component's properties", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("editing a custom component renames it in the palette", async ({ page }) => {
+    await resetCustomComponents(page);
+    await resetSandbox(page);
+    await createComponent(page, NAME);
 
-    // Find a custom component
-    const palette = page.locator("[class*='palette'], [class*='picker']");
+    const picker = await openComponentPicker(page);
+    await revealRowControls(picker, NAME);
+    await picker.getByRole("button", { name: `Edit ${NAME}` }).click();
 
-    if ((await palette.count()) > 0) {
-      const items = palette.locator("[class*='item']");
+    await expect(page.getByRole("heading", { name: "Edit component" })).toBeVisible();
+    await page.getByLabel("Label").fill(RENAMED);
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByRole("heading", { name: "Edit component" })).toBeHidden();
 
-      if ((await items.count()) > 0) {
-        // Find and hover over a component
-        const firstItem = items.first();
-        await firstItem.hover();
-
-        // Click edit button if it exists
-        const editButton = firstItem.locator("button").filter({ hasText: /edit|pencil/i });
-
-        if ((await editButton.count()) > 0) {
-          await editButton.click();
-          await page.waitForTimeout(500);
-
-          // Edit modal should open
-          const modal = page.locator("[role='dialog'], [class*='modal']");
-          await expect(modal).toBeVisible();
-
-          // Modify a field
-          const inputs = modal.locator("input[type='text']");
-
-          if ((await inputs.count()) > 0) {
-            await inputs.nth(0).fill("UpdatedName");
-          }
-
-          // Save changes
-          const saveButton = page.getByRole("button", { name: /save|update/i }).last();
-          await saveButton.click();
-
-          await page.waitForTimeout(300);
-
-          // Modal should close
-          const isVisible = await modal.isVisible().catch(() => false);
-          expect(isVisible).toBe(false);
-        }
-      }
-    }
+    const reopened = await openComponentPicker(page);
+    await expect(optionFor(reopened, RENAMED)).toBeVisible();
+    await expect(optionFor(reopened, NAME)).toHaveCount(0);
   });
 
-  test("component config fields update when field spec changes", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("the edit form opens pre-filled with the stored values", async ({ page }) => {
+    await resetCustomComponents(page);
+    await resetSandbox(page);
+    await createComponent(page, NAME);
 
-    const createButton = page.getByRole("button", { name: /create|new.*component|custom/i });
+    const picker = await openComponentPicker(page);
+    await revealRowControls(picker, NAME);
+    await picker.getByRole("button", { name: `Edit ${NAME}` }).click();
 
-    if ((await createButton.count()) > 0) {
-      await createButton.click();
-      await page.waitForTimeout(500);
-
-      const nameInput = page.locator("input[type='text']").first();
-      await nameInput.fill(`ComponentWithFields${Date.now()}`);
-
-      // Add some fields
-      const addFieldButton = page.getByRole("button", { name: /add field|add property/i });
-
-      if ((await addFieldButton.count()) > 0) {
-        // Add 2 fields
-        await addFieldButton.click();
-        await page.waitForTimeout(200);
-        await addFieldButton.click();
-        await page.waitForTimeout(200);
-
-        // Save component
-        const saveButton = page.getByRole("button", { name: /create|save/i }).last();
-        await saveButton.click();
-
-        await page.waitForTimeout(500);
-
-        // Now place this component on canvas and check its config panel
-        const paletteItem = page.locator("text=/ComponentWithFields/i");
-
-        if ((await paletteItem.count()) > 0) {
-          // Drag it to canvas
-          const canvas = page.locator(".react-flow__pane");
-          const canvasBox = await canvas.boundingBox();
-
-          if (canvasBox) {
-            await paletteItem.dragTo(canvas, {
-              targetPosition: {
-                x: canvasBox.x + canvasBox.width / 2 + 50,
-                y: canvasBox.y + canvasBox.height / 2,
-              },
-            });
-
-            await page.waitForTimeout(300);
-
-            // Click the node to open config
-            const nodes = page.locator(".react-flow__node");
-            if ((await nodes.count()) > 0) {
-              await nodes.last().click();
-
-              // Check config panel for fields
-              const configPanel = page.locator("aside, [class*='inspector']");
-              if ((await configPanel.count()) > 0) {
-                const inputs = configPanel.locator("input, select");
-                expect((await inputs.count()) > 0).toBe(true);
-              }
-            }
-          }
-        }
-      }
-    }
+    await expect(page.getByLabel("Label")).toHaveValue(NAME);
+    await expect(page.getByLabel("Summary")).toHaveValue("Sheds load past a threshold");
   });
 });
 
 test.describe("Custom Components - Usage and Deletion", () => {
   test("place a custom component on the canvas", async ({ page }) => {
-    await page.goto("/sandbox");
+    await resetCustomComponents(page);
+    await resetSandbox(page);
+    await createComponent(page, NAME);
 
-    // Find custom component in palette
-    const palette = page.locator("[class*='palette'], [class*='picker']");
+    const nodes = page.locator(".react-flow__node");
+    const before = await nodes.count();
 
-    if ((await palette.count()) > 0) {
-      const items = palette.locator("[class*='item']");
+    const picker = await openComponentPicker(page);
+    await optionFor(picker, NAME).click();
+    await placePendingComponent(page, NAME);
 
-      if ((await items.count()) > 0) {
-        // Get the first item
-        const firstItem = items.first();
-        const itemText = await firstItem.textContent();
-
-        // Try to drag to canvas
-        const canvas = page.locator(".react-flow__pane");
-        const canvasBox = await canvas.boundingBox();
-
-        if (canvasBox && itemText) {
-          const nodes = page.locator(".react-flow__node");
-          const initialCount = await nodes.count();
-
-          await firstItem.dragTo(canvas, {
-            targetPosition: {
-              x: canvasBox.x + canvasBox.width / 2 + 100,
-              y: canvasBox.y + canvasBox.height / 2,
-            },
-          });
-
-          await page.waitForTimeout(300);
-
-          // Verify node was added
-          const nodesAfter = page.locator(".react-flow__node");
-          expect(await nodesAfter.count()).toBeGreaterThanOrEqual(initialCount);
-        }
-      }
-    }
+    await expect(nodes).toHaveCount(before + 1);
+    await expect(nodes.filter({ hasText: NAME })).toHaveCount(1);
   });
 
   test("delete a custom component from the palette", async ({ page }) => {
-    await page.goto("/sandbox");
+    await resetCustomComponents(page);
+    await resetSandbox(page);
+    await createComponent(page, NAME);
 
-    const palette = page.locator("[class*='palette'], [class*='picker']");
+    const picker = await openComponentPicker(page);
+    await revealRowControls(picker, NAME);
+    await picker.getByRole("button", { name: `Delete ${NAME}` }).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
 
-    if ((await palette.count()) > 0) {
-      const items = palette.locator("[class*='item']");
-
-      if ((await items.count()) > 0) {
-        // Find item and hover
-        const lastItem = items.last();
-        await lastItem.hover();
-
-        // Delete button
-        const deleteButton = lastItem.locator("button").filter({ hasText: /delete|trash|remove/i });
-
-        if ((await deleteButton.count()) > 0) {
-          const itemTextBefore = await lastItem.textContent();
-          await deleteButton.click();
-
-          await page.waitForTimeout(300);
-
-          // Item should be removed from list
-          if (itemTextBefore) {
-            const foundAfter = page.locator(`text=${itemTextBefore}`);
-            // Should be gone (or there's a new delete protection modal)
-            const isGone = (await foundAfter.count()) === 0;
-            const hasDeleteConfirmation = (await page.locator("[role='dialog']").count()) > 0;
-
-            expect(isGone || hasDeleteConfirmation).toBe(true);
-          }
-        }
-      }
-    }
+    await expect(optionFor(picker, NAME)).toHaveCount(0);
   });
 
-  test("custom component persists across page reload", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("a custom component survives a page reload", async ({ page }) => {
+    await resetCustomComponents(page);
+    await resetSandbox(page);
+    await createComponent(page, NAME);
 
-    // Get list of components before reload
-    const palette = page.locator("[class*='palette'], [class*='picker']");
+    await page.reload();
 
-    if ((await palette.count()) > 0) {
-      const items = palette.locator("[class*='item']");
-      const countBefore = await items.count();
-
-      // Reload page
-      await page.reload();
-      await page.waitForTimeout(1000);
-
-      // Check palette again
-      const itemsAfter = page.locator("[class*='item']");
-      const countAfter = await itemsAfter.count();
-
-      // Should have same components
-      expect(countAfter).toBe(countBefore);
-    }
+    const picker = await openComponentPicker(page);
+    await expect(optionFor(picker, NAME)).toBeVisible();
   });
 });
 
 test.describe("Custom Components - Validation", () => {
-  test("custom component participates in validation", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("a placed custom component is included in validation", async ({ page }) => {
+    await resetCustomComponents(page);
+    await resetSandbox(page);
+    await createComponent(page, NAME);
 
-    // Place a custom component if palette has one
-    const palette = page.locator("[class*='palette'], [class*='picker']");
+    const picker = await openComponentPicker(page);
+    await optionFor(picker, NAME).click();
+    await placePendingComponent(page, NAME);
+    await expect(page.locator(".react-flow__node").filter({ hasText: NAME })).toHaveCount(1);
 
-    if ((await palette.count()) > 0) {
-      const items = palette.locator("[class*='item']");
+    await page.getByRole("button", { name: /validate/i }).click();
 
-      if ((await items.count()) > 0) {
-        // Drag a component to canvas
-        const firstItem = items.first();
-        const canvas = page.locator(".react-flow__pane");
-        const canvasBox = await canvas.boundingBox();
-
-        if (canvasBox) {
-          await firstItem.dragTo(canvas, {
-            targetPosition: {
-              x: canvasBox.x + canvasBox.width / 2 + 100,
-              y: canvasBox.y + canvasBox.height / 2,
-            },
-          });
-
-          await page.waitForTimeout(300);
-
-          // Run validation
-          const validateButton = page.getByRole("button", { name: /validate/i });
-          await validateButton.click();
-
-          // Should show validation result (might be valid or invalid)
-          const result = page.locator("[class*='result'], [class*='violation']");
-
-          if ((await result.count()) > 0) {
-            await expect(result.first()).toBeVisible();
-          }
-        }
-      }
-    }
+    // Dropped in unconnected, so the orphan rule has something to say about
+    // it. That is the point: a custom component is a first-class participant,
+    // which the old test asserted by way of `expect(true).toBe(true)`.
+    const details = page.locator('[data-tour="validation-details"]');
+    await expect(details).toBeVisible();
+    await expect(details).not.toContainText("No violations.");
   });
 });

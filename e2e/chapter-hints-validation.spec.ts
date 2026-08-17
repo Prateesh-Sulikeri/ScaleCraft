@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { resetChapterCanvas } from "./helpers";
 
 /**
  * End-to-end guard for two non-negotiable product invariants from CLAUDE.md:
@@ -18,6 +19,12 @@ import { test, expect } from "@playwright/test";
  * passing one.
  */
 test("a hint stays collapsed until revealed, and Validate always surfaces its result", async ({ page }) => {
+  // Start from the chapter's starter graph. Without this the spec inherits
+  // whatever design-editor-integration last saved to the shared account (it
+  // deletes a node and saves), and with a component missing the
+  // single-instance-load-balancer rule has nothing to report.
+  await resetChapterCanvas(page);
+
   await page.goto("/building-blocks");
 
   await page.getByRole("link", { name: /3\.4.*Load Balancer/i }).click();
