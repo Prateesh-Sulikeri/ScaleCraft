@@ -91,3 +91,18 @@ export async function resetSlugs(request: APIRequestContext, slugs: string[]) {
 export function savedIndicator(page: Page): Locator {
   return page.getByRole("banner").getByText("Saved", { exact: true });
 }
+
+/** The 3.4 chapter's quiz length (src/content/chapters/index.ts). */
+export const CHAPTER_QUIZ_QUESTIONS = 5;
+
+/** Clears this account's attempts for the chapter under test. Attempts are
+ *  synced per account and examLocked() flips the launcher to "View your
+ *  result" once one passes, so without this the exam becomes unopenable
+ *  after the first passing run. */
+export async function resetExamAttempts(page: Page) {
+  await page.goto("/");
+  const res = await page.request.delete(
+    `/api/sync/exam-attempts?chapterDefinitionId=${encodeURIComponent("bb-" + CHAPTER_SLUG)}`,
+  );
+  expect(res.status(), "reset exam attempts").toBe(200);
+}

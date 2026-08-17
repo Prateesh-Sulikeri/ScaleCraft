@@ -1,386 +1,164 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
+import { resetExamAttempts, CHAPTER_SLUG, CHAPTER_QUIZ_QUESTIONS } from "./helpers";
 
 /**
- * Chapter Exam/Quiz E2E tests - full workflow from chapter canvas to exam
- * submission. Component tests exist for ExamShell.tsx and ExamResults.tsx,
- * but this layer exercises the real routing, form submission, and score
- * persistence flow that jsdom can't fully validate.
+ * Chapter exam E2E - launching the quiz, answering, submitting, and reading
+ * the score back. Component tests cover ExamShell/ExamResults in isolation;
+ * this layer exercises the real launch path and the attempt persistence
+ * behind it.
  *
- * Prerequisite: at least one chapter with an exam must exist in the
- * curriculum (src/content/chapters/index.ts). Tests use the 3-4-load-balancer
- * placeholder chapter which includes a quiz.
+ * Every test in the previous version of this file hung off
+ * `getByRole("button", { name: /quiz|exam|test|assessment/i })` looked up on
+ * the *workspace* route, guarded by `if (count > 0)`. The launcher lives on
+ * the lesson page (ChapterReader renders YourTurnCard), so that locator never
+ * matched and not one assertion in the file ever ran.
  */
 
-test.describe("Chapter Exam - Navigation and Launch", () => {
-  test("navigate to a chapter and find the exam launcher", async ({ page }) => {
-    await page.goto("/building-blocks");
+/** Opens the exam from the lesson page and returns its dialog. */
+async function openExam(page: Page): Promise<Locator> {
+  await page.goto(`/building-blocks/${CHAPTER_SLUG}/lesson`);
+  await page.getByRole("button", { name: /^(Take|Retake) the quiz$/ }).click();
 
-    // Navigate to a chapter
-    await page.getByRole("link", { name: /3\.4.*Load Balancer/i }).click();
-    await page.waitForURL("**/building-blocks/3-4-load-balancer/lesson");
+  const exam = page.getByRole("dialog", { name: "Load Balancer exam" });
+  await expect(exam).toBeVisible();
+  return exam;
+}
 
-    // Click "Begin exercise" to go to the design editor
-    await page.getByRole("link", { name: /begin exercise/i }).click();
-    await page.waitForURL("**/building-blocks/3-4-load-balancer");
-
-    // Look for an exam/quiz launcher button in the chapter workspace
-    const quizLauncher = page.getByRole("button", { name: /quiz|exam|test|assessment/i });
-
-    // If a quiz launcher exists, it should be visible or accessible
-    if ((await quizLauncher.count()) > 0) {
-      await expect(quizLauncher).toBeVisible();
+/** Answers every question by taking the first option, so the run reaches
+ *  results deterministically. Score is whatever that earns - these tests
+ *  assert the flow and the readout, not a particular mark. */
+async function answerAllQuestions(exam: Locator) {
+  for (let i = 0; i < CHAPTER_QUIZ_QUESTIONS; i++) {
+    await expect(exam.getByText(`Question ${i + 1} of ${CHAPTER_QUIZ_QUESTIONS}`)).toBeVisible();
+    await exam.getByRole("radio").first().check();
+    if (i < CHAPTER_QUIZ_QUESTIONS - 1) {
+      await exam.getByRole("button", { name: "Next" }).click();
     }
+  }
+}
+
+test.describe("Chapter Exam - Navigation and Launch", () => {
+  test("the lesson page offers the quiz and launches the exam", async ({ page }) => {
+    await resetExamAttempts(page);
+    const exam = await openExam(page);
+
+    await expect(exam.getByText(`Question 1 of ${CHAPTER_QUIZ_QUESTIONS}`)).toBeVisible();
+    await expect(exam.getByRole("radio").first()).toBeVisible();
   });
 
-  test("launch an exam from the chapter workspace", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+  test("the knowledge check states the question count and pass threshold", async ({ page }) => {
+    await resetExamAttempts(page);
+    await page.goto(`/building-blocks/${CHAPTER_SLUG}/lesson`);
 
-    const quizLauncher = page.getByRole("button", { name: /quiz|exam|test|assessment/i });
+    await expect(page.getByRole("heading", { name: "Knowledge check" })).toBeVisible();
+    await expect(page.getByText(`${CHAPTER_QUIZ_QUESTIONS} questions · 80% to pass`)).toBeVisible();
+  });
 
-    if ((await quizLauncher.count()) > 0) {
-      await quizLauncher.click();
+  test("exiting the exam returns to the lesson", async ({ page }) => {
+    await resetExamAttempts(page);
+    const exam = await openExam(page);
 
-      // Should navigate to exam or show exam UI
-      await page.waitForTimeout(500);
-
-      const examTitle = page.locator("h1, h2, [role='heading']");
-      await expect(examTitle).toContainText(/quiz|exam|assessment/i);
-    }
+    await exam.getByRole("button", { name: "Exit exam" }).click();
+    await expect(exam).toBeHidden();
+    await expect(page.getByRole("heading", { name: "Knowledge check" })).toBeVisible();
   });
 });
 
 test.describe("Chapter Exam - Question Answering", () => {
-  test("display exam questions with multiple choice options", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+  test("answering a question marks it answered in the question nav", async ({ page }) => {
+    await resetExamAttempts(page);
+    const exam = await openExam(page);
 
-    // Launch the exam
-    const quizLauncher = page.getByRole("button", { name: /quiz|exam|test|assessment/i });
+    // The nav dots are role="tab", and their accessible name is what carries
+    // the answered state.
+    await expect(exam.getByRole("tab", { name: "Question 1", exact: true })).toBeVisible();
 
-    if ((await quizLauncher.count()) > 0) {
-      await quizLauncher.click();
-      await page.waitForTimeout(500);
+    await exam.getByRole("radio").first().check();
 
-      // Look for question text and radio/checkbox options
-      const questionText = page.locator("[class*='question'], main p");
-      const options = page.locator("input[type='radio'], input[type='checkbox']");
-
-      if ((await questionText.count()) > 0 && (await options.count()) > 0) {
-        await expect(questionText.first()).toContainText(/.+/);
-        await expect(options).toHaveCount(await options.count());
-      }
-    }
+    await expect(exam.getByRole("tab", { name: "Question 1, answered" })).toBeVisible();
   });
 
-  test("select an answer and submit", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+  test("moves between questions with Next and Back", async ({ page }) => {
+    await resetExamAttempts(page);
+    const exam = await openExam(page);
 
-    const quizLauncher = page.getByRole("button", { name: /quiz|exam|test|assessment/i });
+    // The forward button reads "Skip" until the current question is answered.
+    await expect(exam.getByRole("button", { name: "Skip" })).toBeVisible();
+    await exam.getByRole("radio").first().check();
 
-    if ((await quizLauncher.count()) > 0) {
-      await quizLauncher.click();
-      await page.waitForTimeout(500);
+    await exam.getByRole("button", { name: "Next" }).click();
+    await expect(exam.getByText(`Question 2 of ${CHAPTER_QUIZ_QUESTIONS}`)).toBeVisible();
 
-      // Select the first radio option if it exists
-      const firstOption = page.locator("input[type='radio']").first();
-
-      if ((await firstOption.count()) > 0) {
-        await firstOption.click();
-
-        // Look for a submit/next button
-        const submitButton = page.getByRole("button", { name: /submit|next|continue/i });
-
-        if ((await submitButton.count()) > 0) {
-          await submitButton.click();
-          await page.waitForTimeout(300);
-
-          // Should either move to next question or show results
-          const nextQuestion = page.locator("[class*='question']");
-          const results = page.locator("[class*='result'], [class*='score']");
-
-          const hasQuestion = await nextQuestion.isVisible();
-          const hasResults = await results.isVisible();
-
-          expect(hasQuestion || hasResults).toBe(true);
-        }
-      }
-    }
+    await exam.getByRole("button", { name: "Back" }).click();
+    await expect(exam.getByText(`Question 1 of ${CHAPTER_QUIZ_QUESTIONS}`)).toBeVisible();
   });
 
-  test("answer multiple questions in sequence", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+  test("Back is disabled on the first question", async ({ page }) => {
+    await resetExamAttempts(page);
+    const exam = await openExam(page);
 
-    const quizLauncher = page.getByRole("button", { name: /quiz|exam|test|assessment/i });
-
-    if ((await quizLauncher.count()) > 0) {
-      await quizLauncher.click();
-      await page.waitForTimeout(500);
-
-      let questionsAnswered = 0;
-      const maxQuestions = 5; // Arbitrary limit to avoid infinite loops
-
-      while (questionsAnswered < maxQuestions) {
-        // Try to select an option
-        const options = page.locator("input[type='radio'], input[type='checkbox']");
-        const optionCount = await options.count();
-
-        if (optionCount === 0) {
-          // No options found, might be at results screen
-          break;
-        }
-
-        // Select the first available option
-        await options.nth(0).click();
-        questionsAnswered++;
-
-        // Look for submit button
-        const submitButton = page.getByRole("button", { name: /submit|next|continue|finish/i });
-
-        if ((await submitButton.count()) > 0) {
-          await submitButton.click();
-          await page.waitForTimeout(300);
-
-          // Check if we've reached results
-          const results = page.locator("[class*='result'], [class*='score']");
-          if (await results.isVisible()) {
-            break;
-          }
-        } else {
-          break;
-        }
-      }
-
-      expect(questionsAnswered).toBeGreaterThan(0);
-    }
+    await expect(exam.getByRole("button", { name: "Back" })).toBeDisabled();
   });
 });
 
 test.describe("Chapter Exam - Results and Scoring", () => {
-  test("display exam results with score", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+  test("submitting with unanswered questions asks for confirmation first", async ({ page }) => {
+    await resetExamAttempts(page);
+    const exam = await openExam(page);
 
-    const quizLauncher = page.getByRole("button", { name: /quiz|exam|test|assessment/i });
+    await exam.getByRole("button", { name: "Submit exam" }).click();
 
-    if ((await quizLauncher.count()) > 0) {
-      await quizLauncher.click();
-      await page.waitForTimeout(500);
-
-      // Answer all questions and reach results
-      let attemptCount = 0;
-      const maxAttempts = 20;
-
-      while (attemptCount < maxAttempts) {
-        const options = page.locator("input[type='radio'], input[type='checkbox']");
-        if ((await options.count()) === 0) break;
-
-        await options.nth(0).click();
-
-        const submitButton = page.getByRole("button", { name: /submit|next|continue|finish/i });
-        if ((await submitButton.count()) > 0) {
-          await submitButton.click();
-          await page.waitForTimeout(300);
-        }
-
-        attemptCount++;
-
-        // Check for results screen
-        const scoreDisplay = page.locator("[class*='score'], [class*='result']");
-        if (await scoreDisplay.isVisible()) {
-          break;
-        }
-      }
-
-      // Look for score text
-      const score = page.locator("text=/\\d+%|\\d+\\/\\d+|passed|failed/i");
-
-      if ((await score.count()) > 0) {
-        await expect(score.first()).toBeVisible();
-      }
-    }
+    // Still on the exam, with a confirm step in front of the submission.
+    const confirm = page.getByRole("alertdialog", { name: "Confirm submit" });
+    await expect(confirm).toBeVisible();
+    await expect(confirm).toContainText(/unanswered/i);
   });
 
-  test("show pass/fail indicator based on threshold", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+  test("completing the exam shows a score against the pass threshold", async ({ page }) => {
+    await resetExamAttempts(page);
+    const exam = await openExam(page);
 
-    const quizLauncher = page.getByRole("button", { name: /quiz|exam|test|assessment/i });
+    await answerAllQuestions(exam);
+    await exam.getByRole("button", { name: "Submit exam" }).click();
 
-    if ((await quizLauncher.count()) > 0) {
-      await quizLauncher.click();
-      await page.waitForTimeout(500);
-
-      // Answer all questions
-      let attemptCount = 0;
-      while (attemptCount < 20) {
-        const options = page.locator("input[type='radio'], input[type='checkbox']");
-        if ((await options.count()) === 0) break;
-
-        await options.nth(0).click();
-
-        const submitButton = page.getByRole("button", { name: /submit|next|continue|finish/i });
-        if ((await submitButton.count()) > 0) {
-          await submitButton.click();
-          await page.waitForTimeout(300);
-        }
-
-        attemptCount++;
-
-        const resultsScreen = page.locator("[class*='result'], [class*='score']");
-        if (await resultsScreen.isVisible()) {
-          break;
-        }
-      }
-
-      // Check for pass/fail visual indicator
-      const passText = page.locator("text=/pass|success|correct/i");
-      const failText = page.locator("text=/fail|incorrect/i");
-
-      const hasPassIndicator = await passText.isVisible();
-      const hasFailIndicator = await failText.isVisible();
-
-      // Should have at least one
-      expect(hasPassIndicator || hasFailIndicator).toBe(true);
-    }
+    const results = page.getByRole("dialog", { name: "Load Balancer exam results" });
+    await expect(results).toBeVisible();
+    // A real percentage and an explicit verdict against the 80% line - the
+    // old version matched /pass|success|correct/ anywhere on the page, which
+    // any per-option explanation would satisfy on its own.
+    await expect(results.getByText(/^\d+%$/)).toBeVisible();
+    await expect(results).toContainText(/80% required/);
   });
 
-  test("display attempt count when retaking exam", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+  test("the attempt is recorded and shown back on the lesson", async ({ page }) => {
+    await resetExamAttempts(page);
+    const exam = await openExam(page);
 
-    const quizLauncher = page.getByRole("button", { name: /quiz|exam|test|assessment/i });
+    await answerAllQuestions(exam);
+    await exam.getByRole("button", { name: "Submit exam" }).click();
 
-    if ((await quizLauncher.count()) > 0) {
-      // First attempt
-      await quizLauncher.click();
-      await page.waitForTimeout(500);
+    const results = page.getByRole("dialog", { name: "Load Balancer exam results" });
+    await expect(results).toBeVisible();
+    await results.getByRole("button", { name: "Return to lesson" }).click();
 
-      // Quick answer some questions to reach results
-      let attemptCount = 0;
-      while (attemptCount < 10) {
-        const options = page.locator("input[type='radio'], input[type='checkbox']");
-        if ((await options.count()) === 0) break;
-
-        await options.nth(0).click();
-
-        const submitButton = page.getByRole("button", { name: /submit|next|continue|finish/i });
-        if ((await submitButton.count()) > 0) {
-          await submitButton.click();
-          await page.waitForTimeout(300);
-        }
-
-        attemptCount++;
-
-        const resultsScreen = page.locator("[class*='result'], [class*='score']");
-        if (await resultsScreen.isVisible()) {
-          break;
-        }
-      }
-
-      // Look for retry button
-      const retryButton = page.getByRole("button", { name: /retry|retake|try again/i });
-
-      if ((await retryButton.count()) > 0) {
-        await retryButton.click();
-        await page.waitForTimeout(500);
-
-        // Should show attempt counter (e.g., "Attempt 2 of 3")
-        const attemptCounter = page.locator("text=/attempt|try/i");
-        if ((await attemptCounter.count()) > 0) {
-          await expect(attemptCounter.first()).toBeVisible();
-        }
-      }
-    }
-  });
-});
-
-test.describe("Chapter Exam - Persistence", () => {
-  test("persist exam score to progress database", async ({ page }) => {
-    // Navigate to learning path and check initial progress
-    await page.goto("/building-blocks");
-
-    // Take the exam and complete it
-    await page.getByRole("link", { name: /3\.4.*Load Balancer/i }).click();
-    await page.waitForURL("**/building-blocks/3-4-load-balancer/lesson");
-
-    await page.getByRole("link", { name: /begin exercise/i }).click();
-    await page.waitForURL("**/building-blocks/3-4-load-balancer");
-
-    const quizLauncher = page.getByRole("button", { name: /quiz|exam|test|assessment/i });
-
-    if ((await quizLauncher.count()) > 0) {
-      await quizLauncher.click();
-      await page.waitForTimeout(500);
-
-      // Quick completion
-      let attempts = 0;
-      while (attempts < 20) {
-        const options = page.locator("input[type='radio'], input[type='checkbox']");
-        if ((await options.count()) === 0) break;
-
-        await options.nth(0).click();
-
-        const submit = page.getByRole("button", { name: /submit|next|continue|finish/i });
-        if ((await submit.count()) > 0) {
-          await submit.click();
-          await page.waitForTimeout(300);
-        }
-
-        attempts++;
-
-        const results = page.locator("[class*='result'], [class*='score']");
-        if (await results.isVisible()) break;
-      }
-
-      // Go back to learning path
-      await page.goto("/building-blocks");
-
-      // Check if progress updated
-      const chapterRowAfter = page.getByText(/3\.4.*Load Balancer/i);
-      const statusAfter = await chapterRowAfter.evaluate((el) =>
-        el.closest("li")?.querySelector("[class*='progress']")?.textContent
-      );
-
-      // Status should have changed
-      expect(statusAfter).toBeTruthy();
-    }
+    // YourTurnCard reports either "Passed · N%" or "Attempt N · Best score N%"
+    // once an attempt exists, and the launcher changes wording accordingly.
+    await expect(page.getByText(/Passed · \d+%|Attempt \d+ · Best score \d+%/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /^(Retake the quiz|View your result)$/ })).toBeVisible();
   });
 
-  test("exam score survives page reload", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+  test("a recorded attempt survives a page reload", async ({ page }) => {
+    await resetExamAttempts(page);
+    const exam = await openExam(page);
 
-    const quizLauncher = page.getByRole("button", { name: /quiz|exam|test|assessment/i });
+    await answerAllQuestions(exam);
+    await exam.getByRole("button", { name: "Submit exam" }).click();
+    await expect(page.getByRole("dialog", { name: "Load Balancer exam results" })).toBeVisible();
 
-    if ((await quizLauncher.count()) > 0) {
-      // Take exam quickly
-      await quizLauncher.click();
-      await page.waitForTimeout(500);
+    await page.reload();
 
-      let attempts = 0;
-      while (attempts < 20) {
-        const options = page.locator("input[type='radio'], input[type='checkbox']");
-        if ((await options.count()) === 0) break;
-
-        await options.nth(0).click();
-
-        const submit = page.getByRole("button", { name: /submit|next|continue|finish/i });
-        if ((await submit.count()) > 0) {
-          await submit.click();
-          await page.waitForTimeout(300);
-        }
-
-        attempts++;
-
-        const results = page.locator("[class*='result'], [class*='score']");
-        if (await results.isVisible()) {
-          break;
-        }
-      }
-
-      // Reload the page
-      await page.reload();
-      await page.waitForTimeout(500);
-
-      // Score should still be visible
-      const scoreAfterReload = await page.locator("[class*='score']").textContent();
-
-      expect(scoreAfterReload).toBeTruthy();
-    }
+    // The old version read `[class*='score']` textContent and asserted it was
+    // truthy, inside a guard that never opened.
+    await expect(page.getByText(/Passed · \d+%|Attempt \d+ · Best score \d+%/)).toBeVisible();
   });
 });
