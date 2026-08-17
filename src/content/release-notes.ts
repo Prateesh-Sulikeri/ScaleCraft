@@ -14,6 +14,15 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "6.1.1-alpha",
+    date: "2026-08-17",
+    highlights: [
+      "Fixed clicking mark-complete or a quiz right after a page load sometimes saying \"Sign in required\" while you were already signed in, and silently not saving. The action now waits for your session to resolve instead.",
+      "Fixed 'On this page' highlighting Knowledge check while you were still at the top of a chapter - nothing is highlighted now until you scroll to a real section.",
+      "Lessons now use a wider column on very wide displays instead of the same narrow measure as a laptop. 1080p and below are unchanged.",
+    ],
+  },
+  {
     version: "6.1.0-alpha",
     date: "2026-08-16",
     highlights: [
