@@ -22,14 +22,15 @@ type TableOfContentsProps = {
  * not here - it needs to stay visible (alongside ThemeToggle) even on a
  * chapter with no headings, when this component renders nothing.
  *
- * The caller must key this component on the chapter (see ChapterReader.tsx)
- * so it remounts, rather than re-rendering, on navigation. Without a remount,
- * `activeId` from the previous chapter can survive into the new one: if the
- * new chapter's first heading starts below the fold, the observer's first
- * callback finds nothing intersecting and leaves `activeId` untouched, and
- * many chapters share heading ids (e.g. the synthetic "knowledge-check" id
- * in extract-headings.ts), so the stale id can still match a real heading
- * in the new chapter and highlight the wrong section at scrollTop 0.
+ * `activeId` is derived from scroll position on every callback, including the
+ * ones where no heading is in the band - see the observer body. At the top of
+ * a chapter that means no highlight, rather than whichever heading happened to
+ * intersect last.
+ *
+ * The caller should still key this component on the chapter (see
+ * ChapterReader.tsx) so it remounts, rather than re-rendering, on navigation -
+ * that drops the previous chapter's observed elements and recorded positions
+ * instead of carrying them into a different document.
  */
 export function TableOfContents({ headings, targetRef }: TableOfContentsProps) {
   const items = headings.filter((h) => h.level >= 1);
@@ -39,14 +40,46 @@ export function TableOfContents({ headings, targetRef }: TableOfContentsProps) {
     const root = targetRef.current;
     if (!root || items.length === 0) return;
 
+    const order = items.map((h) => h.id);
+    // Which headings are in the band right now, and the last viewport top the
+    // observer reported for each - a callback where nothing is in the band
+    // needs those tops to tell "already scrolled past" from "not reached yet".
+    const visible = new Set<string>();
+    const tops = new Map<string, number>();
+
     const observer = new IntersectionObserver(
       (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting);
-        if (visible.length === 0) return;
-        // Topmost visible heading - reads as "the section you're currently
-        // in" more faithfully than IntersectionObserver's own entry order.
-        const topmost = visible.reduce((a, b) => (a.boundingClientRect.top < b.boundingClientRect.top ? a : b));
-        setActiveId(topmost.target.id);
+        for (const e of entries) {
+          tops.set(e.target.id, e.boundingClientRect.top);
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        }
+
+        if (visible.size > 0) {
+          // Topmost visible heading - reads as "the section you're currently
+          // in" more faithfully than IntersectionObserver's own entry order.
+          let topmost: string | null = null;
+          for (const id of visible) {
+            if (topmost === null || (tops.get(id) ?? 0) < (tops.get(topmost) ?? 0)) topmost = id;
+          }
+          setActiveId(topmost);
+          return;
+        }
+
+        // Nothing in the band: fall back to the last heading that has scrolled
+        // above the container's top edge, and to no highlight at all when none
+        // has. Keeping the previous id here is what made a freshly opened
+        // chapter highlight "Knowledge check" at scrollTop 0 - YourTurnCard's
+        // static h2 is the only heading in the DOM until the lesson chunk
+        // paints, so it intersects an otherwise empty article, and once the
+        // body pushed it below the fold the empty-band callback left it set.
+        const rootTop = root.getBoundingClientRect().top;
+        let passed: string | null = null;
+        for (const id of order) {
+          const top = tops.get(id);
+          if (top !== undefined && top < rootTop) passed = id;
+        }
+        setActiveId(passed);
       },
       { root, rootMargin: "0px 0px -70% 0px", threshold: 0 },
     );

@@ -35,7 +35,7 @@ describe("ModeNode", () => {
     // other tests in this file rely on that default implicitly instead of
     // setting it themselves, so a bare reset would leave them destructuring
     // `useAuth()`'s return value off `undefined` depending on run order.
-    vi.mocked(useAuth).mockReturnValue({ isSignedIn: true } as ReturnType<typeof useAuth>);
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: true } as ReturnType<typeof useAuth>);
   });
 
   it("renders as a disabled, non-navigable card when there's no href", () => {

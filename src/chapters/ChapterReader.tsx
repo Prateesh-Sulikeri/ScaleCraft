@@ -81,7 +81,11 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
 
         <div ref={articleRef} className="relative min-h-0 flex-1 overflow-y-auto">
           <ReadingProgress targetRef={articleRef} />
-          <div className="mx-auto max-w-2xl px-6 py-10">
+          {/* 42rem reads well through 1080p; past ~1800px the two asides leave
+              enough room that it looks narrow, so widen to 64rem. Stock
+              Tailwind stops at 2xl (1536px), which 1080p already clears - hence
+              the arbitrary breakpoint. */}
+          <div className="mx-auto max-w-2xl px-6 py-10 min-[1800px]:max-w-5xl">
             <p className="text-xs font-medium tracking-wide text-foreground/50 uppercase">
               {entry.number ? `${entry.number} · ` : ""}
               {course.title}

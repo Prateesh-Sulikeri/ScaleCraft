@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth, useClerk } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import { AuthPromptDialog } from "./AuthPromptDialog";
@@ -32,12 +32,38 @@ type UseRequireAuthAction = {
  * exact row/card they clicked and can click again.
  */
 export function useRequireAuthAction(): UseRequireAuthAction {
-  const { isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
   const { redirectToSignIn } = useClerk();
   const pathname = usePathname();
   const [promptOpen, setPromptOpen] = useState(false);
+  // A click that arrived before Clerk resolved, still waiting on it.
+  const [clickHeld, setClickHeld] = useState(false);
+  const heldAction = useRef<(() => void) | null>(null);
+  const heldActionRun = useRef(false);
+
+  // Runs the held click once the session resolves. Deliberately no setState
+  // here - the signed-out outcome is derived below instead.
+  useEffect(() => {
+    if (!isLoaded || !clickHeld || heldActionRun.current) return;
+    heldActionRun.current = true;
+    const action = heldAction.current;
+    heldAction.current = null;
+    if (isSignedIn) action?.();
+  }, [isLoaded, isSignedIn, clickHeld]);
 
   const requireAuth = (action: () => void) => {
+    // `isSignedIn` is undefined until Clerk loads, so branching on it alone
+    // shows "Sign in required" to a user who is in fact signed in. Same bug
+    // ModeNode.tsx already guards against; this hook was missed. It holds
+    // the click rather than falling through the way ModeNode does, because
+    // these actions are progress *writes* - running one before the session
+    // resolves just fails at the API.
+    if (!isLoaded) {
+      heldAction.current = action;
+      heldActionRun.current = false;
+      setClickHeld(true);
+      return;
+    }
     if (isSignedIn) {
       action();
       return;
@@ -45,11 +71,21 @@ export function useRequireAuthAction(): UseRequireAuthAction {
     setPromptOpen(true);
   };
 
-  const dialog = promptOpen ? (
+  // A held click that resolved to signed-out prompts too, without the effect
+  // needing to set state for it.
+  const showPrompt = promptOpen || (clickHeld && isLoaded && !isSignedIn);
+
+  const dismiss = () => {
+    setPromptOpen(false);
+    setClickHeld(false);
+    heldAction.current = null;
+  };
+
+  const dialog = showPrompt ? (
     <AuthPromptDialog
-      onCancel={() => setPromptOpen(false)}
+      onCancel={dismiss}
       onConfirm={() => {
-        setPromptOpen(false);
+        dismiss();
         void redirectToSignIn({ redirectUrl: pathname });
       }}
     />

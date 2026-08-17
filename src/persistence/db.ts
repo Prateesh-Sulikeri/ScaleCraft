@@ -355,13 +355,22 @@ const USER_ID_KEY = "scalecraft:userId";
 const LOCAL_STORAGE_PREFIXES = ["sc-", "scalecraft:"];
 
 function clearLocalStoragePrefixed(exceptKeys: string[]) {
-  Object.keys(localStorage)
-    .filter(
-      (key) =>
-        LOCAL_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
-        !exceptKeys.includes(key),
-    )
-    .forEach((key) => localStorage.removeItem(key));
+  // Guarded like every other localStorage access here. reconcileLocalStateForUser
+  // only reaches this after its own try/catch has proven storage works, but
+  // clearLocalStateOnSignOut calls it cold - and ResetOnSignOut fires that with
+  // `void`, so a throw under private mode / disabled storage surfaced as an
+  // unhandled rejection rather than a no-op.
+  try {
+    Object.keys(localStorage)
+      .filter(
+        (key) =>
+          LOCAL_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix)) &&
+          !exceptKeys.includes(key),
+      )
+      .forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // Private mode / disabled storage - nothing to clear.
+  }
 }
 
 let currentUserId: string | null = null;

@@ -106,25 +106,8 @@ test.describe("multi-device sync", () => {
     }
   });
 
-  test("a fresh device pulls what another device already wrote", async ({ browser }) => {
-    const a = await openDevice(browser, "A");
-    await resetSlugs(a.page.request, [SLUG_LIFECYCLE]);
-
-    await a.page.goto("/building-blocks");
-    await expect(a.page.getByRole("heading", { level: 1 })).toBeVisible();
-    expect(await statusOf(a.page, TITLE_LIFECYCLE)).toMatch(/not started|in progress/i);
-    await markComplete(a, TITLE_LIFECYCLE);
-
-    const b = await openDevice(browser, "B");
-    await b.page.goto("/building-blocks");
-    await expect(b.page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect
-      .poll(() => statusOf(b.page, TITLE_LIFECYCLE), {
-        message: "fresh device B should pull A's completion",
-        timeout: 15_000,
-      })
-      .toMatch(/completed/i);
-  });
+  // Pull-on-first-load is not tested on its own: every test below opens a
+  // fresh device B that has to pull A's write before it can assert anything.
 
   test("a warm device picks up a change after a hard reload", async ({ browser }) => {
     const a = await openDevice(browser, "A");
