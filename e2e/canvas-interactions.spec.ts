@@ -97,47 +97,43 @@ test.describe("Canvas - Component Placement", () => {
     }
   });
 
-  // QUARANTINED - see .claude/docs/pending-e2e-quarantine.md
-  // Paces the whole interaction with fixed waitForTimeout sleeps, so under CI
-  // load the ctrl-click lands before selection settles and only one node is
-  // deleted. Needs state-based waits before it can come back.
-  test.fixme("multi-select nodes and delete them together", async ({ page }) => {
+  test("multi-select nodes and delete them together", async ({ page }) => {
+    await page.goto("/");
+    // The seed graph, not whatever the previous spec saved to this account's
+    // sandbox - same reset mode-isolation.spec.ts does. The old version
+    // instead read the count at runtime and bailed via `expect(true)` when it
+    // was under 2, so it could pass without ever multi-selecting anything.
+    await page.request.delete("/api/sync/saves?scopeId=sandbox");
     await page.goto("/sandbox");
 
     const nodes = page.locator(".react-flow__node");
-    const initialCount = await nodes.count();
+    await expect(nodes).toHaveCount(4);
 
-    if (initialCount < 2) {
-      // Not enough nodes to test multi-select
-      expect(true).toBe(true);
-      return;
-    }
+    // Box-drag across the pane (Canvas.tsx sets selectionOnDrag, and panning
+    // is on middle-mouse). Ctrl-clicking nodes selects them too, but only a
+    // drag-selection activates React Flow's nodes-selection rect, and that
+    // rect is what carries the group context menu.
+    const pane = page.locator(".react-flow__pane");
+    const paneBox = (await pane.boundingBox())!;
+    await page.mouse.move(paneBox.x + 5, paneBox.y + 5);
+    await page.mouse.down();
+    await page.mouse.move(paneBox.x + paneBox.width - 5, paneBox.y + paneBox.height - 5, {
+      steps: 15,
+    });
+    await page.mouse.up();
 
-    // Click first node
-    await nodes.first().click();
-    await page.waitForTimeout(200);
+    // Wait on selection state instead of sleeping - under load the old fixed
+    // 200/300ms sleeps let the next step land before selection had settled.
+    await expect(page.locator(".react-flow__node.selected")).toHaveCount(4);
 
-    // Hold Ctrl/Cmd and click second node to multi-select
-    const modifier = process.platform === "darwin" ? "Meta" : "Control";
-    await nodes.nth(1).click({ modifiers: [modifier as "Meta" | "Control"] });
-    await page.waitForTimeout(300);
+    // Right-clicking a *node* opens the single-node menu (onNodeContextMenu),
+    // whose Delete removes just that one - the real cause of the old
+    // "expected 2, received 3". The group delete lives on the selection
+    // rect's menu (onSelectionContextMenu).
+    await page.locator(".react-flow__nodesselection-rect").click({ button: "right" });
+    await page.getByRole("button", { name: "Delete 4 components" }).click();
 
-    // Right-click to open context menu on selection
-    await nodes.first().click({ button: "right" });
-    await page.waitForTimeout(300);
-
-    // Click delete
-    const deleteBtn = page.getByRole("button", { name: /delete/i }).first();
-    if ((await deleteBtn.count()) > 0) {
-      await deleteBtn.click();
-    }
-
-    // Verify both nodes were deleted
-    await page.waitForTimeout(300);
-    const updatedNodes = page.locator(".react-flow__node");
-    const newCount = await updatedNodes.count();
-
-    expect(newCount).toBe(initialCount - 2);
+    await expect(nodes).toHaveCount(0);
   });
 
   test("duplicate a node via context menu", async ({ page }) => {

@@ -140,36 +140,28 @@ test.describe("Chapter Journey - Full Workflow", () => {
 });
 
 test.describe("Design Editor - Configuration", () => {
-  // QUARANTINED - see .claude/docs/pending-e2e-quarantine.md
-  // `[class*='panel']` matches every bg-panel utility class (17 elements ->
-  // strict mode violation). Needs a real selector before it can come back.
-  test.fixme("open component config panel and modify settings", async ({ page }) => {
+  test("open component config panel and modify settings", async ({ page }) => {
     await page.goto("/building-blocks/3-4-load-balancer");
 
-    const nodes = page.locator(".react-flow__node");
+    // Assert the precondition rather than guarding on it: the old
+    // `if (count > 0)` let this pass having asserted nothing.
+    const nodes = page.locator(".react-flow__node-component");
+    await expect(nodes.first()).toBeVisible();
 
-    if ((await nodes.count()) > 0) {
-      // Click a node to open config
-      await nodes.first().click();
+    // The config popover opens on double-click (Canvas.tsx's
+    // onNodeDoubleClick) or the context menu's Configure. A single click
+    // only selects, so the old version was asserting against a panel that
+    // had never opened.
+    await nodes.first().dblclick();
 
-      // Config panel should appear
-      const configPanel = page.locator("aside, [class*='inspector'], [class*='panel']");
-      await expect(configPanel).toBeVisible({ timeout: 2000 });
+    // The popover's own labelled field. `[class*='panel']` matched every
+    // bg-panel utility in the toolbar instead (17 elements, strict-mode
+    // violation).
+    const instanceName = page.getByLabel("Instance name");
+    await expect(instanceName).toBeVisible();
 
-      // Look for form inputs
-      const inputs = page.locator("input, select, textarea");
-
-      if ((await inputs.count()) > 0) {
-        // Try to modify an input
-        const firstInput = inputs.nth(0);
-
-        await firstInput.fill("modified-value");
-        await page.waitForTimeout(200);
-
-        const newValue = await firstInput.inputValue();
-        expect(newValue).toBe("modified-value");
-      }
-    }
+    await instanceName.fill("modified-value");
+    await expect(instanceName).toHaveValue("modified-value");
   });
 
   test("config changes are persisted in component", async ({ page }) => {
@@ -214,28 +206,19 @@ test.describe("Design Editor - Configuration", () => {
     }
   });
 
-  // QUARANTINED - see .claude/docs/pending-e2e-quarantine.md
-  // `[class*='docs'], [class*='modal']` matches nothing once the docs button
-  // is actually clicked. Needs a real selector before it can come back.
-  test.fixme("view component documentation in inspector", async ({ page }) => {
+  test("view component documentation in inspector", async ({ page }) => {
     await page.goto("/building-blocks/3-4-load-balancer");
 
-    const nodes = page.locator(".react-flow__node");
+    const nodes = page.locator(".react-flow__node-component");
+    await expect(nodes.first()).toBeVisible();
+    await nodes.first().dblclick();
 
-    if ((await nodes.count()) > 0) {
-      await nodes.first().click();
+    await page.getByRole("button", { name: "Docs" }).click();
 
-      // Look for a docs/info tab or button
-      const docsButton = page.getByRole("button", { name: /docs|info|documentation/i });
-
-      if ((await docsButton.count()) > 0) {
-        await docsButton.click();
-
-        // Docs content should appear
-        const docsContent = page.locator("[class*='docs'], [class*='modal']");
-        await expect(docsContent).toBeVisible({ timeout: 2000 });
-      }
-    }
+    // Docs open as a tab in the docs panel (the store's openDocTab), never a
+    // modal - which is why `[class*='modal']` could never match however long
+    // it waited. The panel's own controls are the real signal.
+    await expect(page.getByRole("button", { name: "Minimize documentation panel" })).toBeVisible();
   });
 });
 

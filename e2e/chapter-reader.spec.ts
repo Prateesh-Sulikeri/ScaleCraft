@@ -81,36 +81,31 @@ test.describe("Chapter Reader - Learning Path Integration", () => {
     expect(classList).toContain("sticky");
   });
 
-  // QUARANTINED - see .claude/docs/pending-e2e-quarantine.md
-  // The first width read (816px) is the pre-hydration full-container width,
-  // not a progress value - after scrolling it settles to 481px, so "after >
-  // before" can never hold. Needs to wait for the bar to hydrate first.
-  test.fixme("reading progress bar updates on scroll", async ({ page }) => {
+  test("reading progress bar updates on scroll", async ({ page }) => {
     await page.goto("/building-blocks/3-4-load-balancer/lesson");
     const article = page.locator("main > div").first();
-    const progressBar = page.locator('[role="progressbar"] > div').nth(0);
+    const progressBar = page.locator('[role="progressbar"]');
 
-    const beforeWidth = await progressBar.evaluate((el) => window.getComputedStyle(el).width);
-    const beforeNum = Number(beforeWidth.replace("px", ""));
-
-    // Scrolling before the article has laid out puts scrollTop at ~0 and the
-    // bar never moves, so wait for it to actually be scrollable first.
+    // ReadingProgress reports 100% while the article has no scrollable height
+    // yet (`scrollable <= 0` in ReadingProgress.tsx), so a baseline taken
+    // before the MDX paints is a *full* bar - which is why the old
+    // "after > before" pixel comparison could never hold. Wait for real
+    // layout, then for the bar to settle back to 0.
     await expect
       .poll(() => article.evaluate((el) => el.scrollHeight - el.clientHeight))
       .toBeGreaterThan(0);
+    await expect.poll(() => progressBar.getAttribute("aria-valuenow")).toBe("0");
 
     await article.evaluate((el) => {
       el.scrollTop = el.scrollHeight * 0.5;
       el.dispatchEvent(new Event("scroll"));
     });
 
+    // aria-valuenow is the rendered progress value; computed pixel width
+    // conflates it with the container's own width.
     await expect
-      .poll(async () =>
-        Number(
-          (await progressBar.evaluate((el) => window.getComputedStyle(el).width)).replace("px", ""),
-        ),
-      )
-      .toBeGreaterThan(beforeNum);
+      .poll(async () => Number(await progressBar.getAttribute("aria-valuenow")))
+      .toBeGreaterThan(0);
   });
 });
 
