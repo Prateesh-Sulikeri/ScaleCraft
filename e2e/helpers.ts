@@ -99,16 +99,6 @@ export async function connectNodes(page: Page, source: Locator, target: Locator)
   await page.mouse.up();
 }
 
-/** React Flow's current zoom, read off the viewport's transform matrix. */
-export async function viewportScale(page: Page): Promise<number> {
-  const transform = await page
-    .locator(".react-flow__viewport")
-    .evaluate((el) => getComputedStyle(el).transform);
-  // "none" before the first transform is applied; otherwise matrix(a, ...)
-  // where a is the horizontal scale.
-  return transform === "none" ? 1 : Number(transform.match(/matrix\(([^,]+)/)?.[1] ?? 1);
-}
-
 /** Drag-selects every node. Canvas.tsx puts selection on left-drag and panning
  *  on middle-mouse, so a pane drag is a selection box. Ctrl-clicking nodes
  *  selects them too, but only a *drag* selection activates React Flow's

@@ -1,11 +1,19 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Real-browser integration tests — the layer vitest/jsdom can't reach:
- * actual IndexedDB persistence across a reload, and full-page navigation
- * (the branded mode-transition hold in ModeNode.tsx). Scoped to a small set
- * of high-value journeys, not exhaustive UI coverage — that's what the
- * unit/component suite (`npm test`) is for. See .claude/docs/pending.md I.7.
+ * Real-browser tests, deliberately minimal. A test earns a place here only if
+ * vitest/jsdom structurally cannot run it:
+ *   - persistence that has to survive a real page load (IndexedDB + cloud)
+ *   - client-side navigation across routes, and per-mode store isolation
+ *   - React Flow pointer geometry (handle drags, box selection)
+ *   - two browser contexts as two devices (cloud sync reconciliation)
+ *   - the validation engine running end to end behind its dynamic import
+ *
+ * Everything else belongs in the unit/component suite (`npm test`), which
+ * covers it in milliseconds instead of minutes. Rendering, form behaviour,
+ * menus, panels and keyboard handlers all have component tests already -
+ * duplicating them here only bought browser time and flake. Audited down from
+ * 102 tests to 18 on 2026-08-17.
  */
 export default defineConfig({
   testDir: "./e2e",
