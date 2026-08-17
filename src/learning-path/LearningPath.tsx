@@ -4,13 +4,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Search } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import { PageEnter } from "@/app/PageEnter";
+import { courseAccentStyle } from "./accent";
 import { chapterStatusLabel } from "./ChapterStatusIcon";
 import { CourseHeader } from "./CourseHeader";
+import { LEARNING_PATH_CONTAINER } from "./layout";
 import { SectionCard } from "./SectionCard";
-import { getCourse } from "@/curriculum";
+import { StatusFilter, type StatusFilterValue } from "./StatusFilter";
+import { TipCard } from "./TipCard";
+import { UpNextCard } from "./UpNextCard";
+import { findEntry, getCourse } from "@/curriculum";
 import { deriveStatus, summarizeCourse, type ProgressInputs } from "@/curriculum/progress";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
-import type { CourseId } from "@/curriculum/types";
+import { activityTimestamps, computeDayStreak, resolveContinueTarget } from "@/home/home-data";
+import { useNow } from "@/lib/use-now";
+import type { CourseId, CurriculumChapter } from "@/curriculum/types";
 
 /** How far down (px) the page must scroll before the "back to top" button
  *  appears — small enough that a learner scanning Real World Extraction's
@@ -25,6 +32,11 @@ const SCROLL_TOP_THRESHOLD = 400;
  * store's default empty Set/Map already renders every entry as 0%/NOT_STARTED
  * — the same shape a real empty install would have — so there's no separate
  * loading branch to gate and no hydration mismatch to guard against.
+ *
+ * Two columns on a wide screen: the curriculum, and a sticky rail holding
+ * "Up next" and the course's own guidance. Both rail cards fall below the
+ * curriculum on narrow screens rather than squeezing into a column too thin
+ * to read.
  */
 export function LearningPath({ courseId }: { courseId: CourseId }) {
   const course = getCourse(courseId);
@@ -37,6 +49,9 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
   const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
   const { isSignedIn } = useAuth();
+  // null on the server and the hydrating render, so a day streak computed
+  // here can never disagree with the first client paint (lib/use-now.ts).
+  const now = useNow();
 
   useEffect(() => {
     // Phase 11 (pending-6.1.0-poa.md) — public page now. Signed-out visitors
@@ -52,6 +67,16 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
     [validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition],
   );
   const summary = useMemo(() => summarizeCourse(course, inputs), [course, inputs]);
+  const dayStreak = useMemo(() => computeDayStreak(activityTimestamps(inputs), now ?? 0), [inputs, now]);
+
+  // Scoped to this course, so the card names a chapter the page below it
+  // actually lists — but resolved by Home's own preference order, not a
+  // second implementation of "what comes next".
+  const upNext = useMemo(() => {
+    const target = resolveContinueTarget(inputs, [courseId]);
+    const entry = target.slug ? (findEntry(courseId, target.slug) ?? null) : null;
+    return { target, entry };
+  }, [inputs, courseId]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -82,84 +107,115 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
   };
 
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("ALL");
   const trimmedQuery = query.trim().toLowerCase();
+  const isFiltering = trimmedQuery.length > 0 || statusFilter !== "ALL";
 
   const visibleSections = useMemo(() => {
-    if (!trimmedQuery) {
-      return course.sections.map((section) => ({ section, visibleChapters: section.chapters }));
-    }
+    const matchesStatus = (chapter: CurriculumChapter) =>
+      statusFilter === "ALL" || deriveStatus(chapter, inputs) === statusFilter;
+
     return course.sections
       .map((section) => {
+        // A section whose own title/label matches the query keeps all of its
+        // chapters — the status filter still applies to them, since the two
+        // controls compose rather than override each other.
         const sectionMatches =
-          section.title.toLowerCase().includes(trimmedQuery) || section.label.toLowerCase().includes(trimmedQuery);
-        const visibleChapters = sectionMatches
-          ? section.chapters
-          : section.chapters.filter((chapter) => {
-              const status = deriveStatus(chapter, inputs);
-              return (
-                chapter.title.toLowerCase().includes(trimmedQuery) ||
-                chapterStatusLabel(status).toLowerCase().includes(trimmedQuery)
-              );
-            });
+          trimmedQuery.length > 0 &&
+          (section.title.toLowerCase().includes(trimmedQuery) || section.label.toLowerCase().includes(trimmedQuery));
+
+        const visibleChapters = section.chapters.filter((chapter) => {
+          if (!matchesStatus(chapter)) return false;
+          if (!trimmedQuery || sectionMatches) return true;
+          const status = deriveStatus(chapter, inputs);
+          return (
+            chapter.title.toLowerCase().includes(trimmedQuery) ||
+            chapterStatusLabel(status).toLowerCase().includes(trimmedQuery)
+          );
+        });
+
         return { section, visibleChapters };
       })
-      .filter(({ visibleChapters }) => visibleChapters.length > 0);
-  }, [course.sections, trimmedQuery, inputs]);
+      .filter(({ visibleChapters }) => !isFiltering || visibleChapters.length > 0);
+  }, [course.sections, trimmedQuery, statusFilter, isFiltering, inputs]);
 
-  // A search match must stay visible regardless of collapse state - a
-  // section the learner collapsed earlier shouldn't hide the very result
-  // they just searched for.
-  const isSectionExpanded = (id: string) => (trimmedQuery ? true : !collapsedSectionIds.has(id));
+  // A match must stay visible regardless of collapse state - a section the
+  // learner collapsed earlier shouldn't hide the very result they just
+  // filtered for.
+  const isSectionExpanded = (id: string) => (isFiltering ? true : !collapsedSectionIds.has(id));
 
   return (
     <PageEnter>
       {/* body is h-full/overflow-hidden (layout.tsx) — there is no page-level
-       * scroll, so this region has to own its own. */}
-      <div ref={scrollRef} onScroll={handleScroll} className="relative flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-6 py-8">
-          <CourseHeader course={course} summary={summary} />
+       * scroll, so this region has to own its own. The accent vars are set
+       * here, at the page root, so every card below inherits one course
+       * colour instead of naming a hue of its own (see accent.ts). */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        style={courseAccentStyle(courseId)}
+        className="relative flex-1 overflow-y-auto"
+      >
+        <div className={`${LEARNING_PATH_CONTAINER} py-8`}>
+          <CourseHeader course={course} summary={summary} dayStreak={dayStreak} />
 
-          <div className="mb-3 flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-foreground/40" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search chapters, sections, or status..."
-                aria-label="Search chapters"
-                className="w-full rounded-md border border-border bg-background py-1.5 pl-7 pr-2 text-sm outline-none focus:border-foreground/40"
-              />
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2">
+              <div className="relative w-full lg:w-80">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-foreground/40" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search chapters, sections, or status..."
+                  aria-label="Search chapters"
+                  className="w-full rounded-md border border-border bg-background py-1.5 pl-7 pr-2 text-sm outline-none transition-colors duration-150 ease-out focus:border-foreground/40"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={toggleAllSections}
+                className="shrink-0 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium text-foreground/70 transition-colors duration-150 ease-out hover:text-foreground"
+              >
+                {anySectionExpanded ? "Collapse all" : "Expand all"}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={toggleAllSections}
-              className="shrink-0 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium text-foreground/70 hover:text-foreground"
-            >
-              {anySectionExpanded ? "Collapse all" : "Expand all"}
-            </button>
+
+            <StatusFilter value={statusFilter} onChange={setStatusFilter} />
           </div>
 
-          <div className="flex flex-col gap-3 pb-8">
-            {visibleSections.length === 0 ? (
-              <p className="px-1 py-8 text-center text-sm text-foreground/50">
-                No chapters match &quot;{query.trim()}&quot;.
-              </p>
-            ) : (
-              visibleSections.map(({ section, visibleChapters }) => (
-                <SectionCard
-                  key={section.id}
-                  section={section}
-                  courseId={courseId}
-                  inputs={inputs}
-                  expanded={isSectionExpanded(section.id)}
-                  onToggleExpanded={() => toggleSection(section.id)}
-                  visibleChapters={visibleChapters}
-                />
-              ))
-            )}
+          <div className="grid items-start gap-4 pb-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="flex flex-col gap-3">
+              {visibleSections.length === 0 ? (
+                <p className="rounded-xl border border-border bg-panel px-4 py-10 text-center text-sm text-foreground/50">
+                  No chapters match {trimmedQuery ? `"${query.trim()}"` : "this filter"}.
+                </p>
+              ) : (
+                visibleSections.map(({ section, visibleChapters }) => (
+                  <SectionCard
+                    key={section.id}
+                    section={section}
+                    courseId={courseId}
+                    inputs={inputs}
+                    expanded={isSectionExpanded(section.id)}
+                    onToggleExpanded={() => toggleSection(section.id)}
+                    visibleChapters={visibleChapters}
+                    upNextSlug={upNext.entry?.slug ?? null}
+                  />
+                ))
+              )}
+            </div>
+
+            {/* Sticky against this page's own scroll container, which is the
+             * nearest scrolling ancestor - the rail stays with the learner
+             * through a 32-row course. */}
+            <aside className="flex flex-col gap-3 lg:sticky lg:top-2">
+              <UpNextCard courseId={courseId} target={upNext.target} entry={upNext.entry} />
+              <TipCard courseId={courseId} />
+            </aside>
           </div>
         </div>
+
         {showScrollTop && (
           <button
             type="button"

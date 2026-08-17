@@ -8,6 +8,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), prefetch:
 const chapterTarget: ContinueTarget = {
   href: "/building-blocks/load-balancers/lesson",
   courseId: "building-blocks",
+  slug: "load-balancers",
   chapterLabel: "1.2 Load Balancers",
   chapterDefinitionId: "bb-load-balancers",
   kind: "resume",
@@ -45,6 +46,7 @@ describe("HomeHero", () => {
         continueTarget={{
           href: "/building-blocks",
           courseId: "building-blocks",
+          slug: null,
           chapterLabel: null,
           chapterDefinitionId: null,
           kind: "resume",

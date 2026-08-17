@@ -73,6 +73,18 @@
    * where this never appears. 8.4:1 against this theme's background. */
   --hero-accent: #60a5fa;
 
+  /* The Learning Path's per-course accent (src/learning-path/accent.ts sets
+   * all four inline on that page - Building Blocks keeps this default, Real
+   * World Extraction overrides to its own indigo). Declared here so anything
+   * reading --course-accent outside that page still resolves to a real colour
+   * rather than to nothing. The two derived stops must be re-declared wherever
+   * the base is overridden: a color-mix() substitutes against the value in
+   * scope where it is written, and descendants inherit the result. */
+  --course-accent: var(--hero-accent);
+  --course-accent-line: color-mix(in srgb, var(--hero-accent) 40%, transparent);
+  --course-accent-soft: color-mix(in srgb, var(--hero-accent) 12%, transparent);
+  --course-accent-wash: color-mix(in srgb, var(--hero-accent) 6%, transparent);
+
 }
 
 .light {

@@ -106,7 +106,9 @@ describe("LearningPath", () => {
       target: { value: "foundations" },
     });
 
-    expect(screen.getByText("Welcome to ScaleCraft")).toBeInTheDocument();
+    // getAllByText: the first unfinished chapter also appears in the Up next
+    // card, which sits outside the filtered curriculum and does not move.
+    expect(screen.getAllByText("Welcome to ScaleCraft").length).toBeGreaterThan(0);
     expect(screen.getByText("What is System Design?")).toBeInTheDocument();
   });
 
@@ -122,6 +124,36 @@ describe("LearningPath", () => {
 
     fireEvent.click(first);
     expect(first).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("the status filter narrows the curriculum, and composes with the search box", () => {
+    render(<LearningPath courseId="building-blocks" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Completed" }));
+    // Nothing is completed in a clean store, so every section filters out.
+    expect(screen.getByText(/no chapters match/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Not started" }));
+    expect(screen.getAllByRole("img", { name: /not started/i })).toHaveLength(40);
+
+    fireEvent.change(screen.getByRole("textbox", { name: /search chapters/i }), {
+      target: { value: "load balancer" },
+    });
+    expect(screen.getAllByRole("img", { name: /not started/i })).toHaveLength(1);
+  });
+
+  it("the Up next card links to the first unfinished authored chapter's lesson, the same route its row uses", () => {
+    render(<LearningPath courseId="building-blocks" />);
+
+    // The card and the chapter's own row are the only two links to it, and
+    // they must point at the identical route - the card is not a second
+    // navigation mechanism.
+    const links = screen.getAllByRole("link", { name: /welcome to scalecraft/i });
+    expect(links).toHaveLength(2);
+    expect(screen.getByRole("link", { name: /^up next:/i })).toHaveAttribute(
+      "href",
+      links.find((l) => !/^up next:/i.test(l.getAttribute("aria-label") ?? ""))?.getAttribute("href") ?? "",
+    );
   });
 
   it("shows a 'Scroll to top' button once scrolled past the threshold, which scrolls the pane back to 0", () => {
