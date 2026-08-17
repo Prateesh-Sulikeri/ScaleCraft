@@ -44,7 +44,14 @@ test("switching modes via client-side navigation never leaks canvas content betw
   // curriculum browser, then navigate into a real chapter workspace and
   // confirm nothing from Sandbox bled through there either.
   await expect(page.getByRole("heading", { level: 1, name: "Building Blocks" })).toBeVisible();
-  await page.getByRole("link", { name: /3\.4.*Load Balancer/i }).click();
+  // Scoped to the chapter row: the Learning Path's "Up next" card links to the
+  // same lesson with the same words in its accessible name whenever 3.4 is the
+  // chapter it resolves to, and only the rows are list items.
+  await page
+    .getByRole("listitem")
+    .filter({ hasText: /3\.4.*Load Balancer/i })
+    .getByRole("link")
+    .click();
   await page.waitForURL("**/building-blocks/3-4-load-balancer/lesson");
   await expect(page.locator(".react-flow__node")).toHaveCount(0);
 
