@@ -14,6 +14,18 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "7.0.0-alpha",
+    date: "2026-08-17",
+    highlights: [
+      "Home is now a dashboard instead of a static diagram. One \"Continue Learning\" button picks up the exact chapter you left unfinished, the three modes each show their own progress, and there's a recent-activity list and an at-a-glance summary of what you've completed.",
+      "\"View all activity\" opens a full history with a breakdown of how your work splits across Building Blocks, Real World Extraction, and Sandbox.",
+      "The Learning Path has been rebuilt to match. Its header now carries the course illustration, your overall progress, and four figures at a glance: chapters completed, sections completed, overall progress, and your current day streak.",
+      "New \"Up next\" card on the Learning Path opens the chapter you should do next - the same one Home's Continue button targets - and that chapter's row is now marked in the list so the two always agree.",
+      "You can now filter the curriculum by status (All, Not started, In progress, Completed) alongside the existing search, and a collapsed part shows its title and completion count instead of just a part number.",
+      "Chapter rows are clickable across their whole width now, not only on the title, and each course keeps its own accent colour throughout its Learning Path.",
+    ],
+  },
+  {
     version: "6.1.1-alpha",
     date: "2026-08-17",
     highlights: [

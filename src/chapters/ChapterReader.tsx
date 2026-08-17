@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useAuth } from "@clerk/nextjs";
 import { PageEnter } from "@/app/PageEnter";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { AppUserButton } from "@/app/AppUserButton";
@@ -18,6 +19,7 @@ import type { ChapterDefinition } from "@/content/chapters/types";
 import { appendKnowledgeCheckHeading, extractHeadings } from "./extract-headings";
 import { splitMarkdownAtNextSection } from "./split-markdown";
 import { useChapterLessonMdx } from "./use-chapter-lesson-mdx";
+import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 
 // This is the lesson page's primary content, so both keep SSR (no
 // ssr:false) - still a real chunk-splitting win since MarkdownRenderer pulls
@@ -54,6 +56,22 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   const hasNextEntry = nextEntry(mode, chapterSlug) !== undefined;
 
   const articleRef = useRef<HTMLDivElement>(null);
+
+  const { isSignedIn } = useAuth();
+  const markVisited = useCurriculumProgressStore((s) => s.markVisited);
+
+  // Opening the lesson is what starts a chapter, so IN_PROGRESS is written
+  // here - not only in ChapterWorkspace. Before this, the status came solely
+  // from the Design Editor mount, which the Learning Path never links to
+  // directly (ChapterRow -> /lesson), so reading a chapter left it
+  // NOT_STARTED, and the six hasEditorExercise: false chapters could never
+  // reach IN_PROGRESS at all. Signed-out gate matches ReaderSidebar: no
+  // anonymous local writes on a public route. The workspace keeps its own
+  // markVisited - idempotent, just a later timestamp.
+  useEffect(() => {
+    if (!isSignedIn || entry == null) return;
+    void markVisited(chapterSlug);
+  }, [isSignedIn, entry, chapterSlug, markVisited]);
 
   // Falls back to the chapter's problemStatement while the fetch is in
   // flight and if it 404s - same fallback convention as
