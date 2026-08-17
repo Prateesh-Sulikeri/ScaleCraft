@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { configure, render, screen } from "@testing-library/react";
 import { CanvasStoreProvider } from "@/canvas/store";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { CurriculumChapter } from "@/curriculum/types";
 import type { ChapterOutcome } from "@/validation-engine/chapter-outcome";
+
+// Same next/dynamic QuestionPane wait as ChapterWorkspace.test.tsx - measured
+// at ~416ms against the 1000ms default, so it carries the same thin margin.
+configure({ asyncUtilTimeout: 5000 });
 
 function makeOutcome(overrides: Partial<ChapterOutcome> = {}): ChapterOutcome {
   return {
