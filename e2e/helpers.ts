@@ -17,6 +17,21 @@ export async function resetSandbox(page: Page) {
   await expect(page.locator(".react-flow__node")).toHaveCount(SANDBOX_SEED_NODES);
 }
 
+/** The 3.4 Load Balancer chapter, which most workspace specs exercise.
+ *  Its starter graph is client -> lb -> app -> db (src/content/chapters). */
+export const CHAPTER_SLUG = "3-4-load-balancer";
+export const CHAPTER_STARTER_NODES = 4;
+
+/** Opens the chapter workspace on its starter graph. Chapter canvases are
+ *  synced per account under `chapter:<id>` (db.ts's chapterSaveId), so
+ *  without this a spec inherits whatever the last one saved. */
+export async function resetChapterCanvas(page: Page) {
+  await page.goto("/");
+  await page.request.delete(`/api/sync/saves?scopeId=${encodeURIComponent("chapter:bb-" + CHAPTER_SLUG)}`);
+  await page.goto(`/building-blocks/${CHAPTER_SLUG}`);
+  await expect(page.locator(".react-flow__node")).toHaveCount(CHAPTER_STARTER_NODES);
+}
+
 /** Drags a connection from one node's source handle to another's target
  *  handle. React Flow completes a connection on mouseup over the *target
  *  handle*, so `dragTo(node)` aimed at the node body silently does nothing.
@@ -69,4 +84,10 @@ export async function resetSlugs(request: APIRequestContext, slugs: string[]) {
     });
     expect(res.status(), `reset ${slug}`).toBe(200);
   }
+}
+
+/** The header's save-state readout. Bare getByText("Saved") is ambiguous -
+ *  three elements on the workspace match it. */
+export function savedIndicator(page: Page): Locator {
+  return page.getByRole("banner").getByText("Saved", { exact: true });
 }

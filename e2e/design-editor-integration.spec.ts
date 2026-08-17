@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { resetChapterCanvas, savedIndicator, CHAPTER_STARTER_NODES } from "./helpers";
 
 /**
  * Design Editor Integration E2E tests - full workflows that span multiple
@@ -16,7 +17,9 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Chapter Journey - Full Workflow", () => {
   test("complete a full chapter flow from learning path to exam", async ({ page }) => {
-    // 1. Start at learning path
+    // 1. Start at learning path, on this chapter's starter graph rather than
+    // whatever the previous spec left in the shared account.
+    await resetChapterCanvas(page);
     await page.goto("/building-blocks");
     await expect(page.getByRole("heading", { level: 1, name: "Building Blocks" })).toBeVisible();
 
@@ -35,98 +38,58 @@ test.describe("Chapter Journey - Full Workflow", () => {
     const canvas = page.locator(".react-flow__pane");
     await expect(canvas).toBeVisible();
 
-    // 4. Make a simple edit (add or remove a node)
+    // 4. Edit the design
     const nodes = page.locator(".react-flow__node");
-    const initialCount = await nodes.count();
+    await expect(nodes).toHaveCount(CHAPTER_STARTER_NODES);
+    await nodes.first().click();
+    await page.keyboard.press("Backspace");
+    await expect(nodes).toHaveCount(CHAPTER_STARTER_NODES - 1);
 
-    if (initialCount > 0) {
-      // Delete first node
-      await nodes.first().click();
-      await page.keyboard.press("Backspace");
+    // 5. Save it, and confirm the header actually acknowledges the save
+    // rather than just that a button existed.
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(savedIndicator(page)).toBeVisible();
 
-      const updatedCount = await nodes.count();
-      expect(updatedCount).toBe(initialCount - 1);
-    }
-
-    // 5. Save the canvas
-    const saveButton = page.getByRole("button", { name: /save/i });
-    if ((await saveButton.count()) > 0) {
-      await saveButton.click();
-      await page.waitForTimeout(300);
-    }
-
-    // 6. Take the exam if available
-    const quizLauncher = page.getByRole("button", { name: /quiz|exam|test|assessment/i });
-    if ((await quizLauncher.count()) > 0) {
-      await quizLauncher.click();
-      await page.waitForTimeout(500);
-
-      // Answer a few questions
-      let attempts = 0;
-      while (attempts < 15) {
-        const options = page.locator("input[type='radio'], input[type='checkbox']");
-        if ((await options.count()) === 0) break;
-
-        await options.nth(0).click();
-
-        const submitButton = page.getByRole("button", { name: /submit|next|continue|finish/i });
-        if ((await submitButton.count()) > 0) {
-          await submitButton.click();
-          await page.waitForTimeout(300);
-        }
-
-        attempts++;
-
-        const results = page.locator("[class*='result'], [class*='score']");
-        if (await results.isVisible()) break;
-      }
-
-      // Results should be visible
-      const scoreOrResult = page.locator("[class*='score'], [class*='result']");
-      await expect(scoreOrResult).toBeVisible({ timeout: 2000 });
-    }
+    // 6. Validate, and read the result. The old version walked an
+    // open-ended quiz loop guarded at every step, so it could finish having
+    // clicked nothing and asserted nothing.
+    await page.getByRole("button", { name: /validate/i }).click();
+    await expect(page.locator('[data-tour="validation-details"]')).toBeVisible();
   });
 
   test("autosave persists design changes without manual save", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+    await resetChapterCanvas(page);
 
     const nodes = page.locator(".react-flow__node");
-    const initialCount = await nodes.count();
+    await nodes.first().click();
+    await page.keyboard.press("Backspace");
+    await expect(nodes).toHaveCount(CHAPTER_STARTER_NODES - 1);
 
-    // Make a change
-    if (initialCount > 0) {
-      await nodes.first().click();
-      await page.keyboard.press("Backspace");
+    // No Save click here - that is the point of the test. The status text is
+    // no use as a signal: "saved" is use-autosave's *resting* state, so
+    // waiting for "Saved" passes instantly whether or not a write happened,
+    // and the hook deliberately shows "saving" for only every Nth write.
+    // So wait out the debounce (AUTOSAVE_DEBOUNCE_MS, 2s) and let the
+    // post-reload count be the real assertion.
+    await page.waitForTimeout(3000);
 
-      // Wait for autosave to trigger (typically 2-3 seconds)
-      await page.waitForTimeout(3000);
+    await page.reload();
 
-      // Navigate away and back
-      await page.goto("/building-blocks");
-      await page.goBack();
-      await page.waitForURL("**/building-blocks/3-4-load-balancer");
-
-      // Change should persist
-      const nodesAfter = page.locator(".react-flow__node");
-      const countAfter = await nodesAfter.count();
-
-      expect(countAfter).toBe(initialCount - 1);
-    }
+    await expect(nodes).toHaveCount(CHAPTER_STARTER_NODES - 1);
   });
 
   test("validation can be triggered in design editor", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+    await resetChapterCanvas(page);
 
-    // Run validation
-    const validateButton = page.getByRole("button", { name: /validate/i });
+    await page.getByRole("button", { name: /validate/i }).click();
 
-    if ((await validateButton.count()) > 0) {
-      await validateButton.click();
-      await page.waitForTimeout(500);
-
-      // Validation should be triggered (button state may change)
-      expect(true).toBe(true);
-    }
+    // The old body was `expect(true).toBe(true)` behind a guard - it asserted
+    // nothing whether or not validation ran. The starter graph is
+    // deliberately under-provisioned (one app server behind the balancer),
+    // so Validate has a real violation to report.
+    const details = page.locator('[data-tour="validation-details"]');
+    await expect(details).toBeVisible();
+    await expect(details).toContainText(/single backend instance/i);
   });
 
   test("design editor is accessible from chapter", async ({ page }) => {
@@ -141,7 +104,7 @@ test.describe("Chapter Journey - Full Workflow", () => {
 
 test.describe("Design Editor - Configuration", () => {
   test("open component config panel and modify settings", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+    await resetChapterCanvas(page);
 
     // Assert the precondition rather than guarding on it: the old
     // `if (count > 0)` let this pass having asserted nothing.
@@ -165,49 +128,34 @@ test.describe("Design Editor - Configuration", () => {
   });
 
   test("config changes are persisted in component", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+    await resetChapterCanvas(page);
 
-    const nodes = page.locator(".react-flow__node");
+    const loadBalancer = page
+      .locator(".react-flow__node-component")
+      .filter({ hasText: "Load Balancer" })
+      .first();
+    await loadBalancer.dblclick();
 
-    if ((await nodes.count()) > 0) {
-      // Find a node with config options (e.g., Load Balancer with algorithm)
-      const loadBalancer = nodes.filter({ hasText: /Load Balancer|load-balancer/i });
+    // ConfigForm labels each field off its config key, so `algorithm` reads
+    // as "Algorithm". The old version called selectOption("value_2") - a
+    // value no config field has ever offered - behind three nested guards,
+    // so it never ran.
+    const algorithm = page.getByLabel("Algorithm");
+    await expect(algorithm).toHaveValue("round-robin");
+    await algorithm.selectOption("least-connections");
+    await expect(algorithm).toHaveValue("least-connections");
 
-      if ((await loadBalancer.count()) > 0) {
-        await loadBalancer.first().click();
+    // Reopen the popover: edits commit to the store on change, so the value
+    // has to survive the form being torn down and rebuilt.
+    await page.keyboard.press("Escape");
+    await expect(algorithm).toBeHidden();
 
-        const selects = page.locator("select");
-
-        if ((await selects.count()) > 0) {
-          // Get initial selection
-          const initialValue = await selects.nth(0).inputValue();
-
-          // Change selection
-          await selects.nth(0).selectOption("value_2");
-          await page.waitForTimeout(200);
-
-          const newValue = await selects.nth(0).inputValue();
-          expect(newValue).not.toBe(initialValue);
-
-          // Navigate away and back
-          const otherNode = nodes.nth(1);
-          await otherNode.click();
-          await page.waitForTimeout(200);
-
-          // Click back to Load Balancer
-          await loadBalancer.first().click();
-          await page.waitForTimeout(200);
-
-          // Value should still be changed
-          const persistedValue = await selects.nth(0).inputValue();
-          expect(persistedValue).toBe(newValue);
-        }
-      }
-    }
+    await loadBalancer.dblclick();
+    await expect(page.getByLabel("Algorithm")).toHaveValue("least-connections");
   });
 
   test("view component documentation in inspector", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+    await resetChapterCanvas(page);
 
     const nodes = page.locator(".react-flow__node-component");
     await expect(nodes.first()).toBeVisible();
@@ -224,104 +172,91 @@ test.describe("Design Editor - Configuration", () => {
 
 test.describe("Design Editor - Chapter-Specific Validation", () => {
   test("chapter validation checks required components", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+    await resetChapterCanvas(page);
 
-    // This chapter requires Client, Load Balancer, and App Server
-    // Validate to see what's required
+    // The starter graph carries all four required components, so the sidebar
+    // reports them satisfied while Validate still flags the under-provisioned
+    // balancer. The old version matched /required|must|need/ anywhere on the
+    // page and skipped its assertion entirely when that found nothing.
+    await expect(
+      page.getByText(`${CHAPTER_STARTER_NODES} / ${CHAPTER_STARTER_NODES} required components present`),
+    ).toBeVisible();
 
-    const validateButton = page.getByRole("button", { name: /validate/i });
-    await validateButton.click();
-
-    // Check for "required component" message
-    const requiredMsg = page.locator("text=/required|must|need/i");
-
-    // Either shows required components or no violations
-    if ((await requiredMsg.count()) > 0) {
-      await expect(requiredMsg.first()).toBeVisible();
-    }
+    await page.getByRole("button", { name: /validate/i }).click();
+    await expect(page.locator('[data-tour="validation-details"]')).toContainText(
+      /single backend instance/i,
+    );
   });
 
-  test("chapter has validation rules configured", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+  test("chapter reports a required component once it is removed", async ({ page }) => {
+    await resetChapterCanvas(page);
 
-    // Validate button should exist
-    const validateButton = page.getByRole("button", { name: /validate/i });
+    // Deleting the database drops the required-component tally. The old test
+    // only checked that a Validate button existed, behind a guard that made
+    // even that optional.
+    await page
+      .locator(".react-flow__node-component")
+      .filter({ hasText: "SQL Database" })
+      .first()
+      .click();
+    await page.keyboard.press("Backspace");
 
-    if ((await validateButton.count()) > 0) {
-      await expect(validateButton).toBeVisible();
-    }
+    await expect(
+      page.getByText(`${CHAPTER_STARTER_NODES - 1} / ${CHAPTER_STARTER_NODES} required components present`),
+    ).toBeVisible();
   });
 });
 
 test.describe("Design Editor - UX Flows", () => {
   test("component search/filter works in a palette", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+    await resetChapterCanvas(page);
 
-    // Look for a component picker or palette
-    const picker = page.locator("[class*='palette'], [class*='picker']");
+    // The picker opens on a pane right-click (Canvas.tsx onPaneContextMenu).
+    // The old version looked for `[class*='palette'], [class*='picker']` on a
+    // page where the picker was never opened, so both its guards were false.
+    await page.locator(".react-flow__pane").click({ button: "right", position: { x: 20, y: 20 } });
 
-    if ((await picker.count()) > 0) {
-      // Look for search input
-      const searchInput = picker.locator("input[type='text'], input[placeholder*='search' i]");
+    const picker = page.getByRole("dialog", { name: "Add a component" });
+    await expect(picker).toBeVisible();
 
-      if ((await searchInput.count()) > 0) {
-        await searchInput.fill("client");
-        await page.waitForTimeout(200);
+    const options = picker.getByRole("option");
+    const unfiltered = await options.count();
+    expect(unfiltered).toBeGreaterThan(1);
 
-        // Should filter results
-        const results = picker.locator("[class*='result'], [class*='item']");
-        const count = await results.count();
+    await picker.getByRole("combobox").fill("client");
 
-        expect(count).toBeGreaterThan(0);
-      }
-    }
+    await expect.poll(() => options.count()).toBeLessThan(unfiltered);
+    await expect(options.first()).toContainText(/client/i);
   });
 
   test("right-click context menu shows relevant options", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
+    await resetChapterCanvas(page);
 
-    const nodes = page.locator(".react-flow__node");
+    await page.locator(".react-flow__node").first().click({ button: "right" });
 
-    if ((await nodes.count()) > 0) {
-      // Right-click a node
-      await nodes.first().click({ button: "right" });
-
-      // Context menu should appear with options
-      const contextMenu = page.locator("[role='menu'], [class*='context'], [class*='menu']");
-
-      if ((await contextMenu.count()) > 0) {
-        await expect(contextMenu.first()).toBeVisible();
-
-        // Should have Delete and possibly other options
-        const deleteOption = page.getByRole("button", { name: /delete/i });
-        expect((await deleteOption.count()) > 0).toBe(true);
-      }
+    // Named items. `[class*='menu']` matched loosely enough that the old
+    // guard could skip every assertion, and the one real check it had was
+    // `expect(count > 0).toBe(true)` on a locator it never scoped to the menu.
+    for (const name of ["Configure", "Open Documentation", "Delete"]) {
+      await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
     }
   });
 
   test("keyboard shortcuts work for common operations", async ({ page }) => {
-    await page.goto("/building-blocks/3-4-load-balancer");
-
+    await resetChapterCanvas(page);
     const nodes = page.locator(".react-flow__node");
-    const initialCount = await nodes.count();
 
-    if (initialCount > 0) {
-      // Select a node
-      await nodes.first().click();
+    // Ctrl+D duplicates the selection and Ctrl+Z undoes it. There is no
+    // Ctrl+C/Ctrl+V in use-canvas-shortcuts.ts at all - the old test pressed
+    // those, then asserted `countAfter >= initialCount`, which covers every
+    // outcome including the keys doing nothing.
+    await nodes.first().click();
+    await expect(page.locator(".react-flow__node.selected")).toHaveCount(1);
 
-      // Press Ctrl+C to copy (or appropriate shortcut)
-      // Note: This depends on what shortcuts are implemented
-      await page.keyboard.press("Control+C");
+    await page.keyboard.press("Control+d");
+    await expect(nodes).toHaveCount(CHAPTER_STARTER_NODES + 1);
 
-      // Paste might create a duplicate
-      await page.keyboard.press("Control+V");
-      await page.waitForTimeout(300);
-
-      // Count might increase if paste/duplicate works
-      const countAfter = await nodes.count();
-
-      // Either no change (if shortcuts not implemented) or increased
-      expect(countAfter >= initialCount).toBe(true);
-    }
+    await page.keyboard.press("Control+z");
+    await expect(nodes).toHaveCount(CHAPTER_STARTER_NODES);
   });
 });
