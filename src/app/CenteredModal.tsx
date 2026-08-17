@@ -9,15 +9,19 @@ type CenteredModalProps = {
   titleAdornment?: React.ReactNode;
   children: React.ReactNode;
   onClose: () => void;
-  /** "default" (820px, most dialogs) or "wide" (ShortcutsModal.tsx's
+  /** "default" (820px, most dialogs), "wide" (ShortcutsModal.tsx's
    * multi-column shortcut list needs the extra horizontal room a
-   * single-column dialog like About/Release notes never does). */
-  size?: "default" | "wide";
+   * single-column dialog like About/Release notes never does), or "full"
+   * (AllActivityModal.tsx - a fixed near-viewport panel, so its own two
+   * columns can each own their scroll rather than the panel resizing per
+   * row count). */
+  size?: "default" | "wide" | "full";
 };
 
 const PANEL_SIZE = {
   default: "max-h-[70vh] w-[820px]",
   wide: "max-h-[85vh] w-[min(1200px,94vw)]",
+  full: "h-[88vh] w-[min(1320px,94vw)]",
 };
 
 /**
@@ -38,7 +42,9 @@ export function CenteredModal({ title, titleAdornment, children, onClose, size =
             <h2 className="text-sm font-semibold">{title}</h2>
             {titleAdornment}
           </div>
-          <button onClick={onClose} aria-label="Close docs" className="text-foreground/50 hover:text-foreground">
+          {/* Named after the dialog it closes - a page can hold more than one
+              of these, and "Close" alone does not say which. */}
+          <button onClick={onClose} aria-label={`Close ${title}`} className="text-foreground/50 hover:text-foreground">
             <X size={16} />
           </button>
         </div>

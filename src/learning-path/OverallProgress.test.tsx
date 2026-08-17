@@ -9,7 +9,7 @@ function summary(overrides: Partial<CourseSummary> = {}): CourseSummary {
 
 describe("OverallProgress", () => {
   it("renders the percent, chapter count, and section count as independently scannable stats", () => {
-    render(<OverallProgress summary={summary()} courseId="building-blocks" />);
+    render(<OverallProgress summary={summary()} />);
     expect(screen.getByText("27%")).toBeInTheDocument();
     expect(screen.getByText("7 / 26")).toBeInTheDocument();
     expect(screen.getByText("chapters")).toBeInTheDocument();
@@ -18,7 +18,7 @@ describe("OverallProgress", () => {
   });
 
   it("labels the progress bar with the course's overall percent", () => {
-    render(<OverallProgress summary={summary()} courseId="building-blocks" />);
+    render(<OverallProgress summary={summary()} />);
     expect(screen.getByRole("progressbar", { name: "Overall progress: 27%" })).toBeInTheDocument();
   });
 });

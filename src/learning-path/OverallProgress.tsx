@@ -1,18 +1,15 @@
 import { ProgressBar } from "./ProgressBar";
-import { modeColorVar } from "@/lib/modes";
 import type { CourseSummary } from "@/curriculum/progress";
-import type { CourseId } from "@/curriculum/types";
 
-type OverallProgressProps = {
-  summary: CourseSummary;
-  courseId: CourseId;
-};
-
-/** The course-level bar uses the mode-identity color (legitimate per
- *  DESIGN.md — that's a separate channel from validation state), while
- *  every SectionCard's own bar stays neutral — the two never mix within one
- *  bar, only across the course/section distinction. */
-export function OverallProgress({ summary, courseId }: OverallProgressProps) {
+/**
+ * The course-level bar reads `--course-accent` (learning-path/accent.ts) - the
+ * hero blue on Building Blocks, this mode's own indigo on Real World
+ * Extraction. One hue per page either way: it used to be possible for the bar
+ * and the rest of the header to disagree, which read as two unrelated colors in
+ * one card. Every SectionCard below stays neutral, so the accent still marks
+ * exactly one thing here: overall progress.
+ */
+export function OverallProgress({ summary }: { summary: CourseSummary }) {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-3">
@@ -20,7 +17,7 @@ export function OverallProgress({ summary, courseId }: OverallProgressProps) {
           percent={summary.percent}
           size="md"
           label={`Overall progress: ${summary.percent}%`}
-          accentColor={modeColorVar[courseId]}
+          accentColor="var(--course-accent)"
         />
         <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">{summary.percent}%</span>
       </div>

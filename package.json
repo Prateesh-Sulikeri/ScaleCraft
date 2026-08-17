@@ -1,6 +1,6 @@
 {
   "name": "scalecraft",
-  "version": "6.1.1-alpha",
+  "version": "7.0.0-alpha",
   "private": true,
   "scripts": {
     "dev": "NODE_OPTIONS=\"$NODE_OPTIONS --no-network-family-autoselection\" next dev",
