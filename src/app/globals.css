@@ -53,6 +53,26 @@
   --mode-sandbox: #06b6d4;
   --mode-building-blocks: #0D9488;
   --mode-real-world-extraction: #818cf8;
+
+  /* Hero accent — Home's hero, and only Home's hero: the headline's second
+   * line, the primary CTA, and the announcement card's illustration all read
+   * as one scheme rather than three. Its own token rather than a borrowed
+   * category/mode/state hue, because each of those channels *means* something
+   * (which kind of component, which mode, which validation outcome) and a
+   * hero is none of them. Never applied to canvas content, so it cannot
+   * collide with any of them there.
+   *
+   * A true saturated blue, chosen after three rejected attempts worth
+   * recording so they are not retried: Building Blocks teal (read as an
+   * accident sitting above a teal CTA and a teal card title), violet (too
+   * close to Real World Extraction's indigo), and amber (warm, and plainly
+   * wrong against this app's cool palette). Blue is the one cool hue the mode
+   * channel leaves open — noticeably bluer and less purple than RWE's
+   * periwinkle indigo, and nowhere near Sandbox's cyan or BB's teal. Also
+   * distinct from --category-networking's blue, which lives on canvas nodes
+   * where this never appears. 8.4:1 against this theme's background. */
+  --hero-accent: #60a5fa;
+
 }
 
 .light {
@@ -109,6 +129,11 @@
   --mode-sandbox: #0e7490;
   --mode-building-blocks: #0F766E;
   --mode-real-world-extraction: #4338ca;
+
+  /* Hero accent, independently tuned - dark's #60a5fa measures ~2.4:1 against
+   * a near-white page. Same hue, far deeper stop, 7.0:1 here. */
+  --hero-accent: #1d4ed8;
+
 }
 
 /* Z-Index scale — semantic stacking order for overlays. Each layer prevents
@@ -182,6 +207,8 @@ body[data-tour-active="true"] {
   --color-mode-sandbox: var(--mode-sandbox);
   --color-mode-building-blocks: var(--mode-building-blocks);
   --color-mode-real-world-extraction: var(--mode-real-world-extraction);
+
+  --color-hero-accent: var(--hero-accent);
 
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);

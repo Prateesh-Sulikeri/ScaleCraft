@@ -32,6 +32,25 @@ export function nextEntry(courseId: CourseId, slug: string): CurriculumChapter |
   return entries[index + 1];
 }
 
+/** Built once at module scope, same reason as slugByChapterDefinitionId
+ * below. Slugs are globally unique across both courses (see manifest.ts), so
+ * one flat map is safe. */
+const locationBySlug: ReadonlyMap<string, { courseId: CourseId; entry: CurriculumChapter }> = new Map(
+  (Object.keys(courses) as CourseId[]).flatMap((courseId) =>
+    allEntries(getCourse(courseId)).map(
+      (entry) => [entry.slug, { courseId, entry }] as const,
+    ),
+  ),
+);
+
+/** Which course does this slug belong to, and what is the entry? Needed by
+ *  surfaces that hold a slug with no course context of their own — Home's
+ *  recent-activity list reads `db.curriculumProgress` rows, which are keyed
+ *  by slug alone (see persistence/db.ts's CurriculumProgress). */
+export function locateEntry(slug: string): { courseId: CourseId; entry: CurriculumChapter } | undefined {
+  return locationBySlug.get(slug);
+}
+
 /** Built once at module scope (not per call) — see Phase 1 gotcha in
  * .claude/docs/RELEASE_3.0.0_LEARNING_PATH.md §4. */
 const slugByChapterDefinitionId: ReadonlyMap<string, string> = new Map(
