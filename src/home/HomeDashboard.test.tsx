@@ -18,6 +18,7 @@ const data: HomeData = {
   continueTarget: {
     href: "/building-blocks/load-balancers/lesson",
     courseId: "building-blocks",
+    slug: "load-balancers",
     chapterLabel: "1.2 Load Balancers",
     chapterDefinitionId: "bb-load-balancers",
     kind: "resume",

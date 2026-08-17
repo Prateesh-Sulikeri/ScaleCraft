@@ -39,6 +39,10 @@ export type ContinueTarget = {
    *  Learning Path when no chapter can be opened. */
   href: string;
   courseId: CourseId;
+  /** The manifest slug behind `href`, so a caller that needs the entry itself
+   *  (difficulty, section, estimate) can look it up rather than re-deriving
+   *  which chapter is next. Null whenever `href` is a Learning Path. */
+  slug: string | null;
   /** e.g. "1.2 Load Balancers" - null when `href` is a Learning Path rather
    *  than a specific chapter. Checkpoints have no number, so those get just
    *  the title. */
@@ -87,10 +91,18 @@ export function hasAnyProgress(inputs: ProgressInputs): boolean {
  * `kind` is derived independently of which case won: whether this is a resume
  * is about the target chapter, but whether the learner has *started* is about
  * their whole history (see ContinueTarget.kind).
+ *
+ * `courseIds` narrows the search: Home considers both courses, while a single
+ * Learning Path's "Up next" card passes only its own. Scoping the candidates
+ * rather than reimplementing the preference order is what keeps the two
+ * surfaces from ever disagreeing about which chapter comes next.
  */
-export function resolveContinueTarget(inputs: ProgressInputs): ContinueTarget {
+export function resolveContinueTarget(
+  inputs: ProgressInputs,
+  courseIds: readonly CourseId[] = COURSE_IDS,
+): ContinueTarget {
   const started = hasAnyProgress(inputs);
-  const authored = COURSE_IDS.flatMap((courseId) =>
+  const authored = courseIds.flatMap((courseId) =>
     allEntries(getCourse(courseId))
       .filter((entry) => entry.chapterDefinitionId != null)
       .map((entry) => ({ courseId, entry })),
@@ -112,9 +124,11 @@ export function resolveContinueTarget(inputs: ProgressInputs): ContinueTarget {
     return { ...toChapterTarget(open[0].courseId, open[0].entry), kind: started ? "next" : "fresh" };
   }
 
+  const fallbackCourse = courseIds[0] ?? "building-blocks";
   return {
-    href: "/building-blocks",
-    courseId: "building-blocks",
+    href: `/${fallbackCourse}`,
+    courseId: fallbackCourse,
+    slug: null,
     chapterLabel: null,
     chapterDefinitionId: null,
     kind: started ? "next" : "fresh",
@@ -128,6 +142,7 @@ function toChapterTarget(
   return {
     href: `/${courseId}/${entry.slug}/lesson`,
     courseId,
+    slug: entry.slug,
     chapterLabel: entry.number ? `${entry.number} ${entry.title}` : entry.title,
     chapterDefinitionId: entry.chapterDefinitionId,
   };
@@ -351,6 +366,21 @@ export function computeLongestStreak(timestamps: readonly number[]): number {
   return longest;
 }
 
+/** Every dated thing the app records, flattened for the streak functions.
+ *  Exported because the Learning Path's header shows the same day streak and
+ *  must read the same timestamps - a second gatherer would drift. */
+export function activityTimestamps(inputs: ProgressInputs): number[] {
+  const timestamps: number[] = [];
+  for (const row of inputs.rowsBySlug.values()) {
+    if (row.lastVisitedAt != null) timestamps.push(row.lastVisitedAt);
+    if (row.manuallyCompletedAt != null) timestamps.push(row.manuallyCompletedAt);
+  }
+  for (const attempts of inputs.examAttemptsByDefinition.values()) {
+    for (const attempt of attempts) timestamps.push(attempt.submittedAt);
+  }
+  return timestamps;
+}
+
 export function computeStats(inputs: ProgressInputs, now: number): HomeStats {
   const entries = COURSE_IDS.flatMap((courseId) => allEntries(getCourse(courseId)));
   const chapters = entries.filter((e) => e.kind === "chapter");
@@ -360,22 +390,15 @@ export function computeStats(inputs: ProgressInputs, now: number): HomeStats {
     return located != null && deriveStatus(located.entry, inputs) === "COMPLETED";
   };
 
-  const activityTimestamps: number[] = [];
-  for (const row of inputs.rowsBySlug.values()) {
-    if (row.lastVisitedAt != null) activityTimestamps.push(row.lastVisitedAt);
-    if (row.manuallyCompletedAt != null) activityTimestamps.push(row.manuallyCompletedAt);
-  }
-  for (const attempts of inputs.examAttemptsByDefinition.values()) {
-    for (const attempt of attempts) activityTimestamps.push(attempt.submittedAt);
-  }
+  const timestamps = activityTimestamps(inputs);
 
   return {
     chaptersCompleted: chapters.filter((e) => isComplete(e.slug)).length,
     chaptersTotal: chapters.length,
     checkpointsCompleted: checkpoints.filter((e) => isComplete(e.slug)).length,
     checkpointsTotal: checkpoints.length,
-    dayStreak: computeDayStreak(activityTimestamps, now),
-    longestStreak: computeLongestStreak(activityTimestamps),
+    dayStreak: computeDayStreak(timestamps, now),
+    longestStreak: computeLongestStreak(timestamps),
   };
 }
 
