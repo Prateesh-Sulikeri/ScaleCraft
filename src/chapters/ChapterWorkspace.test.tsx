@@ -1,12 +1,20 @@
 import "fake-indexeddb/auto";
 import { StrictMode } from "react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, configure, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { CurriculumChapter } from "@/curriculum/types";
 import type { ValidationViolation } from "@/validation-engine/types";
 import { db, chapterSaveId } from "@/persistence/db";
 import { AUTOSAVE_DEBOUNCE_MS } from "@/persistence/use-autosave";
+
+// Every assertion here waits on ChapterSidebar's next/dynamic QuestionPane -
+// a real module resolve plus transform, not a synchronous render. Measured at
+// ~500ms in a full-suite run against testing-library's 1000ms default, so a
+// runner only 2x slower than baseline fails it. Seen for real at 1311ms while
+// a build ran alongside. The wait is legitimate work, not a hang, so give it a
+// budget that reflects that.
+configure({ asyncUtilTimeout: 5000 });
 
 // ---------------------------------------------------------------------------
 // Mocks for everything ChapterWorkspace.tsx pulls in from OUTSIDE this task's
