@@ -22,14 +22,23 @@ export const modeColorVar: Record<AppMode, string> = {
   "real-world-extraction": "var(--mode-real-world-extraction)",
 };
 
-/** Wireframe glyph per mode — Home's mode cards (ModeNode.tsx) are the only
- * current consumer, kept here rather than local to that component so any
- * future mode-identity surface (e.g. a header icon) draws from the same
+/** Wireframe glyph per mode — Home's mode cards (src/home/ModeCard.tsx) are
+ * the only current consumer, kept here rather than local to that component so
+ * any future mode-identity surface (e.g. a header icon) draws from the same
  * source as label/color/tagline instead of picking its own glyph. */
 export const modeIcon: Record<AppMode, LucideIcon> = {
   sandbox: Code2,
   "building-blocks": Boxes,
   "real-world-extraction": Globe,
+};
+
+/** Terse uppercase code for the mode card's corner badge — what the mode
+ * asks you to *do*, which is a different read from `modeLabel`'s full name
+ * sitting directly below it. */
+export const modeShortCode: Record<AppMode, string> = {
+  sandbox: "SANDBOX",
+  "building-blocks": "BUILD",
+  "real-world-extraction": "EXTRACT",
 };
 
 /** Bold lead-in line for the mode badge's opt-in popover. */
