@@ -1,4 +1,33 @@
-import { expect, type APIRequestContext, type Locator, type Page } from "@playwright/test";
+import { expect, type APIRequestContext, type APIResponse, type Locator, type Page } from "@playwright/test";
+
+/** Loads the app and waits until Clerk has actually established the session.
+ *  `page.goto()` resolves before the client SDK refreshes the session cookie,
+ *  so an API request fired straight after can come back 401 - intermittently,
+ *  which is worse than never. The user menu only renders once signed in, so
+ *  it is a real readiness signal. */
+export async function gotoSignedIn(page: Page, url = "/") {
+  await page.goto(url);
+  await expect(page.getByRole("button", { name: "Open user menu" })).toBeVisible();
+}
+
+/** Issues a sync-API call against a page whose session is ready, retrying
+ *  once through a reload if it still comes back 401. Always asserts the
+ *  final status: a silently-swallowed 401 leaves the reset undone and
+ *  surfaces later as an unrelated spec seeing another spec's data. */
+export async function syncRequest(
+  page: Page,
+  send: () => Promise<APIResponse>,
+  what: string,
+): Promise<APIResponse> {
+  let res = await send();
+  if (res.status() === 401) {
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Open user menu" })).toBeVisible();
+    res = await send();
+  }
+  expect(res.status(), what).toBe(200);
+  return res;
+}
 
 /** The sandbox seed graph (src/app/(protected)/sandbox/page.tsx): client,
  *  load balancer, app server, database. */
@@ -11,8 +40,11 @@ export const SANDBOX_SEED_EDGES = 3;
  *  canvas lives server-side. The delete rides a loaded page so the request
  *  carries an already-refreshed Clerk session. */
 export async function resetSandbox(page: Page) {
-  await page.goto("/");
-  await page.request.delete("/api/sync/saves?scopeId=sandbox");
+  const clear = () =>
+    syncRequest(page, () => page.request.delete("/api/sync/saves?scopeId=sandbox"), "clear sandbox save");
+
+  await gotoSignedIn(page);
+  await clear();
   await page.goto("/sandbox");
 
   // The sandbox canvas syncs on every autosave (no syncOnManualSave: false on
@@ -24,7 +56,7 @@ export async function resetSandbox(page: Page) {
   try {
     await expect(nodes).toHaveCount(SANDBOX_SEED_NODES, { timeout: 5_000 });
   } catch {
-    await page.request.delete("/api/sync/saves?scopeId=sandbox");
+    await clear();
     await page.reload();
     await expect(nodes).toHaveCount(SANDBOX_SEED_NODES);
   }
@@ -39,8 +71,15 @@ export const CHAPTER_STARTER_NODES = 4;
  *  synced per account under `chapter:<id>` (db.ts's chapterSaveId), so
  *  without this a spec inherits whatever the last one saved. */
 export async function resetChapterCanvas(page: Page) {
-  await page.goto("/");
-  await page.request.delete(`/api/sync/saves?scopeId=${encodeURIComponent("chapter:bb-" + CHAPTER_SLUG)}`);
+  await gotoSignedIn(page);
+  await syncRequest(
+    page,
+    () =>
+      page.request.delete(
+        `/api/sync/saves?scopeId=${encodeURIComponent("chapter:bb-" + CHAPTER_SLUG)}`,
+      ),
+    "clear chapter save",
+  );
   await page.goto(`/building-blocks/${CHAPTER_SLUG}`);
   await expect(page.locator(".react-flow__node")).toHaveCount(CHAPTER_STARTER_NODES);
 }
@@ -113,23 +152,34 @@ export const CHAPTER_QUIZ_QUESTIONS = 5;
  *  result" once one passes, so without this the exam becomes unopenable
  *  after the first passing run. */
 export async function resetExamAttempts(page: Page) {
-  await page.goto("/");
-  const res = await page.request.delete(
-    `/api/sync/exam-attempts?chapterDefinitionId=${encodeURIComponent("bb-" + CHAPTER_SLUG)}`,
+  await gotoSignedIn(page);
+  await syncRequest(
+    page,
+    () =>
+      page.request.delete(
+        `/api/sync/exam-attempts?chapterDefinitionId=${encodeURIComponent("bb-" + CHAPTER_SLUG)}`,
+      ),
+    "reset exam attempts",
   );
-  expect(res.status(), "reset exam attempts").toBe(200);
 }
 
 /** Wipes this account's custom components. They sync per account, so
  *  otherwise every run inherits the ones the last run created and the
  *  palette counts drift. */
 export async function resetCustomComponents(page: Page) {
-  await page.goto("/");
-  const res = await page.request.get("/api/sync/custom-components");
-  expect(res.status(), "list custom components").toBe(200);
+  await gotoSignedIn(page);
+  const res = await syncRequest(
+    page,
+    () => page.request.get("/api/sync/custom-components"),
+    "list custom components",
+  );
   const { components } = (await res.json()) as { components: { id: string }[] };
   for (const { id } of components) {
-    await page.request.delete(`/api/sync/custom-components?id=${encodeURIComponent(id)}`);
+    await syncRequest(
+      page,
+      () => page.request.delete(`/api/sync/custom-components?id=${encodeURIComponent(id)}`),
+      `delete custom component ${id}`,
+    );
   }
 }
 

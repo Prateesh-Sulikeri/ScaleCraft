@@ -164,7 +164,9 @@ test.describe("Canvas - Validation Integration", () => {
     // Validation opens its dedicated details popover. The seed graph is
     // valid, so the panel reports that rather than a rule violation.
     const validationDetails = page.locator('[data-tour="validation-details"]');
-    await expect(validationDetails).toBeVisible();
+    // The engine is a dynamic import, so the first Validate on a route can
+    // outlast the default 5s budget while that chunk compiles.
+    await expect(validationDetails).toBeVisible({ timeout: 20_000 });
     await expect(validationDetails).toContainText("No violations.");
   });
 
@@ -181,7 +183,7 @@ test.describe("Canvas - Validation Integration", () => {
     await page.getByRole("button", { name: /validate/i }).click();
 
     const validationDetails = page.locator('[data-tour="validation-details"]');
-    await expect(validationDetails).toBeVisible();
+    await expect(validationDetails).toBeVisible({ timeout: 20_000 });
     // The explanation, not just the verdict - CLAUDE.md treats a bare
     // "invalid" as a bug.
     await expect(validationDetails).not.toContainText("No violations.");

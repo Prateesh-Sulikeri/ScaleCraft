@@ -54,7 +54,7 @@ test.describe("Chapter Journey - Full Workflow", () => {
     // open-ended quiz loop guarded at every step, so it could finish having
     // clicked nothing and asserted nothing.
     await page.getByRole("button", { name: /validate/i }).click();
-    await expect(page.locator('[data-tour="validation-details"]')).toBeVisible();
+    await expect(page.locator('[data-tour="validation-details"]')).toBeVisible({ timeout: 20_000 });
   });
 
   test("autosave persists design changes without manual save", async ({ page }) => {
@@ -88,7 +88,7 @@ test.describe("Chapter Journey - Full Workflow", () => {
     // deliberately under-provisioned (one app server behind the balancer),
     // so Validate has a real violation to report.
     const details = page.locator('[data-tour="validation-details"]');
-    await expect(details).toBeVisible();
+    await expect(details).toBeVisible({ timeout: 20_000 });
     await expect(details).toContainText(/single backend instance/i);
   });
 
@@ -185,6 +185,7 @@ test.describe("Design Editor - Chapter-Specific Validation", () => {
     await page.getByRole("button", { name: /validate/i }).click();
     await expect(page.locator('[data-tour="validation-details"]')).toContainText(
       /single backend instance/i,
+      { timeout: 20_000 },
     );
   });
 

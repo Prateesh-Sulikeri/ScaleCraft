@@ -229,7 +229,7 @@ test.describe("Custom Components - Validation", () => {
     // it. That is the point: a custom component is a first-class participant,
     // which the old test asserted by way of `expect(true).toBe(true)`.
     const details = page.locator('[data-tour="validation-details"]');
-    await expect(details).toBeVisible();
+    await expect(details).toBeVisible({ timeout: 20_000 });
     await expect(details).not.toContainText("No violations.");
   });
 });
