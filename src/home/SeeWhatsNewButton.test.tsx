@@ -10,7 +10,7 @@ describe("SeeWhatsNewButton", () => {
   it("opens the changelog, latest release first", () => {
     render(<SeeWhatsNewButton now={RELEASED_AT} />);
     expect(screen.queryByText("Release notes")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /See what's new/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Check Updates/ }));
     expect(screen.getByText("Release notes")).toBeInTheDocument();
     expect(screen.getByText(`Alpha ${releaseNotes[0].version}`)).toBeInTheDocument();
     expect(screen.getByText(releaseNotes[0].highlights[0])).toBeInTheDocument();
@@ -18,7 +18,7 @@ describe("SeeWhatsNewButton", () => {
 
   it("closes the changelog again", () => {
     render(<SeeWhatsNewButton now={RELEASED_AT} />);
-    fireEvent.click(screen.getByRole("button", { name: /See what's new/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Check Updates/ }));
     fireEvent.click(screen.getByRole("button", { name: /close/i }));
     expect(screen.queryByText("Release notes")).not.toBeInTheDocument();
   });
@@ -36,6 +36,6 @@ describe("SeeWhatsNewButton", () => {
   it("holds the NEW marker back until the client knows the date", () => {
     render(<SeeWhatsNewButton now={null} />);
     expect(screen.queryByText("New")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /See what's new/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Check Updates/ })).toBeInTheDocument();
   });
 });

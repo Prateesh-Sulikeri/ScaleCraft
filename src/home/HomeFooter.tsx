@@ -50,10 +50,8 @@ export function HomeFooter() {
 
         <p className="flex items-center gap-1.5 text-xs text-foreground/45">
           Made with
-          {/* Monochrome on purpose: `--zone` magenta is reserved for the
-           * mark-zone feature (DESIGN.md §2, Accent) and a footer heart is
-           * not that. */}
-          <Heart size={12} fill="currentColor" role="img" aria-label="love" className="text-foreground/40" />
+          {/* Accent blue heart - same blue as the hero section. */}
+          <Heart size={12} fill="currentColor" role="img" aria-label="love" className="text-hero-accent" />
           by Prateesh
         </p>
       </div>

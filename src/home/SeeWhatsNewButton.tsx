@@ -26,7 +26,7 @@ export function SeeWhatsNewButton({ now }: { now: number | null }) {
         className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-panel px-3.5 text-sm font-medium text-foreground/80 transition-colors duration-150 ease-out hover:border-foreground/25 hover:text-foreground"
       >
         <Gift size={14} aria-hidden="true" />
-        See what&apos;s new
+        Check Updates
         {/* Accent blue, like every other UI element in the hero - and pointedly
          * not a `--mode-*` hue, since those are the mode-identity channel and
          * this chip is not about a mode. Hidden from the a11y tree: it would

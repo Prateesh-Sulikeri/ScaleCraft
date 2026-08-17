@@ -1,13 +1,16 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import { ArrowRight, Clock } from "lucide-react";
-import { modeColorVar, modeIcon, modeLabel } from "@/lib/modes";
-import { formatRelativeTime, type ActivityEntry } from "./home-data";
-import { ALL_ACTIVITY_HREF } from "./links";
+import { ActivityRow } from "./ActivityRow";
+import { AllActivityModal } from "./AllActivityModal";
+import type { ActivityEntry } from "./home-data";
 
 type RecentActivityCardProps = {
   activity: readonly ActivityEntry[];
+  /** Everything tracked, for the "View all activity" dialog - `activity` is
+   *  its first few rows. */
+  allActivity: readonly ActivityEntry[];
   /** Epoch ms, or null pre-mount - rows are only rendered once it is known,
    *  since every row's timestamp is relative to it. */
   now: number | null;
@@ -19,12 +22,12 @@ type RecentActivityCardProps = {
  * curriculum rows' visit/completion timestamps and the Sandbox save slot (see
  * home-data.ts's buildRecentActivity).
  *
- * Rows are deliberately not links. There is no event log behind them, so a
- * row is a *status* readout rather than a navigable record, and the card
- * keeps exactly one way out ("View all activity") instead of three
- * near-duplicate link targets competing with the mode cards above.
+ * Rows read as a status list, not an event log - the timestamps are the latest
+ * touch of each thing, so a row is a current-state readout that happens to be
+ * navigable. Row markup lives in ActivityRow.tsx, shared with the dialog.
  */
-export function RecentActivityCard({ activity, now, isSignedIn }: RecentActivityCardProps) {
+export function RecentActivityCard({ activity, allActivity, now, isSignedIn }: RecentActivityCardProps) {
+  const [showAll, setShowAll] = useState(false);
   const ready = now != null;
 
   return (
@@ -43,32 +46,17 @@ export function RecentActivityCard({ activity, now, isSignedIn }: RecentActivity
           </p>
         ) : (
           <ul className="flex flex-col divide-y divide-border/70">
-            {activity.map((entry) => {
-              const Icon = modeIcon[entry.mode];
-              return (
-                <li key={entry.id} className="flex items-center gap-3 py-2.5 text-sm">
-                  <span
-                    style={{ color: modeColorVar[entry.mode] }}
-                    className="flex w-[9.5rem] shrink-0 items-center gap-1.5 text-xs font-medium"
-                  >
-                    <Icon size={13} strokeWidth={1.75} aria-hidden="true" />
-                    <span className="truncate">{modeLabel[entry.mode]}</span>
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-foreground/85">{entry.title}</span>
-                  <span className="w-[5.5rem] shrink-0 text-right text-xs text-foreground/55">{entry.status}</span>
-                  <span className="w-[4.5rem] shrink-0 text-right text-xs text-foreground/40">
-                    {formatRelativeTime(entry.at, now)}
-                  </span>
-                </li>
-              );
-            })}
+            {activity.map((entry) => (
+              <ActivityRow key={entry.id} entry={entry} now={now} />
+            ))}
           </ul>
         )}
       </div>
 
       <div className="mt-auto border-t border-border px-5 py-3">
-        <Link
-          href={ALL_ACTIVITY_HREF}
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
           className="group inline-flex items-center gap-1.5 text-xs font-medium text-foreground/60 transition-colors duration-150 ease-out hover:text-foreground"
         >
           View all activity
@@ -77,8 +65,10 @@ export function RecentActivityCard({ activity, now, isSignedIn }: RecentActivity
             aria-hidden="true"
             className="transition-transform duration-150 ease-out group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
           />
-        </Link>
+        </button>
       </div>
+
+      {showAll && <AllActivityModal activity={allActivity} now={now} onClose={() => setShowAll(false)} />}
     </section>
   );
 }

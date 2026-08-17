@@ -29,7 +29,7 @@ import { useHomeData } from "./use-home-data";
  * none of the graph machinery.
  */
 export function HomeDashboard() {
-  const { progressByCourse, continueTarget, activity, stats, now, isSignedIn } = useHomeData();
+  const { progressByCourse, continueTarget, activity, allActivity, stats, now, isSignedIn } = useHomeData();
 
   return (
     <PageEnter>
@@ -55,7 +55,7 @@ export function HomeDashboard() {
           {/* Activity is the narrower of the two - four stat tiles need more
            * horizontal room than three activity rows do. */}
           <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-            <RecentActivityCard activity={activity} now={now} isSignedIn={isSignedIn} />
+            <RecentActivityCard activity={activity} allActivity={allActivity} now={now} isSignedIn={isSignedIn} />
             <AtAGlanceCard stats={stats} />
           </section>
         </main>

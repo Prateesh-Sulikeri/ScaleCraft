@@ -27,13 +27,31 @@ type ModeCardProps = {
 };
 
 /** A thin flanking-tick dimension line - the drafting motif the workspace and
- *  the old canvas home both use, kept as the card's internal divider. */
+ *  the old canvas home both use, kept as the card's internal divider.
+ *
+ *  On card hover the rule is measured out left to right in the mode's accent
+ *  and the two ticks brighten to meet it - the drafting gesture the motif is
+ *  already borrowed from, so the motion says "this card" rather than
+ *  decorating it. The sweep is a `scaleX` on a 1px overlay, which the
+ *  compositor handles without layout or paint, and it runs only while
+ *  pointed at.
+ *
+ *  Arbitrary `[transform:scaleX()]` rather than Tailwind's `scale-x-*`: v4
+ *  routes those through the standalone `scale` property, the same trap the
+ *  translate note on ModeCard describes. Setting `transform` outright keeps
+ *  it inside `transition-transform` whichever way v4 resolves the utility.
+ *
+ *  Under `motion-reduce` the line lands filled instead of pinning at zero -
+ *  it carries the accent, unlike the card's purely decorative lift, so the
+ *  reduced-motion treatment is "instant", not "absent". */
 function DimensionLine() {
   return (
     <div aria-hidden="true" className="flex items-center gap-1.5">
-      <span className="h-1.5 w-px bg-[color:var(--border)]" />
-      <span className="h-px flex-1 bg-[color:var(--border)]" />
-      <span className="h-1.5 w-px bg-[color:var(--border)]" />
+      <span className="h-1.5 w-px bg-[color:var(--border)] transition-colors duration-200 ease-out group-hover:bg-[color:var(--accent)]" />
+      <span className="relative h-px flex-1 bg-[color:var(--border)]">
+        <span className="absolute inset-0 origin-left [transform:scaleX(0)] bg-[color:var(--accent)] transition-transform duration-300 ease-out group-hover:[transform:scaleX(1)] motion-reduce:transition-none" />
+      </span>
+      <span className="h-1.5 w-px bg-[color:var(--border)] transition-colors duration-200 ease-out group-hover:bg-[color:var(--accent)]" />
     </div>
   );
 }
@@ -107,15 +125,17 @@ export function ModeCard({ mode, href, progress }: ModeCardProps) {
       <Link href={href} onClick={handleClick} style={{ "--accent": color } as CSSProperties} className="group block rounded-lg">
         <div className="relative flex h-full flex-col gap-3 rounded-lg border border-border bg-panel p-4 transition-[border-color,box-shadow,translate] duration-150 ease-out group-hover:-translate-y-0.5 group-hover:border-[color:color-mix(in_srgb,var(--accent)_45%,var(--border))] group-hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
           <div className="flex items-start justify-between gap-3">
-            <div
-              style={{ backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)`, borderColor: color }}
-              className="flex h-10 w-10 items-center justify-center rounded-md border"
-            >
+            {/* Tint and badge border read from --accent as classes rather than
+             * inline style so each can carry a hover state; the icon's own
+             * color stays inline, since it never changes. Both deepen on
+             * hover - a paint on a 40px box and a 1px border, no geometry,
+             * so nothing here can reflow the card. */}
+            <div className="flex h-10 w-10 items-center justify-center rounded-md border border-[color:var(--accent)] bg-[color:color-mix(in_srgb,var(--accent)_10%,transparent)] transition-colors duration-200 ease-out group-hover:bg-[color:color-mix(in_srgb,var(--accent)_20%,transparent)]">
               <Icon size={20} style={{ color }} strokeWidth={1.5} aria-hidden="true" />
             </div>
             <span
-              style={{ borderColor: `color-mix(in srgb, ${color} 40%, transparent)`, color }}
-              className="rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wide"
+              style={{ color }}
+              className="rounded-sm border border-[color:color-mix(in_srgb,var(--accent)_40%,transparent)] px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wide transition-colors duration-200 ease-out group-hover:border-[color:color-mix(in_srgb,var(--accent)_75%,transparent)]"
             >
               {modeShortCode[mode]}
             </span>

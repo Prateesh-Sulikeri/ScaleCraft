@@ -59,7 +59,7 @@ describe("HomeHero", () => {
   it("offers exactly one hero action - the changelog lives on the announcement card", () => {
     render(<HomeHero continueTarget={chapterTarget} now={Date.now()} />);
     expect(screen.getAllByRole("link")).toHaveLength(1);
-    expect(screen.getAllByRole("button", { name: /See what's new/ })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /Check Updates/ })).toHaveLength(1);
   });
 
   it("includes the alpha announcement", () => {

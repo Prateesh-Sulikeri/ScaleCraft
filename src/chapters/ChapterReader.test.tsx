@@ -1,3 +1,6 @@
+// ChapterReader's markVisited effect writes Dexie on mount (signed-in is the
+// setup file's default), so the store needs a real IndexedDB backend here.
+import "fake-indexeddb/auto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ChapterReader } from "./ChapterReader";

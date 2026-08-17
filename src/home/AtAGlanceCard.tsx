@@ -88,7 +88,7 @@ export function AtAGlanceCard({ stats }: { stats: HomeStats }) {
         ))}
       </div>
 
-      <p className="mt-auto border-t border-border px-5 py-3 text-xs text-foreground/45">
+      <p className="mt-auto border-t border-border px-5 py-3 text-xs text-success">
         Keep going. <span className="text-foreground/70">Consistency builds mastery.</span>
       </p>
     </section>

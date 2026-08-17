@@ -19,10 +19,17 @@ import {
   type HomeStats,
 } from "./home-data";
 
+/** Rows the card shows before you open the dialog for the rest. */
+const RECENT_ACTIVITY_PREVIEW = 3;
+
 export type HomeData = {
   progressByCourse: Record<CourseId, CourseProgress>;
   continueTarget: ContinueTarget;
+  /** The card's short list - the first RECENT_ACTIVITY_PREVIEW of `allActivity`. */
   activity: ActivityEntry[];
+  /** Everything tracked, newest first, for the All activity dialog. Same rows,
+   *  unclipped - the dialog is the only surface that shows the full history. */
+  allActivity: ActivityEntry[];
   stats: HomeStats;
   /** The shared clock (lib/use-now.ts) - `null` on the server and the
    *  hydrating render, then a timestamp that advances once a minute so
@@ -100,10 +107,15 @@ export function useHomeData(): HomeData {
       COURSE_IDS.map((courseId) => [courseId, courseProgress(courseId, inputs)]),
     ) as Record<CourseId, CourseProgress>;
 
+    // Built once unclipped, then sliced: the card and the dialog must never
+    // disagree about ordering, and the full list is at most a few dozen rows.
+    const allActivity = buildRecentActivity(inputs, { sandboxUpdatedAt }, Number.POSITIVE_INFINITY);
+
     return {
       progressByCourse,
       continueTarget: resolveContinueTarget(inputs),
-      activity: buildRecentActivity(inputs, { sandboxUpdatedAt }),
+      activity: allActivity.slice(0, RECENT_ACTIVITY_PREVIEW),
+      allActivity,
       stats: computeStats(inputs, now ?? 0),
       now,
       isSignedIn: isSignedIn === true,

@@ -27,11 +27,7 @@ export const HOME_NAV: readonly HomeNavItem[] = [
  *  it done. */
 export const REPORT_A_BUG: HomeNavItem = { label: "Report a Bug", upcoming: true };
 
-/**
- * "View all activity" has no page of its own yet (Home derives its list from
- * current-state timestamps, not an event log - see home-data.ts). The
- * Building Blocks Learning Path is the closest real surface: it shows
- * per-chapter status for the whole course. Point this at a dedicated
- * /activity route once one exists.
- */
-export const ALL_ACTIVITY_HREF = "/building-blocks";
+/* No ALL_ACTIVITY_HREF here anymore: "View all activity" used to point at the
+ * Building Blocks Learning Path, which answered a different question than the
+ * label asked. It now opens AllActivityModal.tsx instead - the list is derived
+ * client-side, so there is nothing for a route to serve. */

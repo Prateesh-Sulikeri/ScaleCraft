@@ -144,6 +144,11 @@ export type ActivityEntry = {
   status: string;
   /** Epoch ms of the activity, formatted at render time. */
   at: number;
+  /** Where the row goes when clicked - the chapter's lesson, the same target
+   *  the hero CTA resumes to (see toChapterTarget). Null for the Sandbox
+   *  board: it is a save slot, not a chapter, and there is nothing to
+   *  "return to" that the Sandbox mode card above does not already offer. */
+  href: string | null;
 };
 
 /** Extra timestamps Home needs that are not part of ProgressInputs, read
@@ -183,6 +188,7 @@ export function buildRecentActivity(
       title: located.entry.number ? `${located.entry.number} ${located.entry.title}` : located.entry.title,
       status: chapterStatusLabel(deriveStatus(located.entry, inputs)),
       at,
+      href: `/${located.courseId}/${slug}/lesson`,
     });
   }
 
@@ -195,10 +201,55 @@ export function buildRecentActivity(
       title: "Sandbox board",
       status: "Edited",
       at: local.sandboxUpdatedAt,
+      href: null,
     });
   }
 
   return entries.sort((a, b) => b.at - a.at).slice(0, limit);
+}
+
+export type ModeSplitSlice = {
+  mode: AppMode;
+  count: number;
+  /** 0-100 integers that sum to exactly 100 (see modeSplit). 0 when there is
+   *  no activity at all. */
+  percent: number;
+};
+
+/** Fixed slice order, so a mode keeps the same position and color as counts
+ *  change - color follows the entity, never its rank. */
+export const MODE_SPLIT_ORDER: readonly AppMode[] = ["building-blocks", "real-world-extraction", "sandbox"];
+
+/**
+ * How the tracked activity divides across the three modes, for the All
+ * activity dialog's donut.
+ *
+ * Counts *items touched*, not time or effort - that is all the current-state
+ * timestamps can support (see buildRecentActivity). Sandbox is therefore
+ * capped at 1 by construction, since there is one save slot.
+ *
+ * Percentages use largest-remainder rounding so the three labels always add up
+ * to 100 - independently rounding thirds prints 33/33/33 and reads as a bug.
+ */
+export function modeSplit(activity: readonly ActivityEntry[]): ModeSplitSlice[] {
+  const total = activity.length;
+  const counts = MODE_SPLIT_ORDER.map((mode) => ({
+    mode,
+    count: activity.filter((entry) => entry.mode === mode).length,
+  }));
+  if (total === 0) return counts.map((c) => ({ ...c, percent: 0 }));
+
+  const exact = counts.map((c) => (c.count / total) * 100);
+  const slices = counts.map((c, i) => ({ ...c, percent: Math.floor(exact[i]) }));
+  let remaining = 100 - slices.reduce((sum, s) => sum + s.percent, 0);
+  // Hand the leftover points to the largest fractional parts first.
+  const byRemainder = slices.map((_, i) => i).sort((a, b) => (exact[b] % 1) - (exact[a] % 1));
+  for (const i of byRemainder) {
+    if (remaining === 0) break;
+    slices[i].percent += 1;
+    remaining -= 1;
+  }
+  return slices;
 }
 
 export type HomeStats = {

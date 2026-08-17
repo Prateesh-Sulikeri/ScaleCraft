@@ -177,15 +177,26 @@ function GeometricObject() {
        * step apart, the front one sits at their midpoint one step forward, and
        * the fourth rests on that cell exactly one block-height up
        * (cy - BLOCK_DEPTH), so the stack lands on the isometric grid rather
-       * than merely near it. Painted back-to-front, so occlusion is correct. */}
-      <Block cx={100} cy={100} w={BLOCK_W} d={BLOCK_DEPTH} />
-      <Block cx={144} cy={100} w={BLOCK_W} d={BLOCK_DEPTH} />
-      <Block cx={122} cy={111} w={BLOCK_W} d={BLOCK_DEPTH} />
+       * than merely near it. Painted back-to-front, so occlusion is correct. 
+       * On hover, all blocks split apart in their own directions. */}
+      
+      {/* Bottom-left block - moves left and down on hover */}
+      <g className="transition-transform duration-300 ease-out [transform:translate(0,0)] group-hover:[transform:translate(-10px,8px)] motion-reduce:transition-none motion-reduce:group-hover:[transform:translate(0,0)]">
+        <Block cx={100} cy={100} w={BLOCK_W} d={BLOCK_DEPTH} />
+      </g>
 
-      {/* The one piece that moves. Lifting the top block off the stack on
-       * hover is the assembling-a-system gesture the whole product is about,
-       * and it is the reason the stack is drawn touching at rest. */}
-      <g className="transition-transform duration-300 ease-out [transform:translateY(0)] group-hover:[transform:translateY(-7px)] motion-reduce:transition-none motion-reduce:group-hover:[transform:translateY(0)]">
+      {/* Bottom-right block - moves right and down on hover */}
+      <g className="transition-transform duration-300 ease-out [transform:translate(0,0)] group-hover:[transform:translate(10px,8px)] motion-reduce:transition-none motion-reduce:group-hover:[transform:translate(0,0)]">
+        <Block cx={144} cy={100} w={BLOCK_W} d={BLOCK_DEPTH} />
+      </g>
+
+      {/* Front-middle block - moves forward/down on hover */}
+      <g className="transition-transform duration-300 ease-out [transform:translate(0,0)] group-hover:[transform:translate(0,12px)] motion-reduce:transition-none motion-reduce:group-hover:[transform:translate(0,0)]">
+        <Block cx={122} cy={111} w={BLOCK_W} d={BLOCK_DEPTH} />
+      </g>
+
+      {/* Top block - moves up on hover */}
+      <g className="transition-transform duration-300 ease-out [transform:translate(0,0)] group-hover:[transform:translate(0,-10px)] motion-reduce:transition-none motion-reduce:group-hover:[transform:translate(0,0)]">
         <Block cx={122} cy={90 - BLOCK_DEPTH} w={BLOCK_W} d={BLOCK_DEPTH} />
       </g>
 

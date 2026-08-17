@@ -80,8 +80,10 @@ export function HomeHero({ continueTarget, now }: HomeHeroProps) {
         </h1>
 
         <p className="max-w-xl text-pretty text-[15px] leading-relaxed text-foreground/65">
-          ScaleCraft is your system design playground. Learn the building blocks, extract real-world designs, and
-          experiment freely in a sandbox.
+          ScaleCraft is your system design playground. 
+          Learn the fundamentals. Architect real systems. Master the craft. 
+          For interviews and beyond 
+        
         </p>
 
         {/* One action only. "See what's new" used to sit here too, which was

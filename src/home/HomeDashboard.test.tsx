@@ -23,7 +23,24 @@ const data: HomeData = {
     kind: "resume",
   },
   activity: [
-    { id: "a", mode: "building-blocks", title: "1.2 Load Balancers", status: "In progress", at: NOW - 3_600_000 },
+    {
+      id: "a",
+      mode: "building-blocks",
+      title: "1.2 Load Balancers",
+      status: "In progress",
+      at: NOW - 3_600_000,
+      href: "/building-blocks/load-balancers/lesson",
+    },
+  ],
+  allActivity: [
+    {
+      id: "a",
+      mode: "building-blocks",
+      title: "1.2 Load Balancers",
+      status: "In progress",
+      at: NOW - 3_600_000,
+      href: "/building-blocks/load-balancers/lesson",
+    },
   ],
   stats: {
     chaptersCompleted: 2,
@@ -50,14 +67,15 @@ describe("HomeDashboard", () => {
     expect(screen.getByRole("contentinfo")).toBeInTheDocument();
   });
 
-  it("keeps one link per mode, pointing at the existing routes", () => {
+  // Matched on the card's uppercase short code, which only the mode card
+  // renders. The mode name in prose is not unique on this page - the header
+  // nav uses it, and so does a Recent activity row for a chapter in that
+  // mode, which is why a /Building Blocks/ query now finds two links.
+  it("keeps one link per mode card, pointing at the existing routes", () => {
     render(<HomeDashboard />);
-    expect(screen.getByRole("link", { name: /Building Blocks/ })).toHaveAttribute("href", "/building-blocks");
-    expect(screen.getByRole("link", { name: /Real World Extraction/ })).toHaveAttribute(
-      "href",
-      "/real-world-extraction",
-    );
-    expect(screen.getByRole("link", { name: /Sandbox/ })).toHaveAttribute("href", "/sandbox");
+    expect(screen.getByRole("link", { name: /BUILD/ })).toHaveAttribute("href", "/building-blocks");
+    expect(screen.getByRole("link", { name: /EXTRACT/ })).toHaveAttribute("href", "/real-world-extraction");
+    expect(screen.getByRole("link", { name: /SANDBOX/ })).toHaveAttribute("href", "/sandbox");
   });
 
   it("feeds each course card its own progress", () => {

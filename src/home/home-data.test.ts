@@ -10,7 +10,9 @@ import {
   computeStats,
   courseProgress,
   formatRelativeTime,
+  modeSplit,
   resolveContinueTarget,
+  type ActivityEntry,
 } from "./home-data";
 
 const DAY = 86_400_000;
@@ -159,7 +161,7 @@ describe("buildRecentActivity", () => {
   it("includes the Sandbox board when it has been saved", () => {
     const activity = buildRecentActivity(inputs(), { sandboxUpdatedAt: 5_000 });
     expect(activity).toEqual([
-      { id: "sandbox", mode: "sandbox", title: "Sandbox board", status: "Edited", at: 5_000 },
+      { id: "sandbox", mode: "sandbox", title: "Sandbox board", status: "Edited", at: 5_000, href: null },
     ]);
   });
 
@@ -310,5 +312,40 @@ describe("formatRelativeTime", () => {
 
   it("never renders a negative age for a clock skewed into the future", () => {
     expect(formatRelativeTime(now + 60_000, now)).toBe("Just now");
+  });
+});
+
+describe("modeSplit", () => {
+  const at = (mode: ActivityEntry["mode"], id: string): ActivityEntry => ({
+    id,
+    mode,
+    title: id,
+    status: "In progress",
+    at: 1_000,
+    href: null,
+  });
+
+  it("returns all three modes in a fixed order, zeros included", () => {
+    expect(modeSplit([]).map((s) => [s.mode, s.count, s.percent])).toEqual([
+      ["building-blocks", 0, 0],
+      ["real-world-extraction", 0, 0],
+      ["sandbox", 0, 0],
+    ]);
+  });
+
+  it("counts entries per mode", () => {
+    const split = modeSplit([at("building-blocks", "a"), at("building-blocks", "b"), at("sandbox", "c")]);
+    expect(split.map((s) => s.count)).toEqual([2, 0, 1]);
+    expect(split.map((s) => s.percent)).toEqual([67, 0, 33]);
+  });
+
+  it("keeps percentages summing to exactly 100 where naive rounding would not", () => {
+    const thirds = modeSplit([at("building-blocks", "a"), at("real-world-extraction", "b"), at("sandbox", "c")]);
+    expect(thirds.reduce((sum, s) => sum + s.percent, 0)).toBe(100);
+    expect(thirds.map((s) => s.percent)).toEqual([34, 33, 33]);
+  });
+
+  it("gives a single-mode history the whole ring", () => {
+    expect(modeSplit([at("sandbox", "a")]).map((s) => s.percent)).toEqual([0, 0, 100]);
   });
 });
