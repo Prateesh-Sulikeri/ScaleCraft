@@ -111,49 +111,54 @@ test.describe("Chapter Reader - Learning Path Integration", () => {
 
 test.describe("Chapter Reader - Multiple Chapters", () => {
   test("navigates between different chapters in the same course", async ({ page }) => {
-    // Only authored chapters render as <a> rows (CurriculumSectionList) —
+    // Only authored chapters render as <a> rows (CurriculumSectionList) -
     // unauthored ones render as an inert <div>, so "other authored chapter"
     // means "any nav link that isn't the current row" (aria-current="page"),
     // not a title-text comparison (multiple rows can share a title
-    // substring, and while content authoring is incomplete there may be no
-    // second authored chapter to find at all — the count() guard covers
-    // that bootstrapping period honestly rather than asserting something
-    // false).
+    // substring). Part 0 alone is authored several chapters deep now, so
+    // this asserts the link exists rather than skipping when it doesn't.
     const startUrl = "/building-blocks/3-4-load-balancer/lesson";
     await page.goto(startUrl);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
     const secondChapterLink = page.locator('nav a:not([aria-current="page"])').first();
+    await expect(secondChapterLink).toBeVisible();
 
-    if ((await secondChapterLink.count()) > 0) {
-      await secondChapterLink.click();
-      await page.waitForURL(/\/building-blocks\/[^/]+\/lesson/);
-      await expect(page).not.toHaveURL(new RegExp(startUrl.replace(/\//g, "\\/") + "$"));
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    }
+    await secondChapterLink.click();
+    await page.waitForURL(/\/building-blocks\/[^/]+\/lesson/);
+    await expect(page).not.toHaveURL(new RegExp(startUrl.replace(/\//g, "\\/") + "$"));
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   });
 
   test("sidebar section labels are aligned with chapter titles", async ({ page }) => {
     await page.goto("/building-blocks/3-4-load-balancer/lesson");
-    const sectionLabels = page.locator("nav p:nth-child(1)");
-    const chapterTitles = page.locator("nav a");
+    // Section headings and chapter rows share the same px-2.5 inset in
+    // CurriculumSectionList; this guards that they stay flush. Located by
+    // text: the old `nav p:nth-child(1)` matched nothing at all (the
+    // curriculum list is not inside a <nav>), so it never ran.
+    const sectionLabel = page.getByText("Part 0", { exact: true });
+    await expect(sectionLabel).toBeVisible();
+    const chapterLink = page.getByRole("link", { name: /0\.1/ }).first();
+    await expect(chapterLink).toBeVisible();
 
-    if ((await sectionLabels.count()) > 0) {
-      const firstLabel = await sectionLabels.nth(0).boundingBox();
-      const firstTitle = await chapterTitles.nth(0).boundingBox();
+    const labelBox = await sectionLabel.boundingBox();
+    const linkBox = await chapterLink.boundingBox();
 
-      expect(firstLabel?.x).toBeCloseTo(firstTitle?.x || 0, 5);
-    }
+    expect(labelBox!.x).toBeCloseTo(linkBox!.x, 0);
   });
 
   test("navigating to real-world-extraction chapter uses correct route", async ({ page }) => {
     await page.goto("/real-world-extraction");
-    const chapterLink = page.getByRole("link").filter({ hasText: /bit\.ly|dropbox/i }).first();
-    if ((await chapterLink.count()) > 0) {
-      await chapterLink.click();
-      await page.waitForURL(/\/real-world-extraction\/[^/]+\/lesson/);
-      await expect(page).toHaveURL(/^http.*\/real-world-extraction\/[^/]+\/lesson$/);
-    }
+    // "Bitly (URL Shortener)" is the one authored RWE chapter (manifest.ts,
+    // rwe-dummy-1). The old filter was /bit\.ly/ - a literal dot, which the
+    // title has never had, so the guard was always false and this test never
+    // actually ran.
+    const chapterLink = page.getByRole("link").filter({ hasText: /Bitly/i }).first();
+    await expect(chapterLink).toBeVisible();
+
+    await chapterLink.click();
+    await page.waitForURL(/\/real-world-extraction\/[^/]+\/lesson/);
+    await expect(page).toHaveURL(/^http.*\/real-world-extraction\/[^/]+\/lesson$/);
   });
 });
 
@@ -177,18 +182,19 @@ test.describe("Chapter Reader - Theme", () => {
     await page.goto("/building-blocks/3-4-load-balancer/lesson");
 
     const htmlElement = page.locator("html");
-    const beforeTheme = await htmlElement.evaluate((el) => el.getAttribute("data-theme"));
+    // layout.tsx configures next-themes with attribute="class", so the theme
+    // lands on <html class>, never data-theme. The old version read
+    // data-theme, got null, and skipped its own assertion via
+    // `if (beforeTheme && afterTheme)` - it never once compared anything.
+    const beforeClass = await htmlElement.getAttribute("class");
 
-    const toggle = page.getByRole("button", { name: /toggle.*theme|dark|light/i });
-    if ((await toggle.count()) > 0) {
-      await toggle.click();
-      await page.waitForTimeout(100);
+    // The button names itself after the theme it switches *to*.
+    const toggle = page.getByRole("button", { name: /switch to (light|dark) theme/i });
+    await expect(toggle).toBeVisible();
+    await toggle.click();
 
-      const afterTheme = await htmlElement.evaluate((el) => el.getAttribute("data-theme"));
-      if (beforeTheme && afterTheme) {
-        expect(beforeTheme).not.toBe(afterTheme);
-      }
-    }
+    // Poll rather than sleep - next-themes writes on its own schedule.
+    await expect.poll(() => htmlElement.getAttribute("class")).not.toBe(beforeClass);
   });
 });
 

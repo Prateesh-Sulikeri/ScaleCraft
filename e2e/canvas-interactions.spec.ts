@@ -1,4 +1,12 @@
 import { test, expect } from "@playwright/test";
+import {
+  resetSandbox,
+  selectAllViaBoxDrag,
+  viewportScale,
+  connectNodes,
+  SANDBOX_SEED_NODES,
+  SANDBOX_SEED_EDGES,
+} from "./helpers";
 
 /**
  * Canvas interaction E2E tests - drag-drop, edge creation, node operations,
@@ -10,431 +18,271 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Canvas - Component Placement", () => {
   test("canvas loads and is interactive", async ({ page }) => {
-    await page.goto("/sandbox");
+    await resetSandbox(page);
 
-    const canvas = page.locator(".react-flow__pane");
-    await expect(canvas).toBeVisible();
-
-    const nodes = page.locator(".react-flow__node");
-    const count = await nodes.count();
-
-    // Canvas should have at least some nodes or be ready to accept them
-    expect(count).toBeGreaterThanOrEqual(0);
+    await expect(page.locator(".react-flow__pane")).toBeVisible();
+    // resetSandbox already asserts the seed count - the old version asserted
+    // `count >= 0`, which no canvas state could ever fail.
   });
 
   test("delete a component node via keyboard (Backspace)", async ({ page }) => {
-    await page.goto("/sandbox");
-
+    await resetSandbox(page);
     const nodes = page.locator(".react-flow__node");
 
-    if ((await nodes.count()) > 1) {
-      const initialCount = await nodes.count();
+    await nodes.first().click();
+    await expect(page.locator(".react-flow__node.selected")).toHaveCount(1);
 
-      // Click the first node to select it
-      await nodes.first().click();
-      await page.waitForTimeout(200);
+    await page.keyboard.press("Backspace");
 
-      // Press backspace to delete
-      await page.keyboard.press("Backspace");
-      await page.waitForTimeout(500);
-
-      // Verify operation succeeded (count decreased or stayed same)
-      const updatedNodes = page.locator(".react-flow__node");
-      const newCount = await updatedNodes.count();
-
-      expect(newCount).toBeLessThanOrEqual(initialCount);
-    }
+    // Exactly one fewer. The old `newCount <= initialCount` was satisfied by
+    // the delete silently doing nothing.
+    await expect(nodes).toHaveCount(SANDBOX_SEED_NODES - 1);
   });
 
   test("delete a component node via keyboard (Delete key)", async ({ page }) => {
-    await page.goto("/sandbox");
-
+    await resetSandbox(page);
     const nodes = page.locator(".react-flow__node");
 
-    if ((await nodes.count()) > 1) {
-      const initialCount = await nodes.count();
+    await nodes.nth(1).click();
+    await expect(page.locator(".react-flow__node.selected")).toHaveCount(1);
 
-      // Click a node to select it
-      await nodes.nth(1).click();
-      await page.waitForTimeout(200);
+    await page.keyboard.press("Delete");
 
-      // Press delete to remove it
-      await page.keyboard.press("Delete");
-      await page.waitForTimeout(500);
-
-      // Verify the count decreased or stayed same
-      const updatedNodes = page.locator(".react-flow__node");
-      const newCount = await updatedNodes.count();
-
-      expect(newCount).toBeLessThanOrEqual(initialCount);
-    }
+    await expect(nodes).toHaveCount(SANDBOX_SEED_NODES - 1);
   });
 
   test("delete a node via right-click context menu", async ({ page }) => {
-    await page.goto("/sandbox");
-
+    await resetSandbox(page);
     const nodes = page.locator(".react-flow__node");
 
-    if ((await nodes.count()) > 0) {
-      const initialCount = await nodes.count();
+    await nodes.first().click({ button: "right" });
 
-      // Right-click the first node
-      await nodes.first().click({ button: "right" });
-      await page.waitForTimeout(300);
+    // The single-node menu's own Delete, asserted rather than guarded - the
+    // old `if (deleteBtn.count() > 0)` skipped the whole assertion whenever
+    // the menu failed to open, which is exactly the failure worth catching.
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
 
-      // Click the delete option if visible
-      const deleteBtn = page.getByRole("button", { name: /delete/i }).first();
-      if ((await deleteBtn.count()) > 0) {
-        await deleteBtn.click();
-        await page.waitForTimeout(500);
-
-        // Verify the count decreased or stayed same
-        const updatedNodes = page.locator(".react-flow__node");
-        const newCount = await updatedNodes.count();
-
-        expect(newCount).toBeLessThanOrEqual(initialCount);
-      }
-    }
+    await expect(nodes).toHaveCount(SANDBOX_SEED_NODES - 1);
   });
 
   test("multi-select nodes and delete them together", async ({ page }) => {
-    await page.goto("/");
-    // The seed graph, not whatever the previous spec saved to this account's
-    // sandbox - same reset mode-isolation.spec.ts does. The old version
-    // instead read the count at runtime and bailed via `expect(true)` when it
-    // was under 2, so it could pass without ever multi-selecting anything.
-    await page.request.delete("/api/sync/saves?scopeId=sandbox");
-    await page.goto("/sandbox");
-
+    // The old version read the count at runtime and bailed via
+    // `expect(true).toBe(true)` when it was under 2, so it could pass without
+    // ever multi-selecting anything.
+    await resetSandbox(page);
     const nodes = page.locator(".react-flow__node");
-    await expect(nodes).toHaveCount(4);
 
-    // Box-drag across the pane (Canvas.tsx sets selectionOnDrag, and panning
-    // is on middle-mouse). Ctrl-clicking nodes selects them too, but only a
-    // drag-selection activates React Flow's nodes-selection rect, and that
-    // rect is what carries the group context menu.
-    const pane = page.locator(".react-flow__pane");
-    const paneBox = (await pane.boundingBox())!;
-    await page.mouse.move(paneBox.x + 5, paneBox.y + 5);
-    await page.mouse.down();
-    await page.mouse.move(paneBox.x + paneBox.width - 5, paneBox.y + paneBox.height - 5, {
-      steps: 15,
-    });
-    await page.mouse.up();
-
-    // Wait on selection state instead of sleeping - under load the old fixed
-    // 200/300ms sleeps let the next step land before selection had settled.
-    await expect(page.locator(".react-flow__node.selected")).toHaveCount(4);
+    await selectAllViaBoxDrag(page);
 
     // Right-clicking a *node* opens the single-node menu (onNodeContextMenu),
     // whose Delete removes just that one - the real cause of the old
     // "expected 2, received 3". The group delete lives on the selection
     // rect's menu (onSelectionContextMenu).
     await page.locator(".react-flow__nodesselection-rect").click({ button: "right" });
-    await page.getByRole("button", { name: "Delete 4 components" }).click();
+    await page.getByRole("button", { name: `Delete ${SANDBOX_SEED_NODES} components` }).click();
 
     await expect(nodes).toHaveCount(0);
   });
 
-  test("duplicate a node via context menu", async ({ page }) => {
-    await page.goto("/sandbox");
-
+  // The single-node menu has no Duplicate at all (ContextMenu.tsx) - the old
+  // test guarded on finding one, never did, and fell through to a literal
+  // `expect(true).toBe(true)`. Duplicate exists only for a selection.
+  test("duplicate a selection via context menu", async ({ page }) => {
+    await resetSandbox(page);
     const nodes = page.locator(".react-flow__node");
 
-    if ((await nodes.count()) > 0) {
-      const initialCount = await nodes.count();
+    await selectAllViaBoxDrag(page);
 
-      // Right-click first node
-      await nodes.first().click({ button: "right" });
-      await page.waitForTimeout(300);
+    await page.locator(".react-flow__nodesselection-rect").click({ button: "right" });
+    await page.getByRole("button", { name: `Duplicate ${SANDBOX_SEED_NODES} components` }).click();
 
-      // Click duplicate if available
-      const duplicateBtn = page.getByRole("button", { name: /duplicate/i });
-      if ((await duplicateBtn.count()) > 0) {
-        await duplicateBtn.click();
-        await page.waitForTimeout(500);
-
-        // Verify count increased or stayed same
-        const updatedNodes = page.locator(".react-flow__node");
-        const newCount = await updatedNodes.count();
-
-        expect(newCount).toBeGreaterThanOrEqual(initialCount);
-      } else {
-        // Duplicate not implemented, skip test gracefully
-        expect(true).toBe(true);
-      }
-    }
+    await expect(nodes).toHaveCount(SANDBOX_SEED_NODES * 2);
   });
 });
 
 test.describe("Canvas - Edge Management", () => {
   test("create an edge between two nodes via handle drag", async ({ page }) => {
-    await page.goto("/sandbox");
+    await resetSandbox(page);
 
     const edges = page.locator(".react-flow__edge");
-    const initialEdgeCount = await edges.count();
+    await expect(edges).toHaveCount(SANDBOX_SEED_EDGES);
 
-    // Get two nodes
-    const nodes = page.locator(".react-flow__node");
-    const firstNode = nodes.first();
-    const secondNode = nodes.nth(1);
+    // Client -> Database is the one pair the seed leaves unconnected. There
+    // is no isValidConnection on the canvas, so the drag genuinely creates an
+    // edge; the old `newCount >= initialCount` would have passed even if it
+    // created nothing.
+    const client = page.locator(".react-flow__node").filter({ hasText: "Client" }).first();
+    const database = page.locator(".react-flow__node").filter({ hasText: "SQL Database" }).first();
+    await connectNodes(page, client, database);
 
-    // Find a handle on the first node and drag to the second node
-    const sourceHandle = firstNode.locator(".react-flow__handle-right, .react-flow__handle-source");
-    const targetNode = secondNode;
-
-    if ((await sourceHandle.count()) > 0) {
-      await sourceHandle.first().dragTo(targetNode);
-      await page.waitForTimeout(300);
-
-      const updatedEdges = page.locator(".react-flow__edge");
-      const newCount = await updatedEdges.count();
-
-      expect(newCount).toBeGreaterThanOrEqual(initialEdgeCount);
-    }
+    await expect(edges).toHaveCount(SANDBOX_SEED_EDGES + 1);
   });
 
   test("delete an edge via context menu", async ({ page }) => {
-    await page.goto("/sandbox");
+    await resetSandbox(page);
 
     const edges = page.locator(".react-flow__edge");
-    const edgeCount = await edges.count();
+    await expect(edges).toHaveCount(SANDBOX_SEED_EDGES);
 
-    if (edgeCount > 0) {
-      const firstEdge = edges.first();
+    // React Flow's straight edges have a zero-height SVG bounding box, which
+    // fails Playwright's actionability check - force clicks the stroke.
+    await edges.first().click({ button: "right", force: true });
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
 
-      // Right-click the edge. React Flow's straight edges have a zero-height
-      // SVG bounding box, which fails Playwright's actionability check - force
-      // bypasses that and clicks the stroke directly.
-      await firstEdge.click({ button: "right", force: true });
-
-      // Click delete
-      await page.getByRole("button", { name: /delete/i }).click();
-
-      await page.waitForTimeout(200);
-      const updatedEdges = page.locator(".react-flow__edge");
-      const newCount = await updatedEdges.count();
-
-      expect(newCount).toBe(edgeCount - 1);
-    }
+    await expect(edges).toHaveCount(SANDBOX_SEED_EDGES - 1);
   });
 
   test("reverse an edge direction via context menu", async ({ page }) => {
-    await page.goto("/sandbox");
+    await resetSandbox(page);
 
     const edges = page.locator(".react-flow__edge");
-    const edgeCount = await edges.count();
+    await expect(edges).toHaveCount(SANDBOX_SEED_EDGES);
 
-    if (edgeCount > 0) {
-      const firstEdge = edges.first();
+    // React Flow labels each edge "Edge from <source> to <target>", so the
+    // swap is directly observable. The old version only checked the edge
+    // count was unchanged - which reversing and doing nothing both satisfy.
+    const forward = page.getByRole("group", { name: "Edge from client-1 to lb-1" });
+    const reversed = page.getByRole("group", { name: "Edge from lb-1 to client-1" });
 
-      // Right-click the edge (force: zero-height SVG bbox on straight edges)
-      await firstEdge.click({ button: "right", force: true });
+    await expect(forward).toHaveCount(1);
+    await forward.click({ button: "right", force: true });
+    await page.getByRole("button", { name: "Reverse direction" }).click();
 
-      // Check if "Reverse direction" option exists
-      const reverseButton = page.getByRole("button", { name: /reverse/i });
-      if ((await reverseButton.count()) > 0) {
-        await reverseButton.click();
-
-        await page.waitForTimeout(200);
-
-        // Verify the edge still exists but might be reversed
-        const edgesAfter = page.locator(".react-flow__edge");
-        await expect(edgesAfter).toHaveCount(edgeCount);
-      }
-    }
+    await expect(edges).toHaveCount(SANDBOX_SEED_EDGES);
+    await expect(reversed).toHaveCount(1);
+    await expect(forward).toHaveCount(0);
   });
 });
 
 test.describe("Canvas - Validation Integration", () => {
-  test("validation indicator updates when a rule violation appears", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("validating the clean seed graph reports no violations", async ({ page }) => {
+    await resetSandbox(page);
 
-    // Start with a valid or empty canvas, then create a violation
-    // For example, connect Client directly to Database (should be invalid)
+    await page.locator(".react-flow__node").filter({ hasText: "Client" }).first().click();
+    await page.getByRole("button", { name: /validate/i }).click();
 
-    // First, delete all nodes except Client and create a Database
-    const nodes = page.locator(".react-flow__node");
-
-    // Find and click Client node
-    const clientNode = nodes.filter({ hasText: "Client" }).first();
-    if ((await clientNode.count()) > 0) {
-      await clientNode.click();
-
-      // Check initial validation state (button should be neutral)
-      const validateButton = page.getByRole("button", { name: /validate/i });
-
-      // Click Validate
-      await validateButton.click();
-
-      // Validation opens its dedicated details popover. The starter graph is
-      // currently valid, so the panel reports that result rather than a rule violation.
-      const validationDetails = page.locator('[data-tour="validation-details"]');
-      await expect(validationDetails).toBeVisible();
-      await expect(validationDetails).toContainText("No violations.");
-    }
+    // Validation opens its dedicated details popover. The seed graph is
+    // valid, so the panel reports that rather than a rule violation.
+    const validationDetails = page.locator('[data-tour="validation-details"]');
+    await expect(validationDetails).toBeVisible();
+    await expect(validationDetails).toContainText("No violations.");
   });
 
-  test("validation result shows explanation on violation", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("validation explains a violation it finds", async ({ page }) => {
+    await resetSandbox(page);
 
-    // Click the Validate button
-    const validateButton = page.getByRole("button", { name: /validate/i });
-    await validateButton.click();
-    await page.waitForTimeout(500);
+    // Wire Client straight to the database, which no-direct-client-database
+    // rejects - the old test never created a violation at all, then asserted
+    // `panelVisible || violationVisible`, which any rendered page satisfies.
+    const client = page.locator(".react-flow__node").filter({ hasText: "Client" }).first();
+    const database = page.locator(".react-flow__node").filter({ hasText: "SQL Database" }).first();
+    await connectNodes(page, client, database);
 
-    // Look for validation feedback panel or message
-    const validationPanel = page.locator("[class*='panel'], [role='dialog']");
-    const violationMsg = page.locator("[class*='violation'], [class*='error']");
+    await page.getByRole("button", { name: /validate/i }).click();
 
-    // Should show either validation results or no violations message
-    const panelVisible = (await validationPanel.count()) > 0;
-    const violationVisible = (await violationMsg.count()) > 0;
-
-    expect(panelVisible || violationVisible).toBe(true);
+    const validationDetails = page.locator('[data-tour="validation-details"]');
+    await expect(validationDetails).toBeVisible();
+    // The explanation, not just the verdict - CLAUDE.md treats a bare
+    // "invalid" as a bug.
+    await expect(validationDetails).not.toContainText("No violations.");
+    await expect(validationDetails).toContainText(/client/i);
   });
 
-  test("clicking a node in a violation highlights it", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("a node stays selectable after validating", async ({ page }) => {
+    await resetSandbox(page);
 
-    const validateButton = page.getByRole("button", { name: /validate/i });
-    await validateButton.click();
+    await page.getByRole("button", { name: /validate/i }).click();
 
-    // If violations exist, they should highlight related nodes
-    const nodes = page.locator(".react-flow__node");
-    const nodeCount = await nodes.count();
-
-    // Verify nodes are still selectable and highlight on click
-    if (nodeCount > 0) {
-      await nodes.first().click();
-      const selectedNode = page.locator(".react-flow__node.selected");
-      await expect(selectedNode).toHaveCount(1);
-    }
+    await page.locator(".react-flow__node").first().click();
+    await expect(page.locator(".react-flow__node.selected")).toHaveCount(1);
   });
 });
 
 test.describe("Canvas - Zoom and Pan", () => {
   test("zoom controls are visible", async ({ page }) => {
-    await page.goto("/sandbox");
+    await resetSandbox(page);
 
-    // React Flow controls should be visible
     const controls = page.locator(".react-flow__controls");
-    await expect(controls).toBeVisible({ timeout: 2000 });
-
-    // Should have buttons for zoom in, zoom out, fit view
-    const buttons = controls.locator("button");
-    const count = await buttons.count();
-
-    expect(count).toBeGreaterThan(0);
+    await expect(controls).toBeVisible();
+    // Named, not counted - `count > 0` passed no matter which controls
+    // were actually rendered.
+    for (const name of ["Zoom In", "Zoom Out", "Fit View"]) {
+      await expect(controls.getByRole("button", { name })).toBeVisible();
+    }
   });
 
   test("zoom in button increases zoom level", async ({ page }) => {
-    await page.goto("/sandbox");
+    await resetSandbox(page);
 
-    const controls = page.locator(".react-flow__controls");
-    const buttons = controls.locator("button");
+    const before = await viewportScale(page);
+    await page.getByRole("button", { name: "Zoom In" }).click();
 
-    // First button is usually zoom in
-    if ((await buttons.count()) > 0) {
-      await buttons.nth(0).click();
-      await page.waitForTimeout(300);
-
-      // Canvas should still be visible and responsive
-      const canvas = page.locator(".react-flow__pane");
-      await expect(canvas).toBeVisible();
-    }
+    // The actual transform, not just "the canvas is still visible" - which
+    // stayed true whether or not the button did anything.
+    await expect.poll(() => viewportScale(page)).toBeGreaterThan(before);
   });
 
   test("zoom out button decreases zoom level", async ({ page }) => {
-    await page.goto("/sandbox");
+    await resetSandbox(page);
 
-    const controls = page.locator(".react-flow__controls");
-    const buttons = controls.locator("button");
+    const before = await viewportScale(page);
+    await page.getByRole("button", { name: "Zoom Out" }).click();
 
-    // Second button is usually zoom out
-    if ((await buttons.count()) > 1) {
-      await buttons.nth(1).click();
-      await page.waitForTimeout(300);
-
-      // Canvas should still be visible
-      const canvas = page.locator(".react-flow__pane");
-      await expect(canvas).toBeVisible();
-    }
+    await expect.poll(() => viewportScale(page)).toBeLessThan(before);
   });
 
-  test("fit view button is functional", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("fit view button restores the zoom level it started at", async ({ page }) => {
+    await resetSandbox(page);
 
-    const controls = page.locator(".react-flow__controls");
-    const buttons = controls.locator("button");
+    // Establish the baseline from an explicit Fit View: the mount-time one
+    // may not have landed yet, and reading before it does gives a bare 1.
+    await page.getByRole("button", { name: "Fit View" }).click();
+    const fitted = await viewportScale(page);
 
-    // Fit view button usually third
-    if ((await buttons.count()) > 2) {
-      await buttons.nth(2).click();
-      await page.waitForTimeout(300);
+    await page.getByRole("button", { name: "Zoom In" }).click();
+    await expect.poll(() => viewportScale(page)).toBeGreaterThan(fitted);
 
-      // Canvas should still be visible
-      const canvas = page.locator(".react-flow__pane");
-      await expect(canvas).toBeVisible();
-    }
+    await page.getByRole("button", { name: "Fit View" }).click();
+    await expect.poll(() => viewportScale(page)).toBeCloseTo(fitted, 2);
   });
 });
 
 test.describe("Canvas - Selection and Configuration", () => {
   test("click a node to select it", async ({ page }) => {
-    await page.goto("/sandbox");
+    await resetSandbox(page);
 
-    const nodes = page.locator(".react-flow__node");
-    await nodes.first().click();
-    await page.waitForTimeout(200);
-
-    // Node should be selected (visually indicated)
-    const selectedNode = page.locator(".react-flow__node.selected");
-    await expect(selectedNode).toHaveCount(1);
+    await page.locator(".react-flow__node").first().click();
+    await expect(page.locator(".react-flow__node.selected")).toHaveCount(1);
   });
 
   test("edit a node's config and see it update", async ({ page }) => {
-    await page.goto("/sandbox");
+    await resetSandbox(page);
 
-    const nodes = page.locator(".react-flow__node");
-    const loadBalancerNode = nodes.filter({ hasText: /Load Balancer|load-balancer/i });
+    // Double-click, not click: the config popover opens on onNodeDoubleClick.
+    // The old version single-clicked, found no inputs on the page, and its
+    // `if (formInputs.count() > 0)` skipped every assertion.
+    await page
+      .locator(".react-flow__node-component")
+      .filter({ hasText: "Load Balancer" })
+      .first()
+      .dblclick();
 
-    if ((await loadBalancerNode.count()) > 0) {
-      await loadBalancerNode.first().click();
+    const instanceName = page.getByLabel("Instance name");
+    await expect(instanceName).toBeVisible();
 
-      // Look for a config form
-      const formInputs = page.locator("input[type='text'], select, input[type='number']");
-
-      if ((await formInputs.count()) > 0) {
-        const firstInput = formInputs.first();
-
-        // Get initial value
-        const initialValue = await firstInput.inputValue();
-
-        // Change it
-        await firstInput.fill("test-value-123");
-        await page.waitForTimeout(200);
-
-        // Verify it changed
-        const newValue = await firstInput.inputValue();
-        expect(newValue).not.toBe(initialValue);
-      }
-    }
+    await instanceName.fill("edge-router");
+    await expect(instanceName).toHaveValue("edge-router");
+    // The rendered node picks the new name up, not just the form field.
+    await expect(page.locator(".react-flow__node").filter({ hasText: "edge-router" })).toHaveCount(1);
   });
 
-  test("click an edge to see its properties", async ({ page }) => {
-    await page.goto("/sandbox");
+  test("click an edge to select it", async ({ page }) => {
+    await resetSandbox(page);
 
-    const edges = page.locator(".react-flow__edge");
+    // force: straight edges have a zero-height SVG bbox that fails
+    // Playwright's actionability check on a plain click
+    await page.locator(".react-flow__edge").first().click({ force: true });
 
-    if ((await edges.count()) > 0) {
-      // force: straight edges have a zero-height SVG bbox that fails
-      // Playwright's actionability check on a plain click
-      await edges.first().click({ force: true });
-
-      // At least some UI element should become active
-      const selectedEdge = page.locator(".react-flow__edge.selected");
-      await expect(selectedEdge).toHaveCount(1);
-    }
+    await expect(page.locator(".react-flow__edge.selected")).toHaveCount(1);
   });
 });
