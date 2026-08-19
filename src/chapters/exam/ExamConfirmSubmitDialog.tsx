@@ -1,3 +1,7 @@
+"use client";
+
+import { useEscapeKey } from "@/lib/use-escape-key";
+
 type ExamConfirmSubmitDialogProps = {
   unansweredCount: number;
   onCancel: () => void;
@@ -9,6 +13,11 @@ type ExamConfirmSubmitDialogProps = {
  * subtree, so it stacks above the exam content by DOM order alone at the
  * same z-modal tier. */
 export function ExamConfirmSubmitDialog({ unansweredCount, onCancel, onConfirm }: ExamConfirmSubmitDialogProps) {
+  // Escape cancels rather than exiting the exam: this dialog registers above
+  // ExamShell's own Escape handler, so one press dismisses only the
+  // confirmation the learner is looking at.
+  useEscapeKey(onCancel);
+
   return (
     <>
       <div className="fixed inset-0 z-[var(--z-modal-backdrop)]" onClick={onCancel} />

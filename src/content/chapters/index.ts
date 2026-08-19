@@ -4,10 +4,10 @@ import type { ChapterDefinition } from "./types";
  * The authored chapter registry. Mixed state during Wave 1 content authoring
  * (.claude/docs/pending-content.md):
  *
- * - `bb-0-1-welcome`, `bb-0-2-what-is-system-design`,
- *   `bb-0-3-interview-design-vs-production-engineering`,
- *   `bb-0-4-the-system-design-lifecycle`, and
- *   `bb-1-1-framing-the-problem` are real curriculum content,
+ * - Part 0 (`bb-0-1-welcome` through
+ *   `bb-0-4-the-system-design-lifecycle`), Part 1
+ *   (`bb-1-1-framing-the-problem` through `bb-1-4-driving-the-interview`)
+ *   and `bb-2-1-from-browser-to-backend` are real curriculum content,
  *   authored against CURRICULUM.md §5/§6 with a chapter spec in `specs/`
  *   beside each.
  * - `bb-dummy-1` was replaced by real content, `bb-3-4-load-balancer`
@@ -3184,6 +3184,375 @@ export const chapterRegistry: ChapterDefinition[] = [
             correct: false,
             explanationMd:
               "A design can meet today's stated pressure and still have a next limit worth naming. Pretending otherwise blocks useful follow-ups.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-2-1-from-browser-to-backend",
+    mode: "building-blocks",
+    title: "From Browser to Backend",
+    // Real authored content (Wave 3, first Part 2 chapter). Spec:
+    // specs/bb-2-1-from-browser-to-backend.spec.md. Lesson body:
+    // public/content/chapters/bb-2-1-from-browser-to-backend.mdx.
+    problemStatement:
+      "Every request runs the same three phases in the same order: resolve a name into an " +
+      "address, connect and secure a channel, then exchange data over it. This chapter traces one " +
+      "request through every stop between a browser and your database, and back, so each Part 3 " +
+      "component later lands at an address you already know. No build: the knowledge check is the " +
+      "trace itself.",
+    // Five objectives. Practical omitted per CURRICULUM.md §5.2's carve-out
+    // for pure Concept chapters (same justified exception 0.2/0.3/0.4 used,
+    // spec §4): no components introduced, no construction-family exercise.
+    learningObjectives: [
+      "Knowledge - Name the stops a request passes through from browser to database and back, in order.",
+      "Knowledge - State which phases finish before application code runs, and why DNS is not on the request path.",
+      "Engineering - Decide where TLS should terminate for a given system, naming what that choice buys and spends.",
+      "Interview - Answer \"walk me through what happens when a user loads the page\" as an ordered route rather than a diagram.",
+      "Communication - Name which stop of the journey a follow-up question is aimed at, and answer at that stop.",
+    ],
+    // No components introduced (§16 assigns Part 2 none - every stop on the
+    // tour is homed in 3.1-3.5) and no construction-family exercise, so the
+    // palette stays empty. The components the lesson and quiz *present* are
+    // §14's sanctioned Part 2 guided tour, not palette entries - see spec §6.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-2-1-hint-1",
+        body:
+          "For an ordering question, ask what each stop needs from the one before it. Nothing can " +
+          "connect before there is an address, and nothing can be exchanged before there is a " +
+          "channel.",
+      },
+      {
+        id: "bb-2-1-hint-2",
+        body:
+          "Two of the stops finish before your application code runs at all. Which two, and what " +
+          "does that imply about where they can appear on a request path?",
+      },
+      {
+        id: "bb-2-1-hint-3",
+        body:
+          "When a question turns on an edge kind, re-read what that edge actually carries. Not " +
+          "every arrow on a diagram moves the request's own data.",
+      },
+      {
+        id: "bb-2-1-hint-4",
+        body:
+          "For the TLS question, run 1.3's reflex: name what the choice buys and what it spends, " +
+          "then ask which of the five dimensions actually changed.",
+      },
+    ],
+    readingLinks: [],
+    // 2: Opus proofread pass (2026-08-18). Corrected three claims about the
+    // curriculum's own shape: "almost every component in Part 3" sits on the
+    // client-to-app-server arrow (only Group A does), "Group A is nothing but
+    // that segment" (3.2 is Group A and is beside the path by this chapter's
+    // own argument), and the stop table's "TCP + TLS handshake: no chapter of
+    // its own" (§14 gives it to 3.1 at concept level). Also fixed the QUIC /
+    // HTTP-3 conflation, replaced the TLS 1.2-only "third of a second"
+    // handshake figure with a per-version 200-300 ms range, glossed
+    // "recursive resolver" at first use (§20.1), and bridged 1.2's Client
+    // card to the tour's Browser card. See spec §12.
+    lessonVersion: 2,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Part 2: Journey of a Request - Chapter 2.1 of 37.",
+      masteredConcepts: [
+        "The three-tier shape (client, app server, database) and why no edge skips the app server (1.2).",
+        "The five forces (0.2), plus this system's own requirements, latency budget and read:write ratio (1.1).",
+        "The trade-off reflex - we chose X, accepting Y, because Z - and the five spend dimensions (1.3).",
+        "The eight-step Interview Loop, and that this chapter serves step 4 (0.4).",
+      ],
+      notYetIntroducedConcepts: [
+        "Every stop on the tour as a buildable component: firewall (3.1), browser and DNS (3.2), reverse proxy (3.3), load balancer (3.4), API gateway (3.5). Presented here, homed there.",
+        "What the user sees when any one of these stops fails - the next chapter walks the same path failure-first (2.2).",
+        "How this architecture got this shape in the first place, from one server to tiers (2.3).",
+        "Caching as a concept and the CDN as a component (3.14-3.15). DNS answer caching is described as a property of DNS, not taught as the general technique.",
+      ],
+      simplifications: [
+        "Resolution is described as one lookup against a resolver. The real hierarchy of root, TLD and " +
+          "authoritative name servers is 3.2's material - stated as a compression in the lesson body, " +
+          "not only recorded here.",
+        "TLS is described as a handshake that secures the channel. Version and cipher negotiation, " +
+          "certificate chains and revocation are all out of scope at this stage, and stated as such " +
+          "in the lesson body.",
+        "The tour presents components the learner cannot build yet, per CURRICULUM.md §14's Part 2 " +
+          "header and §18.2 rule 2. The lesson labels itself a tour explicitly rather than letting " +
+          "the forward reference pass silently.",
+        "\"The edge\" is used as the collective name for the segment between browser and app server. " +
+          "Which components actually occupy it is a per-system decision, named in the lesson rather " +
+          "than settled.",
+      ],
+    },
+    // Five questions, ramp 1/1/2/2/3 - the same convention 0.2/0.3/0.4 used
+    // (2 level-1, 2 level-2, 1 level-3 of 5 rounds to QUIZ_FRAMEWORK.md §3's
+    // rough 30/45/25). Q1, Q2, Q3 and Q4 are modeled on QUIZ_FRAMEWORK.md
+    // §7's Q1, Q2, Q5 and Q9 respectively - the four bank questions tagged
+    // to 2.1. Q5 is original. Correct-position spread across the four
+    // lettered questions is c, a, d, b - four distinct positions, and
+    // deliberately not opening on "b", which four sibling chapters already
+    // use for their own Q1.
+    quiz: [
+      {
+        id: "bb-2-1-from-browser-to-backend-q1",
+        kind: "ordering",
+        difficulty: 1,
+        prompt:
+          "A user types your URL and hits enter. Put the stops in the order the request actually " +
+          "reaches them, from the first thing that happens to the last.",
+        // Full derangement against correctOrder below - Ordering.tsx renders
+        // this array in exactly this order with no shuffle, so a
+        // naturally-ordered draft would ship pre-solved.
+        options: [
+          {
+            id: "database",
+            label: "The database returns the rows",
+            correct: true,
+            explanationMd:
+              "Last of the outbound stops. The database is reached only by the app server, and only " +
+              "after every earlier phase has already succeeded.",
+          },
+          {
+            id: "app-server",
+            label: "The app server runs the business logic",
+            correct: true,
+            explanationMd:
+              "Your code's first appearance in the journey. Everything before this point happened " +
+              "without the application being involved at all.",
+          },
+          {
+            id: "dns",
+            label: "DNS resolves the hostname to an IP address",
+            correct: true,
+            explanationMd:
+              "The resolve phase, and the first thing that happens. A URL names a host; the network " +
+              "routes only to addresses.",
+          },
+          {
+            id: "edge",
+            label: "The edge accepts the request and forwards it inward",
+            correct: true,
+            explanationMd:
+              "The request's first contact with your infrastructure. It arrives over the connection " +
+              "opened in the previous step and is routed on from there.",
+          },
+          {
+            id: "tls",
+            label: "A TCP connection opens and a TLS handshake completes",
+            correct: true,
+            explanationMd:
+              "The connect phase. It needs an address to connect to, so it cannot precede resolution, " +
+              "and no request data moves until it finishes.",
+          },
+        ],
+        correctOrder: ["dns", "tls", "edge", "app-server", "database"],
+      },
+      {
+        id: "bb-2-1-from-browser-to-backend-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt: "In one sentence, what is DNS's job in the journey of a request?",
+        options: [
+          {
+            id: "a",
+            label: "It encrypts traffic between the browser and the server.",
+            correct: false,
+            explanationMd:
+              "That is TLS, and it happens in the connect phase after an address already exists. DNS " +
+              "carries no encryption responsibility.",
+          },
+          {
+            id: "b",
+            label: "It spreads incoming requests across healthy backend instances.",
+            correct: false,
+            explanationMd:
+              "That is a load balancer's job (3.4), and it acts on requests already inside your " +
+              "infrastructure. DNS runs before any request has been sent.",
+          },
+          {
+            id: "c",
+            label: "It translates a hostname into an address, before any connection is made.",
+            correct: true,
+            explanationMd:
+              "Correct. Resolution is the first phase and it is a precondition for the second - there " +
+              "is nothing to open a connection to until it finishes.",
+          },
+          {
+            id: "d",
+            label: "It stores recently requested pages so repeat visitors get them faster.",
+            correct: false,
+            explanationMd:
+              "DNS does cache, but it caches name-to-address answers, not page content. Serving content " +
+              "from a nearer copy is a CDN's job (3.15).",
+          },
+        ],
+      },
+      {
+        id: "bb-2-1-from-browser-to-backend-q3",
+        kind: "diagram",
+        difficulty: 2,
+        prompt:
+          "This diagram traces a request from the browser through the perimeter to the database. " +
+          "The browser-to-DNS edge is drawn as a `control` edge while every other edge is " +
+          "`request-flow`. Why?",
+        graph: {
+          nodes: [
+            { id: "b1", componentId: "browser", position: { x: 40, y: 240 }, config: {} },
+            { id: "n1", componentId: "dns", position: { x: 40, y: 100 }, config: {} },
+            { id: "f1", componentId: "firewall", position: { x: 220, y: 240 }, config: {} },
+            { id: "p1", componentId: "reverse-proxy", position: { x: 400, y: 240 }, config: {} },
+            { id: "s1", componentId: "app-server", position: { x: 580, y: 240 }, config: {} },
+            { id: "d1", componentId: "sql-database", position: { x: 760, y: 240 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "b1", target: "n1", kind: "control" },
+            { id: "e2", source: "b1", target: "f1", kind: "request-flow" },
+            { id: "e3", source: "f1", target: "p1", kind: "request-flow" },
+            { id: "e4", source: "p1", target: "s1", kind: "request-flow" },
+            { id: "e5", source: "s1", target: "d1", kind: "request-flow" },
+          ],
+          entryPointIds: ["b1"],
+        },
+        options: [
+          {
+            id: "a",
+            label:
+              "DNS is consulted before the request path exists, and the request's own data never " +
+              "travels through it.",
+            correct: true,
+            explanationMd:
+              "Correct. Resolution runs beside the journey rather than on it. Edge kinds carry meaning, " +
+              "and drawing this one as request-flow would claim DNS carries traffic it never sees.",
+          },
+          {
+            id: "b",
+            label: "DNS is optional, and control edges mark the parts of a design you can remove.",
+            correct: false,
+            explanationMd:
+              "DNS is not optional here - without it the browser has no address at all. Edge kind " +
+              "describes what an edge carries, not how load-bearing the component is.",
+          },
+          {
+            id: "c",
+            label: "Control edges are faster, so latency-sensitive lookups are drawn that way.",
+            correct: false,
+            explanationMd:
+              "An edge kind is a semantic label, not a performance setting. Nothing about the drawing " +
+              "changes how quickly a lookup returns.",
+          },
+          {
+            id: "d",
+            label: "It is a rendering choice to keep the DNS box visually separate from the main row.",
+            correct: false,
+            explanationMd:
+              "The layout follows the edge kind, not the other way around. The kind is chosen first, " +
+              "because the validator and every future diagram read it as meaning.",
+          },
+        ],
+      },
+      {
+        id: "bb-2-1-from-browser-to-backend-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "In the tiered architecture this chapter traced, TLS terminates at the reverse proxy " +
+          "rather than at the app server. What is the strongest reason for putting it there?",
+        options: [
+          {
+            id: "a",
+            label: "TLS can only terminate at whichever component is first to receive the request.",
+            correct: false,
+            explanationMd:
+              "It can terminate further in, or be re-established on the internal hop. Where it " +
+              "terminates is a decision, which is exactly why it has costs on both sides.",
+          },
+          {
+            id: "b",
+            label: "Internal traffic is faster when it is unencrypted, and speed is the deciding factor.",
+            correct: false,
+            explanationMd:
+              "There is a real CPU cost to encrypting every internal hop, but it is rarely what decides " +
+              "this. The operational argument - one place to hold and renew certificates - carries more " +
+              "weight than the cycles.",
+          },
+          {
+            id: "c",
+            label: "The database cannot accept encrypted connections, so TLS has to stop before it.",
+            correct: false,
+            explanationMd:
+              "Databases do accept encrypted connections. Nothing downstream forces the termination " +
+              "point; the choice is made on operational grounds.",
+          },
+          {
+            id: "d",
+            label:
+              "Certificates live and get renewed in one place, and every internal hop is readable " +
+              "while you debug it.",
+            correct: true,
+            explanationMd:
+              "Correct, and the cost is named alongside it: request bodies travel your internal network " +
+              "in the clear. That is only acceptable while the network itself is trustworthy.",
+          },
+        ],
+      },
+      {
+        id: "bb-2-1-from-browser-to-backend-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Your company moves onto shared infrastructure where other tenants' workloads run on the " +
+          "same internal network. A teammate proposes re-encrypting traffic between the reverse " +
+          "proxy and the app servers. Using 1.3's trade-off reflex, what is the strongest response?",
+        options: [
+          {
+            id: "a",
+            label:
+              "Reject it - TLS already terminated at the edge, so the connection is secure and the " +
+              "internal hop adds nothing.",
+            correct: false,
+            explanationMd:
+              "Termination at the edge secures the hop from the user to the edge and nothing past it. " +
+              "The internal hop is exactly the segment the move onto shared infrastructure just changed.",
+          },
+          {
+            id: "b",
+            label:
+              "Accept it - the reason edge termination held was a trusted internal network, and that " +
+              "reason no longer applies; it buys confidentiality on the internal hop and spends " +
+              "certificate management on every instance.",
+            correct: true,
+            explanationMd:
+              "Correct, and it is the full reflex: the follow-up is new evidence, the original " +
+              "justification (Z) has changed, so the decision changes with it - and the new cost gets " +
+              "named rather than waved through.",
+          },
+          {
+            id: "c",
+            label:
+              "Reject it - adding encryption inside the perimeter is complexity for its own sake, and " +
+              "complexity is one of the five dimensions worth protecting.",
+            correct: false,
+            explanationMd:
+              "Complexity is a real cost, but naming a cost is not the same as weighing it. Here it is " +
+              "weighed against a confidentiality requirement that genuinely changed, so the cost is one " +
+              "to pay, not one to hide behind.",
+          },
+          {
+            id: "d",
+            label:
+              "Accept it - encryption everywhere is the correct default, so the original decision was " +
+              "a mistake that should be corrected.",
+            correct: false,
+            explanationMd:
+              "Right conclusion, wrong reasoning. The original decision was sound under the conditions " +
+              "it was made in; treating it as a mistake skips the part an interviewer is listening for, " +
+              "which is what specifically changed.",
           },
         ],
       },

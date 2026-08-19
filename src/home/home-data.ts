@@ -293,7 +293,7 @@ export type HomeStats = {
 /** Local calendar day as an integer index, DST-safe (comparing raw epoch
  *  offsets is not - an hour shift moves a late-evening timestamp into the
  *  wrong day). */
-function localDayIndex(ts: number): number {
+export function localDayIndex(ts: number): number {
   const d = new Date(ts);
   return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000);
 }
@@ -301,8 +301,13 @@ function localDayIndex(ts: number): number {
 /** The distinct local days any activity was recorded on. Both streak
  *  functions reduce this same set, so they can never disagree about what
  *  counts as an active day. */
-function activityDays(timestamps: readonly number[]): Set<number> {
-  return new Set(timestamps.filter((t) => t > 0).map(localDayIndex));
+function activityDays(timestamps: readonly number[], preservedDays: readonly number[] = []): Set<number> {
+  const days = new Set(timestamps.filter((t) => t > 0).map(localDayIndex));
+  // Days carried across a progress reset (db.streakDays). A union, not a
+  // replacement: a preserved day may also still be live if only one course
+  // was reset, and Set membership makes that overlap free.
+  for (const day of preservedDays) days.add(day);
+  return days;
 }
 
 /**
@@ -316,9 +321,13 @@ function activityDays(timestamps: readonly number[]): Set<number> {
  * per-day activity log, which no table provides yet - deliberately not
  * invented here (see the note in Home's own summary).
  */
-export function computeDayStreak(timestamps: readonly number[], now: number): number {
-  if (timestamps.length === 0) return 0;
-  const days = activityDays(timestamps);
+export function computeDayStreak(
+  timestamps: readonly number[],
+  now: number,
+  preservedDays: readonly number[] = [],
+): number {
+  const days = activityDays(timestamps, preservedDays);
+  if (days.size === 0) return 0;
   const today = localDayIndex(now);
 
   let cursor = days.has(today) ? today : days.has(today - 1) ? today - 1 : null;
@@ -346,8 +355,11 @@ export function computeDayStreak(timestamps: readonly number[], now: number): nu
  * - a new table - which is out of scope by choice; the tile's tooltip says
  * what the number is instead of overstating it.
  */
-export function computeLongestStreak(timestamps: readonly number[]): number {
-  const days = activityDays(timestamps);
+export function computeLongestStreak(
+  timestamps: readonly number[],
+  preservedDays: readonly number[] = [],
+): number {
+  const days = activityDays(timestamps, preservedDays);
   if (days.size === 0) return 0;
 
   let longest = 0;
@@ -381,7 +393,11 @@ export function activityTimestamps(inputs: ProgressInputs): number[] {
   return timestamps;
 }
 
-export function computeStats(inputs: ProgressInputs, now: number): HomeStats {
+export function computeStats(
+  inputs: ProgressInputs,
+  now: number,
+  preservedDays: readonly number[] = [],
+): HomeStats {
   const entries = COURSE_IDS.flatMap((courseId) => allEntries(getCourse(courseId)));
   const chapters = entries.filter((e) => e.kind === "chapter");
   const checkpoints = entries.filter((e) => e.kind === "checkpoint");
@@ -397,8 +413,8 @@ export function computeStats(inputs: ProgressInputs, now: number): HomeStats {
     chaptersTotal: chapters.length,
     checkpointsCompleted: checkpoints.filter((e) => isComplete(e.slug)).length,
     checkpointsTotal: checkpoints.length,
-    dayStreak: computeDayStreak(timestamps, now),
-    longestStreak: computeLongestStreak(timestamps),
+    dayStreak: computeDayStreak(timestamps, now, preservedDays),
+    longestStreak: computeLongestStreak(timestamps, preservedDays),
   };
 }
 

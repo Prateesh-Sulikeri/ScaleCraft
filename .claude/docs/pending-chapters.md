@@ -59,8 +59,9 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | **1.2 Designing the System** (Phase 10 condense, replaces old 1.6/1.7/1.9) | **Authored, wired into manifest.ts, old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
 | **1.3 Defending the Design** (Phase 10 condense, replaces old 1.8/1.10) | **Authored, wired into manifest.ts (incl. 2.1's repoint), old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
 | **1.4 Driving the Interview** (Phase 10 renumber of old 1.11, optional) | **Authored, wired into manifest.ts, old source removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
+| **2.1 From Browser to Backend** (Wave 3, first Part 2 chapter) | **Authored + Opus proofread pass** - manifest row repointed off `null`, `lessonVersion: 2`, pipeline not run (content-only pass) | 2026-08-18 | uncommitted, working tree |
 
-Everything else in the 79 rows is unauthored (`chapterDefinitionId: null`).
+Everything else in the 72 rows is unauthored (`chapterDefinitionId: null`).
 
 **Wave 1 progress: 4 of 4 authored, all four through an Opus pass, merged into
 `develop`/`main` (verified 2026-08-08 via PR #87/#88).** Wave 2 (Part 1)
@@ -994,6 +995,169 @@ completed by the Phase 10 engineering pass (2026-08-16).
 
 **Not done (still open):** no Opus audit pass. Everything else was
 completed by the Phase 10 engineering pass (2026-08-16).
+
+---
+
+## 2.1 From Browser to Backend (Wave 3, first Part 2 chapter)
+
+- **Authored 2026-08-18 · not committed · working tree on `main`** (no branch
+  cut - the `/chapter-author draft` pass never commits or branches; the user
+  reviews the uncommitted diff and decides where it lands)
+- Definition id `bb-2-1-from-browser-to-backend` · manifest slug
+  `2-1-from-browser-to-backend` (`chapterDefinitionId` repointed from `null`)
+- Type: Concept · foundational · 20 min · prerequisite `1-3-defending-the-design`
+- **Lesson length: 1804 words** prose (2100 including the `<Walkthrough>` prop
+  block) after the Opus pass; 1727/2023 as drafted
+- **Pipeline NOT run** - content-only authoring pass per the chapter-author
+  skill's scope. `tsc`/`lint`/`vitest`/`build` are the user's call.
+
+**Deliverables (all 6 + ledger):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-2-1-from-browser-to-backend.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-2-1-from-browser-to-backend.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` (inserted between 1.4 and 3.4) |
+| 4 | Validation rules | None new, none needed. `validationRuleIds: []` - no graph to validate |
+| 5 | Quiz | 5 questions, ramp 1/1/2/2/3 (ordering, single, diagram, single, single) |
+| 6 | Playtest pass | Spec §9 |
+| 7 | Ledger entry | This section |
+
+Also touched: `src/curriculum/manifest.ts` (the one-line
+`chapterDefinitionId` repoint) and `index.ts`'s file-header comment, which
+still enumerated only Part 0 + 1.1 as authored and is now accurate.
+
+**Judgment calls made:**
+
+- **The `<Walkthrough>` is the chapter's primary diagram, and it satisfies
+  §14's "simulated token" promise rather than degrading it.** §7.2 names "a
+  request tracing a path" as exactly the case the component exists for, and
+  2.1's §14 row asks the learner to "follow a simulated token through a
+  presented graph." Every prior chapter that hit a simulator-shaped beat
+  degraded it to a quiz question (open decision 7: 1.6, 1.7, 3.4). This one
+  does not: release 5.1.0-alpha's diagram pipeline shipped the capability and
+  2.1 is the first chapter whose §14 row it directly answers. **Recorded as a
+  partial resolution of open decision 7, for trace-shaped exercises only** -
+  the predict-then-check beats 1.7 and 3.4 wanted still have no mechanism.
+- **Failure modes and scaling behavior both omitted, declared in spec §4.**
+  Optional for Concept by §6, but the reason here is sequencing rather than
+  convenience: §14 defines 2.2 as this identical journey walked failure-first
+  and 2.3 as the scaling-evolution story. Authoring either here would consume
+  the next chapter's reason to exist. QUIZ_FRAMEWORK §7's Q3/Q4/Q6/Q10 are all
+  tagged 2.2 and were deliberately left unused.
+- **Seven un-unlocked components presented, and this is not an exception being
+  carved.** §14's own Part 2 header sanctions it ("presented diagrams use
+  components the learner hasn't unlocked yet - explicitly labeled as a guided
+  tour") and §18.2 rule 2 calls Part 2's tour "the one sanctioned larger
+  exception." The palette stays empty (`availableComponentIds: []`); the lesson
+  discharges the labeling requirement in the paragraph immediately before the
+  walkthrough. Different in kind from 0.1's scenery exception, which needed one.
+- **The stop table pre-commits a one-line job description for 3.1, 3.2, 3.3,
+  3.4 and 3.5.** Unavoidable for a chapter whose whole purpose is the spatial
+  map, but it is a real constraint on Group A's authors: 3.4 already exists and
+  matches, the other four should be checked against this table rather than
+  diverging from it silently. Flagged in spec §6 and in the new open decision
+  below.
+- **Quiz Q3's graph deliberately differs from the walkthrough's topology** (it
+  adds a firewall) so §7.2's draw-a-topology-once rule is respected in spirit,
+  not just on the technicality that one is a lesson diagram and the other is
+  assessment.
+- **Q4 reframed from the bank's recall phrasing to judgment.** QUIZ_FRAMEWORK
+  §7 Q9 asks "where does TLS typically terminate"; §1's reasoning-over-recall
+  rule makes that a weak question, so it became "what is the strongest reason
+  for putting it there."
+- **§12 nugget devices omitted and declared** (spec §4). Fourth chapter to omit,
+  third to declare. See open decision 5, now overdue.
+- **Cross-chapter answer-position check done by eye**, per the chapter-author
+  skill's note that `quiz-invariants.test.ts` is per-chapter only: 0.4, 1.3, 1.4
+  and 3.4 all put their Q1 answer at "b", so 2.1's first lettered question is
+  deliberately at "c". Full spread c/a/d/b across the four lettered questions;
+  Q1's `ordering` options are a full derangement against `correctOrder`.
+- **Stale line corrected while in the file:** "Everything else in the 79 rows"
+  now reads 72, matching this document's own header after Phase 10's condense.
+
+**Opus proofread pass (2026-08-18):**
+
+Full record in spec §12. Scoped to the six areas of the chapter-author contract;
+quiz, hints and `problemStatement`/`learningObjectives`/`curriculumContext` were
+off-limits by instruction. Structure and voice kept. `lessonVersion` 1 -> 2.
+
+Seven changes, all defects against the framework:
+
+- **Three false claims about the curriculum's own shape**, the material
+  findings. (a) The cold open's stakes sentence said "almost every component in
+  Part 3 installs itself somewhere along that arrow" - only Group A does;
+  Groups B-G hang off the far end. (b) "Group A of Part 3 is nothing but that
+  segment, one chapter per stop" is contradicted by the chapter's own thesis
+  two paragraphs earlier - 3.2 is a Group A chapter and DNS is beside the path,
+  and 3.1 is Networking Fundamentals, broader than one stop. (c) The stop
+  table's TCP+TLS row said "no chapter of its own" while §14 gives 3.1 "TCP vs.
+  UDP at concept level, TLS termination" - it now reads "Not a component - the
+  connect phase, everywhere; 3.1 covers it", which keeps the phase-not-a-box
+  distinction without under-promising 3.1.
+- **Two factual corrections.** QUIC was described as "now standardized as
+  HTTP/3", conflating the transport (RFC 9000) with HTTP over it (RFC 9114);
+  and the handshake cost quoted the TLS 1.2 worst case ("a third of a second")
+  as *the* figure right after offering a one-or-two-round-trip range - now "one
+  more on TLS 1.3, two on 1.2 ... 200 to 300 ms", which is correct and names
+  what a version upgrade actually buys.
+- **Two register fixes.** `recursive resolver` carried a whole paragraph's
+  argument with no gloss (§20.1 requires one at first use); and the swap from
+  1.2's Client card to the walkthrough's Browser card was silent, so one clause
+  now bridges it. That same paragraph is what discharges §18.2 rule 2's
+  tour-labeling requirement, so it also picked up "where you build it yourself".
+
+**Checked and left alone, with reasons** (fuller in spec §12):
+
+- **"Before your code runs" is not over-depth.** The draft nominated it as the
+  first cut. Judged correct as written: TTL caching, per-connection handshake
+  cost and connection reuse are one level of internal mechanics, not three, and
+  each changes a decision. Beat 7 is mandatory for Concept - cutting it leaves
+  the chapter with no internal mechanics at all.
+- **No section has spent 2.2's failure material.** "Common mistakes" is four
+  map-reading errors, not failures. The only failure mention in the chapter is
+  one clause about Cloudflare's own outages, attached to a production example as
+  its cost. The "Next" tease is intact.
+- **The tour label does carry its weight**, and is now slightly stronger. It
+  sits immediately before the diagram, names Part 3 as where each stop gets
+  built, and states the palette is untouched. No later section assumes a tour
+  component as taught: every use is either "you'll build this in 3.x" or a
+  property the chapter itself just established.
+- **Stop table rows re-verified against §14 and, for 3.4, against the authored
+  `bb-3-4-load-balancer.mdx`** (its "one address, many identical backends"
+  thesis matches). 3.1/3.2/3.3/3.5 match §14's purpose lines. The one
+  under-promise found is the TCP/TLS row above.
+- **`<Walkthrough>` checked by reading `types.ts`/`normalize.ts`/`layout.ts`,
+  not by running the suite.** All node/edge ids resolve, every `focus` and
+  highlight reference is declared, six steps clears the two-step minimum,
+  longest caption is 157 of 220, every caption names its highlighted node/edge
+  in prose (required - the diagram is `aria-hidden`), no `request-flow` cycle,
+  all `componentId`s in the registry, captions use the registry's own labels.
+  Auto-layout puts `dns` in column 0 beside `browser` because it touches no
+  `request-flow` edge, which is exactly the "beside the path" read the chapter
+  wants. Edge kinds semantically correct.
+- **`blueprints`/`availableComponentIds`/`requiredComponentIds`/
+  `validationRuleIds` all `[]` is the honest call**, not a convenient one, and
+  §16 wants no declared exception for it - the palette is genuinely empty and
+  §14's Part 2 header sanctions the presented tour. Rule ids confirmed empty
+  against `src/validation-engine/rules/index.ts`: all ten rules need a graph.
+- **Length: 1804 prose words**, up 77 from the draft (the gloss and the
+  Client/Browser bridge cost more than a "Your turn" tightening returned). At
+  the top of the budget but not padded. The honest comparison is not 1.2's 1755
+  words for 25 minutes - a third of those minutes are canvas work, so 2.1 is the
+  heavier *read* of the two. If a later pass must cut, cut prose, not the table.
+
+**Still open:**
+
+- **Pipeline not run** (content-only pass). `walkthrough-invariants.test.ts`
+  in particular has never seen this diagram - the captions, node ids, edge ids
+  and highlight references were authored against `normalize.ts`'s issue list by
+  reading, not by running it. Caption lengths were checked by hand (max 157 of
+  220 allowed).
+- **Wave ordering note:** `pending-content.md` puts 2.1 in Wave 3 and says not
+  to start a wave until the previous one's chapters are merged. Wave 2 is not
+  complete - RWE Tier 1 Bitly is still the `rwe-dummy-1` placeholder. Authored
+  anyway on explicit user request; flagged rather than silently ignored.
 
 ---
 
@@ -2978,6 +3142,13 @@ doc edit or a build decision.
    placement so learners build rhythm" cannot start mid-curriculum in a
    single chapter. Still needs the call this decision has always asked for,
    now overdue rather than upcoming.
+   **Fourth instance, 2026-08-18 (2.1).** Omitted again, declared in that
+   chapter's spec §4. Nothing has changed about the reasoning - a device
+   whose whole value is a fixed placement cannot begin partway through the
+   curriculum - so this stays a doc call: make §12's nuggets optional for
+   short Concept chapters, or schedule one retrofit pass across every
+   authored chapter at once. Individual chapters should stop declaring this
+   one by one.
 
 6. **§4's chapter-types table lists 1.3 as a Concept-type example, contradicting
    §14's own Part 1 header ("Process type" for the whole part, 1.1-1.11, no
@@ -3013,6 +3184,18 @@ doc edit or a build decision.
    missing simulator); the trace beat hit the same wall as 1.6 and 1.7.
    Declared in 3.4's spec §4 by the Opus pass. Three chapters, one decision,
    still deferred.
+   **Partially resolved 2026-08-18, for trace-shaped beats only (2.1).**
+   2.1's §14 row asks the learner to "follow a simulated token through a
+   presented graph"; it ships as a real six-step `<Walkthrough>` in the
+   lesson body rather than degrading to a quiz question. Release
+   5.1.0-alpha's diagram pipeline is what made that possible, and 2.1 is the
+   first chapter whose §14 promise it directly answers. **This does not
+   resolve the decision.** A `<Walkthrough>` is author-scripted: it can show
+   a token following a path, but it cannot check a learner's prediction,
+   which is what 1.7's predict-then-check and 3.4's config trace actually
+   needed. The call is now narrower but still owed - either build a
+   prediction-checking affordance, or amend §14's rows for 1.6, 1.7 and 3.4
+   to promise what the product can actually do.
 
 8. **`control`-kind edges aren't buildable on canvas - a real engine gap,
    found authoring 3.4 (2026-08-11).** CURRICULUM §16 assigns 3.4 as
@@ -3091,6 +3274,42 @@ doc edit or a build decision.
     Application Server" when a blueprint needs two nodes of one component and
     the learner has one, which reads as false to the learner. First surfaced
     here because 3.4 is the first blueprint requiring a duplicate node.
+
+12. **2.1's stop table pre-commits a one-line job description for five
+   unwritten chapters (2026-08-18).** 2.1 From Browser to Backend is Part 2's
+   spatial map, so its core deliverable is a nine-row table naming every stop
+   on the request path and the chapter that builds it: `firewall` (3.1),
+   `browser`/`dns` (3.2), `reverse-proxy` (3.3), `load-balancer` (3.4),
+   `api-gateway` (3.5). That is inherent to the chapter's purpose rather than
+   an overreach, but it does mean five chapters now have their framing set by
+   a chapter authored before them. 3.4 already exists and its "one address,
+   many identical backends, health-checked" framing matches the row written
+   for it.
+   **Blocks:** nothing. **Needs checking when Group A is authored:** each of
+   3.1, 3.2, 3.3 and 3.5 should either match its row or change the row
+   deliberately, in the same commit - not diverge silently and leave 2.1
+   teaching a description its own chapter no longer matches. Same class of
+   drift as decision 1 (§14's 0.1 row vs. the shipped chapter), caught before
+   it happens rather than after.
+
+13. **2.1 uses and teaches the `control` edge kind before 3.4, which §16 says
+   owns it. Raised by the Opus pass on 2.1 (2026-08-18).** §16's audit homes
+   edge kind `control` in 3.4 ("`load-balancer` + edge `control`"). 2.1 draws
+   one (browser -> DNS), explains what it means in the diagram's §7.2 caption,
+   and tests it in quiz Q3 - which is teaching, not previewing. It is covered
+   by the same Part 2 sanction the seven presented components rely on (a
+   presented diagram is not a palette), but it goes further than they do, and
+   the draft did not account for it at all. The prose stays as authored: "DNS
+   is beside the request path, not on it" is 2.1's own thesis and the `control`
+   edge is how the diagram states it - removing it would be worse pedagogy for
+   a purely bookkeeping reason. Declared in the chapter spec §6 instead.
+   **Blocks:** nothing. **Needs a call when Group A is authored:** either
+   §16's audit row moves `control` to 2.1 and 3.4 reframes as "the edge kind
+   you met in 2.1, now with a real job", or §16 gains an explicit note that
+   Part 2's tour introduces it early. Either way it is a CURRICULUM.md edit in
+   its own commit, not something a chapter author decides silently. Same class
+   as decision 12, one level down: 2.1 pre-commits Group A's *vocabulary* as
+   well as its framing.
 
 ---
 

@@ -1,8 +1,10 @@
 import { create } from "zustand";
-import { db, type ChapterProgress, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
+import { chapterSaveId, db, type ChapterProgress, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
 import {
   deleteChapterProgressSync,
+  deleteDeepCheckSessionSync,
   deleteExamAttemptsSync,
+  deleteSaveSync,
   hydrateAllChapterProgress,
   hydrateAllCurriculumProgress,
   hydrateAllExamAttempts,
@@ -11,6 +13,14 @@ import {
 } from "@/persistence/cloud-sync";
 import { reconcileRows } from "@/persistence/reconcile";
 import { useSyncStatusStore } from "@/persistence/sync-status";
+import {
+  fetchPreservedStreakDays,
+  mergeStreakDays,
+  pushPreservedStreakDays,
+} from "@/persistence/streak-days";
+import { activityTimestamps, localDayIndex } from "@/home/home-data";
+import { allEntries, getCourse } from "./index";
+import type { CourseId } from "./types";
 import type { ProgressInputs } from "./progress";
 
 /** Replace-by-attemptNumber — mirrors Dexie's own replace-by-key `put`. */
@@ -45,8 +55,14 @@ type CurriculumProgressStore = {
   validationPassedDefinitionIds: Set<string>;
   rowsBySlug: Map<string, CurriculumProgress>;
   /** Submitted exam attempts, by chapterDefinitionId — unlimited entries per
-   *  chapter until passed, cleared only by resetChapter. */
+   *  chapter until passed, cleared only by resetChapter/resetCourse. */
   examAttemptsByDefinition: Map<string, ExamAttempt[]>;
+  /** Local day indices carried across a progress reset, stored on the Clerk
+   *  user's publicMetadata (persistence/streak-days.ts). Read by Home and the
+   *  Learning Path header, which union it into the streak computation — see
+   *  home-data.ts's activityDays. Empty for an account that has never
+   *  reset. */
+  preservedStreakDays: number[];
 
   /** Reads all three Dexie tables into memory. Idempotent, safe to call from
    *  every mounting surface — bails if already hydrated or in flight. */
@@ -84,6 +100,14 @@ type CurriculumProgressStore = {
    *  lastVisitedAt is left untouched, so the chapter reverts to IN_PROGRESS
    *  (they've been there before), not NOT_STARTED. */
   resetChapter: (slug: string, chapterDefinitionId: string | null) => Promise<void>;
+  /** Wipes every chapter of one course back to NOT_STARTED — the Learning
+   *  Path's "Reset progress". Scoped to that course, so resetting Building
+   *  Blocks leaves Real World Extraction untouched. Clears completions,
+   *  validation passes, exam attempts, each chapter's saved canvas and its
+   *  Deep Check history. Snapshots the day streak *before* deleting
+   *  anything; see resetCourse's body for why that ordering is
+   *  load-bearing. */
+  resetCourse: (courseId: CourseId) => Promise<void>;
   /** Derived selector helper so callers never rebuild ProgressInputs by hand. */
   inputs: () => ProgressInputs;
   /** In-memory only, no Dexie/cloud I/O — clears this account's rows out of
@@ -140,10 +164,15 @@ async function performHydrate(
     db.curriculumProgress.toArray(),
     db.examAttempts.toArray(),
   ]);
-  const [remoteChapterProgress, remoteCurriculumProgress, remoteExamAttempts] = await Promise.all([
+  const [remoteChapterProgress, remoteCurriculumProgress, remoteExamAttempts, preservedStreakDays] = await Promise.all([
     hydrateAllChapterProgress(),
     hydrateAllCurriculumProgress(),
     hydrateAllExamAttempts(),
+    // Not part of the reconcile pass below: this has no local table to merge
+    // against and no last-write-wins semantics (it unions, server-side), so
+    // a failed fetch degrades to [] instead of aborting - the streak reads
+    // low for one render rather than blocking every other table's merge.
+    fetchPreservedStreakDays(),
   ]);
 
   if (!remoteChapterProgress.ok || !remoteCurriculumProgress.ok || !remoteExamAttempts.ok) {
@@ -159,6 +188,7 @@ async function performHydrate(
       validationPassedDefinitionIds: new Set(localChapterProgress.map((r) => r.chapterId)),
       rowsBySlug: new Map(localCurriculumProgress.map((r) => [r.slug, r])),
       examAttemptsByDefinition: buildExamAttemptsMap(localExamAttempts),
+      preservedStreakDays,
     });
     return;
   }
@@ -184,6 +214,7 @@ async function performHydrate(
     validationPassedDefinitionIds: new Set(chapterProgress.merged.map((r: ChapterProgress) => r.chapterId)),
     rowsBySlug: new Map(curriculumProgress.merged.map((r: CurriculumProgress) => [r.slug, r])),
     examAttemptsByDefinition: buildExamAttemptsMap(examAttempts.merged),
+    preservedStreakDays,
   });
 }
 
@@ -199,6 +230,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   validationPassedDefinitionIds: new Set(),
   rowsBySlug: new Map(),
   examAttemptsByDefinition: new Map(),
+  preservedStreakDays: [],
 
   hydrate: () => {
     if (get().hydrated) return Promise.resolve();
@@ -292,6 +324,99 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
     });
   },
 
+  resetCourse: async (courseId) => {
+    await get().refresh(); // full-row overwrites below, see markVisited
+
+    // Snapshot the streak BEFORE anything is deleted. The day streak is
+    // derived from exactly the timestamps this function is about to destroy
+    // (home-data.ts's activityTimestamps), so once the wipe lands there is
+    // nothing left to reconstruct it from - and Clerk has no day-series to
+    // fall back on either (see db.ts's StreakDays). Snapshot the whole
+    // account's day set, not just this course's: unioning is idempotent, and
+    // taking the wider set means a later reset of the *other* course cannot
+    // drop days this one already covered.
+    const days = new Set(get().preservedStreakDays);
+    for (const ts of activityTimestamps(get().inputs())) {
+      if (ts > 0) days.add(localDayIndex(ts));
+    }
+    const preservedStreakDays = [...days].sort((a, b) => a - b);
+
+    // Awaited, and awaited *first* - the one blocking call in this action.
+    // Everything below deletes the timestamps the streak is derived from, so
+    // if the snapshot has not landed by then the streak is unrecoverable.
+    // A failed push therefore aborts the reset rather than proceeding: losing
+    // the streak is a worse outcome than a reset the learner can simply
+    // retry, and leaving progress intact keeps the two consistent.
+    const saved = await pushPreservedStreakDays(preservedStreakDays);
+    if (saved === null) {
+      throw new Error("Could not save your streak, so nothing was reset. Check your connection and try again.");
+    }
+    set({ preservedStreakDays: mergeStreakDays(preservedStreakDays, saved) });
+
+    const entries = allEntries(getCourse(courseId));
+    const slugs = entries.map((entry) => entry.slug);
+    const definitionIds = entries
+      .map((entry) => entry.chapterDefinitionId)
+      .filter((id): id is string => id != null);
+
+    // curriculumProgress rows are nulled rather than deleted: /api/sync/
+    // curriculum-progress has no DELETE, and a locally-deleted row would
+    // just be pulled back on the next reconcile. Both timestamps null reads
+    // as NOT_STARTED to deriveStatus and as "no progress" to
+    // hasAnyProgress, which is exactly the intended end state.
+    const rows: CurriculumProgress[] = await Promise.all(
+      slugs.map(async (slug) => ({
+        ...(await existingRow(slug)),
+        manuallyCompletedAt: null,
+        lastVisitedAt: null,
+        dirty: true,
+        syncedAt: null,
+      })),
+    );
+
+    // The canvas each chapter was solved on, plus any Deep Check critiques
+    // of it. A saved graph for a chapter that now reads Not started is
+    // stale - it would silently reload the old solution the next time the
+    // learner opens the Design Editor, which is the opposite of starting
+    // over. Deep Check sessions are keyed by saveId, so deleting the save
+    // without them would leave critiques of a graph that no longer exists.
+    // The sandbox save is untouched: it belongs to no course.
+    const saveIds = definitionIds.map(chapterSaveId);
+    const deepCheckSyncIds = (
+      await db.deepCheckSessions.where("saveId").anyOf(saveIds).toArray()
+    )
+      .map((session) => session.syncId)
+      .filter((syncId): syncId is string => !!syncId);
+
+    await Promise.all([
+      db.curriculumProgress.bulkPut(rows),
+      db.chapterProgress.bulkDelete(definitionIds),
+      db.examAttempts.where("chapterDefinitionId").anyOf(definitionIds).delete(),
+      db.saves.bulkDelete(saveIds),
+      db.deepCheckSessions.where("saveId").anyOf(saveIds).delete(),
+    ]);
+
+    for (const row of rows) void syncCurriculumProgress(row);
+    for (const id of definitionIds) {
+      void deleteChapterProgressSync(id);
+      void deleteExamAttemptsSync(id);
+    }
+    for (const saveId of saveIds) void deleteSaveSync(saveId);
+    for (const syncId of deepCheckSyncIds) void deleteDeepCheckSessionSync(syncId);
+
+    set((state) => {
+      const nextRows = new Map(state.rowsBySlug);
+      for (const row of rows) nextRows.set(row.slug, row);
+      const validationPassedDefinitionIds = new Set(state.validationPassedDefinitionIds);
+      const examAttemptsByDefinition = new Map(state.examAttemptsByDefinition);
+      for (const id of definitionIds) {
+        validationPassedDefinitionIds.delete(id);
+        examAttemptsByDefinition.delete(id);
+      }
+      return { rowsBySlug: nextRows, validationPassedDefinitionIds, examAttemptsByDefinition };
+    });
+  },
+
   inputs: () => {
     const { validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition } = get();
     return { validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition };
@@ -304,6 +429,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
       validationPassedDefinitionIds: new Set(),
       rowsBySlug: new Map(),
       examAttemptsByDefinition: new Map(),
+      preservedStreakDays: [],
     });
   },
 }));

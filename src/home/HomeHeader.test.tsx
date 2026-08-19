@@ -17,8 +17,9 @@ describe("HomeHeader", () => {
     expect(screen.queryByRole("link", { name: /Roadmap/ })).not.toBeInTheDocument();
     expect(screen.getByText("ScaleDocs")).toBeInTheDocument();
     expect(screen.getByText("Roadmap")).toBeInTheDocument();
-    // ScaleDocs, Roadmap, and Report a Bug.
-    expect(screen.getAllByText("Soon")).toHaveLength(3);
+    // ScaleDocs and Roadmap. Report a Bug used to be a third - it is a real
+    // control now (see below), so a "Soon" chip here would be a regression.
+    expect(screen.getAllByText("Soon")).toHaveLength(2);
   });
 
   it("keeps the theme toggle and the account control in the header", () => {
@@ -26,14 +27,16 @@ describe("HomeHeader", () => {
     expect(screen.getByRole("button", { name: /Switch to (light|dark) theme/ })).toBeInTheDocument();
   });
 
-  it("offers Report a Bug as an upcoming control, left of the theme toggle", () => {
+  it("offers Report a Bug as a real icon-only control, left of the theme toggle", () => {
     render(<HomeHeader />);
-    const report = screen.getByText("Report a Bug");
+    const report = screen.getByRole("button", { name: "Report a bug" });
     expect(report).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Report a Bug/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Report a Bug/ })).not.toBeInTheDocument();
+    // Icon-only: the label lives on aria-label and the hover tooltip, not as
+    // visible text beside the icon.
+    expect(report).toHaveTextContent("");
 
-    // Order matters: the bug control precedes the theme toggle in the DOM.
+    // Order matters: the bug control precedes the theme toggle in the DOM,
+    // matching every other placement.
     const toggle = screen.getByRole("button", { name: /Switch to (light|dark) theme/ });
     expect(report.compareDocumentPosition(toggle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

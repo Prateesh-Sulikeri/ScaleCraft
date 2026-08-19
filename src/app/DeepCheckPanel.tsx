@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import { ChevronLeft, HelpCircle, History, Loader2, Settings, Sparkles, Trash2, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useEscapeKey } from "@/lib/use-escape-key";
 import rehypeSanitize from "rehype-sanitize";
 import type { AiCritique } from "@/ai/schema";
 import type { AiProfile } from "@/ai/profiles";
@@ -90,6 +91,11 @@ export function DeepCheckPanel({
   onCancelRun,
   onSelectNode,
 }: DeepCheckPanelProps) {
+  // Escape closes the panel, the same as the backdrop and the X. A run in
+  // flight is unaffected either way - closing has never cancelled it, that
+  // is what onCancelRun is for.
+  useEscapeKey(onClose);
+
   // Lazy initializer, not an effect + setState — this component only ever
   // mounts client-side (rendered on click, see DeepCheckButton.tsx), so
   // reading localStorage during the initial render is safe and avoids the

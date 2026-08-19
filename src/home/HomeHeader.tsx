@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Bug, FileText, Map, type LucideIcon } from "lucide-react";
+import { FileText, Map, type LucideIcon } from "lucide-react";
 import { BrandMark } from "@/app/BrandMark";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { AppUserButton } from "@/app/AppUserButton";
+import { ReportBugButton } from "@/bugs/ReportBugButton";
 import { HOME_CONTAINER } from "./layout";
-import { HOME_NAV, REPORT_A_BUG, type HomeNavItem } from "./links";
+import { HOME_NAV, type HomeNavItem } from "./links";
 
 const NAV_ICON: Record<string, LucideIcon> = {
   ScaleDocs: FileText,
@@ -80,20 +81,13 @@ export function HomeHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {/* Sits to the left of the theme toggle, and reads as a real control
-           * that is not ready rather than a link that goes nowhere - the same
-           * "Soon" treatment the nav's upcoming areas get, and not focusable
-           * for the same reason. */}
-          <span
-            aria-disabled="true"
-            className="flex h-8 cursor-default items-center gap-1.5 rounded-md border border-border bg-panel px-2.5 text-sm font-medium text-foreground/40"
-          >
-            <Bug size={14} aria-hidden="true" />
-            {REPORT_A_BUG.label}
-            <span className="rounded-sm border border-border px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-foreground/40">
-              Soon
-            </span>
-          </span>
+          {/* Was a "Soon" chip until the flow existed. Now the real trigger,
+           * and icon-only like every other header control - the labelled
+           * version was only ever labelled to explain what was coming. Sits
+           * left of the theme toggle, the same slot it occupies in the
+           * Chapter Reader, the exam shell, and the Design Editor header, so
+           * it is in one place across the app rather than per-page. */}
+          <ReportBugButton />
           <ThemeToggle />
           <AppUserButton />
         </div>

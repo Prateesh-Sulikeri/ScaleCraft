@@ -5,7 +5,7 @@
  * ChapterDefinition, but still needs an identity for the mode badge/header
  * accent (see .claude/docs/DESIGN_LANGUAGE.md, "Mode color").
  */
-import { Boxes, Code2, Globe, type LucideIcon } from "lucide-react";
+import { Boxes, FlaskConical, Globe, type LucideIcon } from "lucide-react";
 
 export type AppMode = "sandbox" | "building-blocks" | "real-world-extraction";
 
@@ -27,7 +27,7 @@ export const modeColorVar: Record<AppMode, string> = {
  * any future mode-identity surface (e.g. a header icon) draws from the same
  * source as label/color/tagline instead of picking its own glyph. */
 export const modeIcon: Record<AppMode, LucideIcon> = {
-  sandbox: Code2,
+  sandbox: FlaskConical,
   "building-blocks": Boxes,
   "real-world-extraction": Globe,
 };

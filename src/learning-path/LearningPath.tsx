@@ -10,6 +10,8 @@ import { CourseHeader } from "./CourseHeader";
 import { LEARNING_PATH_CONTAINER } from "./layout";
 import { SectionCard } from "./SectionCard";
 import { StatusFilter, type StatusFilterValue } from "./StatusFilter";
+import { ResetProgressDialog } from "./ResetProgressDialog";
+import { ReportBugButton } from "@/bugs/ReportBugButton";
 import { TipCard } from "./TipCard";
 import { UpNextCard } from "./UpNextCard";
 import { findEntry, getCourse } from "@/curriculum";
@@ -48,6 +50,9 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
   const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
+  // Same union Home applies - the two headers must never disagree about the
+  // streak. See persistence/streak-days.ts.
+  const preservedStreakDays = useCurriculumProgressStore((s) => s.preservedStreakDays);
   const { isSignedIn } = useAuth();
   // null on the server and the hydrating render, so a day streak computed
   // here can never disagree with the first client paint (lib/use-now.ts).
@@ -67,7 +72,10 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
     [validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition],
   );
   const summary = useMemo(() => summarizeCourse(course, inputs), [course, inputs]);
-  const dayStreak = useMemo(() => computeDayStreak(activityTimestamps(inputs), now ?? 0), [inputs, now]);
+  const dayStreak = useMemo(
+    () => computeDayStreak(activityTimestamps(inputs), now ?? 0, preservedStreakDays),
+    [inputs, now, preservedStreakDays],
+  );
 
   // Scoped to this course, so the card names a chapter the page below it
   // actually lists — but resolved by Home's own preference order, not a
@@ -105,6 +113,8 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
   const toggleAllSections = () => {
     setCollapsedSectionIds(anySectionExpanded ? new Set(course.sections.map((s) => s.id)) : new Set());
   };
+
+  const [resetOpen, setResetOpen] = useState(false);
 
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>("ALL");
@@ -179,6 +189,29 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
               >
                 {anySectionExpanded ? "Collapse all" : "Expand all"}
               </button>
+              {/* Same button shape and padding as "Collapse all" beside it,
+                  carrying the error colour on its border and label so the
+                  one destructive control on the page reads as destructive at
+                  a glance. Outlined rather than filled - a solid red block
+                  next to two neutral controls would pull the eye harder than
+                  a rarely-used action deserves, and the filled treatment is
+                  reserved for the dialog's final confirm. Absent for
+                  signed-out visitors, who have no progress to reset - a
+                  disabled button would advertise an action with nothing to
+                  act on. */}
+              {isSignedIn && (
+                <button
+                  type="button"
+                  onClick={() => setResetOpen(true)}
+                  className="shrink-0 rounded-md border border-state-error/40 bg-panel px-3 py-1.5 text-sm font-medium text-state-error transition-colors duration-150 ease-out hover:border-state-error hover:bg-state-error/5"
+                >
+                  Reset progress
+                </button>
+              )}
+              {/* Unlike Reset progress, this renders signed out too - the
+                  modal invites a sign-in rather than assuming an account,
+                  and a broken page is worth reporting whoever you are. */}
+              <ReportBugButton />
             </div>
 
             <StatusFilter value={statusFilter} onChange={setStatusFilter} />
@@ -215,6 +248,8 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
             </aside>
           </div>
         </div>
+
+        {resetOpen && <ResetProgressDialog courseId={courseId} onClose={() => setResetOpen(false)} />}
 
         {showScrollTop && (
           <button

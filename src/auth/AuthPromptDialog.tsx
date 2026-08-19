@@ -1,3 +1,7 @@
+"use client";
+
+import { useEscapeKey } from "@/lib/use-escape-key";
+
 type AuthPromptDialogProps = {
   onCancel: () => void;
   onConfirm: () => void;
@@ -10,6 +14,10 @@ type AuthPromptDialogProps = {
  * regardless of which gated action triggered it (quiz, exercise, mark
  * complete) - one message covers all three. */
 export function AuthPromptDialog({ onCancel, onConfirm }: AuthPromptDialogProps) {
+  // Escape declines, matching the backdrop click - the safe half of a
+  // choice that otherwise navigates away from the page.
+  useEscapeKey(onCancel);
+
   return (
     <>
       <div className="fixed inset-0 z-[var(--z-modal-backdrop)]" onClick={onCancel} />
