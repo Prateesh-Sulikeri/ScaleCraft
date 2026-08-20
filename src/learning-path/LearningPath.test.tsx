@@ -20,8 +20,8 @@ vi.mock("@/persistence/streak-days", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/persistence/streak-days")>();
   return {
     ...actual,
-    fetchPreservedStreakDays: () => Promise.resolve([]),
-    pushPreservedStreakDays: (days: readonly number[]) => resetPushImpl(days),
+    fetchStreakDays: () => Promise.resolve([]),
+    pushStreakDays: (days: readonly number[]) => resetPushImpl(days),
   };
 });
 
@@ -215,9 +215,11 @@ describe("LearningPath reset progress", () => {
       validationPassedDefinitionIds: new Set(),
       rowsBySlug: new Map(),
       examAttemptsByDefinition: new Map(),
-      preservedStreakDays: [],
+      activeDays: [],
+      activeDaysLoaded: true,
     });
     await db.examAttempts.clear();
+    await db.activeDays.clear();
   });
 
   it("sits with the page controls, next to the collapse toggle", () => {
@@ -297,6 +299,11 @@ describe("LearningPath reset progress", () => {
   });
 
   it("reports the failure instead of closing when the streak cannot be saved", async () => {
+    // A day banked locally but never acknowledged by the server. That is the
+    // only state a failed push can actually cost anything in: the local table
+    // survives the wipe, but it is cleared on sign-out, so a day that never
+    // reached Clerk dies with this browser.
+    await db.activeDays.put({ day: 20_500, syncedAt: null });
     resetPushImpl = async () => null;
 
     advanceToConfirm();
@@ -309,5 +316,21 @@ describe("LearningPath reset progress", () => {
     // silent close would leave the learner unsure what landed.
     await waitFor(() => expect(screen.getByText("Nothing was reset")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+  });
+
+  it("resets anyway when every day is already banked, since nothing is at risk", async () => {
+    // The complement of the case above, and the common one: recordToday has
+    // already pushed today, so a reset needs no write at all and a dead
+    // network is no reason to block the learner.
+    await db.activeDays.put({ day: 20_500, syncedAt: Date.now() });
+    resetPushImpl = async () => null;
+
+    advanceToConfirm();
+    fireEvent.change(screen.getByLabelText(/type reset progress to confirm/i), {
+      target: { value: "reset progress" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`reset ${course.title}`, "i") }));
+
+    await waitFor(() => expect(screen.queryByText("Nothing was reset")).not.toBeInTheDocument());
   });
 });

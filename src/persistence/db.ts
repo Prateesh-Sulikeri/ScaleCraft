@@ -145,6 +145,29 @@ export type ExamAttempt = SyncMeta & {
   answers: ExamQuestionAnswer[];
 };
 
+/**
+ * One row per local calendar day the learner did something the app records.
+ * `day` is a local day index (home-data.ts's localDayIndex), the same unit
+ * the streak functions reduce to.
+ *
+ * This is the *durable* half of the day streak. The other half —
+ * curriculumProgress.lastVisitedAt — keeps only the latest visit per chapter
+ * and is overwritten on every re-open, so it erases the very history the
+ * streak is derived from. This table never forgets a day, and resetCourse
+ * never clears it, which is what makes a progress reset cost completions but
+ * not the run.
+ *
+ * Not a SyncMeta row and not part of the /api/sync/* reconcile pass: there is
+ * no last-write-wins here, only union (a day that had activity is a
+ * historical fact). It mirrors Clerk publicMetadata rather than Postgres —
+ * see persistence/streak-days.ts. `syncedAt: null` means the day has not been
+ * confirmed by that mirror yet and is still owed a push.
+ */
+export type ActiveDay = {
+  day: number;
+  syncedAt: number | null;
+};
+
 /** The stored shape of a custom component — `CustomComponentRecord` plus
  * sync bookkeeping. Kept separate from `CustomComponentRecord` itself since
  * that type is also the domain shape passed to `toComponentDefinition` and
@@ -167,6 +190,10 @@ export class ScaleCraftDB extends Dexie {
   /** Compound primary key — no single field identifies a row, so this is a
    * plain Table rather than an EntityTable. */
   examAttempts!: Table<ExamAttempt, [string, number]>;
+  /** Every local day with recorded activity. Cleared on sign-out and on an
+   * account switch like every other table (both go through `db.tables`), but
+   * never by a progress reset. */
+  activeDays!: EntityTable<ActiveDay, "day">;
 
   /** Name defaults to the real app database; overridable so tests can
    * exercise the full version chain (including the v6 migration) against an
@@ -343,6 +370,25 @@ export class ScaleCraftDB extends Dexie {
       deepCheckSessions: "++id, saveId, [saveId+createdAt], syncId",
       curriculumProgress: "slug",
       examAttempts: "[chapterDefinitionId+attemptNumber], chapterDefinitionId",
+    });
+    // Adds `activeDays` — the durable day log behind the streak. Additive
+    // only, so no upgrade callback: Dexie creates the empty store and every
+    // existing table carries over untouched. The days an account already
+    // banked in Clerk publicMetadata flow back in on the next hydrate, so an
+    // upgraded browser starts empty here for one pass and then converges.
+    this.version(12).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt], syncId",
+      curriculumProgress: "slug",
+      examAttempts: "[chapterDefinitionId+attemptNumber], chapterDefinitionId",
+      // `syncedAt` is deliberately not indexed: IndexedDB has no null key, so
+      // an index on it would silently exclude exactly the unsynced rows a
+      // pending-push query needs. One row per day scans in microseconds.
+      activeDays: "day",
     });
   }
 }

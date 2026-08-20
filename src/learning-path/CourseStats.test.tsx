@@ -7,7 +7,7 @@ const summary: CourseSummary = { completed: 7, total: 40, percent: 18, sectionsC
 
 describe("CourseStats", () => {
   it("renders the four course figures from the summary it is handed", () => {
-    render(<CourseStats summary={summary} dayStreak={3} />);
+    render(<CourseStats summary={summary} dayStreak={3} streakKnown />);
 
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("of 40")).toBeInTheDocument();
@@ -19,7 +19,18 @@ describe("CourseStats", () => {
   });
 
   it("singularizes a one-day streak", () => {
-    render(<CourseStats summary={summary} dayStreak={1} />);
+    render(<CourseStats summary={summary} dayStreak={1} streakKnown />);
     expect(screen.getByText("day")).toBeInTheDocument();
+  });
+
+  it("shows a dash rather than a number when the day log has not loaded", () => {
+    // A streak computed from whatever this browser happens to hold reads low
+    // with full confidence, which is how a reset once looked like it *added*
+    // days. Saying "not loaded" is the honest answer.
+    render(<CourseStats summary={summary} dayStreak={1} streakKnown={false} />);
+
+    expect(screen.getByText("-")).toBeInTheDocument();
+    expect(screen.getByText("not loaded")).toBeInTheDocument();
+    expect(screen.queryByText("day")).not.toBeInTheDocument();
   });
 });

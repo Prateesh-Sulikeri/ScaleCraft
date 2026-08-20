@@ -62,16 +62,24 @@ export function AtAGlanceCard({ stats }: { stats: HomeStats }) {
     {
       label: "Day streak",
       Icon: Flame,
-      value: String(stats.dayStreak),
-      detail: stats.dayStreak === 1 ? "day" : "days",
-      note: "Counted from the days your progress was last recorded, so it can read low.",
+      // A dash, not a number, until the account's day log has actually been
+      // read. Showing whatever this browser happens to hold would state a
+      // streak lower than the truth with full confidence - the failure mode
+      // that made a progress reset look like it *added* days.
+      value: stats.streakKnown ? String(stats.dayStreak) : "-",
+      detail: stats.streakKnown ? (stats.dayStreak === 1 ? "day" : "days") : "not loaded",
+      note: stats.streakKnown
+        ? "Consecutive days you've worked on something, counted from the day it happened."
+        : "Your activity history hasn't loaded yet. Check your connection.",
     },
     {
       label: "Longest streak",
       Icon: CalendarRange,
-      value: String(stats.longestStreak),
-      detail: stats.longestStreak === 1 ? "day" : "days",
-      note: "The best run on record. Only your latest visit per chapter is stored, so re-reading an old chapter can move this.",
+      value: stats.streakKnown ? String(stats.longestStreak) : "-",
+      detail: stats.streakKnown ? (stats.longestStreak === 1 ? "day" : "days") : "not loaded",
+      note: stats.streakKnown
+        ? "The best run on record. Resetting your progress does not clear it."
+        : "Your activity history hasn't loaded yet. Check your connection.",
     },
   ];
 

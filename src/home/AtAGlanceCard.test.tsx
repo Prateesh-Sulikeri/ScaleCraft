@@ -10,6 +10,7 @@ const stats: HomeStats = {
   checkpointsTotal: 3,
   dayStreak: 4,
   longestStreak: 9,
+  streakKnown: true,
 };
 
 describe("AtAGlanceCard", () => {
@@ -57,5 +58,16 @@ describe("AtAGlanceCard", () => {
   it("carries the encouragement line without turning it into a score", () => {
     render(<AtAGlanceCard stats={stats} />);
     expect(screen.getByText(/Consistency builds mastery/)).toBeInTheDocument();
+  });
+
+  it("shows both streak figures as unknown when the day log has not loaded", () => {
+    render(<AtAGlanceCard stats={{ ...stats, streakKnown: false }} />);
+
+    // Both tiles, not just one: they read the same log, so they are known or
+    // unknown together.
+    expect(screen.getAllByText("-")).toHaveLength(2);
+    expect(screen.getAllByText("not loaded")).toHaveLength(2);
+    expect(screen.queryByText("4")).not.toBeInTheDocument();
+    expect(screen.queryByText("9")).not.toBeInTheDocument();
   });
 });

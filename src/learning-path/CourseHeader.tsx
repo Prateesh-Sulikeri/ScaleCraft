@@ -16,6 +16,8 @@ type CourseHeaderProps = {
   /** Consecutive active days, from the same timestamps Home reads. Passed in
    *  rather than derived here so the page has one clock. */
   dayStreak: number;
+  /** Threaded straight through to CourseStats - see its prop doc. */
+  streakKnown: boolean;
 };
 
 /** The Learning Path's entire header region: the page's own header strip
@@ -28,7 +30,7 @@ type CourseHeaderProps = {
  *  with the tiles below, then to a single stack. The illustration is the only
  *  thing that drops out entirely (below `sm`), since it is the one piece
  *  carrying no information. */
-export function CourseHeader({ course, summary, dayStreak }: CourseHeaderProps) {
+export function CourseHeader({ course, summary, dayStreak, streakKnown }: CourseHeaderProps) {
   const CourseIcon = modeIcon[course.id];
 
   return (
@@ -72,7 +74,7 @@ export function CourseHeader({ course, summary, dayStreak }: CourseHeaderProps) 
         {/* Spans both columns while it sits under the illustration+identity
          * row, and becomes its own third column only once there is room. */}
         <div className="sm:col-span-2 xl:col-span-1">
-          <CourseStats summary={summary} dayStreak={dayStreak} />
+          <CourseStats summary={summary} dayStreak={dayStreak} streakKnown={streakKnown} />
         </div>
       </section>
     </div>

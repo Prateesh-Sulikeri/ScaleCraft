@@ -58,7 +58,17 @@ function StatTile({ tile }: { tile: Tile }) {
  * one set of timestamps, and slicing it per course would report two different
  * streaks for the same day's work. The tooltip says so.
  */
-export function CourseStats({ summary, dayStreak }: { summary: CourseSummary; dayStreak: number }) {
+export function CourseStats({
+  summary,
+  dayStreak,
+  streakKnown,
+}: {
+  summary: CourseSummary;
+  dayStreak: number;
+  /** False until the account's day log has been read - see AtAGlanceCard for
+   *  why an unknown streak renders as a dash rather than a confident number. */
+  streakKnown: boolean;
+}) {
   const tiles: Tile[] = [
     {
       label: "Chapters completed",
@@ -82,9 +92,11 @@ export function CourseStats({ summary, dayStreak }: { summary: CourseSummary; da
     {
       label: "Day streak",
       Icon: Flame,
-      value: String(dayStreak),
-      detail: dayStreak === 1 ? "day" : "days",
-      note: "Counted across everything you've worked on, from the days your progress was last recorded - so it can read low.",
+      value: streakKnown ? String(dayStreak) : "-",
+      detail: streakKnown ? (dayStreak === 1 ? "day" : "days") : "not loaded",
+      note: streakKnown
+        ? "Consecutive days you've worked on something, counted across every course."
+        : "Your activity history hasn't loaded yet. Check your connection.",
     },
   ];
 

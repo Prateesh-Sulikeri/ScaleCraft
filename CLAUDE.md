@@ -74,6 +74,11 @@ directory misses which ones are live vs. retired:
   (release 7.1.0-alpha): data model, the image-storage seam, API, placements,
   plus the two app-wide changes it pulled in (CenteredModal portals to body;
   Escape closes every modal). Read it before touching modals or bug storage.
+- `.claude/docs/pending-streak-counter.md` - the day-streak fix (release
+  7.1.0-alpha): why resetting progress used to *raise* the streak, and the
+  per-day activity log (`db.activeDays` + Clerk `publicMetadata`) that replaced
+  inferring it from overwritable timestamps. Read before touching the streak,
+  `resetCourse`, or anything under `src/persistence/active-days.ts`.
 - `.claude/docs/pending-simulation-engine.md` - early brainstorm for a second,
   post-Validate simulation stage. Not scoped into a release yet.
 - `.claude/docs/pending-polish.md` - retired items consolidated out of other
