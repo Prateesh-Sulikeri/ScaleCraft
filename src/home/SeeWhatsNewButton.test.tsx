@@ -12,8 +12,8 @@ describe("SeeWhatsNewButton", () => {
     expect(screen.queryByText("Release notes")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Check Updates/ }));
     expect(screen.getByText("Release notes")).toBeInTheDocument();
-    expect(screen.getByText(`Alpha ${releaseNotes[0].version}`)).toBeInTheDocument();
-    expect(screen.getByText(releaseNotes[0].highlights[0])).toBeInTheDocument();
+    expect(screen.getByText(`v${releaseNotes[0].version}`)).toBeInTheDocument();
+    expect(screen.getByText(releaseNotes[0].highlights[0].title)).toBeInTheDocument();
   });
 
   it("closes the changelog again", () => {

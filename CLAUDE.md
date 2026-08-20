@@ -165,6 +165,10 @@ When working on UI/UX improvements:
   and report anything pending — nothing should be mid-flight and unreviewed going in.
 - **Nothing merges into `develop` without manual code review.** Claude never merges its
   own branches; it opens the branch, pushes it, and stops.
+- Every release gets an entry in `src/content/release-notes.ts`, written to the contract
+  in `.claude/docs/RELEASE_NOTES.md` — read it before writing one, don't improvise a
+  format. Its mechanical rules (lengths, counts, ordering, house style) are enforced by
+  `src/content/release-notes.test.ts`, so an off-pattern entry fails CI.
 
 ### Git branching
 

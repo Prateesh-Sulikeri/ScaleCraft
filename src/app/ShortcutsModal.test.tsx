@@ -139,11 +139,12 @@ describe("ShortcutsModal", () => {
   });
 
   it("closes on backdrop click and clears shortcutsModalOpen", () => {
-    const { api, container } = renderWithCanvasStore(<ShortcutsModal />);
+    const { api } = renderWithCanvasStore(<ShortcutsModal />);
     openModal(api);
     expect(screen.getByText("Keyboard shortcuts")).toBeInTheDocument();
 
-    const backdrop = container.querySelector(".fixed.inset-0");
+    /* document, not the render container: CenteredModal portals to <body>. */
+    const backdrop = document.querySelector(".fixed.inset-0");
     expect(backdrop).not.toBeNull();
     fireEvent.click(backdrop as Element);
 

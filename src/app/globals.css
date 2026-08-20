@@ -332,6 +332,32 @@ body > div[id^="ddocs-mermaid-"] {
   }
 }
 
+/* Used by ReleaseNotesModal.tsx — one release slide replacing another. The
+ * direction encodes which way you moved through the timeline (forward =
+ * older, back = newer), which a plain crossfade cannot say. A real state
+ * signal, not decoration, and gated behind motion-safe: at the call site. */
+@keyframes release-slide-forward {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes release-slide-back {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* Used by not-found.tsx's route illustration — the tiles and background
  * particles drift 1-2px, slow and staggered, to read as "alive" without
  * looping into anything gamified. Gated behind motion-safe: at every call

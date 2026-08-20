@@ -24,8 +24,8 @@ describe("HomeFooter", () => {
   it("opens the About dialog", () => {
     render(<HomeFooter />);
     fireEvent.click(screen.getByRole("button", { name: "About" }));
-    expect(screen.getByText("About ScaleCraft")).toBeInTheDocument();
-    expect(screen.getByText(/interactive system-design lab/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "About ScaleCraft" })).toBeInTheDocument();
+    expect(screen.getByText(/interactive system design learning environment/)).toBeInTheDocument();
   });
 
   it("opens the feedback survey", () => {

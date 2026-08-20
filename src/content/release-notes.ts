@@ -1,14 +1,56 @@
+/** Which glyph a highlight gets on the release slide. A string key rather than
+ *  a lucide component, so this content file stays free of UI imports - the
+ *  modal owns the mapping (see ReleaseNotesModal.tsx's HIGHLIGHT_ICON). */
+export type ReleaseIconName =
+  | "ai"
+  | "auth"
+  | "canvas"
+  | "component"
+  | "content"
+  | "docs"
+  | "fix"
+  | "hint"
+  | "navigation"
+  | "performance"
+  | "polish"
+  | "progress"
+  | "quiz"
+  | "sync"
+  | "validation";
+
+/** One headline change: a short label and a single sentence saying what it
+ *  does for the reader. */
+export type ReleaseHighlight = {
+  title: string;
+  body: string;
+  icon: ReleaseIconName;
+};
+
 export type ReleaseNote = {
   version: string;
   date: string;
-  highlights: string[];
+  /** The release in one line, used as the slide's headline. */
+  title: string;
+  /** Three to four at most - anything smaller belongs in `qualityOfLife`. */
+  highlights: ReleaseHighlight[];
+  /** Fixes and small wins, one clause each. Omitted when a release has none. */
+  qualityOfLife?: string[];
 };
 
 /**
- * Most recent first. One entry per release, a handful of short bullets each
- * — this is a changelog, not a commit log, so it records what a user would
- * notice, not every internal change. Read by ReleaseNotesButton.tsx. This
- * whole feature is scoped to the Alpha line (see CLAUDE.md's "Release
+ * Most recent first. One entry per release - this is a changelog, not a commit
+ * log, so it records what a user would notice, not every internal change.
+ *
+ * **Do not write an entry from scratch. Follow `.claude/docs/RELEASE_NOTES.md`**
+ * - it is the authoring contract (what a title, a highlight, and a
+ * quality-of-life line each are, with limits and worked examples). The
+ * mechanical half of that contract is enforced by `release-notes.test.ts`, so
+ * an entry that ignores it fails CI rather than shipping off-pattern.
+ *
+ * Read by ReleaseNotesModal.tsx (one release per slide) and release-info.ts
+ * (the latest version, and the Home "New" marker).
+ *
+ * This whole feature is scoped to the Alpha line (see CLAUDE.md's "Release
  * process & versioning") and should be reconsidered, not just kept running
  * unattended, once the project reaches Beta 1.0.
  */
@@ -16,178 +58,390 @@ export const releaseNotes: ReleaseNote[] = [
   {
     version: "7.0.0-alpha",
     date: "2026-08-17",
+    title: "Home knows where you left off.",
     highlights: [
-      "Home is now a dashboard instead of a static diagram. One \"Continue Learning\" button picks up the exact chapter you left unfinished, the three modes each show their own progress, and there's a recent-activity list and an at-a-glance summary of what you've completed.",
-      "\"View all activity\" opens a full history with a breakdown of how your work splits across Building Blocks, Real World Extraction, and Sandbox.",
-      "The Learning Path has been rebuilt to match. Its header now carries the course illustration, your overall progress, and four figures at a glance: chapters completed, sections completed, overall progress, and your current day streak.",
-      "New \"Up next\" card on the Learning Path opens the chapter you should do next - the same one Home's Continue button targets - and that chapter's row is now marked in the list so the two always agree.",
-      "You can now filter the curriculum by status (All, Not started, In progress, Completed) alongside the existing search, and a collapsed part shows its title and completion count instead of just a part number.",
-      "Chapter rows are clickable across their whole width now, not only on the title, and each course keeps its own accent colour throughout its Learning Path.",
+      {
+        title: "Home is a dashboard now",
+        body: "One Continue Learning button picks up the exact chapter you left unfinished, with per-mode progress beside it.",
+        icon: "progress",
+      },
+      {
+        title: "Your full activity history",
+        body: "View all activity opens everything you've done, split across Building Blocks, Real World Extraction, and Sandbox.",
+        icon: "navigation",
+      },
+      {
+        title: "Learning Path header, rebuilt",
+        body: "The course illustration, overall progress, and four figures at a glance: chapters, sections, progress, and day streak.",
+        icon: "content",
+      },
+      {
+        title: "Up next, in two places",
+        body: "A new card opens the chapter you should do next, and marks that row in the list so Home and the path always agree.",
+        icon: "component",
+      },
+    ],
+    qualityOfLife: [
+      "Filter the curriculum by status alongside search",
+      "Collapsed parts show a title and completion count",
+      "Chapter rows are clickable across their whole width",
+      "Each course keeps its own accent colour throughout",
     ],
   },
   {
     version: "6.1.1-alpha",
     date: "2026-08-17",
+    title: "Saves that wait for your session.",
     highlights: [
-      "Fixed clicking mark-complete or a quiz right after a page load sometimes saying \"Sign in required\" while you were already signed in, and silently not saving. The action now waits for your session to resolve instead.",
-      "Fixed 'On this page' highlighting Knowledge check while you were still at the top of a chapter - nothing is highlighted now until you scroll to a real section.",
-      "Lessons now use a wider column on very wide displays instead of the same narrow measure as a laptop. 1080p and below are unchanged.",
+      {
+        title: "No more phantom sign-in errors",
+        body: "Mark-complete and quizzes clicked right after a page load now wait for your session instead of failing silently.",
+        icon: "auth",
+      },
+      {
+        title: "Wider lessons on wide displays",
+        body: "Lesson text uses the extra room past 1080p rather than holding a laptop-width column. Smaller screens are unchanged.",
+        icon: "docs",
+      },
     ],
+    qualityOfLife: ["On this page no longer highlights Knowledge check before you scroll"],
   },
   {
     version: "6.1.0-alpha",
     date: "2026-08-16",
+    title: "Read without an account. Sync across devices.",
     highlights: [
-      "Reading is now public - browse the Learning Path and any chapter's lesson without an account. Signing in is only needed to save progress, take quizzes, or open Sandbox.",
-      "Your progress and custom components now sync automatically across devices, and refresh when you switch back to an already-open tab - no more reload needed to see what another device did.",
-      "Sandbox now shows the same \"sign in to continue\" prompt as quizzes and mark-complete when you click it signed out, instead of bouncing you straight to the sign-in page.",
-      "Signing out now clears your progress from the screen immediately instead of leaving the previous account's data visible until a reload.",
-      "Fixed eleven old Building Blocks chapter links from the recent Part 1 reorganization 404ing instead of redirecting to their new chapter.",
-      "If a sync ever loses an edit to a newer change from another device (rare), you'll now see a small indicator instead of it disappearing silently.",
+      {
+        title: "Reading is public",
+        body: "Browse the Learning Path and any lesson signed out. An account is only needed to save progress, take quizzes, or open Sandbox.",
+        icon: "auth",
+      },
+      {
+        title: "Progress follows you",
+        body: "Progress and custom components sync automatically, and refresh when you switch back to an already-open tab.",
+        icon: "sync",
+      },
+      {
+        title: "One sign-in prompt everywhere",
+        body: "Sandbox now asks you to sign in the same way quizzes and mark-complete do, instead of bouncing you to a sign-in page.",
+        icon: "component",
+      },
+      {
+        title: "Sync conflicts are visible",
+        body: "On the rare occasion an edit loses to a newer change from another device, a small indicator says so rather than nothing.",
+        icon: "validation",
+      },
+    ],
+    qualityOfLife: [
+      "Signing out clears progress from the screen immediately",
+      "Eleven old chapter links redirect instead of 404ing",
     ],
   },
   {
     version: "6.0.0-alpha",
     date: "2026-08-12",
+    title: "Accounts arrive.",
     highlights: [
-      "ScaleCraft now requires signing in - your first visit takes you to a sign-up/sign-in screen before you can reach the canvas.",
+      {
+        title: "Sign in to use ScaleCraft",
+        body: "Your first visit now goes to a sign-up or sign-in screen before you reach the canvas.",
+        icon: "auth",
+      },
     ],
   },
   {
     version: "5.0.1-alpha",
     date: "2026-08-12",
+    title: "Chapters open without the flash.",
     highlights: [
-      "Fixed opening a chapter from Learning Path sometimes showing a blank flash before the lesson appeared - the lesson content now starts loading the moment you hover the link, so it's ready by the time the hold animation finishes.",
+      {
+        title: "Lessons preload on hover",
+        body: "Content starts loading the moment you hover a chapter link, so it's ready by the time the hold animation finishes.",
+        icon: "performance",
+      },
     ],
   },
   {
     version: "5.0.0-alpha",
     date: "2026-08-11",
+    title: "Lessons you can step through.",
     highlights: [
-      "3.4 Load Balancer now has a full lesson - routing, health checks, round-robin vs. least-connections, and when to add a second instance - replacing the earlier placeholder text.",
-      "New: interactive step-by-step diagrams in lesson content. The Load Balancer chapter's diagram now walks a real request from client to load balancer to app server one step at a time, with a toggle between round-robin and least-connections routing.",
-      "New: tap or hover an underlined term inline in a lesson (like \"round-robin\" in the Load Balancer chapter) for a short definition without leaving the page - the start of a growing glossary.",
-      "Lessons now compile ahead of time instead of parsing Markdown in your browser every time you open a chapter, laying the groundwork for richer interactive content in future chapters.",
+      {
+        title: "Interactive step-by-step diagrams",
+        body: "Walk a real request from client to load balancer to app server one step at a time, and toggle the routing strategy as you go.",
+        icon: "canvas",
+      },
+      {
+        title: "3.4 Load Balancer, in full",
+        body: "Routing, health checks, round-robin against least-connections, and when a second instance earns its keep.",
+        icon: "content",
+      },
+      {
+        title: "Definitions without leaving the page",
+        body: "Tap or hover an underlined term for a short definition inline - the start of a growing glossary.",
+        icon: "docs",
+      },
+      {
+        title: "Lessons compile ahead of time",
+        body: "Markdown is built once rather than parsed in your browser on every open, making room for richer content later.",
+        icon: "performance",
+      },
     ],
   },
   {
     version: "4.1.1-alpha",
     date: "2026-08-10",
+    title: "Reader housekeeping.",
     highlights: [
-      "Fixed 'On this page' sometimes highlighting a leftover section from the chapter you were just reading, instead of the top of the new one you just opened.",
-      "Fixed 'On this page' listing Knowledge check after Next - it now matches the order those sections actually appear on the page.",
-      "The quiz and design exercise are now one combined card at the end of each chapter instead of two separately-bordered ones, with each row's button turning green once that task is done.",
+      {
+        title: "On this page tracks the right chapter",
+        body: "No more leftover section from the chapter you just left, and Knowledge check now sits where it actually appears.",
+        icon: "navigation",
+      },
+      {
+        title: "One Your turn card",
+        body: "The quiz and design exercise share a single card at the end of a chapter, each row turning green once it's done.",
+        icon: "quiz",
+      },
     ],
   },
   {
     version: "4.1.0-alpha",
     date: "2026-08-10",
+    title: "Six chapters, and an exit from every dead end.",
     highlights: [
-      "Six new Building Blocks chapters: 1.1 Understanding the Problem, 1.2 Functional Requirements, 1.3 Non-functional Requirements, 1.4 Estimating Scale, 1.5 Numbers Every Engineer Should Know, and 1.6 Drawing the First Architecture - a continuous URL-shortener case study, with 1.6 bringing the unit's first canvas build exercise.",
-      "New 'Next chapter' navigation once you finish a chapter: a pagination card at the bottom of the lesson, a link next to 'Back to lesson' in the sidebar, and a one-time 'Chapter complete' toast in the canvas itself the moment a Submit passes - all three used to dead-end.",
-      "Guided tour reliability pass: the tour now pauses instead of continuing silently if you switch tabs or lose window focus mid-step, stays in sync if you have the app open in multiple tabs, and completes its gated steps in any order instead of requiring a fixed sequence. Also fixed the popover drifting off its target when a step's card changed size, and the violations dropdown closing itself mid-tour.",
-      "Fixed EdgeInspector, the zoom/pan controls, and the docked tour card overlapping in the same corner - they now sit side by side. Fixed the tour's closing step still telling learners to scroll to zoom, after canvas navigation changed scroll to pan a while back.",
-      "Fixed the sidebar's 'Back to lesson' and 'Learning Path' links - clicking anywhere across the row used to navigate, not just the text or icon. Chapter Reader's sidebar also gained the ScaleCraft logo, linking back home.",
+      {
+        title: "Unit 1, start to finish",
+        body: "1.1 through 1.6 run one continuous URL-shortener case study, and 1.6 brings the unit's first canvas build exercise.",
+        icon: "content",
+      },
+      {
+        title: "Next chapter, wherever you finish",
+        body: "A pagination card, a sidebar link, and a one-time completion toast in the canvas - all three used to dead-end.",
+        icon: "navigation",
+      },
+      {
+        title: "Guided tour reliability pass",
+        body: "The tour pauses on tab or focus loss, stays in sync across tabs, and completes its gated steps in any order.",
+        icon: "hint",
+      },
+    ],
+    qualityOfLife: [
+      "EdgeInspector, zoom controls, and the tour card no longer overlap",
+      "Sidebar links are clickable across the whole row",
+      "Chapter Reader's sidebar carries the logo, linking home",
+      "Tour copy matches the current pan and zoom controls",
     ],
   },
   {
     version: "4.0.0-alpha",
     date: "2026-08-07",
+    title: "Validate checks. Submit grades.",
     highlights: [
-      "New: a guided walkthrough for Chapter 0.1 (Welcome to ScaleCraft) - your first chapter starts with a broken diagram, and a step-by-step tour shows you how to diagnose it, add the missing piece, fix the connection, and read Validate's explanation for yourself. Esc pauses instead of dismissing for good, and reloading picks up right where you left off.",
-      "Validate and Submit are now separate steps. Validate checks your diagram's structure only, no completion pressure - Submit adds a check against the chapter's target architecture and reports exactly what's missing, extra, or mismatched instead of a bare pass/fail.",
-      "New 'Start over' control resets a chapter back to its starter graph, discarding your save and undo history - useful for retrying a chapter or replaying its tour from a clean board. It now lives with the Replay/Resume tour controls in the sidebar, instead of a floating pill that used to cover sidebar content.",
-      "Two new Building Blocks chapters: 0.1 Welcome to ScaleCraft (real lesson content, replacing the placeholder) and 0.2 What is System Design? (a quick, canvas-free primer on the five forces behind every design decision - latency, throughput, availability, durability, cost - with its own quiz).",
-      "Concept chapters that don't need a diagram exercise (like 0.2) now complete on their quiz alone, instead of requiring a Submit that was never reachable.",
+      {
+        title: "Two separate steps",
+        body: "Validate reads structure only, with no completion pressure. Submit adds the chapter's target architecture and names what's missing, extra, or mismatched.",
+        icon: "validation",
+      },
+      {
+        title: "A guided first chapter",
+        body: "0.1 opens on a broken diagram and walks you through diagnosing it. Esc pauses instead of dismissing, and a reload resumes where you were.",
+        icon: "hint",
+      },
+      {
+        title: "Two new chapters",
+        body: "0.1 Welcome to ScaleCraft, and 0.2 What is System Design? - a canvas-free primer on latency, throughput, availability, durability, and cost.",
+        icon: "content",
+      },
+      {
+        title: "Start over",
+        body: "Resets a chapter to its starter graph, discarding the save and undo history, from the sidebar rather than a pill covering the canvas.",
+        icon: "canvas",
+      },
     ],
+    qualityOfLife: ["Concept chapters with no diagram complete on their quiz alone"],
   },
   {
     version: "3.4.0-alpha",
     date: "2026-08-04",
+    title: "Deploys in under a minute.",
     highlights: [
-      "Vercel deploys are dramatically faster - typecheck, lint, and the full test suite no longer run twice per deploy (once directly, once again inside the build script), cutting build time from around 10 minutes to under a minute. CI already gates all of that on every pull request, so deploys now just build.",
-      "The automated test suite grew to 1,443 tests across 178 files with substantially higher coverage across chapters, canvas, quizzes, the validation engine, and AI settings - catching regressions earlier without slowing down deploys.",
+      {
+        title: "CI stopped running twice per deploy",
+        body: "Typecheck, lint, and the test suite no longer run directly and again inside the build - roughly ten minutes down to under one.",
+        icon: "performance",
+      },
+      {
+        title: "1,443 tests across 178 files",
+        body: "Substantially broader coverage across chapters, canvas, quizzes, the validation engine, and AI settings.",
+        icon: "polish",
+      },
     ],
   },
   {
     version: "3.3.0-alpha",
     date: "2026-08-03",
+    title: "Canvas navigation, rebuilt.",
     highlights: [
-      "Canvas navigation overhaul: pan with Space+drag or middle-mouse-drag, scroll to pan vertically, Shift+scroll to pan horizontally, and Ctrl/Cmd+scroll or a trackpad pinch to zoom - zoom now stays centered on your cursor instead of drifting.",
-      "New keyboard shortcuts: Ctrl/Cmd+plus/minus/0 to zoom in, out, or reset to 100%, and Shift+1 / Shift+2 to fit the whole graph or just your current selection into view.",
-      "The keyboard shortcuts reference is now a searchable, sectioned modal instead of a cramped dropdown - open it from the header icon or the new ? shortcut, and search by section (\"navigation\") or by shortcut (\"undo\").",
-      "New shortcut: Ctrl/Cmd+/ opens documentation for the selected component directly, no need to reach for the right-click menu.",
+      {
+        title: "Pan and zoom that behave",
+        body: "Space or middle-mouse to pan, scroll to pan vertically, Shift+scroll horizontally, and Ctrl/Cmd+scroll to zoom on your cursor.",
+        icon: "canvas",
+      },
+      {
+        title: "Zoom and fit shortcuts",
+        body: "Ctrl/Cmd with plus, minus, or 0 to zoom or reset, and Shift+1 or Shift+2 to fit the whole graph or just your selection.",
+        icon: "navigation",
+      },
+      {
+        title: "A searchable shortcuts reference",
+        body: "A sectioned modal instead of a cramped dropdown - search by section or by the shortcut itself.",
+        icon: "docs",
+      },
     ],
+    qualityOfLife: ["Ctrl/Cmd+/ opens documentation for the selected component"],
   },
   {
     version: "3.2.0-alpha",
     date: "2026-08-03",
+    title: "Lighter pages, faster canvas.",
     highlights: [
-      "Faster page loads across the app: lesson pages now load up to 60% less code up front, and Sandbox, Building Blocks, and Real World Extraction routes are 40-41% lighter, by deferring the quiz, markdown-rendering, and Deep Check code until you actually open them.",
-      "Chapter lessons and component docs now load on demand instead of shipping in every page's bundle.",
-      "Canvas now renders 40-50% faster when toggling Highlight Connections or running Validate - all four node types (components, zones, comments, flags) are now memoized, preventing unnecessary re-renders when only some nodes change.",
-      "Custom components no longer rebuild their validation schemas on every render - significant speedup when working with multiple user-defined components.",
-      "AI provider SDKs (Anthropic, OpenAI, Google, xAI) only load when you actually use Deep Check, not in routes that only show the provider list.",
-      "Vercel deployments now only trigger for main, develop, and release/* branches - no more unnecessary preview deployments for feature branches.",
+      {
+        title: "Up to 60% less code up front",
+        body: "Lesson pages, Sandbox, Building Blocks, and Real World Extraction defer the quiz, Markdown, and Deep Check code until you open them.",
+        icon: "performance",
+      },
+      {
+        title: "40-50% faster canvas renders",
+        body: "All four node types are memoized, so Highlight Connections and Validate stop re-rendering nodes that didn't change.",
+        icon: "canvas",
+      },
+    ],
+    qualityOfLife: [
+      "Chapter lessons and component docs load on demand",
+      "Custom components stop rebuilding schemas every render",
+      "AI provider SDKs load only when Deep Check runs",
+      "Preview deploys limited to main, develop, and release branches",
     ],
   },
   {
     version: "3.1.0-alpha",
     date: "2026-08-02",
+    title: "A Learning Path you can search.",
     highlights: [
-      "Learning Path gets a collapse-all control, a search box (filter by title, section, or completion status), a redesigned two-stat completion tracker, and distinct flag-icon styling with R1-R3 numbering for checkpoint chapters.",
-      "Chapter Reader now shows prerequisite tags (linking straight to their lesson) and domain badges for Real World Extraction chapters.",
-      "Fixed the reading progress bar going stale when diagrams or images resize the page after your last scroll, and fixed 'On this page' dropping numbered headings written as H1s in lesson content.",
-      "Manual saves (the Save button or Ctrl+S) now confirm with a brief toast, alongside the existing Saving.../Saved header indicator.",
-      "Added a themed custom 404 page.",
-      "Replaced em dashes with hyphens across chapter content and UI copy, per house style.",
+      {
+        title: "Search, collapse, and a clearer tracker",
+        body: "Filter by title, section, or completion status, collapse everything at once, and read a redesigned two-stat tracker.",
+        icon: "navigation",
+      },
+      {
+        title: "Prerequisites and domains in the Reader",
+        body: "Prerequisite tags link straight to their lesson, and Real World Extraction chapters carry a domain badge.",
+        icon: "docs",
+      },
+    ],
+    qualityOfLife: [
+      "Reading progress no longer goes stale when diagrams resize the page",
+      "On this page keeps numbered headings written as H1s",
+      "Manual saves confirm with a brief toast",
+      "A themed 404 page, and hyphens in place of em dashes throughout",
     ],
   },
   {
     version: "3.0.1-alpha",
     date: "2026-08-02",
+    title: "Sizing and contrast fixes.",
     highlights: [
-      "Fixed the Home screen's mode-selector cards - corrected icon and heading sizing that made the cards feel cramped, and gave the canvas background grid proper theme-aware contrast in both light and dark mode.",
-      "Stabilized the end-to-end test suite: fixed two failing Playwright specs - edge-click interactions on the canvas (React Flow's straight edges have a zero-height hit box that made plain clicks time out) and a race condition where the sandbox's Validate button was checked before the page header finished hydrating.",
+      {
+        title: "Mode cards breathe again",
+        body: "Corrected icon and heading sizing on Home, and gave the canvas grid proper contrast in both themes.",
+        icon: "fix",
+      },
+      {
+        title: "Two flaky end-to-end specs fixed",
+        body: "Zero-height edge hit boxes and a Validate-before-hydration race no longer fail the suite at random.",
+        icon: "fix",
+      },
     ],
   },
   {
     version: "3.0.0-alpha",
     date: "2026-07-31",
+    title: "The Learning Path.",
     highlights: [
-      "Learning Path - a full-screen curriculum browser for Building Blocks (26 chapters) and Real World Extraction (5 chapters). Navigate chapters by row, track completion progress across all sections, and download the full curriculum as a PDF.",
-      "Chapter Workspace now uses route-driven navigation - every chapter has its own URL, so links stay shareable and back/forward work as expected.",
-      "In-workspace progress sidebar - see where you are in the learning path without leaving your diagram. Jump to any chapter, check your progress at a glance, and know which chapters unlock next.",
+      {
+        title: "A full curriculum browser",
+        body: "26 Building Blocks chapters and 5 Real World Extraction chapters, with completion tracking and a downloadable PDF.",
+        icon: "content",
+      },
+      {
+        title: "Every chapter has a URL",
+        body: "Chapter Workspace is route-driven now, so links stay shareable and back and forward work as expected.",
+        icon: "navigation",
+      },
+      {
+        title: "Progress without leaving your diagram",
+        body: "An in-workspace sidebar to jump between chapters, check where you are, and see what unlocks next.",
+        icon: "progress",
+      },
     ],
   },
   {
     version: "2.1.0-alpha",
     date: "2026-07-30",
+    title: "Release notes stay on Home.",
     highlights: [
-      "Release notes now live on the Home page only, instead of following you into Sandbox, Building Blocks, and Real World Extraction.",
+      {
+        title: "One place for the changelog",
+        body: "Release notes no longer follow you into Sandbox, Building Blocks, and Real World Extraction.",
+        icon: "polish",
+      },
     ],
   },
   {
     version: "2.0.0-alpha",
     date: "2026-07-29",
+    title: "Validation learns what right looks like.",
     highlights: [
-      "Validation now recognizes correct architectures, not just wrong ones - chapters have a real pass/fail gate driven by reference blueprints, plus a much broader library of structural checks for catching nonsensical designs (disconnected components, backwards data flow, and more).",
-      "New: Deep Check - an optional AI-powered design review. Bring your own API key from Anthropic, OpenAI, Google, xAI, or any OpenAI-compatible provider, save multiple named profiles, and get a trade-off-focused critique of your architecture. Your key stays in your browser and is never sent to our servers; Deep Check never decides pass/fail - that's still the deterministic validation engine's job.",
+      {
+        title: "A real pass/fail gate",
+        body: "Reference blueprints let a chapter recognise a correct architecture, alongside a much broader library of structural checks.",
+        icon: "validation",
+      },
+      {
+        title: "Deep Check",
+        body: "An optional AI design review - bring your own key, save named profiles, get a trade-off critique. Your key never leaves your browser, and it never decides pass or fail.",
+        icon: "ai",
+      },
     ],
   },
   {
     version: "1.0.1-alpha",
     date: "2026-07-26",
+    title: "Deployments unblocked.",
     highlights: [
-      "Fixed a build pipeline bug that was blocking deployments (test suite was picking up a production React build instead of the test build, failing hundreds of component tests).",
+      {
+        title: "Build pipeline fix",
+        body: "The test suite was picking up a production React build instead of the test build, failing hundreds of component tests.",
+        icon: "fix",
+      },
     ],
   },
   {
     version: "1.0.0-alpha",
     date: "2026-07-25",
+    title: "The first alpha.",
     highlights: [
-      "First alpha: Sandbox, Building Blocks, and Real World Extraction modes, a full component registry, live validation with explanations, and local autosave.",
-      "Established a formal versioning and release process - this panel will track what changes from here on.",
+      {
+        title: "Three modes and a component registry",
+        body: "Sandbox, Building Blocks, and Real World Extraction, with live validation, written explanations, and local autosave.",
+        icon: "component",
+      },
+      {
+        title: "A formal release process",
+        body: "Versioning and release conventions established - this panel tracks what changes from here on.",
+        icon: "docs",
+      },
     ],
   },
 ];
