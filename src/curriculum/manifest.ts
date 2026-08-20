@@ -167,7 +167,7 @@ export const courses: Record<CourseId, Course> = {
             number: "2.2",
             title: "Where Can Things Go Wrong?",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-2-2-where-can-things-go-wrong",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["2-1-from-browser-to-backend"],

@@ -7,9 +7,9 @@ import type { ChapterDefinition } from "./types";
  * - Part 0 (`bb-0-1-welcome` through
  *   `bb-0-4-the-system-design-lifecycle`), Part 1
  *   (`bb-1-1-framing-the-problem` through `bb-1-4-driving-the-interview`)
- *   and `bb-2-1-from-browser-to-backend` are real curriculum content,
- *   authored against CURRICULUM.md §5/§6 with a chapter spec in `specs/`
- *   beside each.
+ *   and Part 2 through `bb-2-2-where-can-things-go-wrong` are real
+ *   curriculum content, authored against CURRICULUM.md §5/§6 with a
+ *   chapter spec in `specs/` beside each.
  * - `bb-dummy-1` was replaced by real content, `bb-3-4-load-balancer`
  *   (pulled forward from Wave 3, see pending-content.md/pending-chapters.md).
  *   `rwe-dummy-1` is still a throwaway shell fixture (`placeholder: true`),
@@ -3553,6 +3553,356 @@ export const chapterRegistry: ChapterDefinition[] = [
               "Right conclusion, wrong reasoning. The original decision was sound under the conditions " +
               "it was made in; treating it as a mistake skips the part an interviewer is listening for, " +
               "which is what specifically changed.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-2-2-where-can-things-go-wrong",
+    mode: "building-blocks",
+    title: "Where Can Things Go Wrong?",
+    // Real authored content (Wave 3, second Part 2 chapter). Spec:
+    // specs/bb-2-2-where-can-things-go-wrong.spec.md. Lesson body:
+    // public/content/chapters/bb-2-2-where-can-things-go-wrong.mdx.
+    problemStatement:
+      "2.1 traced one request through every stop between a browser and your database. This chapter " +
+      "breaks that path at each stop in turn and asks the only question that matters to a user: what " +
+      "do they actually experience? Errors, hangs, and the failures where the client and the server " +
+      "disagree about what happened. No build: the knowledge check is the prediction.",
+    // Five objectives. Practical omitted per CURRICULUM.md §5.2's carve-out
+    // for pure Concept chapters (the same justified exception 0.2/0.3/0.4 and
+    // 2.1 used, spec §4): no components introduced, no construction-family
+    // exercise.
+    learningObjectives: [
+      "Knowledge - Name what a user experiences when each stop on the request path fails, and which of those failures your own monitoring cannot see.",
+      "Knowledge - State why a client that times out cannot know whether its request succeeded.",
+      "Engineering - Choose a timeout for a given hop, naming what a shorter or longer one buys and spends, and why the budget shrinks inward.",
+      "Interview - Answer \"what happens if X fails?\" as a symptom, a blast radius and a detection path rather than a component name.",
+      "Communication - Translate a user report of \"the site is down\" into a specific claim about which segment of the path failed, and for whom.",
+    ],
+    // No components introduced (§16 assigns Part 2 none) and no
+    // construction-family exercise, so the palette stays empty. The lesson
+    // re-presents 2.1's five tour components; that is §14's sanctioned Part 2
+    // guided tour, not a palette entry - see spec §6.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-2-2-hint-1",
+        body:
+          "For the matching question, ask where each failure sits relative to your own code. A break " +
+          "before your code runs and a break inside it do not reach the user as the same thing.",
+      },
+      {
+        id: "bb-2-2-hint-2",
+        body:
+          "When a question turns on what a user experiences, separate two things: whether any answer " +
+          "came back at all, and how long they waited to find that out.",
+      },
+      {
+        id: "bb-2-2-hint-3",
+        body:
+          "\"Every server is healthy\" rules out some stops, not the whole path. Which stops does your " +
+          "monitoring never see traffic from in the first place?",
+      },
+      {
+        id: "bb-2-2-hint-4",
+        body:
+          "For the timeout question, run 1.3's reflex in both directions: name what a longer wait " +
+          "buys, then name who is paying for it and for how long.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Part 2: Journey of a Request - Chapter 2.2 of 37.",
+      masteredConcepts: [
+        "The stops a request passes between browser and database, and that resolve and connect finish before application code runs (2.1).",
+        "That DNS sits beside the request path rather than on it, drawn as a control edge (2.1).",
+        "The three-tier shape and that only the app server reaches the database (1.2).",
+        "The trade-off reflex - we chose X, accepting Y, because Z - and that a changed premise reopens a settled decision (1.3).",
+        "The eight-step Interview Loop, and that this chapter serves step 6, bottlenecks and failure (0.4).",
+      ],
+      notYetIntroducedConcepts: [
+        "Every remedy for the failures taught here: timeouts with backoff, retry budgets, idempotency, circuit breakers, bulkheads (3.23). Named once as Group G's subject, never taught.",
+        "Measuring partial failure honestly - logs, metrics, traces, SLIs and SLOs (3.25). The lesson states that 'what fraction, for which users' is the honest question without teaching how it is answered.",
+        "Redundancy, failover and graceful degradation as design techniques rather than as incident decisions (3.26).",
+        "Every stop on the path as a buildable component: firewall (3.1), browser and DNS (3.2), reverse proxy (3.3), load balancer (3.4), API gateway (3.5).",
+        "How the architecture acquired this many stops in the first place - the scaling-evolution story (2.3).",
+      ],
+      simplifications: [
+        "The error / hang / disagreement taxonomy is this chapter's own teaching frame, not a standard " +
+          "term of art. It organizes symptoms by where on the path they originate; nothing downstream " +
+          "depends on the names.",
+        "The timeout figures (30 s browser, 10 s edge, 2 s database) are illustrative round numbers " +
+          "chosen to make the shrink-inward rule visible, not recommended defaults. The lesson presents " +
+          "them as an ordering, not as values to copy.",
+        "Retry amplification is described only as a multiplication of attempts. Backoff, jitter, retry " +
+          "budgets and circuit breakers are 3.23's material and are named as its subject in the lesson " +
+          "rather than explained.",
+        "Partial failure is taught at the level of 'some users, all functionality' versus 'all users, " +
+          "some functionality'. Quantifying it is 3.25's material; the lesson names the honest question " +
+          "and stops there.",
+        "The lesson re-presents 2.1's five tour components and its browser-to-DNS control edge, per " +
+          "CURRICULUM.md §14's Part 2 header and §18.2 rule 2. It labels itself as the same tour walked " +
+          "a second time rather than letting the forward reference pass silently.",
+      ],
+    },
+    // Five questions, ramp 1/1/2/2/3 - the convention 0.2/0.3/0.4/2.1 use
+    // (2 level-1, 2 level-2, 1 level-3 of 5 rounds to QUIZ_FRAMEWORK.md §3's
+    // rough 30/45/25). Q2, Q3 and Q4 are modeled on QUIZ_FRAMEWORK.md §7's
+    // Q3, Q6 and Q4 - three of the four bank questions tagged to 2.2. Q1 and
+    // Q5 are original; bank Q10's insight is carried by the trade-off section
+    // and Q1's fourth pair instead (see spec §8). Correct-position spread
+    // across the four lettered questions is d, b, a, c - four distinct
+    // positions.
+    quiz: [
+      {
+        id: "bb-2-2-where-can-things-go-wrong-q1",
+        kind: "matching",
+        difficulty: 1,
+        prompt:
+          "Match each failure to what the user actually experiences. Every server in the system is " +
+          "running unless the failure says otherwise.",
+        // Option order is a full derangement against pairs below - no pair's
+        // correct option sits at that pair's own index, so dropdown position
+        // carries no signal.
+        options: [
+          {
+            id: "fast-error",
+            label: "A clear error page in well under a second, produced by your own code",
+            correct: true,
+            explanationMd:
+              "The request reached your application and your application answered. This is the cheapest " +
+              "failure there is: fast, specific, and nothing is left holding a connection.",
+          },
+          {
+            id: "disagreement",
+            label: "An error on the client, and the row is in the database anyway",
+            correct: true,
+            explanationMd:
+              "The work happened and the news did not come back. The two sides now hold different " +
+              "beliefs about the same request, and neither can discover it alone.",
+          },
+          {
+            id: "silence",
+            label: "Nothing is sent at all, and nothing you monitor registers anything",
+            correct: true,
+            explanationMd:
+              "A failure before the request exists cannot show up in your metrics, because there is no " +
+              "request to count. Absence is the only signal, and most dashboards do not watch for it.",
+          },
+          {
+            id: "hang",
+            label: "A long wait, then a timeout, with no explanation behind it",
+            correct: true,
+            explanationMd:
+              "Something downstream is alive but not answering. Every hop between the user and the " +
+              "fault holds a connection open for the whole wait, and the user learns nothing at the end.",
+          },
+        ],
+        pairs: [
+          ["Your DNS provider is having a global outage", "silence"],
+          ["The database answers, but every query now takes 60 seconds", "hang"],
+          ["The app server is healthy and its database connection is refused", "fast-error"],
+          ["The write commits, and the response is lost on the way back", "disagreement"],
+        ],
+      },
+      {
+        id: "bb-2-2-where-can-things-go-wrong-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Your DNS provider is having a global outage. Every server you own is healthy and every " +
+          "dashboard is green. A user who has never visited your site before types the URL and hits " +
+          "enter. What do they experience?",
+        options: [
+          {
+            id: "a",
+            label:
+              "A slow page, because the browser retries the lookup several times before it finally " +
+              "resolves.",
+            correct: false,
+            explanationMd:
+              "Retrying a lookup that has no answer produces no page to be slow. The failure is total " +
+              "for this user, not degraded.",
+          },
+          {
+            id: "b",
+            label: "A security warning, because the connection to your server cannot be verified.",
+            correct: false,
+            explanationMd:
+              "A certificate warning requires a connection to have been attempted. Without an address " +
+              "there is nothing to connect to, so TLS never begins.",
+          },
+          {
+            id: "c",
+            label: "The page loads from the browser's cache, since your content has not changed.",
+            correct: false,
+            explanationMd:
+              "This user has never visited, so nothing is cached for them. Cached DNS answers and " +
+              "cached page content are different things, and neither exists here.",
+          },
+          {
+            id: "d",
+            label:
+              "Complete failure to reach the site. The name never becomes an address, so nothing is " +
+              "ever sent.",
+            correct: true,
+            explanationMd:
+              "Correct. Resolution precedes connection, so the first hop fails before any of your " +
+              "infrastructure is touched - which is also why none of your monitoring notices.",
+          },
+        ],
+      },
+      {
+        id: "bb-2-2-where-can-things-go-wrong-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Users in one country report that the site is down. Your dashboards show every server " +
+          "healthy, CPU normal, and an error rate of zero. Which failure class is most likely?",
+        options: [
+          {
+            id: "a",
+            label: "A bug in the application code that only triggers for certain request patterns.",
+            correct: false,
+            explanationMd:
+              "Your own code failing produces errors in your own logs. An error rate of exactly zero " +
+              "is evidence that those requests are not arriving at all.",
+          },
+          {
+            id: "b",
+            label:
+              "A path problem between those users and you: routing, a stale or failing DNS answer, or " +
+              "a regional edge failure.",
+            correct: true,
+            explanationMd:
+              "Correct. \"Down\" describes a journey, and this journey ends before it reaches anything " +
+              "you measure. Geographic scoping is the tell: the users differ, so the path differs.",
+          },
+          {
+            id: "c",
+            label: "Data corruption affecting only the rows belonging to those users.",
+            correct: false,
+            explanationMd:
+              "Bad data surfaces as errors or wrong answers from your application, both of which you " +
+              "would see. This failure produces absence instead.",
+          },
+          {
+            id: "d",
+            label: "Disks filling up on the app servers, which fails requests before they are logged.",
+            correct: false,
+            explanationMd:
+              "A resource problem on your own servers would show in your own metrics and would not " +
+              "respect a national border. Nothing about a full disk selects users by country.",
+          },
+        ],
+      },
+      {
+        id: "bb-2-2-where-can-things-go-wrong-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A user submits a payment. Your app server sends the write to the database, its two-second " +
+          "timeout fires, and the client is shown an error. Which statement is true?",
+        options: [
+          {
+            id: "a",
+            label:
+              "The write may have succeeded or failed. A timeout means no answer arrived, not that the " +
+              "work did not happen.",
+            correct: true,
+            explanationMd:
+              "Correct, and it is the fact underneath every \"did my payment go through?\" screen. The " +
+              "write may have committed with the response lost on the way back.",
+          },
+          {
+            id: "b",
+            label: "The write definitely failed, because the app server never received a confirmation.",
+            correct: false,
+            explanationMd:
+              "Not receiving a confirmation and the work not happening are different claims. Treating " +
+              "them as the same thing is how systems double-charge people.",
+          },
+          {
+            id: "c",
+            label:
+              "The write definitely succeeded, because the database received it before the timeout " +
+              "fired.",
+            correct: false,
+            explanationMd:
+              "Receiving a request is not committing it. The database may have been too slow to reach " +
+              "the commit, or may have failed after receiving it.",
+          },
+          {
+            id: "d",
+            label:
+              "Timeouts only create ambiguity on reads. A write either commits or rolls back, so its " +
+              "outcome is always knowable.",
+            correct: false,
+            explanationMd:
+              "The database does know the outcome. The client is the one that does not, and the client " +
+              "is who has to decide what to do next.",
+          },
+        ],
+      },
+      {
+        id: "bb-2-2-where-can-things-go-wrong-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "In an interview you have said your app server times out database queries after two " +
+          "seconds. The interviewer pushes back: \"Why not thirty? More requests would succeed.\" " +
+          "What is the strongest response?",
+        options: [
+          {
+            id: "a",
+            label:
+              "Two seconds is the standard for database timeouts, and thirty is outside normal " +
+              "practice.",
+            correct: false,
+            explanationMd:
+              "An appeal to convention is not a reason. The interviewer is asking what the number buys " +
+              "and spends, which is the part a senior answer supplies.",
+          },
+          {
+            id: "b",
+            label:
+              "Thirty seconds would put far more load on the database, which is already the component " +
+              "under pressure.",
+            correct: false,
+            explanationMd:
+              "Waiting longer does not issue more queries. Retries do that; a longer timeout holds " +
+              "resources open, which is a real cost but a different one.",
+          },
+          {
+            id: "c",
+            label:
+              "A few slow requests would succeed, and everything else waits with them: every hop in " +
+              "front holds a connection for thirty seconds, the user gets a hang instead of an answer, " +
+              "and the ambiguous window is fifteen times longer.",
+            correct: true,
+            explanationMd:
+              "Correct, and it names both sides. The short timeout buys a fast, actionable error and " +
+              "spends the requests that were only slow - a trade chosen because a hang tells the user " +
+              "nothing they can act on.",
+          },
+          {
+            id: "d",
+            label:
+              "It would make no practical difference, since the browser gives up after thirty seconds " +
+              "anyway.",
+            correct: false,
+            explanationMd:
+              "That is the stacking mistake. With equal budgets the whole chain hangs the full thirty " +
+              "seconds and the user gets nothing; the inner timeout has to be the shorter one to " +
+              "protect anything.",
           },
         ],
       },

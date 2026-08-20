@@ -60,6 +60,7 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | **1.3 Defending the Design** (Phase 10 condense, replaces old 1.8/1.10) | **Authored, wired into manifest.ts (incl. 2.1's repoint), old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
 | **1.4 Driving the Interview** (Phase 10 renumber of old 1.11, optional) | **Authored, wired into manifest.ts, old source removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
 | **2.1 From Browser to Backend** (Wave 3, first Part 2 chapter) | **Authored + Opus proofread pass** - manifest row repointed off `null`, `lessonVersion: 2`, pipeline not run (content-only pass) | 2026-08-18 | uncommitted, working tree |
+| **2.2 Where Can Things Go Wrong?** (Wave 3, second Part 2 chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, pipeline not run (content-only pass) | 2026-08-20 | uncommitted, working tree |
 
 Everything else in the 72 rows is unauthored (`chapterDefinitionId: null`).
 
@@ -1158,6 +1159,117 @@ Seven changes, all defects against the framework:
   to start a wave until the previous one's chapters are merged. Wave 2 is not
   complete - RWE Tier 1 Bitly is still the `rwe-dummy-1` placeholder. Authored
   anyway on explicit user request; flagged rather than silently ignored.
+
+---
+
+## 2.2 Where Can Things Go Wrong? (Wave 3, second Part 2 chapter)
+
+- **Authored 2026-08-20 · not committed · working tree on
+  `feature/report-a-bug`** (no branch cut - the `/chapter-author draft` pass
+  never commits or branches; the user reviews the uncommitted diff and decides
+  where it lands)
+- Definition id `bb-2-2-where-can-things-go-wrong` · manifest slug
+  `2-2-where-can-things-go-wrong` (`chapterDefinitionId` repointed from `null`)
+- Type: Concept · foundational · 20 min · prerequisite
+  `2-1-from-browser-to-backend`
+- **Lesson length: 2230 words** prose (2573 including the `<Walkthrough>` prop
+  block), of which 258 words are table cells
+- **Pipeline NOT run** - content-only authoring pass per the chapter-author
+  skill's scope. `tsc`/`lint`/`vitest`/`build` are the user's call.
+
+**Deliverables (all 6 + ledger):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-2-2-where-can-things-go-wrong.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-2-2-where-can-things-go-wrong.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` (inserted between 2.1 and 3.4) |
+| 4 | Validation rules | None new, none needed. `validationRuleIds: []` - no graph to validate |
+| 5 | Quiz | 5 questions, ramp 1/1/2/2/3 (matching, single ×4) |
+| 6 | Playtest pass | Spec §9 |
+| 7 | Ledger entry | This section |
+
+Also touched: `src/curriculum/manifest.ts` (the one-line `chapterDefinitionId`
+repoint) and `index.ts`'s file-header comment, which named 2.1 as the end of
+authored Part 2 content and now reads "Part 2 through
+`bb-2-2-where-can-things-go-wrong`".
+
+**Judgment calls made:**
+
+- **The `<Walkthrough>` reuses 2.1's exact topology, deliberately.** §7.2's
+  draw-a-topology-once rule is per-chapter, and this chapter contains exactly
+  one diagram. Reusing 2.1's picture is the chapter's thesis made visible - the
+  map you just built is also a map of failure - and the lesson says so in its
+  own prose rather than leaving the repetition unexplained.
+- **The failure-diagram rule was worked around, not met.** §7.2 requires a
+  failure diagram to show the failure (crossed-out node, red path).
+  `<Walkthrough>` has no faulted state: `WalkthroughStep` offers only
+  `focus`/`highlightNodeIds`/`highlightEdgeIds` and `WalkthroughNodeCard` has
+  no fault variant (checked directly, not assumed). Compensated by inverting
+  the highlight semantics - each step lights only the segment the request
+  actually traversed, so the break is where the lit path stops and the dark
+  remainder is exactly the stops that never hear about it - and by naming that
+  convention in the diagram caption. Full reasoning in spec §5. **Raised as
+  open decision 14 below**; this is an engine gap found by content, same class
+  as decisions 3 and 8, not a content decision.
+- **Beats 9 and 10 merged into one "Partly down" section rather than beat 10
+  being declared omitted.** §6 permits merging adjacent sections. 2.1 declared
+  both omitted (correctly, since 2.2 and 2.3 owned them); this chapter owns
+  beat 9 outright and pays beat 10 with a real §9 lens 7 answer (at one server
+  up and down are the only states; at a hundred something is always broken and
+  the question becomes what fraction, for which users). 2.3 still owns the
+  scaling-*evolution* story, which is a different claim.
+- **Interview relevance treated as High** per §14's row, so the interview lens
+  is fuller than 2.1's Medium one: what step 6's standard question is testing,
+  the weak answer, the three-part shape of a strong one, then §10.3's mandatory
+  senior line.
+- **§19's "name which RWE projects exercise this material" declared as an
+  omission** rather than skipped silently the way 2.1 skipped it. No RWE
+  project is authored, so naming one is a forward reference to content that
+  does not exist.
+- **Bank Q10 deliberately not authored as a quiz question.** QUIZ_FRAMEWORK §7
+  tags four bank questions to 2.2 (Q3, Q4, Q6, Q10) and three are used. Q10
+  ranks four items with one obvious answer, which §1's reasoning-over-recall
+  rule makes weak; its insight is carried by the "How long to wait" trade-off
+  and by Q1's fourth option instead. Recorded in spec §8 so a later author does
+  not read the gap as an oversight.
+- **Q2's difficulty lowered from the bank's 2 to 1.** Within 2.2 the DNS
+  outage is the chapter's own opening scene rather than a cross-part inference,
+  and the ramp needs two level-1 questions to match the 0.2/0.3/0.4/2.1
+  convention.
+- **Cross-chapter answer-position check done by eye**, per the chapter-author
+  skill's note that `quiz-invariants.test.ts` is per-chapter only: 0.4, 1.3,
+  1.4 and 3.4 all open at "b" and 2.1 deliberately opened at "c", so this
+  chapter's first lettered question opens at "d". Full spread d/b/a/c across
+  the four lettered questions. Q1's `options` are a full derangement against
+  its `pairs`.
+- **2.1's "walks this exact path again, backwards" read as failure-first, not
+  reverse-order.** The same sentence's next clause names DNS - the *first*
+  stop - as where 2.2 starts, and §14 phrases it as "revisit the same journey
+  failure-first". The chapter walks forward from DNS. No edit made to 2.1; only
+  the one word is loose and both readings of the sentence point the same way
+  once the next clause is included. Recorded in spec §10.
+- **The error / hang / disagreement taxonomy is invented for this chapter** and
+  declared in `curriculumContext.simplifications`. It is used in the beat-6
+  table, the recap, and Q1's option set, so renaming it later is a four-place
+  edit.
+- **Both production examples are real incidents** (Meta October 2021, GitHub
+  October 2018), stated at decision level from public postmortem material per
+  §13. Flagged for the Opus pass to check for factual drift, especially the
+  43-second and six-hour figures - the argument does not depend on either
+  number being exact.
+
+**Wave ordering note:** unchanged from 2.1's entry. `pending-content.md` puts
+Part 2 in Wave 3 and Wave 2 is still incomplete (RWE Tier 1 Bitly is still the
+`rwe-dummy-1` placeholder). Authored anyway on explicit user request, flagged
+rather than silently ignored.
+
+**Opus proofread pass: not yet run.** Spec §11 lists five things worth a cold
+reader's attention, the material ones being the word count (~24% above 2.1 for
+the same 20-minute estimate), whether "How long until you find out" is
+over-depth at three sub-points, and whether the failure-diagram workaround
+reads as a genuine failure visualization or as the happy path with a
+disclaimer.
 
 ---
 
@@ -3310,6 +3422,34 @@ doc edit or a build decision.
    its own commit, not something a chapter author decides silently. Same class
    as decision 12, one level down: 2.1 pre-commits Group A's *vocabulary* as
    well as its framing.
+
+14. **`<Walkthrough>` has no failure state, so a failure diagram cannot show
+   the failure. Raised authoring 2.2 (2026-08-20).** CURRICULUM §7.2 requires
+   that failure diagrams "show the failure (crossed-out node, red path), not
+   just the happy path with a caption saying 'imagine this fails.'" Checked
+   directly against `src/chapters/walkthrough/types.ts` and
+   `WalkthroughNodeCard.tsx`: `WalkthroughStep` exposes only
+   `focus`/`highlightNodeIds`/`highlightEdgeIds`, and the node card has no
+   faulted variant. There is no way to cross out a node or redden a path in a
+   walkthrough today, and no graph-JSON markdown block exists either (open
+   decision 3), so a Mermaid diagram with hand-written `classDef` styling is
+   currently the only way to satisfy the rule at all.
+   **Not hacked around** - 2.2 inverted the highlight semantics instead: each
+   step lights only the segment the request actually traversed, so the break
+   point is where the lit path stops and the dark remainder is exactly the set
+   of stops that never learn a request was coming. The diagram caption names
+   that convention so it is readable rather than inferred. Recorded in that
+   chapter's spec §5 as a workaround for a missing capability, not as a
+   satisfied rule.
+   **Blocks:** nothing today. **Bites Group G (3.23-3.26), which is entirely
+   failure-diagram material**, and the Reliability group is where §7.1 homes
+   the "failure scenario (before/during/after)" diagram in the first place.
+   Needs an engineering fix rather than a content one: a per-step faulted
+   node/edge state on `WalkthroughStep` (e.g. `faultNodeIds`/`faultEdgeIds`)
+   rendered through the same `EDGE_COLOR_VAR`/validation-state tokens the
+   canvas already uses for errors, so a failed stop looks the same everywhere
+   ScaleCraft draws one. Same class as decisions 3 and 8: an engine gap found
+   by content authoring.
 
 ---
 
