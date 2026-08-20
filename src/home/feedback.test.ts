@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   acceptImages,
+  describeBrowser,
   FEEDBACK_QUESTIONS,
   FEEDBACK_RECIPIENT,
   FEEDBACK_SECTIONS,
   FEEDBACK_WRITTEN_FIELDS,
   feedbackMailtoHref,
   formatBytes,
+  FeedbackRateLimitError,
+  feedbackSubject,
   formatFeedbackBody,
-  isEmailJsConfigured,
+  isFeedbackEmailConfigured,
+  MAILTO_MAX_URL,
   MAX_IMAGES,
   MAX_IMAGE_BYTES_TOTAL,
   submitFeedback,
@@ -102,9 +106,53 @@ describe("feedbackMailtoHref", () => {
   it("addresses the author and encodes subject and body", () => {
     const href = feedbackMailtoHref(response(), context, "ScaleCraft feedback (1.0.0)");
     expect(href.startsWith(`mailto:${FEEDBACK_RECIPIENT}?`)).toBe(true);
-    expect(href).toContain("subject=ScaleCraft+feedback+%281.0.0%29");
+    expect(href).toContain("subject=ScaleCraft%20feedback%20(1.0.0)");
     expect(href).toContain("body=");
     expect(href).not.toContain("\n");
+  });
+
+  it("percent-encodes spaces rather than form-encoding them to +", () => {
+    // A mailto URI is not a form query: a mail client hands `+` through
+    // literally, so the draft would read "The+canvas+felt+great."
+    const href = feedbackMailtoHref(response(), context, "ScaleCraft feedback (1.0.0)");
+    expect(href).toContain("The%20canvas%20felt%20great.");
+    expect(href).not.toContain("+");
+  });
+
+  it("keeps the URL inside the limit a mail handler will silently cut at", () => {
+    const long = feedbackMailtoHref(
+      response({ written: { working: "x".repeat(4000), broken: "y".repeat(4000) } }),
+      context,
+      "ScaleCraft feedback (1.0.0)",
+    );
+    expect(long.length).toBeLessThanOrEqual(MAILTO_MAX_URL);
+  });
+
+  it("marks the cut in the draft instead of trailing off mid-sentence", () => {
+    const long = feedbackMailtoHref(
+      response({ written: { working: "x".repeat(4000) } }),
+      context,
+      "ScaleCraft feedback (1.0.0)",
+    );
+    expect(decodeURIComponent(long)).toContain("[Trimmed here");
+  });
+
+  it("trims the free text but keeps the questions and the environment context", () => {
+    const body = decodeURIComponent(
+      feedbackMailtoHref(
+        response({ written: { working: "x".repeat(4000) } }),
+        context,
+        "ScaleCraft feedback (1.0.0)",
+      ),
+    );
+    for (const question of FEEDBACK_QUESTIONS) expect(body).toContain(question.prompt);
+    expect(body).toContain(`Browser: ${context.browser}`);
+  });
+
+  it("leaves a response that already fits completely untouched", () => {
+    const href = feedbackMailtoHref(response(), context, "ScaleCraft feedback (1.0.0)");
+    expect(href.length).toBeLessThan(MAILTO_MAX_URL);
+    expect(decodeURIComponent(href)).not.toContain("[Trimmed here");
   });
 });
 
@@ -143,6 +191,49 @@ describe("formatBytes", () => {
   });
 });
 
+describe("describeBrowser", () => {
+  it("names the browser and its major version", () => {
+    const chrome =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36";
+    expect(describeBrowser(chrome)).toBe("Chrome 151");
+    expect(describeBrowser("Mozilla/5.0 (X11; Linux x86_64; rv:129.0) Gecko/20100101 Firefox/129.0")).toBe(
+      "Firefox 129",
+    );
+  });
+
+  it("picks the fork over the Chromium it reports underneath", () => {
+    expect(describeBrowser(`${"Chrome/151.0.0.0"} Safari/537.36 Edg/151.0.2903.51`)).toBe("Edge 151");
+    expect(describeBrowser("Chrome/151.0.0.0 Safari/537.36 OPR/123.0.0.0")).toBe("Opera 123");
+  });
+
+  it("reads Safari's own version rather than the WebKit build", () => {
+    const safari =
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15";
+    expect(describeBrowser(safari)).toBe("Safari 18");
+  });
+
+  it("falls back to the agent itself rather than guessing", () => {
+    expect(describeBrowser("SomeCrawler/1.0")).toBe("SomeCrawler/1.0");
+  });
+});
+
+describe("isFeedbackEmailConfigured", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("reports what the route says", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ configured: true }));
+    await expect(isFeedbackEmailConfigured()).resolves.toBe(true);
+  });
+
+  it("reads an unreachable or failing route as not configured", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("offline"));
+    await expect(isFeedbackEmailConfigured()).resolves.toBe(false);
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 500 }));
+    await expect(isFeedbackEmailConfigured()).resolves.toBe(false);
+  });
+});
+
 describe("submitFeedback", () => {
   const originalLocation = window.location;
 
@@ -152,75 +243,58 @@ describe("submitFeedback", () => {
 
   afterEach(() => {
     Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
-    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
-  function configure() {
-    vi.stubEnv("NEXT_PUBLIC_EMAILJS_SERVICE_ID", "service");
-    vi.stubEnv("NEXT_PUBLIC_EMAILJS_TEMPLATE_ID", "template");
-    vi.stubEnv("NEXT_PUBLIC_EMAILJS_PUBLIC_KEY", "public-key");
+  function mockRoute(status: number) {
+    return vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status }));
   }
 
-  it("reports whether a mail service is configured", () => {
-    expect(isEmailJsConfigured()).toBe(false);
-    configure();
-    expect(isEmailJsConfigured()).toBe(true);
-  });
-
-  it("falls back to the visitor's mail client when EmailJS is not configured", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
-    await expect(submitFeedback(response(), context)).resolves.toBe("mail-client");
-    expect(window.location.href.startsWith(`mailto:${FEEDBACK_RECIPIENT}`)).toBe(true);
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it("falls back when the EmailJS config is only partly present", async () => {
-    vi.stubEnv("NEXT_PUBLIC_EMAILJS_SERVICE_ID", "service");
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
-    await expect(submitFeedback(response(), context)).resolves.toBe("mail-client");
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  it("posts JSON when there are no attachments", async () => {
-    configure();
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 200 }));
+  it("posts the answers to our own route, never to a mail provider", async () => {
+    const fetchSpy = mockRoute(200);
 
     await expect(submitFeedback(response({ replyTo: "a@b.com" }), context)).resolves.toBe("email");
 
     const [url, init] = fetchSpy.mock.calls[0];
-    expect(String(url)).toContain("/email/send");
-    expect(String(url)).not.toContain("send-form");
-    const body = JSON.parse(String(init?.body));
-    expect(body.service_id).toBe("service");
-    expect(body.template_id).toBe("template");
-    expect(body.user_id).toBe("public-key");
-    expect(body.template_params.to_email).toBe(FEEDBACK_RECIPIENT);
-    expect(body.template_params.reply_to).toBe("a@b.com");
-    expect(body.template_params.message).toContain("The canvas felt great.");
+    expect(String(url)).toBe("/api/feedback");
+    expect(init?.method).toBe("POST");
+
+    const form = init?.body as FormData;
+    expect(form).toBeInstanceOf(FormData);
+    const payload = JSON.parse(String(form.get("payload")));
+    expect(payload.replyTo).toBe("a@b.com");
+    expect(payload.answers).toEqual(response().answers);
+    expect(payload.context).toEqual(context);
     expect(window.location.href).toBe("");
   });
 
-  it("posts multipart with each image attached when there are screenshots", async () => {
-    configure();
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 200 }));
+  it("attaches each image as its own form entry", async () => {
+    const fetchSpy = mockRoute(200);
 
     await expect(
       submitFeedback(response({ images: [image("one.png", 10), image("two.png", 10)] }), context),
     ).resolves.toBe("email");
 
-    const [url, init] = fetchSpy.mock.calls[0];
-    expect(String(url)).toContain("send-form");
-    const form = init?.body as FormData;
-    expect(form).toBeInstanceOf(FormData);
-    expect(form.get("service_id")).toBe("service");
-    expect(form.getAll("attachment")).toHaveLength(2);
-    expect(String(form.get("message"))).toContain("Screenshots: 2");
+    const form = (fetchSpy.mock.calls[0][1]?.body as FormData).getAll("image");
+    expect(form).toHaveLength(2);
+  });
+
+  it("falls back to the visitor's mail client when the route reports no mail service", async () => {
+    mockRoute(501);
+    await expect(submitFeedback(response(), context)).resolves.toBe("mail-client");
+    expect(window.location.href.startsWith(`mailto:${FEEDBACK_RECIPIENT}`)).toBe(true);
+    expect(window.location.href).toContain(encodeURIComponent(feedbackSubject(context.version)));
+  });
+
+  it("distinguishes a rate limit from a failure, so the dialog can say which", async () => {
+    mockRoute(429);
+    await expect(submitFeedback(response(), context)).rejects.toBeInstanceOf(FeedbackRateLimitError);
   });
 
   it("throws on a failed send instead of quietly reporting success", async () => {
-    configure();
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 500 }));
-    await expect(submitFeedback(response(), context)).rejects.toThrow(/500/);
+    mockRoute(502);
+    await expect(submitFeedback(response(), context)).rejects.toThrow(/502/);
+    // Not the mail-client path: a failure must not look like a success.
+    expect(window.location.href).toBe("");
   });
 });
