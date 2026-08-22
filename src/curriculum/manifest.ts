@@ -178,7 +178,7 @@ export const courses: Record<CourseId, Course> = {
             number: "2.3",
             title: "Evolution of Modern Architectures",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-2-3-evolution-of-modern-architectures",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["2-2-where-can-things-go-wrong"],

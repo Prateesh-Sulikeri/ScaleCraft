@@ -61,6 +61,7 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | **1.4 Driving the Interview** (Phase 10 renumber of old 1.11, optional) | **Authored, wired into manifest.ts, old source removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
 | **2.1 From Browser to Backend** (Wave 3, first Part 2 chapter) | **Authored + Opus proofread pass** - manifest row repointed off `null`, `lessonVersion: 2`, pipeline not run (content-only pass) | 2026-08-18 | uncommitted, working tree |
 | **2.2 Where Can Things Go Wrong?** (Wave 3, second Part 2 chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, pipeline not run (content-only pass) | 2026-08-20 | uncommitted, working tree |
+| **2.3 Evolution of Modern Architectures** (Wave 3, third Part 2 chapter - Part 2 complete) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, pipeline not run (content-only pass) | 2026-08-22 | uncommitted, working tree (`fix/streak-counter`) |
 
 Everything else in the 72 rows is unauthored (`chapterDefinitionId: null`).
 
@@ -1270,6 +1271,123 @@ the same 20-minute estimate), whether "How long until you find out" is
 over-depth at three sub-points, and whether the failure-diagram workaround
 reads as a genuine failure visualization or as the happy path with a
 disclaimer.
+
+---
+
+## 2.3 Evolution of Modern Architectures (Wave 3, third Part 2 chapter - Part 2 complete)
+
+- **Authored 2026-08-22 · not committed · working tree on `fix/streak-counter`**
+  (no branch cut - the `/chapter-author draft` pass never commits or branches;
+  the user reviews the uncommitted diff and decides where it lands)
+- Definition id `bb-2-3-evolution-of-modern-architectures` · manifest slug
+  `2-3-evolution-of-modern-architectures` (`chapterDefinitionId` repointed from
+  `null`)
+- Type: Concept · foundational · 20 min · prerequisite
+  `2-2-where-can-things-go-wrong`
+- **Lesson length: 2250 words** prose (2321 including the four Mermaid blocks),
+  of which ~150 words are table cells
+- **Pipeline NOT run** - content-only authoring pass per the chapter-author
+  skill's scope. `tsc`/`lint`/`vitest`/`build` are the user's call.
+
+**Deliverables (all 6 + ledger):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-2-3-evolution-of-modern-architectures.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-2-3-evolution-of-modern-architectures.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` (inserted between 2.2 and 3.4) |
+| 4 | Validation rules | None new, none needed. `validationRuleIds: []` - no graph to validate |
+| 5 | Quiz | 5 questions, ramp 1/1/2/2/3 (ordering, single ×4) |
+| 6 | Playtest pass | Spec §9 |
+| 7 | Ledger entry | This section |
+
+Also touched: `src/curriculum/manifest.ts` (the one-line `chapterDefinitionId`
+repoint) and `index.ts`'s file-header comment, which named 2.2 as the end of
+authored Part 2 content and now reads "Part 2 (`bb-2-1-from-browser-to-backend`
+through `bb-2-3-evolution-of-modern-architectures`, complete)".
+
+**Judgment calls made:**
+
+- **Four Mermaid stage diagrams, not a `<Walkthrough>` - a capability limit,
+  not a preference.** Both sibling Part 2 chapters use `<Walkthrough>`, so the
+  divergence needs a reason. Checked directly against
+  `src/chapters/walkthrough/types.ts`: `WalkthroughProps` takes one fixed
+  `nodes`/`edges` set and a step can only highlight within it, so a node cannot
+  not-yet-exist on an early step. A walkthrough here would render the final
+  services topology on step one, dimmed - showing the destination before the
+  first pressure is felt, which §7.2 ("never open with the final 12-node
+  architecture") and §20.4 (manufacture the problem first) both forbid. 2.2's
+  inverted-highlight workaround does not transfer either: these are four
+  genuinely different topologies, not one topology examined at four points.
+  §7.1's own inventory names "Scaling evolution (v1 -> v2 -> v3)" with typical
+  home **2.3**, and §8.6 asks for it as 2-4 evolutionary diagrams. Full
+  reasoning in spec §5.
+- **Third live instance of open decision 3's Mermaid-as-topology exception.**
+  The Reader still cannot render graph JSON. Cited precedent is **1.2** (whose
+  three-box `flowchart LR` is shipped), not the retired 1.6 - and 3.4 is no
+  longer a Mermaid precedent either, since its diagram is a `<Walkthrough>`.
+  Applied with 1.6's own lesson learned: each caption describes only its own
+  diagram, none generalizes about edge kinds, and edge labels carry the real
+  `request-flow` kind.
+- **The group table pre-commits a motivating pressure for all seven Part 3
+  groups.** Inherent to §14's purpose line for this chapter ("so Part 3's
+  sequence reads as one system growing rather than a parts catalog"), but it is
+  a real constraint on twenty-six unwritten chapters. Each row was written
+  against §14's group briefs. **Raised as open decision 15 below** - same class
+  as decision 12 (2.1's stop table), one level up.
+- **§14's arrow has no data-tier stop; the chapter adds one without adding a
+  fifth shape.** The row reads "one server -> tiers -> horizontal scale ->
+  services", but a real system relieves the database before it splits the
+  application. Resolved by naming that move where it actually happens ("Where
+  the ceiling went", immediately after shape three) and handing the mechanism to
+  3.12/3.13/3.14 rather than authoring a fifth shape. Keeps §14's four states
+  intact and does not spend Groups C and D's material. Recorded in spec §10.
+- **Beats 9 and 10 both distributed rather than sectioned, and declared.** Both
+  optional for Concept. Failure modes are paid in every shape's "Spends" line
+  (a section would either duplicate 2.2 or bury the point that new failure modes
+  are part of a move's price); scaling behavior *is* the chapter's spine, so a
+  "scaling considerations" section would restate it. Spec §4.
+- **Monolith/services glossed inline, deliberately, as general engineering
+  vocabulary.** Neither term has a home chapter in §16 or §14, so per the
+  chapter-author writing register it gets a one-clause gloss at first use rather
+  than a marked forward tease. Quiz Q5 depends on the learner having it, and Q5
+  is bank §7 Q8, which uses both words.
+- **Bank Q7's and Q8's distractors rewritten wholesale.** As written the bank
+  offers "big machines stopped being manufactured", "fashion", "programming
+  languages required it" and "microservices are always wrong" - joke options
+  that QUIZ_FRAMEWORK §1 rule 3 forbids. Replaced with real positions a
+  reasonable engineer might hold (scaling up is obsolete on price; splitting is
+  a latency win; more machines is more availability by construction; migrating
+  later costs more than starting split). Q7's level lowered from 2 to 1, same
+  reasoning 2.2 used for its own bank borrow: inside the owning chapter it is
+  comprehension, not cross-part inference, and the ramp needs two level-1s.
+- **§12 nugget devices omitted and declared** (spec §4). Sixth chapter to omit,
+  fifth to declare. See open decision 5, overdue - this entry is a pointer, not
+  a fresh argument.
+- **§19's "name which RWE projects exercise this material" declared as an
+  omission**, unchanged from 2.2: no RWE project is authored.
+- **Cross-chapter answer-position check done by eye**, per the chapter-author
+  skill's note that `quiz-invariants.test.ts` is per-chapter only: 0.4, 1.3, 1.4
+  and 3.4 open at "b", 2.1 at "c", 2.2 at "d", so this chapter's first lettered
+  question opens at "a". Full spread a/c/d/b across the four lettered questions,
+  and the set of four distinct chapter-opening positions is now complete. Q1's
+  `options` are a full derangement against `correctOrder`.
+- **Both production examples are real and public** (Stack Overflow's small-fleet
+  monolith; Amazon's early-2000s services split), stated at decision level per
+  §13 with no figures the argument depends on - a deliberate response to 2.2's
+  flag about the 43-second and six-hour numbers.
+
+**Wave ordering note:** unchanged from 2.1 and 2.2. `pending-content.md` puts
+Part 2 in Wave 3 and Wave 2 is still incomplete (RWE Tier 1 Bitly is still the
+`rwe-dummy-1` placeholder). Authored anyway on explicit user request, flagged
+rather than silently ignored. **Part 2 is now complete** (2.1, 2.2, 2.3), which
+makes Group A the next real content in curriculum order - and open decisions 9,
+12, 13 and 15 all come due there.
+
+**Opus proofread pass: not yet run.** Spec §11 lists five things worth a cold
+reader's attention, the material ones being the four-Mermaid decision, the group
+table's claims about seven unwritten groups, and whether the prose earns
+"compute copies for free" or leans on the `simplifications` disclaimer.
 
 ---
 
@@ -3450,6 +3568,24 @@ doc edit or a build decision.
    canvas already uses for errors, so a failed stop looks the same everywhere
    ScaleCraft draws one. Same class as decisions 3 and 8: an engine gap found
    by content authoring.
+
+15. **2.3's group table pre-commits a motivating pressure for all seven Part 3
+   groups (2026-08-22).** CURRICULUM §14's purpose line for 2.3 is "so Part 3's
+   sequence reads as one system growing rather than a parts catalog", and the
+   chapter delivers it as a seven-row table naming, per group, the pressure that
+   produces it: A the edge, B what copies of the app tier require, C one shared
+   database as the new ceiling, D reads the database should not be answering, E
+   work that does not belong on the request path, F blobs outgrowing rows, G
+   enough boxes that something is always broken. Each row was written against
+   §14's own group briefs, and the same chapter names 3.4, 3.5, 3.6, 3.7, 3.9,
+   3.12, 3.13, 3.14 and 3.17 in prose as marked pointers.
+   **Blocks:** nothing. **Needs checking as each group is authored:** a group's
+   first chapter should either match its row or change the row deliberately, in
+   the same commit. Identical in kind to decision 12 (2.1's stop table naming
+   five chapters' framing), one level up - this table sets the *motivation* for
+   twenty-six chapters rather than the job description for five. Also note the
+   forward-reference volume itself is covered by §18.2 rule 2's Part 2 sanction
+   and declared in the chapter spec §6, not silently taken.
 
 ---
 

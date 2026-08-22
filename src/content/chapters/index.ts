@@ -7,7 +7,8 @@ import type { ChapterDefinition } from "./types";
  * - Part 0 (`bb-0-1-welcome` through
  *   `bb-0-4-the-system-design-lifecycle`), Part 1
  *   (`bb-1-1-framing-the-problem` through `bb-1-4-driving-the-interview`)
- *   and Part 2 through `bb-2-2-where-can-things-go-wrong` are real
+ *   and Part 2 (`bb-2-1-from-browser-to-backend` through
+ *   `bb-2-3-evolution-of-modern-architectures`, complete) are real
  *   curriculum content, authored against CURRICULUM.md §5/§6 with a
  *   chapter spec in `specs/` beside each.
  * - `bb-dummy-1` was replaced by real content, `bb-3-4-load-balancer`
@@ -3903,6 +3904,364 @@ export const chapterRegistry: ChapterDefinition[] = [
               "That is the stacking mistake. With equal budgets the whole chain hangs the full thirty " +
               "seconds and the user gets nothing; the inner timeout has to be the shorter one to " +
               "protect anything.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-2-3-evolution-of-modern-architectures",
+    mode: "building-blocks",
+    title: "Evolution of Modern Architectures",
+    // Real authored content (Wave 3, third and final Part 2 chapter). Spec:
+    // specs/bb-2-3-evolution-of-modern-architectures.spec.md. Lesson body:
+    // public/content/chapters/bb-2-3-evolution-of-modern-architectures.mdx.
+    problemStatement:
+      "2.1 mapped the request path and 2.2 broke it. Neither said where the boxes came from. This " +
+      "chapter is the same system told in time rather than space: one machine, split tiers, copies " +
+      "of the app tier, then the application split into services - and the pressure that forced each " +
+      "move. No build: the knowledge check is the sequence and the judgment.",
+    // Five objectives. Practical omitted per CURRICULUM.md §5.2's carve-out
+    // for pure Concept chapters (the same justified exception 0.2/0.3/0.4,
+    // 2.1 and 2.2 used, spec §4): no components introduced, no
+    // construction-family exercise.
+    learningObjectives: [
+      "Knowledge - Name the four shapes a growing system passes through, and the pressure that ends each one.",
+      "Knowledge - State why relieving a ceiling moves it rather than removing it, and name where it moves once the app tier is copied.",
+      "Engineering - Decide whether a given system should make its next architectural move yet, naming the force that would justify it and the cost it would spend.",
+      "Interview - Narrate an architecture at loop step 4 as a sequence of forced moves: the shape today's numbers justify, the first thing that breaks, and the move that follows.",
+      "Communication - Justify staying on a simpler shape out loud by naming the limit not yet hit, rather than appealing to simplicity as a preference.",
+    ],
+    // No components introduced (§16 assigns Part 2 none) and no
+    // construction-family exercise, so the palette stays empty. The lesson's
+    // four stage diagrams present components the learner has not unlocked;
+    // that is §14's sanctioned Part 2 guided tour, not a palette entry - see
+    // spec §6.
+    availableComponentIds: [],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-2-3-hint-1",
+        body:
+          "Every shape in this chapter exists because a ceiling was relieved somewhere else. When a " +
+          "question asks what happens next, look for the box whose demands were just multiplied.",
+      },
+      {
+        id: "bb-2-3-hint-2",
+        body:
+          "For the ordering question, ask what each move needs to already exist before it makes any " +
+          "sense. Something that spreads requests across copies is meaningless until there are copies.",
+      },
+      {
+        id: "bb-2-3-hint-3",
+        body:
+          "When a proposal reuses a move that worked before, check what made the original move cheap. " +
+          "Machines that remember nothing and machines that remember everything do not copy alike.",
+      },
+      {
+        id: "bb-2-3-hint-4",
+        body:
+          "For the startup question, run 1.3's reflex on the split itself: name what it buys them this " +
+          "quarter, then name who operates the result on a Tuesday night.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Part 2: Journey of a Request - Chapter 2.3 of 37.",
+      masteredConcepts: [
+        "The ceiling method: every component has one, and the system's ceiling is the lowest number on the path (1.2).",
+        "The preempt-or-wait trade-off on a known future ceiling (1.2).",
+        "The trade-off reflex - we chose X, accepting Y, because Z - and the five cost dimensions, latency, consistency, complexity, money, operability (1.3).",
+        "Scaling up versus scaling out as two priced answers to the same bottleneck, and that a bigger machine has a ceiling of its own (1.3).",
+        "The stops on the request path and the edge as a segment several components share (2.1), including 2.1's own statement that the load balancer, gateway and firewall exist because a specific force showed up.",
+        "That every added stop is another failure point, and the error / hang / disagreement classes a user experiences (2.2).",
+        "Forces as the thing a design answers to (0.2), and the eight-step Interview Loop, this chapter serving step 4 (0.4).",
+      ],
+      notYetIntroducedConcepts: [
+        "How a load balancer actually distributes requests, and health checks (3.4). Named as the router the third shape needs, never explained.",
+        "Statelessness as a property, and where displaced session state lives (3.6, 3.7). The lesson states the constraint - nothing a user depends on may live in one instance's memory - without naming or teaching the property.",
+        "The economics and mechanics of scaling out (3.8), service discovery (3.9), and the API gateway's policy role (3.5).",
+        "Every data-tier move: replication and lag (3.12), sharding (3.13), caching (3.14). Named once each as where the ceiling goes after the app tier is copied, with no mechanism.",
+        "Moving work off the request path (3.17), and consistency as a named model with its own vocabulary (3.22).",
+        "The patterns for surviving the failure modes each move adds (3.23-3.26).",
+      ],
+      simplifications: [
+        "The four shapes are a teaching spine, not a law. Real systems skip moves, make them in a " +
+          "different order, or make half of one; the claim is that each move answers a pressure, not " +
+          "that every system walks the same four steps.",
+        "The data-tier moves (read copies, a faster layer in front, splitting the data) are named as " +
+          "where the ceiling lands after the app tier is copied, and deliberately not taught. Their " +
+          "chapters own the mechanism and the consistency cost.",
+        "'Monolith' and 'services' are used at the level of the deploy unit only - one unit versus " +
+          "several, each owning its data. The finer taxonomy and the failure of the naive version of " +
+          "this split are not covered.",
+        "'Compute copies for free' means free of coordination, not free of money or operational load; " +
+          "the lesson charges both under what the move spends.",
+        "The four stage diagrams are Mermaid rather than ScaleCraft graph JSON, because the Reader " +
+          "cannot render a graph-JSON topology today (the same narrow exception 1.2's diagrams use). " +
+          "Edge labels name the real edge kind so the semantics stay correct.",
+        "Both production examples are stated at decision level from public material, with no figures " +
+          "the argument depends on.",
+      ],
+    },
+    // Five questions, ramp 1/1/2/2/3 - the convention 0.2/0.3/0.4/2.1/2.2 use
+    // (2 level-1, 2 level-2, 1 level-3 of 5 rounds to QUIZ_FRAMEWORK.md §3's
+    // rough 30/45/25). Q2 and Q5 are modeled on QUIZ_FRAMEWORK.md §7's Q7 and
+    // Q8, the two bank questions tagged to 2.3; Q1, Q3 and Q4 are original and
+    // realize §14's "ordering + trade-off" exercise. Correct-position spread
+    // across the four lettered questions is a, c, d, b - four distinct
+    // positions, and "a" is a fourth distinct opening letter across siblings
+    // (0.4/1.3/1.4/3.4 open at b, 2.1 at c, 2.2 at d).
+    quiz: [
+      {
+        id: "bb-2-3-evolution-of-modern-architectures-q1",
+        kind: "ordering",
+        difficulty: 1,
+        prompt:
+          "Put the four shapes in the order a growing system reaches them, from the one it starts on " +
+          "to the one it reaches last.",
+        // Full derangement against correctOrder below - Ordering.tsx renders
+        // this array in exactly this order with no shuffle, so a
+        // naturally-ordered draft would ship pre-solved.
+        options: [
+          {
+            id: "services",
+            label: "The application is split into services, each deployed on its own and owning its data",
+            correct: true,
+            explanationMd:
+              "Last, and the only move usually forced by something other than traffic. It is also the " +
+              "hardest to undo, which is why it is not made early.",
+          },
+          {
+            id: "copies",
+            label: "Identical copies of the app tier, with something in front spreading requests across them",
+            correct: true,
+            explanationMd:
+              "Third. It needs the tiers already split, because you can only copy the application once " +
+              "the data is not sitting on the same machine as it.",
+          },
+          {
+            id: "one-machine",
+            label: "One machine running the application and its database together",
+            correct: true,
+            explanationMd:
+              "First, and further from a toy than it looks: no network between the parts, one thing to " +
+              "deploy, one thing to watch.",
+          },
+          {
+            id: "tiers",
+            label: "The application and the database on separate machines",
+            correct: true,
+            explanationMd:
+              "Second. It buys independent sizing and stops a deploy from endangering the data, at the " +
+              "cost of a network hop on every query.",
+          },
+        ],
+        correctOrder: ["one-machine", "tiers", "copies", "services"],
+      },
+      {
+        id: "bb-2-3-evolution-of-modern-architectures-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Why did architectures evolve toward split tiers and copies of the app tier, rather than " +
+          "toward ever-bigger single machines?",
+        options: [
+          {
+            id: "a",
+            label:
+              "A single machine has a ceiling of its own and is one failure domain. Splitting lets each " +
+              "part grow, and fail, on its own.",
+            correct: true,
+            explanationMd:
+              "Correct. Buying a bigger machine is a real move and gets made constantly - it stops " +
+              "working because there is a largest machine, and because everything on it shares one fate.",
+          },
+          {
+            id: "b",
+            label:
+              "Large machines stopped being cost-competitive at any size, so scaling up is no longer a " +
+              "serious option.",
+            correct: false,
+            explanationMd:
+              "Scaling up is still the right first answer for many systems, and 1.3 priced it as a real " +
+              "branch. What ends it is the ceiling, not the price list.",
+          },
+          {
+            id: "c",
+            label:
+              "Requests complete faster across several machines than on one, so splitting is a latency " +
+              "win.",
+            correct: false,
+            explanationMd:
+              "Backwards. Every split adds a network hop, so it spends latency. What it buys is headroom " +
+              "and independent failure, not speed per request.",
+          },
+          {
+            id: "d",
+            label:
+              "More machines makes a system more available by construction, since there are more of them " +
+              "to serve traffic.",
+            correct: false,
+            explanationMd:
+              "More machines is also more things that can break (2.2). Availability comes from removing " +
+              "the parts that are fatal alone, and each split adds failure modes of its own.",
+          },
+        ],
+      },
+      {
+        id: "bb-2-3-evolution-of-modern-architectures-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Your app tier ran out of headroom, so you put a load balancer in front of four identical " +
+          "app-server instances. Traffic keeps growing. Where does the ceiling land next, and why?",
+        options: [
+          {
+            id: "a",
+            label:
+              "The app tier again, because each added instance costs coordination with the others.",
+            correct: false,
+            explanationMd:
+              "Identical instances coordinate nothing - that is exactly what makes this move cheap. The " +
+              "cost landed somewhere else instead.",
+          },
+          {
+            id: "b",
+            label:
+              "Nowhere for a long time. The shape scales by adding instances, so headroom is now a " +
+              "purchasing decision.",
+            correct: false,
+            explanationMd:
+              "It scales the tier you copied, and only that tier. Relieving a ceiling moves it; it never " +
+              "removes it.",
+          },
+          {
+            id: "c",
+            label:
+              "The database. Four instances multiply the demand on the one thing all of them share.",
+            correct: true,
+            explanationMd:
+              "Correct, and it is why the data groups are the longest stretch of Part 3. The moves " +
+              "available there spend correctness rather than money, which makes them harder than this one.",
+          },
+          {
+            id: "d",
+            label:
+              "The load balancer, since every request now passes through a single box in front of the " +
+              "instances.",
+            correct: false,
+            explanationMd:
+              "A defensible worry, and worth naming in an interview - but a load balancer's whole job is " +
+              "high request volume, and nothing about this move multiplied its work the way it " +
+              "multiplied the database's.",
+          },
+        ],
+      },
+      {
+        id: "bb-2-3-evolution-of-modern-architectures-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Copying the app tier worked, so a teammate proposes fixing the database ceiling the same " +
+          "way: run four copies of the database, each accepting reads and writes. What is the " +
+          "strongest objection?",
+        options: [
+          {
+            id: "a",
+            label: "A database cannot be copied. A system has exactly one, by definition.",
+            correct: false,
+            explanationMd:
+              "Copies of a database are ordinary and have their own chapter (3.12). The problem is not " +
+              "whether you can make them, it is what they owe each other afterwards.",
+          },
+          {
+            id: "b",
+            label:
+              "Four database machines cost considerably more than four app-server machines, so the " +
+              "move is not worth it.",
+            correct: false,
+            explanationMd:
+              "Money is real but it is the smaller cost here, and it would be worth paying. The " +
+              "objection that actually stops this proposal is about correctness.",
+          },
+          {
+            id: "c",
+            label:
+              "The load balancer only spreads client requests. It has no way to route traffic to a " +
+              "database.",
+            correct: false,
+            explanationMd:
+              "A routing detail, not the objection. Even with routing solved, the four copies would " +
+              "still have the problem the correct answer names.",
+          },
+          {
+            id: "d",
+            label:
+              "The copies hold state and would have to agree. Two writes landing on different copies " +
+              "leave the system with two versions of the truth.",
+            correct: true,
+            explanationMd:
+              "Correct, and it is the asymmetry the whole chapter turns on. App servers copy freely " +
+              "because they remember nothing; keeping copies of data in agreement costs either latency " +
+              "or correctness, which is 3.12's subject.",
+          },
+        ],
+      },
+      {
+        id: "bb-2-3-evolution-of-modern-architectures-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A two-person startup with no users yet asks whether to launch as services rather than one " +
+          "application, \"because that is what Netflix does.\" What is the strongest response?",
+        options: [
+          {
+            id: "a",
+            label:
+              "Launch split. Splitting later is a far more expensive migration than starting that way.",
+            correct: false,
+            explanationMd:
+              "A real argument, and it loses on the numbers: it spends operational load every day, " +
+              "starting now, against a migration that only happens if the product succeeds enough to " +
+              "need it.",
+          },
+          {
+            id: "b",
+            label:
+              "Launch as one application. None of the forces that split an application are present at " +
+              "two people, and one unit is operable by two people. Split when a force actually arrives.",
+            correct: true,
+            explanationMd:
+              "Correct. Netflix's shape is an answer to Netflix's constraints; borrowing the answer " +
+              "without the question buys nothing and spends complexity, operability and a network in the " +
+              "middle of your own code.",
+          },
+          {
+            id: "c",
+            label:
+              "Launch split, because one application cannot grow past a single machine and they would " +
+              "hit that wall immediately.",
+            correct: false,
+            explanationMd:
+              "One application runs on as many machines as you like - that is the third shape, copies of " +
+              "the app tier, and it is still one deploy unit. Splitting the unit is a different move.",
+          },
+          {
+            id: "d",
+            label:
+              "Launch as one application, because splitting an application is the wrong call at any " +
+              "size: it only ever adds failure modes.",
+            correct: false,
+            explanationMd:
+              "The right conclusion from the wrong rule. The split is correct when the forces show up, " +
+              "which is why Amazon made it - the argument is about this team today, not about services " +
+              "in general.",
           },
         ],
       },
