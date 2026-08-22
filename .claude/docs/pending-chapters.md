@@ -62,6 +62,11 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | **2.1 From Browser to Backend** (Wave 3, first Part 2 chapter) | **Authored + Opus proofread pass** - manifest row repointed off `null`, `lessonVersion: 2`, pipeline not run (content-only pass) | 2026-08-18 | uncommitted, working tree |
 | **2.2 Where Can Things Go Wrong?** (Wave 3, second Part 2 chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, pipeline not run (content-only pass) | 2026-08-20 | uncommitted, working tree |
 | **2.3 Evolution of Modern Architectures** (Wave 3, third Part 2 chapter - Part 2 complete) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, pipeline not run (content-only pass) | 2026-08-22 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.1 Networking Fundamentals** (Wave 3, first Group A chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, pipeline not run (content-only pass) | 2026-08-22 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.2 DNS** (Wave 3, second Group A chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, self-caught cross-chapter bug fixed mid-draft (see own entry), pipeline not run (content-only pass) | 2026-08-22 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.3 Reverse Proxy** (Wave 3, third Group A chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, pipeline not run (content-only pass) | 2026-08-22 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.5 API Gateway** (Wave 3, fourth Group A chapter - Group A complete) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, multi-service build/fix partially realized via lesson+quiz (engine limitation, see own entry), pipeline not run (content-only pass) | 2026-08-22 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.6 Stateless Services** (first Group B chapter, authored ahead of `pending-content.md`'s own Wave 4 plan on explicit user request) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, first purely config-only Fix exercise this curriculum has shipped, reuses 3.4's own namesake rule for a second, deliberately opposite blueprint shape, pipeline not run (content-only pass) | 2026-08-22 | uncommitted, working tree (`fix/streak-counter`) |
 
 Everything else in the 72 rows is unauthored (`chapterDefinitionId: null`).
 
@@ -3271,6 +3276,594 @@ a decision; recorded here where they are just observations):
 
 ---
 
+## 3.1 Networking Fundamentals (Wave 3, first Group A chapter)
+
+- **Authored 2026-08-22 · not committed · working tree on
+  `fix/streak-counter`** (no branch cut - the `/chapter-author draft` pass
+  never commits or branches; the user reviews the uncommitted diff and
+  decides where it lands).
+- Definition id `bb-3-1-networking-fundamentals` · manifest slug
+  `3-1-networking-fundamentals` (`chapterDefinitionId` repointed from `null`)
+- Type: **Building Block** (not Concept - see spec §0; CURRICULUM §14's own
+  row calls it "Concept with a small build," which isn't one of §4's five
+  literal types). 25 min (Reader + a real Editor build) · prerequisite: 2.3
+  Evolution of Modern Architectures.
+- **First Group A chapter authored with no pulled-forward prerequisite
+  exception needed.** Unlike 3.4 (open decision 9), 3.1's real
+  curriculum-order prerequisite (2.3) is already shipped, so
+  `manifest.ts`'s `prerequisiteSlugs` needed no repoint - it already pointed
+  at `2-3-evolution-of-modern-architectures`.
+- **Lesson length: 1,398 words** (`wc -w` on the raw `.mdx`, no embedded
+  JSON/JSX to inflate the count). Proportionate to 3.4's ~1,333 prose words
+  for 35 minutes, scaled for this chapter's 25.
+- **Pipeline NOT run** - content-only authoring pass per the chapter-author
+  skill's scope. `tsc`/`lint`/`vitest`/`build` are the user's call.
+
+**Deliverables (all 6 + ledger):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-1-networking-fundamentals.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-1-networking-fundamentals.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` (inserted between 2.3 and 3.4) |
+| 4 | Validation rules | None new - `permissive-firewall` already existed in the engine (implemented and tested), curated alongside five structural rules. `validationRuleIds: []` not used here; see spec §7 |
+| 5 | Quiz | 5 questions, ramp 1/1/2/2/3 (all `single`-kind) |
+| 6 | Playtest pass | Spec §11 |
+| 7 | Ledger entry | This section |
+
+Also touched: `src/curriculum/manifest.ts` (the one-line `chapterDefinitionId`
+repoint, no `prerequisiteSlugs` change needed).
+
+**Judgment calls made:**
+
+- **Classified Building Block, diverging from §14's literal "Concept with a
+  small build" wording - same class of call 1.2 made for itself.** `firewall`
+  is a real registry component with a genuine construction-family exercise
+  (completion + a Submit-gated config check), which is §4's Building Block
+  definition, not Concept's "no (or minimal) new topology." This also makes
+  Failure modes and Scaling considerations mandatory rather than optional
+  (§6), and both are genuinely present, not padding. Full reasoning in spec
+  §0.
+- **The blueprint's Submit gate includes a real `ConfigPredicate`, not just
+  topology - a first for this curriculum.** `pattern.ts`'s
+  `nodeMatchesPredicates` was read directly (not assumed) to confirm a
+  Firewall node whose `defaultPolicy` equals `"allow-all"` can't bind the
+  blueprint's `fw` alias, so the pattern fails to match even with otherwise-
+  correct wiring. This is a deliberate departure from 3.4's own precedent
+  (its `algorithm` config choice was left ungated because both options were
+  defensible - open decision 11). Here there is exactly one correct answer,
+  so gating Submit on it is honest rather than arbitrary. Full reasoning in
+  spec §8.
+- **The Firewall component's own default (`defaultPolicy: "allow-listed"`)
+  is already safe**, so a learner who places one and wires it correctly
+  without touching config passes both Validate and Submit without ever
+  triggering `permissive-firewall`. Declared as an honest design property,
+  not a gap: the "Common mistakes" bullet and quiz Q2 both carry the failure
+  mode for a learner who never meets it on canvas. Flagged for a second
+  reader in spec §12.
+- **Fourth instance of open decision 3's Mermaid-as-topology exception, and
+  the first where every node in the diagram is a real, unlocked registry
+  component.** The Reader still can't render a markdown graph-JSON block, so
+  the primary diagram is Mermaid styled as the target topology (client ->
+  firewall -> app-server -> sql-database, with an outside/inside subgraph
+  boundary), same captioning discipline 1.6/3.4 set. Noted in spec §5 that
+  the limitation is in the rendering pipeline, not in whether the components
+  are real - a distinction worth keeping precise now that it's actually true
+  for the first time.
+- **TLS termination location deliberately not re-taught.** 2.1 already
+  shipped the full edge-vs-app-server trade-off table for where TLS should
+  end. This chapter states only what a handshake buys (encryption, server
+  identity) and explicitly names the split ("2.1 already priced the round
+  trips; what matters here is what the handshake buys"), rather than
+  restating 2.1's material under §20.6's cut-on-sight rule for repetition.
+- **Only one production example (AWS Security Groups), not §13's allowed
+  up to three.** Both 2.1's and 3.4's own "In production" sections already
+  used Cloudflare; a third use in as many chapters would read as reaching
+  for the same company rather than the best fit for this specific decision
+  (default-deny by default). AWS's security-group default is a complete,
+  public, decision-level claim on its own.
+- **Confirms, rather than diverges from, what 2.1 and 2.3 already
+  pre-committed.** Open decision 12's stop-table row for the firewall
+  ("Drops traffic that has no business reaching you, at the perimeter") and
+  the TCP+TLS handshake row ("Not a component - the connect phase,
+  everywhere; 3.1 covers it") both match this chapter's actual content
+  without needing a change to either row. Open decision 15's Group A pressure
+  ("traffic has to be resolved, admitted and routed before your code sees
+  it") is picked up verbatim in the cold open ("Admitted is this chapter").
+  See the updates to decisions 12 and 15 below.
+- **Backward connections: three** (2.1, 2.3, 1.2), exceeding §19's >=2 - see
+  spec §3's per-beat table for where each lands.
+- **Forward tease: 3.2 DNS**, which is also the manifest's actual next
+  chapter - no divergence to declare here, unlike 3.4's pulled-forward tease
+  to 3.8.
+- **Quiz Q1 and Q2 modeled on QUIZ_FRAMEWORK.md §8's own Q1 and Q2** (the
+  bank's published examples for this exact chapter and rule), reworded with
+  fresh distractors. Q3-Q5 are original: TCP vs. UDP judgment, the TLS
+  handshake at concept level, and a defense-in-depth judgment question at
+  difficulty 3.
+- **Position-clustering checked by eye.** Correct options sit at b, c, a, d,
+  b - all four positions used across the chapter's five (all `single`-kind)
+  questions, "b" the only repeat. Q1's own opening letter ("b") is a repeat
+  of every sibling chapter's own most-used letter (0.4/1.3/1.4/3.4), which
+  was unavoidable since every other letter was already a repeat too by this
+  point - flagged in spec §12 as a real constraint, not a skipped check.
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly. Flagged per every prior chapter's own
+  precedent of flagging a self-assessed density claim for the next reviewer
+  to check rather than trust.
+
+**Not done (out of `chapter-author` draft mode's scope, still open):** no
+Opus audit pass. `tsc`/`lint`/`vitest`/`build` not run.
+
+---
+
+## 3.2 DNS (Wave 3, second Group A chapter)
+
+- **Authored 2026-08-22 · not committed · working tree on
+  `fix/streak-counter`** (no branch cut - same shape as 3.1, drafted in the
+  same session immediately after it).
+- Definition id `bb-3-2-dns` · manifest slug `3-2-dns` (`chapterDefinitionId`
+  repointed from `null`)
+- Type: **Building Block** (§14's own row names no explicit `Type:` field,
+  unlike 3.1's; classified the same way 1.2/3.1 were for the identical
+  tension - see spec §0). 20 min (Reader + a real Editor build) ·
+  prerequisite: 3.1 Networking Fundamentals, already shipped in this same
+  working tree, no repoint needed.
+- **Lesson length: 1,159 words** (`wc -w` on the raw `.mdx`). Proportionate
+  to 3.1's 1,398 for 25 minutes, scaled for this chapter's 20 - runs
+  slightly over the naive ratio (~1,118 expected) because of the
+  cross-chapter fix below, not padding; see the chapter's own spec §12.
+- **Pipeline NOT run** - content-only authoring pass per the chapter-author
+  skill's scope. `tsc`/`lint`/`vitest`/`build` are the user's call.
+
+**Deliverables (all 6 + ledger):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-2-dns.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-2-dns.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` (inserted between 3.1 and 3.4) |
+| 4 | Validation rules | None new - the same structural set 3.1 curated, minus `permissive-firewall` (this chapter's own content doesn't teach firewall config); see spec §7 |
+| 5 | Quiz | 5 questions, ramp 1/1/2/2/3 (Q1/Q2/Q3/Q5 `single`, Q4 `ordering`) |
+| 6 | Playtest pass | Spec §11 |
+| 7 | Ledger entry | This section |
+
+Also touched: `src/curriculum/manifest.ts` (the one-line `chapterDefinitionId`
+repoint, no `prerequisiteSlugs` change needed - already pointed at
+`3-1-networking-fundamentals`).
+
+**Self-caught cross-chapter bug, before user review or an Opus pass - the
+most significant thing about this chapter's authoring.** The first drafting
+pass wrote the TTL/caching content as if it were new. It wasn't: 2.1's
+already-shipped "Before your code runs" section states both "DNS answers
+are cached with a TTL" and "a DNS change is never instant" explicitly, and
+closes with "Both phases are compressed here... 3.2 opens up the first of
+them" - an explicit, already-shipped promise. The first draft's spec §4 had
+also declared the root/TLD/authoritative hierarchy an omission, directly
+contradicting that promise. Caught by rereading 2.1's actual lesson body
+(not just its own ledger entry) before finalizing, not by the user or a
+cold second reader. Fixed by rewriting: "Finding an answer nobody has
+cached" now teaches the resolver hierarchy 2.1 deferred; "The cost of
+choosing a TTL" reframes from 2.1's already-stated fact to this chapter's
+own decision-level content; the quiz's Q2 swapped from a second
+propagation-lag question (duplicating 2.1) to a hierarchy question. Full
+before/after in the chapter spec's own process note at the top. Recorded
+here at length because this is exactly the class of bug the Opus audit pass
+exists to catch, and a future reader should know it was checked, not just
+assumed clean because no audit ran yet.
+
+**Judgment calls made:**
+
+- **A real registry/content tension: the browser-to-DNS edge can't be
+  built as a `control` edge today, even though 2.1 taught it as one.**
+  Checked directly against `src/content/components/config/networking.ts`:
+  both `browser.relations.outputs.allowedKinds` and `dns.relations.inputs.
+  allowedKinds` declare only `["request-flow"]`, and `component-relations`
+  is `severity: "error"` - a learner drawing the semantically correct edge
+  kind would fail Validate for it. **Not hacked around**, same discipline
+  open decision 8 established for load-balancer health checks: the
+  blueprint/starter graph use `request-flow` (the only kind that
+  validates), the lesson's diagram caption states the simplification
+  honestly, and `curriculumContext.simplifications` records it. Recorded
+  below as a second instance of open decision 8, not a new decision - the
+  underlying engineering fix is the same piece of work either way.
+- **Two forward teases, diverging from 3.1's own single-tease shape.**
+  CURRICULUM §14's row for 3.2 names two forward connections (an "advance
+  organizer for 3.14" and "Prepares for: 3.15"). Followed the sanctioned
+  one-immediate-plus-one-marked-further-out pattern 0.2 (1.3) and 0.3
+  (1.11) already established: 3.3 stays the single immediate "Next" tease
+  (matches the manifest, no divergence), 3.15 is named once, explicitly
+  marked "several chapters out." The 3.14 advance-organizer connection is
+  realized implicitly (the TTL content itself does the scaffolding) rather
+  than as a third named chapter, which would be excessive even under the
+  two-tease pattern's own precedent.
+- **No config predicate on the DNS blueprint node**, unlike 3.1's firewall.
+  A TTL choice has no universally wrong default - same reasoning 3.4's spec
+  gave for leaving its algorithm choice ungated (open decision 11).
+- **`permissive-firewall` deliberately excluded from `validationRuleIds`**,
+  unlike 3.1's own curated set - the inherited Firewall node is already
+  safely configured and this chapter doesn't teach firewall config.
+- **`client` excluded from the palette even though cumulatively
+  available**, matching 1.6/3.4/3.1's "no optional piece" precedent -
+  Browser is required and does the same job more specifically.
+- **Starter graph reuses 3.1's own blueprint minus its client node** -
+  firewall, app server, database, correctly wired, nothing feeding the
+  firewall. `entryPointIds: []`, since no entry-capable node exists until
+  the learner adds one (matches an existing empty-array precedent already
+  in `index.ts`).
+- **Decision 12 checked for this chapter's own row, 2026-08-22 - matches.**
+  2.1's stop table gives DNS "Turns a hostname into an IP address, before
+  any connection exists | 3.2" - this chapter's own content (and quiz Q1)
+  states exactly that. See the update to decision 12 below.
+- **Backward connections: three** (2.1, 2.2, 3.1) - matches 3.1's own
+  count, exceeding §19's >=2.
+- **Forward tease: 3.3 Reverse Proxy** (immediate, matches manifest) plus
+  3.15 (marked further-out) - see the two-tease judgment call above.
+- **Position-clustering checked by eye.** Correct options (single-kind
+  only, Q1/Q2/Q3/Q5) sit at c, a, d, b - all four positions used, zero
+  repeats, an improvement on 3.1's own b/c/a/d/b (one repeat).
+- **Density**: written once against §20.6, then substantially rewritten for
+  the cross-chapter fix above (a correctness pass, not a density pass) -
+  flagged per every prior chapter's own precedent of flagging a
+  self-assessed density claim for the next reviewer to check rather than
+  trust.
+
+**Not done (out of `chapter-author` draft mode's scope, still open):** no
+Opus audit pass. `tsc`/`lint`/`vitest`/`build` not run.
+
+---
+
+## 3.3 Reverse Proxy (Wave 3, third Group A chapter - Group A complete)
+
+- **Authored 2026-08-22 · not committed · working tree on
+  `fix/streak-counter`** (no branch cut - same shape as 3.1/3.2, drafted in
+  the same session immediately after them).
+- Definition id `bb-3-3-reverse-proxy` · manifest slug `3-3-reverse-proxy`
+  (`chapterDefinitionId` repointed from `null`)
+- Type: **Building Block** (§14's own row names no explicit `Type:` field,
+  same shape as 3.2's row; classified the same way 1.2/3.1/3.2 were for the
+  identical tension - see spec §0). 20 min (Reader + a real Editor build) ·
+  prerequisite: 3.2 DNS, already shipped in this same working tree, no
+  repoint needed.
+- **Group A (3.1-3.3) is now fully authored**, closing the group open
+  decision 9 named for 3.4's own pulled-forward exception. See that open
+  decision's own update below for what this does and does not resolve.
+- **Lesson length: 1,227 words** (`wc -w` on the raw `.mdx`). Proportionate
+  to 3.2's 1,159 for the same 20-minute estimate - slightly higher,
+  consistent with carrying one more failure-mode paragraph than 3.2 needed.
+- **Pipeline NOT run** - content-only authoring pass per the chapter-author
+  skill's scope. `tsc`/`lint`/`vitest`/`build` are the user's call.
+
+**Deliverables (all 6 + ledger):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-3-reverse-proxy.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-3-reverse-proxy.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` (inserted between 3.2 and 3.4) |
+| 4 | Validation rules | None new - the same structural set 3.1/3.2 curated, minus `permissive-firewall`; see spec §7 |
+| 5 | Quiz | 5 questions, ramp 1/1/2/2/3 (all `single`-kind) |
+| 6 | Playtest pass | Spec §11 |
+| 7 | Ledger entry | This section |
+
+Also touched: `src/curriculum/manifest.ts` (the one-line `chapterDefinitionId`
+repoint, no `prerequisiteSlugs` change needed - already pointed at
+`3-2-dns`).
+
+**Checked 2.1's own lesson body before drafting core mechanics, avoiding a
+repeat of 3.2's own self-caught bug rather than catching it after a first
+draft.** 2.1's walkthrough already shows the Reverse Proxy terminating TLS
+and forwarding inward, and its own "Where TLS ends" section already carries
+the full termination trade-off table. This chapter's "What happens when a
+request arrives" section states that fact and moves straight to what it
+adds (compression, static serving, the host/path routing decision) instead
+of re-deriving a table 2.1 already shipped. Caught by reading 2.1's actual
+lesson body first, before writing a word of this chapter's core mechanics -
+same discipline 3.2's spec recommends for the next chapter after a real
+instance of the opposite went briefly unshipped.
+
+**Judgment calls made:**
+
+- **No `control`-edge tension, unlike every other Group A chapter.**
+  `reverse-proxy`'s registry contract (`src/content/components/config/
+  networking.ts`) accepts only `request-flow` on both inputs and outputs -
+  checked directly, not assumed. Unlike 3.2 (browser-to-dns) and 3.4
+  (load-balancer-to-app-server health checks), this chapter's diagram and
+  buildable blueprint agree completely; there is nothing to disclose as a
+  simplification here. First Group A chapter without an instance of open
+  decision 8.
+- **No config predicate on the `terminatesTls` blueprint node**, matching
+  3.2's own reasoning for its ungated DNS TTL (open decision 11's
+  precedent) rather than 3.1's gated `defaultPolicy`. 2.1's own trade-off
+  table presents both termination choices as genuinely defensible - gating
+  Submit on one would contradict that even-handed framing, and the
+  component's own default already matches what 2.1's walkthrough showed.
+- **"Build from skeleton" (§14's own exercise wording for 3.3) realized as
+  a Completion exercise with the gap in the middle of an existing chain**,
+  rather than at either end the way 3.1's and 3.2's own gaps sat. No new
+  exercise taxonomy needed - full reasoning in spec §0 and §8.
+- **A learner who reconnects the firewall straight to the app server,
+  skipping the proxy entirely, passes every curated Validate rule but
+  fails Submit on the blueprint.** First chapter where the Validate/Submit
+  divergence is topological (a whole node bypassed) rather than a single
+  config value (3.1's `allow-all`). Not hacked around with a new rule -
+  the blueprint alone is what enforces the front-door pattern. Flagged in
+  spec §7 and §12 for a second reader to confirm the resulting
+  blueprint-drift message is legible.
+- **Production example: Google's Front End (GFE)**, not Cloudflare (spent
+  twice, per 3.4's own ledger note), AWS (3.1) or Netflix (3.2, immediately
+  prior). Google itself was already used once, in 2.1, for QUIC - judged
+  acceptable since it's a different decision with two fresh companies
+  (AWS, Netflix) authored in between, unlike a third Cloudflare use would
+  have been. Flagged in spec §12 for a second reader to confirm this reads
+  as diversity, not a repeat.
+- **Two forward teases, both inside "Next", diverging from 3.1's own
+  single-tease shape - same pattern 3.2 used.** CURRICULUM §14's row names
+  two forward connections (3.4, quoting its own "an LB is a reverse proxy
+  with a job"; 3.5). 3.4 stays the immediate tease (matches the manifest);
+  3.5 is named in the same section but marked "two chapters out" -
+  honestly closer than 3.2's own "several chapters out" to 3.15. Flagged
+  in spec §12 for a second reader to confirm "two chapters out" still
+  reads as clearly non-immediate.
+- **Decision 12 checked for this chapter's own row, 2026-08-22 - matches,
+  no change needed.** 2.1's stop table gives the reverse proxy "The single
+  front door: terminates TLS, routes by host or path | 3.3" - this
+  chapter's mental model and core-mechanics section both state exactly
+  that. Third and final of the four Group A rows resolved; only 3.5
+  remains open. See the update to decision 12 below.
+- **Decision 15 checked for this chapter, 2026-08-22 - matches.** 2.3's
+  Group A pressure line reads "traffic has to be resolved, admitted and
+  routed before your code sees it." This chapter's cold open states
+  "Routed is this chapter" - the third and final word of the triple, after
+  3.1's "Admitted" and 3.2's "resolved." All three words are now
+  individually spent, one per chapter, in 2.3's own order. See the update
+  to decision 15 below.
+- **Backward connections: at least four** (2.1, 2.2, 2.3, 1.3, plus 3.1/3.2
+  woven through the starter graph and prose) - exceeding §19's >=2, same
+  count class 3.1/3.2 each hit.
+- **Position-clustering checked by eye.** Correct options sit at c, a, d,
+  b, c - all four positions used, "c" the only repeat (twice of five),
+  matching 3.1's own one-repeat pattern rather than 3.2's zero-repeat one.
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly, deliberately referencing rather
+  than restating 2.1's TLS content from the first draft. Flagged per every
+  prior chapter's own precedent of flagging a self-assessed density claim
+  for the next reviewer to check rather than trust.
+
+**Not done (out of `chapter-author` draft mode's scope, still open):** no
+Opus audit pass. `tsc`/`lint`/`vitest`/`build` not run.
+
+---
+
+## 3.5 API Gateway (Wave 3, fourth Group A chapter - Group A complete)
+
+- **Authored 2026-08-22 · not yet committed · branch `fix/streak-counter`**
+  (same working tree as 3.1-3.3, continuing directly after 3.4).
+- Definition id `bb-3-5-api-gateway` · manifest slug `3-5-api-gateway`
+  (`chapterDefinitionId` flipped from `null`)
+- Type: Building Block · foundational · 25 min · prerequisite: 3.4 (already
+  shipped in this same working tree - no pulled-forward exception needed,
+  `manifest.ts`'s `prerequisiteSlugs` already pointed at `3-4-load-balancer`
+  before this chapter was authored)
+- **Lesson length: 1,356 words** (`wc -w` on the raw `.mdx`). Below the
+  25-minute chapter's proportionate estimate against 3.3's 1,227/20min ratio
+  (would predict ~1,535) - flagged in the spec's §12 for a second reader to
+  confirm nothing load-bearing was cut short rather than trusting the
+  density claim.
+- Pipeline not run - content-only pass, per the `chapter-author` skill's
+  scope.
+
+**Deliverables (6 of 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-5-api-gateway.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-5-api-gateway.mdx` |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None new - same five-rule structural set 3.1-3.3 curated, justified in spec §7 |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3, first chapter since 0.2 to use `matching` again |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment call: CURRICULUM §14's own "completion (multi-service skeleton) +
+fix (the three roles scrambled)" exercise line only partially maps onto a
+buildable Editor exercise - full reasoning in spec §0, not silently
+narrowed:**
+
+- **Completion realized as designed** - the same "fault is pure absence in
+  the middle of an already-correct chain" shape 3.3 used, extended one stop:
+  browser/DNS/firewall/reverse-proxy (3.3's own chain, wired) and
+  app-server/database (wired), gap between the proxy and the app tier is
+  exactly where the gateway goes.
+- **"Multi-service skeleton" not realized on the buildable graph.**
+  `GraphNode` (`src/lib/graph.ts`) has no per-instance label field - a
+  second, visually generic `app-server` node on canvas would render
+  identically to the first and would actually teach the *wrong*
+  disambiguation (it would look like the load balancer's own "identical
+  instances" shape from 3.4, not "a different service"). The multi-service
+  picture is carried instead by the lesson's primary diagram (Mermaid, which
+  can label two boxes "Orders Service" / "Users Service" as text) and by
+  quiz Q2. The graded build fronts one service. Same class of finding as
+  open decision 3 (diagram can show more than the buildable graph) and
+  decision 8 (control edges shown in a diagram, not exercised on canvas) -
+  declared, not hacked around.
+- **"Fix (the three roles scrambled)" not realized as a second Editor
+  action.** There's no engine concept of a "role" distinct from which
+  registry component a node literally is, so "scrambled roles" isn't a graph
+  fault the validation engine can express without bespoke logic outside a
+  normal Completion/Fix shape. Realized instead through the lesson's "Three
+  components, three jobs" table, the first two Common-mistakes bullets, and
+  quiz Q2 (matching, modeled on QUIZ_FRAMEWORK.md §8's own Q8 - the bank's
+  own published trio-matching example for this exact chapter).
+
+Same class of gap as **open decision 7** (3.4's "config + trace" promise
+only partially mapping onto Editor mechanics) - a fourth instance of §14's
+exercise line being a content brief rather than a literal Editor spec, this
+time for a Building Block chapter's *first* exercise clause rather than a
+later one.
+
+**Other judgment calls:**
+
+- **`load-balancer` deliberately excluded from this chapter's palette**,
+  even though it's cumulatively available - referenced by name in prose and
+  quiz only, matching 3.3's own precedent of naming 3.4/3.5 without
+  requiring them on canvas.
+- **No config predicate gates `requiresAuth` or `rateLimitPerMinute` on
+  Submit** - both fields have defensible defaults (`true`, `600`), matching
+  3.2/3.3's own precedent (open decision 11) of leaving a real,
+  workload-dependent field ungated rather than treating it as a trap.
+- **Uber chosen as the sole production example** - a fresh company from
+  §13's canon list (Cloudflare spent twice, AWS/Netflix/Google once each, all
+  four already used by 2.1/3.1-3.4). Stripe, Meta, Discord, LinkedIn, and
+  Airbnb remain unused as of this chapter.
+- **`component-relations` does new teaching work this chapter**, beyond the
+  structural-guard role it played in 3.1-3.3: `api-gateway`'s own declared
+  contract (`inputs: { allowedCategories: ["networking"] }`) means a learner
+  cannot wire an app-server's output directly into the gateway - the same
+  networking-only-input discipline the registry already enforced for
+  `load-balancer` (3.4), now visible on a second component. Flagged in spec
+  §12 for a second reader to confirm the resulting validation message is
+  legible, not generic.
+- **Quiz reintroduces the `matching` kind** (Q2), unused since 0.2 - modeled
+  on QUIZ_FRAMEWORK.md §8's own Q8, reworded rather than reproduced.
+  Derangement checked by hand: `pairs[0]`'s correct option sits at `options`
+  index 2, `pairs[1]`'s at index 0, `pairs[2]`'s at index 1 - no pair's
+  correct option sits at its own pair index.
+- **Position-clustering checked by eye**, per the standing instruction from
+  0.1/0.2's shipped bug. Four single-kind questions (Q1/Q3/Q4/Q5); correct
+  options sit at c, a, d, b - all four positions used, no repeat.
+- **No density revision pass performed as a distinct drafting round** -
+  written once against §20.6 directly. Flagged per every prior chapter's own
+  precedent of flagging a self-assessed density claim for the next reviewer
+  to check rather than trust.
+
+**Cross-reference checks against other chapters' own pre-committed rows:**
+
+- **Open decision 12's stop-table row - fourth and final of the four rows,
+  now fully resolved.** 2.1's own row reads "Auth, rate limits, and request
+  shaping in front of many services | 3.5." All three pieces hold as
+  written: `requiresAuth`/`rateLimitPerMinute` are this chapter's own
+  core-mechanics content verbatim, and "request shaping" is realized as
+  path-based routing to a named service (the diagram's `/orders/*` /
+  `/users/*` edges). See the update to decision 12 below.
+- **3.4's own "Next" section does not tease 3.5** - checked directly. 3.4
+  was authored standalone before Group A existed (open decision 9) and its
+  "Next" points at 3.8 only. This chapter's cold open therefore quotes 3.3's
+  own tease (which did name 3.5 explicitly) rather than inventing a
+  connection to 3.4's "Next" that was never written. Not fixed in 3.4 - open
+  decision 9 already names 3.4's prerequisite-revert and full re-read as
+  separate, future work this draft pass does not touch.
+- **No new instance of open decision 8 or 13 raised** - 3.5 introduces no
+  new edge kind (`control` stays homed at 3.4 per §16).
+
+---
+
+## 3.6 Stateless Services
+
+- **Authored 2026-08-22** · Sonnet draft, no Opus pass yet · uncommitted,
+  working tree (`fix/streak-counter`)
+- Definition id `bb-3-6-stateless-services` · manifest slug
+  `3-6-stateless-services` · spec
+  `src/content/chapters/specs/bb-3-6-stateless-services.spec.md` · lesson
+  `public/content/chapters/bb-3-6-stateless-services.mdx`
+- Type: Concept (CURRICULUM §14's own row states this explicitly, no
+  reclassification needed, unlike 1.2/3.1's ambiguous rows) · foundational ·
+  20 min (shortest chapter in Group A/B) · assumes 3.5, already shipped
+- **Authored ahead of `pending-content.md`'s own Wave 4 plan** (which
+  schedules Group B for a later wave, paired with Group C), on explicit user
+  request. No sequencing rule (§18.2) is actually violated - the real
+  prerequisite (3.5) is already authored - only the wave-grouping plan is
+  out of order relative to when this was written. Not resolved unilaterally;
+  a future session may want to reconcile the wave plan with the ledger's
+  actual authoring order.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-6-stateless-services.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-6-stateless-services.mdx` (1,272 words) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None new - `single-instance-load-balancer` (3.4's own namesake rule) reused for a second, deliberately different reason; see below |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3 |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **The curriculum's first purely config-only Fix exercise.** The starter
+  graph is the full system as built through 3.5 - browser, DNS, firewall,
+  reverse proxy, API gateway, load balancer, one app server, one database -
+  every node and edge already correctly wired. The sole fault is the
+  Application Server's own `Instances: 1`. No prior Fix exercise (1.2, 3.4)
+  has shipped with zero topological faults; 3.1's `permissive-firewall`
+  gate is also config-only, but paired with a missing node (a Completion
+  exercise), not an otherwise-complete graph.
+- **`single-instance-load-balancer` reused for a second, deliberately
+  opposite blueprint shape than 3.4's.** 3.4's own blueprint requires two
+  distinct app-server nodes (its problemStatement explicitly says "a second
+  box, not a higher Instances count"). This chapter's blueprint requires
+  the opposite: one app-server node with a `config` predicate
+  (`instances >= 2`) - because proving that scaling out is "just a number"
+  once a tier is stateless is this chapter's own point. Both blueprints
+  clear the same underlying rule (which sums `instances` across all
+  downstream targets) for two different teaching purposes - the same
+  "same component, second job" pattern §19 names for components, applied
+  here to a validation rule instead. The rule's own explanation text is
+  3.4's framing (capacity/failover), not restated as if it were about
+  statelessness; the lesson's own prose carries this chapter's reasoning
+  separately so the rule isn't misrepresented. Full reasoning in the
+  chapter spec §7.
+- **A new finding for open decision 11, not a new numbered decision** -
+  `blueprint-drift.ts`'s `missingComponents` check tests each blueprint
+  node's config predicate against individual candidate nodes, not summed
+  across multiple nodes the way the validation rule itself does. A learner
+  who does 3.4's own fix here instead (adds a second Application Server
+  node, each left at the default `instances: 1`) would clear the
+  `single-instance-load-balancer` warning but fail this chapter's blueprint
+  match, with a drift report reading "Missing: Application Server" despite
+  two being present - the same class of confusing mismatch decision 11
+  already named. Not hacked around: the lesson's "Your turn" section and
+  hint 3 both explicitly instruct against adding a second node, the same
+  mitigation 3.4's own problemStatement used for its own, opposite
+  instinct. See the update to decision 11 below.
+- **Primary diagram is a Mermaid sequence diagram, not the usual
+  topology-Mermaid narrow exception (open decision 3).** Two requests, two
+  app-server instances, routed differently by the load balancer - §7.1's
+  own catalog homes sequence diagrams at "ordering between parties
+  matters," which is exactly this case, so no open-decision-3 exception is
+  being invoked. A `<Walkthrough>` was considered and deliberately not
+  used - see spec §5.
+- **Quiz scoped directly against QUIZ_FRAMEWORK.md §9's own per-question
+  chapter tags**, not assumed. Bank Q1 is tagged "(3.6)" and was modeled on
+  directly; bank Q2/Q3 (sticky-session cost accounting) are tagged "(3.7),"
+  so this chapter's own Q4 tests the same pinning-vs-externalizing
+  trade-off *without* the sticky-session cost specifics the bank reserves
+  for 3.7; bank Q8 ("where did the state go") is tagged "(3.6-3.7)" and
+  this chapter's own Q5 is a scoped-down version that stops at "a shared
+  store" without naming which one.
+- **Component budget carries the full chain through 3.5** (all 8
+  components required, no optional piece), matching Part 3's own stated
+  running-example philosophy rather than trimming to a minimal 4-node
+  graph - see spec §6.
+
+**Cross-reference checks against other chapters' own pre-committed rows:**
+
+- **Open decision 15's Group B row - checked, matches.** 2.3's own row for
+  Group B: "Copies of the app tier only work if a request can land
+  anywhere | 3.6-3.9." This chapter's cold open and mental-model section
+  state exactly that constraint, and paraphrase (not contradict) 2.3's own
+  foreshadowing sentence ("nothing a user depends on may live in one
+  instance's memory... that constraint is a chapter of its own (3.6)").
+  First of the seven group-table rows checked; the other six remain open
+  as their groups are authored. See the update to decision 15 below.
+- **3.5's own "Next" section teases 3.6 directly** ("3.6 Stateless Services
+  names the assumption Group A has been quietly making the whole time") -
+  this chapter's cold open quotes it directly, continuing the chain 3.1-3.5
+  already established.
+- **No new instance of open decision 8 or 13 raised** - 3.6 introduces no
+  new edge kind and no new component.
+
+---
+
 ## Open decisions blocking or shaping later chapters
 
 Raised during authoring, deliberately not resolved unilaterally. Each needs a
@@ -3448,6 +4041,18 @@ doc edit or a build decision.
    `load-balancer.relations.outputs.allowedKinds` and to
    `app-server.relations.inputs.allowedKinds` (or a narrower,
    load-balancer-specific contract) in `src/content/components/config/`.
+   **Second instance, 2026-08-22 (3.2 DNS).** The same gap, independently:
+   2.1 taught the browser-to-DNS lookup as a `control` edge, but
+   `browser.relations.outputs.allowedKinds` and `dns.relations.inputs.
+   allowedKinds` both declare `["request-flow"]` only. 3.2's buildable
+   blueprint uses `request-flow` for that edge (the only kind that
+   validates), same "not hacked around" discipline as 3.4: declared
+   honestly in the lesson's diagram caption and in
+   `curriculumContext.simplifications`, not silently drawn as `control` on
+   canvas. Two independent findings now point at the same underlying fix -
+   more component pairs need `"control"` added to their declared contracts,
+   not just the load-balancer/app-server pair this decision originally
+   named. Still no engineering work scheduled.
 
 9. **3.4 Load Balancer authored standalone, ahead of its real prerequisite
    (2026-08-11).** CURRICULUM §14's 3.4 row reads "Assumes: 3.3", but Group A
@@ -3472,6 +4077,17 @@ doc edit or a build decision.
    shouldn't - 3.4 never assumes 3.3's content, it just doesn't currently
    require it either - but worth a second look when Group A lands rather than
    assumed fine).
+   **Trigger fired, 2026-08-22 - Group A is now fully authored (3.1, 3.2,
+   3.3 all shipped in this working tree).** The revert and the retroactive-
+   edit check named above are both still open and were **not** done as
+   part of authoring 3.3 - reverting 3.4's `prerequisiteSlugs` is a change
+   to 3.4's own manifest row and lesson, not something a draft pass on 3.3
+   should touch silently. Checked directly (not assumed): 3.3's own lesson
+   never uses 3.4's vocabulary in a way 3.4 doesn't already independently
+   define, and 3.4's own lesson never references 3.3 by name, so the two
+   chapters don't currently contradict each other - but the revert itself,
+   and a full re-read of 3.4 with 3.3's actual content in hand, is real
+   work for a future session, not discharged by this observation.
 
 10. **`curriculumContext.simplifications` is not a disclosure surface -
     raised by the Opus pass on 3.4 (2026-08-11).** It is read by exactly one
@@ -3504,6 +4120,19 @@ doc edit or a build decision.
     Application Server" when a blueprint needs two nodes of one component and
     the learner has one, which reads as false to the learner. First surfaced
     here because 3.4 is the first blueprint requiring a duplicate node.
+    **Mirror-image instance, 2026-08-22 (3.6).** 3.6's own blueprint needs
+    one app-server node with `config.instances >= 2` (deliberately the
+    opposite shape from 3.4's, see its own ledger entry). `blueprint-
+    drift.ts`'s config-predicate check is per-node, not summed - so a
+    learner who instead adds a second node (each at the default
+    `instances: 1`, matching 3.4's own fix) clears the validation rule but
+    gets a drift report reading "Missing: Application Server" despite two
+    being present. Same underlying gap as the note above, now confirmed in
+    both directions (needs-two-has-one, and needs-one-config-N-has-two-
+    unconfigured). Not hacked around in 3.6 - the lesson and hint 3 both
+    instruct against the second-node instinct before it can bite - but the
+    engine fix (aggregate config predicates across same-alias-eligible
+    nodes, or a clearer drift message) is still unscheduled.
 
 12. **2.1's stop table pre-commits a one-line job description for five
    unwritten chapters (2026-08-18).** 2.1 From Browser to Backend is Part 2's
@@ -3521,6 +4150,33 @@ doc edit or a build decision.
    teaching a description its own chapter no longer matches. Same class of
    drift as decision 1 (§14's 0.1 row vs. the shipped chapter), caught before
    it happens rather than after.
+   **3.1 checked, 2026-08-22 - matches, no change needed.** Both of 2.1's
+   rows for this chapter hold as written: the firewall row ("Drops traffic
+   that has no business reaching you, at the perimeter") and the TCP+TLS
+   handshake row ("Not a component - the connect phase, everywhere; 3.1
+   covers it") both describe 3.1 as authored. First of the four rows
+   resolved; 3.2, 3.3 and 3.5 remain open.
+   **3.2 checked, 2026-08-22 - matches, no change needed.** 2.1's DNS row
+   ("Turns a hostname into an IP address, before any connection exists")
+   matches 3.2 exactly - it's the chapter's own Q1. The Browser row ("Holds
+   the URL, runs resolve/connect/exchange, renders the response") is
+   broader than 3.2's own scope (rendering is out of scope for a DNS-
+   focused chapter and has no ScaleCraft mechanism to teach) - not treated
+   as a mismatch, since the row is a pointer to Browser's home chapter, not
+   a per-chapter content checklist. Second of the four rows resolved; 3.3
+   and 3.5 remain open.
+   **3.3 checked, 2026-08-22 - matches, no change needed.** 2.1's reverse-
+   proxy row ("The single front door: terminates TLS, routes by host or
+   path") matches 3.3 exactly - both halves are the chapter's own mental
+   model and core-mechanics section, not a divergence. Third of the four
+   rows resolved; only 3.5 remains open.
+   **3.5 checked, 2026-08-22 - matches, no change needed. Group A's
+   stop-table check is now complete across all four rows.** 2.1's API
+   gateway row ("Auth, rate limits, and request shaping in front of many
+   services") matches 3.5 exactly: `requiresAuth`/`rateLimitPerMinute` are
+   the chapter's own core-mechanics content verbatim, and "request shaping"
+   is realized as path-based routing to a named service. Fourth and final
+   of the four rows resolved.
 
 13. **2.1 uses and teaches the `control` edge kind before 3.4, which §16 says
    owns it. Raised by the Opus pass on 2.1 (2026-08-18).** §16's audit homes
@@ -3586,6 +4242,26 @@ doc edit or a build decision.
    twenty-six chapters rather than the job description for five. Also note the
    forward-reference volume itself is covered by §18.2 rule 2's Part 2 sanction
    and declared in the chapter spec §6, not silently taken.
+   **Group A's own first chapter checked, 2026-08-22 - matches.** 3.1's cold
+   open picks up the row's exact wording ("Admitted is this chapter," against
+   the row's "traffic has to be resolved, admitted and routed before your
+   code sees it"). First of the seven rows checked against a real chapter;
+   the other six remain open as their groups are authored.
+   **Group A now fully checked, 2026-08-22 - all three words of the row's
+   own sentence are individually spent.** 3.2's cold open never explicitly
+   claims "resolved" the way 3.1 claimed "Admitted," but its content is the
+   resolve phase in full; 3.3's cold open explicitly states "Routed is this
+   chapter," closing out the triple. Group A is the first of the seven
+   groups to fully resolve its own row this way; the other six remain open
+   as their groups are authored.
+   **Group B's own first chapter checked, 2026-08-22 - matches.** 2.3's row
+   for Group B: "Copies of the app tier only work if a request can land
+   anywhere | 3.6-3.9." 3.6's cold open and mental-model section state
+   exactly that constraint (any instance must be able to answer any
+   request), and paraphrase rather than contradict 2.3's own foreshadowing
+   sentence about it. First of the six remaining rows checked against a
+   real chapter; Groups C-G remain open as their own first chapters are
+   authored.
 
 ---
 

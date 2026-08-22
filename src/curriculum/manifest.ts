@@ -199,7 +199,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.1",
             title: "Networking Fundamentals",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-22 (Wave 3, first Group A
+            // chapter). See pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-1-networking-fundamentals",
             estimatedMinutes: 25,
             difficulty: "foundational",
             prerequisiteSlugs: ["2-3-evolution-of-modern-architectures"],
@@ -210,7 +212,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.2",
             title: "DNS",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-22 (Wave 3, second Group A
+            // chapter). See pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-2-dns",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-1-networking-fundamentals"],
@@ -221,7 +225,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.3",
             title: "Reverse Proxy",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-22 (Wave 3, third Group A
+            // chapter). See pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-3-reverse-proxy",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-2-dns"],
@@ -254,7 +260,10 @@ export const courses: Record<CourseId, Course> = {
             number: "3.5",
             title: "API Gateway",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-22 (Wave 3, fourth Group A
+            // chapter - Group A complete). See pending-chapters.md for the
+            // ledger entry.
+            chapterDefinitionId: "bb-3-5-api-gateway",
             estimatedMinutes: 25,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-4-load-balancer"],
@@ -275,7 +284,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.6",
             title: "Stateless Services",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-22 (first Group B chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-6-stateless-services",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-5-api-gateway"],

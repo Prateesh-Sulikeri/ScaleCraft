@@ -4268,6 +4268,1029 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
   },
   {
+    id: "bb-3-1-networking-fundamentals",
+    mode: "building-blocks",
+    title: "Networking Fundamentals",
+    // Real authored content (Wave 3, first Group A chapter). Spec:
+    // specs/bb-3-1-networking-fundamentals.spec.md. Lesson body:
+    // public/content/chapters/bb-3-1-networking-fundamentals.mdx. First
+    // Group A chapter authored, so its real curriculum-order prerequisite
+    // (2.3) is already shipped - no pulled-forward exception needed
+    // (manifest.ts's prerequisiteSlugs already points at
+    // "2-3-evolution-of-modern-architectures").
+    problemStatement:
+      "The starter graph is the client, app server, and database you've built before - nothing sits " +
+      "between the client and the app server yet. Add a Firewall, wire it in between them, and give " +
+      "it a policy that actually filters something before you Submit. Which specific check fires if " +
+      "you don't, and how many findings a permissive policy produces, isn't previewed - run Validate " +
+      "and read what it says.",
+    // Six objectives (§5.2 allows 3-7); all five required categories
+    // represented (Building Block, so Practical is not exempt). Category
+    // tags live in the spec §2.
+    learningObjectives: [
+      "State what a firewall's defaultPolicy decides and why an allow-all policy filters nothing.",
+      "Distinguish TCP from UDP at the concept level and state why most request-response traffic needs TCP's delivery guarantees.",
+      "Decide between default-deny and default-allow for a perimeter and name the real cost either way.",
+      "Add a Firewall to a starter graph between the client and the app tier, configure a real filtering policy, and pass Submit.",
+      "State, in an interview, what a firewall is and is not protecting against, in under a minute.",
+      "Explain why a permissive firewall is a configuration bug rather than a topology bug, and what that implies about validating configuration alongside structure.",
+    ],
+    // Cumulative palette: 1.2's three components plus this chapter's own
+    // (§16's audit row for 3.1 is `firewall`). Required equals available -
+    // every component has a specific job in the one blueprint, matching
+    // 1.6/3.4's own "no optional piece" precedent. Nothing from 3.2-3.5
+    // leaks in even as scenery.
+    availableComponentIds: ["client", "firewall", "app-server", "sql-database"],
+    requiredComponentIds: ["client", "firewall", "app-server", "sql-database"],
+    // permissive-firewall is the namesake rule (fires when a Firewall's
+    // defaultPolicy is "allow-all" - see the starter graph and blueprint
+    // config predicate below). no-direct-client-database and
+    // component-relations guard against a learner mis-wiring the fix (e.g.
+    // routing the client straight to the app server, skipping the firewall
+    // entirely, or straight to the database). orphan-component,
+    // missing-input-connection and request-flow-cycle are the same
+    // structural set every prior Building Block chapter curated, for graph
+    // coherence rather than untaught content.
+    validationRuleIds: [
+      "permissive-firewall",
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "request-flow-cycle",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-1-blueprint",
+        label: "Client through a real firewall to the app tier",
+        require: {
+          id: "bb-3-1-blueprint",
+          nodes: [
+            { alias: "client", componentId: "client" },
+            // The config predicate is what makes this a real config gate,
+            // not just a topology check - a Firewall left at "allow-all"
+            // can't bind this alias, so the blueprint (and Submit) fails
+            // even though the node and its wiring are otherwise correct.
+            // See spec §8 for why this chapter gates config on Submit where
+            // 3.4's algorithm choice deliberately didn't (there, both
+            // options were defensible; here, one is a real bug).
+            { alias: "fw", componentId: "firewall", config: [{ field: "defaultPolicy", op: "neq", value: "allow-all" }] },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "client", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "The firewall sits between the client and everything else, filtering on address, port and " +
+          "protocol before any of it is reachable. It doesn't replace the app server's own job of " +
+          "mediating database access - it's a second, earlier gate, not a substitute for the first one.",
+      },
+    ],
+    hints: [
+      {
+        id: "bb-3-1-hint-1",
+        body:
+          "Validate names what's connected and what isn't. Right now the client reaches the app server " +
+          "with nothing in between deciding whether it should.",
+      },
+      {
+        id: "bb-3-1-hint-2",
+        body:
+          "Add a Firewall node from the picker (`/` or right-click) and wire it between the Client and " +
+          "the Application Server - client to firewall, firewall to app server.",
+      },
+      {
+        id: "bb-3-1-hint-3",
+        body:
+          "Open the Firewall's config panel and check `defaultPolicy`. One of the three options filters " +
+          "nothing at all - it's the one this chapter's own rule is named for.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group A: Core Infrastructure - Chapter 3.1 of 37.",
+      masteredConcepts: [
+        "The Reader-to-Editor loop, Validate vs. Submit, and reading a validation explanation (0.1).",
+        "The three-tier shape - client, app server, sql database - and why the app server mediates all database access (1.2).",
+        "The trade-off reflex - we chose X, accepting Y, because Z (1.3).",
+        "The request's stops (browser, DNS, the edge, app server, database), the edge as a segment several components share, and that firewall/reverse-proxy/load-balancer/API-gateway 'exist because a specific force showed up' rather than by default (2.1).",
+        "The TCP-then-TLS connect phase and its round-trip cost, and that where TLS terminates is a real trade-off - this chapter doesn't re-teach either, only what the handshake buys conceptually (2.1).",
+        "That every added stop is another failure point, and the error/hang/disagreement classes a user experiences (2.2).",
+        "The four architecture shapes and that Group A's pressure is 'traffic has to be resolved, admitted and routed before your code sees it' (2.3).",
+      ],
+      notYetIntroducedConcepts: [
+        "DNS and the resolve phase that precedes the connect phase (3.2) - named as 'before any of this' in the transition brief, not explained.",
+        "The reverse proxy's single-front-door pattern, and where TLS termination actually happens as an architectural decision - 2.1 already taught that trade-off; this chapter only teaches what a handshake buys, not where it should end (3.3).",
+        "The load balancer and API gateway, and the full reverse-proxy/load-balancer/gateway disambiguation (3.4, 3.5).",
+        "Everything past Group A - statelessness, data-tier scaling, caching, and so on.",
+      ],
+      simplifications: [
+        "A firewall here filters on source address, destination port and protocol only - real perimeter " +
+          "products (NAT, stateful connection tracking, deep packet inspection) go further; none of that " +
+          "changes the default-deny decision this chapter teaches.",
+        "TCP vs. UDP is taught at the concept level (guarantees vs. none) to motivate why most " +
+          "request-response traffic picks TCP - congestion control, retransmission timers and the rest " +
+          "of the transport layer's internals are out of scope.",
+        "TLS is covered only for what the handshake buys (encryption, server identity) - termination " +
+          "location was already taught as a trade-off in 2.1 and is not re-taught here.",
+      ],
+    },
+    // Five questions, ramp 1/1/2/2/3. Q1 and Q2 are modeled on
+    // QUIZ_FRAMEWORK.md §8's own Q1 and Q2 (the bank's published examples
+    // for this exact chapter) - reworded rather than reproduced, matching
+    // every other chapter's practice. Q3-Q5 are original, covering TCP vs.
+    // UDP, the TLS handshake at concept level, and the defense-in-depth
+    // judgment "Common mistakes" sets up. Position-clustering checked by
+    // eye: correct options sit at b, c, a, d, b - all four positions used,
+    // "b" the only repeat (twice of five), no clustering.
+    quiz: [
+      {
+        id: "bb-3-1-networking-fundamentals-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "A firewall's architectural job, stated precisely, is to:",
+        options: [
+          {
+            id: "a",
+            label: "Encrypt traffic between the client and whatever is behind it.",
+            correct: false,
+            explanationMd: "Encryption is TLS's job, a different layer entirely - a firewall can filter traffic without ever touching what's inside it.",
+          },
+          {
+            id: "b",
+            label: "Decide which traffic is even allowed to approach what's behind it, based on address, port and protocol.",
+            correct: true,
+            explanationMd:
+              "Correct. A firewall never asks who you are or what you want - only whether this source, " +
+              "port and protocol combination is on the allowed list at all.",
+          },
+          {
+            id: "c",
+            label: "Distribute incoming requests across multiple backend instances.",
+            correct: false,
+            explanationMd: "That's a load balancer's job (3.4) - a firewall doesn't route or distribute anything, it only admits or drops.",
+          },
+          {
+            id: "d",
+            label: "Authenticate the user making the request.",
+            correct: false,
+            explanationMd: "Authentication checks who's asking; a firewall never gets that far - it operates before identity is anyone's business.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-1-networking-fundamentals-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A teammate sets a new Firewall's defaultPolicy to allow-all, reasoning \"we can lock it down " +
+          "later, this way nothing breaks while we're still building.\" What will Validate's explanation say?",
+        options: [
+          {
+            id: "a",
+            label: "Nothing - allow-all is the safest starting policy for a system still under construction.",
+            correct: false,
+            explanationMd: "The opposite is true - allow-all is the one policy that filters nothing, regardless of how early the system is.",
+          },
+          {
+            id: "b",
+            label: "The firewall needs to be replaced with an API gateway.",
+            correct: false,
+            explanationMd: "A different component with a different job (3.5) - swapping components doesn't fix a config value.",
+          },
+          {
+            id: "c",
+            label: "The firewall's default policy allows everything through, so it isn't restricting traffic at all.",
+            correct: true,
+            explanationMd:
+              "Correct - this is permissive-firewall firing. The firewall is present on the diagram and " +
+              "doing nothing, which is worse than looking undefended, because it looks defended.",
+          },
+          {
+            id: "d",
+            label: "Firewalls can only be configured after the app server is deployed.",
+            correct: false,
+            explanationMd: "Not a real constraint - a firewall's policy is just a config field, set whenever the node exists.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-1-networking-fundamentals-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate proposes UDP for a normal checkout API \"because it's faster - no handshake.\" " +
+          "What's the strongest objection?",
+        options: [
+          {
+            id: "a",
+            label: "UDP guarantees neither delivery nor ordering, so the application would have to rebuild retries and ordering itself for traffic that can't afford to silently drop a request.",
+            correct: true,
+            explanationMd:
+              "Correct. UDP is genuinely faster to start, but a checkout request that vanishes silently " +
+              "is a worse failure than the one handshake TCP spends to guarantee it arrives.",
+          },
+          {
+            id: "b",
+            label: "UDP isn't supported by firewalls, so it can't be filtered at the perimeter.",
+            correct: false,
+            explanationMd: "A firewall filters by protocol among other fields - UDP is filterable exactly like TCP, this isn't the real objection.",
+          },
+          {
+            id: "c",
+            label: "UDP can't be encrypted, so it's a security risk regardless of the API.",
+            correct: false,
+            explanationMd: "TLS-like encryption over UDP exists (e.g. QUIC, which 2.1 named) - the real objection is the missing delivery guarantee, not encryption.",
+          },
+          {
+            id: "d",
+            label: "UDP and TCP cost the same round trips, so there's no real trade-off either way.",
+            correct: false,
+            explanationMd: "There is a real trade-off - TCP's handshake costs a round trip UDP skips; the question is whether what that round trip buys is worth it here.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-1-networking-fundamentals-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt: "At the point a TLS handshake completes, what has it actually bought, at concept level?",
+        options: [
+          {
+            id: "a",
+            label: "A faster connection for every request that follows, since TLS compresses traffic.",
+            correct: false,
+            explanationMd: "TLS doesn't compress or speed up traffic - if anything it costs a round trip up front. Its job is encryption and identity, not speed.",
+          },
+          {
+            id: "b",
+            label: "Confirmation that the app server's business logic is free of bugs.",
+            correct: false,
+            explanationMd: "TLS operates on the channel, not the application behind it - it says nothing about what the app server does with a request once it arrives.",
+          },
+          {
+            id: "c",
+            label: "A replacement for the firewall, since the channel is now secure.",
+            correct: false,
+            explanationMd: "TLS secures what's inside the channel; a firewall decides whether traffic reaches the channel at all - different layers, and neither substitutes for the other.",
+          },
+          {
+            id: "d",
+            label: "An encrypted channel, and proof the server is who it claims to be.",
+            correct: true,
+            explanationMd: "Correct - both are what the handshake buys. 2.1 already priced what it costs; this is what that cost pays for.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-1-networking-fundamentals-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Your firewall default-denies everything except the app tier's port. A teammate argues this " +
+          "makes every later gate (a reverse proxy, an API gateway) redundant, since \"nothing gets in " +
+          "that isn't already allowed.\" What's the strongest response?",
+        options: [
+          {
+            id: "a",
+            label: "Agreed - once the perimeter default-denies, nothing behind it needs its own admission logic.",
+            correct: false,
+            explanationMd: "This is the defense-in-depth mistake the chapter's own \"Common mistakes\" names - a single working layer isn't a reason to assume no other layer is needed.",
+          },
+          {
+            id: "b",
+            label: "A firewall filters on address, port and protocol only - it can't see whether a specific admitted request is well-formed, authenticated, or abusive, which is a different layer's job.",
+            correct: true,
+            explanationMd:
+              "Correct. Being on the allowed port and protocol says nothing about whether one particular " +
+              "request behind that door should be trusted - that's exactly the gap later components fill.",
+          },
+          {
+            id: "c",
+            label: "The firewall should be removed instead, since it's slower than the components behind it.",
+            correct: false,
+            explanationMd: "Speed isn't the issue in question, and removing the perimeter check would reopen the cold open's exact failure - this doesn't answer the teammate's claim.",
+          },
+          {
+            id: "d",
+            label: "Firewalls already terminate TLS, so they duplicate what a reverse proxy does.",
+            correct: false,
+            explanationMd: "Not what this firewall does - it filters by address, port and protocol beneath the encrypted channel, and doesn't terminate TLS.",
+          },
+        ],
+      },
+    ],
+    // Deliberately incomplete, not miswired: the client and app server are
+    // both correctly wired to each other and to the database, and nothing
+    // here is a wiring mistake - the fault is purely the missing perimeter
+    // (matches 1.6/3.4's "fix ships symptoms, never find-the-bug-blind"
+    // precedent, adapted for a Completion rather than a Fix exercise).
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-1-client", componentId: "client", position: { x: 80, y: 160 }, config: {} },
+        { id: "bb-3-1-app", componentId: "app-server", position: { x: 400, y: 160 }, config: {} },
+        { id: "bb-3-1-db", componentId: "sql-database", position: { x: 620, y: 160 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-1-e1", source: "bb-3-1-client", target: "bb-3-1-app", kind: "request-flow" },
+        { id: "bb-3-1-e2", source: "bb-3-1-app", target: "bb-3-1-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-1-client"],
+    },
+  },
+  {
+    id: "bb-3-2-dns",
+    mode: "building-blocks",
+    title: "DNS",
+    // Real authored content (Wave 3, second Group A chapter). Spec:
+    // specs/bb-3-2-dns.spec.md. Lesson body:
+    // public/content/chapters/bb-3-2-dns.mdx. Real curriculum-order
+    // prerequisite (3.1) is already shipped in this same working tree - no
+    // pulled-forward exception needed (manifest.ts's prerequisiteSlugs
+    // already points at "3-1-networking-fundamentals").
+    problemStatement:
+      "The starter graph has the firewall, app server, and database from 3.1, already wired to each " +
+      "other - nothing feeds into the firewall yet. Add a Browser and a DNS node, wire the lookup " +
+      "before the request path, and get a clean Validate before you Submit. Which specific gap the " +
+      "validator names until you do isn't previewed here.",
+    // Six objectives (§5.2 allows 3-7); all five required categories
+    // represented (Building Block, so Practical is not exempt). Category
+    // tags live in the spec §2.
+    learningObjectives: [
+      "State what a DNS resolver returns and why that lookup happens before, not during, the request.",
+      "Explain what a TTL controls and why a DNS change is a gradual cutover, not an instant one.",
+      "Choose a TTL length for a stated scenario (a planned migration vs. stable production) and justify the trade-off both ways.",
+      "Add a Browser and a DNS node to a starter graph, wire the lookup before the request path, and pass Submit.",
+      "State, in under a minute, what a DNS failure looks like when every server is healthy, and why.",
+      "Explain why DNS counts as a routing decision at scale, not just a lookup, and name the real cost of over-shortening its TTL.",
+    ],
+    // Cumulative palette: this chapter's own two new components (§16's
+    // audit row for 3.2) plus 3.1's firewall/app-server/sql-database chain.
+    // `client` deliberately excluded - Browser is the specific entry point
+    // this chapter's exercise needs, and required equals available,
+    // matching 1.6/3.4/3.1's own "no optional piece" precedent.
+    availableComponentIds: ["browser", "dns", "firewall", "app-server", "sql-database"],
+    requiredComponentIds: ["browser", "dns", "firewall", "app-server", "sql-database"],
+    // No new namesake rule this chapter (§14's row names no new rule for
+    // 3.2, and none of the existing rules teach anything DNS-specific -
+    // verified against src/validation-engine/rules/index.ts). The curated
+    // set is the same structural guard 3.1 used, minus permissive-firewall
+    // (that rule is 3.1's own content, not this chapter's - the firewall
+    // node here is inherited, already correctly configured, and not what
+    // this exercise teaches).
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "request-flow-cycle",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-2-blueprint",
+        label: "Browser resolves an address, then the request path from 3.1 carries it",
+        require: {
+          id: "bb-3-2-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "The lookup happens before the request, not instead of it - DNS hands back an address, then " +
+          "the same request path 3.1 built carries the traffic the rest of the way.",
+      },
+    ],
+    hints: [
+      {
+        id: "bb-3-2-hint-1",
+        body:
+          "Validate is telling you the firewall has nothing feeding into it yet. Something has to " +
+          "resolve an address and send the first request before the firewall ever sees traffic.",
+      },
+      {
+        id: "bb-3-2-hint-2",
+        body:
+          "Add a Browser node and a DNS node from the picker (`/` or right-click). Wire Browser to DNS " +
+          "first, then DNS to the Firewall.",
+      },
+      {
+        id: "bb-3-2-hint-3",
+        body:
+          "Both new edges carry real traffic through the chain - request-flow, the same kind you've " +
+          "used since 1.2.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group A: Core Infrastructure - Chapter 3.2 of 37.",
+      masteredConcepts: [
+        "The Reader-to-Editor loop, Validate vs. Submit, and reading a validation explanation (0.1).",
+        "The three-tier shape - client, app server, sql database (1.2).",
+        "The trade-off reflex - we chose X, accepting Y, because Z (1.3).",
+        "The request's stops including DNS (named, not yet taught), the edge as a shared segment, and the `control` edge kind - this chapter's own lookup was drawn that way in 2.1's presented diagram (2.1).",
+        "The TCP-then-TLS connect phase and its round-trip cost, and that DNS answers are cached with a TTL so a change is never instant - both taught in 2.1's own compressed form; this chapter is explicitly what 2.1 named as the first of two compressed details it would 'open up' (2.1).",
+        "The error/hang/disagreement failure classes a user experiences, including that a DNS outage means complete, immediate failure - referenced, not re-taught (2.2).",
+        "The four architecture shapes and that Group A's pressure is 'traffic has to be resolved, admitted and routed before your code sees it' (2.3).",
+        "The trust perimeter, a firewall's defaultPolicy, TCP vs. UDP at concept level, and what a TLS handshake buys (3.1).",
+      ],
+      notYetIntroducedConcepts: [
+        "The reverse proxy's single-front-door pattern (3.3) - named as 'the request DNS just pointed you to' in the transition tease, not explained.",
+        "The load balancer, API gateway, and the full reverse-proxy/load-balancer/gateway disambiguation (3.4, 3.5).",
+        "Real caching as a formal pattern (cache-aside, hit/miss) - TTL is this chapter's advance organizer for it, not the thing itself (3.14).",
+        "CDN mechanics in full - this chapter only teaches that DNS is what steers one (3.15).",
+      ],
+      simplifications: [
+        "The resolver hierarchy is presented as a clean three-hop walk (root, then TLD, then " +
+          "authoritative) for one name. Real resolvers also handle multiple records per name, negative " +
+          "caching, and query redundant servers at each level - none of that changes the TTL trade-off " +
+          "or the failure reasoning this chapter teaches.",
+        "The buildable exercise wires DNS inline (browser -> dns -> firewall) so the canvas can " +
+          "validate it. The `dns` component's registry contract only accepts request-flow edges today, " +
+          "not the control edge 2.1 taught for this exact lookup - conceptually the resolution and the " +
+          "request stay two separate exchanges, as the lesson's diagram caption states, but that " +
+          "distinction isn't enforced on canvas yet.",
+        "DNS-based routing is presented as TTL-bounded name changes only - real systems combine it " +
+          "with health checks, weighted/latency-based records, and anycast, out of scope at this stage.",
+      ],
+    },
+    // Five questions, ramp 1/1/2/2/3. Q1, Q2, Q3, Q5 are single-kind; Q4 is
+    // ordering, realizing CURRICULUM §14's "trace (what happens when you
+    // type a URL)" exercise as a DNS-resolution-specific trace rather than
+    // repeating 2.1's own URL-to-response ordering question (2.1's Q1
+    // already covers the macro journey; this one goes one level into
+    // resolution itself, mirroring the lesson's own "Finding an answer
+    // nobody has cached" section). Q2 tests the resolver hierarchy this
+    // chapter opens up beyond 2.1's compressed mention - deliberately not a
+    // second propagation-lag question, since 2.1 already stated that fact
+    // in prose (Q3 owns the TTL-cost judgment instead). Q3 is modeled on
+    // QUIZ_FRAMEWORK.md §8's own Q3 (the bank's published TTL-propagation
+    // example, explicitly earmarked "advance organizer for 3.14 (3.2)"),
+    // reworded rather than copied. Position-clustering checked by eye:
+    // correct options (single-kind only) sit at c, a, d, b - all four
+    // positions used, zero repeats.
+    quiz: [
+      {
+        id: "bb-3-2-dns-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "DNS's actual output, precisely, is:",
+        options: [
+          {
+            id: "a",
+            label: "A faster connection to the app server, since resolution warms up the network path.",
+            correct: false,
+            explanationMd: "Resolution doesn't touch the connection at all - it happens before one exists, and buys no speed on the connection that follows.",
+          },
+          {
+            id: "b",
+            label: "The rendered contents of the page the user requested.",
+            correct: false,
+            explanationMd: "DNS never sees the request itself, only the name - the app server and database are what produce a response.",
+          },
+          {
+            id: "c",
+            label: "The address to send the request to, resolved before any connection starts.",
+            correct: true,
+            explanationMd: "Correct. DNS's entire job is a name-to-address translation - nothing about the request itself is involved.",
+          },
+          {
+            id: "d",
+            label: "A decision about which of several healthy backends should handle the request.",
+            correct: false,
+            explanationMd: "That's a load balancer's job (3.4) - DNS returns one answer per lookup, it doesn't distribute traffic across instances.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-2-dns-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt: "A resolver has no cached answer for a name. What does it actually do to find one?",
+        options: [
+          {
+            id: "a",
+            label:
+              "Walks a short chain: asks who's authoritative for the top-level suffix, then who's " +
+              "authoritative for the exact domain, then asks that server directly.",
+            correct: true,
+            explanationMd:
+              "Correct. A cold lookup is a few hops, not a broadcast or a guess - and it only happens " +
+              "once per TTL window, which is why 2.1 could call resolution \"usually free.\"",
+          },
+          {
+            id: "b",
+            label: "Sends one broadcast query and uses whichever server responds first.",
+            correct: false,
+            explanationMd: "DNS resolution is a directed chain of specific lookups, not a broadcast race against unknown responders.",
+          },
+          {
+            id: "c",
+            label: "Waits for the browser itself to supply the address.",
+            correct: false,
+            explanationMd: "The browser is the one asking - it has no address to supply, that's the entire reason the lookup exists.",
+          },
+          {
+            id: "d",
+            label: "Guesses based on similar domain names it has already cached.",
+            correct: false,
+            explanationMd: "A resolver never infers an answer from unrelated names - every domain resolves through its own chain.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-2-dns-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A team sets every DNS record's TTL to one second, reasoning \"lower is always safer.\" " +
+          "What's the real cost?",
+        options: [
+          {
+            id: "a",
+            label: "Nothing - a lower TTL has no downside.",
+            correct: false,
+            explanationMd: "TTL is a genuine trade-off, not a free dial - a very low value has a real, ongoing cost.",
+          },
+          {
+            id: "b",
+            label: "DNS refuses TTLs that low, so the setting is silently ignored.",
+            correct: false,
+            explanationMd: "Not a real constraint - ttlSeconds accepts values from 0 up; nothing rejects a short one.",
+          },
+          {
+            id: "c",
+            label: "Short TTLs break the TLS handshake running over the connection that follows.",
+            correct: false,
+            explanationMd: "TTL governs the DNS answer's cache lifetime, a separate concern from what 3.1 taught about what a TLS handshake buys - the two don't interact.",
+          },
+          {
+            id: "d",
+            label:
+              "Resolvers can't cache the answer meaningfully, so nearly every request pays a full " +
+              "lookup - a constant tax for a benefit (fast failover) used rarely.",
+            correct: true,
+            explanationMd:
+              "Correct. A one-second TTL means almost nothing gets cached - the fast-failover benefit " +
+              "is real but rare, while the lookup tax is paid on nearly every request, always.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-2-dns-q4",
+        kind: "ordering",
+        difficulty: 2,
+        prompt: "Order what happens during DNS resolution, from the moment a name is looked up.",
+        options: [
+          {
+            id: "step-cache",
+            label: "The resolver checks its own cache for that name.",
+            correct: true,
+            explanationMd: "Third: only after the browser's own cache misses does the lookup reach a resolver, whose own cache is checked next.",
+          },
+          {
+            id: "step-browser",
+            label: "The browser checks whether it already has a cached answer for this name.",
+            correct: true,
+            explanationMd: "First: the cheapest possible answer is one already on hand, so the browser's own cache is checked before anything leaves the machine.",
+          },
+          {
+            id: "step-return",
+            label: "The answer returns to the browser and gets cached for its TTL.",
+            correct: true,
+            explanationMd: "Last: once an address is found, it comes back and gets cached - the point at which this specific lookup ends.",
+          },
+          {
+            id: "step-resolver",
+            label: "On a miss, the lookup goes to a resolver.",
+            correct: true,
+            explanationMd: "Second: a miss on the browser's own cache is what sends the lookup out to a resolver in the first place.",
+          },
+          {
+            id: "step-authoritative",
+            label: "On a miss, the resolver queries an authoritative server for the name.",
+            correct: true,
+            explanationMd: "Fourth: only once the resolver's own cache also misses does it go ask an authoritative source directly.",
+          },
+        ],
+        correctOrder: ["step-browser", "step-resolver", "step-cache", "step-authoritative", "step-return"],
+      },
+      {
+        id: "bb-3-2-dns-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Dashboards show every server healthy, but users in one region report the site completely " +
+          "unreachable - not slow, an instant failure with nothing loading. Strongest first hypothesis?",
+        options: [
+          {
+            id: "a",
+            label: "The database in that region is corrupted.",
+            correct: false,
+            explanationMd: "A database problem would show up in your own dashboards - this failure is invisible to infrastructure that's never being reached.",
+          },
+          {
+            id: "b",
+            label:
+              "A path problem before your infrastructure is ever reached - most likely DNS resolution " +
+              "failing for that region's resolvers.",
+            correct: true,
+            explanationMd:
+              "Correct. Instant, total failure with healthy dashboards is 2.2's own signature for a " +
+              "problem upstream of your servers - and DNS failing means the name never became an " +
+              "address, so nothing you operate was ever touched.",
+          },
+          {
+            id: "c",
+            label: "A bug shipped in the last deploy.",
+            correct: false,
+            explanationMd: "A code bug would still let requests arrive and fail there - this failure never reaches a server at all, healthy or not.",
+          },
+          {
+            id: "d",
+            label: "The disk is full on every app server in that region.",
+            correct: false,
+            explanationMd: "That would show as errors on requests that did arrive, and dashboards report every server healthy - the failure is earlier than that.",
+          },
+        ],
+      },
+    ],
+    // Deliberately incomplete, not miswired: the firewall, app server, and
+    // database (3.1's own blueprint minus its client node) are correctly
+    // wired to each other, and nothing here is a wiring mistake - the fault
+    // is purely the missing front two nodes (matches 1.6/3.1's "fix ships
+    // symptoms, never find-the-bug-blind" precedent, adapted for a
+    // Completion exercise).
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-2-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-2-app", componentId: "app-server", position: { x: 680, y: 160 }, config: {} },
+        { id: "bb-3-2-db", componentId: "sql-database", position: { x: 900, y: 160 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-2-e1", source: "bb-3-2-fw", target: "bb-3-2-app", kind: "request-flow" },
+        { id: "bb-3-2-e2", source: "bb-3-2-app", target: "bb-3-2-db", kind: "request-flow" },
+      ],
+      entryPointIds: [],
+    },
+  },
+  {
+    id: "bb-3-3-reverse-proxy",
+    mode: "building-blocks",
+    title: "Reverse Proxy",
+    // Real authored content (Wave 3, third Group A chapter). Spec:
+    // specs/bb-3-3-reverse-proxy.spec.md. Lesson body:
+    // public/content/chapters/bb-3-3-reverse-proxy.mdx. Real curriculum-order
+    // prerequisite (3.2) is already shipped in this same working tree - no
+    // pulled-forward exception needed (manifest.ts's prerequisiteSlugs
+    // already points at "3-2-dns").
+    problemStatement:
+      "The starter graph carries 3.2's own chain - browser, DNS, firewall - plus the app server and " +
+      "database, already wired to each other. Nothing connects the firewall's output to the app tier " +
+      "yet. Add a Reverse Proxy, wire it into that gap, and get a clean Validate before you Submit. " +
+      "Which specific check fires until you do isn't previewed here.",
+    // Six objectives (§5.2 allows 3-7); all five required categories
+    // represented (Building Block, so Practical is not exempt). Category
+    // tags live in the spec §2.
+    learningObjectives: [
+      "State what a reverse proxy does when a request arrives and why one address in front of many backends makes the backend swappable.",
+      "Distinguish a reverse proxy from a forward proxy by which side it stands in front of.",
+      "Decide what cross-cutting work belongs at the proxy layer (TLS termination, compression, static serving) versus a different layer entirely.",
+      "Add a Reverse Proxy to a starter graph between the firewall and the app tier, wire it correctly, and pass Submit.",
+      "Diagnose a healthy-backends-but-502-at-the-edge failure and state the first hypothesis in under a minute.",
+      "Explain, in 1.3's trade-off language, why one front door trades a single point of failure and an extra hop for backend swappability and centralized cross-cutting concerns.",
+    ],
+    // Cumulative palette: this chapter's own new component (§16's audit row
+    // for 3.3 is `reverse-proxy`) plus 3.1/3.2's browser, dns, firewall,
+    // app-server, sql-database. `client` deliberately excluded, matching
+    // 1.6/3.4/3.1/3.2's own "no optional piece" precedent - Browser is
+    // already the established entry point. Required equals available.
+    availableComponentIds: ["browser", "dns", "firewall", "reverse-proxy", "app-server", "sql-database"],
+    requiredComponentIds: ["browser", "dns", "firewall", "reverse-proxy", "app-server", "sql-database"],
+    // No new namesake rule this chapter (§14's row names none for 3.3, and
+    // no existing rule teaches anything reverse-proxy-specific - verified
+    // against src/validation-engine/rules/index.ts). Same structural set
+    // 3.1/3.2 curated, minus permissive-firewall (the inherited firewall
+    // node is already safely configured and this chapter doesn't teach
+    // firewall config).
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "request-flow-cycle",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-3-blueprint",
+        label: "One front door between the perimeter and the app tier",
+        require: {
+          id: "bb-3-3-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "The proxy is the one address anything outside ever learns - the firewall decided whether " +
+          "traffic gets this far, the proxy decides where it goes next, and the app tier behind it can " +
+          "change shape without either of those first two stops noticing.",
+      },
+    ],
+    hints: [
+      {
+        id: "bb-3-3-hint-1",
+        body:
+          "Validate is telling you the firewall's output has nowhere to go yet, and the app server has " +
+          "nothing feeding it. One node fills both gaps at once.",
+      },
+      {
+        id: "bb-3-3-hint-2",
+        body:
+          "Add a Reverse Proxy node from the picker (`/` or right-click) and wire it between the " +
+          "Firewall and the Application Server - firewall to proxy, proxy to app server.",
+      },
+      {
+        id: "bb-3-3-hint-3",
+        body:
+          "Both new edges carry real traffic - request-flow, the same kind you've used since 1.2. " +
+          "Nothing about this component's config needs to change from its default.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group A: Core Infrastructure - Chapter 3.3 of 37.",
+      masteredConcepts: [
+        "The Reader-to-Editor loop, Validate vs. Submit, and reading a validation explanation (0.1).",
+        "The three-tier shape - client, app server, sql database (1.2).",
+        "The trade-off reflex - we chose X, accepting Y, because Z (1.3).",
+        "The request's stops, the edge as a shared segment, and that the reverse proxy is 'the single front door: terminates TLS, routes by host or path' (2.1's own stop-table row for this chapter).",
+        "The reverse proxy already shown terminating TLS and forwarding inward in 2.1's own walkthrough, and the full termination trade-off (one certificate and readable internal hops, against plaintext on your own network) already priced there - this chapter builds on that decision, it does not re-derive it (2.1).",
+        "The error/hang/disagreement failure classes a user experiences (2.2).",
+        "The four architecture shapes and that Group A's pressure is 'traffic has to be resolved, admitted and routed before your code sees it' (2.3).",
+        "The trust perimeter and a firewall's defaultPolicy (3.1); DNS resolution and TTL (3.2).",
+      ],
+      notYetIntroducedConcepts: [
+        "The load balancer and what forces it into existence once one proxy instance isn't enough (3.4).",
+        "The API gateway, and the full reverse-proxy/load-balancer/gateway disambiguation now that all three exist (3.5).",
+        "Everything past Group A.",
+      ],
+      simplifications: [
+        "The proxy routes to a single backend group in this chapter's build - real reverse proxies " +
+          "route different hosts or paths to different backend pools, described at concept level here " +
+          "but not exercised, since this curriculum's running example has only one backend group so far.",
+        "Authentication and rate limiting are explicitly kept out of this chapter's account of what the " +
+          "proxy does, even though some real reverse-proxy products can be configured to do both - " +
+          "CURRICULUM §14 reserves that ground for 3.5's API Gateway so the trio's roles stay " +
+          "disambiguated rather than blurred from the first of the three.",
+      ],
+    },
+    // Five questions, ramp 1/1/2/2/3. Q1 is modeled on QUIZ_FRAMEWORK.md
+    // §8's own Q4 (the bank's published forward-vs-reverse example);
+    // Q5 is modeled on the bank's own Q11 (the 502-with-healthy-backends
+    // scenario, explicitly tagged for this chapter). Q2-Q4 are original.
+    // Position-clustering checked by eye: correct options sit at c, a, d,
+    // b, c - all four positions used, "c" the only repeat (twice of five).
+    quiz: [
+      {
+        id: "bb-3-3-reverse-proxy-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "A reverse proxy differs from a forward proxy in that it:",
+        options: [
+          {
+            id: "a",
+            label: "Only ever runs alongside a firewall, never on its own.",
+            correct: false,
+            explanationMd: "Not a real constraint - a reverse proxy's job doesn't depend on what else is on the diagram with it.",
+          },
+          {
+            id: "b",
+            label: "Hides the client from the server it's asking, not the other way around.",
+            correct: false,
+            explanationMd: "That's a forward proxy's job - it stands in front of clients. A reverse proxy stands in front of servers and hides them instead.",
+          },
+          {
+            id: "c",
+            label: "Stands in front of servers, presenting one address for whatever is actually behind it.",
+            correct: true,
+            explanationMd:
+              "Correct. A reverse proxy is server-side: the client only ever sees the proxy's address, " +
+              "never what's actually answering behind it.",
+          },
+          {
+            id: "d",
+            label: "Can only be used once TLS is already terminated somewhere else.",
+            correct: false,
+            explanationMd: "Backwards - the reverse proxy is usually where TLS terminates in the first place, not something that has to wait for it.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-3-reverse-proxy-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt: "The reverse proxy's architectural job, stated precisely, is to:",
+        options: [
+          {
+            id: "a",
+            label: "Present one address for whatever is behind it, so the backend can change shape without any client-facing change.",
+            correct: true,
+            explanationMd:
+              "Correct. Swappability is the whole point - nothing outside the proxy ever learns how many " +
+              "backends there are or what they run.",
+          },
+          {
+            id: "b",
+            label: "Distribute requests evenly across several backend instances.",
+            correct: false,
+            explanationMd: "That's a load balancer's job (3.4) - this chapter's proxy fronts one backend group, it doesn't spread traffic across several instances of it.",
+          },
+          {
+            id: "c",
+            label: "Authenticate the user making the request.",
+            correct: false,
+            explanationMd: "That's the API gateway's job (3.5) - a reverse proxy routes by host and path, it never asks who's asking.",
+          },
+          {
+            id: "d",
+            label: "Resolve a hostname to an IP address before a connection exists.",
+            correct: false,
+            explanationMd: "That's DNS's job (3.2), and it already happened before the request ever reached this stop.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-3-reverse-proxy-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate says \"the reverse proxy secures every request, so we're done thinking about " +
+          "TLS.\" What's the precise correction?",
+        options: [
+          {
+            id: "a",
+            label: "TLS isn't something a reverse proxy can do at all.",
+            correct: false,
+            explanationMd: "It's the opposite - terminating TLS is one of the proxy's own central jobs, controlled by its own terminatesTls field.",
+          },
+          {
+            id: "b",
+            label: "The firewall already handles TLS, so the proxy's own setting doesn't matter.",
+            correct: false,
+            explanationMd: "3.1's firewall filters by address, port and protocol beneath the encrypted channel - it never touches TLS, which is entirely this component's own job.",
+          },
+          {
+            id: "c",
+            label: "TLS only matters for DNS lookups, not for the request path.",
+            correct: false,
+            explanationMd: "DNS resolution (3.2) never carries encrypted traffic at all - TLS is entirely a property of the request path, not the lookup that precedes it.",
+          },
+          {
+            id: "d",
+            label:
+              "Termination happens here by choice (terminatesTls), and 2.1 already priced that trade-off " +
+              "- traffic behind the proxy is still readable by anything with access unless it's " +
+              "re-encrypted inward.",
+            correct: true,
+            explanationMd:
+              "Correct. \"Secure\" isn't binary - 2.1's own table named exactly what edge termination " +
+              "buys and what it costs, and that cost (plaintext on your own network) doesn't vanish just " +
+              "because the proxy exists.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-3-reverse-proxy-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate argues the reverse proxy should be removed since it \"just adds a hop and a " +
+          "failure point for no benefit.\" What's the strongest response?",
+        options: [
+          {
+            id: "a",
+            label: "Agreed - remove it once TLS is handled somewhere else.",
+            correct: false,
+            explanationMd: "This concedes the teammate's framing - the proxy's value was never only TLS termination, so relocating that one job doesn't answer the objection.",
+          },
+          {
+            id: "b",
+            label:
+              "Both costs are real, but they buy something specific: the backend behind it can be " +
+              "resized, moved, or rewritten without a single client-facing change. Removing it trades " +
+              "that swappability away.",
+            correct: true,
+            explanationMd:
+              "Correct. The hop and the failure point are genuine costs, not imagined ones - the " +
+              "argument for keeping the proxy has to name what they buy, not deny that they cost anything.",
+          },
+          {
+            id: "c",
+            label: "It should stay only because DNS depends on it existing.",
+            correct: false,
+            explanationMd: "Not true - 3.2's DNS resolution finishes before the proxy is ever reached and doesn't depend on it at all.",
+          },
+          {
+            id: "d",
+            label: "It's free once traffic is encrypted, so there's no real hop cost.",
+            correct: false,
+            explanationMd: "Encryption and the extra network hop are unrelated costs - encrypting traffic doesn't make an additional stop in the request path disappear.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-3-reverse-proxy-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "After a deploy, users see 502 errors from the edge, but every app-server dashboard shows " +
+          "healthy, zero-error traffic. Strongest first hypothesis?",
+        options: [
+          {
+            id: "a",
+            label: "The database is down.",
+            correct: false,
+            explanationMd: "A database outage would still show up as errors on the app-server dashboards, which report healthy here - the failure is earlier than that.",
+          },
+          {
+            id: "b",
+            label: "DNS TTL expired for the domain.",
+            correct: false,
+            explanationMd: "A stale DNS answer produces a connection failure to the wrong or no address, not a 502 - a 502 means the proxy itself is up and answering.",
+          },
+          {
+            id: "c",
+            label:
+              "The proxy's own upstream configuration (address, port, or path) no longer matches where " +
+              "the app server actually is, so requests never reach it at all.",
+            correct: true,
+            explanationMd:
+              "Correct. A 502 is the proxy's own answer, and it means the proxy couldn't reach whatever " +
+              "it's configured to forward to - exactly what a deploy that moves the app server without " +
+              "updating the proxy's config produces.",
+          },
+          {
+            id: "d",
+            label: "The firewall is blocking legitimate traffic.",
+            correct: false,
+            explanationMd: "A firewall block would drop or hang the connection before it reached the proxy at all, not surface as the proxy's own 502 response.",
+          },
+        ],
+      },
+    ],
+    // Deliberately incomplete, not miswired: browser, DNS, and firewall are
+    // correctly wired to each other, and app server to database is
+    // correctly wired too - nothing here is a wiring mistake, matching
+    // 1.6/3.1/3.2's "fix ships symptoms, never find-the-bug-blind"
+    // precedent. The fault is purely the missing front door between them.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-3-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-3-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
+        { id: "bb-3-3-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-3-app", componentId: "app-server", position: { x: 900, y: 160 }, config: {} },
+        { id: "bb-3-3-db", componentId: "sql-database", position: { x: 1100, y: 160 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-3-e1", source: "bb-3-3-browser", target: "bb-3-3-dns", kind: "request-flow" },
+        { id: "bb-3-3-e2", source: "bb-3-3-dns", target: "bb-3-3-fw", kind: "request-flow" },
+        { id: "bb-3-3-e3", source: "bb-3-3-app", target: "bb-3-3-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-3-browser"],
+    },
+  },
+  {
     id: "bb-3-4-load-balancer",
     mode: "building-blocks",
     title: "Load Balancer",
@@ -4633,6 +5656,695 @@ export const chapterRegistry: ChapterDefinition[] = [
         { id: "bb-3-4-edge-app1-db", source: "bb-3-4-app1", target: "bb-3-4-db", kind: "request-flow" },
       ],
       entryPointIds: ["bb-3-4-client"],
+    },
+  },
+  {
+    id: "bb-3-5-api-gateway",
+    mode: "building-blocks",
+    title: "API Gateway",
+    // Real authored content (Wave 3, fourth Group A chapter - Group A
+    // complete). Spec: specs/bb-3-5-api-gateway.spec.md. Lesson body:
+    // public/content/chapters/bb-3-5-api-gateway.mdx. Real curriculum-order
+    // prerequisite (3.4) is already shipped in this same working tree - no
+    // pulled-forward exception needed (manifest.ts's prerequisiteSlugs
+    // already points at "3-4-load-balancer").
+    problemStatement:
+      "The starter graph carries 3.3's own chain - browser, DNS, firewall, reverse proxy - already " +
+      "wired to each other, plus an app server wired to a database. Nothing connects the reverse " +
+      "proxy's output to the app tier yet. Add an API Gateway, wire it into that gap, and get a clean " +
+      "Validate before you Submit. Which specific check fires until you do isn't previewed here.",
+    // Six objectives (§5.2 allows 3-7); all five required categories
+    // represented (Building Block, so Practical is not exempt). Category
+    // tags live in the spec §2.
+    learningObjectives: [
+      "State the API gateway's job: a single client-facing entry point that applies auth and rate limiting once, in front of however many services exist, then routes by service.",
+      "Distinguish the gateway's job from a reverse proxy's (one backend group, no policy) and a load balancer's (identical instances of one service, no policy).",
+      "Decide when an API gateway is load-bearing (multiple services needing consistent policy) versus overkill (one service, no shared policy to centralize).",
+      "Add an API Gateway to a starter graph between the reverse proxy and the app tier, wire it correctly, and pass Submit.",
+      "Answer the \"gateway vs. load balancer\" interview follow-up crisply, naming what each decides and what each doesn't.",
+      "Explain, in 1.3's trade-off language, what centralizing policy at the gateway buys (consistency, one place to patch) against what it costs (a new hop, the widest blast radius of the three front-door components).",
+    ],
+    // Cumulative palette: this chapter's own new component (§16's audit row
+    // for 3.5 is `api-gateway`) plus 3.1-3.3's browser, dns, firewall,
+    // reverse-proxy, app-server, sql-database. `client` and `load-balancer`
+    // deliberately excluded - load-balancer is referenced by name in prose
+    // and quiz only, not required on canvas here, matching 3.3's own
+    // precedent of naming 3.4/3.5 without requiring them. Required equals
+    // available.
+    availableComponentIds: ["browser", "dns", "firewall", "reverse-proxy", "api-gateway", "app-server", "sql-database"],
+    requiredComponentIds: ["browser", "dns", "firewall", "reverse-proxy", "api-gateway", "app-server", "sql-database"],
+    // No new namesake rule this chapter (§14's row names none for 3.5, and
+    // no existing rule teaches anything gateway-specific - verified against
+    // src/validation-engine/rules/index.ts). Same structural set 3.1-3.3
+    // curated, minus permissive-firewall (the inherited firewall node is
+    // already safely configured and this chapter doesn't teach firewall
+    // config).
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "request-flow-cycle",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-5-blueprint",
+        label: "One policy layer between the front door and the app tier",
+        require: {
+          id: "bb-3-5-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "The gateway is the last stop before the app tier that gets to say no - by the time a " +
+          "request reaches the app server, the gateway has already decided who's asking and how " +
+          "often, which is exactly what neither the proxy nor a bare app server ever checked.",
+      },
+    ],
+    hints: [
+      {
+        id: "bb-3-5-hint-1",
+        body:
+          "Validate is telling you the reverse proxy's output goes nowhere yet, and the app server has " +
+          "nothing feeding it. One node closes both gaps at once.",
+      },
+      {
+        id: "bb-3-5-hint-2",
+        body:
+          "Add an API Gateway node from the picker (`/` or right-click) and wire it between the " +
+          "Reverse Proxy and the Application Server - proxy to gateway, gateway to app server.",
+      },
+      {
+        id: "bb-3-5-hint-3",
+        body:
+          "Both new edges carry request-flow, same as everywhere else. Nothing about the gateway's own " +
+          "config (Requires Auth, Rate Limit) needs to change from its default for this build.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group A: Core Infrastructure - Chapter 3.5 of 37 (final chapter in Group A).",
+      masteredConcepts: [
+        "The Reader-to-Editor loop, Validate vs. Submit, and reading a validation explanation (0.1).",
+        "The three-tier shape (1.2) and the trade-off reflex - we chose X, accepting Y, because Z (1.3).",
+        "The request's stops, and that the API gateway's own stop-table row is 'auth, rate limits, and request shaping in front of many services' (2.1's own row for this chapter).",
+        "The four architecture shapes and that Group A's pressure - traffic has to be resolved, admitted and routed before your code sees it - is now fully spent across 3.1-3.3 (2.3).",
+        "The trust perimeter and a firewall's defaultPolicy (3.1); DNS resolution and TTL (3.2).",
+        "The reverse proxy's single front door, and its own drawn line - routing lives here, authentication and rate limiting don't (3.3).",
+        "The load balancer's job: distributing traffic across identical, health-checked instances of one service, with algorithm choice as a config decision (3.4).",
+      ],
+      notYetIntroducedConcepts: [
+        "Statelessness, and why it's what lets any tier - including a gateway - scale by adding instances rather than needing session affinity (3.6).",
+        "Session externalization (3.7), horizontal scaling as its own named topic (3.8), and service discovery (3.9).",
+        "Everything past Group A - data, caching, async systems, storage, and reliability.",
+      ],
+      simplifications: [
+        "The buildable exercise fronts a single service; the multi-service picture (the reason a gateway " +
+          "is more than 'a proxy that also checks auth') is shown in the lesson's diagram and prose, not " +
+          "the graded build. The registry's buildable graph node has no per-instance label, so a second, " +
+          "visually generic app-server node on canvas wouldn't actually read as 'a different service' - " +
+          "only as another identical instance, which is the load balancer's own shape from 3.4. Declared " +
+          "honestly rather than building a two-node graph that doesn't teach what it claims to.",
+        "Routing rules (which path reaches which service) aren't a configurable field on this registry " +
+          "component - requiresAuth and rateLimitPerMinute are the only two config fields. Which service a " +
+          "request reaches is expressed by which edge exists, not by an authored routing table.",
+      ],
+    },
+    // Five questions, ramp 1/1/2/2/3. Q2 models QUIZ_FRAMEWORK.md §8's own
+    // Q8 (the bank's published trio-matching example) - reworded with fresh
+    // wording rather than reproduced. Q1, Q3, Q4, Q5 are original.
+    // Position-clustering checked by eye across the four single-kind
+    // questions (Q1/Q3/Q4/Q5): correct options sit at c, a, d, b - all four
+    // positions used, no repeat.
+    quiz: [
+      {
+        id: "bb-3-5-api-gateway-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "The API gateway's architectural job, stated precisely, is to:",
+        options: [
+          {
+            id: "a",
+            label: "Resolve a hostname to an address before any connection exists.",
+            correct: false,
+            explanationMd: "That's DNS's job (3.2), and it already finished before the request ever reached this stop.",
+          },
+          {
+            id: "b",
+            label: "Present one address for a single backend group, with no policy logic of its own.",
+            correct: false,
+            explanationMd: "That's a reverse proxy's job (3.3) - it routes by host and path, but never checks who's asking or how often.",
+          },
+          {
+            id: "c",
+            label:
+              "Serve as the single client-facing entry point for policy - authentication and rate " +
+              "limiting - applied once for however many services sit behind it, then route by service.",
+            correct: true,
+            explanationMd:
+              "Correct. The gateway centralizes exactly the checks a reverse proxy and a load balancer " +
+              "neither one performs.",
+          },
+          {
+            id: "d",
+            label: "Distribute requests evenly across several identical backend instances.",
+            correct: false,
+            explanationMd: "That's a load balancer's job (3.4) - a gateway doesn't know or care whether the service behind it has one instance or ten.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-5-api-gateway-q2",
+        kind: "matching",
+        difficulty: 1,
+        prompt: "Match each job to the component that owns it.",
+        // Derangement: pairs[0]'s correct option ("reverse-proxy") sits at
+        // options index 2, pairs[1]'s ("load-balancer") sits at index 0,
+        // pairs[2]'s ("api-gateway") sits at index 1 - no pair's correct
+        // option sits at its own pair index.
+        options: [
+          {
+            id: "load-balancer",
+            label: "Load Balancer",
+            correct: true,
+            explanationMd:
+              "Distributes traffic across identical, health-checked copies of one service - it has no " +
+              "idea what the request is asking for, only which instance is next (3.4).",
+          },
+          {
+            id: "api-gateway",
+            label: "API Gateway",
+            correct: true,
+            explanationMd:
+              "The client-facing policy layer: decides who's allowed in and how often, once, then " +
+              "routes by service rather than by instance (3.5).",
+          },
+          {
+            id: "reverse-proxy",
+            label: "Reverse Proxy",
+            correct: true,
+            explanationMd:
+              "Fronts one backend group and decides where a request goes by host or path - no " +
+              "authentication, no rate limiting, no spreading across instances (3.3).",
+          },
+        ],
+        pairs: [
+          ["One front door for a single backend group, no policy logic", "reverse-proxy"],
+          ["Spread traffic across identical, health-checked instances of one service", "load-balancer"],
+          ["Client-facing policy layer: auth and rate limits, applied once across however many services exist", "api-gateway"],
+        ],
+      },
+      {
+        id: "bb-3-5-api-gateway-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate argues the gateway's policy checks (auth, rate limiting) should each be " +
+          "reimplemented inside every service instead, since it's \"simpler than routing everything " +
+          "through one shared component.\" What's the strongest response?",
+        options: [
+          {
+            id: "a",
+            label:
+              "Duplicating the check trades a shared hop for inconsistency - every service can enforce " +
+              "a slightly different rule, and every service has to be independently patched when the " +
+              "policy changes.",
+            correct: true,
+            explanationMd:
+              "Correct. Centralizing isn't free, but the alternative isn't free either - it's paid in " +
+              "drift, not in a visible hop.",
+          },
+          {
+            id: "b",
+            label: "Agreed - each service should own its own auth and rate limiting.",
+            correct: false,
+            explanationMd: "This is exactly the duplication the gateway exists to remove - every service reimplementing the same check independently is how the two checks drift apart in the first place.",
+          },
+          {
+            id: "c",
+            label: "It doesn't matter either way, since rate limiting doesn't affect correctness.",
+            correct: false,
+            explanationMd: "Correctness isn't the only thing at stake - an inconsistent or missing check is a real security and availability gap, not a cosmetic one.",
+          },
+          {
+            id: "d",
+            label: "The gateway should be removed entirely once there's more than one service.",
+            correct: false,
+            explanationMd: "Backwards - more services is exactly when centralizing the same check across all of them starts paying off.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-5-api-gateway-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt: "A gateway in front of three services goes down entirely for two minutes. What happens to the three services behind it?",
+        options: [
+          {
+            id: "a",
+            label: "Only the service the gateway happens to be routing to at that moment is affected.",
+            correct: false,
+            explanationMd: "The gateway is the single thing every request to any of the three passes through first - there's no partial failure here.",
+          },
+          {
+            id: "b",
+            label: "Nothing - each service has its own load balancer, so traffic reroutes automatically.",
+            correct: false,
+            explanationMd: "A service's own load balancer only reroutes traffic among that service's own instances - it can't reach around a dead gateway sitting in front of it.",
+          },
+          {
+            id: "c",
+            label: "Only requests requiring authentication are affected; unauthenticated ones pass through.",
+            correct: false,
+            explanationMd: "The gateway itself is down - there's no path through it for any request, authenticated or not.",
+          },
+          {
+            id: "d",
+            label:
+              "All three become unreachable at once, even though each one is individually healthy - the " +
+              "gateway is the one thing every request to any of them has to pass through first.",
+            correct: true,
+            explanationMd:
+              "Correct. This is the wider blast radius a gateway carries compared to a reverse proxy: " +
+              "one proxy outage costs one backend group; one gateway outage costs every service behind it.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-5-api-gateway-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt: "Interviewer: \"You've already got a load balancer. Why add a gateway too?\" Strongest answer?",
+        options: [
+          {
+            id: "a",
+            label: "They do the same job, so only one is needed - drop whichever came second.",
+            correct: false,
+            explanationMd: "They don't do the same job - a load balancer spreads traffic across identical copies of one service; a gateway centralizes policy across however many services exist. Neither replaces the other.",
+          },
+          {
+            id: "b",
+            label:
+              "The load balancer solves distributing traffic within one service; the gateway solves who's " +
+              "allowed in and how often, across every service - once there's more than one service or a " +
+              "policy to enforce consistently, that's a job the load balancer was never built to do.",
+            correct: true,
+            explanationMd: "Correct - names both jobs precisely and states the condition that makes the gateway load-bearing, matching a senior-level answer.",
+          },
+          {
+            id: "c",
+            label: "The gateway makes the load balancer unnecessary once it's in place.",
+            correct: false,
+            explanationMd: "A gateway routes to a service, not to a specific healthy instance of it - a service with more than one instance still needs its own load balancer behind the gateway.",
+          },
+          {
+            id: "d",
+            label: "Only the gateway matters; the load balancer was a mistake.",
+            correct: false,
+            explanationMd: "The load balancer already solved a real problem in 3.4 (spreading load across identical instances) - the gateway solves a different one, it doesn't retroactively make the first one wrong.",
+          },
+        ],
+      },
+    ],
+    // Deliberately incomplete, not miswired: browser, DNS, firewall, and
+    // reverse proxy are correctly wired to each other (3.3's own chain), and
+    // app server to database is correctly wired too - nothing here is a
+    // wiring mistake, matching 1.6/3.1-3.4's "fix ships symptoms, never
+    // find-the-bug-blind" precedent. The fault is purely the missing policy
+    // layer between them.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-5-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-5-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
+        { id: "bb-3-5-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-5-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
+        { id: "bb-3-5-app", componentId: "app-server", position: { x: 1060, y: 160 }, config: {} },
+        { id: "bb-3-5-db", componentId: "sql-database", position: { x: 1260, y: 160 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-5-e1", source: "bb-3-5-browser", target: "bb-3-5-dns", kind: "request-flow" },
+        { id: "bb-3-5-e2", source: "bb-3-5-dns", target: "bb-3-5-fw", kind: "request-flow" },
+        { id: "bb-3-5-e3", source: "bb-3-5-fw", target: "bb-3-5-proxy", kind: "request-flow" },
+        { id: "bb-3-5-e4", source: "bb-3-5-app", target: "bb-3-5-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-5-browser"],
+    },
+  },
+  {
+    id: "bb-3-6-stateless-services",
+    mode: "building-blocks",
+    title: "Stateless Services",
+    // Real authored content (Wave 3 continuation, first Group B chapter).
+    // Spec: specs/bb-3-6-stateless-services.spec.md. Lesson body:
+    // public/content/chapters/bb-3-6-stateless-services.mdx. Real
+    // curriculum-order prerequisite (3.5) is already shipped in this same
+    // working tree - manifest.ts's prerequisiteSlugs already points at
+    // "3-5-api-gateway", no pulled-forward exception needed.
+    problemStatement:
+      "The starter graph is the system as built through 3.5: browser, DNS, firewall, reverse proxy, " +
+      "API gateway, load balancer, one app server, one database - all correctly wired, nothing " +
+      "missing. The one thing wrong is a number, not a shape: the app server's own Instances field " +
+      "is still 1, so the load balancer in front of it is exactly the pass-through 3.4 warned about. " +
+      "Fix it with a number. Get a clean Validate, then Submit.",
+    // Six objectives (§5.2 allows 3-7); all five required categories
+    // represented. Concept type does not exempt Practical here - unlike a
+    // no-build Concept chapter (0.2, 0.3), this chapter has a real
+    // Submit-gated fix, so a Practical objective is genuinely exercisable
+    // (matches 3.1's own "Concept with small build" precedent).
+    learningObjectives: [
+      "State what makes a service stateless: any instance can answer any request because no response depends on a specific instance's memory of an earlier one.",
+      "Distinguish state that's safe to keep local (recomputable, disposable) from state that isn't (anything the next request needs to see correctly, regardless of which instance answers it).",
+      "Decide, for a piece of app-tier state, whether pinning it to one instance or moving it to a shared store is the more honest call given the situation, and name the cost of each.",
+      "Fix a starter graph's under-provisioned load balancer by raising the Application Server's own Instances field - not adding a second node - and pass Submit.",
+      "Answer \"is autoscaling free once you're stateless?\" without overclaiming that displaced state disappears rather than relocates.",
+      "Explain, in 1.3's trade-off language, what pinning a user to one instance buys against what moving their state out of the app tier costs.",
+    ],
+    // Cumulative palette through 3.5 - this chapter's own §16 audit row is
+    // "New: none," so nothing is added. Required equals available: every
+    // node in the starter graph has a specific job in the fix (the load
+    // balancer/app-server pair is the exercise's own subject; the rest is
+    // the already-correct system the exercise is embedded in, matching the
+    // curriculum's running-example philosophy for Part 3 - CURRICULUM §14's
+    // own intro to the part).
+    availableComponentIds: ["browser", "dns", "firewall", "reverse-proxy", "api-gateway", "load-balancer", "app-server", "sql-database"],
+    requiredComponentIds: ["browser", "dns", "firewall", "reverse-proxy", "api-gateway", "load-balancer", "app-server", "sql-database"],
+    // single-instance-load-balancer is 3.4's own namesake rule, reused here
+    // for a different reason - see spec §7. No new rule authored (verified
+    // against src/validation-engine/rules/index.ts; nothing existing or
+    // needed teaches statelessness directly, and authoring a new rule is
+    // outside this pass's scope per the chapter-author skill). Same
+    // structural set 3.1-3.5 curated for the rest, minus permissive-firewall
+    // (inherited firewall node is already safely configured; this chapter
+    // doesn't teach firewall config).
+    validationRuleIds: [
+      "single-instance-load-balancer",
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "request-flow-cycle",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-6-blueprint",
+        label: "The same system, one instance count changed",
+        require: {
+          id: "bb-3-6-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "Nothing about the topology changed - the same load balancer, the same single app-server " +
+          "node, the same edges. Only the Instances count moved. That's the entire chapter: once a " +
+          "tier keeps nothing that only one of its instances remembers, giving it more capacity is a " +
+          "number to change, not a system to redesign.",
+      },
+    ],
+    hints: [
+      {
+        id: "bb-3-6-hint-1",
+        body:
+          "Validate is naming the load balancer's own capacity, not anything wired wrong - every edge " +
+          "in this graph is already correct.",
+      },
+      {
+        id: "bb-3-6-hint-2",
+        body: "Open the Application Server's config panel (click the node) and look at Instances. It's still 1.",
+      },
+      {
+        id: "bb-3-6-hint-3",
+        body:
+          "Raise Instances to 2 or more on that same node - don't add a second Application Server " +
+          "node, that's a different exercise's fix.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group B: Compute - Chapter 3.6 of 37 (first chapter in Group B).",
+      masteredConcepts: [
+        "The Reader-to-Editor loop, Validate vs. Submit, and reading a validation explanation (0.1).",
+        "The three-tier shape (1.2) and the trade-off reflex - we chose X, accepting Y, because Z (1.3).",
+        "The load balancer's job: distributing traffic across identical, health-checked instances of one service, and that a load balancer over a single instance is a pass-through, not a load balancer (3.4).",
+        "The API gateway's job as the client-facing policy layer, and that Group A's own front door - firewall, DNS, reverse proxy, load balancer, API gateway - is now complete (3.5).",
+        "The scaling-evolution story: copies of the app tier are the cheapest way to relieve a compute ceiling, and 2.3's own foreshadow that this only works if a request can land anywhere.",
+      ],
+      notYetIntroducedConcepts: [
+        "Where displaced state actually lives, and the sticky-vs-externalized trade-off in full (3.7).",
+        "Horizontal scaling as its own named topic, and service discovery (3.8, 3.9).",
+        "Everything past Group B - data, caching, async systems, storage, and reliability.",
+      ],
+      simplifications: [
+        "The buildable exercise fixes the load balancer's capacity by raising the Application Server's " +
+          "own Instances field, not by adding a second node - which is 3.4's own fix, for a " +
+          "structurally different starting graph. Both are real moves an engineer can make; this " +
+          "chapter's blueprint specifically requires the config change because proving that scaling " +
+          "out is 'just a number' once a tier is stateless is this chapter's own point, stated " +
+          "honestly in the lesson's own 'Your turn' section, not left implicit.",
+        "Session affinity / sticky routing is named in the lesson but not built or configured on " +
+          "canvas here - no registry component has a representable config field for it today, and its " +
+          "full cost accounting belongs to 3.7.",
+      ],
+    },
+    // Five questions, ramp 1/1/2/2/3. Q1 models QUIZ_FRAMEWORK.md §9's own
+    // Q1 (the bank's published definition question for this exact chapter) -
+    // reworded with fresh option labels. Q2-Q5 are original, each scoped
+    // away from 3.7-3.9 material per the bank's own per-question tags.
+    // Position-clustering checked by eye: correct options sit at c, a, d, b,
+    // c across the five single-kind questions - all four positions used,
+    // "c" the only repeat (Q1, Q5).
+    quiz: [
+      {
+        id: "bb-3-6-stateless-services-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "\"Stateless service\" means, precisely:",
+        options: [
+          {
+            id: "a",
+            label: "The service stores no data anywhere.",
+            correct: false,
+            explanationMd: "The database is real, shared state every instance reaches identically - statelessness is about the instances, not about whether data exists at all.",
+          },
+          {
+            id: "b",
+            label: "The service has no configuration.",
+            correct: false,
+            explanationMd: "Configuration and state are unrelated - a stateless app server can still have a config field like Instances.",
+          },
+          {
+            id: "c",
+            label: "Any instance can answer any request, because no response depends on a specific instance's memory of an earlier one.",
+            correct: true,
+            explanationMd: "Correct. State exists - it just can't live only in one instance's memory, or that instance becomes the only one who can answer correctly.",
+          },
+          {
+            id: "d",
+            label: "The service never fails.",
+            correct: false,
+            explanationMd: "Statelessness is about what an instance remembers, not about whether it can crash - a stateless instance can still die, it just doesn't take anyone's state with it.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-6-stateless-services-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Two app-server instances behind a load balancer. A user adds an item to their cart, " +
+          "reloads the page, and the cart is empty. Most likely root cause:",
+        options: [
+          {
+            id: "a",
+            label: "The cart addition was held in the instance that served the first request; the reload landed on the other one.",
+            correct: true,
+            explanationMd: "Correct. The load balancer never promised the second request would return to the same instance - only that it would reach a healthy one.",
+          },
+          {
+            id: "b",
+            label: "The database lost the write.",
+            correct: false,
+            explanationMd: "Nothing here points at the database - the failure pattern (works once, vanishes on reload) is exactly what per-instance memory produces, not a lost write.",
+          },
+          {
+            id: "c",
+            label: "The load balancer is misconfigured.",
+            correct: false,
+            explanationMd: "The load balancer did its job correctly - it routed to a healthy instance both times. The bug is in what the app tier assumed about where it would route.",
+          },
+          {
+            id: "d",
+            label: "The user's browser cleared its cache.",
+            correct: false,
+            explanationMd: "A cache clear wouldn't reproduce this specific pattern (the same user, the same session, a reload) - the state that vanished lived on the server side, not the client.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-6-stateless-services-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "An app-server instance keeps an in-memory cache of a slow-to-compute value. Different " +
+          "instances sometimes cache slightly different copies of it. Is this a statelessness violation?",
+        options: [
+          {
+            id: "a",
+            label: "Yes - all local memory on an app server is forbidden.",
+            correct: false,
+            explanationMd: "Overcorrection. The rule is about what a response depends on, not about whether memory is used at all.",
+          },
+          {
+            id: "b",
+            label: "Only if the cache holds more than roughly a megabyte of data.",
+            correct: false,
+            explanationMd: "Size has nothing to do with it - a one-byte value that changes what a user is entitled to see is the real problem; a large cache of a recomputable value is not.",
+          },
+          {
+            id: "c",
+            label: "No - caching is a job for a dedicated cache component, not the app server.",
+            correct: false,
+            explanationMd: "That's a real pattern (later in the curriculum), but it's not why this specific case is safe - this case is safe because losing the value costs nothing but a recompute.",
+          },
+          {
+            id: "d",
+            label: "No - losing it or recomputing it doesn't change what the user is entitled to see, only how fast they see it.",
+            correct: true,
+            explanationMd: "Correct. This is exactly the state that's safe to keep local: disposable, recomputable, never the reason a request gets the wrong answer.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-6-stateless-services-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate proposes routing each user's repeat requests back to the same instance " +
+          "instead of moving state out of the app tier. Strongest response?",
+        options: [
+          {
+            id: "a",
+            label: "Agreed - pinning is free and solves the problem for good.",
+            correct: false,
+            explanationMd: "It isn't free - it buys time at the cost of re-coupling a user to one instance's availability.",
+          },
+          {
+            id: "b",
+            label: "It avoids a network hop today, but it re-creates the coupling instances-are-interchangeable was supposed to remove: lose that instance, and every user pinned to it loses their state too.",
+            correct: true,
+            explanationMd: "Correct - names the real benefit (no new hop yet) and the real cost (a reintroduced single point of failure per pinned user), both ways, in 1.3's form.",
+          },
+          {
+            id: "c",
+            label: "It's strictly worse than externalizing state in every case, full stop.",
+            correct: false,
+            explanationMd: "Overclaims - pinning is a genuine stopgap with a real, statable cost, not a mistake in every situation.",
+          },
+          {
+            id: "d",
+            label: "It only matters for read-heavy traffic.",
+            correct: false,
+            explanationMd: "The read/write mix isn't the relevant axis here - what matters is whether the state changes what a future request needs to see correctly.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-6-stateless-services-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Interviewer: \"Your services are stateless, so autoscaling is just adding boxes, right?\" " +
+          "Strongest answer?",
+        options: [
+          {
+            id: "a",
+            label: "Yes, exactly - nothing else about the system changes.",
+            correct: false,
+            explanationMd: "Overclaims. The state that used to live in the app tier didn't disappear - it moved somewhere, and that somewhere now has to hold up under the added load too.",
+          },
+          {
+            id: "b",
+            label: "No - statelessness and autoscaling are unrelated concepts.",
+            correct: false,
+            explanationMd: "They're directly related - a new instance can only take real traffic immediately if it isn't missing anything a request depends on, which is exactly what statelessness guarantees.",
+          },
+          {
+            id: "c",
+            label: "Mostly - but any state the app tier doesn't hold now lives in a shared store, and that store is what actually has to hold up under the added load.",
+            correct: true,
+            explanationMd: "Correct. Statelessness relocates the problem rather than deleting it - the senior-level nuance is naming where it went, not claiming it vanished.",
+          },
+          {
+            id: "d",
+            label: "Only if the new instances are the same size as the existing ones.",
+            correct: false,
+            explanationMd: "Instance size is a capacity-planning detail, not what makes adding instances safe or unsafe - statelessness is.",
+          },
+        ],
+      },
+    ],
+    // Deliberately incomplete, not miswired: every node and edge is
+    // correctly wired end to end - the fault is purely a config value
+    // (Instances: 1 on a node behind a load balancer), the first purely
+    // config-only Fix this curriculum has shipped (3.1's permissive-firewall
+    // gate is also config-only, but on a Completion exercise with a missing
+    // node, not a Fix on an otherwise-complete graph).
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-6-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-6-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
+        { id: "bb-3-6-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-6-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
+        { id: "bb-3-6-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
+        { id: "bb-3-6-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
+        { id: "bb-3-6-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 1 } },
+        { id: "bb-3-6-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-6-e1", source: "bb-3-6-browser", target: "bb-3-6-dns", kind: "request-flow" },
+        { id: "bb-3-6-e2", source: "bb-3-6-dns", target: "bb-3-6-fw", kind: "request-flow" },
+        { id: "bb-3-6-e3", source: "bb-3-6-fw", target: "bb-3-6-proxy", kind: "request-flow" },
+        { id: "bb-3-6-e4", source: "bb-3-6-proxy", target: "bb-3-6-gateway", kind: "request-flow" },
+        { id: "bb-3-6-e5", source: "bb-3-6-gateway", target: "bb-3-6-lb", kind: "request-flow" },
+        { id: "bb-3-6-e6", source: "bb-3-6-lb", target: "bb-3-6-app", kind: "request-flow" },
+        { id: "bb-3-6-e7", source: "bb-3-6-app", target: "bb-3-6-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-6-browser"],
     },
   },
   {
