@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { ScreenSizeGate } from "../ScreenSizeGate";
 
 // Route-level gate for pages that are exercises, not reading: the Design
 // Editor canvas, sandbox, and dev tooling. Reading (Learning Path, chapter
@@ -7,11 +8,16 @@ import { auth } from "@clerk/nextjs/server";
 // pending-6.1.0-poa.md). LocalStateGate/FlushDirtyRows/RefreshFromCloud used
 // to mount here; they're global now (src/app/layout.tsx) since a signed-in
 // user reads progress on public routes too.
+//
+// ScreenSizeGate also moved here (release 7.1.0-alpha,
+// pending-responsive.md): the group's auth boundary and its size boundary
+// are the same boundary by construction, so a future canvas route added
+// under (protected) inherits both for free.
 export default async function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   await auth.protect();
-  return <>{children}</>;
+  return <ScreenSizeGate>{children}</ScreenSizeGate>;
 }
