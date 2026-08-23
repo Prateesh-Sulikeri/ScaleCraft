@@ -1,13 +1,28 @@
+import {
+  BlueprintGlow,
+  DimensionLine,
+  GroundPlane,
+  IsoBlock,
+  RegistrationMarks,
+  diamond,
+  isoRise,
+} from "@/learning-path/blueprint-geometry";
+
 /**
- * The feedback dialog's drawing: what you write leaving the app and arriving
- * with the person who builds it.
+ * The feedback dialog's drawing: what is built, and the next thing waiting to
+ * be placed.
  *
- * A marked node (the app you are in) on the left, the written note as a
- * bracketed speech bubble in the middle, and a paper plane on the right, tied
- * together by one dashed leader that runs the whole way across. Same flat
- * drafting vocabulary as ReleaseIllustration.tsx - nodes, leaders, dimension
- * ticks, registration corners - so it reads as another sheet from the same
- * set rather than a stock support graphic.
+ * A cluster of solid blocks on the left is what exists today. On the right a
+ * ghost block hangs above its own dashed footprint, not set down yet, with one
+ * leader running to it from the cluster. That is the dialog's own claim drawn
+ * rather than restated - what you say here decides what gets built next.
+ *
+ * Built on `blueprint-geometry`, the same isometric projection About, the two
+ * course illustrations and Home's announcement object use, so this reads as
+ * another sheet from the same drawing set. It replaces a flat drawing of a
+ * note and a paper plane: a stock support graphic, the only solid mass in an
+ * otherwise linework app, and in light theme its rules read as a loading
+ * skeleton.
  *
  * Every value is `currentColor` at some opacity so it follows the theme, and
  * `aria-hidden` - the headline beside it carries the meaning.
@@ -17,43 +32,67 @@
  * edge to edge instead of letterboxing it. */
 const VIEW = { w: 480, h: 200 };
 
-/** The note itself: a sheet of rules of unequal measure, the first weighted
- *  like a subject line. Not lorem text - just the shape short written feedback
- *  makes. */
-const SHEET = { x: 158, y: 34, w: 152, h: 74 };
-const RULES: { w: number; strong?: boolean }[] = [
-  { w: 112, strong: true },
-  { w: 78 },
-  { w: 124 },
-  { w: 64 },
+/** The ground plane. */
+const BASE_Y = 138;
+
+/** What is built. Listed back to front (increasing `cy`) - a solid block
+ *  paints its own silhouette, so draw order is what makes them occlude. */
+const BUILT = [
+  { cx: 210, cy: 128, hw: 24, depth: 19, dim: 0.72 },
+  { cx: 150, cy: 146, hw: 32, depth: 32, dim: 1 },
+  { cx: 238, cy: 158, hw: 21, depth: 15, dim: 0.85 },
 ];
 
-/** Source node - the app the feedback is written from. */
-const SOURCE = { x: 62, y: 96 };
+/** The next block: hovering, so it reads as not placed rather than merely
+ *  unfinished. `HOVER` is how far above its footprint it sits. */
+const NEXT = { cx: 360, hw: 30, depth: 28 };
+const HOVER = 32;
 
 export function FeedbackIllustration({ className = "" }: { className?: string }) {
+  const nextBaseY = BASE_Y - HOVER;
+  const nextRise = isoRise(NEXT.hw);
+
   return (
     <svg
       viewBox={`0 0 ${VIEW.w} ${VIEW.h}`}
       aria-hidden="true"
-      data-illustration="feedback-path"
+      data-illustration="feedback-next-block"
       className={`h-full w-full text-hero-accent ${className}`}
       preserveAspectRatio="xMidYMid meet"
     >
-      <defs>
-        {/* A pattern rather than the ~500 <circle> elements this density would
-            otherwise cost. */}
-        <pattern id="feedback-grid-dots" width="16" height="16" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="0.9" fill="currentColor" fillOpacity="0.11" />
-        </pattern>
-      </defs>
+      <BlueprintGlow id="feedback-next-glow" cx={250} cy={116} rx={215} ry={100} peak={0.13} />
 
-      <rect x="0" y="0" width={VIEW.w} height={VIEW.h} fill="url(#feedback-grid-dots)" />
+      <GroundPlane id="feedback-next-ground" cx={240} cy={BASE_Y} rx={228} ry={74} opacity={0.14} />
 
-      {/* The route the note travels: source node, down under the sheet, out to
-          the plane. Dashed throughout - it is a leader, not a wire. */}
+      {/* Where the next block lands, and the drop from the block down to it. */}
       <path
-        d={`M${SOURCE.x} ${SOURCE.y + 20} C ${SOURCE.x + 20} ${SOURCE.y + 62}, 150 168, 232 158 C 310 149, 346 140, 372 124`}
+        d={diamond(NEXT.cx, BASE_Y, NEXT.hw + 8, isoRise(NEXT.hw + 8))}
+        fill="currentColor"
+        fillOpacity="0.06"
+        stroke="currentColor"
+        strokeOpacity="0.34"
+        strokeWidth="0.9"
+        strokeDasharray="3 3"
+      />
+      <path
+        d={`M${NEXT.cx} ${nextBaseY + nextRise} L${NEXT.cx} ${BASE_Y}`}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="0.9"
+        strokeOpacity="0.3"
+        strokeDasharray="3 3"
+      />
+
+      {BUILT.map((b) => (
+        <IsoBlock key={`built-${b.cx}`} cx={b.cx} cy={b.cy} hw={b.hw} depth={b.depth} dim={b.dim} />
+      ))}
+
+      <IsoBlock cx={NEXT.cx} cy={nextBaseY} hw={NEXT.hw} depth={NEXT.depth} dim={1.25} ghost />
+
+      {/* The leader from what is built to what is next - drawn as a drafting
+          leader rather than a wire or an arrow, which would make it a flow. */}
+      <path
+        d={`M152 97 C 214 56, 284 56, ${NEXT.cx - NEXT.hw + 4} ${nextBaseY - NEXT.depth + 6}`}
         fill="none"
         stroke="currentColor"
         strokeWidth="1.1"
@@ -62,93 +101,16 @@ export function FeedbackIllustration({ className = "" }: { className?: string })
         strokeLinecap="round"
       />
 
-      {/* Source node, inside a registration square - the same marked-node motif
-          the release drawing uses for the version you are reading. */}
-      <g fill="none" stroke="currentColor">
-        <rect
-          x={SOURCE.x - 15}
-          y={SOURCE.y - 15}
-          width="30"
-          height="30"
-          rx="4"
-          strokeWidth="0.9"
-          strokeOpacity="0.26"
-        />
-        <rect
-          x={SOURCE.x - 8}
-          y={SOURCE.y - 8}
-          width="16"
-          height="16"
-          rx="3"
-          strokeWidth="1.5"
-          strokeOpacity="0.9"
-          fill="currentColor"
-          fillOpacity="0.16"
-        />
-      </g>
-
-      {/* Leader from the node up to the sheet it produced. */}
-      <path
-        d={`M${SOURCE.x} ${SOURCE.y - 17} L${SOURCE.x} ${SHEET.y + 26} L${SHEET.x - 6} ${SHEET.y + 26}`}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeOpacity="0.28"
-        strokeDasharray="4 4"
+      {/* No numeral on the rule - at this dialog's smallest slot a 7px label
+          renders at under 4px. */}
+      <DimensionLine
+        x1={118}
+        y1={BASE_Y + 42}
+        x2={NEXT.cx + NEXT.hw}
+        y2={BASE_Y + 42}
       />
 
-      {/* The note. Two corner brackets and a tail rather than a filled rounded
-          card - a bordered box of grey bars reads as a loading skeleton, which
-          is the one thing this must not look like. */}
-      <g>
-        <g fill="none" stroke="currentColor" strokeWidth="1" strokeOpacity="0.32">
-          <path d={`M${SHEET.x} ${SHEET.y + 16} L${SHEET.x} ${SHEET.y} L${SHEET.x + 16} ${SHEET.y}`} />
-          <path
-            d={`M${SHEET.x + SHEET.w - 16} ${SHEET.y + SHEET.h} L${SHEET.x + SHEET.w} ${SHEET.y + SHEET.h} L${SHEET.x + SHEET.w} ${SHEET.y + SHEET.h - 16}`}
-          />
-          {/* The tail, which is what makes the sheet a spoken remark rather
-              than a document. */}
-          <path d={`M${SHEET.x + 22} ${SHEET.y + SHEET.h} L${SHEET.x + 22} ${SHEET.y + SHEET.h + 16} L${SHEET.x + 42} ${SHEET.y + SHEET.h}`} />
-          <path d={`M${SHEET.x} ${SHEET.y + SHEET.h} L${SHEET.x + 22} ${SHEET.y + SHEET.h}`} strokeOpacity="0.2" />
-        </g>
-        {RULES.map((rule, i) => (
-          <rect
-            key={`rule-${i}`}
-            x={SHEET.x + 14}
-            y={SHEET.y + 14 + i * 14}
-            width={rule.w}
-            height="4.5"
-            rx="2.25"
-            fill="currentColor"
-            fillOpacity={rule.strong ? 0.45 : 0.18}
-          />
-        ))}
-      </g>
-
-      {/* The plane: two folds, the upper wing lighter than the fin under it,
-          so the fold reads without a single filled silhouette. */}
-      <g stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round">
-        <path d="M452 74 L374 116 L410 126 Z" fill="currentColor" fillOpacity="0.1" strokeOpacity="0.55" />
-        <path d="M452 74 L410 126 L424 154 Z" fill="currentColor" fillOpacity="0.22" strokeOpacity="0.8" />
-        <path d="M452 74 L410 126" fill="none" strokeOpacity="0.35" strokeWidth="0.9" />
-      </g>
-
-      {/* Flanking-tick dimension rule under the run from app to author - the
-          same drafting mark the About and Release sheets carry. */}
-      <g stroke="currentColor" strokeWidth="0.9" strokeOpacity="0.26" fill="none">
-        <path d={`M${SOURCE.x} 178 L424 178`} />
-        <path d={`M${SOURCE.x} 174 L${SOURCE.x} 182`} />
-        <path d="M424 174 L424 182" />
-      </g>
-
-      {/* Registration marks - the drawing is a sheet, and a sheet has
-          corners. */}
-      <g stroke="currentColor" strokeWidth="1" strokeOpacity="0.2" fill="none">
-        <path d="M14 26 L14 14 L26 14" />
-        <path d="M466 26 L466 14 L454 14" />
-        <path d="M14 174 L14 186 L26 186" />
-        <path d="M466 174 L466 186 L454 186" />
-      </g>
+      <RegistrationMarks w={VIEW.w} h={VIEW.h} opacity={0.2} />
     </svg>
   );
 }

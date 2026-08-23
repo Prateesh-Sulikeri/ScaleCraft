@@ -1,4 +1,4 @@
-import { BlueprintGlow, diamond, isoRise } from "@/learning-path/blueprint-geometry";
+import { BlueprintGlow, DimensionLine, IsoBlock, diamond, isoRise } from "@/learning-path/blueprint-geometry";
 
 /**
  * The About dialog's blueprint drawing: one large system primitive on a
@@ -32,60 +32,6 @@ function GridPlate({ cx, cy, hw, divisions = 8 }: { cx: number; cy: number; hw: 
         {steps.map((s) => (
           <path key={`v-${s}`} d={`M${cx - hw + s * hw} ${cy - s * hh} L${cx + s * hw} ${cy + hh - s * hh}`} />
         ))}
-      </g>
-    </g>
-  );
-}
-
-type Block = { cx: number; cy: number; hw: number; depth: number };
-
-/** A wireframe block. `cy` is the centre of its *bottom* face, so a block sits
- *  on the plate by sharing that point with it. */
-function Block({ cx, cy, hw, depth, dim = 1, subdivide = false }: Block & { dim?: number; subdivide?: boolean }) {
-  const h = isoRise(hw);
-  const topY = cy - depth;
-  const top = diamond(cx, topY, hw, h);
-  const left = `M${cx - hw} ${topY} L${cx} ${topY + h} L${cx} ${cy + h} L${cx - hw} ${cy} Z`;
-  const right = `M${cx + hw} ${topY} L${cx} ${topY + h} L${cx} ${cy + h} L${cx + hw} ${cy} Z`;
-  const cuts = [0.33, 0.66];
-
-  return (
-    <g>
-      {/* Own silhouette in the panel colour first, so blocks occlude each
-          other instead of showing their far edges through. */}
-      <path d={`${top} ${left} ${right}`} fill="var(--panel)" />
-      <path d={top} fill="currentColor" fillOpacity={0.15 * dim} />
-      <path d={left} fill="currentColor" fillOpacity={0.05 * dim} />
-      <path d={right} fill="currentColor" fillOpacity={0.09 * dim} />
-
-      {subdivide && (
-        <g fill="none" stroke="currentColor" strokeWidth="0.75" strokeOpacity={0.14 * dim}>
-          {cuts.map((t) => (
-            <path key={`top-u-${t}`} d={`M${cx - hw + t * hw} ${topY + t * h} L${cx + t * hw} ${topY - h + t * h}`} />
-          ))}
-          {cuts.map((t) => (
-            <path key={`top-v-${t}`} d={`M${cx - hw + t * hw} ${topY - t * h} L${cx + t * hw} ${topY + h - t * h}`} />
-          ))}
-          {cuts.map((t) => (
-            <path key={`face-${t}`} d={`M${cx - hw + t * hw} ${topY + t * h} L${cx - hw + t * hw} ${cy + t * h}`} />
-          ))}
-          {cuts.map((t) => (
-            <path key={`face-r-${t}`} d={`M${cx + hw - t * hw} ${topY + t * h} L${cx + hw - t * hw} ${cy + t * h}`} />
-          ))}
-        </g>
-      )}
-
-      {/* Hidden back edges, dashed - a construction drawing shows the volume
-          it cannot see. */}
-      <g fill="none" stroke="currentColor" strokeWidth="0.9" strokeOpacity={0.2 * dim} strokeDasharray="3 4">
-        <path d={`M${cx} ${topY - h} L${cx} ${cy - h}`} />
-        <path d={`M${cx - hw} ${cy} L${cx} ${cy - h} L${cx + hw} ${cy}`} />
-      </g>
-
-      <g fill="none" stroke="currentColor" strokeWidth="1.15">
-        <path d={top} strokeOpacity={0.8 * dim} />
-        <path d={`M${cx - hw} ${topY} L${cx - hw} ${cy} L${cx} ${cy + h} L${cx + hw} ${cy} L${cx + hw} ${topY}`} strokeOpacity={0.55 * dim} />
-        <path d={`M${cx} ${topY + h} L${cx} ${cy + h}`} strokeOpacity={0.4 * dim} />
       </g>
     </g>
   );
@@ -127,62 +73,12 @@ function ServiceUnit({ cx, cy, hw = 40 }: { cx: number; cy: number; hw?: number 
 
   return (
     <g>
-      <Block cx={cx} cy={cy} hw={hw} depth={depth} dim={0.9} />
+      <IsoBlock cx={cx} cy={cy} hw={hw} depth={depth} dim={0.9} />
       <g fill="currentColor" fillOpacity="0.55">
         {lamps.map((t) => (
           <circle key={t} cx={cx - hw + t * hw} cy={topY + t * h + depth * 0.55} r="2" />
         ))}
       </g>
-    </g>
-  );
-}
-
-/** A flanking-tick dimension line between two points, with an optional tiny
- *  numeral - the drafting motif, not a real measurement. */
-function DimensionLine({
-  x1,
-  y1,
-  x2,
-  y2,
-  label,
-  labelDx = 0,
-  labelDy = -4,
-}: {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  label?: string;
-  labelDx?: number;
-  labelDy?: number;
-}) {
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const len = Math.hypot(dx, dy) || 1;
-  // Tick marks run perpendicular to the line.
-  const nx = (-dy / len) * 4;
-  const ny = (dx / len) * 4;
-
-  return (
-    <g stroke="currentColor" strokeWidth="0.9" fill="none" strokeOpacity="0.32">
-      <path d={`M${x1} ${y1} L${x2} ${y2}`} />
-      <path d={`M${x1 - nx} ${y1 - ny} L${x1 + nx} ${y1 + ny}`} />
-      <path d={`M${x2 - nx} ${y2 - ny} L${x2 + nx} ${y2 + ny}`} />
-      {label && (
-        <text
-          x={(x1 + x2) / 2 + labelDx}
-          y={(y1 + y2) / 2 + labelDy}
-          textAnchor="middle"
-          stroke="none"
-          fill="currentColor"
-          fillOpacity="0.4"
-          fontSize="7"
-          fontFamily="var(--font-jetbrains-mono, monospace)"
-          letterSpacing="0.05em"
-        >
-          {label}
-        </text>
-      )}
     </g>
   );
 }
@@ -229,10 +125,10 @@ export function AboutIllustration({ className = "" }: { className?: string }) {
       <StoreUnit cx={92} cy={168} />
       <ServiceUnit cx={188} cy={268} />
 
-      <Block {...MAIN} subdivide />
+      <IsoBlock {...MAIN} subdivide />
 
-      <Block cx={462} cy={150} hw={26} depth={28} dim={0.85} />
-      <Block cx={478} cy={238} hw={22} depth={24} dim={0.7} />
+      <IsoBlock cx={462} cy={150} hw={26} depth={28} dim={0.85} />
+      <IsoBlock cx={478} cy={238} hw={22} depth={24} dim={0.7} />
 
       {/* Vertex ticks on the main block. */}
       <g fill="currentColor" fillOpacity="0.6">
