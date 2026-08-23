@@ -110,6 +110,99 @@ describe("authored chapter invariants", () => {
       ).toBe(false);
     }
   });
+
+  // .claude/docs/pending-design-editor-exercise.md §1.3: every Part 3 starter
+  // graph was authored at a 200px x-pitch against a 200px-wide card, so the
+  // gap between adjacent cards was 0px and edges rendered as invisible dots.
+  // Card geometry per src/canvas/ComponentNode.tsx: width = data.width ?? 200,
+  // MIN_HEIGHT = 65 (both measured, not exported - re-measure there if this
+  // ever fails for a reason other than a genuinely cramped starter graph).
+  const CARD_WIDTH = 200;
+  const CARD_HEIGHT = 65;
+  const MIN_HORIZONTAL_GAP = 120;
+  const MIN_VERTICAL_GAP = 95;
+  const PROXIMITY_THRESHOLD = 40;
+
+  it("no starter graph packs two nodes closer than the minimum gap", () => {
+    for (const chapter of authored) {
+      const nodes = chapter.starterGraph?.nodes;
+      if (!nodes || nodes.length < 2) continue;
+      for (let a = 0; a < nodes.length; a++) {
+        for (let b = a + 1; b < nodes.length; b++) {
+          const dx = Math.abs(nodes[a].position.x - nodes[b].position.x);
+          const dy = Math.abs(nodes[a].position.y - nodes[b].position.y);
+          if (dy < PROXIMITY_THRESHOLD) {
+            expect(
+              dx - CARD_WIDTH,
+              `${chapter.id}: ${nodes[a].id} and ${nodes[b].id} sit ${dx - CARD_WIDTH}px apart horizontally, below the ${MIN_HORIZONTAL_GAP}px minimum`,
+            ).toBeGreaterThanOrEqual(MIN_HORIZONTAL_GAP);
+          }
+          if (dx < PROXIMITY_THRESHOLD) {
+            expect(
+              dy - CARD_HEIGHT,
+              `${chapter.id}: ${nodes[a].id} and ${nodes[b].id} sit ${dy - CARD_HEIGHT}px apart vertically, below the ${MIN_VERTICAL_GAP}px minimum`,
+            ).toBeGreaterThanOrEqual(MIN_VERTICAL_GAP);
+          }
+        }
+      }
+    }
+  });
+
+  // Same doc, §1.2/§1.3: fitView fits the bounding box, so a long single-row
+  // chain gets width-constrained into an unreadably small zoom. Exempt below
+  // 4 nodes - a 2-3 node chain has no room to tier and isn't the failure mode
+  // this gate exists for.
+  it("no 4+ node starter graph exceeds a 2.5:1 bounding-box aspect ratio", () => {
+    for (const chapter of authored) {
+      const nodes = chapter.starterGraph?.nodes;
+      if (!nodes || nodes.length < 4) continue;
+      const xs = nodes.map((n) => n.position.x);
+      const ys = nodes.map((n) => n.position.y);
+      const width = Math.max(...xs) + CARD_WIDTH - Math.min(...xs);
+      const height = Math.max(...ys) + CARD_HEIGHT - Math.min(...ys);
+      expect(
+        width / height,
+        `${chapter.id}'s starter graph bounding box is ${width}x${height} (aspect ${(width / height).toFixed(2)}), above the 2.5:1 ceiling`,
+      ).toBeLessThanOrEqual(2.5);
+    }
+  });
+
+  // CURRICULUM.md §11.2 (D1b): a chapter with a real canvas exercise declares
+  // its goal and success criteria as data, not just prose buried in
+  // problemStatement - see QuestionPane's Goal / You're done when sections.
+  it("every editor-exercise chapter declares a goal and at least two success criteria", () => {
+    for (const chapter of authored) {
+      if (!chapter.starterGraph || chapter.hasEditorExercise === false) continue;
+      expect(chapter.exerciseGoal?.trim().length ?? 0, `${chapter.id} has no exerciseGoal`).toBeGreaterThan(0);
+      expect(
+        chapter.successCriteria?.length ?? 0,
+        `${chapter.id} has fewer than 2 successCriteria`,
+      ).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  // CURRICULUM.md §11.2's brief-calibration rule, best-effort: a component
+  // the learner still has to ADD (in availableComponentIds but absent from
+  // the starter graph) should not be named by its display label in the goal
+  // or success criteria - that's the fix, not the symptom. Heuristic, not
+  // proof: it catches the 3.4/3.12-class leak this doc's Finding B flagged,
+  // not paraphrased spoilers.
+  it("the brief never names a component the learner still has to add", () => {
+    for (const chapter of authored) {
+      if (!chapter.starterGraph || (!chapter.exerciseGoal && !chapter.successCriteria)) continue;
+      const briefText = [chapter.exerciseGoal ?? "", ...(chapter.successCriteria ?? [])].join(" ").toLowerCase();
+      const presentIds = new Set(chapter.starterGraph.nodes.map((n) => n.componentId));
+      const toAdd = chapter.availableComponentIds.filter((id) => !presentIds.has(id));
+      for (const id of toAdd) {
+        const label = getComponent(id)?.label;
+        if (!label) continue;
+        expect(
+          briefText.includes(label.toLowerCase()),
+          `${chapter.id}'s brief names "${label}", a component the learner still has to add`,
+        ).toBe(false);
+      }
+    }
+  });
 });
 
 describe("authored quiz invariants", () => {

@@ -46,8 +46,11 @@ per session-end verification convention. Check off as each lands.
       verbatim. Manually spot-checked against D3 (Config chapters may name the
       component, never the direction/value; Fix/Completion chapters name neither).
       typecheck clean, authoring-invariants + QuestionPane: 48/48 passing.
-- [ ] T6. Phase 3 - add regression gates to `authoring-invariants.test.ts`: spacing
-      gate, aspect gate, brief gate, spoiler gate (best-effort).
+- [x] T6. Phase 3 - added 4 regression gates to `authoring-invariants.test.ts`:
+      minimum-gap spacing gate, 2.5:1 aspect ceiling (4+ nodes), exerciseGoal +
+      2 successCriteria required per editor chapter, and a best-effort spoiler
+      gate (brief text must not name a component the learner still has to add).
+      19/19 passing, typecheck clean.
 - [ ] T7. Phase 4 - update CURRICULUM §11.2/§11.4 layout standard note (if not fully
       covered by T0), append one dated entry to `pending-chapters.md` covering all 13
       touched chapters, record the 320x160 pitch in `DESIGN.md`.
