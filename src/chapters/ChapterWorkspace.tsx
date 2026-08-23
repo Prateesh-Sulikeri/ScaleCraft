@@ -553,6 +553,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
           chapterPassed={chapterPassed}
           saveId={chapterSaveId(chapter.id)}
           onSave={() => void saveNow()}
+          onResetToStarter={handleResetToStarter}
           saveStatus={saveStatus}
           docsPanelOpen={docsPanelOpen}
           toggleDocsPanel={toggleDocsPanel}
