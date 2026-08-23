@@ -56,6 +56,39 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "7.1.0-alpha",
+    date: "2026-08-23",
+    title: "Fourteen new chapters take Building Blocks through Part 3.",
+    highlights: [
+      {
+        title: "Fourteen new Building Blocks chapters",
+        body: "The path now runs from networking fundamentals through sharding, plus two new Part 2 chapters on debugging and how architectures evolve.",
+        icon: "content",
+      },
+      {
+        title: "Report a bug from anywhere",
+        body: "Flag a problem right where you hit it, with a screenshot attached automatically if you want one.",
+        icon: "component",
+      },
+      {
+        title: "Works properly on your phone",
+        body: "Layout overlap and overflow on mobile and tablet screens are fixed across the app - the Design Editor still needs a larger screen.",
+        icon: "fix",
+      },
+      {
+        title: "Your streak reflects real activity",
+        body: "Resetting your progress no longer inflates the day streak - it now comes from an actual per-day activity log, not an overwritable timestamp.",
+        icon: "progress",
+      },
+    ],
+    qualityOfLife: [
+      "Starter graphs show labeled zones for where each piece belongs",
+      "A Reset to Default button restores a chapter's starter graph",
+      "Home's hero and About panel are redesigned",
+      "Sandbox checkpoints to the cloud instead of pushing on every save",
+    ],
+  },
+  {
     version: "7.0.0-alpha",
     date: "2026-08-17",
     title: "Home knows where you left off.",
