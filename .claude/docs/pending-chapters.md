@@ -67,6 +67,13 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | **3.3 Reverse Proxy** (Wave 3, third Group A chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, pipeline not run (content-only pass) | 2026-08-22 | uncommitted, working tree (`fix/streak-counter`) |
 | **3.5 API Gateway** (Wave 3, fourth Group A chapter - Group A complete) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, multi-service build/fix partially realized via lesson+quiz (engine limitation, see own entry), pipeline not run (content-only pass) | 2026-08-22 | uncommitted, working tree (`fix/streak-counter`) |
 | **3.6 Stateless Services** (first Group B chapter, authored ahead of `pending-content.md`'s own Wave 4 plan on explicit user request) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, first purely config-only Fix exercise this curriculum has shipped, reuses 3.4's own namesake rule for a second, deliberately opposite blueprint shape, pipeline not run (content-only pass) | 2026-08-22 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.7 Sessions & State Management** (second Group B chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, first chapter to use `orphan-component` as its own namesake fault (third instance of the warning-severity-namesake-rule pattern, see open decision 11), realizes CURRICULUM's own "Trade-off scenario" exercise type as lesson table + quiz rather than a new Editor affordance, pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.8 Horizontal Scaling** (third Group B chapter - Group B's own 3.6-3.9 span now three of four authored) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, first chapter whose Editor exercise is gated entirely by the blueprint with `single-instance-load-balancer` deliberately not firing on the starter (headroom bar above the rule's own capacity-2 floor), realizes CURRICULUM's own "predict (kill an instance mid-simulation)" exercise as a `diagram`-kind quiz question adapting QUIZ_FRAMEWORK's own bank Q6, new doc-drift finding on CURRICULUM §6's own "engineered-cliffhanger" example (see open decision 16), pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.9 Service Discovery** (fourth and final Group B chapter - Group B's own 3.6-3.9 span now complete) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, Config exercise reuses `dns`'s own `ttlSeconds` field (3.2) rather than a new registry component, third confirmed instance of open decision 8's `control`-edge canvas gap (anticipated by that decision when raised at 3.4), closes out open decision 15's Group B row, pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.10 Databases** (first Group C chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, no Editor exercise at all (`hasEditorExercise: false`) since the engine has no `indexes` config field or query-cost simulation for CURRICULUM's own row's exercise, six-question quiz instead (new open decision 17), opens open decision 15's Group C row, pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.11 SQL vs. NoSQL** (second Group C chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, first Group C chapter with a real Editor exercise (introduces `nosql-database`), starter graph's NoSQL node deliberately pre-configured wrong (`model: "key-value"`) so the fix is genuine, second of open decision 15's Group C rows checked, pipeline not run (content-only pass). *Row added 2026-08-23 alongside 3.12's own entry - this chapter's detail section already existed but its status-table row was missed at authoring time; added now for an accurate at-a-glance table, no content changed.* | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.12 Replication** (third Group C chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, introduces `read-replica` + edge kind `replication` (both already fully wired in the engine, no gap), starter graph's one overdetermined wrong edge trips `orphan-read-replica` and `component-relations` at once, new open decision 18 (QUIZ_FRAMEWORK §10 Q5's own diagram JSON draws the replica read edge backwards - corrected in this chapter's own quiz, not the bank), third of open decision 15's Group C rows checked, pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
+| **3.13 Sharding** (fourth and final Group C chapter - Group C now complete) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, no Editor exercise at all (`hasEditorExercise: false`) since no component has a shard-key config field despite CURRICULUM §14 AND §11.1 both promising one (new open decision 19, a stronger-than-17 confirmed gap), six-question quiz adapting all four of QUIZ_FRAMEWORK §10's bank questions reserved for this chapter, closes out open decision 15's Group C row entirely, pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
 
 Everything else in the 72 rows is unauthored (`chapterDefinitionId: null`).
 
@@ -3864,6 +3871,680 @@ later one.
 
 ---
 
+## 3.7 Sessions & State Management
+
+- **Authored 2026-08-23** · Sonnet draft, no Opus pass yet · uncommitted,
+  working tree (`fix/streak-counter`)
+- Definition id `bb-3-7-sessions-and-state-management` · manifest slug
+  `3-7-sessions-and-state-management` · spec
+  `src/content/chapters/specs/bb-3-7-sessions-and-state-management.spec.md` ·
+  lesson `public/content/chapters/bb-3-7-sessions-and-state-management.mdx`
+- Type: Concept (per §16's own note that 3.6-3.10 are intentional
+  no-component Concept chapters, same reasoning 3.6's own entry used) ·
+  foundational · 25 min · assumes 3.6, already shipped in this working tree
+- Second Group B chapter, authored immediately after 3.6 in the same
+  session - same out-of-wave-plan note 3.6's own entry already carried
+  forward (real prerequisite already shipped, only `pending-content.md`'s
+  wave grouping is out of order).
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-7-sessions-and-state-management.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-7-sessions-and-state-management.mdx` (1,214 words) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None new - `orphan-component` (already registered) is the namesake fault; see below |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3 |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **`orphan-component` as the namesake fault, not a new session-specific
+  rule.** The starter graph's SQL Database node has zero incident edges -
+  the same disconnected-component condition that generic, already-registered
+  rule was built to catch, verified directly against
+  `src/validation-engine/rules/orphan-component.ts`'s own predicate rather
+  than assumed. No new rule authored; §14's row names none for this chapter
+  and writing one is outside this pass's scope per the `chapter-author`
+  skill. Full reasoning in the chapter spec §7.
+- **Third instance for open decision 11's "namesake fault as warning
+  severity" thread.** `orphan-component` is `severity: "warning"`, so this
+  is now the third consecutive Group A/B chapter (3.4, 3.6, 3.7) whose
+  graded fault doesn't flip `runChapterValidation`'s error-count-only
+  `passed` flag on its own - Submit still gates correctly on the blueprint
+  regardless. See the update to decision 11 below.
+- **CURRICULUM §14's own "Trade-off scenario" exercise type (§11.1) is
+  realized as an in-lesson two-product table plus a quiz question, not a
+  new Editor-side "pick between two presented graphs" affordance.** §11.1
+  names 3.7 as the first chapter using this exercise type; the taxonomy's
+  own description ("2+ presented graphs/configs, pick per scenario, read
+  reasoning") is satisfied without new engine work by presenting both
+  products in the lesson and testing the judgment in quiz Q3, matching
+  §11.1's own "trade-off exercises never have a secretly correct option"
+  rule (both pairings' costs are stated, not just the "correct" one).
+  Flagged in the chapter spec §12 for a second reader to confirm this
+  reading doesn't under-deliver what the taxonomy table specifically named
+  3.7 for.
+- **The advance-organizer mention of 3.14 is authored as a separate,
+  explicitly-marked "further out" note, not folded into the chapter's one
+  real tease.** CURRICULUM's own row for 3.7 requires naming that a faster
+  store arrives at 3.14; per the `chapter-author` skill's own draft
+  instruction, this is a distinct, non-pull-generating mention (it forecloses
+  an objection rather than manufacturing curiosity), kept separate from the
+  chapter's single §19 tease to 3.8 in "Next." Full reasoning in spec §6.
+- **Sticky routing's mechanism is explained one level deeper than 3.6's own
+  treatment, still without a configurable canvas affordance.** No registry
+  component exposes a session-affinity field (checked directly against
+  `load-balancer`'s own config fields in
+  `src/content/components/config/networking.ts` - only `algorithm` exists).
+  Named honestly in the lesson prose per §20.2, not just recorded in
+  `simplifications`, continuing the exact gap 3.6's own entry already
+  declared rather than re-raising it as new.
+- **Quiz Q2 draws directly on QUIZ_FRAMEWORK.md §9's own bank Q3**, which is
+  explicitly tagged "(3.7)" - reserved for this chapter, unlike 3.6's own
+  quiz which deliberately avoided that same bank question. Q5 goes one level
+  past bank Q8 (tagged "3.6-3.7"), naming the specific store this chapter's
+  own exercise builds, since 3.6's own Q5 deliberately stopped short of
+  naming one.
+- **Component budget carries the full chain through 3.6 unchanged** - no new
+  component; `sql-database` (introduced 1.2) is reused for a second role as
+  the session store, the exact "same component, second job" example §19
+  names directly.
+
+**Cross-reference checks against other chapters' own pre-committed rows:**
+
+- **Open decision 15's Group B row - second chapter checked, still
+  matches.** 2.3's row: "Copies of the app tier only work if a request can
+  land anywhere | 3.6-3.9." This chapter doesn't restate that constraint
+  (3.6 already did); it resolves the fork 3.6 left open, which is the
+  correct job for a second chapter under the same motivating row. See the
+  update to decision 15 below.
+- **3.6's own "Next" section teases 3.7 directly** ("3.7 Sessions & State
+  Management builds the missing half") - this chapter's cold open opens by
+  quoting that fork directly, continuing the chain 3.1-3.6 already
+  established.
+- **No new instance of open decision 8 or 13 raised** - 3.7 introduces no
+  new edge kind and no new component.
+
+---
+
+## 3.8 Horizontal Scaling
+
+- **Authored 2026-08-23** · Sonnet draft, no Opus pass yet · uncommitted,
+  working tree (`fix/streak-counter`)
+- Definition id `bb-3-8-horizontal-scaling` · manifest slug
+  `3-8-horizontal-scaling` · spec
+  `src/content/chapters/specs/bb-3-8-horizontal-scaling.spec.md` · lesson
+  `public/content/chapters/bb-3-8-horizontal-scaling.mdx`
+- Type: Concept (per §16's own note that 3.6-3.10 are intentional
+  no-component Concept chapters, same reasoning 3.6's and 3.7's own entries
+  used) · foundational · 25 min · assumes 3.7, already shipped in this
+  working tree
+- Third Group B chapter, authored immediately after 3.7 in the same
+  session - same out-of-wave-plan note 3.6's and 3.7's own entries already
+  carried forward (real prerequisite already shipped, only
+  `pending-content.md`'s wave grouping is out of order).
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-8-horizontal-scaling.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-8-horizontal-scaling.mdx` (1,307 words) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None new - `single-instance-load-balancer` (3.4's own namesake rule) curated but deliberately not fired by the starter; see below |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3 |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **The Editor exercise is gated entirely by the blueprint, with no
+  Validate-time warning at all.** The starter graph carries `instances: 2`
+  (3.7's own passing config) - `single-instance-load-balancer` only fires
+  below capacity 2, so Validate is clean from the start. This chapter's own
+  bar (`instances >= 3`, headroom for one failure) is new territory above
+  that rule's floor, gated by the blueprint's own config predicate alone -
+  the same shape 3.4's own Config exercise used for its algorithm-choice fix
+  (a real judgment call, not a rule violation). The lesson's "Your turn"
+  section states outright that Validate starts clean so the learner isn't
+  left hunting for a warning that was never coming. Full reasoning in the
+  chapter spec §7, flagged in §12 for a second reader.
+- **CURRICULUM's own "predict (kill an instance mid-simulation)" exercise is
+  realized as a `diagram`-kind quiz question, not a literal simulator
+  step.** No simulator UI exists (checked directly - see `pending-content.md`'s
+  own named degradation path: "simulator-dependent beats degrade to a quiz
+  question," and open decision 7's prior instances at 1.6/1.7/1.9). Quiz Q4
+  adapts QUIZ_FRAMEWORK.md §9's own bank Q6 (LB + multiple app-server
+  instances + shared database, one instance dies) to three instances and
+  this chapter's own headroom numbers.
+- **The quiz's diagram question uses `control`-kind edges for illustration,
+  read directly against `QuizQuestion.graph`'s own documented contract
+  ("rendered read-only, never used for matching") rather than assumed
+  safe.** This is not treated as a new instance of open decision 8 (`control`
+  edges aren't buildable on the real canvas) because a quiz diagram never
+  passes through `component-relations`' edge-kind checks the way a
+  learner-built graph does - QUIZ_FRAMEWORK's own bank Q6 already uses
+  `control` edges the same way. Flagged in spec §12 for a second reader to
+  confirm this reading rather than a quiet third instance of the gap.
+- **New doc-drift finding: CURRICULUM.md §6's own "engineered-cliffhanger"
+  example doesn't parse under current chapter numbering.** §6's "Rules of
+  use" cites "3.8 ends with two servers and nothing routing between them;
+  3.4 resolves it" as the gold-standard "Preview of next chapter" example -
+  but 3.4 (Group A) is already taught by the time a learner reaches 3.8
+  (Group B), so 3.4 cannot be something 3.8's own forward tease resolves.
+  The chapter as authored instead continues the actually-shipped mechanism
+  (3.6 sets up the fork, 3.7 resolves the state half, 3.8 resolves the
+  routing/sizing half using 3.4's already-taught load balancer, re-motivated
+  per CURRICULUM's own 3.8 row). Read as stale text from an earlier draft's
+  numbering, the same class as open decisions 1, 4, 6, and 7 - logged as a
+  new open decision (16) below rather than resolved unilaterally, since it's
+  a doc edit, not a content decision this pass owns.
+- **Component budget carries the full chain through 3.7 unchanged** - no new
+  component; `load-balancer` (3.4) and the `app-server.instances` field
+  (3.6) are both reused for a new job (sizing for a failure, not just
+  proving duplication is safe), the same "same component, second job"
+  pattern §19 names directly.
+- **Netflix as the production example** - unused by any prior chapter
+  (Stripe was 3.6's, Shopify was 3.7's), and on-topic: a large fleet of
+  small, identical, stateless instances where single-instance loss is
+  routine rather than incident-worthy.
+
+**Cross-reference checks against other chapters' own pre-committed rows:**
+
+- **Open decision 15's Group B row - third chapter checked, still
+  matches.** 2.3's row: "Copies of the app tier only work if a request can
+  land anywhere | 3.6-3.9." This chapter extends the same constraint one
+  step further than 3.6/3.7 did - not just that a request can land anywhere,
+  but that *enough* copies exist to survive losing one. Third of the four
+  remaining rows named in open decision 15 to be checked against Group B;
+  only 3.9 remains open. See the update to decision 15 below.
+- **3.7's own "Next" section teases 3.8 directly** ("3.8 Horizontal Scaling
+  picks up the other half of 3.6's own cliffhanger") - this chapter's cold
+  open opens by quoting that fork directly, continuing the chain 3.1-3.7
+  already established.
+- **No new instance of open decision 8 or 13 raised by the graded content**
+  - 3.8 introduces no new edge kind and no new component in its
+  `starterGraph`/`blueprint`; the quiz diagram's `control`-edge usage is
+  addressed separately above as not a canvas-buildability claim.
+
+---
+
+## 3.9 Service Discovery
+
+- **Authored 2026-08-23** · Sonnet draft, no Opus pass yet · uncommitted,
+  working tree (`fix/streak-counter`)
+- Definition id `bb-3-9-service-discovery` · manifest slug
+  `3-9-service-discovery` · spec
+  `src/content/chapters/specs/bb-3-9-service-discovery.spec.md` · lesson
+  `public/content/chapters/bb-3-9-service-discovery.mdx`
+- Type: Concept with config exercise (CURRICULUM §14's own row states this
+  explicitly for 3.9, unlike 3.6/3.7/3.8's bare "Concept") · foundational ·
+  20 min · assumes 3.8, already shipped in this working tree
+- Fourth and final Group B chapter, authored immediately after 3.8 in the
+  same session - same out-of-wave-plan note 3.6/3.7/3.8's own entries already
+  carried forward (real prerequisite already shipped, only
+  `pending-content.md`'s wave grouping is out of order). Group B (3.6-3.9) is
+  now fully authored.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-9-service-discovery.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-9-service-discovery.mdx` (1,212 words) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None new - 3.8's own curated set carried forward unchanged; none of the five fire on this chapter's own gap (a `dns` config value), same Config-exercise-gated-by-blueprint-alone shape 3.4 and 3.8 both used |
+| 5 | Quiz | 5 questions, difficulty ramp 1/1/2/2/3 |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **The graded Config exercise reuses `dns`'s own `ttlSeconds` field (3.2)
+  rather than any new component - CURRICULUM's own row says "New: none."**
+  The scenario is scoped narrowly to what DNS actually controls in this
+  topology (the stack's public entry point), not to app-server membership -
+  the load balancer already does real service discovery for the app tier
+  (3.4). The lesson's own "Two ways to answer 'who's current'" section states
+  this distinction directly rather than blurring the two. Flagged in spec §12
+  for a second reader to confirm the distinction reads clearly and doesn't
+  misteach DNS as the app tier's own discovery mechanism.
+- **The primary lesson diagram deliberately does NOT depict this chapter's
+  own starter graph** - unlike 3.4/3.6/3.7/3.8's own target-topology Mermaid
+  diagrams, this chapter's diagram shows the general registry pattern
+  (caller, registry, instances, health signal) as an explicitly illustrative
+  abstraction, because the concept taught (the general pattern) and the
+  graded exercise (a DNS TTL fix) are deliberately different scopes -
+  showing the real topology here would misrepresent the exercise as building
+  a registry, which it doesn't. Flagged in spec §12 for a second reader.
+- **Third confirmed instance of open decision 8 (`control`-kind edges aren't
+  buildable on canvas), not a new finding.** CURRICULUM's own 3.9 row states
+  "control edges become load-bearing" - the health signal behind the
+  registry pattern is the same `control`-kind edge 3.4 introduced and 3.8
+  already disclosed as not buildable. Decision 8 itself named 3.9 as a
+  chapter that would hit this wall when it was first raised at 3.4 - this is
+  that prediction confirmed, handled with the same discipline (illustrative
+  only, disclosed in `curriculumContext.simplifications`), not a fresh gap.
+  See the update to decision 8 below.
+- **Quiz reuses both bank questions explicitly reserved for this chapter.**
+  QUIZ_FRAMEWORK.md §9's own bank Q7 (tagged "(3.9)": hardcoded addresses
+  breaking once autoscaling exists) and Q9 (tagged "(3.9, 3.4)": the
+  liveness-vs-readiness gap) were both untouched by 3.6/3.7/3.8's own quizzes
+  - reworded with fresh option labels for Q3 and Q5 respectively rather than
+  reproduced verbatim. Q4 (`diagram` kind) is original, realizing CURRICULUM's
+  row's "trace" exercise element as a predict-then-check question (a newly
+  autoscaled instance that hasn't passed its first health check yet) -
+  distinct from bank Q6 (already used by 3.8's own Q4: an existing instance
+  dying) and from this chapter's own Q5 (an instance that passes its check
+  but is broken anyway).
+- **Component budget carries the full chain through 3.8 unchanged** - no new
+  component; `load-balancer` (3.4) is reused as the chapter's own worked
+  example of an already-built registry-shaped mechanism, and `dns` (3.2) is
+  reused for its `ttlSeconds` field, the same "same component, second job"
+  pattern §19 names directly (a job DNS's own docs already anticipated: "a
+  low TTL enables fast failover... at the cost of more lookup traffic").
+- **Airbnb (SmartStack) as the production example** - unused by any prior
+  chapter (Stripe was 3.6's, Shopify was 3.7's, Netflix was 3.8's), and
+  on-topic: a real, public, load-bearing registry (Nerve + Synapse, backed by
+  ZooKeeper) built because a growing service fleet outgrew a hand-maintained
+  address list.
+
+**Cross-reference checks against other chapters' own pre-committed rows:**
+
+- **Open decision 15's Group B row - fourth and final chapter checked,
+  2026-08-23 - matches, and closes the row.** 2.3's row: "Copies of the app
+  tier only work if a request can land anywhere | 3.6-3.9." This chapter
+  names the mechanism (the registry pattern, already running inside 3.4's
+  load balancer) that makes "which copies currently exist" an answerable
+  question at all - the precondition every one of 3.6, 3.7, and 3.8 silently
+  assumed. All four Group B rows named in open decision 15 are now checked;
+  see the update to that decision below.
+- **3.8's own "Next" section teases 3.9 directly** ("once instance count
+  stops being a number you pick by hand... something has to track which
+  instances actually exist right now. 3.9 Service Discovery is that
+  system.") - this chapter's cold open opens by quoting that bridge
+  directly, continuing the chain 3.1-3.8 already established.
+- **Third confirmed instance of open decision 8**, addressed above and in
+  the decision's own update below - not a new instance requiring a fresh
+  decision entry.
+
+---
+
+## 3.10 Databases
+
+- **Authored 2026-08-23** · Sonnet draft, no Opus pass yet · uncommitted,
+  working tree (`fix/streak-counter`)
+- Definition id `bb-3-10-databases` · manifest slug `3-10-databases` · spec
+  `src/content/chapters/specs/bb-3-10-databases.spec.md` · lesson
+  `public/content/chapters/bb-3-10-databases.mdx`
+- Type: Concept, per §16's own audit (CURRICULUM §14's own row omits an
+  explicit `Type:` label - see spec §0) · intermediate · 25 min · assumes
+  3.9, already shipped in this working tree
+- First Group C chapter, authored immediately after Group B (3.6-3.9)
+  completed in this session - same out-of-wave-plan note every Wave 3/4
+  chapter's own entry already carried forward (real prerequisite already
+  shipped, only `pending-content.md`'s wave grouping is out of order).
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-10-databases.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-10-databases.mdx` (1,357 words) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None - no Editor exercise exists for this chapter (see below); `validationRuleIds: []` |
+| 5 | Quiz | 6 questions (one heavier than the 5-question default), difficulty ramp 1/1/2/2/3/3 |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **No Editor exercise at all (`hasEditorExercise: false`) - the first
+  Building Blocks chapter since 3.1 to ship with none.** CURRICULUM §14's
+  own row for 3.10 names an exercise ("config (indexes; observe simulated
+  query cost)") that the engine cannot support today: `sql-database`'s only
+  field is `engine` (postgres/mysql), no component or validation rule
+  anywhere inspects indexing or query cost, and §11.1's own "Config"
+  exercise-type table doesn't list 3.10 among its "Where used" chapters
+  either - CURRICULUM's own §11.1 and §14 already disagree with each other
+  here. Not hacked around: adding an `indexes` field to the global
+  `sql-database` registry entry is engineering work outside this pass's
+  scope, and repurposing `engine` the way 3.9 repurposed DNS's `ttlSeconds`
+  would misteach the concept (postgres vs. mysql has no honest
+  relationship to indexing cost). CURRICULUM's own row's "+ quiz-weighted"
+  phrase is read as license for the resolution: no build, a heavier
+  six-question quiz including a diagram-kind predict-then-check (Q4) that
+  realizes "observe simulated query cost" without a simulator - the same
+  no-simulator workaround 3.9's own Q4 already established. Full reasoning
+  and the new open decision this raises are in spec §0 and §6.
+- **Primary diagram doubles as both the mental-model anchor and a real,
+  unchanged topology diagram** - unlike 3.9's explicitly illustrative-only
+  registry diagram, 3.10's diagram (three app-server nodes converging on one
+  sql-database node) is this system's actual topology, isolating the fan-in
+  shape rather than reproducing the full eight-node chain. Flagged in spec
+  §12 for a second reader to confirm this doesn't read as a new starter
+  graph the learner might expect to build.
+- **CURRICULUM §14's own row for 3.10 omits an explicit `Type:` label**,
+  unlike every sibling row in Groups A/B. Resolved via §16's own audit line
+  (3.10 listed among "3.6-3.10... intentional" no-component Concept
+  chapters) rather than left ambiguous. Same class as decisions 1, 4, 6, 7
+  and 16 (CURRICULUM rows contradicting each other or omitting what a
+  sibling row states) - a doc-only fix for later, not blocking.
+- **Quiz leans on two bank questions explicitly reserved for this chapter
+  and deliberately leaves three more untouched.** QUIZ_FRAMEWORK.md §10's
+  own bank Q1 and Q2 are both tagged "(3.10)" (indexes turning scans into
+  lookups; the 10k-vs-100M-rows scan symptom) and were adapted, reworded,
+  into this chapter's own Q1 and Q3. Bank Q3/Q4 (tagged "(3.11)") and Q5
+  (tagged "(3.12)") were left untouched, reserved for those chapters. Q2,
+  Q4, Q5, and Q6 are original.
+- **Component budget carries the full chain through 3.9 unchanged** - no new
+  component; the diagrams and `CurriculumContext.masteredConcepts` still
+  reference the full eight-component chain even though there's no Editor
+  exercise to place them in, consistent with Part 3's own running-example
+  philosophy.
+- **Stack Overflow as the production example** - unused by any prior chapter
+  (Stripe was 3.6's, Shopify was 3.7's, Netflix was 3.8's, Airbnb was 3.9's),
+  and on-topic: a real, public example of a small number of powerful,
+  heavily indexed relational database machines carrying serious load well
+  past the point most teams reach for sharding or a new storage engine.
+
+**Cross-reference checks against other chapters' own pre-committed rows:**
+
+- **Open decision 15's Group C row - first of five remaining rows checked,
+  2026-08-23 - matches.** 2.3's own row for Group C: "Every instance reaches
+  one database, and it is now the ceiling | 3.10-3.13." This chapter's cold
+  open and primary diagram state exactly that constraint, and its own "What
+  changes at scale" section quotes 2.3's own follow-up roadmap sentence
+  almost verbatim ("copies for reads (3.12)... splitting the data
+  (3.13)... a faster layer in front (3.14)"). See the update to decision 15
+  below.
+- **3.9's own "Next" section teases 3.10 directly** ("Every service you've
+  built so far ends at the same place: one SQL Database, taken for granted
+  since 1.2. 3.10 Databases is where that assumption finally gets
+  examined...") - this chapter's cold open opens by continuing that bridge
+  directly, extending the chain 3.1-3.9 already established.
+- **New open decision raised, not a confirmed instance of decision 8 or
+  14** - see the new numbered entry below. Distinct in kind from both: 8 and
+  14 name real capabilities (an edge kind, a failure-state field) missing
+  from an otherwise-relevant part of the schema; here, CURRICULUM's own row
+  names an exercise mechanism (`indexes` config, query-cost simulation)
+  with no corresponding schema anywhere in the engine to extend.
+
+---
+
+## 3.11 SQL vs. NoSQL
+
+- **Authored 2026-08-23** · Sonnet draft, no Opus pass yet · uncommitted,
+  working tree (`fix/streak-counter`)
+- Definition id `bb-3-11-sql-vs-nosql` · manifest slug `3-11-sql-vs-nosql` ·
+  spec `src/content/chapters/specs/bb-3-11-sql-vs-nosql.spec.md` · lesson
+  `public/content/chapters/bb-3-11-sql-vs-nosql.mdx`
+- Type: **Building Block**, per §4/§16 (introduces `nosql-database`) - the
+  first Group C chapter to carry that classification; 3.10 was Concept · 
+  intermediate · 25 min · assumes 3.10, already shipped in this working tree
+- Second Group C chapter, authored immediately after 3.10 in this session -
+  same out-of-wave-plan note every Wave 3/4 chapter's own entry has carried
+  forward (real prerequisite already shipped, only `pending-content.md`'s
+  wave grouping is out of order).
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-11-sql-vs-nosql.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-11-sql-vs-nosql.mdx` (1,368 words) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | `["no-direct-client-database", "component-relations", "orphan-component", "missing-input-connection"]` - standard curated set, gates the wiring half; the config half is gated by the blueprint's own `config` predicate |
+| 5 | Quiz | 6 questions, difficulty ramp 1/1/2/2/3/3, matching 3.10's own ramp |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **Building Block, not Concept - the first Group C chapter with a real
+  Editor exercise.** CURRICULUM §16's own audit gives 3.11 its own row
+  ("3.11 | `nosql-database`") and it's absent from the "Concept chapters with
+  no component" list 3.6-3.10 share. Consequence: Failure modes and Scaling
+  considerations are mandatory sections here (§6's table), not optional the
+  way 3.10's and 3.7's specs justified folding or omitting them. Full
+  reasoning in spec §0.
+- **Starter graph's NoSQL Database node is pre-configured to a deliberately
+  *wrong* value (`model: "key-value"`), not the registry's own default
+  (`"document"`).** If left at the default, the config half of the exercise
+  (choosing the right `model` for the catalog's varying-attribute shape)
+  would pass without the learner ever touching it - only the quiz would test
+  that judgment. Setting it to a different, real, plausible-but-wrong NoSQL
+  shape makes the fix genuine: recognize the mismatch, not just draw a wire.
+  Flagged in spec §12 for a second reader to confirm this reads as a fair
+  Completion fix, not a disguised trick.
+- **The three CURRICULUM-mandated trade-off scenarios (one SQL, one NoSQL,
+  one "either") are realized as an in-lesson table plus quiz, not a
+  dedicated Editor "present two graphs, pick one" exercise.** Same reading
+  3.7's own spec established for §11.1's "Trade-off scenario" exercise type
+  (also reserved for 3.11 in that same taxonomy row) - no such Editor
+  affordance exists in the engine, and building one is outside this pass's
+  scope. Second independent application of that same judgment call since
+  3.7; flagged in spec §12 for a second reader to confirm it still holds.
+- **Quiz spends both bank questions reserved for this chapter and leaves the
+  3.12-tagged one untouched.** QUIZ_FRAMEWORK.md §10's own bank Q3 and Q4 are
+  both tagged "(3.11)" (the non-negotiable-relational-requirement question;
+  the "we'll be big" teammate scenario) and were adapted, reworded, into this
+  chapter's own Q3 and Q5. Bank Q5 (tagged "(3.12)": replication lag) was
+  left untouched, reserved for that chapter. Q1, Q2, Q4, and Q6 are original.
+- **Component budget adds exactly one new component, no new edge kind.**
+  `nosql-database`'s own `relations` in `src/content/components/config/data.ts`
+  already mirror `sql-database`'s exactly (same allowed categories/kinds on
+  both ports) - no engine change was needed to support this chapter's
+  exercise, unlike 3.4's `control`-edge gap (open decision 8) or 3.10's
+  missing `indexes` field (open decision 17).
+- **Discord as the production example** - unused by any prior chapter
+  (Stripe 3.6, Shopify 3.7, Netflix 3.8, Airbnb 3.9, Stack Overflow 3.10),
+  and on-topic: a real, public example of write volume and a simple
+  channel-plus-time access pattern driving a wide-column NoSQL store, not a
+  belief that NoSQL is generally faster.
+
+**Cross-reference checks against other chapters' own pre-committed rows:**
+
+- **Open decision 15's Group C row - second of five remaining rows checked,
+  2026-08-23 - matches.** 2.3's own row for Group C: "Every instance reaches
+  one database, and it is now the ceiling | 3.10-3.13." This chapter is a
+  direct continuation of 3.10's own application of that row - 3.10 examined
+  the ceiling itself, this chapter examines whether a relational store was
+  the right shape to hit it with. See the update to decision 15 above (§6 of
+  this chapter's spec).
+- **3.10's own "Next" section teases 3.11 directly** ("3.10 assumed the
+  answer was always a relational store. 3.11 SQL vs. NoSQL is where that
+  assumption gets defended - or found wrong for the workload in front of
+  you.") - this chapter's cold open opens by paying that off directly, word
+  for word in its first sentence.
+- **No new open decision raised.** `nosql-database`'s registry entry already
+  supported this chapter's exercise with no engine gap (see the component
+  budget note above) - the first Group C chapter, after 3.10's own new
+  finding, to need nothing new from the engine.
+
+---
+
+## 3.12 Replication
+
+- **Authored 2026-08-23** · Sonnet draft, no Opus pass yet · uncommitted,
+  working tree (`fix/streak-counter`)
+- Definition id `bb-3-12-replication` · manifest slug `3-12-replication` ·
+  spec `src/content/chapters/specs/bb-3-12-replication.spec.md` · lesson
+  `public/content/chapters/bb-3-12-replication.mdx`
+- Type: **Building Block**, per §4/§16 (introduces `read-replica` + edge kind
+  `replication`) - intermediate · 30 min · assumes 3.11, already shipped in
+  this working tree.
+- Third Group C chapter, authored immediately after 3.11 in this session -
+  same out-of-wave-plan note every Wave 3/4 chapter's own entry has carried
+  forward (real prerequisite already shipped, only `pending-content.md`'s
+  wave grouping is out of order).
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-12-replication.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-12-replication.mdx` (1,375 words) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | `["no-direct-client-database", "component-relations", "orphan-component", "missing-input-connection", "orphan-read-replica"]` - 3.11's curated set plus `orphan-read-replica`, this chapter's own namesake rule |
+| 5 | Quiz | 6 questions, difficulty ramp 1/1/2/2/3/3, matching 3.10's and 3.11's own ramp |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **`read-replica` and `orphan-read-replica` already existed, fully wired,
+  before this chapter was authored - the second Group C chapter in a row
+  (after 3.11) to need nothing new from the engine.** Checked directly
+  against `src/content/components/config/data.ts` and
+  `src/validation-engine/rules/orphan-read-replica.ts`. Unlike 3.4's
+  `control`-edge gap (open decision 8) or 3.10's missing `indexes` field
+  (open decision 17), both the component and its namesake rule were already
+  built - evidently in anticipation of this exact chapter.
+- **New finding: the correct read-path edge direction is Replica ->
+  Application Server, not the reverse.** `compute.ts`'s own inline comment
+  on `app-server` confirms it ("a Read Replica's own 'Read query' output
+  targets compute"), and `read-replica`'s own `relations` only accept a
+  `request-flow` edge going *out* toward `compute`, never *in* from it. This
+  chapter's diagrams, blueprint, and starter graph all use that direction.
+- **New open decision 18: QUIZ_FRAMEWORK.md §10's own bank Q5 (reserved for
+  this exact chapter) draws that same edge backwards.** Its `e3` is
+  authored `app-server -> read-replica`, which would fail
+  `component-relations` today. Not hacked around - this chapter's own quiz
+  Q4 adapts Q5's scenario with the corrected direction rather than
+  reproducing the bank JSON verbatim. QUIZ_FRAMEWORK.md's own bank still
+  needs a follow-up doc edit. Full reasoning in spec §6 and §10.
+- **The starter graph's one wrong edge is deliberately overdetermined, not
+  a single clean fault.** `app -> replica` (`request-flow`) is the same
+  move that correctly wires every other data component in this system
+  (`app -> db`, `app -> nosql`), pointed at a component whose input
+  contract is different - it fails `component-relations` AND leaves the
+  Replica `orphan-read-replica`-orphaned at once. Same one-fault-two-rules
+  efficiency 3.9's own spec established reusing `dns`'s `ttlSeconds` field.
+  Flagged in spec §12 for a second reader to confirm this reads as a fair
+  Fix/Build hybrid, not a disguised trap.
+- **The "trace" beat CURRICULUM's own row promises degrades to a
+  `diagram`-kind quiz question (Q4), not a real interactive simulator
+  trace.** Fourth confirmed instance of `pending-content.md`'s own named
+  degradation path (open decision 7) - the same call 1.6, 1.7, and 3.4 each
+  already made.
+- **No `<Walkthrough>` authored for the replication-lag sequence**, despite
+  it being a defensible candidate under §7.2's own "step-through" rule -
+  stayed with a static Mermaid sequence diagram to keep this pass inside
+  `chapter-author`'s own content-authoring scope. Flagged in spec §12 for a
+  second reader or a dedicated `walkthrough-diagram` pass later.
+- **Production example: GitHub** - unused by any prior chapter (Stripe 3.6,
+  Shopify 3.7, Netflix 3.8, Airbnb 3.9, Stack Overflow 3.10, Discord 3.11),
+  and on-topic: read volume dwarfing write volume drove a public,
+  well-documented read-replica split.
+- **Quiz Q6 reuses `read-replica`'s own `replicationLagBudgetMs` field by
+  name in a wrong-answer distractor** - same component-field-reuse pattern
+  3.9's own quiz used for `dns`'s `ttlSeconds`.
+- **No density revision pass performed as a distinct drafting round** -
+  matching every prior chapter's own precedent of flagging a self-assessed
+  density claim for the next reviewer to check rather than trust.
+
+**Cross-reference checks against other chapters' own pre-committed rows:**
+
+- **Open decision 15's Group C row - third of five remaining rows checked,
+  2026-08-23 - matches, and is the first to actually move the ceiling.**
+  2.3's own row for Group C: "Every instance reaches one database, and it is
+  now the ceiling | 3.10-3.13." 3.10 examined the ceiling itself, 3.11 asked
+  whether the store's shape fit it; this chapter is the first concrete
+  mechanism in the row that actually relieves it (for reads, not writes -
+  named explicitly in "What changes at scale").
+- **3.11's own "Next" section teases 3.12 directly** ("3.11 asked which
+  store to reach for. 3.12 Replication is where copies of that store enter
+  the picture - for reads, and for the first guarantee that isn't there for
+  free: read-your-writes.") - this chapter's cold open opens by paying that
+  off directly, in its first sentence.
+- **One new open decision raised (18)**, detailed above and in the "Open
+  decisions" list below - a doc-drift finding in QUIZ_FRAMEWORK.md, not an
+  engine gap.
+
+---
+
+## 3.13 Sharding
+
+- **Authored 2026-08-23** · Sonnet draft, no Opus pass yet · uncommitted,
+  working tree (`fix/streak-counter`)
+- Definition id `bb-3-13-sharding` · manifest slug `3-13-sharding` · spec
+  `src/content/chapters/specs/bb-3-13-sharding.spec.md` · lesson
+  `public/content/chapters/bb-3-13-sharding.mdx`
+- Type: **Concept, config-weighted**, per CURRICULUM §14's own explicit label
+  and §16's own audit row - intermediate · 30 min · assumes 3.12, already
+  shipped in this working tree.
+- Fourth and final Group C chapter, authored immediately after 3.12 in this
+  session - Group C (3.10-3.13) is now complete. Same out-of-wave-plan note
+  every Wave 3/4 chapter's own entry has carried forward.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-13-sharding.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-13-sharding.mdx` (1,267 words) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None - no Editor exercise (`validationRuleIds: []`) |
+| 5 | Quiz | 6 questions, difficulty ramp 1/1/2/2/3/3, matching 3.10's, 3.11's, and 3.12's own ramp |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **No Editor exercise at all, a second Group C chapter in a row to lack
+  one - but a stronger-than-3.10 confirmed gap.** CURRICULUM §14's own row
+  promises "config (shard-key choice ×2 workloads; hot-partition
+  explanations) + trade-off (range vs. hash)," and unlike 3.10 (where §11.1
+  didn't even list the chapter), §11.1's own "Config" exercise table
+  explicitly lists 3.13 - CURRICULUM's own two sections agree with each
+  other on a promise the engine can't support. Checked directly against
+  `src/content/components/config/data.ts`: neither `sql-database` nor
+  `nosql-database` has a shard-key field. `search-engine`'s own `shards`
+  field (index parallelism, a different mechanism) was checked and ruled out
+  as a substitute. Resolved the same way 3.10's own gap was: no Editor
+  exercise, six-question quiz-weighted assessment instead. New open decision
+  19, distinct in kind from 17 because both CURRICULUM sections agree with
+  each other here.
+- **QUIZ_FRAMEWORK.md's own bank already had four questions reserved for
+  this exact chapter (tagged "(3.13)"), all four spent.** Q8 (hot
+  partition), Q9 (range-sharding's own moving hot spot), Q10 (when sharding
+  is the wrong move), Q11 (cross-shard scatter-gather cost) map directly
+  onto CURRICULUM's own three exercise elements - adapted with fresh option
+  labels, not reproduced verbatim, per this chapter's own quiz Q2/Q3/Q5/Q6.
+- **Primary diagram deliberately contrasts against 3.12's own replication
+  diagram in its own caption** - copies of the same data (3.12) vs. slices
+  of different data (3.13), the two mechanisms this curriculum could
+  otherwise blur together.
+- **Production example: Instagram** - unused by any prior chapter (Stripe
+  3.6, Shopify 3.7, Netflix 3.8, Airbnb 3.9, Stack Overflow 3.10, Discord
+  3.11, GitHub 3.12), and on-topic: a shard-encoding ID scheme chosen
+  specifically to keep by-ID lookups confined to one shard.
+- **Word count (1,267) is lower than 3.10's own 1,357** for the same
+  no-build, six-question shape - flagged in spec §12 for a second reader to
+  confirm this reflects genuinely narrower content (one central decision
+  examined from several angles) rather than under-depth.
+- **No density revision pass performed as a distinct drafting round** -
+  matching every prior chapter's own precedent of flagging a self-assessed
+  density claim for the next reviewer to check rather than trust.
+
+**Cross-reference checks against other chapters' own pre-committed rows:**
+
+- **Open decision 15's Group C row - fourth and final row checked,
+  2026-08-23 - matches, and closes out the group.** 2.3's own row for Group
+  C: "Every instance reaches one database, and it is now the ceiling |
+  3.10-3.13." 3.10 examined the ceiling, 3.11 asked whether the store's
+  shape fit it, 3.12 relieved it for reads, and this chapter is the last
+  lever for writes. All four of Group C's own rows are now checked; Groups
+  D-G remain open as their own chapters are authored.
+- **3.12's own "Next" section teases 3.13 directly** ("3.12 gave every copy
+  of the primary a job... 3.13 Sharding is what happens once that stops
+  being enough - once even the primary's own writes have outgrown one
+  machine, and the data itself has to split, not just copy.") - this
+  chapter's cold open opens by paying that off directly, in its first
+  sentence.
+- **One new open decision raised (19)**, detailed above and in the "Open
+  decisions" list below - an engine gap, same class as decision 17 but a
+  stronger, more clearly unintentional instance of it.
+
+---
+
 ## Open decisions blocking or shaping later chapters
 
 Raised during authoring, deliberately not resolved unilaterally. Each needs a
@@ -4053,6 +4734,17 @@ doc edit or a build decision.
    more component pairs need `"control"` added to their declared contracts,
    not just the load-balancer/app-server pair this decision originally
    named. Still no engineering work scheduled.
+   **Third instance, 2026-08-23 (3.9 Service Discovery) - this decision's own
+   prediction confirmed, not a new finding.** This decision named 3.9 as a
+   chapter that would hit this wall when it was first raised at 3.4; 3.9's
+   own Purpose (CURRICULUM §14) states "control edges become load-bearing" -
+   the health signal behind the registry pattern is the same `control`-kind
+   edge, still not buildable on canvas. Handled with the same discipline:
+   illustrative only in the lesson's diagram and prose, absent from the
+   graded `starterGraph`/`blueprint`, disclosed in
+   `curriculumContext.simplifications`. Full reasoning in 3.9's spec §6.
+   Three independent chapters now point at the same underlying fix; still no
+   engineering work scheduled.
 
 9. **3.4 Load Balancer authored standalone, ahead of its real prerequisite
    (2026-08-11).** CURRICULUM §14's 3.4 row reads "Assumes: 3.3", but Group A
@@ -4133,6 +4825,14 @@ doc edit or a build decision.
     instruct against the second-node instinct before it can bite - but the
     engine fix (aggregate config predicates across same-alias-eligible
     nodes, or a clearer drift message) is still unscheduled.
+    **Third instance, 2026-08-23 (3.7).** 3.7's own namesake fault is
+    `orphan-component` (a disconnected SQL Database node), also
+    `severity: "warning"` - the third consecutive Group A/B chapter (3.4,
+    3.6, 3.7) whose graded fault doesn't flip `runChapterValidation`'s
+    error-count-only `passed` computation on its own. Submit still gates
+    correctly on the blueprint in every case, so nothing is broken, but the
+    "decide once" call this decision has asked for since 3.4 now has three
+    independent instances behind it rather than two.
 
 12. **2.1's stop table pre-commits a one-line job description for five
    unwritten chapters (2026-08-18).** 2.1 From Browser to Backend is Part 2's
@@ -4262,6 +4962,163 @@ doc edit or a build decision.
    sentence about it. First of the six remaining rows checked against a
    real chapter; Groups C-G remain open as their own first chapters are
    authored.
+   **Group B's second chapter checked, 2026-08-23 - still matches.** 3.7
+   doesn't restate 2.3's own row (3.6 already did); it resolves the fork 3.6
+   left open, which is the correct job for a second chapter under the same
+   motivating row rather than a repeat of the first chapter's job. Groups
+   C-G, and the remaining two chapters of Group B (3.8, 3.9), remain open.
+   **Group B's third chapter checked, 2026-08-23 - still matches.** 3.8
+   extends 2.3's own row one step further than 3.6/3.7 did: not just that a
+   request can land anywhere (3.6) or that displaced state has somewhere to
+   go (3.7), but that *enough* copies exist to survive losing one - still
+   the same motivating pressure, not a new one. Third of the six remaining
+   rows resolved; Groups C-G and Group B's own final chapter (3.9) remain
+   open.
+   **Group B now fully checked, 2026-08-23 - all four chapters resolve the
+   same row.** 3.9 closes out the arc 3.6-3.8 built: it names the mechanism
+   (the registry pattern, already running inside 3.4's load balancer) that
+   makes "which copies currently exist" an answerable question at all - the
+   precondition every one of 3.6, 3.7 and 3.8 silently assumed. Group B is
+   the second of the seven groups (after Group A) to fully resolve its own
+   row; Groups C-G remain open as their own chapters are authored.
+   **Group C's own first chapter checked, 2026-08-23 - matches.** 2.3's row
+   for Group C: "Every instance reaches one database, and it is now the
+   ceiling | 3.10-3.13." 3.10's cold open and primary diagram state exactly
+   that constraint, and its own "What changes at scale" section quotes 2.3's
+   own follow-up roadmap sentence almost verbatim. First of the five
+   remaining rows checked; Groups D-G and the rest of Group C (3.11-3.13)
+   remain open as their own chapters are authored.
+   **Group C's second chapter checked, 2026-08-23 - still matches.** 3.11
+   doesn't restate 2.3's own row (3.10 already did); it's a direct
+   continuation of 3.10's own application - 3.10 examined the ceiling
+   itself, 3.11 examines whether a relational store was the right shape to
+   hit it with in the first place. Second of the five remaining rows
+   resolved; Groups D-G and the rest of Group C (3.12, 3.13) remain open.
+   **Group C's third chapter checked, 2026-08-23 - matches, and is the
+   first to actually move the ceiling.** 3.10 examined it, 3.11 asked
+   whether the store's shape fit it; 3.12 is the first concrete mechanism
+   in this row that relieves it (for reads). Third of the five remaining
+   rows resolved; Groups D-G and the last of Group C (3.13) remain open.
+   **Group C's fourth and final chapter checked, 2026-08-23 - matches, and
+   closes the group's own row entirely.** 3.13 is the last lever on 2.3's
+   own ladder - the write half of the ceiling 3.12's replicas left
+   untouched. All four of Group C's own rows (3.10-3.13) are now checked;
+   Groups D-G remain open as their own first chapters are authored.
+
+16. **CURRICULUM.md §6's own "engineered-cliffhanger" example doesn't parse
+    under current chapter numbering, raised authoring 3.8 (2026-08-23).**
+    §6's "Rules of use" cites "3.8 ends with two servers and nothing routing
+    between them; 3.4 resolves it" as the gold-standard "Preview of next
+    chapter" example. Read literally, this can't describe 3.8's own forward
+    tease: 3.4 (Group A) is already taught by the time a learner reaches 3.8
+    (Group B), so 3.4 cannot be something 3.8 previews toward - a chapter
+    can't tease material the learner already has. The actually-shipped
+    mechanism instead spans three chapters: 3.6 sets up the fork (two
+    instances exist, nothing decides how many or what happens on failure),
+    3.7 resolves the state half, and 3.8 resolves the routing/sizing half by
+    re-motivating 3.4's already-taught load balancer - exactly what 3.8's
+    own §14 row says ("3.4 taught the tool, 3.8 makes it inevitable").
+    **Not hacked around** - 3.8 was authored against the real, shipped
+    mechanism (3.6/3.7's own "Next" sections, 3.8's own §14 row), not
+    against §6's own stale parenthetical. Full reasoning in 3.8's spec §6.
+    **Blocks:** nothing. Same class as decisions 1, 4, 6, and 7 (CURRICULUM
+    rows contradicting each other or shipped content) - cosmetic doc drift,
+    but worth fixing in its own commit so a future author doesn't try to
+    author *toward* the stale example. Fix: either update §6's parenthetical
+    to describe the real 3.6-3.7-3.8 arc, or replace it with a still-valid
+    example from an already-shipped chapter.
+
+17. **CURRICULUM §14's own 3.10 row names a Config exercise the engine has
+    no schema for at all, raised authoring 3.10 (2026-08-23).** §14's own
+    row: "Exercise: config (indexes; observe simulated query cost) +
+    quiz-weighted." Checked directly against
+    `src/content/components/config/data.ts`: `sql-database`'s only field is
+    `engine` (postgres/mysql) - no `indexes` field exists. Checked against
+    every file in `src/validation-engine/rules/`: none inspects indexing or
+    simulates query cost. §11.1's own "Config" exercise-type table (`Where
+    used: 3.4, 3.13, 3.14, 3.17, 3.24`) doesn't list 3.10 either, so §11.1
+    and §14 already disagree with each other before any chapter gets
+    authored against them.
+    **Distinct in kind from decisions 8 and 14.** Decision 8 (`control`-kind
+    edges) and decision 14 (no failure state in `<Walkthrough>`) both name a
+    real capability that exists somewhere in the type system or schema but
+    isn't wired to the specific place a chapter needs it. Here, there is no
+    corresponding schema anywhere to extend - not a missing wire, a missing
+    field and a missing mechanism, on a component (`sql-database`) that
+    every chapter from 1.2 onward already depends on globally.
+    **Not hacked around** - 3.10 was authored with no Editor exercise at all
+    (`hasEditorExercise: false`) rather than adding a field to the global
+    `sql-database` registry entry (engineering work outside the
+    `chapter-author` skill's scope) or repurposing the existing `engine`
+    field dishonestly (postgres vs. mysql has no real relationship to
+    indexing cost - unlike 3.9's DNS `ttlSeconds` reuse, there is no
+    legitimate reading available). CURRICULUM's own "+ quiz-weighted" phrase
+    in the same row is read as license for this resolution. Full reasoning
+    in 3.10's spec §0.
+    **Blocks:** nothing today - 3.10 shipped without it. **Needs a decision
+    before any later chapter assumes indexing is config-controllable**: add
+    an `indexes` (or similar) field to `sql-database`'s global registry
+    entry plus a query-cost-aware validation rule (real engineering, not a
+    content-authoring pass), or update CURRICULUM §14's own row and §11.1's
+    table to stop describing an exercise this component can't support -
+    either way a decision for outside this skill, not something a chapter
+    author should resolve unilaterally per chapter.
+
+18. **QUIZ_FRAMEWORK.md §10's own bank Q5 diagram JSON draws the replica read
+    edge backwards, raised authoring 3.12 (2026-08-23).** Q5's sample graph
+    (the replication-lag diagram question reserved for 3.12) authors its `e3`
+    edge as `app-server -> read-replica`, `kind: "request-flow"`. Checked
+    directly against `src/content/components/config/data.ts`'s `read-replica`
+    entry (`relations.inputs`: category `data` + kind `replication` only) and
+    `src/content/components/config/compute.ts`'s own inline comment on
+    `app-server` ("a Read Replica's own 'Read query' output targets
+    compute"): the intended, shipped direction is the reverse -
+    `read-replica -> app-server`. The bank's edge as written would fail
+    `component-relations` if it were ever validated instead of rendered
+    read-only. **Not hacked around** - 3.12's own chapter quiz (Q4) adapts
+    Q5's scenario with the corrected direction rather than reproducing the
+    bank JSON verbatim; full reasoning in 3.12's spec §6 and §10. **Blocks:**
+    nothing - no chapter has consumed the bank's own broken JSON verbatim
+    yet, and 3.12 didn't either. **Needs a doc edit**: correct
+    QUIZ_FRAMEWORK.md §10 Q5's `e3` edge to `read-replica -> app-server`, so
+    a future author copying the bank JSON verbatim doesn't inherit the
+    mistake.
+
+19. **CURRICULUM §14's own 3.13 row AND §11.1's own Config-exercise table
+    both promise a shard-key config exercise the engine has no schema for,
+    raised authoring 3.13 (2026-08-23).** §14's own row: "Exercise: config
+    (shard-key choice ×2 workloads; hot-partition explanations) + trade-off
+    (range vs. hash)." §11.1's own "Config" exercise-type table lists 3.13 in
+    its "Where used" column (`3.4, 3.13, 3.14, 3.17, 3.24`) - unlike decision
+    17 (3.10), where §11.1 didn't list the chapter at all, here both of
+    CURRICULUM's own sections agree with each other on the promise. Checked
+    directly against `src/content/components/config/data.ts`: neither
+    `sql-database` (`engine` only) nor `nosql-database` (`model` only) has a
+    shard-key field. Checked every file in `src/validation-engine/rules/`:
+    none inspects a shard key, detects a hot partition, or simulates
+    cross-shard cost. `search-engine`'s own `shards` field (index
+    parallelism) was checked and ruled out as a substitute - a different
+    mechanism solving a different problem, not primary-key partitioning of a
+    transactional store.
+    **Stronger than decision 17, not just a repeat of it.** 3.10's own gap
+    was at least internally inconsistent (§11.1 silently disagreed with §14
+    by omission); here CURRICULUM's own two sections actively agree with
+    each other on a promise neither the component registry nor the
+    validation engine can support - a cleaner, more clearly unintentional
+    gap.
+    **Not hacked around** - resolved the same way decision 17 was: 3.13 ships
+    with no Editor exercise at all (`hasEditorExercise: false`), leaning on a
+    six-question quiz-weighted assessment that adapts all four of
+    QUIZ_FRAMEWORK.md §10's own bank questions already reserved for this
+    chapter. Full reasoning in 3.13's spec §0.
+    **Blocks:** nothing today - 3.13 shipped without it, same as 3.10 did.
+    **Needs the same decision as 17, ideally resolved once for both**: add a
+    `shardKey` (or similar) field to `sql-database`/`nosql-database`'s global
+    registry entries plus shard-aware validation (real engineering, not a
+    content-authoring pass), or update CURRICULUM §14's and §11.1's own rows
+    to stop describing an exercise no component in the registry can support -
+    either way, a decision for outside this skill, and one that should
+    probably be made jointly with decision 17 rather than twice.
 
 ---
 
