@@ -71,6 +71,12 @@ directory misses which ones are live vs. retired:
   per-day activity log (`db.activeDays` + Clerk `publicMetadata`) that replaced
   inferring it from overwritable timestamps. Read before touching the streak,
   `resetCourse`, or anything under `src/persistence/active-days.ts`.
+- `.claude/docs/pending-responsive.md` - POA for making the site responsive and
+  narrowing the 1024px size gate to the Design Editor only (release
+  7.1.0-alpha, branch `feat/size-changes`). Holds the breakpoint contract, the
+  gated-vs-open route split, and a surface-by-surface inventory. Read before
+  touching `ScreenSizeGate`, `use-large-screen.ts`, `CenteredModal` sizing, or
+  any page/layout shell.
 - `.claude/docs/pending-design-editor-exercise.md` - audit + POA for the Design
   Editor half of every authored chapter: starter graphs laid out at a 200px
   pitch against a 200px card (zero gap, invisible edges), single-row bounding
