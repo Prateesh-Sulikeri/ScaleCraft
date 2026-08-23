@@ -51,9 +51,10 @@ per session-end verification convention. Check off as each lands.
       2 successCriteria required per editor chapter, and a best-effort spoiler
       gate (brief text must not name a component the learner still has to add).
       19/19 passing, typecheck clean.
-- [ ] T7. Phase 4 - update CURRICULUM §11.2/§11.4 layout standard note (if not fully
-      covered by T0), append one dated entry to `pending-chapters.md` covering all 13
-      touched chapters, record the 320x160 pitch in `DESIGN.md`.
+- [x] T7. Phase 4 - added CURRICULUM §11.5 (starter graph layout standard),
+      recorded the 320x160 pitch in `DESIGN.md`'s Node Card section, and appended
+      one dated cross-cutting entry to `pending-chapters.md` covering all 13
+      touched chapters.
 - [ ] T8. Phase 5 - Update the chapter-author skill to use the new formats going ahead. 
 - [ ] T9. Phase 5 - Make the chapter-author skill less costly in terms of token usage and
       easier to use as it currently fetches a lot of stuff before starting. let's stream line

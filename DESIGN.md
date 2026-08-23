@@ -197,6 +197,8 @@ One shared visual language across three distinct triggers (Export menu, Validate
 - **Anatomy:** icon badge (32px, 8px radius, category-color fill at 20% mix) + title (14px/600) + one-line summary (12px, 60%-opacity ink) stacked beside it, whole-card 2px outline in the state ring color (defaults to hairline-border when unvalidated).
 - **Shadow:** `ambient-card` only.
 
+**Starter-graph layout standard (authoring, Design Editor).** Every authored starter graph places nodes on a 320x160 pitch — 120px horizontal / 95px vertical gap against the 200x65 card — never the 200px pitch the Part 3 template originally copy-pasted forward, which left adjacent cards touching and edges rendering as invisible dots. Chapters of 4+ nodes tier into rows by architectural layer (edge/client, then routing/app, then data), capped at 3 columns per row, keeping the bounding-box aspect ratio at or under 2.5:1 so `fitView` lands near zoom 1.0 instead of width-constraining into an unreadably small strip. Enforced by `authoring-invariants.test.ts`'s spacing and aspect gates; see `.claude/docs/pending-design-editor-exercise.md` for the audit this codifies.
+
 ### Home Dashboard (signature surface)
 Home (`src/home/HomeDashboard.tsx`) is a product dashboard, not a canvas. It replaced a static react-flow mode selector (`HomeCanvas`/`ModeNode`/`HomeTitleNode`, deleted) that looked striking but could only ever hold three cards, with nowhere to put progress, activity, or release news. The dotted plane survives as a plain CSS `radial-gradient` (1px dot, 26px pitch, `--border` at 85%), so the motif is intact with none of the graph machinery.
 

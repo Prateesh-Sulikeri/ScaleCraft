@@ -4545,6 +4545,31 @@ later one.
 
 ---
 
+## Cross-cutting revisions (post-authoring)
+
+Entries here touch many already-authored chapters at once for a mechanical or
+structural reason - not a per-chapter authoring pass, so one dated entry covers
+all touched chapters rather than duplicating a row per chapter above.
+
+- **2026-08-23, branch `fix/design-editor-bugs`: Design Editor layout + brief
+  retrofit, all 13 editor chapters (0.1, 1.2, 3.1-3.9, 3.11, 3.12).** Followed
+  `.claude/docs/pending-design-editor-exercise.md`'s audit + POA. Two fixes,
+  content-only, no chapter's teaching content changed:
+  - **Starter graph layout:** every chapter's `starterGraph` was retrofitted from
+    the 200px x-pitch that made adjacent cards touch (0px gap, edges rendered as
+    invisible dots) to a 320x160 pitch, tiered into rows by architectural layer
+    for chapters of 4+ nodes. See DESIGN.md's Node Card section and CURRICULUM
+    §11.5 for the standard, `authoring-invariants.test.ts` for the gate.
+  - **Exercise brief:** added `exerciseGoal`/`successCriteria` to
+    `ChapterDefinition`, rewrote all 13 briefs under CURRICULUM §11.2's new
+    brief-calibration rule (D3: name the symptom and goal, never the
+    component/field/direction that fixes it - Config chapters may name the
+    component only), and removed QuestionPane's always-visible Learning
+    Objectives block, which had been printing the exact fix above the opt-in
+    hints on several chapters (1.2, 3.4, 3.6, 3.7, 3.9, 3.12).
+
+---
+
 ## Open decisions blocking or shaping later chapters
 
 Raised during authoring, deliberately not resolved unilaterally. Each needs a

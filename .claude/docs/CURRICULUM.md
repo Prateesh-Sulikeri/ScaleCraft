@@ -629,6 +629,18 @@ than earlier ones just because the scenario reads longer. If a later chapter's
 brief is more revealing than an earlier one's, that is a calibration bug, not a
 deliberate scaffold fade.
 
+### 11.5 Starter graph layout
+
+Every starter graph is authored at a 320x160 pitch (120px horizontal / 95px
+vertical gap against the 200x65 card, DESIGN.md's Node Card section) - never the
+200px pitch the Part 3 template originally copy-pasted forward, which left
+adjacent cards touching with no room for an edge to render. Chapters of 4+ nodes
+tier into rows by architectural layer (edge/client, then routing/app, then data),
+capped at 3 columns per row, so the bounding-box aspect ratio stays at or under
+2.5:1 and `fitView` lands near zoom 1.0 rather than width-constraining into an
+unreadably small strip. `authoring-invariants.test.ts` enforces both the minimum
+gap and the aspect ceiling for every authored chapter.
+
 ---
 
 ## 12. Learning reinforcement systems
