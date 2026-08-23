@@ -3,8 +3,12 @@
 Release **7.1.0-alpha**. Branch **`feat/size-changes`**, cut from
 `staging/v7.1.0-progress-reset`.
 
-Status: **Scoped, nothing implemented.** Phase 0 has three decisions that
-need a call before Phase 3 starts; Phases 1-2 can begin immediately.
+Status: **Phase 1 landed** (commit 8f818ae) - decisions D1-D3 taken as
+recommended (gate moved to the whole `(protected)` group, thresholds
+unchanged, 360px floor). Confirmed via curl against the dev server (no
+browser tool available in this session) - a real DevTools pass at
+360/390/768/1024/1280/1920 is still owed before this ships. Phase 2 (shared
+breakpoint contract, `useIsNarrow()`/`<MobileDrawer>` helpers) next.
 
 ## The product call
 
