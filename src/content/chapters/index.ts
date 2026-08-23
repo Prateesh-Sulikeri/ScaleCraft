@@ -325,8 +325,8 @@ export const chapterRegistry: ChapterDefinition[] = [
     // "fix-edge"/"revalidate-clean" steps for the guided remediation.
     starterGraph: {
       nodes: [
-        { id: "bb-0-1-client", componentId: "client", position: { x: 80, y: 140 }, config: {} },
-        { id: "bb-0-1-app-server", componentId: "app-server", position: { x: 340, y: 140 }, config: {} },
+        { id: "bb-0-1-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-0-1-app-server", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
       ],
       edges: [{ id: "bb-0-1-edge-client-app", source: "bb-0-1-client", target: "bb-0-1-app-server", kind: "async" }],
       entryPointIds: ["bb-0-1-client"],
@@ -2530,8 +2530,8 @@ export const chapterRegistry: ChapterDefinition[] = [
     //     on kind (see that rule's own module comment).
     starterGraph: {
       nodes: [
-        { id: "bb-1-2-client", componentId: "client", position: { x: 80, y: 140 }, config: {} },
-        { id: "bb-1-2-sql-database", componentId: "sql-database", position: { x: 400, y: 140 }, config: {} },
+        { id: "bb-1-2-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-1-2-sql-database", componentId: "sql-database", position: { x: 380, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-1-2-edge-client-db", source: "bb-1-2-client", target: "bb-1-2-sql-database", kind: "request-flow" },
@@ -4593,9 +4593,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     // precedent, adapted for a Completion rather than a Fix exercise).
     starterGraph: {
       nodes: [
-        { id: "bb-3-1-client", componentId: "client", position: { x: 80, y: 160 }, config: {} },
-        { id: "bb-3-1-app", componentId: "app-server", position: { x: 400, y: 160 }, config: {} },
-        { id: "bb-3-1-db", componentId: "sql-database", position: { x: 620, y: 160 }, config: {} },
+        { id: "bb-3-1-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-1-app", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
+        { id: "bb-3-1-db", componentId: "sql-database", position: { x: 700, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-3-1-e1", source: "bb-3-1-client", target: "bb-3-1-app", kind: "request-flow" },
@@ -4940,9 +4940,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     // Completion exercise).
     starterGraph: {
       nodes: [
-        { id: "bb-3-2-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-2-app", componentId: "app-server", position: { x: 680, y: 160 }, config: {} },
-        { id: "bb-3-2-db", componentId: "sql-database", position: { x: 900, y: 160 }, config: {} },
+        { id: "bb-3-2-fw", componentId: "firewall", position: { x: 60, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-2-app", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
+        { id: "bb-3-2-db", componentId: "sql-database", position: { x: 700, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-3-2-e1", source: "bb-3-2-fw", target: "bb-3-2-app", kind: "request-flow" },
@@ -5276,11 +5276,11 @@ export const chapterRegistry: ChapterDefinition[] = [
     // precedent. The fault is purely the missing front door between them.
     starterGraph: {
       nodes: [
-        { id: "bb-3-3-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-3-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-3-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-3-app", componentId: "app-server", position: { x: 900, y: 160 }, config: {} },
-        { id: "bb-3-3-db", componentId: "sql-database", position: { x: 1100, y: 160 }, config: {} },
+        { id: "bb-3-3-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-3-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-3-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-3-app", componentId: "app-server", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-3-db", componentId: "sql-database", position: { x: 60, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-3-e1", source: "bb-3-3-browser", target: "bb-3-3-dns", kind: "request-flow" },
@@ -5645,10 +5645,10 @@ export const chapterRegistry: ChapterDefinition[] = [
     // - the registry doesn't yet accept one between these two components).
     starterGraph: {
       nodes: [
-        { id: "bb-3-4-client", componentId: "client", position: { x: 80, y: 160 }, config: {} },
-        { id: "bb-3-4-lb", componentId: "load-balancer", position: { x: 280, y: 160 }, config: {} },
-        { id: "bb-3-4-app1", componentId: "app-server", position: { x: 480, y: 160 }, config: {} },
-        { id: "bb-3-4-db", componentId: "sql-database", position: { x: 680, y: 160 }, config: {} },
+        { id: "bb-3-4-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-4-lb", componentId: "load-balancer", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-4-app1", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
+        { id: "bb-3-4-db", componentId: "sql-database", position: { x: 60, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-4-edge-client-lb", source: "bb-3-4-client", target: "bb-3-4-lb", kind: "request-flow" },
@@ -5991,12 +5991,12 @@ export const chapterRegistry: ChapterDefinition[] = [
     // layer between them.
     starterGraph: {
       nodes: [
-        { id: "bb-3-5-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-5-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-5-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-5-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-5-app", componentId: "app-server", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-5-db", componentId: "sql-database", position: { x: 1260, y: 160 }, config: {} },
+        { id: "bb-3-5-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-5-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-5-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-5-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-5-app", componentId: "app-server", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-5-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-5-e1", source: "bb-3-5-browser", target: "bb-3-5-dns", kind: "request-flow" },
@@ -6326,14 +6326,14 @@ export const chapterRegistry: ChapterDefinition[] = [
     // node, not a Fix on an otherwise-complete graph).
     starterGraph: {
       nodes: [
-        { id: "bb-3-6-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-6-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-6-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-6-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-6-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-6-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-6-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 1 } },
-        { id: "bb-3-6-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
+        { id: "bb-3-6-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-6-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-6-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-6-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-6-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-6-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-6-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 1 } },
+        { id: "bb-3-6-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-6-e1", source: "bb-3-6-browser", target: "bb-3-6-dns", kind: "request-flow" },
@@ -6660,14 +6660,14 @@ export const chapterRegistry: ChapterDefinition[] = [
     // fix is reconnecting it, not adding or removing any other node.
     starterGraph: {
       nodes: [
-        { id: "bb-3-7-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-7-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-7-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-7-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-7-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-7-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-7-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 2 } },
-        { id: "bb-3-7-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
+        { id: "bb-3-7-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-7-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-7-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-7-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-7-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-7-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-7-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 2 } },
+        { id: "bb-3-7-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-7-e1", source: "bb-3-7-browser", target: "bb-3-7-dns", kind: "request-flow" },
@@ -7032,14 +7032,14 @@ export const chapterRegistry: ChapterDefinition[] = [
     // (§11.1), the same realization 3.6 used for its own instance-count fix.
     starterGraph: {
       nodes: [
-        { id: "bb-3-8-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-8-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-8-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-8-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-8-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-8-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-8-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 2 } },
-        { id: "bb-3-8-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
+        { id: "bb-3-8-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-8-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-8-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-8-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-8-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-8-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-8-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 2 } },
+        { id: "bb-3-8-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-8-e1", source: "bb-3-8-browser", target: "bb-3-8-dns", kind: "request-flow" },
@@ -7395,14 +7395,14 @@ export const chapterRegistry: ChapterDefinition[] = [
     // Config-exercise shape (§11.1), the same realization 3.4 and 3.8 used.
     starterGraph: {
       nodes: [
-        { id: "bb-3-9-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-9-dns", componentId: "dns", position: { x: 260, y: 160 }, config: { ttlSeconds: 300 } },
-        { id: "bb-3-9-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-9-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-9-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-9-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-9-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 3 } },
-        { id: "bb-3-9-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
+        { id: "bb-3-9-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-9-dns", componentId: "dns", position: { x: 380, y: 0 }, config: { ttlSeconds: 300 } },
+        { id: "bb-3-9-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-9-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-9-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-9-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-9-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-9-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-9-e1", source: "bb-3-9-browser", target: "bb-3-9-dns", kind: "request-flow" },
@@ -8094,15 +8094,15 @@ export const chapterRegistry: ChapterDefinition[] = [
     // the model decision for real, not just wiring one edge.
     starterGraph: {
       nodes: [
-        { id: "bb-3-11-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-11-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-11-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-11-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-11-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-11-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-11-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 3 } },
-        { id: "bb-3-11-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
-        { id: "bb-3-11-nosql", componentId: "nosql-database", position: { x: 1460, y: 340 }, config: { model: "key-value" } },
+        { id: "bb-3-11-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-11-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-11-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-11-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-11-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-11-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-11-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-11-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-11-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "key-value" } },
       ],
       edges: [
         { id: "bb-3-11-e1", source: "bb-3-11-browser", target: "bb-3-11-dns", kind: "request-flow" },
@@ -8513,16 +8513,16 @@ export const chapterRegistry: ChapterDefinition[] = [
     // the Replica's input) at once.
     starterGraph: {
       nodes: [
-        { id: "bb-3-12-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-12-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-12-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-12-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-12-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-12-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-12-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 3 } },
-        { id: "bb-3-12-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
-        { id: "bb-3-12-nosql", componentId: "nosql-database", position: { x: 1460, y: 340 }, config: { model: "document" } },
-        { id: "bb-3-12-replica", componentId: "read-replica", position: { x: 1660, y: 160 }, config: {} },
+        { id: "bb-3-12-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-12-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-12-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-12-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-12-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-12-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-12-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-12-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-12-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "document" } },
+        { id: "bb-3-12-replica", componentId: "read-replica", position: { x: 700, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-12-e1", source: "bb-3-12-browser", target: "bb-3-12-dns", kind: "request-flow" },

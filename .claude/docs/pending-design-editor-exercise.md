@@ -10,6 +10,45 @@ and are not affected).
 
 ---
 
+## Task list (working on `fix/design-editor-bugs`)
+
+Priority is completion, one task at a time, in order. **Do not run CI validation
+(`typecheck`/`lint`/`test`/`build`) after each task** - only when explicitly asked,
+per session-end verification convention. Check off as each lands.
+
+- [x] T0. Lock Phase 0 decisions D1-D5 (adopted: D1b, D2a, D3 as proposed, D4a, D5
+      already enforced). D3's CURRICULUM §11.2/§11.4 edit landed as its own commit
+      (`23fa748`) before any chapter content changes.
+- [x] T1. Phase 1 - retrofit all 13 starter graphs (0.1, 1.2, 3.1-3.12) to 320x160
+      pitch (120px horiz / 95px vert gap) with semantic tiering per D4. Tiered by
+      edge/client -> routing/app -> data, capped at 3 columns per row per the
+      audit's own 3.12 worked example. Verified programmatically: no spacing-gate
+      violations, all 4+ node graphs aspect <=2.5:1 (0.1/1.2/3.1/3.2 exempt, <4 nodes).
+- [x] T2. Phase 1 - verified each retrofitted chapter in-browser at 1440x900 with a
+      fresh, no-saves test account (the e2e `.auth/user.json` account has persisted
+      saves from the original audit session that shadow the starterGraph via
+      `loadGraph` - had to route around that). All 13 chapters render at fit zoom
+      1.0 with row counts matching the intended tiering. `authoring-invariants.test.ts`
+      re-run: 15/15 passing, no starter graph completes its chapter.
+- [ ] T3. Phase 2 - add `exerciseGoal` and `successCriteria` fields to
+      `ChapterDefinition`.
+- [ ] T4. Phase 2 - update `QuestionPane` to render `Goal` / `You're done when` as
+      headed sections and remove the Learning Objectives block; update
+      `QuestionPane.test.tsx`.
+- [ ] T5. Phase 2 - rewrite the brief (`problemStatement` + new `exerciseGoal` /
+      `successCriteria`) for all 13 editor chapters under D3's calibration rule.
+- [ ] T6. Phase 3 - add regression gates to `authoring-invariants.test.ts`: spacing
+      gate, aspect gate, brief gate, spoiler gate (best-effort).
+- [ ] T7. Phase 4 - update CURRICULUM §11.2/§11.4 layout standard note (if not fully
+      covered by T0), append one dated entry to `pending-chapters.md` covering all 13
+      touched chapters, record the 320x160 pitch in `DESIGN.md`.
+- [ ] T8. Phase 5 - Update the chapter-author skill to use the new formats going ahead. 
+- [ ] T9. Phase 5 - Make the chapter-author skill less costly in terms of token usage and
+      easier to use as it currently fetches a lot of stuff before starting. let's stream line
+      this with a brief solution discussion 
+
+---
+
 ## 0. How this was audited
 
 Not by reading code alone. The dev server was already up, so the audit drove a real
