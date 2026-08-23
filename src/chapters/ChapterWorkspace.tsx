@@ -23,6 +23,7 @@ import {
 import type { ValidationState } from "@/canvas/types";
 import { chapterRegistry } from "@/content/chapters";
 import type { ChapterDefinition } from "@/content/chapters/types";
+import { toDecoratorNodes } from "@/content/chapters/starter-decorators";
 import type { ChapterOutcome, ChapterValidationOutcome } from "@/engines";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db, type ChapterProgress } from "@/persistence/db";
@@ -218,7 +219,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
         if (winner !== local) void db.saves.put(winner);
         loadCanvasState(winner.nodes, winner.edges);
       } else if (chapter.starterGraph) {
-        loadGraph(chapter.starterGraph);
+        loadGraph(chapter.starterGraph, toDecoratorNodes(chapter.starterDecorators ?? []));
       } else {
         loadCanvasState([], []);
       }
@@ -456,8 +457,11 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     if (!chapter) return;
     // Synchronous, so TourController can restart the run in the same tick
     // and have the fresh graph already in its TourContext.
-    if (chapter.starterGraph) resetGraph(chapter.starterGraph);
-    else loadCanvasState([], []);
+    if (chapter.starterGraph) {
+      resetGraph(chapter.starterGraph, toDecoratorNodes(chapter.starterDecorators ?? []));
+    } else {
+      loadCanvasState([], []);
+    }
     setValidationOutcome(null);
     setValidatedGraphKey(null);
     setSubmitOutcome(null);
