@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import { chapterRegistry } from "./index";
 import { getComponent } from "@/content/components/registry";
 import { evaluateChapter } from "@/validation-engine/chapter-outcome";
+import { ANNOTATION_COLOR_PRESETS } from "@/canvas/annotation-colors";
 import type { ArchitectureGraph } from "@/lib/graph";
 import type { ChapterDefinition } from "./types";
 
@@ -199,6 +200,82 @@ describe("authored chapter invariants", () => {
         expect(
           briefText.includes(label.toLowerCase()),
           `${chapter.id}'s brief names "${label}", a component the learner still has to add`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  // .claude/docs/pending-starter-decorators.md: starterDecorators is a
+  // separate, hand-authored field (never generated), so an id typo or a
+  // copy-pasted id from another chapter is a real risk - it would silently
+  // collide with a real component node's id once toDecoratorNodes merges
+  // both arrays into one canvas node list.
+  it("every starter decorator has an id unique within its chapter, distinct from every starter-graph node id", () => {
+    for (const chapter of authored) {
+      if (!chapter.starterDecorators || chapter.starterDecorators.length === 0) continue;
+      const nodeIds = new Set((chapter.starterGraph?.nodes ?? []).map((n) => n.id));
+      const seen = new Set<string>();
+      for (const d of chapter.starterDecorators) {
+        expect(nodeIds.has(d.id), `${chapter.id}: decorator id "${d.id}" collides with a starter-graph node id`).toBe(false);
+        expect(seen.has(d.id), `${chapter.id}: decorator id "${d.id}" is duplicated`).toBe(false);
+        seen.add(d.id);
+      }
+    }
+  });
+
+  // A zone is a labeled boundary - two overlapping zones read as a
+  // rendering bug (which one is the client tier?), not as intentional
+  // nesting (v1 zones don't reparent/nest, see ZoneNodeData's doc comment).
+  it("no two starter-decorator zones overlap", () => {
+    for (const chapter of authored) {
+      const zones = (chapter.starterDecorators ?? []).filter((d) => d.kind === "zone");
+      for (let a = 0; a < zones.length; a++) {
+        for (let b = a + 1; b < zones.length; b++) {
+          const za = zones[a];
+          const zb = zones[b];
+          const overlaps =
+            za.position.x < zb.position.x + zb.width &&
+            za.position.x + za.width > zb.position.x &&
+            za.position.y < zb.position.y + zb.height &&
+            za.position.y + za.height > zb.position.y;
+          expect(overlaps, `${chapter.id}: zones "${za.id}" and "${zb.id}" overlap`).toBe(false);
+        }
+      }
+    }
+  });
+
+  // pending-starter-decorators.md's palette convention: zones stay on
+  // ANNOTATION_COLOR_PRESETS (the same picker a learner's own zones use),
+  // not an arbitrary hex an author typed by hand.
+  it("every starter-decorator zone has a non-empty label and a palette color", () => {
+    const presetValues = new Set(ANNOTATION_COLOR_PRESETS.map((p) => p.value));
+    for (const chapter of authored) {
+      for (const d of chapter.starterDecorators ?? []) {
+        if (d.kind !== "zone") continue;
+        expect(d.label.trim().length, `${chapter.id}: zone "${d.id}" has an empty label`).toBeGreaterThan(0);
+        expect(presetValues.has(d.color), `${chapter.id}: zone "${d.id}"'s color ${d.color} isn't an annotation preset`).toBe(true);
+      }
+    }
+  });
+
+  // Same brief-calibration rule as the exerciseGoal/successCriteria gate
+  // above, extended to on-canvas decorators - a zone label or comment is
+  // just as capable of spoiling the fix as a sentence in the sidebar.
+  it("no starter-decorator zone label or comment names a component the learner still has to add", () => {
+    for (const chapter of authored) {
+      if (!chapter.starterGraph || !chapter.starterDecorators?.length) continue;
+      const presentIds = new Set(chapter.starterGraph.nodes.map((n) => n.componentId));
+      const toAdd = chapter.availableComponentIds.filter((id) => !presentIds.has(id));
+      const decoratorText = chapter.starterDecorators
+        .map((d) => (d.kind === "comment" ? d.text : d.kind === "zone" ? d.label : ""))
+        .join(" ")
+        .toLowerCase();
+      for (const id of toAdd) {
+        const label = getComponent(id)?.label;
+        if (!label) continue;
+        expect(
+          decoratorText.includes(label.toLowerCase()),
+          `${chapter.id}'s decorators name "${label}", a component the learner still has to add`,
         ).toBe(false);
       }
     }
