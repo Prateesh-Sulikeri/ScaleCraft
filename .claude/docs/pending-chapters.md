@@ -4545,6 +4545,51 @@ later one.
 
 ---
 
+## Cross-cutting revisions (post-authoring)
+
+Entries here touch many already-authored chapters at once for a mechanical or
+structural reason - not a per-chapter authoring pass, so one dated entry covers
+all touched chapters rather than duplicating a row per chapter above.
+
+- **2026-08-23, branch `fix/design-editor-bugs`: Design Editor layout + brief
+  retrofit, all 13 editor chapters (0.1, 1.2, 3.1-3.9, 3.11, 3.12).** Followed
+  `.claude/docs/pending-design-editor-exercise.md`'s audit + POA. Two fixes,
+  content-only, no chapter's teaching content changed:
+  - **Starter graph layout:** every chapter's `starterGraph` was retrofitted from
+    the 200px x-pitch that made adjacent cards touch (0px gap, edges rendered as
+    invisible dots) to a 320x160 pitch, tiered into rows by architectural layer
+    for chapters of 4+ nodes. See DESIGN.md's Node Card section and CURRICULUM
+    §11.5 for the standard, `authoring-invariants.test.ts` for the gate.
+  - **Exercise brief:** added `exerciseGoal`/`successCriteria` to
+    `ChapterDefinition`, rewrote all 13 briefs under CURRICULUM §11.2's new
+    brief-calibration rule (D3: name the symptom and goal, never the
+    component/field/direction that fixes it - Config chapters may name the
+    component only), and removed QuestionPane's always-visible Learning
+    Objectives block, which had been printing the exact fix above the opt-in
+    hints on several chapters (1.2, 3.4, 3.6, 3.7, 3.9, 3.12).
+
+- **2026-08-23, branch `feat/starter-decorators-and-reset`: starter-graph
+  decorators + Reset to Default, same 13 editor chapters.** Follow-up to the
+  above - the tiered layout fixed spacing but still read as "a loose grid of
+  cards" rather than a real diagram. Two additions, content-only:
+  - **Reset to Default:** a header button (BB and RWE both, one shared
+    `AppHeader`) puts the canvas back to the chapter's `starterGraph` +
+    `starterDecorators`, discarding the in-progress attempt. The underlying
+    `handleResetToStarter` already existed (wired only to the guided tour's
+    "Start over"); this exposes it generally.
+  - **Starter decorators:** all 13 chapters now ship `starterDecorators` -
+    labeled zone rectangles per architectural tier (client/edge blue,
+    application purple, data emerald) plus, on the 6 chapters whose fix is a
+    genuinely missing node in identifiable empty space (1.2, 3.1-3.5), a
+    magenta "Build here" gap zone - skipped on 3.6-3.9/3.11/3.12, whose
+    fixes are config/wiring changes to an already-present node. A handful
+    of factual, non-spoiler comments (3.8 capacity numbers, 3.9 TTL
+    definition, 3.11/3.12 storage-model notes). See CURRICULUM §11.6 for the
+    convention and `.claude/docs/pending-starter-decorators.md` for the full
+    build log.
+
+---
+
 ## Open decisions blocking or shaping later chapters
 
 Raised during authoring, deliberately not resolved unilaterally. Each needs a

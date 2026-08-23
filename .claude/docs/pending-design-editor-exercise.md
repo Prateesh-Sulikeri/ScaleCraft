@@ -10,6 +10,77 @@ and are not affected).
 
 ---
 
+## Task list (working on `fix/design-editor-bugs`)
+
+Priority is completion, one task at a time, in order. **Do not run CI validation
+(`typecheck`/`lint`/`test`/`build`) after each task** - only when explicitly asked,
+per session-end verification convention. Check off as each lands.
+
+- [x] T0. Lock Phase 0 decisions D1-D5 (adopted: D1b, D2a, D3 as proposed, D4a, D5
+      already enforced). D3's CURRICULUM §11.2/§11.4 edit landed as its own commit
+      (`23fa748`) before any chapter content changes.
+- [x] T1. Phase 1 - retrofit all 13 starter graphs (0.1, 1.2, 3.1-3.12) to 320x160
+      pitch (120px horiz / 95px vert gap) with semantic tiering per D4. Tiered by
+      edge/client -> routing/app -> data, capped at 3 columns per row per the
+      audit's own 3.12 worked example. Verified programmatically: no spacing-gate
+      violations, all 4+ node graphs aspect <=2.5:1 (0.1/1.2/3.1/3.2 exempt, <4 nodes).
+- [x] T2. Phase 1 - verified each retrofitted chapter in-browser at 1440x900 with a
+      fresh, no-saves test account (the e2e `.auth/user.json` account has persisted
+      saves from the original audit session that shadow the starterGraph via
+      `loadGraph` - had to route around that). All 13 chapters render at fit zoom
+      1.0 with row counts matching the intended tiering. `authoring-invariants.test.ts`
+      re-run: 15/15 passing, no starter graph completes its chapter.
+- [x] T3. Phase 2 - added `exerciseGoal?: string` and `successCriteria?: string[]`
+      to `ChapterDefinition` (`src/content/chapters/types.ts`), both optional so
+      existing chapters typecheck unchanged until T5 backfills them.
+- [x] T4. Phase 2 - `QuestionPane` now renders `exerciseGoal` under a "Goal" heading
+      and `successCriteria` under "You're done when"; the Learning Objectives block
+      is gone (the field stays in `ChapterDefinition` - `ai/prompt.ts`'s Deep Check
+      prompt still reads it, that's a separate consumer, out of scope for D2).
+      `QuestionPane.test.tsx` updated: 33/33 passing.
+- [x] T5. Phase 2 - rewrote the brief (`problemStatement` shortened + new
+      `exerciseGoal` / `successCriteria`) for all 13 editor chapters under D3's
+      calibration rule. Removed the component/field/direction spoilers Finding B
+      flagged (1.2, 3.4, 3.6, 3.7, 3.9, 3.12) and the ones present but unflagged
+      (3.1, 3.2, 3.3, 3.5, 3.8). 3.9/3.12 use the doc's own worked examples near-
+      verbatim. Manually spot-checked against D3 (Config chapters may name the
+      component, never the direction/value; Fix/Completion chapters name neither).
+      typecheck clean, authoring-invariants + QuestionPane: 48/48 passing.
+- [x] T6. Phase 3 - added 4 regression gates to `authoring-invariants.test.ts`:
+      minimum-gap spacing gate, 2.5:1 aspect ceiling (4+ nodes), exerciseGoal +
+      2 successCriteria required per editor chapter, and a best-effort spoiler
+      gate (brief text must not name a component the learner still has to add).
+      19/19 passing, typecheck clean.
+- [x] T7. Phase 4 - added CURRICULUM §11.5 (starter graph layout standard),
+      recorded the 320x160 pitch in `DESIGN.md`'s Node Card section, and appended
+      one dated cross-cutting entry to `pending-chapters.md` covering all 13
+      touched chapters.
+- [x] T8. Phase 5 - Updated the chapter-author skill for the new format:
+      `SKILL.md`'s `definition` scope now lists `exerciseGoal`/`successCriteria`
+      as required (not optional) whenever a chapter has a real canvas exercise;
+      `draft.md` gets a full authoring paragraph (calibration rule, Config-chapter
+      exception, spoiler self-check, problemStatement stays a short scenario);
+      `audit.md`'s three exclusion lists (Opus's checklist, DO_NOT_TOUCH, the
+      agent prompt template) now name the two new fields alongside
+      `problemStatement`/`learningObjectives` so they stay Sonnet-owned, not
+      silently unclaimed by either pass.
+- [x] T9. Phase 5 - Discussed and implemented, scope expanded per user's direction:
+      (1) retired the two-pass Sonnet-draft/Opus-audit model entirely - one-shot,
+      model-independent, self-check replaces the Opus audit checklist; (2) streamlined
+      context-gathering - `pending-chapters.md` and `CURRICULUM.md` are now
+      grep-extracted to the target chapter's own material / a scope-to-section map
+      instead of full-read every invocation; (3) added diagram-authoring guidance
+      pushing toward `<Walkthrough>` (via the `walkthrough-diagram` skill) for
+      step-through-worthy topologies and real v1->v2->v3 progression for static ones,
+      since existing diagrams read as a gimmick - forward guidance only, auditing
+      already-shipped diagrams deferred to a later, separately-scoped pass. Deleted
+      `reference/draft.md`/`audit.md`, replaced with `reference/author.md`. Also
+      updated `docs/CHAPTER_AUTHORING.md` (the manual-authoring fallback doc), which
+      referenced the retired two-pass model and was missing `exerciseGoal`/
+      `successCriteria` entirely.
+
+---
+
 ## 0. How this was audited
 
 Not by reading code alone. The dev server was already up, so the audit drove a real

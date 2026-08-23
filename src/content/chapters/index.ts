@@ -36,6 +36,11 @@ export const chapterRegistry: ChapterDefinition[] = [
       "why, fix both, then Submit to complete the chapter. A guided tour " +
       "walks you through it - press Esc to pause it, or replay it from the " +
       "buttons at the bottom of this sidebar.",
+    exerciseGoal: "Run Validate to find what's broken, fix both faults, then Submit.",
+    successCriteria: [
+      "Every component the blueprint requires is present and properly connected.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Five objectives, one per CURRICULUM.md §5.2 category (Knowledge,
     // Engineering, Practical, Interview, Communication). The category tags
     // themselves live in the chapter spec (specs/bb-0-1-welcome.spec.md §2)
@@ -325,12 +330,16 @@ export const chapterRegistry: ChapterDefinition[] = [
     // "fix-edge"/"revalidate-clean" steps for the guided remediation.
     starterGraph: {
       nodes: [
-        { id: "bb-0-1-client", componentId: "client", position: { x: 80, y: 140 }, config: {} },
-        { id: "bb-0-1-app-server", componentId: "app-server", position: { x: 340, y: 140 }, config: {} },
+        { id: "bb-0-1-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-0-1-app-server", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
       ],
       edges: [{ id: "bb-0-1-edge-client-app", source: "bb-0-1-client", target: "bb-0-1-app-server", kind: "async" }],
       entryPointIds: ["bb-0-1-client"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-0-1-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-0-1-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+    ],
   },
   {
     id: "bb-0-2-what-is-system-design",
@@ -1870,12 +1879,17 @@ export const chapterRegistry: ChapterDefinition[] = [
     // also covering old 1.7's bottleneck method and old 1.9's deep-dive
     // targeting) and the quiz/hints changed.
     problemStatement:
-      "The starter design on the canvas skips the app server: the client is wired straight to " +
-      "the database. No tour walks you through this one. Run Validate, read what it reports, and " +
-      "use that to decide what to add and what to rewire. Add the missing component, route both " +
-      "edges through it, get a clean Validate, then Submit. The lesson also covers finding a " +
-      "system's bottleneck (loop step 6) and picking a deep-dive target (loop step 5), both " +
-      "exercised by the knowledge check rather than a second build.",
+      "The starter design on the canvas skips a step: the client is wired straight to the " +
+      "database, with nothing between them. No tour walks you through this one - Validate will " +
+      "tell you what's wrong. The lesson also covers finding a system's bottleneck (loop step 6) " +
+      "and picking a deep-dive target (loop step 5), both exercised by the knowledge check rather " +
+      "than a second build.",
+    exerciseGoal: "Give the client's requests somewhere to be decided before they touch storage.",
+    successCriteria: [
+      "The client no longer connects directly to the database.",
+      "Every request reaches the database only after passing through another component.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     learningObjectives: [
       "State the job each of the three primitive components does, and why the app server sits between the other two.",
       "Decide why a client should never connect directly to a database, naming the concrete risk it creates.",
@@ -2530,14 +2544,19 @@ export const chapterRegistry: ChapterDefinition[] = [
     //     on kind (see that rule's own module comment).
     starterGraph: {
       nodes: [
-        { id: "bb-1-2-client", componentId: "client", position: { x: 80, y: 140 }, config: {} },
-        { id: "bb-1-2-sql-database", componentId: "sql-database", position: { x: 400, y: 140 }, config: {} },
+        { id: "bb-1-2-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-1-2-sql-database", componentId: "sql-database", position: { x: 380, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-1-2-edge-client-db", source: "bb-1-2-client", target: "bb-1-2-sql-database", kind: "request-flow" },
       ],
       entryPointIds: ["bb-1-2-client"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-1-2-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-1-2-zone-data", label: "Data", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-1-2-zone-gap", label: "Build here", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-1-3-defending-the-design",
@@ -4280,10 +4299,16 @@ export const chapterRegistry: ChapterDefinition[] = [
     // "2-3-evolution-of-modern-architectures").
     problemStatement:
       "The starter graph is the client, app server, and database you've built before - nothing sits " +
-      "between the client and the app server yet. Add a Firewall, wire it in between them, and give " +
-      "it a policy that actually filters something before you Submit. Which specific check fires if " +
-      "you don't, and how many findings a permissive policy produces, isn't previewed - run Validate " +
-      "and read what it says.",
+      "between the client and the app server yet. Run Validate to see what's missing and why an " +
+      "unfiltered gap there is a problem.",
+    exerciseGoal:
+      "Requests reach the app tier straight from the client, with nothing checking them at the " +
+      "door first.",
+    successCriteria: [
+      "Something now sits between the client and the app server, actively filtering rather than " +
+        "passing everything through.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Six objectives (§5.2 allows 3-7); all five required categories
     // represented (Building Block, so Practical is not exempt). Category
     // tags live in the spec §2.
@@ -4593,9 +4618,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     // precedent, adapted for a Completion rather than a Fix exercise).
     starterGraph: {
       nodes: [
-        { id: "bb-3-1-client", componentId: "client", position: { x: 80, y: 160 }, config: {} },
-        { id: "bb-3-1-app", componentId: "app-server", position: { x: 400, y: 160 }, config: {} },
-        { id: "bb-3-1-db", componentId: "sql-database", position: { x: 620, y: 160 }, config: {} },
+        { id: "bb-3-1-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-1-app", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
+        { id: "bb-3-1-db", componentId: "sql-database", position: { x: 700, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-3-1-e1", source: "bb-3-1-client", target: "bb-3-1-app", kind: "request-flow" },
@@ -4603,6 +4628,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-1-client"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-1-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-1-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-1-zone-data", label: "Data", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-1-zone-gap", label: "Build here", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-3-2-dns",
@@ -4616,9 +4647,16 @@ export const chapterRegistry: ChapterDefinition[] = [
     // already points at "3-1-networking-fundamentals").
     problemStatement:
       "The starter graph has the firewall, app server, and database from 3.1, already wired to each " +
-      "other - nothing feeds into the firewall yet. Add a Browser and a DNS node, wire the lookup " +
-      "before the request path, and get a clean Validate before you Submit. Which specific gap the " +
-      "validator names until you do isn't previewed here.",
+      "other - nothing feeds into the firewall yet. Run Validate to see what's missing before you " +
+      "fix it.",
+    exerciseGoal:
+      "Nothing sits in front of the firewall - there's no entry point, and no way to turn a " +
+      "human-readable address into something the network can route to.",
+    successCriteria: [
+      "Something now feeds a request into the firewall from outside the system.",
+      "The address lookup happens before the request reaches the app tier, not after.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Six objectives (§5.2 allows 3-7); all five required categories
     // represented (Building Block, so Practical is not exempt). Category
     // tags live in the spec §2.
@@ -4940,9 +4978,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     // Completion exercise).
     starterGraph: {
       nodes: [
-        { id: "bb-3-2-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-2-app", componentId: "app-server", position: { x: 680, y: 160 }, config: {} },
-        { id: "bb-3-2-db", componentId: "sql-database", position: { x: 900, y: 160 }, config: {} },
+        { id: "bb-3-2-fw", componentId: "firewall", position: { x: 60, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-2-app", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
+        { id: "bb-3-2-db", componentId: "sql-database", position: { x: 700, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-3-2-e1", source: "bb-3-2-fw", target: "bb-3-2-app", kind: "request-flow" },
@@ -4950,6 +4988,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: [],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-2-zone-edge", label: "Edge", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-2-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-2-zone-data", label: "Data", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-2-zone-gap", label: "Build here", position: { x: 32, y: -48 }, width: 576, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-3-3-reverse-proxy",
@@ -4964,8 +5008,12 @@ export const chapterRegistry: ChapterDefinition[] = [
     problemStatement:
       "The starter graph carries 3.2's own chain - browser, DNS, firewall - plus the app server and " +
       "database, already wired to each other. Nothing connects the firewall's output to the app tier " +
-      "yet. Add a Reverse Proxy, wire it into that gap, and get a clean Validate before you Submit. " +
-      "Which specific check fires until you do isn't previewed here.",
+      "yet. Run Validate to see what's missing.",
+    exerciseGoal: "The firewall has nowhere to send a request once it's let one through - the path to the app tier is broken.",
+    successCriteria: [
+      "Something now sits between the firewall and the app tier, carrying the request the rest of the way.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Six objectives (§5.2 allows 3-7); all five required categories
     // represented (Building Block, so Practical is not exempt). Category
     // tags live in the spec §2.
@@ -5276,11 +5324,11 @@ export const chapterRegistry: ChapterDefinition[] = [
     // precedent. The fault is purely the missing front door between them.
     starterGraph: {
       nodes: [
-        { id: "bb-3-3-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-3-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-3-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-3-app", componentId: "app-server", position: { x: 900, y: 160 }, config: {} },
-        { id: "bb-3-3-db", componentId: "sql-database", position: { x: 1100, y: 160 }, config: {} },
+        { id: "bb-3-3-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-3-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-3-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-3-app", componentId: "app-server", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-3-db", componentId: "sql-database", position: { x: 60, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-3-e1", source: "bb-3-3-browser", target: "bb-3-3-dns", kind: "request-flow" },
@@ -5289,6 +5337,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-3-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-3-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-3-zone-app", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-3-zone-data", label: "Data", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-3-zone-gap", label: "Build here", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-3-4-load-balancer",
@@ -5305,9 +5359,12 @@ export const chapterRegistry: ChapterDefinition[] = [
     problemStatement:
       "The starter graph has one load balancer routing to a single app-server instance - a load " +
       "balancer over one backend balances nothing. Run Validate, read what it reports, and use that " +
-      "to decide what's missing. Add a second App Server to the canvas - a second box, not a higher " +
-      "Instances count on the one already there - wire it the same way the first one is wired, get " +
-      "a clean Validate, then Submit.",
+      "to decide what's missing.",
+    exerciseGoal: "A load balancer with only one instance behind it isn't balancing anything - it's just an extra hop.",
+    successCriteria: [
+      "The load balancer now distributes traffic across more than one real destination.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Six objectives (§5.2 allows 3-7): all five required categories, plus a
     // second Engineering objective for the algorithm trade-off. Category
     // tags live in the spec (specs/bb-3-4-load-balancer.spec.md §2).
@@ -5645,10 +5702,10 @@ export const chapterRegistry: ChapterDefinition[] = [
     // - the registry doesn't yet accept one between these two components).
     starterGraph: {
       nodes: [
-        { id: "bb-3-4-client", componentId: "client", position: { x: 80, y: 160 }, config: {} },
-        { id: "bb-3-4-lb", componentId: "load-balancer", position: { x: 280, y: 160 }, config: {} },
-        { id: "bb-3-4-app1", componentId: "app-server", position: { x: 480, y: 160 }, config: {} },
-        { id: "bb-3-4-db", componentId: "sql-database", position: { x: 680, y: 160 }, config: {} },
+        { id: "bb-3-4-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-4-lb", componentId: "load-balancer", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-4-app1", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
+        { id: "bb-3-4-db", componentId: "sql-database", position: { x: 60, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-4-edge-client-lb", source: "bb-3-4-client", target: "bb-3-4-lb", kind: "request-flow" },
@@ -5657,6 +5714,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-4-client"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-4-zone-client", label: "Client", position: { x: 32, y: -48 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-4-zone-app", label: "Application", position: { x: 32, y: 112 }, width: 576, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-4-zone-data", label: "Data", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-4-zone-gap", label: "Build here", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-3-5-api-gateway",
@@ -5671,8 +5734,14 @@ export const chapterRegistry: ChapterDefinition[] = [
     problemStatement:
       "The starter graph carries 3.3's own chain - browser, DNS, firewall, reverse proxy - already " +
       "wired to each other, plus an app server wired to a database. Nothing connects the reverse " +
-      "proxy's output to the app tier yet. Add an API Gateway, wire it into that gap, and get a clean " +
-      "Validate before you Submit. Which specific check fires until you do isn't previewed here.",
+      "proxy's output to the app tier yet. Run Validate to see what's missing.",
+    exerciseGoal:
+      "The reverse proxy has nowhere to send a request once it accepts one - the path to the app " +
+      "tier is broken, and there's no single place left to apply policy across services.",
+    successCriteria: [
+      "Something now sits between the reverse proxy and the app tier, carrying the request the rest of the way.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Six objectives (§5.2 allows 3-7); all five required categories
     // represented (Building Block, so Practical is not exempt). Category
     // tags live in the spec §2.
@@ -5991,12 +6060,12 @@ export const chapterRegistry: ChapterDefinition[] = [
     // layer between them.
     starterGraph: {
       nodes: [
-        { id: "bb-3-5-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-5-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-5-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-5-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-5-app", componentId: "app-server", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-5-db", componentId: "sql-database", position: { x: 1260, y: 160 }, config: {} },
+        { id: "bb-3-5-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-5-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-5-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-5-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-5-app", componentId: "app-server", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-5-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-5-e1", source: "bb-3-5-browser", target: "bb-3-5-dns", kind: "request-flow" },
@@ -6006,6 +6075,13 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-5-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-5-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-5-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-5-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-5-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-5-zone-gap", label: "Build here", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-3-6-stateless-services",
@@ -6020,9 +6096,15 @@ export const chapterRegistry: ChapterDefinition[] = [
     problemStatement:
       "The starter graph is the system as built through 3.5: browser, DNS, firewall, reverse proxy, " +
       "API gateway, load balancer, one app server, one database - all correctly wired, nothing " +
-      "missing. The one thing wrong is a number, not a shape: the app server's own Instances field " +
-      "is still 1, so the load balancer in front of it is exactly the pass-through 3.4 warned about. " +
-      "Fix it with a number. Get a clean Validate, then Submit.",
+      "missing. Something in the app server's own configuration undermines the load balancer " +
+      "sitting in front of it.",
+    exerciseGoal:
+      "The load balancer in front of the app server isn't actually balancing anything - a single " +
+      "number in the app server's own configuration is the reason.",
+    successCriteria: [
+      "The load balancer now has more than one real destination to route to.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Six objectives (§5.2 allows 3-7); all five required categories
     // represented. Concept type does not exempt Practical here - unlike a
     // no-build Concept chapter (0.2, 0.3), this chapter has a real
@@ -6326,14 +6408,14 @@ export const chapterRegistry: ChapterDefinition[] = [
     // node, not a Fix on an otherwise-complete graph).
     starterGraph: {
       nodes: [
-        { id: "bb-3-6-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-6-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-6-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-6-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-6-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-6-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-6-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 1 } },
-        { id: "bb-3-6-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
+        { id: "bb-3-6-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-6-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-6-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-6-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-6-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-6-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-6-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 1 } },
+        { id: "bb-3-6-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-6-e1", source: "bb-3-6-browser", target: "bb-3-6-dns", kind: "request-flow" },
@@ -6346,6 +6428,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-6-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-6-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-6-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-6-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-6-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+    ],
   },
   {
     id: "bb-3-7-sessions-and-state-management",
@@ -6360,10 +6448,16 @@ export const chapterRegistry: ChapterDefinition[] = [
     problemStatement:
       "The starter graph is the system as built through 3.6: two Application Server instances " +
       "behind the load balancer, everything upstream correctly wired. The SQL Database is on the " +
-      "canvas but disconnected - no edges in or out. That's the fault, and it's a wire, not a " +
-      "config field: there is no sticky-session toggle anywhere on this canvas. Connect the " +
-      "Application Server to the SQL Database with a request-flow edge so sessions are " +
-      "externalized into the store this system already requires. Get a clean Validate, then Submit.",
+      "canvas but disconnected - no edges in or out. Run Validate to see what that costs the " +
+      "system.",
+    exerciseGoal:
+      "Two load-balanced app-server instances lost track of where a user's session lives, and the " +
+      "database already on this canvas is sitting idle.",
+    successCriteria: [
+      "The database is no longer disconnected - the app server can reach it.",
+      "Every instance behind the load balancer can serve any request, regardless of which one handled the user last.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Six objectives (§5.2 allows 3-7); all five required categories
     // represented - Practical included for the same reason 3.6's own spec
     // gave (a real Submit-gated exercise exists, unlike a no-build Concept
@@ -6660,14 +6754,14 @@ export const chapterRegistry: ChapterDefinition[] = [
     // fix is reconnecting it, not adding or removing any other node.
     starterGraph: {
       nodes: [
-        { id: "bb-3-7-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-7-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-7-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-7-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-7-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-7-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-7-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 2 } },
-        { id: "bb-3-7-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
+        { id: "bb-3-7-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-7-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-7-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-7-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-7-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-7-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-7-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 2 } },
+        { id: "bb-3-7-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-7-e1", source: "bb-3-7-browser", target: "bb-3-7-dns", kind: "request-flow" },
@@ -6679,6 +6773,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-7-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-7-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-7-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-7-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-7-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+    ],
   },
   {
     id: "bb-3-8-horizontal-scaling",
@@ -6693,12 +6793,16 @@ export const chapterRegistry: ChapterDefinition[] = [
     // needed.
     problemStatement:
       "The starter graph is the system as built through 3.7 - every edge already wired correctly, " +
-      "including the Application Server's connection to the SQL Database. Validate is already clean. " +
-      "The Application Server is configured at Instances: 2, which is exactly enough for this " +
-      "service's stated 300 requests/second peak at 150 tested per instance - and exactly enough " +
-      "is the problem: losing a single instance drops remaining capacity below what peak load " +
-      "requires. Raise Instances until losing any one instance still leaves the survivors covering " +
-      "peak load, then Submit.",
+      "including the Application Server's connection to the SQL Database. Validate is already " +
+      "clean. This service peaks at 300 requests/second, and each Application Server instance is " +
+      "tested to handle 150.",
+    exerciseGoal:
+      "Right now the fleet has exactly enough capacity for peak load and not one request more - " +
+      "losing a single instance would drop below what peak requires.",
+    successCriteria: [
+      "The Application Server's instance count leaves enough spare capacity that losing any one instance still covers peak load.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Six objectives (§5.2 allows 3-7); all five required categories
     // represented - Practical included for the same reason 3.6's and 3.7's
     // own specs gave (a real Submit-gated exercise exists here).
@@ -7032,14 +7136,14 @@ export const chapterRegistry: ChapterDefinition[] = [
     // (§11.1), the same realization 3.6 used for its own instance-count fix.
     starterGraph: {
       nodes: [
-        { id: "bb-3-8-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-8-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-8-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-8-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-8-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-8-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-8-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 2 } },
-        { id: "bb-3-8-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
+        { id: "bb-3-8-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-8-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-8-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-8-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-8-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-8-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-8-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 2 } },
+        { id: "bb-3-8-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-8-e1", source: "bb-3-8-browser", target: "bb-3-8-dns", kind: "request-flow" },
@@ -7052,6 +7156,21 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-8-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-8-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-8-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-8-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-8-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-8-comment-capacity",
+        text: "Peaks at 300 req/s. Each Application Server instance is tested to handle 150.",
+        position: { x: 980, y: 272 },
+        width: 240,
+        height: 100,
+        color: "#64748b",
+      },
+    ],
   },
   {
     id: "bb-3-9-service-discovery",
@@ -7065,11 +7184,12 @@ export const chapterRegistry: ChapterDefinition[] = [
     // "3-8-horizontal-scaling", no pulled-forward exception needed.
     problemStatement:
       "This system's public DNS record still carries the 300-second default TTL set back in 3.2. " +
-      "Ops is about to cut the whole stack over to new infrastructure during a planned deploy with a " +
-      "30-second downtime budget. Anyone who resolved the old address in the last five minutes keeps " +
-      "hitting it until their cached answer expires - a staleness window ten times longer than the " +
-      "cutover itself. Lower the DNS node's ttlSeconds until it can't outlast the deploy's own " +
-      "downtime budget, then Submit.",
+      "Ops is cutting the whole stack over to new infrastructure with a 30-second downtime budget.",
+    exerciseGoal: "Make sure no client is still hitting the old address once the cutover window has closed.",
+    successCriteria: [
+      "The DNS node's cached answers cannot outlive the deploy's own downtime budget.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Six objectives (§5.2 allows 3-7); all five required categories
     // represented - Practical included for the same reason 3.6/3.7/3.8's own
     // specs gave (a real Submit-gated exercise exists here).
@@ -7395,14 +7515,14 @@ export const chapterRegistry: ChapterDefinition[] = [
     // Config-exercise shape (§11.1), the same realization 3.4 and 3.8 used.
     starterGraph: {
       nodes: [
-        { id: "bb-3-9-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-9-dns", componentId: "dns", position: { x: 260, y: 160 }, config: { ttlSeconds: 300 } },
-        { id: "bb-3-9-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-9-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-9-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-9-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-9-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 3 } },
-        { id: "bb-3-9-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
+        { id: "bb-3-9-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-9-dns", componentId: "dns", position: { x: 380, y: 0 }, config: { ttlSeconds: 300 } },
+        { id: "bb-3-9-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-9-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-9-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-9-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-9-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-9-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-9-e1", source: "bb-3-9-browser", target: "bb-3-9-dns", kind: "request-flow" },
@@ -7415,6 +7535,21 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-9-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-9-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-9-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-9-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-9-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-9-comment-ttl",
+        text: "TTL controls how long a client is allowed to cache this DNS answer before asking again.",
+        position: { x: 980, y: -48 },
+        width: 240,
+        height: 100,
+        color: "#64748b",
+      },
+    ],
   },
   {
     id: "bb-3-10-databases",
@@ -7747,12 +7882,17 @@ export const chapterRegistry: ChapterDefinition[] = [
     // manifest.ts's prerequisiteSlugs already points at "3-10-databases", no
     // pulled-forward exception needed.
     problemStatement:
-      "3.10 assumed a relational store was always the answer and never defended it. This chapter " +
-      "asks when that assumption holds and when it doesn't: given a workload's data shape, access " +
-      "pattern, and write scale, which kind of store actually fits - and what does the other kind " +
-      "cost you? You'll apply the same procedure to a real problem: the catalog whose relational " +
-      "schema has been fighting its own data every sprint, sitting on the canvas as a NoSQL Database " +
-      "that's disconnected and configured for the wrong shape.",
+      "3.10 assumed a relational store was always the answer and never defended it. The catalog's " +
+      "relational schema has been fighting its own data every sprint - a NoSQL Database already " +
+      "sits on the canvas, disconnected and configured for the wrong shape.",
+    exerciseGoal:
+      "Give the catalog a store that actually fits how its data looks and how it's accessed - not " +
+      "the one 3.10 defaulted to.",
+    successCriteria: [
+      "The NoSQL Database's model configuration matches the catalog's actual data shape.",
+      "The Application Server can read and write through it.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Six objectives (§5.2 allows 3-7). All five categories present -
     // Building Block type per §4/§16 (introduces nosql-database), so the
     // Practical exemption 3.10's own Concept classification used doesn't
@@ -8094,15 +8234,15 @@ export const chapterRegistry: ChapterDefinition[] = [
     // the model decision for real, not just wiring one edge.
     starterGraph: {
       nodes: [
-        { id: "bb-3-11-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-11-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-11-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-11-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-11-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-11-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-11-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 3 } },
-        { id: "bb-3-11-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
-        { id: "bb-3-11-nosql", componentId: "nosql-database", position: { x: 1460, y: 340 }, config: { model: "key-value" } },
+        { id: "bb-3-11-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-11-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-11-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-11-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-11-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-11-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-11-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-11-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-11-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "key-value" } },
       ],
       edges: [
         { id: "bb-3-11-e1", source: "bb-3-11-browser", target: "bb-3-11-dns", kind: "request-flow" },
@@ -8115,6 +8255,21 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-11-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-11-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-11-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-11-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-11-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 576, height: 137, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-11-comment-kv",
+        text: "Key-value stores trade relational joins and ad-hoc queries for O(1) lookups by key.",
+        position: { x: 980, y: 432 },
+        width: 240,
+        height: 100,
+        color: "#64748b",
+      },
+    ],
   },
   {
     id: "bb-3-12-replication",
@@ -8128,13 +8283,15 @@ export const chapterRegistry: ChapterDefinition[] = [
     // manifest.ts's prerequisiteSlugs already points at "3-11-sql-vs-nosql",
     // no pulled-forward exception needed.
     problemStatement:
-      "Every request since 1.2 reads and writes through the same primary database, and reads usually " +
-      "outnumber writes by an order of magnitude or more. This chapter is about giving reads somewhere " +
-      "else to go - copies of the primary, kept current by a one-way replication stream - and about the " +
-      "guarantee that becomes genuinely non-free the moment they exist: seeing your own write immediately " +
-      "after you make it. You'll apply it directly: a Read Replica is already on the canvas, wired the " +
-      "same way every other data component in this system was wired so far - which is exactly the wrong " +
-      "way for a component whose only job is being a copy.",
+      "Reads and writes both go through the one primary database, and reads outnumber writes by an " +
+      "order of magnitude. A Read Replica is already on the canvas, wired the same way every other " +
+      "data component in this system was wired so far.",
+    exerciseGoal: "Give reads their own path to a copy of the primary - without letting anything write to that copy.",
+    successCriteria: [
+      "The Read Replica's data comes from the primary, not from the application tier.",
+      "The Application Server can serve reads from the replica.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
     // Six objectives (§5.2 allows 3-7). All five categories present - Building
     // Block type per §4/§16 (introduces read-replica + edge kind replication).
     learningObjectives: [
@@ -8513,16 +8670,16 @@ export const chapterRegistry: ChapterDefinition[] = [
     // the Replica's input) at once.
     starterGraph: {
       nodes: [
-        { id: "bb-3-12-browser", componentId: "browser", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-12-dns", componentId: "dns", position: { x: 260, y: 160 }, config: {} },
-        { id: "bb-3-12-fw", componentId: "firewall", position: { x: 460, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-12-proxy", componentId: "reverse-proxy", position: { x: 660, y: 160 }, config: {} },
-        { id: "bb-3-12-gateway", componentId: "api-gateway", position: { x: 860, y: 160 }, config: {} },
-        { id: "bb-3-12-lb", componentId: "load-balancer", position: { x: 1060, y: 160 }, config: {} },
-        { id: "bb-3-12-app", componentId: "app-server", position: { x: 1260, y: 160 }, config: { instances: 3 } },
-        { id: "bb-3-12-db", componentId: "sql-database", position: { x: 1460, y: 160 }, config: {} },
-        { id: "bb-3-12-nosql", componentId: "nosql-database", position: { x: 1460, y: 340 }, config: { model: "document" } },
-        { id: "bb-3-12-replica", componentId: "read-replica", position: { x: 1660, y: 160 }, config: {} },
+        { id: "bb-3-12-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-12-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-12-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-12-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-12-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-12-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-12-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-12-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-12-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "document" } },
+        { id: "bb-3-12-replica", componentId: "read-replica", position: { x: 700, y: 480 }, config: {} },
       ],
       edges: [
         { id: "bb-3-12-e1", source: "bb-3-12-browser", target: "bb-3-12-dns", kind: "request-flow" },
@@ -8537,6 +8694,21 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-12-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-12-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-12-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-12-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-12-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 896, height: 137, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-12-comment-lag",
+        text: "Replicas lag the primary - reads here may be a few milliseconds stale.",
+        position: { x: 980, y: 432 },
+        width: 240,
+        height: 100,
+        color: "#64748b",
+      },
+    ],
   },
   {
     id: "bb-3-13-sharding",

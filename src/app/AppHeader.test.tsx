@@ -148,6 +148,31 @@ describe("AppHeader", () => {
     expect(screen.getByText("Save failed")).toHaveClass("sr-only");
   });
 
+  describe("Reset to Default (onResetToStarter)", () => {
+    it("does not render the reset button when onResetToStarter is omitted (e.g. Sandbox)", () => {
+      renderHeader();
+      expect(screen.queryByRole("button", { name: "Reset to the starting design" })).not.toBeInTheDocument();
+    });
+
+    it("requires a second click to actually fire the reset", () => {
+      const onResetToStarter = vi.fn();
+      renderHeader({ onResetToStarter });
+      const button = screen.getByRole("button", { name: "Reset to the starting design" });
+
+      fireEvent.click(button);
+      expect(onResetToStarter).not.toHaveBeenCalled();
+      expect(button.className).toContain("border-state-error");
+
+      fireEvent.click(button);
+      expect(onResetToStarter).toHaveBeenCalledTimes(1);
+    });
+
+    it("disables the reset button when saveId is null, same as Save/Project/Board", () => {
+      renderHeader({ onResetToStarter: vi.fn(), saveId: null });
+      expect(screen.getByRole("button", { name: "Reset to the starting design" })).toBeDisabled();
+    });
+  });
+
   it("colors the header border per mode via modeColorVar", () => {
     const { container } = render(
       <CanvasStoreProvider>
