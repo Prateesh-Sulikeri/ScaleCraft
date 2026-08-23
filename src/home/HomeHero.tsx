@@ -3,13 +3,14 @@
 import { ArrowUpRight } from "lucide-react";
 import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { preloadChapterLesson } from "@/content/content-service";
+import { AboutButton } from "./AboutButton";
 import { AlphaAnnouncement } from "./AlphaAnnouncement";
 import type { ContinueTarget } from "./home-data";
 
 /**
  * "Continue Learning" is the page's one primary action, so it is the only
- * filled control on Home - everything else is the system's standard bordered
- * button (DESIGN.md §5).
+ * accent-filled control on Home - About sits beside it as the system's
+ * standard bordered button (DESIGN.md §5), not a competing CTA.
  *
  * Uses HeldTransitionLink (the same component the Learning Path's rows use)
  * rather than a plain Link: a chapter mounts its own reader and lesson body,
@@ -86,11 +87,13 @@ export function HomeHero({ continueTarget, now }: HomeHeroProps) {
         
         </p>
 
-        {/* One action only. "See what's new" used to sit here too, which was
-         * the same button, opening the same dialog, as the announcement card
-         * immediately to the right. */}
+        {/* Continue/Start Learning stays the only accent-filled control.
+         * "See what's new" used to sit here too, which was the same button,
+         * opening the same dialog, as the announcement card immediately to
+         * the right - About is a distinct action, not that duplicate. */}
         <div className="flex flex-wrap items-center gap-3 pt-1">
           <ContinueButton target={continueTarget} />
+          <AboutButton />
         </div>
 
         {continueTarget.chapterLabel && (
