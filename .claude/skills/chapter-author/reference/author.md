@@ -1,21 +1,14 @@
-# Draft mode
+# Author mode
 
-You are the Sonnet lead author for this pass. You write the content yourself
-(no subagent) - the point of the two-pass model is that draft and audit are
-different sittings with different context, not that they're different
-models running the same prompt.
+You are the sole author for this pass - no subagent, model-independent
+(whatever model this session is running on). Write the content yourself and
+self-check it against the checklist in §3 below before calling it done;
+there is no second reader waiting to catch what you miss.
 
 **You are a content author, not an engineer, and not a test writer.** Do not
 write tests, run `tsc`/`lint`/`vitest`/`build`, or run Playwright. Author the
-deliverables and stop - verification is the user's call, not this pass's job.
-
-**Opus's audit pass no longer covers everything.** It checks content,
-content-structure, blueprints, component-lists, submit validations, and
-diagrams only - quiz, hints, and definition metadata (problem statement,
-learning objectives, `curriculumContext`) get no second pair of eyes right
-now. Write those sections to the same bar you'd want a cold reader to find
-clean on the first pass; the "traps" lists below are not suggestions to
-skim, they're the actual check that would otherwise happen in audit.
+deliverables, self-check them, and stop - verification is the user's call,
+not this pass's job.
 
 ## Writing register (binding for every lesson-scope pass)
 
@@ -63,32 +56,60 @@ simplicity are different axes; §20.2's depth calibration still governs how
 deep to go, this section only governs how much you spend explaining what's
 already assumed.
 
-## 1. Gather context, in this order
+## 1. Gather context, scoped to what `--scope` actually needs
 
-1. `.claude/docs/pending-chapters.md` - is this chapter already started? What
-   judgment calls or open decisions already exist that bear on it (check the
-   "Open decisions blocking or shaping later chapters" section - do not
-   start a chapter a live blocker names).
-2. `.claude/docs/pending-content.md` - which wave this chapter belongs to,
-   and the "Per-chapter deliverables" contract (7 items, `full` scope owes
-   all of them; a narrower scope owes its one deliverable to the same
-   standard).
-3. `.claude/docs/CURRICULUM.md` - the chapter's own row in §14 (Building
-   Blocks) or §15 (Real World Extraction) is its brief: Purpose / Type /
-   New / Assumes / Prepares for / Interview / Exercise / Est. Then §5
-   (blueprint), §6 (mandatory sections for its type), §16 (component
-   budget - what this chapter is allowed to introduce, and what it must NOT
-   put in the palette because a later chapter owns it), §18.2 (sequencing
-   rules), §19 (cross-chapter connections), §20 (author instructions - all
-   of it, especially §20.6 density, every time, not from memory).
+Two of the standing reference docs are big enough that a blanket full-read
+on every invocation is real waste - extract just the target chapter's own
+material instead of reading either cover to cover.
+
+1. **This chapter's own ledger entry, not the whole ledger.**
+   `pending-chapters.md` is 5,000+ lines covering ~70 chapters; only one of
+   them is this pass's business. `grep -n '^## ' .claude/docs/pending-chapters.md`
+   to find this chapter's own `## <number> <title>` heading and the next
+   `## ` heading after it, then read only that range - that's this chapter's
+   full history (judgment calls, open items, prior revisions). Separately,
+   always read the **"Open decisions blocking or shaping later chapters"**
+   and **"Cross-cutting revisions (post-authoring)"** sections near the end
+   (both short) - a live blocker or an unnoticed structural change (a
+   starter-graph layout standard, a new required `ChapterDefinition` field)
+   can affect any chapter regardless of scope. Do not read the other ~70
+   chapters' entries.
+2. **`.claude/docs/pending-content.md`** - full read, it's short (~180
+   lines): which wave this chapter belongs to, the "Per-chapter
+   deliverables" contract (seven items, `full` scope owes all of them; a
+   narrower scope owes its one deliverable to the same standard).
+3. **`.claude/docs/CURRICULUM.md`, scoped to `--scope`.** It has ~20
+   top-level `## N.` sections; most passes need five or six of them, not all
+   twenty. Run `grep -n '^## ' .claude/docs/CURRICULUM.md` once to get every
+   section's line number, then read only the ranges below (plus always the
+   chapter's own row in §14 Building Blocks or §15 Real World Extraction -
+   that row is its brief: Purpose / Type / New / Assumes / Prepares for /
+   Interview / Exercise / Est):
+
+   | `--scope` | Sections to read, beyond the chapter's own §14/§15 row |
+   |---|---|
+   | `full` | §4 (chapter types), §5 (blueprint), §6 (mandatory sections), §7 (diagram standards), §8 (visual learning), §9/§10 (engineering/interview lenses, if this chapter's row calls for one), §11 (Design Editor integration), §12 (reinforcement placement), §16 (component budget), §18 (sequencing), §19 (cross-chapter connections), §20 (all - author instructions) |
+   | `lesson` | §6, §7, §8, §9/§10 (if called for), §12, §18.2, §19, §20 |
+   | `spec` | §5, §6, §16, §18.2 |
+   | `quiz` | §20.6 only (density still governs question prose) - the real framework is `QUIZ_FRAMEWORK.md`, read separately below |
+   | `hints` | §11.3 (hint philosophy), §20.1 (voice) |
+   | `blueprints` | §5, §11.2, §16 |
+   | `definition` | §11 (all of it - especially §11.2's brief-calibration rule), §16, §5.2 (objective categories) |
+
+   This map is a floor for a routine pass, not a ceiling - if the chapter's
+   own §14/§15 row or ledger entry points at something outside the table
+   (an Interview relevance of High when `lesson` scope's default list
+   doesn't include §10, a component that isn't in §16's usual place), read
+   that too. Skimping on a section the chapter genuinely needs to save a few
+   hundred lines is the wrong trade.
 4. `.claude/docs/QUIZ_FRAMEWORK.md` if scope includes `quiz` - §1-4
    (authoring rules) plus whichever numbered bank covers this chapter's
    section, for questions to model on or draw from.
 5. **One already-shipped chapter as a structure/voice precedent.** Read its
    lesson and its spec together (e.g. `bb-0-1-welcome.md` +
    `bb-0-1-welcome.spec.md`, or `bb-0-2-what-is-system-design.md` + its
-   spec once that exists). Match its register and section conventions;
-   don't reinvent formatting per chapter.
+   spec). Match its register and section conventions; don't reinvent
+   formatting per chapter.
 6. Orient in code with `graphify` before reading source files (repo hook,
    see `CLAUDE.md`) - `src/content/chapters/types.ts` (`ChapterDefinition`),
    `src/content/chapters/lessons.ts` (lesson-file wiring), `src/content/
@@ -123,7 +144,9 @@ already shipped once each:
   is not a forward-reference violation, it just needs a just-in-time gloss
   if it's not universally known.
 - **Every diagram gets a one-line caption naming what to notice** (§7.2,
-  §20.3) - a diagram with no caption is incomplete, not merely terse.
+  §20.3) - a diagram with no caption is incomplete, not merely terse. See
+  "Diagrams: make them inform, not decorate" below for more than the
+  caption bar.
 - **Interview lens ends with a "what a senior answer sounds like" line**
   (§10.3) whenever the chapter's Interview relevance is Medium or High -
   built only from vocabulary the chapter itself teaches.
@@ -203,9 +226,75 @@ either, that's what the new fields are for (§11.2, §20.6 information
 density both apply: a brief that re-narrates the lesson's thesis is a
 density bug, not scene-setting).
 
-## 3. Definition of done for this pass
+## Diagrams: make them inform, not decorate
 
-- Every touched deliverable meets its own bar above.
+A diagram that is one static picture with a caption clears CURRICULUM.md
+§7.2's letter but can still read as a gimmick - a box-and-line snapshot the
+learner glances at and moves past, not something that taught them anything
+the prose hadn't already said. Two levers §7.2 already licenses and this
+pass should actually use:
+
+- **Prefer a `<Walkthrough>` over a flat static diagram whenever the
+  topology has a story to step through** - a request tracing a path, an
+  algorithm choosing between instances, a failure unfolding over time (§7.2:
+  "if the same nodes/edges benefit from stepping through... author it as a
+  `<Walkthrough>`, otherwise author it as a static diagram"). When that
+  applies, invoke the `walkthrough-diagram` skill to build it - it owns the
+  layout/normalize pipeline and its own invariants test; don't hand-roll
+  `<Walkthrough>` JSON here. A chapter whose primary diagram (beat 5) is a
+  genuine multi-step trace teaches more per pixel than the same topology
+  shown once, static, with a caption describing what the arrows would have
+  shown if they'd moved. Don't default to static out of habit - check
+  whether this chapter's own topology has a sequence in it before choosing.
+- **When a diagram does stay static, give it real progression, not one
+  final-state snapshot.** §7.2's "start minimal, evolve" rule already says
+  never open with the finished 12-node architecture - apply that across the
+  *whole* diagram sequence, not just its opening frame: a v1 -> v2 -> v3 set
+  of small diagrams, each with its own one-line caption naming what changed
+  and why, teaches the reasoning chain. One diagram of the final shape only
+  shows the destination, not how the system got there - that's the gap that
+  reads as a gimmick.
+
+This is forward guidance for chapters authored from here on. Auditing and
+fixing diagrams already shipped is a separate, later pass - out of scope for
+this skill invocation unless the user names a specific chapter's diagram as
+the thing to revise.
+
+## 3. Self-check before calling it done
+
+There is no second reader on this pass anymore, so this replaces what the
+old Opus audit used to catch. Re-read your own draft cold, once, hunting
+specifically for these six things - not a first-draft self-congratulation
+pass:
+
+1. **Content** - accuracy of any factual/production claims; density (§20.6
+   - both directions: cut what doesn't earn its place, and flag anything now
+   under-explained); voice (§20.1, no em dash) and writing register (see
+   above); reasoning-driven rather than definition-driven; every "Next"/
+   preview names the chapter that actually comes next; no ScaleCraft-taught
+   vocabulary used before its home chapter.
+2. **Content-structure** - structural completeness against §5.3's beat
+   order and §6's mandatory-section table for the chapter's type; any
+   declared omission has real written justification, not silent absence.
+3. **Blueprints** - at least one honest `require` pattern; multiple only
+   when there's genuinely more than one right answer; `commentary` stays
+   debrief-only; the blueprint isn't already satisfied by `starterGraph`.
+4. **Component-lists** - `availableComponentIds`/`requiredComponentIds`
+   against §16's component budget: nothing appears before its home chapter
+   without a declared, narrow, spec-recorded exception.
+5. **Submit validations** - `validationRuleIds` actually gate what the
+   exercise claims to test, and reference real rules in
+   `src/validation-engine/rules/index.ts`.
+6. **Diagrams** - every diagram has a one-line caption naming what to
+   notice, the diagram itself is accurate to the prose around it, and it
+   was built the way the "Diagrams" section above asks (a `<Walkthrough>`
+   where the topology has a sequence, real progression where it stays
+   static) rather than defaulted to a single static snapshot out of habit.
+
+## 4. Definition of done for this pass
+
+- Every touched deliverable meets its own bar above, including the §3
+  self-check.
 - Lesson-scoped work matches the writing register above: no inline
   definitions of general engineering terms an engineer would already know,
   no un-glossed ScaleCraft-taught vocabulary, reasoning-driven rather than
@@ -218,13 +307,3 @@ density bug, not scene-setting).
   entry (status table row + detail section); a scoped revision to an
   existing chapter gets a dated addition to that chapter's existing entry,
   not a silent overwrite of prior judgment calls.
-- No em dash anywhere in authored content (the `authoring-invariants.test.ts`
-  suite checks this mechanically, but it only runs on chapters without
-  `placeholder: true`).
-
-## 4. Stop here
-
-Report what you wrote (file paths, word counts if lesson-scoped, a short
-summary of judgment calls) and **wait**. Do not spawn the Opus audit
-yourself, even if the user's original request implied both passes back to
-back - the user reads the Sonnet draft on its own first, every time.

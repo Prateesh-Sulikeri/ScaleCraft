@@ -1,23 +1,24 @@
 ---
 name: chapter-author
-description: Two-pass curriculum authoring for ScaleCraft - Sonnet drafts (or revises one deliverable of) a chapter, then a dedicated Opus agent proofreads and corrects it before the user reviews and commits. Use for authoring or revising a Building Blocks or Real World Extraction chapter's lesson, spec, quiz, hints, blueprints, or ChapterDefinition metadata. Not for engineering/UI work on the app itself - use plain Claude for that.
-version: 1.0.0
+description: One-shot curriculum authoring for ScaleCraft - authors or revises one deliverable (or all of them) for a Building Blocks or Real World Extraction chapter: lesson, spec, quiz, hints, blueprints, or ChapterDefinition metadata (including the Design Editor's exerciseGoal/successCriteria). Not for engineering/UI work on the app itself - use plain Claude for that.
+version: 2.0.0
 user-invocable: true
-argument-hint: "draft|audit <chapter-id-or-slug> [--scope full|lesson|spec|quiz|hints|blueprints|definition]"
+argument-hint: "<chapter-id-or-slug> [--scope full|lesson|spec|quiz|hints|blueprints|definition]"
 ---
 
 # chapter-author
 
-Codifies a workflow validated on chapter 0.2 (2026-08-06): Sonnet drafted the
-whole chapter, the user caught two real gaps by reading it, then a dedicated
-Opus agent did a genuine second-opinion proofread and found three more real
-defects Sonnet's own re-reads had missed - most notably a "Next" section that
-previewed the wrong following chapter, and an Interview-lens paragraph that
-depended on curriculum vocabulary (§10.1's numbered Interview Loop) the
-learner has not been taught yet. Both are exactly the class of bug a
-same-session author cannot see and a cold second reader can. That is the
-reason for the two-pass structure - it is not a formality and the audit pass
-should not be run as one.
+One-shot authoring pass, model-independent - runs on whatever model this
+session is on, no dedicated subagent, no separate second pass. This replaces
+the earlier two-pass Sonnet-draft/Opus-audit workflow: that model paid its
+way once, on chapter 0.2's first draft, catching a wrong-chapter "Next"
+preview and a forward-referenced vocabulary term. Every chapter authored
+since has followed the same traps list and precedent-chapter comparison
+without needing a second reader to catch category errors, so the self-check
+built into this pass now covers what the audit pass used to. If a specific
+chapter genuinely needs a second opinion, ask for one explicitly (a fresh
+session re-reading the diff cold, or `/code-review`, both work) - it is not
+this skill's default flow anymore.
 
 **Read `CLAUDE.md` first, every invocation** - its "Curriculum authoring"
 section names the binding docs (`CURRICULUM.md`, `QUIZ_FRAMEWORK.md`,
@@ -25,27 +26,23 @@ section names the binding docs (`CURRICULUM.md`, `QUIZ_FRAMEWORK.md`,
 contracts rather than restating them. This skill is a *process* wrapper
 around that contract, not a replacement for reading it.
 
-**Scope: content authoring only, both passes.** Sonnet and Opus write
-curriculum content - lesson prose, specs, blueprints, component lists,
-validation-rule references, diagrams, quiz, hints. Neither pass writes
-tests, runs the CI pipeline (`tsc`/`lint`/`vitest`/`build`), or runs
+**Scope: content authoring only.** This skill writes curriculum content -
+lesson prose, specs, blueprints, component lists, validation-rule
+references, diagrams, quiz, hints, `ChapterDefinition` metadata. It does not
+write tests, run the CI pipeline (`tsc`/`lint`/`vitest`/`build`), or run
 Playwright. That verification happens outside this skill, on the user's own
-schedule, not as part of drafting or auditing a chapter.
+schedule, not as part of authoring a chapter.
 
 ## Parse the invocation
 
-Two positional args, one optional flag:
+One positional arg, one optional flag:
 
-1. **Mode** - `draft` or `audit`. If the user's request doesn't say which
-   (e.g. they just named a chapter), ask - don't guess. A request that
-   sounds like "write 0.3" is `draft`; "review/proofread/audit/have Opus
-   check 0.3" is `audit`.
-2. **Target** - a chapter id (`bb-0-2-what-is-system-design`), a curriculum
+1. **Target** - a chapter id (`bb-0-2-what-is-system-design`), a curriculum
    slug (`0-2-what-is-system-design`), or a plain number (`0.2`, `3.4`).
    Resolve it against `src/curriculum/manifest.ts` (slug/number) and
    `src/content/chapters/index.ts` (id) before doing anything else - if it
    doesn't resolve, say so rather than guessing which chapter was meant.
-3. **`--scope`** (optional, default `full`) - which deliverable(s) this
+2. **`--scope`** (optional, default `full`) - which deliverable(s) this
    invocation touches:
    - `full` - all six deliverables (spec, lesson, ChapterDefinition,
      validation rules, quiz, playtest pass) - a whole new chapter.
@@ -65,67 +62,49 @@ Two positional args, one optional flag:
      `availableComponentIds`/`requiredComponentIds`, `validationRuleIds`.
      For any chapter with a `starterGraph` and `hasEditorExercise !== false`,
      `exerciseGoal`/`successCriteria` are required, not optional - see
-     CURRICULUM.md §11.2's brief-calibration rule below.
+     CURRICULUM.md §11.2's brief-calibration rule.
 
-   A scoped `draft` or `audit` still requires reading the whole chapter for
-   context (a quiz revision that contradicts the lesson is a new bug, not a
-   fix) - "scope" bounds what gets *edited* and what the report focuses on,
-   never what gets *read*.
+   A scoped pass still requires reading the whole chapter for context (a
+   quiz revision that contradicts the lesson is a new bug, not a fix) -
+   "scope" bounds what gets *edited* and what context-gathering prioritizes,
+   never what gets read when something looks off.
 
-## Mode: `draft`
+## Gather context - scoped, not exhaustive
 
-Read `reference/draft.md`, then follow it. Short version: gather context
-(the chapter's brief in `CURRICULUM.md`, the framework sections for its
-type, `QUIZ_FRAMEWORK.md` if scope touches the quiz, `pending-chapters.md`
-for what's already decided/blocked, a already-shipped chapter as a style/
-structure precedent), author the scoped deliverable(s) yourself as Sonnet,
-update the ledger, and **stop** - present the diff to the
-user and wait. Do not chain into `audit` automatically, even for a `full`
-draft. The user reads the Sonnet draft first, on its own, every time - that
-sequencing is what makes the second pass a genuine second opinion instead of
-a rubber stamp of your own work five minutes later.
+Read `reference/author.md`, then follow it. Do not full-read
+`pending-chapters.md` (5,000+ lines) or all of `CURRICULUM.md` (1,500+
+lines, ~20 top-level sections) regardless of `--scope` - extract just the
+target chapter's own ledger entry and the CURRICULUM sections this scope
+actually needs. `reference/author.md` has the extraction method and the
+scope-to-section map. Reading wider than the map when something in the
+chapter's own brief points elsewhere is expected; the map is a floor for
+routine passes, not a hard ceiling.
 
-## Mode: `audit`
+## Author
 
-Read `reference/audit.md`, then follow it. Short version: confirm a draft
-actually exists for the requested scope (refuse to "audit" nothing), spawn
-a `model: opus` Agent with the prompt template in that file filled in for
-the resolved chapter and scope, run it in the foreground (you need its
-result before you can verify it), and then **independently verify its
-self-report** before relaying anything to the user - spot-check at least two
-of its specific claims against the actual diff, and confirm the ledger entry
-it wrote is accurate. An agent's report of what it did is a claim, not a
-fact, until you've checked it against the working tree yourself (this is the
-same discipline the top-level system prompt asks of every subagent report -
-it doesn't relax for this skill).
+Author the scoped deliverable(s) yourself, self-check against the traps
+list and the six-area checklist in `reference/author.md` (content,
+content-structure, blueprints, component-lists, submit validations,
+diagrams) before calling it done - there is no second reader to catch what
+you miss - update the ledger, and **stop**: present the diff to the user and
+wait. Do not run `tsc`/`lint`/`vitest`/`build`, and do not run Playwright;
+that verification is the user's call.
 
-**Opus's checklist is deliberately narrow, not "audit everything":** content
-(lesson prose), content-structure (mandatory sections/beat order), blueprints,
-component-lists (`availableComponentIds`/`requiredComponentIds`), submit
-validations (`validationRuleIds` and what they actually gate), and diagrams.
-Quiz, hints, and the remaining `ChapterDefinition` metadata (problem
-statement, `exerciseGoal`/`successCriteria`, learning objectives,
-`curriculumContext`) are **not** in Opus's scope right now - Sonnet owns
-getting those right in `draft` and self-checks them there (see the traps list
-in `reference/draft.md`), so Opus isn't re-deriving a full audit from scratch
-on every pass. This is a standing scope restriction until the user says
-otherwise, not a per-invocation choice.
+## Constants
 
-## Constants across both modes
-
-- **Never commit, push, or create a branch.** Both passes leave the working
-  tree with real, reviewable, uncommitted changes. The user commits, per
-  `CLAUDE.md`'s branching/review policy.
+- **Never commit, push, or create a branch.** Leave the working tree with
+  real, reviewable, uncommitted changes. The user commits, per `CLAUDE.md`'s
+  branching/review policy.
 - **Always update `.claude/docs/pending-chapters.md`** as the last step - a
-  `draft` gets a new or extended ledger entry (deliverables table, judgment
-  calls); an `audit` appends an "Opus proofread pass" subsection to the
-  existing entry (what was checked, what changed and why, what was checked
-  and deliberately left alone). Never batch this for later.
-- **Never write tests, run the CI pipeline, or run Playwright.** Both modes
-  are content-authoring passes, full stop - no `npx tsc`, `npm run lint`,
-  `npx vitest`, `npm run build`, or Playwright, and no new test files. If a
-  chapter needs a new validation rule, reference/describe it; implementing
-  and testing the rule's code is engineering work outside this skill.
+  new chapter gets a full entry (deliverables table, judgment calls); a
+  scoped revision to an existing chapter gets a dated addition to that
+  chapter's existing entry, not a silent overwrite of prior judgment calls.
+  Never batch this for later.
+- **Never write tests, run the CI pipeline, or run Playwright.** No
+  `npx tsc`, `npm run lint`, `npx vitest`, `npm run build`, or Playwright,
+  and no new test files. If a chapter needs a new validation rule,
+  reference/describe it; implementing and testing the rule's code is
+  engineering work outside this skill.
 - **The quiz positional-bias guard is per-chapter, not registry-wide.**
   `quiz-invariants.test.ts` catches a single chapter's single-choice answers
   clustering on one letter, a matching question's diagonal, or a pre-solved
@@ -135,21 +114,18 @@ otherwise, not a per-invocation choice.
   sequences by eye during a `quiz`-scope pass; don't rely on CI alone for
   this one.
 - **A scoped pass still respects the full authoring contract.** A `quiz`
-  audit that fixes distractors but breaks the chapter's difficulty ramp, or
-  a `hints` draft that gives away the answer, is not done just because it
-  stayed inside its file boundary.
+  revision that fixes distractors but breaks the chapter's difficulty ramp,
+  or a `hints` revision that gives away the answer, is not done just because
+  it stayed inside its file boundary.
 
 ## How to invoke this in a future session
 
-- `/chapter-author draft 3.4` - author 3.4 Load Balancer end to end (all six
-  deliverables), as Sonnet, then stop for review.
-- `/chapter-author audit 3.4` - once you've read Sonnet's 3.4 draft, run the
-  Opus proofread/correct pass on the whole chapter.
-- `/chapter-author draft 1.6 --scope quiz` - 1.6 is already authored and
-  shipped, but you want a new/revised quiz for it specifically.
-- `/chapter-author audit bb-0-3-interview-design-vs-production-engineering --scope hints` -
-  audit just the hints on an already-drafted 0.3, addressed by chapter id
+- `/chapter-author 3.4` - author 3.4 Load Balancer end to end (all six
+  deliverables), then stop for review.
+- `/chapter-author 1.6 --scope quiz` - 1.6 is already authored and shipped,
+  but you want a new/revised quiz for it specifically.
+- `/chapter-author bb-0-3-interview-design-vs-production-engineering --scope hints` -
+  revise just the hints on an already-drafted 0.3, addressed by chapter id
   instead of number.
-- Plain English also works - "have Sonnet draft the RWE Bitly blueprints"
-  or "get Opus to audit 0.2's quiz again" resolve to the same two branches
-  above; you don't need the exact command syntax.
+- Plain English also works - "author the RWE Bitly blueprints" or "revise
+  0.2's quiz" resolve the same way; you don't need the exact command syntax.

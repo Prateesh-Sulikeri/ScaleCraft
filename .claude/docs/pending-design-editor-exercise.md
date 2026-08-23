@@ -64,9 +64,20 @@ per session-end verification convention. Check off as each lands.
       agent prompt template) now name the two new fields alongside
       `problemStatement`/`learningObjectives` so they stay Sonnet-owned, not
       silently unclaimed by either pass.
-- [ ] T9. Phase 5 - Make the chapter-author skill less costly in terms of token usage and
-      easier to use as it currently fetches a lot of stuff before starting. let's stream line
-      this with a brief solution discussion 
+- [x] T9. Phase 5 - Discussed and implemented, scope expanded per user's direction:
+      (1) retired the two-pass Sonnet-draft/Opus-audit model entirely - one-shot,
+      model-independent, self-check replaces the Opus audit checklist; (2) streamlined
+      context-gathering - `pending-chapters.md` and `CURRICULUM.md` are now
+      grep-extracted to the target chapter's own material / a scope-to-section map
+      instead of full-read every invocation; (3) added diagram-authoring guidance
+      pushing toward `<Walkthrough>` (via the `walkthrough-diagram` skill) for
+      step-through-worthy topologies and real v1->v2->v3 progression for static ones,
+      since existing diagrams read as a gimmick - forward guidance only, auditing
+      already-shipped diagrams deferred to a later, separately-scoped pass. Deleted
+      `reference/draft.md`/`audit.md`, replaced with `reference/author.md`. Also
+      updated `docs/CHAPTER_AUTHORING.md` (the manual-authoring fallback doc), which
+      referenced the retired two-pass model and was missing `exerciseGoal`/
+      `successCriteria` entirely.
 
 ---
 
