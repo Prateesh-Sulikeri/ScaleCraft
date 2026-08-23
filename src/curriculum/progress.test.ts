@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { deriveStatus, summarizeEntries, summarizeSection, summarizeCourse, type ProgressInputs } from "./progress";
 import type { CurriculumChapter, CurriculumSection, Course } from "./types";
-import type { CurriculumProgress } from "@/persistence/db";
+import type { CurriculumProgress, ExamAttempt } from "@/persistence/db";
 import type { ChapterDefinition } from "@/content/chapters/types";
 
 // Fixed, test-only registry — deriveStatus looks up a definition by id to
@@ -51,8 +51,21 @@ function inputs(overrides: Partial<ProgressInputs> = {}): ProgressInputs {
   return {
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(),
-    examAttemptsByDefinition: new Map(),
+    examBestByDefinition: new Map(),
     ...overrides,
+  };
+}
+
+/** One stored row per chapter - the best attempt, plus how many were taken. */
+function best(chapterDefinitionId: string, score: number, totalAttempts = 1): ExamAttempt {
+  return {
+    chapterDefinitionId,
+    totalAttempts,
+    submittedAt: Date.now(),
+    score,
+    answers: [],
+    dirty: false,
+    syncedAt: null,
   };
 }
 
@@ -114,33 +127,21 @@ describe("deriveStatus", () => {
       entry,
       inputs({
         validationPassedDefinitionIds: new Set(["with-quiz-def"]),
-        examAttemptsByDefinition: new Map([
-          [
-            "with-quiz-def",
-            [{ chapterDefinitionId: "with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [], dirty: false, syncedAt: null }],
-          ],
-        ]),
+        examBestByDefinition: new Map([["with-quiz-def", best("with-quiz-def", 50)]]),
         rowsBySlug,
       }),
     );
     expect(result).toBe("IN_PROGRESS");
   });
 
-  it("COMPLETED once validation passes and the best exam attempt meets EXAM_PASS_THRESHOLD", () => {
+  it("COMPLETED once validation passes and the stored best attempt meets EXAM_PASS_THRESHOLD", () => {
     const entry = chapter({ chapterDefinitionId: "with-quiz-def" });
     const result = deriveStatus(
       entry,
       inputs({
         validationPassedDefinitionIds: new Set(["with-quiz-def"]),
-        examAttemptsByDefinition: new Map([
-          [
-            "with-quiz-def",
-            [
-              { chapterDefinitionId: "with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [], dirty: false, syncedAt: null },
-              { chapterDefinitionId: "with-quiz-def", attemptNumber: 2, submittedAt: Date.now(), score: 90, answers: [], dirty: false, syncedAt: null },
-            ],
-          ],
-        ]),
+        // The row is the best of two attempts (50 then 90); the 50 is gone.
+        examBestByDefinition: new Map([["with-quiz-def", best("with-quiz-def", 90, 2)]]),
       }),
     );
     expect(result).toBe("COMPLETED");
@@ -153,12 +154,7 @@ describe("deriveStatus", () => {
         entry,
         inputs({
           validationPassedDefinitionIds: new Set(), // never populated — there is no Submit to write it
-          examAttemptsByDefinition: new Map([
-            [
-              "no-editor-with-quiz-def",
-              [{ chapterDefinitionId: "no-editor-with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 90, answers: [], dirty: false, syncedAt: null }],
-            ],
-          ]),
+          examBestByDefinition: new Map([["no-editor-with-quiz-def", best("no-editor-with-quiz-def", 90)]]),
         }),
       );
       expect(result).toBe("COMPLETED");
@@ -171,12 +167,7 @@ describe("deriveStatus", () => {
         entry,
         inputs({
           rowsBySlug,
-          examAttemptsByDefinition: new Map([
-            [
-              "no-editor-with-quiz-def",
-              [{ chapterDefinitionId: "no-editor-with-quiz-def", attemptNumber: 1, submittedAt: Date.now(), score: 40, answers: [], dirty: false, syncedAt: null }],
-            ],
-          ]),
+          examBestByDefinition: new Map([["no-editor-with-quiz-def", best("no-editor-with-quiz-def", 40)]]),
         }),
       );
       expect(result).toBe("IN_PROGRESS");

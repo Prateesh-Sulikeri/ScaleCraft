@@ -12,4 +12,4 @@
  * column in 6.1.1-alpha; 1080p and below are unchanged.
  */
 export const HOME_CONTAINER =
-  "mx-auto w-full max-w-[1400px] min-[2200px]:max-w-[1600px] min-[2560px]:max-w-[1760px] px-6";
+  "mx-auto w-full max-w-[1400px] min-[2200px]:max-w-[1600px] min-[2560px]:max-w-[1760px] px-4 md:px-6";

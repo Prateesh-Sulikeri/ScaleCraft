@@ -62,7 +62,11 @@ export function useHomeData(): HomeData {
   const refresh = useCurriculumProgressStore((s) => s.refresh);
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
-  const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
+  const examBestByDefinition = useCurriculumProgressStore((s) => s.examBestByDefinition);
+  // The account's per-day activity log - the streak's actual input, not an
+  // inference from timestamps. See persistence/active-days.ts.
+  const activeDays = useCurriculumProgressStore((s) => s.activeDays);
+  const activeDaysLoaded = useCurriculumProgressStore((s) => s.activeDaysLoaded);
   const { isSignedIn } = useAuth();
 
   // null until the client takes over, so a server-rendered relative
@@ -98,8 +102,8 @@ export function useHomeData(): HomeData {
   }, [isSignedIn]);
 
   const inputs: ProgressInputs = useMemo(
-    () => ({ validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition }),
-    [validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition],
+    () => ({ validationPassedDefinitionIds, rowsBySlug, examBestByDefinition }),
+    [validationPassedDefinitionIds, rowsBySlug, examBestByDefinition],
   );
 
   return useMemo(() => {
@@ -116,9 +120,11 @@ export function useHomeData(): HomeData {
       continueTarget: resolveContinueTarget(inputs),
       activity: allActivity.slice(0, RECENT_ACTIVITY_PREVIEW),
       allActivity,
-      stats: computeStats(inputs, now ?? 0),
+      // Signed out there is no account log to be missing, so the (zero)
+      // streak is known rather than pending.
+      stats: computeStats(inputs, now ?? 0, activeDays, activeDaysLoaded || isSignedIn !== true),
       now,
       isSignedIn: isSignedIn === true,
     };
-  }, [inputs, sandboxUpdatedAt, now, isSignedIn]);
+  }, [inputs, sandboxUpdatedAt, now, isSignedIn, activeDays, activeDaysLoaded]);
 }

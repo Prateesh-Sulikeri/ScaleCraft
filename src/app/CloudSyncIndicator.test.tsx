@@ -16,7 +16,7 @@ describe("CloudSyncIndicator", () => {
   it("shows the pending indicator when rows are dirty", () => {
     useSyncStatusStore.setState({ dirtyCount: 2 });
     render(<CloudSyncIndicator />);
-    expect(screen.getByLabelText("Cloud sync pending")).toBeInTheDocument();
+    expect(screen.getByLabelText("Sync to the cloud now")).toBeInTheDocument();
   });
 
   it("shows the pull-error indicator when a pull failed", () => {
@@ -35,7 +35,7 @@ describe("CloudSyncIndicator", () => {
   it("dirty and pull-error both outrank the discarded-edit indicator", () => {
     useSyncStatusStore.setState({ dirtyCount: 1, discardedCount: 1 });
     render(<CloudSyncIndicator />);
-    expect(screen.getByLabelText("Cloud sync pending")).toBeInTheDocument();
+    expect(screen.getByLabelText("Sync to the cloud now")).toBeInTheDocument();
     expect(screen.queryByLabelText("An edit was overwritten by another device")).not.toBeInTheDocument();
   });
 });

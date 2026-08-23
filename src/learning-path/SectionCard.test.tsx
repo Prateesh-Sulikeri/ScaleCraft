@@ -48,7 +48,7 @@ function inputs(overrides: Partial<ProgressInputs> = {}): ProgressInputs {
   return {
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(),
-    examAttemptsByDefinition: new Map(),
+    examBestByDefinition: new Map(),
     ...overrides,
   };
 }
@@ -59,7 +59,7 @@ beforeEach(async () => {
     hydrating: false,
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(),
-    examAttemptsByDefinition: new Map(),
+    examBestByDefinition: new Map(),
   });
   await db.curriculumProgress.clear();
 });

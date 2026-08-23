@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useAuth } from "@clerk/nextjs";
+import { ListTree, Menu } from "lucide-react";
 import { PageEnter } from "@/app/PageEnter";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { AppUserButton } from "@/app/AppUserButton";
+import { MobileDrawer } from "@/app/MobileDrawer";
+import { ReportBugButton } from "@/bugs/ReportBugButton";
 import { ReaderSidebar } from "./ReaderSidebar";
 import { ReadingProgress } from "./ReadingProgress";
 import { TableOfContents } from "./TableOfContents";
@@ -46,6 +49,14 @@ type ChapterReaderProps = {
  * ChapterWorkspace/QuestionPane are untouched — this page never renders
  * problem statement/objectives/hints, that's still the workspace's job once
  * a learner clicks through.
+ *
+ * Below `lg` (pending-responsive.md Phase 3.4) the left aside becomes a
+ * MobileDrawer instead of a permanent column — at phone width a fixed 240px
+ * nav left the article too narrow to read. The right ToC aside is already
+ * `hidden ... xl:flex`, and below `xl` its three controls
+ * (ReportBugButton/ThemeToggle/AppUserButton) move into the same mobile top
+ * bar that opens the nav drawer, so they stay reachable at every width
+ * instead of disappearing between `lg` and `xl`.
  */
 export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   const course = getCourse(mode);
@@ -56,6 +67,8 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   const hasNextEntry = nextEntry(mode, chapterSlug) !== undefined;
 
   const articleRef = useRef<HTMLDivElement>(null);
+  const [navOpen, setNavOpen] = useState(false);
+  const [tocOpen, setTocOpen] = useState(false);
 
   const { isSignedIn } = useAuth();
   const markVisited = useCurriculumProgressStore((s) => s.markVisited);
@@ -92,113 +105,168 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
 
   return (
     <PageEnter>
-      <main className="relative flex min-h-0 flex-1 overflow-hidden">
-        <aside className="flex w-60 shrink-0 flex-col overflow-hidden border-r border-border">
-          <ReaderSidebar course={course} chapterSlug={chapterSlug} />
-        </aside>
-
-        <div ref={articleRef} className="relative min-h-0 flex-1 overflow-y-auto">
-          <ReadingProgress targetRef={articleRef} />
-          {/* 42rem reads well through 1080p; past ~1800px the two asides leave
-              enough room that it looks narrow, so widen to 64rem. Stock
-              Tailwind stops at 2xl (1536px), which 1080p already clears - hence
-              the arbitrary breakpoint. */}
-          <div className="mx-auto max-w-2xl px-6 py-10 min-[1800px]:max-w-5xl">
-            <p className="text-xs font-medium tracking-wide text-foreground/50 uppercase">
-              {entry.number ? `${entry.number} · ` : ""}
-              {course.title}
-            </p>
-            <div className="mt-1 flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-foreground">{chapter.title}</h1>
-              {chapter.placeholder && (
-                <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70">
-                  Draft
-                </span>
-              )}
-            </div>
-            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-foreground/60">
-              <DifficultyDots difficulty={entry.difficulty} />
-              {entry.difficulty}
-            </p>
-
-            {entry.domain && (
-              <div className="mt-3">
-                <span className="inline-block rounded-md bg-border/40 px-2 py-1 text-xs font-medium text-foreground/80">
-                  {entry.domain}
-                </span>
-              </div>
+      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        {/* Mobile top bar: hidden at xl, where the permanent left nav (lg+)
+         * and right ToC aside (xl+) both cover what it carries. Below that,
+         * it's the only way to reach chapter navigation, the on-page ToC,
+         * and the account controls. */}
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2 xl:hidden">
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            aria-label="Chapter navigation"
+            aria-haspopup="dialog"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/70 hover:text-foreground lg:hidden"
+          >
+            <Menu size={16} />
+          </button>
+          <div className="flex items-center gap-2 lg:ml-auto">
+            {tocHeadings.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setTocOpen(true)}
+                aria-label="On this page"
+                aria-haspopup="dialog"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/70 hover:text-foreground"
+              >
+                <ListTree size={16} />
+              </button>
             )}
-
-            {entry.prerequisiteSlugs.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-medium tracking-wide text-foreground/50 uppercase">
-                  Prerequisites
-                </span>
-                {entry.prerequisiteSlugs.map((slug) => {
-                  const prereq = findEntry(mode, slug);
-                  if (!prereq) return null;
-                  const label = prereq.number ? `${prereq.number} ${prereq.title}` : prereq.title;
-                  return prereq.chapterDefinitionId ? (
-                    <Link
-                      key={slug}
-                      href={`/${mode}/${slug}/lesson`}
-                      className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70 transition-colors hover:border-foreground/40 hover:text-foreground"
-                    >
-                      {label}
-                    </Link>
-                  ) : (
-                    <span
-                      key={slug}
-                      className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/40"
-                    >
-                      {label}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="mt-8">
-              {isMdx ? (
-                lessonMdx && <MdxContent compiledSource={lessonMdx.beforeCompiled} />
-              ) : (
-                <MarkdownRenderer content={beforeNext} />
-              )}
-            </div>
-
-            <YourTurnCard chapter={chapter} mode={mode} chapterSlug={chapterSlug} />
-
-            {hasNextSection && (
-              <div className="mt-8">
-                {isMdx ? (
-                  lessonMdx?.nextCompiled && <MdxContent compiledSource={lessonMdx.nextCompiled} />
-                ) : (
-                  <MarkdownRenderer content={nextSection} />
-                )}
-              </div>
-            )}
-
-            {hasNextEntry && (
-              <div className="mt-10 border-t border-border pt-6">
-                <NextChapterLink courseId={mode} chapterSlug={chapterSlug} variant="card" />
-              </div>
-            )}
+            <ReportBugButton />
+            <ThemeToggle />
+            <AppUserButton />
           </div>
         </div>
 
-        <aside className="hidden w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border px-4 py-10 xl:flex">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">On this page</p>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <AppUserButton />
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <aside className="hidden w-60 shrink-0 flex-col overflow-hidden border-r border-border lg:flex">
+            <ReaderSidebar course={course} chapterSlug={chapterSlug} />
+          </aside>
+
+          {navOpen && (
+            <MobileDrawer onClose={() => setNavOpen(false)} title="Chapter navigation">
+              <ReaderSidebar course={course} chapterSlug={chapterSlug} />
+            </MobileDrawer>
+          )}
+
+          <div ref={articleRef} className="relative min-h-0 flex-1 overflow-y-auto">
+            <ReadingProgress targetRef={articleRef} />
+            {/* 42rem reads well through 1080p; past ~1800px the two asides leave
+                enough room that it looks narrow, so widen to 64rem. Stock
+                Tailwind stops at 2xl (1536px), which 1080p already clears - hence
+                the arbitrary breakpoint. */}
+            <div className="mx-auto max-w-2xl px-6 py-10 min-[1800px]:max-w-5xl">
+              <p className="text-xs font-medium tracking-wide text-foreground/50 uppercase">
+                {entry.number ? `${entry.number} · ` : ""}
+                {course.title}
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-foreground">{chapter.title}</h1>
+                {chapter.placeholder && (
+                  <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70">
+                    Draft
+                  </span>
+                )}
+              </div>
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-foreground/60">
+                <DifficultyDots difficulty={entry.difficulty} />
+                {entry.difficulty}
+              </p>
+
+              {entry.domain && (
+                <div className="mt-3">
+                  <span className="inline-block rounded-md bg-border/40 px-2 py-1 text-xs font-medium text-foreground/80">
+                    {entry.domain}
+                  </span>
+                </div>
+              )}
+
+              {entry.prerequisiteSlugs.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-medium tracking-wide text-foreground/50 uppercase">
+                    Prerequisites
+                  </span>
+                  {entry.prerequisiteSlugs.map((slug) => {
+                    const prereq = findEntry(mode, slug);
+                    if (!prereq) return null;
+                    const label = prereq.number ? `${prereq.number} ${prereq.title}` : prereq.title;
+                    return prereq.chapterDefinitionId ? (
+                      <Link
+                        key={slug}
+                        href={`/${mode}/${slug}/lesson`}
+                        className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70 transition-colors hover:border-foreground/40 hover:text-foreground"
+                      >
+                        {label}
+                      </Link>
+                    ) : (
+                      <span
+                        key={slug}
+                        className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/40"
+                      >
+                        {label}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="mt-8">
+                {isMdx ? (
+                  lessonMdx && <MdxContent compiledSource={lessonMdx.beforeCompiled} />
+                ) : (
+                  <MarkdownRenderer content={beforeNext} />
+                )}
+              </div>
+
+              <YourTurnCard chapter={chapter} mode={mode} chapterSlug={chapterSlug} />
+
+              {hasNextSection && (
+                <div className="mt-8">
+                  {isMdx ? (
+                    lessonMdx?.nextCompiled && <MdxContent compiledSource={lessonMdx.nextCompiled} />
+                  ) : (
+                    <MarkdownRenderer content={nextSection} />
+                  )}
+                </div>
+              )}
+
+              {hasNextEntry && (
+                <div className="mt-10 border-t border-border pt-6">
+                  <NextChapterLink courseId={mode} chapterSlug={chapterSlug} variant="card" />
+                </div>
+              )}
             </div>
           </div>
-          {/* Keyed on the chapter so scrollspy state (activeId) resets on
-              navigation instead of carrying over a stale section from the
-              previous chapter - see TableOfContents.tsx's docstring. */}
-          <TableOfContents key={chapterSlug} headings={tocHeadings} targetRef={articleRef} />
-        </aside>
+
+          <aside className="hidden w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border px-4 py-10 xl:flex">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">On this page</p>
+              <div className="flex items-center gap-2">
+                <ReportBugButton />
+                <ThemeToggle />
+                <AppUserButton />
+              </div>
+            </div>
+            {/* Keyed on the chapter so scrollspy state (activeId) resets on
+                navigation instead of carrying over a stale section from the
+                previous chapter - see TableOfContents.tsx's docstring. */}
+            <TableOfContents key={chapterSlug} headings={tocHeadings} targetRef={articleRef} />
+          </aside>
+
+          {tocOpen && (
+            <MobileDrawer onClose={() => setTocOpen(false)} title="On this page" side="right">
+              <div className="flex flex-col gap-3 px-4 py-10">
+                <p className="text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">On this page</p>
+                <TableOfContents
+                  key={chapterSlug}
+                  headings={tocHeadings}
+                  targetRef={articleRef}
+                  onNavigate={() => setTocOpen(false)}
+                />
+              </div>
+            </MobileDrawer>
+          )}
+        </div>
       </main>
     </PageEnter>
   );

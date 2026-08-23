@@ -598,6 +598,17 @@ Every chapter spec declares:
 - **Evaluation criteria**: which blueprints (§21) and validation rules apply, and
   the posture (prescriptive vs. anti-pattern, §18).
 
+**Brief calibration (how much the brief may give away):** the brief names the
+**symptom and the goal**, never the **component, field, or edge kind** that fixes
+it. Fix chapters ship symptoms (§11.1) - the broken thing is visible, the cause is
+not named. Config chapters may name the component under scrutiny but not the
+direction or target value of the fix. This is the same "deliberately omitted" gap
+above, stated as a checkable rule rather than left to per-chapter judgment.
+Expected deliverables are authored as a short `exerciseGoal` plus a
+`successCriteria` list of observable, system-level outcomes (not implementation
+steps) - not as a restatement of the chapter's learning objectives, which the
+learner has already read in the lesson and which are not repeated in the Editor.
+
 ### 11.3 Hint philosophy (unchanged, non-negotiable)
 
 Hints are a separate, optional layer - never auto-surfaced, never attempt-triggered,
@@ -612,7 +623,69 @@ the answer. Explanations on failure are always shown, unconditionally - a bare
 Follows the ramps in §18: scaffold fades, palette grows, posture opens. Each
 chapter's exercise must be solvable using only taught material, and should be
 *barely* solvable with the newest material - the new block must be load-bearing,
-not optional garnish, or the exercise teaches nothing.
+not optional garnish, or the exercise teaches nothing. The 11.2 brief-calibration
+rule applies uniformly across the ramp: later chapters do not get to hand over more
+than earlier ones just because the scenario reads longer. If a later chapter's
+brief is more revealing than an earlier one's, that is a calibration bug, not a
+deliberate scaffold fade.
+
+### 11.5 Starter graph layout
+
+Every starter graph is authored at a 320x160 pitch (120px horizontal / 95px
+vertical gap against the 200x65 card, DESIGN.md's Node Card section) - never the
+200px pitch the Part 3 template originally copy-pasted forward, which left
+adjacent cards touching with no room for an edge to render. Chapters of 4+ nodes
+tier into rows by architectural layer (edge/client, then routing/app, then data),
+capped at 3 columns per row, so the bounding-box aspect ratio stays at or under
+2.5:1 and `fitView` lands near zoom 1.0 rather than width-constraining into an
+unreadably small strip. `authoring-invariants.test.ts` enforces both the minimum
+gap and the aspect ceiling for every authored chapter.
+
+### 11.6 Starter graph decorators
+
+A starter graph with a `starterGraph` may also declare `starterDecorators` -
+zones and comments (`src/content/chapters/starter-decorators.ts`'s
+`StarterDecorator` union), pre-authored so the canvas reads as a real
+architecture diagram from the first frame rather than a loose grid of cards
+(see `.claude/docs/pending-starter-decorators.md` for the full rationale).
+Deliberately not part of `starterGraph`/`ArchitectureGraph` - the validation
+engine and blueprint matching never see decorators, so authoring one cannot
+change whether a chapter passes.
+
+**Palette** - `src/canvas/annotation-colors.ts`'s `ANNOTATION_COLOR_PRESETS`
+only, never a hand-typed hex:
+
+| Demarcation | Preset | Hex |
+|---|---|---|
+| Client / edge tier (browser, dns, firewall, client) | Blue | `#3b82f6` |
+| Server / application tier (reverse-proxy, api-gateway, load-balancer, app-server) | Purple | `#a855f7` |
+| Data tier (sql-database, nosql-database, read-replica) | Emerald | `#10b981` |
+| Gap zone - the empty slot the exercise fills | Pink (Zone Magenta) | `#ff3483` |
+| Comments | Slate | `#64748b` |
+
+**Zone geometry**, against the 320x160 pitch (card 200x65): for a tier row
+with `cols` columns starting at `(x0, y0)`, `position = { x: x0 - 28, y: y0 -
+48 }`, `width = 320 * (cols - 1) + 256`, `height = 137`. Nodes sharing a row
+and a tier color merge into one zone spanning `cols` columns rather than one
+box per node - a zone marks a tier boundary, not an individual card.
+
+**Zone vs. comment**: a zone names a tier or trust boundary that already has
+at least one component in it, or is the gap zone. A comment carries one short,
+already-public constraint or definition ("TTL controls how long a client
+caches this answer") - at most 2 per chapter, and it follows the same
+brief-calibration rule as `exerciseGoal`/`successCriteria` (§11.2): never
+names the component/field/edge kind that fixes the exercise.
+
+**Gap zone**: only author one when the fix is a genuinely new node in
+identifiable empty canvas space (an unused column in an existing row, or an
+unused row). Skip it when the fix is a config change or a rewire on an
+already-present node - a gap zone there would misleadingly imply something is
+missing when nothing is. Label it "Build here", never the component that
+belongs there.
+
+`authoring-invariants.test.ts` enforces decorator id-uniqueness (no collision
+with a starter-graph node id), zone/zone non-overlap, palette-membership, and
+the spoiler gate.
 
 ---
 

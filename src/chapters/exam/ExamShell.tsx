@@ -4,10 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { ThemeToggle } from "@/app/ThemeToggle";
+import { ReportBugButton } from "@/bugs/ReportBugButton";
 import { AppUserButton } from "@/app/AppUserButton";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import type { ExamAttempt } from "@/persistence/db";
+import type { SubmittedExamAttempt } from "@/persistence/db";
 import type { QuizAnswer } from "../quiz/evaluate";
 import { QuizDifficultyDots } from "../quiz/QuizDifficultyDots";
 import { buildAttempt } from "./exam-attempt";
@@ -18,8 +19,7 @@ import { ExamConfirmSubmitDialog } from "./ExamConfirmSubmitDialog";
 
 type ExamShellProps = {
   chapter: ChapterDefinition;
-  attemptNumber: number;
-  onSubmitted: (attempt: ExamAttempt) => void;
+  onSubmitted: (attempt: SubmittedExamAttempt) => void;
   onExit: () => void;
 };
 
@@ -33,7 +33,7 @@ type ExamShellProps = {
  * (best-effort) plus this fixed-inset-0 layout together are the "proctored"
  * presentation — not anti-cheat (see exam-fullscreen.ts).
  */
-export function ExamShell({ chapter, attemptNumber, onSubmitted, onExit }: ExamShellProps) {
+export function ExamShell({ chapter, onSubmitted, onExit }: ExamShellProps) {
   const quiz = useMemo(() => chapter.quiz ?? [], [chapter.quiz]);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
@@ -74,7 +74,7 @@ export function ExamShell({ chapter, attemptNumber, onSubmitted, onExit }: ExamS
     onExit();
   }
   function submitNow() {
-    const attempt = buildAttempt(chapter, answersByQuestionId, attemptNumber);
+    const attempt = buildAttempt(chapter, answersByQuestionId);
     if (containerRef.current) exitFullscreenIfActive(containerRef.current);
     onSubmitted(attempt);
   }
@@ -128,6 +128,7 @@ export function ExamShell({ chapter, attemptNumber, onSubmitted, onExit }: ExamS
       <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-3">
         <p className="text-sm font-medium text-foreground">{chapter.title} - exam</p>
         <div className="flex items-center gap-1">
+          <ReportBugButton />
           <ThemeToggle />
           <AppUserButton />
           <button

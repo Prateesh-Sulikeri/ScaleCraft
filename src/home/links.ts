@@ -22,10 +22,11 @@ export const HOME_NAV: readonly HomeNavItem[] = [
 
 /** Bug reporting is its own flow, not the footer's general feedback survey -
  *  a report needs reproduction steps, the board that broke, and a version, and
- *  none of that belongs in a four-question survey. Declared upcoming until
- *  that flow exists, rather than pointing the header at the survey and calling
- *  it done. */
-export const REPORT_A_BUG: HomeNavItem = { label: "Report a Bug", upcoming: true };
+ *  none of that belongs in a four-question survey. That flow now exists
+ *  (src/bugs/), so this is no longer `upcoming` - and it has no `href` either,
+ *  because it opens a modal rather than navigating. The label is kept here so
+ *  the header and any future footer entry still name it from one place. */
+export const REPORT_A_BUG: HomeNavItem = { label: "Report a Bug" };
 
 /* No ALL_ACTIVITY_HREF here anymore: "View all activity" used to point at the
  * Building Blocks Learning Path, which answered a different question than the

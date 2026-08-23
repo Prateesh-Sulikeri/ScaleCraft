@@ -43,13 +43,13 @@ function chapter(): ChapterDefinition {
 
 describe("ExamShell", () => {
   it("shows Question 1 of N first, and Back is disabled on the first question", () => {
-    render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={vi.fn()} onExit={vi.fn()} />);
+    render(<ExamShell chapter={chapter()} onSubmitted={vi.fn()} onExit={vi.fn()} />);
     expect(screen.getByText("Question 1 of 2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /back/i })).toBeDisabled();
   });
 
   it("answer state survives navigating away and back", () => {
-    render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={vi.fn()} onExit={vi.fn()} />);
+    render(<ExamShell chapter={chapter()} onSubmitted={vi.fn()} onExit={vi.fn()} />);
 
     fireEvent.click(screen.getByLabelText("Option A"));
     expect(screen.getByLabelText("Option A")).toBeChecked();
@@ -63,7 +63,7 @@ describe("ExamShell", () => {
   });
 
   it("labels the forward button 'Skip' when the current question is unanswered, 'Next' once answered", () => {
-    render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={vi.fn()} onExit={vi.fn()} />);
+    render(<ExamShell chapter={chapter()} onSubmitted={vi.fn()} onExit={vi.fn()} />);
     expect(screen.getByRole("button", { name: /skip/i })).toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText("Option A"));
@@ -71,7 +71,7 @@ describe("ExamShell", () => {
   });
 
   it("supports ArrowRight/ArrowLeft navigation", () => {
-    render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={vi.fn()} onExit={vi.fn()} />);
+    render(<ExamShell chapter={chapter()} onSubmitted={vi.fn()} onExit={vi.fn()} />);
 
     fireEvent.keyDown(window, { key: "ArrowRight" });
     expect(screen.getByText("Second question")).toBeInTheDocument();
@@ -82,26 +82,26 @@ describe("ExamShell", () => {
 
   it("Escape exits the exam", () => {
     const onExit = vi.fn();
-    render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={vi.fn()} onExit={onExit} />);
+    render(<ExamShell chapter={chapter()} onSubmitted={vi.fn()} onExit={onExit} />);
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
   it("jumping via a progress dot navigates directly to that question", () => {
-    render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={vi.fn()} onExit={vi.fn()} />);
+    render(<ExamShell chapter={chapter()} onSubmitted={vi.fn()} onExit={vi.fn()} />);
     fireEvent.click(screen.getByRole("tab", { name: "Question 2" }));
     expect(screen.getByText("Second question")).toBeInTheDocument();
   });
 
   it("shows the unanswered-confirm dialog with the correct count when submitting early", () => {
-    render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={vi.fn()} onExit={vi.fn()} />);
+    render(<ExamShell chapter={chapter()} onSubmitted={vi.fn()} onExit={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Submit exam" }));
     expect(screen.getByText("2 questions unanswered - submit anyway?")).toBeInTheDocument();
   });
 
   it("'Keep going' dismisses the confirm dialog without submitting", () => {
     const onSubmitted = vi.fn();
-    render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={onSubmitted} onExit={vi.fn()} />);
+    render(<ExamShell chapter={chapter()} onSubmitted={onSubmitted} onExit={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Submit exam" }));
     fireEvent.click(screen.getByRole("button", { name: "Keep going" }));
 
@@ -111,7 +111,7 @@ describe("ExamShell", () => {
 
   it("submits directly, with no confirm dialog, once every question is answered", () => {
     const onSubmitted = vi.fn();
-    render(<ExamShell chapter={chapter()} attemptNumber={2} onSubmitted={onSubmitted} onExit={vi.fn()} />);
+    render(<ExamShell chapter={chapter()} onSubmitted={onSubmitted} onExit={vi.fn()} />);
 
     fireEvent.click(screen.getByLabelText("Option A"));
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
@@ -121,7 +121,6 @@ describe("ExamShell", () => {
     expect(onSubmitted).toHaveBeenCalledTimes(1);
     const attempt = onSubmitted.mock.calls[0][0];
     expect(attempt.chapterDefinitionId).toBe("ch-1");
-    expect(attempt.attemptNumber).toBe(2);
     expect(attempt.score).toBe(100);
     expect(attempt.answers).toEqual([
       { questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true },
@@ -131,7 +130,7 @@ describe("ExamShell", () => {
 
   it("renders nothing for a chapter with no quiz questions", () => {
     const { container } = render(
-      <ExamShell chapter={{ ...chapter(), quiz: undefined }} attemptNumber={1} onSubmitted={vi.fn()} onExit={vi.fn()} />,
+      <ExamShell chapter={{ ...chapter(), quiz: undefined }} onSubmitted={vi.fn()} onExit={vi.fn()} />,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -139,14 +138,14 @@ describe("ExamShell", () => {
   it("Escape still calls onExit for an empty-quiz chapter (no container to fullscreen-exit)", () => {
     const onExit = vi.fn();
     render(
-      <ExamShell chapter={{ ...chapter(), quiz: undefined }} attemptNumber={1} onSubmitted={vi.fn()} onExit={onExit} />,
+      <ExamShell chapter={{ ...chapter(), quiz: undefined }} onSubmitted={vi.fn()} onExit={onExit} />,
     );
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
   it("ignores ArrowLeft/ArrowRight when the key event targets a form control (e.g. Matching's select)", () => {
-    render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={vi.fn()} onExit={vi.fn()} />);
+    render(<ExamShell chapter={chapter()} onSubmitted={vi.fn()} onExit={vi.fn()} />);
     const select = document.createElement("select");
     document.body.appendChild(select);
 
@@ -158,7 +157,7 @@ describe("ExamShell", () => {
 
   it("'Submit anyway' from the confirm dialog produces a well-formed payload scoring unanswered as incorrect", () => {
     const onSubmitted = vi.fn();
-    render(<ExamShell chapter={chapter()} attemptNumber={1} onSubmitted={onSubmitted} onExit={vi.fn()} />);
+    render(<ExamShell chapter={chapter()} onSubmitted={onSubmitted} onExit={vi.fn()} />);
 
     fireEvent.click(screen.getByLabelText("Option A"));
     fireEvent.click(screen.getByRole("button", { name: "Submit exam" }));

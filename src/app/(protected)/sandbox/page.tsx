@@ -27,7 +27,8 @@ import { getComponent } from "@/content/components/registry";
 import type { DeepCheckContext } from "@/ai/prompt";
 import { db, SANDBOX_SAVE_ID } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
-import { hydrateSave, syncSave } from "@/persistence/cloud-sync";
+import { hydrateSave } from "@/persistence/cloud-sync";
+import { adoptRemoteSave, remoteSaveRow } from "@/persistence/save-revisions";
 import { reconcileRow } from "@/persistence/reconcile";
 import { useSyncStatusStore } from "@/persistence/sync-status";
 
@@ -99,21 +100,13 @@ function SandboxPageContent() {
   const toggleDocsPanel = useCanvasStore((s) => s.toggleDocsPanel);
   const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
 
-  // Gates every write to the sandbox save slot (autosave AND the
-  // unmount-save further down) until this restore read has actually
-  // resolved — see the identical, more-detailed comment in
-  // ChapterWorkspace.tsx. In short: under React StrictMode (Next's dev-mode
-  // default), the unmount-save effect's cleanup fires once synchronously as
-  // part of the phantom mount/cleanup cycle, before this read has any
-  // chance to resolve — without this guard it unconditionally overwrote a
-  // real save with {nodes: [], edges: []} on every dev-mode Sandbox visit.
-  // Tracked twice: `hasLoadedInitialState` (state) drives useAutosave's
-  // `saveId` argument below (a normal render-time value); `...Ref` (ref) is
-  // what the unmount-save cleanup reads, since a cleanup needs the current
-  // value at teardown time and reading a ref during render isn't allowed
-  // (react-hooks/refs).
+  // Gates every write to the sandbox save slot until this restore read has
+  // actually resolved - see the fuller comment in ChapterWorkspace.tsx.
+  // nodes/edges sit at [] while the read is in flight, and a write of that
+  // transient empty state would look like a real save on the next load. It
+  // drives useAutosave's `saveId`, which is what disables the hook's own
+  // exit write too.
   const [hasLoadedInitialState, setHasLoadedInitialState] = useState(false);
-  const hasLoadedInitialStateRef = useRef(false);
 
   // On mount, prefer restoring a prior Save (see src/persistence/db.ts) over
   // the seed demo graph — this is what makes a refresh not lose work.
@@ -132,26 +125,15 @@ function SandboxPageContent() {
       // genuinely absent save (Phase 6, pending-6.1.0-poa.md) - either way
       // reconcileRow falls back to whatever's local, never treating a
       // failed fetch as authoritative "remote is empty."
-      const remoteAsSave =
-        remote.ok && remote.data
-          ? {
-              id: SANDBOX_SAVE_ID,
-              updatedAt: remote.data.updatedAt,
-              nodes: remote.data.nodes,
-              edges: remote.data.edges,
-              syncedAt: remote.data.updatedAt,
-              dirty: false,
-            }
-          : null;
+      const remoteAsSave = remote.ok && remote.data ? remoteSaveRow(SANDBOX_SAVE_ID, remote.data) : null;
       const { result: winner, discarded } = reconcileRow(local ?? null, remoteAsSave);
       if (discarded) useSyncStatusStore.getState().recordDiscarded(1);
       if (winner) {
-        if (winner !== local) void db.saves.put(winner);
+        if (winner !== local) void adoptRemoteSave(winner, local ?? null);
         loadCanvasState(winner.nodes, winner.edges);
       } else {
         loadGraph(seedGraph);
       }
-      hasLoadedInitialStateRef.current = true;
       setHasLoadedInitialState(true);
     });
     // Runs once on mount; loadGraph/loadCanvasState are stable store actions.
@@ -174,28 +156,16 @@ function SandboxPageContent() {
   // below. null until the restore above has actually completed (see
   // hasLoadedInitialState). `saveNow` also backs the explicit Save button/
   // Ctrl+S so both paths drive the one shared status shown in AppHeader.
+  // Sandbox has no Submit, so the checkpoint is its only cloud copy: a push
+  // every CLOUD_CHECKPOINT_MS while the board is ahead of the cloud, and one
+  // on the way out. The hook owns the exit write too, which is why this page
+  // no longer keeps an unmount-save effect of its own.
   const { status: saveStatus, saveNow, lastManualSaveAt } = useAutosave(
     hasLoadedInitialState ? SANDBOX_SAVE_ID : null,
     nodes,
     edges,
+    { cloudCheckpoint: true },
   );
-
-  // Each mode's canvas store instance is created fresh on mount (see
-  // CanvasStoreProvider) and torn down on unmount — without this, navigating
-  // away without an explicit Save would silently lose in-progress edits
-  // instead of just fixing the cross-mode leak this store split was for.
-  // Mirrors the Save button's own db.saves.put shape exactly. Also pushes to
-  // the cloud (Phase 4.2, pending-6.1.0-poa.md, fixes audit S8) - Sandbox has
-  // no Submit, so unmount is one of its two sync triggers alongside the
-  // explicit Save button/Ctrl+S.
-  useEffect(() => {
-    return () => {
-      if (!hasLoadedInitialStateRef.current) return;
-      const { nodes, edges } = storeApi.getState();
-      void db.saves.put({ id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges, dirty: true, syncedAt: null });
-      void syncSave(SANDBOX_SAVE_ID, { nodes, edges });
-    };
-  }, [storeApi]);
 
   const canvasRef = useRef<CanvasHandle>(null);
 

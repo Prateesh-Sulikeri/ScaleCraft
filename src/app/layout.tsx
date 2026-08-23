@@ -5,7 +5,6 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
-import { ScreenSizeGate } from "./ScreenSizeGate";
 import { LocalStateGate } from "@/persistence/LocalStateGate";
 import { ResetOnSignOut } from "@/persistence/ResetOnSignOut";
 import { FlushDirtyRows } from "@/persistence/FlushDirtyRows";
@@ -55,13 +54,11 @@ export default async function RootLayout({
       <body className="flex h-full flex-col overflow-hidden">
         <ClerkProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} themes={["dark", "light"]}>
-          <ScreenSizeGate>
             <LocalStateGate userId={userId} />
             <ResetOnSignOut />
             <FlushDirtyRows />
             <RefreshFromCloud />
             {children}
-          </ScreenSizeGate>
           </ThemeProvider>
         </ClerkProvider>
       </body>

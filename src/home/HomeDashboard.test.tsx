@@ -50,6 +50,7 @@ const data: HomeData = {
     checkpointsTotal: 3,
     dayStreak: 2,
     longestStreak: 6,
+  streakKnown: true,
   },
   now: NOW,
   isSignedIn: true,

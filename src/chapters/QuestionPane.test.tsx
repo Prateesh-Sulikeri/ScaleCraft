@@ -89,7 +89,7 @@ function makeQuestion(overrides: Partial<QuizQuestion> = {}): QuizQuestion {
 }
 
 beforeEach(() => {
-  useCurriculumProgressStore.setState({ examAttemptsByDefinition: new Map() });
+  useCurriculumProgressStore.setState({ examBestByDefinition: new Map() });
 });
 
 /** Seeds the shared canvas store with component nodes before rendering
@@ -146,18 +146,32 @@ function renderQuestionPane(props: Parameters<typeof Harness>[0]) {
 }
 
 describe("QuestionPane", () => {
-  it("renders the chapter title, problem statement, and learning objectives", () => {
-    const chapter = makeChapter({ learningObjectives: ["Understand round robin"] });
+  it("renders the chapter title, problem statement, goal, and success criteria", () => {
+    const chapter = makeChapter({
+      exerciseGoal: "Give every server an equal share of requests.",
+      successCriteria: ["No single server takes more than its fair share of traffic."],
+    });
     renderQuestionPane({ chapter, nodes: [] });
 
     expect(screen.getByRole("heading", { name: "Load Balancing 101" })).toBeInTheDocument();
     expect(screen.getByText("Balance the load across servers.")).toBeInTheDocument();
-    expect(screen.getByText("Understand round robin")).toBeInTheDocument();
+    expect(screen.getByText("Give every server an equal share of requests.")).toBeInTheDocument();
+    expect(screen.getByText("No single server takes more than its fair share of traffic.")).toBeInTheDocument();
   });
 
-  it("omits the learning objectives section entirely when there are none", () => {
-    renderQuestionPane({ chapter: makeChapter({ learningObjectives: [] }), nodes: [] });
+  it("never renders a learning objectives section - the learner already read it in the lesson", () => {
+    const chapter = makeChapter({ learningObjectives: ["Understand round robin"] });
+    renderQuestionPane({ chapter, nodes: [] });
     expect(screen.queryByText(/learning objectives/i)).not.toBeInTheDocument();
+  });
+
+  it("omits the goal and success-criteria sections entirely when absent", () => {
+    renderQuestionPane({
+      chapter: makeChapter({ exerciseGoal: undefined, successCriteria: undefined }),
+      nodes: [],
+    });
+    expect(screen.queryByText(/^goal$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/done when/i)).not.toBeInTheDocument();
   });
 
   it("computes required-components progress from the live canvas nodes", () => {
@@ -435,8 +449,8 @@ describe("QuestionPane", () => {
     it("shows the note when Submit passed but the chapter's exam isn't passed yet", () => {
       const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" }), makeQuestion({ id: "q2" })] });
       useCurriculumProgressStore.setState({
-        examAttemptsByDefinition: new Map([
-          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [], dirty: false, syncedAt: null }]],
+        examBestByDefinition: new Map([
+          ["ch-1", { chapterDefinitionId: "ch-1", totalAttempts: 1, submittedAt: Date.now(), score: 50, answers: [], dirty: false, syncedAt: null }],
         ]),
       });
       renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: true }) });
@@ -447,8 +461,8 @@ describe("QuestionPane", () => {
     it("omits the note once the exam is passed", () => {
       const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" })] });
       useCurriculumProgressStore.setState({
-        examAttemptsByDefinition: new Map([
-          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 80, answers: [], dirty: false, syncedAt: null }]],
+        examBestByDefinition: new Map([
+          ["ch-1", { chapterDefinitionId: "ch-1", totalAttempts: 2, submittedAt: Date.now(), score: 80, answers: [], dirty: false, syncedAt: null }],
         ]),
       });
       renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: true }) });

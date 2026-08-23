@@ -139,13 +139,27 @@ describe("ShortcutsModal", () => {
   });
 
   it("closes on backdrop click and clears shortcutsModalOpen", () => {
-    const { api, container } = renderWithCanvasStore(<ShortcutsModal />);
+    const { api } = renderWithCanvasStore(<ShortcutsModal />);
     openModal(api);
     expect(screen.getByText("Keyboard shortcuts")).toBeInTheDocument();
 
-    const backdrop = container.querySelector(".fixed.inset-0");
+    // Queried off document.body, not the render container: CenteredModal
+    // portals there so `position: fixed` resolves against the viewport rather
+    // than whichever transformed ancestor the trigger happens to sit in.
+    const backdrop = document.body.querySelector(".fixed.inset-0");
     expect(backdrop).not.toBeNull();
     fireEvent.click(backdrop as Element);
+
+    expect(screen.queryByText("Keyboard shortcuts")).not.toBeInTheDocument();
+    expect(api.getState().shortcutsModalOpen).toBe(false);
+  });
+
+  it("closes on Escape", () => {
+    const { api } = renderWithCanvasStore(<ShortcutsModal />);
+    openModal(api);
+    expect(screen.getByText("Keyboard shortcuts")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
 
     expect(screen.queryByText("Keyboard shortcuts")).not.toBeInTheDocument();
     expect(api.getState().shortcutsModalOpen).toBe(false);

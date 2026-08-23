@@ -5,10 +5,10 @@ import { AboutModal } from "./AboutModal";
 describe("AboutModal", () => {
   it("explains the product's non-negotiables, not just its features", () => {
     render(<AboutModal onClose={vi.fn()} />);
-    expect(screen.getByText("About ScaleCraft")).toBeInTheDocument();
-    expect(screen.getByText(/not a game/)).toBeInTheDocument();
-    expect(screen.getByText(/Hints are always optional/)).toBeInTheDocument();
-    expect(screen.getByText(/single-player, permanently/)).toBeInTheDocument();
+    expect(screen.getAllByText("About ScaleCraft").length).toBeGreaterThan(0);
+    expect(screen.getByText("Hints, not hand-holding")).toBeInTheDocument();
+    expect(screen.getByText("Single-player, always")).toBeInTheDocument();
+    expect(screen.getByText(/Why I built this/i)).toBeInTheDocument();
   });
 
   it("closes on the dialog's close control", () => {
