@@ -41,6 +41,11 @@ don't).
   for when it actually needs resolving. Check this before assuming a design is final.
 - `.claude/docs/MILESTONES.md` — the sequenced, currently-active roadmap from the
   scaffold to MVP. Check this before picking what to work on next.
+- `.claude/docs/DATABASE.md` — live reference for the Neon/Postgres setup: the
+  Vercel Marketplace integration, branch-per-environment split (dev vs.
+  preview+prod), pooled vs. unpooled connection strings, the Drizzle client
+  and migration workflow, and the schema. Read before touching `src/db/`,
+  adding a table, or debugging a `DATABASE_URL` error.
 
 ## Release build logs (in-flight engineering work)
 
@@ -65,6 +70,10 @@ directory misses which ones are live vs. retired:
   companions are read-only evidence: `pending-cloud-sync.md` (what 6.1.0
   originally built and why) and `pending-persistence-audit.md` (findings
   S1-S11, mapped to phases in the POA's Appendix B).
+- `.claude/docs/pending-report-a-bug.md` - the site-wide Report a Bug feature
+  (release 7.1.0-alpha): data model, the image-storage seam, API, placements,
+  plus the two app-wide changes it pulled in (CenteredModal portals to body;
+  Escape closes every modal). Read it before touching modals or bug storage.
 - `.claude/docs/pending-simulation-engine.md` - early brainstorm for a second,
   post-Validate simulation stage. Not scoped into a release yet.
 - `.claude/docs/pending-polish.md` - retired items consolidated out of other

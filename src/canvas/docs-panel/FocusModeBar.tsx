@@ -3,6 +3,7 @@
 import { Minimize2 } from "lucide-react";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { AppUserButton } from "@/app/AppUserButton";
+import { ReportBugButton } from "@/bugs/ReportBugButton";
 import { useCanvasStore } from "../store";
 
 /**
@@ -24,6 +25,7 @@ export function FocusModeBar() {
         Exit focus mode
       </button>
       <div className="flex items-center gap-2">
+        <ReportBugButton />
         <ThemeToggle />
         <AppUserButton />
       </div>

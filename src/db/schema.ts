@@ -114,3 +114,61 @@ export const deepCheckSessions = pgTable("deep_check_sessions", {
   critique: jsonb("critique").notNull(), // AiCritique, see src/ai/schema.ts
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+/**
+ * Reported bugs. Deliberately NOT a Dexie mirror like every table above -
+ * a bug report is a message to the author, not learner state, so there is
+ * nothing to work on offline, nothing to reconcile, and no last-write-wins
+ * merge. It is cloud-only and written straight through /api/bugs.
+ *
+ * `category`/`priority`/`status` are plain text validated by the zod schemas
+ * in src/bugs/types.ts rather than pg enums: adding a category later is a
+ * one-line TS change instead of a migration, which is what "keep categories
+ * extensible" asks for.
+ *
+ * `imageRef` is an opaque storage handle, never a URL and never bytes - see
+ * src/bugs/image-storage.ts. Today it resolves to a bugReportImages row;
+ * swapping in Vercel Blob later changes only that module's encode/decode,
+ * not this table or any route contract.
+ */
+export const bugReports = pgTable("bug_reports", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(), // Clerk user id - the ownership column every read filters on
+  category: text("category").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  priority: text("priority").notNull(),
+  status: text("status").notNull().default("open"),
+  imageRef: text("image_ref"),
+  /** The author's write-up of how the report was closed out - the answer to
+   * "what happened to my bug?". Null until someone triages it, and the
+   * details view renders the section only when it is set. */
+  closingNotes: text("closing_notes"),
+  /** The status the reporter has already looked at. Unread is
+   * `seenStatus <> status`, which means an author who moves a bug with a
+   * plain UPDATE raises the reporter's notification badge with no extra
+   * bookkeeping column to remember to touch. */
+  seenStatus: text("seen_status").notNull().default("open"),
+  /** Where the reporter was and which build they were on. Captured by the
+   * client at submit time - a report without these costs a round-trip of
+   * "which page? which version?" to be actionable. */
+  pagePath: text("page_path"),
+  appVersion: text("app_version"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/**
+ * The current backing store behind an `imageRef`. Its own table rather than a
+ * column on bugReports so a list query physically cannot drag image bytes
+ * along, and so dropping it for object storage later is a table removal
+ * rather than a bug-record migration.
+ */
+export const bugReportImages = pgTable("bug_report_images", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  mimeType: text("mime_type").notNull(),
+  /** base64, no data: prefix. */
+  data: text("data").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

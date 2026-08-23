@@ -7,6 +7,7 @@ import { useAuth } from "@clerk/nextjs";
 import { PageEnter } from "@/app/PageEnter";
 import { ThemeToggle } from "@/app/ThemeToggle";
 import { AppUserButton } from "@/app/AppUserButton";
+import { ReportBugButton } from "@/bugs/ReportBugButton";
 import { ReaderSidebar } from "./ReaderSidebar";
 import { ReadingProgress } from "./ReadingProgress";
 import { TableOfContents } from "./TableOfContents";
@@ -190,6 +191,7 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">On this page</p>
             <div className="flex items-center gap-2">
+              <ReportBugButton />
               <ThemeToggle />
               <AppUserButton />
             </div>

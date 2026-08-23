@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { ThemeToggle } from "@/app/ThemeToggle";
+import { ReportBugButton } from "@/bugs/ReportBugButton";
 import { AppUserButton } from "@/app/AppUserButton";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import type { ChapterDefinition } from "@/content/chapters/types";
@@ -128,6 +129,7 @@ export function ExamShell({ chapter, attemptNumber, onSubmitted, onExit }: ExamS
       <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-3">
         <p className="text-sm font-medium text-foreground">{chapter.title} - exam</p>
         <div className="flex items-center gap-1">
+          <ReportBugButton />
           <ThemeToggle />
           <AppUserButton />
           <button

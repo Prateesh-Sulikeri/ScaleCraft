@@ -153,7 +153,7 @@ export const courses: Record<CourseId, Course> = {
             number: "2.1",
             title: "From Browser to Backend",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-2-1-from-browser-to-backend",
             estimatedMinutes: 20,
             difficulty: "foundational",
             // §17: hangs off 1.3 - 1.4 is optional and gates nothing.
@@ -167,7 +167,7 @@ export const courses: Record<CourseId, Course> = {
             number: "2.2",
             title: "Where Can Things Go Wrong?",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-2-2-where-can-things-go-wrong",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["2-1-from-browser-to-backend"],
