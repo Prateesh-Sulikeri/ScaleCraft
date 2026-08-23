@@ -62,3 +62,62 @@ split, resilience mechanisms) is merged to `main`. What's left:
 **4. Two earlier-flagged "needs a real-browser re-check" items, likely subsumed by #3 above but never explicitly closed in the doc:**
 - Tour not rendering below ~1024px wide: needs a browser re-check at 900x700 and 768x1024.
 - z-index layering fixes: not assertable in jsdom, needs a browser re-check.
+
+------------------------------------------------------------------------
+
+## From `pending-6.1.0-poa.md` + `pending-cloud-sync.md` + `pending-persistence-audit.md` (Release 6.1.0 Neon cloud sync)
+
+Retired 2026-08-23. All three deleted together: the sync code
+(`reconcile.ts`, `sync-status.ts`, `ResetOnSignOut.tsx`, the eleven Part 1 slug
+redirects in `next.config.ts`) is confirmed present on `main` and `develop`, so
+the build log, its audit companion and the close-out list have all been overtaken
+by merged code. The audit's S1-S11 findings were either fixed or converted into
+the "Explicitly NOT in 6.1.0" tradeoffs recorded in `ARCHITECTURE.md`.
+
+Two items were never ticked and outlive the docs:
+
+- **The zones cross-device e2e case was written but never run.** The test exists
+  in `e2e/multi-device-sync.spec.ts` ("a zone and a Start marker placed on one
+  device arrive intact on the other"). It was authored in a sandbox with no
+  outbound network, so global setup could not reach Clerk. Run
+  `npx playwright test e2e/multi-device-sync.spec.ts -g "zone and a Start marker"`
+  from a networked machine. This is the one unproven claim in release 6 - Phase 3.4
+  replaced the `graph` column with raw `canvasState` and TRUNCATEd `saved_graphs`
+  *specifically* because the old round trip could silently delete a learner's zones.
+- **The four Part 1 chapters authored in Phase 10 still have no Opus proofread
+  pass recorded** in `pending-chapters.md`. Content-authoring work for the
+  `chapter-author` skill, deliberately deferred by the engineering branch.
+
+------------------------------------------------------------------------
+
+## From `pending-diagram-pipeline.md` (Release 5.1.0 diagram authoring pipeline)
+
+Retired 2026-08-23. Phases 0-4 are merged (`src/chapters/walkthrough/layout.ts`,
+`normalize.ts`, and `src/content/chapters/walkthrough-invariants.test.ts` are all
+on `main`). The `walkthrough-diagram` skill is now the live entry point for
+authoring a diagram; this doc's Phase 5 and open questions are all that survive it.
+
+**Phase 5 - deferred, do NOT build without the trigger:**
+- **P5.1 Topology presets** (named expansions like `preset: "client-lb-n-servers"`):
+  only if, after ~10 real diagrams, node/edge declarations are still the dominant
+  authoring cost. Auto-layout plus `focus` may make this unnecessary indirection.
+  Decide from evidence.
+- **P5.2 Canvas-to-walkthrough export**: only if a Tier 4 RWE diagram (WhatsApp,
+  Uber; 12-14 nodes) produces a layered layout that manual `column`/`position`
+  overrides cannot rescue. The canvas already emits positions via
+  `toArchitectureGraph`, so the export is mechanical if ever needed.
+
+**Open questions carried from scoping:**
+
+| # | Question | Trigger |
+|---|---|---|
+| 1 | Do RWE debrief reference solutions get walkthroughs, or is `ReadOnlyGraphSummary` enough? Swings scope by ~60 diagrams. Content call, user decides. | Before first RWE project is authored |
+| 2 | Does layered LR survive a 12-14 node flagship? | First Tier 4 diagram (feeds P5.2) |
+| 3 | Do `custom`-kind nodes join auto-layout or stay hand-placed? Current spec: they join (neighbor-column rule); revisit on first real use. | First `custom` diagram |
+| 4 | Side-by-side topology comparison for RWE Phase B, or do `algorithms` variants cover it? | First Phase B debrief |
+
+**One decision worth not losing:** walkthrough definitions stay **inline in MDX**,
+next to the prose. Typed TS modules referenced by id were rejected (breaks prose
+co-location; the invariants harness covers the real failure modes). This is the one
+decision worth revisiting if the harness proves too loose - and it gets more
+expensive to reverse as diagrams accumulate.

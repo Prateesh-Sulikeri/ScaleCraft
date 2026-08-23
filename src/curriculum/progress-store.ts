@@ -13,11 +13,8 @@ import {
 } from "@/persistence/cloud-sync";
 import { reconcileRows } from "@/persistence/reconcile";
 import { useSyncStatusStore } from "@/persistence/sync-status";
-import {
-  fetchPreservedStreakDays,
-  mergeStreakDays,
-  pushPreservedStreakDays,
-} from "@/persistence/streak-days";
+import { fetchStreakDays, mergeStreakDays } from "@/persistence/streak-days";
+import { recordActiveDay, reconcileActiveDays } from "@/persistence/active-days";
 import { activityTimestamps, localDayIndex } from "@/home/home-data";
 import { allEntries, getCourse } from "./index";
 import type { CourseId } from "./types";
@@ -57,12 +54,17 @@ type CurriculumProgressStore = {
   /** Submitted exam attempts, by chapterDefinitionId — unlimited entries per
    *  chapter until passed, cleared only by resetChapter/resetCourse. */
   examAttemptsByDefinition: Map<string, ExamAttempt[]>;
-  /** Local day indices carried across a progress reset, stored on the Clerk
-   *  user's publicMetadata (persistence/streak-days.ts). Read by Home and the
-   *  Learning Path header, which union it into the streak computation — see
-   *  home-data.ts's activityDays. Empty for an account that has never
-   *  reset. */
-  preservedStreakDays: number[];
+  /** Every local day index this account has recorded activity on, from
+   *  db.activeDays unioned with the Clerk-backed mirror
+   *  (persistence/active-days.ts). This *is* the streak's input - Home and
+   *  the Learning Path header reduce it directly, and the live
+   *  curriculumProgress timestamps only ever add today to it. */
+  activeDays: number[];
+  /** False while `activeDays` might be missing days the account recorded
+   *  elsewhere - either nothing has been fetched yet, or the fetch failed.
+   *  The streak renders as unknown rather than as a wrong number; see
+   *  home-data.ts's HomeStats.streakKnown. */
+  activeDaysLoaded: boolean;
 
   /** Reads all three Dexie tables into memory. Idempotent, safe to call from
    *  every mounting surface — bails if already hydrated or in flight. */
@@ -76,6 +78,12 @@ type CurriculumProgressStore = {
    *  so it has to be looking at the newest row before it writes - see
    *  markVisited). */
   refresh: () => Promise<void>;
+  /** Banks today in db.activeDays (and pushes it to the Clerk mirror the
+   *  first time it is seen), so the day streak is a record of what happened
+   *  rather than an inference from timestamps that get overwritten. Called by
+   *  every mutator that stamps a dated activity; idempotent and near-free
+   *  after the first call on a given day. */
+  recordToday: () => Promise<void>;
   /** Called by ChapterWorkspace on mount. Writes lastVisitedAt (preserving
    *  any existing manuallyCompletedAt) and updates memory. */
   markVisited: (slug: string) => Promise<void>;
@@ -104,9 +112,8 @@ type CurriculumProgressStore = {
    *  Path's "Reset progress". Scoped to that course, so resetting Building
    *  Blocks leaves Real World Extraction untouched. Clears completions,
    *  validation passes, exam attempts, each chapter's saved canvas and its
-   *  Deep Check history. Snapshots the day streak *before* deleting
-   *  anything; see resetCourse's body for why that ordering is
-   *  load-bearing. */
+   *  Deep Check history. Never touches db.activeDays, so the day streak
+   *  survives by construction - see resetCourse's body. */
   resetCourse: (courseId: CourseId) => Promise<void>;
   /** Derived selector helper so callers never rebuild ProgressInputs by hand. */
   inputs: () => ProgressInputs;
@@ -157,23 +164,31 @@ function buildExamAttemptsMap(attempts: ExamAttempt[]): Map<string, ExamAttempt[
  * pending-6.1.0-poa.md Phase 3 / audit finding S4.
  */
 async function performHydrate(
-  set: (partial: Partial<CurriculumProgressStore>) => void,
+  set: (
+    partial:
+      | Partial<CurriculumProgressStore>
+      | ((state: CurriculumProgressStore) => Partial<CurriculumProgressStore>),
+  ) => void,
 ): Promise<void> {
   const [localChapterProgress, localCurriculumProgress, localExamAttempts] = await Promise.all([
     db.chapterProgress.toArray(),
     db.curriculumProgress.toArray(),
     db.examAttempts.toArray(),
   ]);
-  const [remoteChapterProgress, remoteCurriculumProgress, remoteExamAttempts, preservedStreakDays] = await Promise.all([
+  const [remoteChapterProgress, remoteCurriculumProgress, remoteExamAttempts, remoteStreakDays] = await Promise.all([
     hydrateAllChapterProgress(),
     hydrateAllCurriculumProgress(),
     hydrateAllExamAttempts(),
-    // Not part of the reconcile pass below: this has no local table to merge
-    // against and no last-write-wins semantics (it unions, server-side), so
-    // a failed fetch degrades to [] instead of aborting - the streak reads
-    // low for one render rather than blocking every other table's merge.
-    fetchPreservedStreakDays(),
+    // Not part of the reconcile pass below: db.activeDays unions rather than
+    // resolving a last-write-wins conflict, so it merges on its own terms
+    // (active-days.ts) and a failure there never blocks the other tables.
+    // `null` is "unknown", and stays distinguishable from "no days" all the
+    // way to the UI.
+    fetchStreakDays(),
   ]);
+  // Also flushes any day banked while offline, which makes every hydrate
+  // trigger - mount, client-side navigation, refocus, `online` - a retry.
+  const activeDays = await reconcileActiveDays(remoteStreakDays);
 
   if (!remoteChapterProgress.ok || !remoteCurriculumProgress.ok || !remoteExamAttempts.ok) {
     // Abort (Phase 6, pending-6.1.0-poa.md - fixes audit S5): a failed
@@ -183,13 +198,14 @@ async function performHydrate(
     // create() default) so the next hydrate() call - the next mount or
     // navigation - retries for real instead of being permanently stuck
     // behind a transient network error.
-    set({
+    set((state) => ({
       hydrating: false,
       validationPassedDefinitionIds: new Set(localChapterProgress.map((r) => r.chapterId)),
       rowsBySlug: new Map(localCurriculumProgress.map((r) => [r.slug, r])),
       examAttemptsByDefinition: buildExamAttemptsMap(localExamAttempts),
-      preservedStreakDays,
-    });
+      activeDays: mergeStreakDays(state.activeDays, activeDays.days),
+      activeDaysLoaded: state.activeDaysLoaded || activeDays.loaded,
+    }));
     return;
   }
 
@@ -208,14 +224,15 @@ async function performHydrate(
     examAttempts.toWrite.length > 0 ? db.examAttempts.bulkPut(examAttempts.toWrite) : Promise.resolve(),
   ]);
 
-  set({
+  set((state) => ({
     hydrated: true,
     hydrating: false,
     validationPassedDefinitionIds: new Set(chapterProgress.merged.map((r: ChapterProgress) => r.chapterId)),
     rowsBySlug: new Map(curriculumProgress.merged.map((r: CurriculumProgress) => [r.slug, r])),
     examAttemptsByDefinition: buildExamAttemptsMap(examAttempts.merged),
-    preservedStreakDays,
-  });
+    activeDays: mergeStreakDays(state.activeDays, activeDays.days),
+    activeDaysLoaded: state.activeDaysLoaded || activeDays.loaded,
+  }));
 }
 
 /** In-flight dedup only — NOT the "already hydrated" check, which reads
@@ -230,7 +247,8 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   validationPassedDefinitionIds: new Set(),
   rowsBySlug: new Map(),
   examAttemptsByDefinition: new Map(),
-  preservedStreakDays: [],
+  activeDays: [],
+  activeDaysLoaded: false,
 
   hydrate: () => {
     if (get().hydrated) return Promise.resolve();
@@ -244,6 +262,25 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
       inFlightHydrate = null;
     });
     return inFlightHydrate;
+  },
+
+  recordToday: async () => {
+    const today = localDayIndex(Date.now());
+    // The common case by far: today is already banked, so this is one indexed
+    // lookup and nothing else. Only a genuinely new day reaches the network.
+    if (!(await recordActiveDay(today))) return;
+    set((state) => ({ activeDays: mergeStreakDays(state.activeDays, [today]) }));
+    // Fire-and-forget: the day is already durable locally, and a failed push
+    // leaves the row pending for the next reconcile pass rather than failing
+    // the activity that triggered it.
+    void reconcileActiveDays(null).then((result) => {
+      set((state) => ({
+        activeDays: mergeStreakDays(state.activeDays, result.days),
+        // Only ever latches on. A push that fails does not make history
+        // already fetched this session incomplete.
+        activeDaysLoaded: state.activeDaysLoaded || result.loaded,
+      }));
+    });
   },
 
   markVisited: async (slug) => {
@@ -260,6 +297,10 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
     };
     await db.curriculumProgress.put(row);
     void syncCurriculumProgress(row);
+    // Opening a chapter is the app's most common dated activity, and the one
+    // whose timestamp gets overwritten on the next visit. Banking the day
+    // here is what stops that overwrite from erasing streak history.
+    void get().recordToday();
     set((state) => ({ rowsBySlug: new Map(state.rowsBySlug).set(slug, row) }));
   },
 
@@ -273,6 +314,9 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
     };
     await db.curriculumProgress.put(row);
     void syncCurriculumProgress(row);
+    // Only completing counts. Un-completing stamps no timestamp, so it is not
+    // an activity the streak has ever recognised.
+    if (complete) void get().recordToday();
     set((state) => ({ rowsBySlug: new Map(state.rowsBySlug).set(slug, row) }));
   },
 
@@ -286,6 +330,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
     await get().hydrate();
     await db.examAttempts.put(attempt);
     void syncExamAttempt(attempt);
+    void get().recordToday();
     set((state) => ({
       examAttemptsByDefinition: withExamAttempt(state.examAttemptsByDefinition, attempt),
     }));
@@ -327,31 +372,37 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   resetCourse: async (courseId) => {
     await get().refresh(); // full-row overwrites below, see markVisited
 
-    // Snapshot the streak BEFORE anything is deleted. The day streak is
-    // derived from exactly the timestamps this function is about to destroy
-    // (home-data.ts's activityTimestamps), so once the wipe lands there is
-    // nothing left to reconstruct it from - and Clerk has no day-series to
-    // fall back on either (see db.ts's StreakDays). Snapshot the whole
-    // account's day set, not just this course's: unioning is idempotent, and
-    // taking the wider set means a later reset of the *other* course cannot
-    // drop days this one already covered.
-    const days = new Set(get().preservedStreakDays);
+    // Since recordToday runs on every dated activity, every day this wipe is
+    // about to destroy evidence of is already in db.activeDays - which this
+    // function never touches. Preserving the streak is therefore no longer
+    // something reset has to *do*; it is a property of where the days live.
+    //
+    // What remains is a backfill for the one case that can still be short:
+    // days recorded by a build that predates db.activeDays, or on another
+    // device whose rows arrived as timestamps rather than as banked days.
+    // Reading them out of the timestamps before deleting them costs one pass
+    // and closes the gap for good. Whole account, not just this course -
+    // unioning is idempotent, and the wider set means a later reset of the
+    // *other* course cannot drop days this one already covered.
     for (const ts of activityTimestamps(get().inputs())) {
-      if (ts > 0) days.add(localDayIndex(ts));
+      if (ts > 0) await recordActiveDay(localDayIndex(ts));
     }
-    const preservedStreakDays = [...days].sort((a, b) => a - b);
 
     // Awaited, and awaited *first* - the one blocking call in this action.
-    // Everything below deletes the timestamps the streak is derived from, so
-    // if the snapshot has not landed by then the streak is unrecoverable.
-    // A failed push therefore aborts the reset rather than proceeding: losing
-    // the streak is a worse outcome than a reset the learner can simply
-    // retry, and leaving progress intact keeps the two consistent.
-    const saved = await pushPreservedStreakDays(preservedStreakDays);
-    if (saved === null) {
+    // The local table alone would survive this wipe, but it is browser-local
+    // and cleared on sign-out, so a day that never reached Clerk is a day
+    // that dies with this browser. A failed flush therefore aborts the reset
+    // rather than proceeding: losing the streak is a worse outcome than a
+    // reset the learner can simply retry, and leaving progress intact keeps
+    // the two consistent.
+    const flushed = await reconcileActiveDays(await fetchStreakDays());
+    if (!flushed.loaded || flushed.pending > 0) {
       throw new Error("Could not save your streak, so nothing was reset. Check your connection and try again.");
     }
-    set({ preservedStreakDays: mergeStreakDays(preservedStreakDays, saved) });
+    set((state) => ({
+      activeDays: mergeStreakDays(state.activeDays, flushed.days),
+      activeDaysLoaded: true,
+    }));
 
     const entries = allEntries(getCourse(courseId));
     const slugs = entries.map((entry) => entry.slug);
@@ -429,7 +480,8 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
       validationPassedDefinitionIds: new Set(),
       rowsBySlug: new Map(),
       examAttemptsByDefinition: new Map(),
-      preservedStreakDays: [],
+      activeDays: [],
+      activeDaysLoaded: false,
     });
   },
 }));

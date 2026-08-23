@@ -57,30 +57,38 @@ directory misses which ones are live vs. retired:
   lesson pipeline, 3.4 Load Balancer migration, walkthrough diagram renderer. Read
   its Status line first - it names which steps are merged vs. still on a feature
   branch.
-- `.claude/docs/pending-diagram-pipeline.md` - Release 5.1.0-alpha (Diagram Topology
-  Update): the implementation plan for the diagram *authoring* pipeline (auto-layout,
-  normalization/validation harness, authoring lab) that follows 5.0.0-alpha's
-  walkthrough renderer. Phased checklist - read the Status line and decision record
-  before resuming.
-- `.claude/docs/pending-6.1.0-poa.md` - **Release 6.1.0-alpha, the live plan of
-  action.** Start here for anything persistence-related. Phased POA covering
-  sync reconciliation, account isolation, write triggers/storage economics,
-  retention, and delete semantics. Phase 0 has landed; everything else is
-  scoped and blocked on five open decisions listed near the end. Its two
-  companions are read-only evidence: `pending-cloud-sync.md` (what 6.1.0
-  originally built and why) and `pending-persistence-audit.md` (findings
-  S1-S11, mapped to phases in the POA's Appendix B).
+- `.claude/docs/pending-e2e-quarantine.md` - e2e test quality. The four
+  quarantined specs are fixed and un-quarantined; what's live is the systemic
+  problem they were a symptom of - ~106 `if (count > 0) { ...assert... }` guards
+  across six specs that pass having checked nothing. Unscoped, needs its own
+  pass. Also holds the recipe for reproducing CI conditions locally.
 - `.claude/docs/pending-report-a-bug.md` - the site-wide Report a Bug feature
   (release 7.1.0-alpha): data model, the image-storage seam, API, placements,
   plus the two app-wide changes it pulled in (CenteredModal portals to body;
   Escape closes every modal). Read it before touching modals or bug storage.
+- `.claude/docs/pending-streak-counter.md` - the day-streak fix (release
+  7.1.0-alpha): why resetting progress used to *raise* the streak, and the
+  per-day activity log (`db.activeDays` + Clerk `publicMetadata`) that replaced
+  inferring it from overwritable timestamps. Read before touching the streak,
+  `resetCourse`, or anything under `src/persistence/active-days.ts`.
+- `.claude/docs/pending-design-editor-exercise.md` - audit + POA for the Design
+  Editor half of every authored chapter: starter graphs laid out at a 200px
+  pitch against a 200px card (zero gap, invisible edges), single-row bounding
+  boxes that force `fitView` down to 0.56, and briefs that read as essays while
+  the learning-objectives block prints the answer above the opt-in hints. Read
+  before touching any `starterGraph`, `problemStatement`, or `QuestionPane`.
+  Audited, nothing implemented yet - Phase 0 lists five open decisions.
 - `.claude/docs/pending-simulation-engine.md` - early brainstorm for a second,
   post-Validate simulation stage. Not scoped into a release yet.
 - `.claude/docs/pending-polish.md` - retired items consolidated out of other
   `pending-*.md` docs once they hit ~90% complete, kept as a checklist of what's
   still unconfirmed (mostly manual click-through passes). A source doc is deleted
   once its items land here - if you're looking for an older `pending-*.md` this
-  session's context references and it's gone, check here first.
+  session's context references and it's gone, check here first. Retired so far:
+  the guided tour, release 5.1.0's diagram pipeline (Phase 5 triggers and its
+  four open questions survive there), and all three release 6.1.0 cloud-sync docs
+  (POA, build log, persistence audit) - for persistence *design* now read
+  `ARCHITECTURE.md` and `DATABASE.md`, which the release updated in place.
 
 ## Curriculum authoring
 

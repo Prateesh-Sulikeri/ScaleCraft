@@ -4,7 +4,7 @@ import { useCurriculumProgressStore } from "./progress-store";
 import { chapterSaveId, db, SANDBOX_SAVE_ID, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
 import type { SyncResult } from "@/persistence/cloud-sync";
 import { allEntries, getCourse } from "./index";
-import { localDayIndex } from "@/home/home-data";
+import { activityTimestamps, computeDayStreak, localDayIndex } from "@/home/home-data";
 
 // Lets one test control exactly when the reconcile pass's remote fetch
 // resolves, so it can prove markVisited's Dexie write genuinely waits for
@@ -27,22 +27,28 @@ vi.mock("@/persistence/cloud-sync", async (importOriginal) => {
   };
 });
 
-// The streak snapshot talks to /api/streak-days (Clerk publicMetadata), so
-// it needs mocking for the same reason the cloud-sync hydrators do: real
-// fetch() fails here. `pushImpl` is swappable so one test can prove the
-// reset *aborts* rather than wiping progress when the snapshot cannot be
-// saved - the ordering guarantee the whole design rests on.
+// The day log's remote mirror talks to /api/streak-days (Clerk
+// publicMetadata), so it needs mocking for the same reason the cloud-sync
+// hydrators do: real fetch() fails here. Both halves are swappable:
+// `pushImpl` so a test can prove the reset *aborts* rather than wiping
+// progress when the day log cannot be flushed, and `fetchImpl` so one can
+// return null - "unknown", the state that must never render as a number.
 let pushedDays: number[] | null = null;
+let pushCount = 0;
 let pushImpl: (days: readonly number[]) => Promise<number[] | null> = async (days) => {
   pushedDays = [...days];
   return [...days];
 };
+let fetchImpl: () => Promise<number[] | null> = async () => [];
 vi.mock("@/persistence/streak-days", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/persistence/streak-days")>();
   return {
     ...actual,
-    fetchPreservedStreakDays: () => Promise.resolve([]),
-    pushPreservedStreakDays: (days: readonly number[]) => pushImpl(days),
+    fetchStreakDays: () => fetchImpl(),
+    pushStreakDays: (days: readonly number[]) => {
+      pushCount += 1;
+      return pushImpl(days);
+    },
   };
 });
 
@@ -69,19 +75,23 @@ beforeEach(async () => {
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(),
     examAttemptsByDefinition: new Map(),
-    preservedStreakDays: [],
+    activeDays: [],
+    activeDaysLoaded: false,
   });
   await db.curriculumProgress.clear();
   await db.chapterProgress.clear();
   await db.examAttempts.clear();
   await db.saves.clear();
   await db.deepCheckSessions.clear();
+  await db.activeDays.clear();
   hydrateAllCurriculumProgressImpl = () => Promise.resolve({ ok: true, data: [] });
   pushedDays = null;
+  pushCount = 0;
   pushImpl = async (days) => {
     pushedDays = [...days];
     return [...days];
   };
+  fetchImpl = async () => [];
 });
 
 describe("curriculum progress store", () => {
@@ -488,7 +498,48 @@ describe("resetCourse", () => {
     // which is the entire point of the snapshot.
     expect(useCurriculumProgressStore.getState().rowsBySlug.get(bbSlugs[0])?.lastVisitedAt).toBeNull();
     expect(pushedDays).toContain(localDayIndex(at));
-    expect(useCurriculumProgressStore.getState().preservedStreakDays).toContain(localDayIndex(at));
+    expect(useCurriculumProgressStore.getState().activeDays).toContain(localDayIndex(at));
+  });
+
+  it("leaves the day streak exactly where it was - the reset-inflates-the-streak bug", async () => {
+    // The reported symptom: a 1-day streak became a 4-day streak by resetting.
+    // Reset used to be the only writer of the day log, so its response was the
+    // first time the client saw days it had long since forgotten, and the
+    // number jumped. Now every day is banked as it happens, which leaves reset
+    // with nothing to reveal.
+    const today = localDayIndex(Date.now());
+    for (const day of [today - 3, today - 2, today - 1, today]) {
+      await db.activeDays.put({ day, syncedAt: Date.now() });
+    }
+    await useCurriculumProgressStore.getState().refresh();
+
+    const streak = () => {
+      const state = useCurriculumProgressStore.getState();
+      return computeDayStreak(activityTimestamps(state.inputs()), Date.now(), state.activeDays);
+    };
+    const before = streak();
+    expect(before).toBe(4);
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    expect(streak()).toBe(before);
+  });
+
+  it("keeps the streak when the wiped course held the only live timestamps", async () => {
+    // The same invariant from the other side: the day log carries the run on
+    // its own once the timestamps it used to be inferred from are gone.
+    const today = localDayIndex(Date.now());
+    await seedVisited(bbSlugs[0], Date.now());
+    for (const day of [today - 1, today]) {
+      await db.activeDays.put({ day, syncedAt: Date.now() });
+    }
+    await useCurriculumProgressStore.getState().refresh();
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    const state = useCurriculumProgressStore.getState();
+    expect(state.rowsBySlug.get(bbSlugs[0])?.lastVisitedAt).toBeNull();
+    expect(computeDayStreak(activityTimestamps(state.inputs()), Date.now(), state.activeDays)).toBe(2);
   });
 
   it("snapshots days from BOTH courses, so resetting the second cannot drop the first's", async () => {
@@ -581,6 +632,71 @@ describe("resetCourse", () => {
 
     await useCurriculumProgressStore.getState().resetCourse("building-blocks");
 
-    expect(useCurriculumProgressStore.getState().preservedStreakDays).toContain(19_000);
+    expect(useCurriculumProgressStore.getState().activeDays).toContain(19_000);
+  });
+});
+
+describe("recording active days", () => {
+  const slug = allEntries(getCourse("building-blocks"))[0].slug;
+
+  it("banks today when a chapter is opened", async () => {
+    await useCurriculumProgressStore.getState().markVisited(slug);
+
+    // markVisited fires recordToday without awaiting it, so the day lands on
+    // a later tick than the row does.
+    await vi.waitFor(async () => {
+      expect(await db.activeDays.get(localDayIndex(Date.now()))).toBeDefined();
+    });
+    expect(useCurriculumProgressStore.getState().activeDays).toContain(localDayIndex(Date.now()));
+  });
+
+  it("banks today when an exam is submitted", async () => {
+    await useCurriculumProgressStore.getState().recordExamAttempt(attempt());
+
+    await vi.waitFor(async () => {
+      expect(await db.activeDays.get(localDayIndex(Date.now()))).toBeDefined();
+    });
+  });
+
+  it("does not treat un-completing a chapter as activity", async () => {
+    // Clearing the flag stamps no timestamp, so it has never been a day the
+    // streak recognised. Recording it would invent activity.
+    await useCurriculumProgressStore.getState().setManualComplete(slug, false);
+
+    expect(await db.activeDays.count()).toBe(0);
+  });
+
+  it("spends exactly one Clerk write per day no matter how much happens", async () => {
+    // The economics the whole metadata-not-Postgres trade rests on. Three
+    // activities in one day must not be three writes.
+    await useCurriculumProgressStore.getState().markVisited(slug);
+    await vi.waitFor(() => expect(pushCount).toBe(1));
+
+    await useCurriculumProgressStore.getState().markVisited(slug);
+    await useCurriculumProgressStore.getState().setManualComplete(slug, true);
+    await vi.waitFor(() =>
+      expect(useCurriculumProgressStore.getState().rowsBySlug.get(slug)?.manuallyCompletedAt).not.toBeNull(),
+    );
+
+    expect(pushCount).toBe(1);
+  });
+
+  it("keeps the day locally when the push fails, and flushes it on the next pass", async () => {
+    pushImpl = async () => null;
+    await useCurriculumProgressStore.getState().markVisited(slug);
+    const today = localDayIndex(Date.now());
+    await vi.waitFor(async () => {
+      expect((await db.activeDays.get(today))?.syncedAt).toBeNull();
+    });
+    // Offline or not, the streak still counts the day on this device.
+    expect(useCurriculumProgressStore.getState().activeDays).toContain(today);
+
+    pushImpl = async (days) => {
+      pushedDays = [...days];
+      return [...days];
+    };
+    await useCurriculumProgressStore.getState().refresh();
+
+    expect((await db.activeDays.get(today))?.syncedAt).not.toBeNull();
   });
 });

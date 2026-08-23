@@ -50,9 +50,10 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
   const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
-  // Same union Home applies - the two headers must never disagree about the
-  // streak. See persistence/streak-days.ts.
-  const preservedStreakDays = useCurriculumProgressStore((s) => s.preservedStreakDays);
+  // Same log Home reads - the two headers must never disagree about the
+  // streak. See persistence/active-days.ts.
+  const activeDays = useCurriculumProgressStore((s) => s.activeDays);
+  const activeDaysLoaded = useCurriculumProgressStore((s) => s.activeDaysLoaded);
   const { isSignedIn } = useAuth();
   // null on the server and the hydrating render, so a day streak computed
   // here can never disagree with the first client paint (lib/use-now.ts).
@@ -73,9 +74,12 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
   );
   const summary = useMemo(() => summarizeCourse(course, inputs), [course, inputs]);
   const dayStreak = useMemo(
-    () => computeDayStreak(activityTimestamps(inputs), now ?? 0, preservedStreakDays),
-    [inputs, now, preservedStreakDays],
+    () => computeDayStreak(activityTimestamps(inputs), now ?? 0, activeDays),
+    [inputs, now, activeDays],
   );
+  // Signed out there is no account log to be missing, so a zero streak is a
+  // fact rather than a pending read. Mirrors use-home-data.ts.
+  const streakKnown = activeDaysLoaded || isSignedIn !== true;
 
   // Scoped to this course, so the card names a chapter the page below it
   // actually lists — but resolved by Home's own preference order, not a
@@ -167,7 +171,7 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
         className="relative flex-1 overflow-y-auto"
       >
         <div className={`${LEARNING_PATH_CONTAINER} py-8`}>
-          <CourseHeader course={course} summary={summary} dayStreak={dayStreak} />
+          <CourseHeader course={course} summary={summary} dayStreak={dayStreak} streakKnown={streakKnown} />
 
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-2">

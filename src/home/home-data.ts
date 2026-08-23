@@ -273,13 +273,16 @@ export type HomeStats = {
   checkpointsCompleted: number;
   checkpointsTotal: number;
   /** Consecutive days with recorded activity, ending today or yesterday.
-   *  Derived from the timestamps the app already keeps - see
-   *  computeDayStreak for why it is a floor, not an exact count. */
+   *  Read from db.activeDays, which records each day as it happens. */
   dayStreak: number;
   /** The longest such run anywhere in the recorded history, current run
-   *  included, so it is always >= dayStreak. Same lossy source, one extra
-   *  caveat - see computeLongestStreak. */
+   *  included, so it is always >= dayStreak. */
   longestStreak: number;
+  /** False while the account's day log has not been read successfully - the
+   *  two streak figures above are then a floor of unknown depth rather than
+   *  a count, and the UI shows them as unknown instead. See
+   *  persistence/active-days.ts's ActiveDaysState.loaded. */
+  streakKnown: boolean;
 };
 
 /* No "time spent" metric here, deliberately. Measuring real time on task needs
@@ -300,13 +303,16 @@ export function localDayIndex(ts: number): number {
 
 /** The distinct local days any activity was recorded on. Both streak
  *  functions reduce this same set, so they can never disagree about what
- *  counts as an active day. */
-function activityDays(timestamps: readonly number[], preservedDays: readonly number[] = []): Set<number> {
+ *  counts as an active day.
+ *
+ *  `activeDays` (db.activeDays, banked as each day happens) is the real
+ *  record. The timestamps are unioned in as a courtesy for the window between
+ *  an activity being written and its day being banked, and to cover rows
+ *  written by a build that predates the day log - they are not a source of
+ *  history, because lastVisitedAt is overwritten on every re-visit. */
+function activityDays(timestamps: readonly number[], activeDays: readonly number[] = []): Set<number> {
   const days = new Set(timestamps.filter((t) => t > 0).map(localDayIndex));
-  // Days carried across a progress reset (db.streakDays). A union, not a
-  // replacement: a preserved day may also still be live if only one course
-  // was reset, and Set membership makes that overlap free.
-  for (const day of preservedDays) days.add(day);
+  for (const day of activeDays) days.add(day);
   return days;
 }
 
@@ -314,19 +320,18 @@ function activityDays(timestamps: readonly number[], preservedDays: readonly num
  * Consecutive active days ending today (or yesterday - a streak is not
  * broken until a full day is missed).
  *
- * A known floor rather than an exact count: `curriculumProgress` keeps only
- * the *latest* visit per chapter, so re-reading one chapter across three days
- * leaves a single timestamp behind. Exam submissions add their own dated
- * points, which fills much of that gap in practice. An exact streak needs a
- * per-day activity log, which no table provides yet - deliberately not
- * invented here (see the note in Home's own summary).
+ * Exact, as of the per-day activity log this now reads (db.activeDays). It
+ * used to be a floor, because `curriculumProgress` keeps only the *latest*
+ * visit per chapter - re-reading one chapter across three days left a single
+ * timestamp behind, and the three days it stood for were gone. The log
+ * records a day when it happens instead of trying to infer it afterwards.
  */
 export function computeDayStreak(
   timestamps: readonly number[],
   now: number,
-  preservedDays: readonly number[] = [],
+  activeDays: readonly number[] = [],
 ): number {
-  const days = activityDays(timestamps, preservedDays);
+  const days = activityDays(timestamps, activeDays);
   if (days.size === 0) return 0;
   const today = localDayIndex(now);
 
@@ -345,21 +350,16 @@ export function computeDayStreak(
  * The longest run of consecutive active days on record. Same input set as
  * computeDayStreak, so it always comes out >= the current streak.
  *
- * Carries the same lossiness as the current streak, plus one wrinkle worth
- * knowing: because only the *latest* visit per chapter is stored, re-opening
- * an old chapter moves its date forward and erases the day it originally sat
- * on. So this can shrink after a re-read, which for a "longest ever" figure is
- * a visible oddity rather than a mere undercount. Permanent timestamps
- * (manual completions, exam submissions) are never rewritten and anchor most
- * of the history in practice. Making it monotonic means persisting the maximum
- * - a new table - which is out of scope by choice; the tile's tooltip says
- * what the number is instead of overstating it.
+ * Monotonic now that db.activeDays never forgets a day. It used to be able to
+ * *shrink*: with only the latest visit per chapter stored, re-opening an old
+ * chapter moved its date forward and erased the day it originally sat on -
+ * a visible oddity in a "longest ever" figure rather than a mere undercount.
  */
 export function computeLongestStreak(
   timestamps: readonly number[],
-  preservedDays: readonly number[] = [],
+  activeDays: readonly number[] = [],
 ): number {
-  const days = activityDays(timestamps, preservedDays);
+  const days = activityDays(timestamps, activeDays);
   if (days.size === 0) return 0;
 
   let longest = 0;
@@ -396,7 +396,8 @@ export function activityTimestamps(inputs: ProgressInputs): number[] {
 export function computeStats(
   inputs: ProgressInputs,
   now: number,
-  preservedDays: readonly number[] = [],
+  activeDays: readonly number[] = [],
+  streakKnown = false,
 ): HomeStats {
   const entries = COURSE_IDS.flatMap((courseId) => allEntries(getCourse(courseId)));
   const chapters = entries.filter((e) => e.kind === "chapter");
@@ -413,8 +414,9 @@ export function computeStats(
     chaptersTotal: chapters.length,
     checkpointsCompleted: checkpoints.filter((e) => isComplete(e.slug)).length,
     checkpointsTotal: checkpoints.length,
-    dayStreak: computeDayStreak(timestamps, now, preservedDays),
-    longestStreak: computeLongestStreak(timestamps, preservedDays),
+    dayStreak: computeDayStreak(timestamps, now, activeDays),
+    longestStreak: computeLongestStreak(timestamps, activeDays),
+    streakKnown,
   };
 }
 

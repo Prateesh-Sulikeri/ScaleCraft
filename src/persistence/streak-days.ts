@@ -1,26 +1,42 @@
 /**
- * The day streak's reset-proof storage.
+ * The day streak's durable storage: the account-wide mirror of db.activeDays.
  *
- * The streak is derived, not stored: computeDayStreak (home-data.ts) reduces
+ * The streak used to be *derived* - computeDayStreak (home-data.ts) reduced
  * curriculumProgress/examAttempts timestamps down to a set of local calendar
- * days. That makes a progress reset mathematically fatal to it — wipe the
- * timestamps and the streak is zero, with nothing left to rebuild it from.
- * Clerk's own activity data cannot fill the gap either: `last_active_at` is a
+ * days. That was wrong in two directions at once, because those timestamps
+ * are not a history. `lastVisitedAt` holds one value per chapter and is
+ * overwritten on every re-open, so yesterday's evidence disappears the moment
+ * you read the same chapter again; and a progress reset wipes the lot.
+ *
+ * Worse, the only writer here used to be reset itself. So a reset was the one
+ * operation in the app that could make the streak jump *up* - it pushed, the
+ * server unioned in days from previous resets, and the response revealed days
+ * the UI had long since forgotten. Recording days only at the moment you
+ * destroy them is exactly backwards.
+ *
+ * Now every active day is written as it happens (progress-store's
+ * recordActiveDay -> db.activeDays -> here), which makes the streak a real
+ * counter rather than an inference. Reset preserving the streak stops being a
+ * special case and becomes a consequence: today was already banked before the
+ * reset ran.
+ *
+ * Clerk's own activity data cannot serve as this store: `last_active_at` is a
  * single overwritten timestamp and the session list is periodically pruned,
  * so the Backend API exposes no day-series (the dashboard heatmap is computed
  * from data it never hands back).
  *
- * So reset snapshots the day set into the Clerk user's `publicMetadata`
- * first. That keeps it out of Postgres entirely — no table, no migration, no
- * sync/reconcile pass — which is affordable precisely because the write
- * frequency is near-zero: this is only ever written when someone resets.
+ * Living in the Clerk user's `publicMetadata` keeps it out of Postgres
+ * entirely - no sync/reconcile pass, no last-write-wins - which stays
+ * affordable because the client only pushes on a day it has not banked yet:
+ * at most one write per device per day, and none at all on a day already
+ * confirmed.
  *
  * Days are stored as *local day indices* (localDayIndex, home-data.ts), the
- * same unit the streak functions already reduce to. A bare streak *number*
- * would not work: it cannot tell tomorrow's computation whether today was
- * already counted, so the streak would either double-count or stall for a
- * day. The day set unions cleanly against live timestamps and keeps both the
- * current and the longest streak exact.
+ * same unit the streak functions reduce to. A bare streak *number* would not
+ * work: it cannot tell tomorrow's computation whether today was already
+ * counted, so the streak would either double-count or stall for a day. The
+ * day set unions cleanly and keeps both the current and the longest streak
+ * exact.
  */
 
 /** The `publicMetadata` key everything here reads and writes. */
@@ -110,24 +126,29 @@ export function mergeStreakDays(a: readonly number[], b: readonly number[]): num
 
 /* --- client wrappers ---------------------------------------------------- */
 
-/** Same fire-and-forget posture as cloud-sync.ts: a failure here is "not yet
- *  saved", never an exception the caller has to handle. Returns [] on
- *  failure, which is indistinguishable from "never reset" — correct, since
- *  both mean there is nothing to add to the live timestamps. */
-export async function fetchPreservedStreakDays(): Promise<number[]> {
+/**
+ * `null` means *unknown*, not empty. This used to collapse every failure to
+ * `[]`, which reads as "this account has no history" - so one 401 or dropped
+ * connection silently rendered a lower streak than the truth, with no way for
+ * a caller to tell the difference. The distinction is the whole point: a
+ * caller that cannot reach the server must show "not known yet" rather than a
+ * confidently wrong number.
+ */
+export async function fetchStreakDays(): Promise<number[] | null> {
   try {
     const res = await fetch("/api/streak-days");
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const data = (await res.json()) as { days?: number[] };
     return data.days ?? [];
   } catch {
-    return [];
+    return null;
   }
 }
 
 /** Returns the server's merged set (which may contain days this device has
- *  never seen, from a reset on another device), or null if the push failed. */
-export async function pushPreservedStreakDays(days: readonly number[]): Promise<number[] | null> {
+ *  never seen, from another device), or null if the push failed. Safe to
+ *  retry: the server unions, so a re-sent day is a no-op. */
+export async function pushStreakDays(days: readonly number[]): Promise<number[] | null> {
   try {
     const res = await fetch("/api/streak-days", {
       method: "POST",
