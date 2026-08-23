@@ -1,14 +1,29 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { useAuth } from "@clerk/nextjs";
 import { LearningPath } from "./LearningPath";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { db } from "@/persistence/db";
+import { getCourse } from "@/curriculum";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
   usePathname: () => "/building-blocks",
 }));
+
+// The reset flow pushes a streak snapshot before deleting anything, and real
+// fetch() has no server here. `resetPushImpl` is swappable so one case can
+// prove a failed snapshot is surfaced rather than silently swallowed.
+let resetPushImpl: (days: readonly number[]) => Promise<number[] | null> = async (days) => [...days];
+vi.mock("@/persistence/streak-days", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/persistence/streak-days")>();
+  return {
+    ...actual,
+    fetchStreakDays: () => Promise.resolve([]),
+    pushStreakDays: (days: readonly number[]) => resetPushImpl(days),
+  };
+});
 
 beforeEach(async () => {
   useCurriculumProgressStore.setState({
@@ -174,5 +189,148 @@ describe("LearningPath", () => {
     Object.defineProperty(scrollPane, "scrollTop", { value: 0, configurable: true });
     fireEvent.scroll(scrollPane);
     expect(screen.queryByRole("button", { name: "Scroll to top" })).not.toBeInTheDocument();
+  });
+});
+
+describe("LearningPath reset progress", () => {
+  const course = getCourse("building-blocks");
+  const firstSlug = course.sections[0].chapters[0].slug;
+
+  const openDialog = () => {
+    render(<LearningPath courseId="building-blocks" />);
+    fireEvent.click(screen.getByRole("button", { name: /^reset progress$/i }));
+  };
+
+  const advanceToConfirm = () => {
+    openDialog();
+    fireEvent.click(screen.getByRole("button", { name: /reset anyway/i }));
+  };
+
+  beforeEach(async () => {
+    resetPushImpl = async (days) => [...days];
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: true } as ReturnType<typeof useAuth>);
+    useCurriculumProgressStore.setState({
+      hydrated: true,
+      hydrating: false,
+      validationPassedDefinitionIds: new Set(),
+      rowsBySlug: new Map(),
+      examBestByDefinition: new Map(),
+      activeDays: [],
+      activeDaysLoaded: true,
+    });
+    await db.examBest.clear();
+    await db.activeDays.clear();
+  });
+
+  it("sits with the page controls, next to the collapse toggle", () => {
+    render(<LearningPath courseId="building-blocks" />);
+    const reset = screen.getByRole("button", { name: /^reset progress$/i });
+    const collapse = screen.getByRole("button", { name: /^(collapse|expand) all$/i });
+    // Same control row - if the reset ever drifts into the rail or a card,
+    // this is what catches it.
+    expect(reset.parentElement).toBe(collapse.parentElement);
+  });
+
+  it("is hidden from signed-out visitors, who have no progress to reset", () => {
+    vi.mocked(useAuth).mockReturnValue({ isLoaded: true, isSignedIn: false } as ReturnType<typeof useAuth>);
+    render(<LearningPath courseId="building-blocks" />);
+    expect(screen.queryByRole("button", { name: /^reset progress$/i })).not.toBeInTheDocument();
+  });
+
+  it("does not reset on the first click - it warns first", () => {
+    openDialog();
+    expect(screen.getByText(/cannot be undone/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /reset anyway/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /not now/i })).toBeInTheDocument();
+    // The type-to-confirm gate belongs to the second stage.
+    expect(screen.queryByLabelText(/type reset progress to confirm/i)).not.toBeInTheDocument();
+  });
+
+  it("says the streak is kept before the learner commits", () => {
+    openDialog();
+    expect(screen.getByText(/day streak and longest streak/i)).toBeInTheDocument();
+  });
+
+  it("closes without resetting on 'Not now'", () => {
+    openDialog();
+    fireEvent.click(screen.getByRole("button", { name: /not now/i }));
+    expect(screen.queryByText(/cannot be undone/i)).not.toBeInTheDocument();
+  });
+
+  it("gates the second stage behind typing the phrase", () => {
+    advanceToConfirm();
+    const confirm = screen.getByRole("button", { name: new RegExp(`reset ${course.title}`, "i") });
+    const input = screen.getByLabelText(/type reset progress to confirm/i);
+
+    expect(confirm).toBeDisabled();
+    fireEvent.change(input, { target: { value: "reset" } });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(input, { target: { value: "reset progress" } });
+    expect(confirm).toBeEnabled();
+  });
+
+  it("accepts the phrase regardless of case and surrounding space", () => {
+    advanceToConfirm();
+    fireEvent.change(screen.getByLabelText(/type reset progress to confirm/i), {
+      target: { value: "  Reset Progress  " },
+    });
+    expect(screen.getByRole("button", { name: new RegExp(`reset ${course.title}`, "i") })).toBeEnabled();
+  });
+
+  it("clears progress once confirmed", async () => {
+    await db.curriculumProgress.put({
+      slug: firstSlug,
+      manuallyCompletedAt: Date.now(),
+      lastVisitedAt: Date.now(),
+      dirty: false,
+      syncedAt: null,
+    });
+    await useCurriculumProgressStore.getState().refresh();
+
+    advanceToConfirm();
+    fireEvent.change(screen.getByLabelText(/type reset progress to confirm/i), {
+      target: { value: "reset progress" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`reset ${course.title}`, "i") }));
+
+    await waitFor(() => {
+      expect(useCurriculumProgressStore.getState().rowsBySlug.get(firstSlug)?.manuallyCompletedAt).toBeNull();
+    });
+  });
+
+  it("reports the failure instead of closing when the streak cannot be saved", async () => {
+    // A day banked locally but never acknowledged by the server. That is the
+    // only state a failed push can actually cost anything in: the local table
+    // survives the wipe, but it is cleared on sign-out, so a day that never
+    // reached Clerk dies with this browser.
+    await db.activeDays.put({ day: 20_500, syncedAt: null });
+    resetPushImpl = async () => null;
+
+    advanceToConfirm();
+    fireEvent.change(screen.getByLabelText(/type reset progress to confirm/i), {
+      target: { value: "reset progress" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`reset ${course.title}`, "i") }));
+
+    // Progress is untouched on this path, so saying so is the point - a
+    // silent close would leave the learner unsure what landed.
+    await waitFor(() => expect(screen.getByText("Nothing was reset")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+  });
+
+  it("resets anyway when every day is already banked, since nothing is at risk", async () => {
+    // The complement of the case above, and the common one: recordToday has
+    // already pushed today, so a reset needs no write at all and a dead
+    // network is no reason to block the learner.
+    await db.activeDays.put({ day: 20_500, syncedAt: Date.now() });
+    resetPushImpl = async () => null;
+
+    advanceToConfirm();
+    fireEvent.change(screen.getByLabelText(/type reset progress to confirm/i), {
+      target: { value: "reset progress" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`reset ${course.title}`, "i") }));
+
+    await waitFor(() => expect(screen.queryByText("Nothing was reset")).not.toBeInTheDocument());
   });
 });

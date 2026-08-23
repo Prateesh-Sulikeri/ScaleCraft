@@ -3,27 +3,23 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { useAuth, useClerk } from "@clerk/nextjs";
 import { YourTurnCard } from "./YourTurnCard";
 import type { ChapterDefinition, QuizQuestion } from "@/content/chapters/types";
-import type { ExamAttempt } from "@/persistence/db";
+import type { ExamAttempt, SubmittedExamAttempt } from "@/persistence/db";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/building-blocks/test-chapter/lesson",
 }));
 
 vi.mock("./exam/ExamShell", () => ({
-  ExamShell: (props: { attemptNumber: number; onSubmitted: (a: ExamAttempt) => void; onExit: () => void }) => (
+  ExamShell: (props: { onSubmitted: (a: SubmittedExamAttempt) => void; onExit: () => void }) => (
     <div data-testid="exam-shell">
-      <span data-testid="exam-attempt-number">{props.attemptNumber}</span>
       <button
         data-testid="exam-submit-btn"
         onClick={() =>
           props.onSubmitted({
             chapterDefinitionId: "ch-1",
-            attemptNumber: props.attemptNumber,
             submittedAt: Date.now(),
             score: 100,
             answers: [],
-            dirty: false,
-            syncedAt: null,
           })
         }
       >
@@ -37,7 +33,7 @@ vi.mock("./exam/ExamShell", () => ({
 }));
 
 vi.mock("./exam/ExamResults", () => ({
-  ExamResults: (props: { attempt: ExamAttempt; onReturn: () => void }) => (
+  ExamResults: (props: { attempt: SubmittedExamAttempt; onReturn: () => void }) => (
     <div data-testid="exam-results">
       <span data-testid="exam-results-score">{props.attempt.score}</span>
       <button data-testid="exam-results-return-btn" onClick={props.onReturn}>
@@ -66,13 +62,13 @@ vi.mock("@/app/HeldTransitionLink", () => ({
 }));
 
 const recordExamAttempt = vi.fn().mockResolvedValue(undefined);
-let examAttemptsByDefinition = new Map<string, ExamAttempt[]>();
+let examBestByDefinition = new Map<string, ExamAttempt>();
 let validationPassedDefinitionIds = new Set<string>();
 
 vi.mock("@/curriculum/progress-store", () => ({
   useCurriculumProgressStore: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({
-      examAttemptsByDefinition,
+      examBestByDefinition,
       recordExamAttempt,
       validationPassedDefinitionIds,
     }),
@@ -112,7 +108,7 @@ function makeChapter(overrides: Partial<ChapterDefinition> = {}): ChapterDefinit
 function attempt(overrides: Partial<ExamAttempt> = {}): ExamAttempt {
   return {
     chapterDefinitionId: "ch-1",
-    attemptNumber: 1,
+    totalAttempts: 1,
     submittedAt: Date.now(),
     score: 50,
     answers: [],
@@ -128,7 +124,7 @@ function renderCard(chapter: ChapterDefinition) {
 
 describe("YourTurnCard", () => {
   beforeEach(() => {
-    examAttemptsByDefinition = new Map();
+    examBestByDefinition = new Map();
     validationPassedDefinitionIds = new Set();
     recordExamAttempt.mockClear();
   });
@@ -197,7 +193,7 @@ describe("YourTurnCard", () => {
     });
 
     it("state 2: attempted, not passed -> attempt count + best score + 'Retake the quiz', failed color", () => {
-      examAttemptsByDefinition = new Map([["ch-1", [attempt({ attemptNumber: 1, score: 40 })]]]);
+      examBestByDefinition = new Map([["ch-1", attempt({ totalAttempts: 1, score: 40 })]]);
       renderCard(makeChapter({ quiz: [makeQuestion()] }));
 
       expect(screen.getByText("Attempt 1 · Best score 40%")).toBeInTheDocument();
@@ -206,7 +202,7 @@ describe("YourTurnCard", () => {
     });
 
     it("state 3: passed -> 'Passed · X%' + 'View your result', locked, done color", () => {
-      examAttemptsByDefinition = new Map([["ch-1", [attempt({ attemptNumber: 1, score: 90 })]]]);
+      examBestByDefinition = new Map([["ch-1", attempt({ totalAttempts: 1, score: 90 })]]);
       renderCard(makeChapter({ quiz: [makeQuestion()] }));
 
       expect(screen.getByText("Passed · 90%")).toBeInTheDocument();
@@ -235,20 +231,26 @@ describe("YourTurnCard", () => {
   });
 
   describe("exam lifecycle", () => {
-    it("clicking 'Take the quiz' opens ExamShell at attempt 1", async () => {
+    it("clicking 'Take the quiz' opens ExamShell", async () => {
       renderCard(makeChapter({ quiz: [makeQuestion()] }));
       fireEvent.click(screen.getByRole("button", { name: "Take the quiz" }));
 
       expect(await screen.findByTestId("exam-shell")).toBeInTheDocument();
-      expect(screen.getByTestId("exam-attempt-number")).toHaveTextContent("1");
     });
 
-    it("opens ExamShell at the next attempt number when retaking", async () => {
-      examAttemptsByDefinition = new Map([["ch-1", [attempt({ attemptNumber: 1, score: 40 })]]]);
+    it("opens ExamShell again from 'Retake the quiz' after a failed attempt", async () => {
+      examBestByDefinition = new Map([["ch-1", attempt({ totalAttempts: 1, score: 40 })]]);
       renderCard(makeChapter({ quiz: [makeQuestion()] }));
       fireEvent.click(screen.getByRole("button", { name: "Retake the quiz" }));
 
-      expect(await screen.findByTestId("exam-attempt-number")).toHaveTextContent("2");
+      expect(await screen.findByTestId("exam-shell")).toBeInTheDocument();
+    });
+
+    it("counts every submission, not just the ones that beat the best", () => {
+      examBestByDefinition = new Map([["ch-1", attempt({ totalAttempts: 4, score: 40 })]]);
+      renderCard(makeChapter({ quiz: [makeQuestion()] }));
+
+      expect(screen.getByText("Attempt 4 · Best score 40%")).toBeInTheDocument();
     });
 
     it("submitting the exam records the attempt and shows the results view", async () => {
@@ -272,10 +274,8 @@ describe("YourTurnCard", () => {
       expect(screen.getByRole("button", { name: "Take the quiz" })).toBeInTheDocument();
     });
 
-    it("clicking 'View your result' (locked/passed) shows the best attempt's results directly", async () => {
-      examAttemptsByDefinition = new Map([
-        ["ch-1", [attempt({ attemptNumber: 1, score: 60 }), attempt({ attemptNumber: 2, score: 90 })]],
-      ]);
+    it("clicking 'View your result' (locked/passed) shows the stored best attempt directly", async () => {
+      examBestByDefinition = new Map([["ch-1", attempt({ totalAttempts: 2, score: 90 })]]);
       renderCard(makeChapter({ quiz: [makeQuestion()] }));
       fireEvent.click(screen.getByRole("button", { name: "View your result" }));
 
@@ -284,7 +284,7 @@ describe("YourTurnCard", () => {
     });
 
     it("returning from the results view goes back to the launcher", async () => {
-      examAttemptsByDefinition = new Map([["ch-1", [attempt({ attemptNumber: 1, score: 90 })]]]);
+      examBestByDefinition = new Map([["ch-1", attempt({ totalAttempts: 1, score: 90 })]]);
       renderCard(makeChapter({ quiz: [makeQuestion()] }));
       fireEvent.click(screen.getByRole("button", { name: "View your result" }));
       fireEvent.click(await screen.findByTestId("exam-results-return-btn"));

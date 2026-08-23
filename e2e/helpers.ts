@@ -81,7 +81,10 @@ export async function resetChapterCanvas(page: Page) {
     "clear chapter save",
   );
   await page.goto(`/building-blocks/${CHAPTER_SLUG}`);
-  await expect(page.locator(".react-flow__node")).toHaveCount(CHAPTER_STARTER_NODES);
+  // Component nodes only - the chapter's starterDecorators add zone nodes
+  // that also carry the base .react-flow__node class (React Flow applies it
+  // to every node type), which would otherwise double this count.
+  await expect(page.locator(".react-flow__node-component")).toHaveCount(CHAPTER_STARTER_NODES);
 }
 
 /** Drags a connection from one node's source handle to another's target

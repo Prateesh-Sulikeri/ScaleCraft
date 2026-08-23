@@ -52,6 +52,65 @@ describe("toArchitectureGraph", () => {
   });
 });
 
+describe("loadGraph decorators", () => {
+  it("appends decorator nodes after the mapped component nodes, and toArchitectureGraph still ignores them", () => {
+    const zone: ZoneNodeType = {
+      id: "z1",
+      type: "zone",
+      position: { x: -28, y: -48 },
+      zIndex: -1,
+      data: { label: "Client tier", width: 256, height: 137, color: "#3b82f6", locked: true },
+    };
+    store.getState().loadGraph(
+      {
+        nodes: [{ id: "n1", componentId: "client", position: { x: 0, y: 0 }, config: {} }],
+        edges: [],
+        entryPointIds: [],
+      },
+      [zone],
+    );
+    const state = store.getState();
+
+    expect(state.nodes).toHaveLength(2);
+    expect(state.nodes[0]).toMatchObject({ id: "n1", type: "component" });
+    expect(state.nodes[1]).toMatchObject({ id: "z1", type: "zone" });
+    expect(toArchitectureGraph(state.nodes, state.edges).nodes).toEqual([
+      { id: "n1", componentId: "client", position: { x: 0, y: 0 }, config: {} },
+    ]);
+  });
+
+  it("defaults to no decorators when the second arg is omitted", () => {
+    store.getState().loadGraph({
+      nodes: [{ id: "n1", componentId: "client", position: { x: 0, y: 0 }, config: {} }],
+      edges: [],
+      entryPointIds: [],
+    });
+    expect(store.getState().nodes).toHaveLength(1);
+  });
+});
+
+describe("resetGraph decorators", () => {
+  it("carries decorators through to loadGraph and still wipes undo/redo history", () => {
+    const comment: CommentNodeType = {
+      id: "c1",
+      type: "comment",
+      position: { x: 0, y: 0 },
+      zIndex: -1,
+      data: { text: "All traffic here is HTTPS", width: 220, height: 90, color: "#64748b", locked: true },
+    };
+    store.getState().addNode({ id: "client", defaultConfig: {} } as never, { x: 0, y: 0 });
+    store.getState().resetGraph(
+      { nodes: [{ id: "n1", componentId: "client", position: { x: 0, y: 0 }, config: {} }], edges: [], entryPointIds: [] },
+      [comment],
+    );
+    const state = store.getState();
+
+    expect(state.nodes.map((n) => n.id)).toEqual(["n1", "c1"]);
+    expect(state.past).toEqual([]);
+    expect(state.future).toEqual([]);
+  });
+});
+
 describe("loadCanvasState", () => {
   it("restores nodes and edges verbatim, including zones (unlike loadGraph)", () => {
     const zone: ZoneNodeType = {

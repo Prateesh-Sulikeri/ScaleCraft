@@ -62,7 +62,7 @@ async function countDirtyRows(): Promise<number> {
     db.saves.filter((row) => row.dirty).count(),
     db.chapterProgress.filter((row) => row.dirty).count(),
     db.curriculumProgress.filter((row) => row.dirty).count(),
-    db.examAttempts.filter((row) => row.dirty).count(),
+    db.examBest.filter((row) => row.dirty).count(),
     db.deepCheckSessions.filter((row) => row.dirty).count(),
     db.customComponents.filter((row) => row.dirty).count(),
   ]);
@@ -116,9 +116,25 @@ async function getSync<T>(path: string): Promise<SyncResult<T>> {
 
 // --- saves ---
 
-export async function syncSave(scopeId: string, canvasState: CanvasState): Promise<void> {
+/**
+ * `revision` is the `localRevision` the pushed state came from. On success it
+ * becomes the row's `cloudRevision`, and `dirty` is recomputed rather than
+ * simply cleared: an edit made while the request was in flight has already
+ * bumped `localRevision` past it, and that edit still needs a checkpoint.
+ */
+export async function syncSave(scopeId: string, canvasState: CanvasState, revision?: number): Promise<void> {
   const result = await postSync<{ updatedAt: number }>("/api/sync/saves", { scopeId, canvasState });
-  if (result) await db.saves.update(scopeId, { syncedAt: result.updatedAt, dirty: false });
+  if (!result) return;
+  await db.transaction("rw", db.saves, async () => {
+    const row = await db.saves.get(scopeId);
+    if (!row) return;
+    const cloudRevision = Math.max(row.cloudRevision, revision ?? row.localRevision);
+    await db.saves.update(scopeId, {
+      syncedAt: result.updatedAt,
+      cloudRevision,
+      dirty: row.localRevision > cloudRevision,
+    });
+  });
 }
 
 export function deleteSaveSync(scopeId: string): Promise<void> {
@@ -192,12 +208,12 @@ export function hydrateAllCurriculumProgress(): Promise<SyncResult<CurriculumPro
   ).then((res) => mapSync(res, (data) => data.progress.map(({ updatedAt, ...row }) => ({ ...row, syncedAt: updatedAt, dirty: false }))));
 }
 
-// --- examAttempts ---
+// --- examBest (Postgres: exam_attempts) ---
 
 export async function syncExamAttempt(attempt: ExamAttempt): Promise<void> {
   const result = await postSync<{ updatedAt: number }>("/api/sync/exam-attempts", attempt);
   if (result) {
-    await db.examAttempts.update([attempt.chapterDefinitionId, attempt.attemptNumber], {
+    await db.examBest.update(attempt.chapterDefinitionId, {
       syncedAt: result.updatedAt,
       dirty: false,
     });

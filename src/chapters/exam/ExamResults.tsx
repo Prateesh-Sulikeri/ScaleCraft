@@ -3,13 +3,15 @@ import { X } from "lucide-react";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
 import { EXAM_PASS_THRESHOLD } from "@/curriculum/progress";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import type { ExamAttempt } from "@/persistence/db";
+import type { SubmittedExamAttempt } from "@/persistence/db";
 import { QuizDifficultyDots } from "../quiz/QuizDifficultyDots";
 import { ExamQuestionBody } from "./ExamQuestionBody";
 
 type ExamResultsProps = {
   chapter: ChapterDefinition;
-  attempt: ExamAttempt;
+  /** Either the attempt just submitted or the stored best - both carry the
+   *  score and answers this screen renders. */
+  attempt: SubmittedExamAttempt;
   onReturn: () => void;
 };
 

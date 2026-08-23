@@ -6,6 +6,7 @@ import { chapterRegistry } from "@/content/chapters";
 import {
   buildRecentActivity,
   computeDayStreak,
+  localDayIndex,
   computeLongestStreak,
   computeStats,
   courseProgress,
@@ -29,17 +30,11 @@ function row(slug: string, fields: Partial<CurriculumProgress> = {}): Curriculum
 }
 
 function inputs(rows: CurriculumProgress[] = [], attempts: ExamAttempt[] = []): ProgressInputs {
-  const examAttemptsByDefinition = new Map<string, ExamAttempt[]>();
-  for (const attempt of attempts) {
-    examAttemptsByDefinition.set(attempt.chapterDefinitionId, [
-      ...(examAttemptsByDefinition.get(attempt.chapterDefinitionId) ?? []),
-      attempt,
-    ]);
-  }
+  const examBestByDefinition = new Map(attempts.map((a) => [a.chapterDefinitionId, a]));
   return {
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(rows.map((r) => [r.slug, r])),
-    examAttemptsByDefinition,
+    examBestByDefinition,
   };
 }
 
@@ -114,7 +109,7 @@ describe("resolveContinueTarget", () => {
   it("counts an exam attempt alone as having started", () => {
     const attempt: ExamAttempt = {
       chapterDefinitionId: "some-definition",
-      attemptNumber: 1,
+      totalAttempts: 1,
       submittedAt: 5_000,
       score: 40,
       answers: [],
@@ -276,7 +271,7 @@ describe("computeStats", () => {
     const [entry] = allEntries(getCourse("building-blocks"));
     const attempt: ExamAttempt = {
       chapterDefinitionId: "any-definition",
-      attemptNumber: 1,
+      totalAttempts: 1,
       submittedAt: now - DAY,
       score: 90,
       answers: [],
@@ -347,5 +342,51 @@ describe("modeSplit", () => {
 
   it("gives a single-mode history the whole ring", () => {
     expect(modeSplit([at("sandbox", "a")]).map((s) => s.percent)).toEqual([0, 0, 100]);
+  });
+});
+
+describe("preserved streak days", () => {
+  const DAY_MS = 86_400_000;
+  // Midday, so the local-day conversion can't straddle a boundary in
+  // whatever timezone the suite runs in.
+  const at = (dayIndex: number) => dayIndex * DAY_MS + 12 * 3_600_000;
+
+  it("keeps the streak alive when a reset has wiped every timestamp", () => {
+    const today = localDayIndex(Date.now());
+    const preserved = [today - 2, today - 1, today];
+
+    expect(computeDayStreak([], Date.now())).toBe(0);
+    expect(computeDayStreak([], Date.now(), preserved)).toBe(3);
+  });
+
+  it("lets today's fresh activity extend a preserved run rather than restarting it", () => {
+    const today = localDayIndex(Date.now());
+    // The reset happened yesterday; the learner has just done one chapter.
+    const preserved = [today - 3, today - 2, today - 1];
+
+    expect(computeDayStreak([at(today)], Date.now(), preserved)).toBe(4);
+  });
+
+  it("does not double-count a day that is both preserved and still live", () => {
+    const today = localDayIndex(Date.now());
+    const preserved = [today - 1, today];
+
+    expect(computeDayStreak([at(today), at(today - 1)], Date.now(), preserved)).toBe(2);
+  });
+
+  it("carries the longest streak across a reset too", () => {
+    const today = localDayIndex(Date.now());
+    const preserved = [today - 20, today - 19, today - 18, today - 17, today - 16];
+
+    expect(computeLongestStreak([], preserved)).toBe(5);
+    // Current streak is 0 (the run ended long ago), longest is not.
+    expect(computeDayStreak([], Date.now(), preserved)).toBe(0);
+  });
+
+  it("breaks the streak on a real gap, preserved days included", () => {
+    const today = localDayIndex(Date.now());
+    const preserved = [today - 5, today - 4];
+
+    expect(computeDayStreak([], Date.now(), preserved)).toBe(0);
   });
 });

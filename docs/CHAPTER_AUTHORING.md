@@ -1,19 +1,18 @@
 # Adding a Chapter Manually
 
 How to author a Building Blocks or Real World Extraction chapter by hand,
-touching the files directly, without invoking the `chapter-author` skill's
-Sonnet-draft / Opus-audit process.
+touching the files directly, without invoking the `chapter-author` skill.
 
 **Read this only if you're deliberately skipping the skill.** The skill
-(`.claude/skills/chapter-author/`) exists because a same-session author
-reliably misses a class of bug a cold second reader catches - wrong "Next"
-previews, forward-referenced vocabulary, unpaid-off cold opens. Going
-manual means you are both passes yourself, so the self-checks in this doc
-are not optional extras, they're standing in for the audit pass you're not
-running. Good reasons to go manual: a small structural fix to an already-
-shipped chapter, wiring work that isn't really content authoring, or you
-just want to understand what the skill automates. Prefer `/chapter-author`
-for anything that's actually new curriculum prose.
+(`.claude/skills/chapter-author/`) runs a structured self-check (traps list,
+six-area review) as its last step before handing a draft back for review -
+going manual means you are running that discipline yourself, so the
+self-checks in this doc are not optional extras, they're standing in for
+what the skill would otherwise do automatically. Good reasons to go manual:
+a small structural fix to an already-shipped chapter, wiring work that
+isn't really content authoring, or you just want to understand what the
+skill automates. Prefer `/chapter-author` for anything that's actually new
+curriculum prose.
 
 Every binding rule here is inherited from `CLAUDE.md`'s "Curriculum
 authoring" section - this doc is a file-level checklist, not a second
@@ -97,6 +96,13 @@ source, or the chapter has a sequencing bug, not something to paper over.
   what to notice (§7.2, §20.3). ScaleCraft topology diagrams as real
   graph JSON in the lesson body aren't supported yet - see
   `pending-chapters.md`'s open decision #3 before assuming a shape here.
+  A static diagram is a fallback, not the default: if the topology has a
+  story to step through (a request tracing a path, an algorithm choosing
+  between instances, a failure unfolding over time), a `<Walkthrough>`
+  teaches more per pixel than the same shape shown once with a caption
+  describing what the arrows would have shown if they'd moved - see
+  `.claude/skills/chapter-author/reference/author.md`'s "Diagrams: make
+  them inform, not decorate" section.
 - Callouts use the `> [!NOTE]` GFM-admonition syntax (see any shipped
   chapter's "Think first" prompts).
 - The glossary `<Ref id="...">term</Ref>` inline-popover tag is available
@@ -112,7 +118,7 @@ source, or the chapter has a sequencing bug, not something to paper over.
   Check every proper-noun/numbered-thing you use against
   `curriculumContext.masteredConcepts` for chapters already assumed, not
   your own knowledge of the whole curriculum. Full guidance and worked
-  examples: `.claude/skills/chapter-author/reference/draft.md`'s "Writing
+  examples: `.claude/skills/chapter-author/reference/author.md`'s "Writing
   register" section - read it even when not running the skill, it's the
   most detailed version of this rule.
 - Density (§20.6, the highest-priority style rule): every sentence
@@ -132,7 +138,20 @@ comments - they're the authoritative source, not this list):
   filename's basename.
 - `mode` - `"building-blocks"` or `"real-world-extraction"`.
 - `title` - short display name, distinct from `problemStatement`.
-- `problemStatement` - long-form prose shown in the Question Pane.
+- `problemStatement` - short scenario (2-3 sentences) shown in the Question
+  Pane, not the place for the calibrated ask itself - see `exerciseGoal`.
+- `exerciseGoal` / `successCriteria` - required for any chapter with a
+  `starterGraph` and `hasEditorExercise !== false`. `exerciseGoal` is one or
+  two sentences; `successCriteria` is 2-4 observable, system-level outcomes
+  ("requests reach either server; killing one instance doesn't drop
+  traffic"), not implementation steps. These render in the Design Editor
+  under "Goal" / "You're done when" - CURRICULUM.md §11.2's brief-
+  calibration rule governs both: name the symptom and the goal, never the
+  component/field/edge kind that fixes it (a Config-type chapter, §11.1,
+  may name the component under scrutiny but not the direction or value).
+  Check the text against `availableComponentIds` minus what's already in
+  `starterGraph` - naming one of those components by its display label
+  spoils the exercise (`authoring-invariants.test.ts` gates this).
 - `learningObjectives` - testable statements, not "understand X"; one
   category per objective per §5.2 (Knowledge, Engineering, Practical,
   Interview, Communication - Practical may be omitted only for a
@@ -152,6 +171,13 @@ comments - they're the authoritative source, not this list):
   already satisfying it (hands the exercise over solved -
   `authoring-invariants.test.ts` catches this, but design it right
   rather than relying on the test to bounce you).
+- `starterDecorators` - zones/comments pre-authored onto the starter canvas
+  (CURRICULUM.md §11.6). Zones per architectural tier (client/edge blue,
+  application purple, data emerald, from `ANNOTATION_COLOR_PRESETS`) plus,
+  only when the fix is a genuinely missing node in identifiable empty
+  canvas space, one magenta "Build here" gap zone - skip it for a
+  config/wiring fix on an already-present node. Same brief-calibration rule
+  as `exerciseGoal` applies to zone labels and comment text.
 - `hints` - 2-4, orienting before directional, never the answer itself.
 - `readingLinks` - manual citation URLs into the private textbook only,
   no content coupling.
@@ -243,10 +269,10 @@ would:
 
 ## Verify before calling it done
 
-Because there's no Sonnet-draft/Opus-audit split backing a manual
-chapter, the full CI pipeline is not optional the way `CLAUDE.md`'s
-general "run it on demand" guidance allows for other work - it's the
-only mechanical check this path gets:
+Because there's no skill-driven self-check pass backing a manual chapter,
+the full CI pipeline is not optional the way `CLAUDE.md`'s general "run it
+on demand" guidance allows for other work - it's the only mechanical check
+this path gets:
 
 ```
 npm run typecheck && npm run lint && npm test && npm run build

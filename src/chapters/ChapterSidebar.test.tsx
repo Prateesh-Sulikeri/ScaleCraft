@@ -73,7 +73,7 @@ vi.mock("@/curriculum/progress-store", () => ({
     selector({
       validationPassedDefinitionIds: new Set<string>(),
       rowsBySlug: new Map(),
-      examAttemptsByDefinition: new Map(),
+      examBestByDefinition: new Map(),
     }),
 }));
 

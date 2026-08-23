@@ -26,7 +26,9 @@ test("a learner goes Learning Path -> lesson -> canvas, edits, saves and validat
   await page.waitForURL("**/building-blocks/3-4-load-balancer");
   await expect(page.locator(".react-flow__pane")).toBeVisible();
 
-  const nodes = page.locator(".react-flow__node");
+  // Component nodes only - the chapter's starterDecorators add zone nodes
+  // that also carry the base .react-flow__node class.
+  const nodes = page.locator(".react-flow__node-component");
   await expect(nodes).toHaveCount(CHAPTER_STARTER_NODES);
   await nodes.first().click();
   await page.keyboard.press("Backspace");
@@ -46,7 +48,7 @@ test("a learner goes Learning Path -> lesson -> canvas, edits, saves and validat
 test("autosave persists a design change without a manual save", async ({ page }) => {
   await resetChapterCanvas(page);
 
-  const nodes = page.locator(".react-flow__node");
+  const nodes = page.locator(".react-flow__node-component");
   await nodes.first().click();
   await page.keyboard.press("Backspace");
   await expect(nodes).toHaveCount(CHAPTER_STARTER_NODES - 1);

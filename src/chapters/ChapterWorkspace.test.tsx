@@ -104,6 +104,7 @@ vi.mock("@/app/AppHeader", () => ({
     chapterPassed: boolean;
     saveId: string | null;
     onSave: () => void;
+    onResetToStarter?: () => void;
     saveStatus: string;
     docsPanelOpen: boolean;
     toggleDocsPanel: () => void;
@@ -112,6 +113,11 @@ vi.mock("@/app/AppHeader", () => ({
       <button onClick={props.onValidate} data-testid="validate-btn">
         Validate
       </button>
+      {props.onResetToStarter && (
+        <button onClick={props.onResetToStarter} data-testid="header-reset-btn">
+          Reset to Default
+        </button>
+      )}
       <button onClick={props.onSubmit} data-testid="submit-btn">
         Submit
       </button>
@@ -250,7 +256,7 @@ vi.mock("@/curriculum/progress-store", () => ({
       hydrate: hydrateProgressMock,
       validationPassedDefinitionIds: new Set<string>(),
       rowsBySlug: new Map(),
-      examAttemptsByDefinition: new Map(),
+      examBestByDefinition: new Map(),
       recordValidationPass: recordValidationPassMock,
     }),
 }));
@@ -347,6 +353,9 @@ describe("ChapterWorkspace", () => {
         },
       ],
       edges: [],
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 1,
       dirty: false,
       syncedAt: null,
     });
@@ -356,6 +365,23 @@ describe("ChapterWorkspace", () => {
     // The save has BOTH required components present, unlike the starterGraph
     // (which only has one) — this is what proves the save took priority.
     await waitFor(() => expect(screen.getByText(/2 \/ 2 required components present/)).toBeInTheDocument());
+  });
+
+  it("wires the header's Reset to Default control to handleResetToStarter for a plain (non-tour) chapter", async () => {
+    await renderWorkspace("slug-one");
+    await waitFor(() => expect(screen.getByText(/required components present/)).toBeInTheDocument());
+    expect(screen.getByTestId("node-count")).toHaveTextContent("1");
+
+    fireEvent.click(screen.getByTestId("mutate-canvas-btn"));
+    expect(screen.getByTestId("node-count")).toHaveTextContent("2");
+    fireEvent.click(screen.getByTestId("save-btn"));
+    await waitFor(async () => expect(await db.saves.get(chapterSaveId("ch-1"))).toBeDefined());
+
+    fireEvent.click(screen.getByTestId("header-reset-btn"));
+
+    expect(screen.getByTestId("node-count")).toHaveTextContent("1");
+    expect(screen.getByTestId("undo-btn")).toBeDisabled();
+    await waitFor(async () => expect(await db.saves.get(chapterSaveId("ch-1"))).toBeUndefined());
   });
 
   it("marks the curriculum slug visited on mount", async () => {

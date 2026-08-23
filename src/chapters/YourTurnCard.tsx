@@ -8,7 +8,7 @@ import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { useRequireAuthAction } from "@/auth/useRequireAuthAction";
 import { bestExamScore, examLocked, examPassed, EXAM_PASS_THRESHOLD } from "@/curriculum/progress";
 import type { ChapterDefinition } from "@/content/chapters/types";
-import type { ExamAttempt } from "@/persistence/db";
+import type { SubmittedExamAttempt } from "@/persistence/db";
 
 // Most lesson-page visits never take the exam - keep both out of the
 // route's initial bundle until "Take the quiz" / "View your result" is
@@ -63,14 +63,14 @@ const FAILED_BUTTON = "border-state-error bg-background text-state-error hover:b
  * no "failed" state, only not-yet-done.
  */
 export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) {
-  const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
+  const examBestByDefinition = useCurriculumProgressStore((s) => s.examBestByDefinition);
   const recordExamAttempt = useCurriculumProgressStore((s) => s.recordExamAttempt);
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const { requireAuth, dialog } = useRequireAuthAction();
   const { isSignedIn } = useAuth();
 
   const [view, setView] = useState<null | "exam" | "results">(null);
-  const [viewedAttempt, setViewedAttempt] = useState<ExamAttempt | null>(null);
+  const [viewedAttempt, setViewedAttempt] = useState<SubmittedExamAttempt | null>(null);
 
   const rweGated = chapter.mode === "real-world-extraction" && !validationPassedDefinitionIds.has(chapter.id);
   const hasQuiz = !!chapter.quiz && chapter.quiz.length > 0 && !rweGated;
@@ -78,25 +78,28 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
 
   if (!hasQuiz && !hasExercise) return null;
 
-  const attempts = examAttemptsByDefinition.get(chapter.id) ?? [];
-  const best = bestExamScore(attempts);
-  const passed = examPassed(attempts);
-  const locked = examLocked(attempts);
-  const bestAttempt = attempts.reduce<ExamAttempt | null>((acc, a) => (!acc || a.score > acc.score ? a : acc), null);
-  const nextAttemptNumber = attempts.length + 1;
+  // One stored row per chapter, holding the best attempt and how many have
+  // been taken - a beaten attempt is replaced, not kept (db.ts's ExamAttempt).
+  const bestAttempt = examBestByDefinition.get(chapter.id);
+  const best = bestExamScore(bestAttempt);
+  const passed = examPassed(bestAttempt);
+  const locked = examLocked(bestAttempt);
+  const attemptCount = bestAttempt?.totalAttempts ?? 0;
   const exerciseDone = validationPassedDefinitionIds.has(chapter.id);
 
-  const quizButtonClass = passed ? DONE_BUTTON : attempts.length > 0 ? FAILED_BUTTON : NEUTRAL_BUTTON;
+  const quizButtonClass = passed ? DONE_BUTTON : attemptCount > 0 ? FAILED_BUTTON : NEUTRAL_BUTTON;
   const exerciseButtonClass = exerciseDone ? DONE_BUTTON : NEUTRAL_BUTTON;
 
-  async function handleSubmitted(attempt: ExamAttempt) {
+  async function handleSubmitted(attempt: SubmittedExamAttempt) {
     await recordExamAttempt(attempt);
+    // Shows the attempt just submitted, not the stored best - a learner who
+    // scored worse than last time still needs to see what they scored now.
     setViewedAttempt(attempt);
     setView("results");
   }
 
   function handleViewResult() {
-    setViewedAttempt(bestAttempt);
+    setViewedAttempt(bestAttempt ?? null);
     setView("results");
   }
 
@@ -124,9 +127,9 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
                 {chapter.quiz!.length} question{chapter.quiz!.length === 1 ? "" : "s"} · {EXAM_PASS_THRESHOLD}% to pass
               </p>
 
-              {attempts.length > 0 && (
+              {attemptCount > 0 && (
                 <p className="mt-0.5 text-xs text-foreground/60">
-                  {passed ? `Passed · ${best}%` : `Attempt ${attempts.length} · Best score ${best}%`}
+                  {passed ? `Passed · ${best}%` : `Attempt ${attemptCount} · Best score ${best}%`}
                 </p>
               )}
             </div>
@@ -136,7 +139,7 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
               onClick={() => requireAuth(locked ? handleViewResult : () => setView("exam"))}
               className={`shrink-0 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${quizButtonClass}`}
             >
-              {locked ? "View your result" : attempts.length > 0 ? "Retake the quiz" : "Take the quiz"}
+              {locked ? "View your result" : attemptCount > 0 ? "Retake the quiz" : "Take the quiz"}
             </button>
           </div>
         )}
@@ -175,7 +178,6 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
       {view === "exam" && (
         <ExamShell
           chapter={chapter}
-          attemptNumber={nextAttemptNumber}
           onSubmitted={(attempt) => void handleSubmitted(attempt)}
           onExit={() => setView(null)}
         />

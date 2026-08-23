@@ -13,7 +13,22 @@ describe("getChaptersForMode", () => {
       "bb-1-2-designing-the-system",
       "bb-1-3-defending-the-design",
       "bb-1-4-driving-the-interview",
+      "bb-2-1-from-browser-to-backend",
+      "bb-2-2-where-can-things-go-wrong",
+      "bb-2-3-evolution-of-modern-architectures",
+      "bb-3-1-networking-fundamentals",
+      "bb-3-2-dns",
+      "bb-3-3-reverse-proxy",
       "bb-3-4-load-balancer",
+      "bb-3-5-api-gateway",
+      "bb-3-6-stateless-services",
+      "bb-3-7-sessions-and-state-management",
+      "bb-3-8-horizontal-scaling",
+      "bb-3-9-service-discovery",
+      "bb-3-10-databases",
+      "bb-3-11-sql-vs-nosql",
+      "bb-3-12-replication",
+      "bb-3-13-sharding",
     ]);
   });
 

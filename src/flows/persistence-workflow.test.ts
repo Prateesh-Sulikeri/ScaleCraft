@@ -49,6 +49,9 @@ describe("Persistence workflow — save, load, export, import", () => {
       updatedAt: Date.now(),
       nodes: store.getState().nodes,
       edges: store.getState().edges,
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 1,
       dirty: false,
       syncedAt: null,
     };
@@ -78,6 +81,9 @@ describe("Persistence workflow — save, load, export, import", () => {
       updatedAt: Date.now(),
       nodes: store.getState().nodes,
       edges: store.getState().edges,
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 1,
       dirty: false,
       syncedAt: null,
     };

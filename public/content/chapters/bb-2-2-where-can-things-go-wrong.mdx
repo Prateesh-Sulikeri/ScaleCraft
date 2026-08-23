@@ -1,0 +1,276 @@
+Your phone goes off at 2am: the site is down. You open the dashboards and every
+one of them is green. CPU is normal, the error rate is zero, the database is
+answering in single-digit milliseconds. Nothing is wrong with anything you own,
+and users still cannot load the page, because your DNS provider is having an
+outage and the request never got far enough to become your problem.
+
+2.1 gave you roughly eight places a request stops. Every one is a place it can
+end instead, and several sit outside anything you monitor. "The site is down" is
+the same four words whichever one broke, so the first move in an outage is
+locating the failure on the path, and the first move in designing one is making
+that possible.
+
+> [!NOTE]
+> Think first: a user reports the site is down, and every server you own is
+> healthy. Name three different stops on 2.1's path that would produce exactly
+> that report. Commit to them before reading on.
+
+## Down is a claim about a path
+
+"Down" describes a journey that did not complete, not a machine that stopped. A
+user in Lagos and a user in Toronto reach you through different resolvers and
+different networks. The path is what differs between them, so the path is what
+fails, and "is the site up?" has no single answer until you say up *for whom*.
+
+Below is 2.1's journey again, broken one stop at a time. Same tour rules as
+last chapter: nothing here is on your palette, and every stop is built in its
+own Part 3 chapter.
+
+<Walkthrough
+  title="One path, six ways to end early"
+  description="The same journey as 2.1, stopped at a different point on each step."
+  nodes={[
+    { id: "browser", kind: "component", componentId: "browser" },
+    { id: "dns", kind: "component", componentId: "dns" },
+    { id: "proxy", kind: "component", componentId: "reverse-proxy" },
+    { id: "app", kind: "component", componentId: "app-server" },
+    { id: "db", kind: "component", componentId: "sql-database" },
+  ]}
+  edges={[
+    { id: "e-dns", source: "browser", target: "dns", kind: "control" },
+    { id: "e-edge", source: "browser", target: "proxy", kind: "request-flow" },
+    { id: "e-app", source: "proxy", target: "app", kind: "request-flow" },
+    { id: "e-db", source: "app", target: "db", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "DNS is down, so the name never becomes an address. Nothing is sent, your servers see no traffic at all, and every dashboard you own stays green.",
+      focus: "e-dns",
+    },
+    {
+      caption: "The address resolved, but the connection never opens: a network fault on the way to the edge. The Browser waits out its own timeout, then reports a failure it cannot explain.",
+      highlightNodeIds: ["browser"],
+      highlightEdgeIds: ["e-edge"],
+    },
+    {
+      caption: "The Reverse Proxy is reached and has nothing healthy behind it. This is the first break with a real HTTP status: a fast 502, from a machine that is itself fine.",
+      highlightNodeIds: ["browser", "proxy"],
+      highlightEdgeIds: ["e-edge"],
+    },
+    {
+      caption: "The Application Server is reached and throws. Your logs have the stack trace, your error rate spikes, and the user gets an error page in well under a second.",
+      highlightNodeIds: ["browser", "proxy", "app"],
+      highlightEdgeIds: ["e-edge", "e-app"],
+    },
+    {
+      caption: "The SQL Database is slow rather than dead. The Application Server waits, holding its connection, and so does every hop in front of it. The user sees nothing at all.",
+      highlightNodeIds: ["browser", "proxy", "app", "db"],
+      highlightEdgeIds: ["e-edge", "e-app", "e-db"],
+    },
+    {
+      caption: "The query committed and the response was lost on the way home. The Application Server and SQL Database did the work; the Browser was told nothing, and nothing on this path can tell those two outcomes apart.",
+      highlightNodeIds: ["app", "db"],
+      highlightEdgeIds: ["e-db"],
+    },
+  ]}
+/>
+
+Note: the lit segment on each step is how far the request actually got. Every
+stop past it never learns a request was coming, which is why those stops report
+nothing wrong.
+
+## Errors, hangs, and disagreements
+
+Six break points, and the user only ever experiences three things.
+
+- **It errors.** An answer comes back and the answer is no. Fast, specific, and
+  the cheapest failure there is: the user knows where they stand and nothing is
+  left holding resources.
+- **It hangs.** Nothing comes back for a long time, and then usually still
+  nothing. No information, no resolution, and every hop between the user and
+  the fault holds a connection open for the duration.
+- **It disagrees.** The request completed on one side and failed on the other.
+  The user's phone says the payment failed; your ledger has the row.
+
+They get worse in that order. Where a failure sits on the path largely decides
+which one the user gets.
+
+| Where it breaks | What the user gets | What you see |
+|---|---|---|
+| The user's own network | A hang, for that user alone | Nothing. No request arrives |
+| DNS | A hang, then a browser error, for everyone including first-time visitors | Nothing. Traffic goes quiet |
+| The connection (TCP or TLS) | A hang, then a browser error with no page behind it | A drop in request volume, if you watch for absence |
+| The edge (proxy, load balancer) | A fast error, from a machine that is itself healthy | 5xx at the edge and nothing in your application logs |
+| The app server | A fast error | Exceptions and a spiking error rate: the failure you are best equipped to see |
+| The database | A hang, then a timeout | Slow queries, connections saturating, every hop in front backing up |
+| The response, on the way home | A disagreement | A successful request in your logs, and an angry user |
+
+Read the right-hand column. The two failures users feel worst, their own
+network and a name that will not resolve, are the two you see least, because
+your monitoring starts where traffic arrives. Nothing watching only your
+servers can distinguish "no traffic" from "no traffic because nobody can reach
+us".
+
+## How long until you find out
+
+Every hang above ends the same way: something eventually stops waiting. That
+something is a timeout, and where you set it decides how a slow failure is
+experienced.
+
+**A timeout is not a failure. It is the end of your patience.** When a client
+times out, it has learned that no answer arrived in the time allowed. It has
+not learned that the work did not happen. The request may have been dropped, or
+it may have succeeded with the response lost on the way back, which is the
+third row of the taxonomy above. This is the fact underneath every "did my
+payment go through?" screen you have ever seen, and it has no clean fix, only
+patterns for living with it.
+
+**Timeouts stack, and the budget has to shrink inward.** The browser gives up
+after 30 seconds, your edge gives up on the app server after 10, your app
+server gives up on the database after 2. Invert any pair of those, say a
+30-second database timeout behind a 10-second edge timeout, and the edge
+returns an error to the user while the app server is still waiting on a query
+whose result nobody will read. Wasted work, held connections, and an error the
+system does not know it produced.
+
+**Retries multiply.** Retrying a failed call is the obvious response, and it is
+a large part of why struggling systems fall over instead of degrading. If each
+of three layers makes up to three attempts, one user request becomes up to 27
+database queries, and they arrive precisely when the database is least able to
+serve them. The machinery for doing this safely, from backoff to retry budgets
+to giving up early, is Group G's subject (3.23); what this chapter owes you is
+the shape of the problem it solves.
+
+## How long to wait
+
+Two seconds or ten? Both are defensible, and the costs land on different
+people.
+
+| Choice | Buys | Spends |
+|---|---|---|
+| Shorter timeout | Fast, clear errors; connections released quickly; a struggling dependency gets less pile-up | Requests that were merely slow are abandoned, and if anything retries you pay for the same work twice |
+| Longer timeout | Requests that were only slow still succeed | Users hang instead of being told; every hop in front holds a connection; the window where the outcome is ambiguous is wider |
+
+In 1.3's terms: choose the shorter timeout, accepting that some slow-but-healthy
+requests get thrown away, because an error is something a user can act on and a
+hang is not. That reverses when the work is genuinely long and the user knows
+it. A report that legitimately takes 40 seconds to generate should not be timed
+out at 2; it should not be on the request path at all.
+
+## Partly down
+
+Total failure is the easy case. Most real incidents are partial, and the two
+shapes hide in different places.
+
+- **Some users, all functionality.** A regional network fault, a stale DNS
+  answer, one bad route. Your aggregate error rate barely moves,
+  because users who cannot reach you at all do not generate errors. They
+  generate absence.
+- **All users, some functionality.** One of the several dependencies a page
+  needs is down. Now you choose: an error for the whole page, or the page with
+  a hole in it.
+
+That second choice is design work, not a fallback. A feed that renders without
+its recommendation strip is still a feed; a checkout that renders without the
+price is worse than an error page. Degrade where the missing piece is
+decoration, fail where it is the point, and decide which is which before the
+incident rather than during it.
+
+Scale makes this the normal condition rather than the exception. On one server,
+up and down are the only two states. On a hundred, something is always broken,
+and the honest question stops being "is it up" and becomes "what fraction of
+requests, for which users". Systems that stay usable at that size were designed
+to run with parts of themselves missing, because the alternative is being down
+every day.
+
+## In production
+
+**Meta, October 2021.** A routine configuration change withdrew the network
+routes telling the internet where to find Facebook's own DNS servers. For about
+six hours a name that would not resolve was indistinguishable from a company
+that did not exist, while every machine behind it stayed healthy. The cost they
+had accepted: internal tools resolved through those same names, so the outage
+also removed several of the paths to fixing it. That applies to you the moment
+your on-call login sits behind the same name as your product.
+
+**GitHub, October 2018.** A 43-second network fault between two data centers
+left their databases holding writes on both sides, and reconciling them took
+most of a day. They spent that day degraded rather than dark: most reads
+worked, some writes were disabled, some data was visibly stale. The price is
+that degraded is confusing, and users cannot tell which parts they can trust.
+It applies as soon as two pieces of your system can fail independently, because
+somebody then has to decide in advance which half of the product may
+disappear.
+
+## Common mistakes
+
+- **Reading "the site is down" as a claim about your servers.** It is a claim
+  about a path, from one person's position on it. The first question is "for
+  whom, from where", not "which box".
+- **Monitoring only the stops you own.** Your dashboards begin where traffic
+  arrives, which means the two failures that hurt users most are the two you
+  hear about from users.
+- **Treating a timeout as a failure.** It is an unknown. Code that logs
+  "payment failed" on a timeout is guessing, and some of the time it guesses
+  wrong in the expensive direction.
+- **Retrying at every layer.** Each layer's retry looks locally sensible, and
+  they compose multiplicatively. Decide which single layer is allowed to retry.
+
+## In an interview
+
+Step 6 of the loop (0.4) is bottlenecks and failure, and it usually arrives as
+one question: "what happens if X fails?" It sounds like a trivia check on X. It
+is a test of whether you can trace a consequence outward from a component to a
+user, which is this entire chapter.
+
+Weak answers restate the component ("if the database goes down, the database is
+down"). Strong answers have three parts: what stops working (the blast radius),
+what the user experiences while it happens, and how the system finds out. The
+third part is the one candidates skip, and it is the one that sounds like
+someone who has been on call.
+
+What that sounds like at a senior level: *"If the database stops answering,
+queries hang until the app server's two-second timeout fires, so users get an
+error in two seconds instead of a hang. That is what the short timeout buys.
+The in-flight writes are the ambiguous ones: the client is told it failed and
+some of them committed. Our first signal is connections saturating on the app
+tier, not a user report. The failure I would actually worry about is DNS,
+because nothing in this diagram ever hears about it."*
+
+## Recap
+
+- "Down" is a property of a path, not of a server. Two users on different paths
+  get different answers to "is it up".
+- Every failure reaches the user as an error, a hang, or a disagreement, and
+  they get worse in that order.
+- A timeout tells you no answer arrived. It never tells you whether the work
+  happened.
+- Timeouts shrink inward and retries multiply. Get either backwards and one
+  user request becomes tens of queries at the worst possible moment.
+- The failures your monitoring sees best are the ones nearest your code. The
+  ones users feel worst are the ones furthest from it.
+
+## Your turn
+
+No canvas build this chapter, and no new components on your palette: this is
+2.1's tour walked a second time, not a new set of parts. The exercise is
+prediction. The walkthrough above breaks one stop at a time, and the knowledge
+check asks you to do it yourself, matching failures to what the user actually
+experiences and reasoning about what a timeout does and does not prove. Read
+every explanation, including the ones you get right.
+
+## Next
+
+2.1 traced the path; this chapter broke it at every stop. Along the way, 1.2's
+rule that only the app server reaches the database turned out to be a statement
+about blast radius as well as about structure, 1.3's trade-off reflex decided
+how long to wait, and 0.4's step 6 now has a method behind it instead of a list
+of components to name. The machinery for surviving all of this, from retry
+budgets to idempotency to circuit breakers, is Group G's entire subject (3.23);
+you now have the failures it exists to answer.
+
+One question is left over. Every stop you just learned to distrust is a stop
+somebody chose to add. Nobody drew this shape on day one. It grew, one forced
+move at a time, each move buying something and adding a new thing that can
+fail. 2.3 tells that story from one server forward, which turns out to be the
+same story as why Part 3 is ordered the way it is.

@@ -1,6 +1,16 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ScreenSizeGate } from "./ScreenSizeGate";
+
+const { mockUsePathname, mockUseParams } = vi.hoisted(() => ({
+  mockUsePathname: vi.fn(() => "/sandbox"),
+  mockUseParams: vi.fn(() => ({}) as Record<string, string | string[]>),
+}));
+
+vi.mock("next/navigation", () => ({
+  usePathname: mockUsePathname,
+  useParams: mockUseParams,
+}));
 
 function mockViewport({
   width,
@@ -32,6 +42,8 @@ function mockViewport({
 describe("ScreenSizeGate", () => {
   afterEach(() => {
     Object.defineProperty(window, "innerWidth", { value: 1024, configurable: true });
+    mockUsePathname.mockReturnValue("/sandbox");
+    mockUseParams.mockReturnValue({});
   });
 
   it("renders children through on a desktop-sized, mouse-primary viewport", () => {
@@ -52,7 +64,7 @@ describe("ScreenSizeGate", () => {
       </ScreenSizeGate>,
     );
     expect(screen.queryByText("the real app")).not.toBeInTheDocument();
-    expect(screen.getByText("ScaleCraft needs a larger screen")).toBeInTheDocument();
+    expect(screen.getByText("The Design Editor needs a larger screen")).toBeInTheDocument();
     expect(screen.getByText(/current width: 800px/)).toBeInTheDocument();
     expect(screen.getByText(/minimum: 1024px/)).toBeInTheDocument();
   });
@@ -64,8 +76,39 @@ describe("ScreenSizeGate", () => {
         <p>the real app</p>
       </ScreenSizeGate>,
     );
-    expect(screen.getByText("ScaleCraft needs a larger screen")).toBeInTheDocument();
+    expect(screen.getByText("The Design Editor needs a larger screen")).toBeInTheDocument();
     expect(screen.getByText(/minimum: 768px/)).toBeInTheDocument();
+  });
+
+  it("offers a lesson link plus Learning Path and Home when blocked on a chapter route", () => {
+    mockUsePathname.mockReturnValue("/building-blocks/load-balancing");
+    mockUseParams.mockReturnValue({ chapterSlug: "load-balancing" });
+    mockViewport({ width: 800, coarsePointer: false });
+    render(
+      <ScreenSizeGate>
+        <p>the real app</p>
+      </ScreenSizeGate>,
+    );
+    expect(screen.getByRole("link", { name: /read the lesson instead/i })).toHaveAttribute(
+      "href",
+      "/building-blocks/load-balancing/lesson",
+    );
+    expect(screen.getByRole("link", { name: "Learning Path" })).toHaveAttribute("href", "/building-blocks");
+    expect(screen.getByRole("link", { name: /home/i })).toHaveAttribute("href", "/");
+  });
+
+  it("omits the lesson link but still offers Learning Path and Home on a non-chapter route", () => {
+    mockUsePathname.mockReturnValue("/sandbox");
+    mockUseParams.mockReturnValue({});
+    mockViewport({ width: 800, coarsePointer: false });
+    render(
+      <ScreenSizeGate>
+        <p>the real app</p>
+      </ScreenSizeGate>,
+    );
+    expect(screen.queryByRole("link", { name: /read the lesson instead/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Learning Path" })).toHaveAttribute("href", "/building-blocks");
+    expect(screen.getByRole("link", { name: /home/i })).toHaveAttribute("href", "/");
   });
 
   it("allows a tablet-sized, touch-primary device at/above the tablet minimum", () => {

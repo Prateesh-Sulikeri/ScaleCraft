@@ -319,10 +319,17 @@ test.describe("multi-device sync", () => {
     await a.page.keyboard.press("Backspace");
     await expect(nodes).toHaveCount(3);
 
+    // Manual Save is local-only now (release 7.1.0's save/sync optimization,
+    // pending-save-sync.md - Postgres is a checkpoint, not a write-through
+    // mirror). The header's cloud sync indicator only appears once
+    // `dirtyCount` is recomputed, which nothing does after a plain local
+    // write - so leaving the page is the one deterministic trigger here:
+    // useAutosave's cloudCheckpoint effect pushes unconditionally on unmount.
+    await a.page.getByRole("button", { name: "Save" }).click();
     const push = a.page.waitForResponse(
       (r) => r.url().includes("/api/sync/saves") && r.request().method() === "POST",
     );
-    await a.page.getByRole("button", { name: "Save" }).click();
+    await a.page.getByRole("link", { name: "ScaleCraft", exact: true }).click();
     expect((await push).status(), "device A save push").toBe(200);
 
     const b = await openDevice(browser, "B");
@@ -372,10 +379,17 @@ test.describe("multi-device sync", () => {
 
     await expect(a.page.locator(".react-flow__node")).toHaveCount(6);
 
+    // Manual Save is local-only now (release 7.1.0's save/sync optimization,
+    // pending-save-sync.md - Postgres is a checkpoint, not a write-through
+    // mirror). The header's cloud sync indicator only appears once
+    // `dirtyCount` is recomputed, which nothing does after a plain local
+    // write - so leaving the page is the one deterministic trigger here:
+    // useAutosave's cloudCheckpoint effect pushes unconditionally on unmount.
+    await a.page.getByRole("button", { name: "Save" }).click();
     const push = a.page.waitForResponse(
       (r) => r.url().includes("/api/sync/saves") && r.request().method() === "POST",
     );
-    await a.page.getByRole("button", { name: "Save" }).click();
+    await a.page.getByRole("link", { name: "ScaleCraft", exact: true }).click();
     expect((await push).status(), "device A save push").toBe(200);
 
     const b = await openDevice(browser, "B");

@@ -102,7 +102,17 @@ describe("BoardMenu", () => {
   });
 
   it("restores nodes/edges from the save slot when Restore last save is used", async () => {
-    await db.saves.put({ id: "sandbox-restore", updatedAt: Date.now(), nodes: [aNode], edges: [], dirty: false, syncedAt: null });
+    await db.saves.put({
+      id: "sandbox-restore",
+      updatedAt: Date.now(),
+      nodes: [aNode],
+      edges: [],
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 1,
+      dirty: false,
+      syncedAt: null,
+    });
     const api = renderBoardMenu("sandbox-restore");
 
     fireEvent.click(screen.getByRole("button", { name: "Board" }));
