@@ -598,6 +598,17 @@ Every chapter spec declares:
 - **Evaluation criteria**: which blueprints (§21) and validation rules apply, and
   the posture (prescriptive vs. anti-pattern, §18).
 
+**Brief calibration (how much the brief may give away):** the brief names the
+**symptom and the goal**, never the **component, field, or edge kind** that fixes
+it. Fix chapters ship symptoms (§11.1) - the broken thing is visible, the cause is
+not named. Config chapters may name the component under scrutiny but not the
+direction or target value of the fix. This is the same "deliberately omitted" gap
+above, stated as a checkable rule rather than left to per-chapter judgment.
+Expected deliverables are authored as a short `exerciseGoal` plus a
+`successCriteria` list of observable, system-level outcomes (not implementation
+steps) - not as a restatement of the chapter's learning objectives, which the
+learner has already read in the lesson and which are not repeated in the Editor.
+
 ### 11.3 Hint philosophy (unchanged, non-negotiable)
 
 Hints are a separate, optional layer - never auto-surfaced, never attempt-triggered,
@@ -612,7 +623,11 @@ the answer. Explanations on failure are always shown, unconditionally - a bare
 Follows the ramps in §18: scaffold fades, palette grows, posture opens. Each
 chapter's exercise must be solvable using only taught material, and should be
 *barely* solvable with the newest material - the new block must be load-bearing,
-not optional garnish, or the exercise teaches nothing.
+not optional garnish, or the exercise teaches nothing. The 11.2 brief-calibration
+rule applies uniformly across the ramp: later chapters do not get to hand over more
+than earlier ones just because the scenario reads longer. If a later chapter's
+brief is more revealing than an earlier one's, that is a calibration bug, not a
+deliberate scaffold fade.
 
 ---
 
