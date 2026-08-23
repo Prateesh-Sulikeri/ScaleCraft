@@ -60,8 +60,12 @@ Two positional args, one optional flag:
      see the authoring-invariants test that a starter graph must not already
      pass).
    - `definition` - the remaining `ChapterDefinition` metadata:
-     `problemStatement`, `learningObjectives`, `curriculumContext`,
+     `problemStatement`, `exerciseGoal`, `successCriteria`,
+     `learningObjectives`, `curriculumContext`,
      `availableComponentIds`/`requiredComponentIds`, `validationRuleIds`.
+     For any chapter with a `starterGraph` and `hasEditorExercise !== false`,
+     `exerciseGoal`/`successCriteria` are required, not optional - see
+     CURRICULUM.md §11.2's brief-calibration rule below.
 
    A scoped `draft` or `audit` still requires reading the whole chapter for
    context (a quiz revision that contradicts the lesson is a new bug, not a
@@ -100,11 +104,12 @@ it doesn't relax for this skill).
 component-lists (`availableComponentIds`/`requiredComponentIds`), submit
 validations (`validationRuleIds` and what they actually gate), and diagrams.
 Quiz, hints, and the remaining `ChapterDefinition` metadata (problem
-statement, learning objectives, `curriculumContext`) are **not** in Opus's
-scope right now - Sonnet owns getting those right in `draft` and self-checks
-them there (see the traps list in `reference/draft.md`), so Opus isn't
-re-deriving a full audit from scratch on every pass. This is a standing
-scope restriction until the user says otherwise, not a per-invocation choice.
+statement, `exerciseGoal`/`successCriteria`, learning objectives,
+`curriculumContext`) are **not** in Opus's scope right now - Sonnet owns
+getting those right in `draft` and self-checks them there (see the traps list
+in `reference/draft.md`), so Opus isn't re-deriving a full audit from scratch
+on every pass. This is a standing scope restriction until the user says
+otherwise, not a per-invocation choice.
 
 ## Constants across both modes
 

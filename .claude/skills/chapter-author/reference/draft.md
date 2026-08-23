@@ -182,6 +182,27 @@ not on it sounding complete. Cross-check `availableComponentIds` against
 §16: nothing appears in a palette before its home chapter without a
 declared, narrow, spec-recorded exception.
 
+For any chapter with a real canvas exercise (`starterGraph` present,
+`hasEditorExercise !== false`), also write `exerciseGoal` (one or two
+sentences) and `successCriteria` (2-4 observable, system-level outcomes -
+"requests reach either server; killing one instance doesn't drop traffic",
+not implementation steps). These render in the Design Editor's sidebar under
+"Goal" / "You're done when" - `learningObjectives` does not render there at
+all, so it is not a substitute. Follow CURRICULUM.md §11.2's brief-
+calibration rule: name the symptom and the goal, never the component, field,
+or edge kind that fixes it. A Config-type chapter (§11.1) may name the
+component under scrutiny but not the direction or target value. Before
+finalizing, check `successCriteria`/`exerciseGoal` against
+`availableComponentIds` minus the components already in `starterGraph` - if
+that text names one of those components by its display label, it just
+spoiled the exercise; rephrase around the symptom instead
+(`authoring-invariants.test.ts` gates this, but design it correctly rather
+than relying on the test to bounce you). Keep `problemStatement` to a short
+scenario (2-3 sentences) - it is not the place for the calibrated ask
+either, that's what the new fields are for (§11.2, §20.6 information
+density both apply: a brief that re-narrates the lesson's thesis is a
+density bug, not scene-setting).
+
 ## 3. Definition of done for this pass
 
 - Every touched deliverable meets its own bar above.

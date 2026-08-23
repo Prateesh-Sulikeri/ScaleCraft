@@ -32,9 +32,10 @@ Before writing the prompt, work out:
   {{CHAPTER_ID}}.spec.md` (content-structure), plus only the `blueprints`,
   `availableComponentIds`/`requiredComponentIds`, and `validationRuleIds`
   fields of the `ChapterDefinition` in `src/content/chapters/index.ts` -
-  **not** its `quiz`, `hints`, `problemStatement`, `learningObjectives`, or
-  `curriculumContext` fields, those are out of scope for this pass
-  regardless of the requested scope. If the user's scope is `quiz` or
+  **not** its `quiz`, `hints`, `problemStatement`, `exerciseGoal`,
+  `successCriteria`, `learningObjectives`, or `curriculumContext` fields,
+  those are out of scope for this pass regardless of the requested scope.
+  If the user's scope is `quiz` or
   `hints` specifically, there is nothing in Opus's checklist that applies -
   say so and don't launch the agent (see step 1's precondition in spirit:
   there's no audit to run).
@@ -54,10 +55,10 @@ Before writing the prompt, work out:
   user explicitly asked for an engineering review too; writing or running
   tests, the CI pipeline, or Playwright, full stop; and - standing
   restriction, not scope-dependent - the `quiz` array, `hints` array, and
-  `problemStatement`/`learningObjectives`/`curriculumContext` fields, even
-  on a `full` pass. If the agent notices something off in one of those
-  while reading for context, tell it to record an open note rather than
-  touch it.
+  `problemStatement`/`exerciseGoal`/`successCriteria`/`learningObjectives`/
+  `curriculumContext` fields, even on a `full` pass. If the agent notices
+  something off in one of those while reading for context, tell it to
+  record an open note rather than touch it.
 
 ## 3. Launch the agent
 
@@ -78,9 +79,10 @@ tests, do not run `tsc`/`lint`/`vitest`/`build`, and do not run Playwright -
 none of that is in scope for this pass, on this chapter or any other file.
 Your checklist is six things only: content, content-structure, blueprints,
 component-lists, submit validations, and diagrams. The quiz, hints, and the
-`problemStatement`/`learningObjectives`/`curriculumContext` fields are
-explicitly **not** yours to audit right now, even if you notice something -
-leave them alone and note it instead of fixing it.
+`problemStatement`/`exerciseGoal`/`successCriteria`/`learningObjectives`/
+`curriculumContext` fields are explicitly **not** yours to audit right now,
+even if you notice something - leave them alone and note it instead of
+fixing it.
 
 ## Background
 

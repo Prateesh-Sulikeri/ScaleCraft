@@ -55,7 +55,15 @@ per session-end verification convention. Check off as each lands.
       recorded the 320x160 pitch in `DESIGN.md`'s Node Card section, and appended
       one dated cross-cutting entry to `pending-chapters.md` covering all 13
       touched chapters.
-- [ ] T8. Phase 5 - Update the chapter-author skill to use the new formats going ahead. 
+- [x] T8. Phase 5 - Updated the chapter-author skill for the new format:
+      `SKILL.md`'s `definition` scope now lists `exerciseGoal`/`successCriteria`
+      as required (not optional) whenever a chapter has a real canvas exercise;
+      `draft.md` gets a full authoring paragraph (calibration rule, Config-chapter
+      exception, spoiler self-check, problemStatement stays a short scenario);
+      `audit.md`'s three exclusion lists (Opus's checklist, DO_NOT_TOUCH, the
+      agent prompt template) now name the two new fields alongside
+      `problemStatement`/`learningObjectives` so they stay Sonnet-owned, not
+      silently unclaimed by either pass.
 - [ ] T9. Phase 5 - Make the chapter-author skill less costly in terms of token usage and
       easier to use as it currently fetches a lot of stuff before starting. let's stream line
       this with a brief solution discussion 
