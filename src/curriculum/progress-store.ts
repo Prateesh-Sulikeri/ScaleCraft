@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { chapterSaveId, db, type ChapterProgress, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
+import { chapterSaveId, db, type ChapterProgress, type CurriculumProgress, type ExamAttempt, type SyncMeta } from "@/persistence/db";
 import {
   deleteChapterProgressSync,
   deleteDeepCheckSessionSync,
@@ -20,18 +20,38 @@ import { allEntries, getCourse } from "./index";
 import type { CourseId } from "./types";
 import type { ProgressInputs } from "./progress";
 
-/** Replace-by-attemptNumber — mirrors Dexie's own replace-by-key `put`. */
-function withExamAttempt(
-  map: Map<string, ExamAttempt[]>,
-  attempt: ExamAttempt,
-): Map<string, ExamAttempt[]> {
-  const next = new Map(map);
-  const existing = next.get(attempt.chapterDefinitionId) ?? [];
-  next.set(
-    attempt.chapterDefinitionId,
-    [...existing.filter((a) => a.attemptNumber !== attempt.attemptNumber), attempt],
-  );
-  return next;
+/**
+ * Folds a just-submitted attempt into the chapter's stored row. Only the best
+ * result is kept: a beaten attempt is overwritten outright, and a worse one
+ * leaves the record alone. `totalAttempts` counts every submission either way -
+ * it is the only trace the discarded attempts leave, and what the exam UI's
+ * attempt count reads.
+ *
+ * `submitted` carries no totalAttempts of its own (see buildAttempt); the
+ * count belongs to the chapter, not to one attempt.
+ */
+export function mergeExamAttempt(
+  previous: ExamAttempt | undefined,
+  submitted: Omit<ExamAttempt, "totalAttempts" | keyof SyncMeta>,
+): ExamAttempt {
+  const totalAttempts = (previous?.totalAttempts ?? 0) + 1;
+  // Ties keep the earlier row: an equal score adds nothing, and rewriting it
+  // would move submittedAt off the moment the score was actually reached.
+  const beaten = !previous || submitted.score > previous.score;
+  const best = beaten ? submitted : previous;
+  return {
+    chapterDefinitionId: submitted.chapterDefinitionId,
+    totalAttempts,
+    submittedAt: best.submittedAt,
+    score: best.score,
+    answers: best.answers,
+    dirty: true,
+    syncedAt: previous?.syncedAt ?? null,
+  };
+}
+
+function withExamBest(map: Map<string, ExamAttempt>, row: ExamAttempt): Map<string, ExamAttempt> {
+  return new Map(map).set(row.chapterDefinitionId, row);
 }
 
 /**
@@ -53,7 +73,7 @@ type CurriculumProgressStore = {
   rowsBySlug: Map<string, CurriculumProgress>;
   /** Submitted exam attempts, by chapterDefinitionId — unlimited entries per
    *  chapter until passed, cleared only by resetChapter/resetCourse. */
-  examAttemptsByDefinition: Map<string, ExamAttempt[]>;
+  examBestByDefinition: Map<string, ExamAttempt>;
   /** Every local day index this account has recorded activity on, from
    *  db.activeDays unioned with the Clerk-backed mirror
    *  (persistence/active-days.ts). This *is* the streak's input - Home and
@@ -94,11 +114,13 @@ type CurriculumProgressStore = {
    *  mirrors the existing db.chapterProgress.put into this store's memory
    *  so the sidebar/Learning Path update without a reload. */
   recordValidationPass: (chapterDefinitionId: string) => void;
-  /** Called by QuizLauncher when an exam is submitted. Dexie put +
-   *  in-memory update in the same action, new Map instance (see store-level
-   *  doc comment), replace-by-attemptNumber semantics matching Dexie's own
-   *  replace-by-key `put`. */
-  recordExamAttempt: (attempt: ExamAttempt) => Promise<void>;
+  /** Called when an exam is submitted. Folds the attempt into the chapter's
+   *  single stored row (best score wins, attempts counted) and returns the
+   *  merged row, so the caller can show the result it just produced without
+   *  re-reading the store. */
+  recordExamAttempt: (
+    submitted: Omit<ExamAttempt, "totalAttempts" | keyof SyncMeta>,
+  ) => Promise<ExamAttempt>;
   /** Lets a learner redo a chapter that was already COMPLETED by validation.
    *  Clears the manual flag *and* deletes the underlying db.chapterProgress
    *  row (the validation-pass record itself) — clearing only the manual flag
@@ -144,14 +166,8 @@ async function existingRow(slug: string): Promise<CurriculumProgress> {
   );
 }
 
-function examAttemptKey(row: ExamAttempt): string {
-  return `${row.chapterDefinitionId}:${row.attemptNumber}`;
-}
-
-function buildExamAttemptsMap(attempts: ExamAttempt[]): Map<string, ExamAttempt[]> {
-  let map = new Map<string, ExamAttempt[]>();
-  for (const attempt of attempts) map = withExamAttempt(map, attempt);
-  return map;
+function buildExamBestMap(rows: ExamAttempt[]): Map<string, ExamAttempt> {
+  return new Map(rows.map((row) => [row.chapterDefinitionId, row]));
 }
 
 /**
@@ -173,7 +189,7 @@ async function performHydrate(
   const [localChapterProgress, localCurriculumProgress, localExamAttempts] = await Promise.all([
     db.chapterProgress.toArray(),
     db.curriculumProgress.toArray(),
-    db.examAttempts.toArray(),
+    db.examBest.toArray(),
   ]);
   const [remoteChapterProgress, remoteCurriculumProgress, remoteExamAttempts, remoteStreakDays] = await Promise.all([
     hydrateAllChapterProgress(),
@@ -202,7 +218,7 @@ async function performHydrate(
       hydrating: false,
       validationPassedDefinitionIds: new Set(localChapterProgress.map((r) => r.chapterId)),
       rowsBySlug: new Map(localCurriculumProgress.map((r) => [r.slug, r])),
-      examAttemptsByDefinition: buildExamAttemptsMap(localExamAttempts),
+      examBestByDefinition: buildExamBestMap(localExamAttempts),
       activeDays: mergeStreakDays(state.activeDays, activeDays.days),
       activeDaysLoaded: state.activeDaysLoaded || activeDays.loaded,
     }));
@@ -211,7 +227,7 @@ async function performHydrate(
 
   const chapterProgress = reconcileRows(localChapterProgress, remoteChapterProgress.data, (r) => r.chapterId);
   const curriculumProgress = reconcileRows(localCurriculumProgress, remoteCurriculumProgress.data, (r) => r.slug);
-  const examAttempts = reconcileRows(localExamAttempts, remoteExamAttempts.data, examAttemptKey);
+  const examAttempts = reconcileRows(localExamAttempts, remoteExamAttempts.data, (r) => r.chapterDefinitionId);
 
   const discarded = chapterProgress.discarded + curriculumProgress.discarded + examAttempts.discarded;
   if (discarded > 0) useSyncStatusStore.getState().recordDiscarded(discarded);
@@ -221,7 +237,7 @@ async function performHydrate(
     curriculumProgress.toWrite.length > 0
       ? db.curriculumProgress.bulkPut(curriculumProgress.toWrite)
       : Promise.resolve(),
-    examAttempts.toWrite.length > 0 ? db.examAttempts.bulkPut(examAttempts.toWrite) : Promise.resolve(),
+    examAttempts.toWrite.length > 0 ? db.examBest.bulkPut(examAttempts.toWrite) : Promise.resolve(),
   ]);
 
   set((state) => ({
@@ -229,7 +245,7 @@ async function performHydrate(
     hydrating: false,
     validationPassedDefinitionIds: new Set(chapterProgress.merged.map((r: ChapterProgress) => r.chapterId)),
     rowsBySlug: new Map(curriculumProgress.merged.map((r: CurriculumProgress) => [r.slug, r])),
-    examAttemptsByDefinition: buildExamAttemptsMap(examAttempts.merged),
+    examBestByDefinition: buildExamBestMap(examAttempts.merged),
     activeDays: mergeStreakDays(state.activeDays, activeDays.days),
     activeDaysLoaded: state.activeDaysLoaded || activeDays.loaded,
   }));
@@ -246,7 +262,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
   hydrating: false,
   validationPassedDefinitionIds: new Set(),
   rowsBySlug: new Map(),
-  examAttemptsByDefinition: new Map(),
+  examBestByDefinition: new Map(),
   activeDays: [],
   activeDaysLoaded: false,
 
@@ -326,14 +342,18 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
     }));
   },
 
-  recordExamAttempt: async (attempt) => {
-    await get().hydrate();
-    await db.examAttempts.put(attempt);
-    void syncExamAttempt(attempt);
+  recordExamAttempt: async (submitted) => {
+    // refresh, not hydrate: the row this writes is a full-row overwrite built
+    // from the previous best and its count, so composing it from a stale local
+    // copy would drop a better score earned on another device and undercount
+    // the attempts. Same rule as markVisited.
+    await get().refresh();
+    const row = mergeExamAttempt(await db.examBest.get(submitted.chapterDefinitionId), submitted);
+    await db.examBest.put(row);
+    void syncExamAttempt(row);
     void get().recordToday();
-    set((state) => ({
-      examAttemptsByDefinition: withExamAttempt(state.examAttemptsByDefinition, attempt),
-    }));
+    set((state) => ({ examBestByDefinition: withExamBest(state.examBestByDefinition, row) }));
+    return row;
   },
 
   resetChapter: async (slug, chapterDefinitionId) => {
@@ -348,7 +368,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
       db.curriculumProgress.put(row),
       chapterDefinitionId ? db.chapterProgress.delete(chapterDefinitionId) : Promise.resolve(),
       chapterDefinitionId
-        ? db.examAttempts.where("chapterDefinitionId").equals(chapterDefinitionId).delete()
+        ? db.examBest.where("chapterDefinitionId").equals(chapterDefinitionId).delete()
         : Promise.resolve(),
     ]);
     void syncCurriculumProgress(row);
@@ -359,12 +379,12 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
     set((state) => {
       const validationPassedDefinitionIds = new Set(state.validationPassedDefinitionIds);
       if (chapterDefinitionId) validationPassedDefinitionIds.delete(chapterDefinitionId);
-      const examAttemptsByDefinition = new Map(state.examAttemptsByDefinition);
-      if (chapterDefinitionId) examAttemptsByDefinition.delete(chapterDefinitionId);
+      const examBestByDefinition = new Map(state.examBestByDefinition);
+      if (chapterDefinitionId) examBestByDefinition.delete(chapterDefinitionId);
       return {
         rowsBySlug: new Map(state.rowsBySlug).set(slug, row),
         validationPassedDefinitionIds,
-        examAttemptsByDefinition,
+        examBestByDefinition,
       };
     });
   },
@@ -442,7 +462,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
     await Promise.all([
       db.curriculumProgress.bulkPut(rows),
       db.chapterProgress.bulkDelete(definitionIds),
-      db.examAttempts.where("chapterDefinitionId").anyOf(definitionIds).delete(),
+      db.examBest.where("chapterDefinitionId").anyOf(definitionIds).delete(),
       db.saves.bulkDelete(saveIds),
       db.deepCheckSessions.where("saveId").anyOf(saveIds).delete(),
     ]);
@@ -459,18 +479,18 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
       const nextRows = new Map(state.rowsBySlug);
       for (const row of rows) nextRows.set(row.slug, row);
       const validationPassedDefinitionIds = new Set(state.validationPassedDefinitionIds);
-      const examAttemptsByDefinition = new Map(state.examAttemptsByDefinition);
+      const examBestByDefinition = new Map(state.examBestByDefinition);
       for (const id of definitionIds) {
         validationPassedDefinitionIds.delete(id);
-        examAttemptsByDefinition.delete(id);
+        examBestByDefinition.delete(id);
       }
-      return { rowsBySlug: nextRows, validationPassedDefinitionIds, examAttemptsByDefinition };
+      return { rowsBySlug: nextRows, validationPassedDefinitionIds, examBestByDefinition };
     });
   },
 
   inputs: () => {
-    const { validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition } = get();
-    return { validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition };
+    const { validationPassedDefinitionIds, rowsBySlug, examBestByDefinition } = get();
+    return { validationPassedDefinitionIds, rowsBySlug, examBestByDefinition };
   },
 
   reset: () => {
@@ -479,7 +499,7 @@ export const useCurriculumProgressStore = create<CurriculumProgressStore>((set, 
       hydrating: false,
       validationPassedDefinitionIds: new Set(),
       rowsBySlug: new Map(),
-      examAttemptsByDefinition: new Map(),
+      examBestByDefinition: new Map(),
       activeDays: [],
       activeDaysLoaded: false,
     });

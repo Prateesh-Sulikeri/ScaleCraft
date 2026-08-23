@@ -89,7 +89,7 @@ function makeQuestion(overrides: Partial<QuizQuestion> = {}): QuizQuestion {
 }
 
 beforeEach(() => {
-  useCurriculumProgressStore.setState({ examAttemptsByDefinition: new Map() });
+  useCurriculumProgressStore.setState({ examBestByDefinition: new Map() });
 });
 
 /** Seeds the shared canvas store with component nodes before rendering
@@ -435,8 +435,8 @@ describe("QuestionPane", () => {
     it("shows the note when Submit passed but the chapter's exam isn't passed yet", () => {
       const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" }), makeQuestion({ id: "q2" })] });
       useCurriculumProgressStore.setState({
-        examAttemptsByDefinition: new Map([
-          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 50, answers: [], dirty: false, syncedAt: null }]],
+        examBestByDefinition: new Map([
+          ["ch-1", { chapterDefinitionId: "ch-1", totalAttempts: 1, submittedAt: Date.now(), score: 50, answers: [], dirty: false, syncedAt: null }],
         ]),
       });
       renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: true }) });
@@ -447,8 +447,8 @@ describe("QuestionPane", () => {
     it("omits the note once the exam is passed", () => {
       const chapter = makeChapter({ id: "ch-1", quiz: [makeQuestion({ id: "q1" })] });
       useCurriculumProgressStore.setState({
-        examAttemptsByDefinition: new Map([
-          ["ch-1", [{ chapterDefinitionId: "ch-1", attemptNumber: 1, submittedAt: Date.now(), score: 80, answers: [], dirty: false, syncedAt: null }]],
+        examBestByDefinition: new Map([
+          ["ch-1", { chapterDefinitionId: "ch-1", totalAttempts: 2, submittedAt: Date.now(), score: 80, answers: [], dirty: false, syncedAt: null }],
         ]),
       });
       renderQuestionPane({ chapter, nodes: [], submitOutcome: makeOutcome({ passed: true }) });

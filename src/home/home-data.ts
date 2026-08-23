@@ -69,9 +69,7 @@ export function hasAnyProgress(inputs: ProgressInputs): boolean {
     if (row.lastVisitedAt != null || row.manuallyCompletedAt != null) return true;
   }
   if (inputs.validationPassedDefinitionIds.size > 0) return true;
-  for (const attempts of inputs.examAttemptsByDefinition.values()) {
-    if (attempts.length > 0) return true;
-  }
+  if (inputs.examBestByDefinition.size > 0) return true;
   return false;
 }
 
@@ -387,9 +385,10 @@ export function activityTimestamps(inputs: ProgressInputs): number[] {
     if (row.lastVisitedAt != null) timestamps.push(row.lastVisitedAt);
     if (row.manuallyCompletedAt != null) timestamps.push(row.manuallyCompletedAt);
   }
-  for (const attempts of inputs.examAttemptsByDefinition.values()) {
-    for (const attempt of attempts) timestamps.push(attempt.submittedAt);
-  }
+  // Only the best attempt per chapter survives, so a superseded attempt's day
+  // is not here. It is already banked in db.activeDays (recordToday runs on
+  // every submission), which is what the streak actually reads.
+  for (const best of inputs.examBestByDefinition.values()) timestamps.push(best.submittedAt);
   return timestamps;
 }
 

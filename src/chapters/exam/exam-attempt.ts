@@ -1,5 +1,5 @@
 import type { ChapterDefinition } from "@/content/chapters/types";
-import type { ExamAttempt, ExamQuestionAnswer } from "@/persistence/db";
+import type { ExamQuestionAnswer, SubmittedExamAttempt } from "@/persistence/db";
 import { evaluateAnswer, type QuizAnswer } from "../quiz/evaluate";
 
 /**
@@ -12,8 +12,7 @@ import { evaluateAnswer, type QuizAnswer } from "../quiz/evaluate";
 export function buildAttempt(
   chapter: ChapterDefinition,
   answersByQuestionId: Record<string, QuizAnswer>,
-  attemptNumber: number,
-): ExamAttempt {
+): SubmittedExamAttempt {
   const quiz = chapter.quiz ?? [];
   const answers: ExamQuestionAnswer[] = quiz.map((question) => {
     const answer = answersByQuestionId[question.id] ?? null;
@@ -24,13 +23,5 @@ export function buildAttempt(
   const correctCount = answers.filter((a) => a.correct).length;
   const score = quiz.length === 0 ? 0 : Math.round((correctCount / quiz.length) * 100);
 
-  return {
-    chapterDefinitionId: chapter.id,
-    attemptNumber,
-    submittedAt: Date.now(),
-    score,
-    answers,
-    dirty: true,
-    syncedAt: null,
-  };
+  return { chapterDefinitionId: chapter.id, submittedAt: Date.now(), score, answers };
 }

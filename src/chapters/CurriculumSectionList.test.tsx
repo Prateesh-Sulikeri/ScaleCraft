@@ -22,7 +22,7 @@ function chapter(overrides: Partial<CurriculumChapter> = {}): CurriculumChapter 
 const emptyInputs: ProgressInputs = {
   validationPassedDefinitionIds: new Set(),
   rowsBySlug: new Map(),
-  examAttemptsByDefinition: new Map(),
+  examBestByDefinition: new Map(),
 };
 
 const course: Course = {

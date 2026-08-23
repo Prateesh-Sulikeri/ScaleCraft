@@ -41,7 +41,7 @@ don't).
   for when it actually needs resolving. Check this before assuming a design is final.
 - `.claude/docs/MILESTONES.md` — the sequenced, currently-active roadmap from the
   scaffold to MVP. Check this before picking what to work on next.
-- `.claude/docs/DATABASE.md` — live reference for the Neon/Postgres setup: the
+- `docs/DATABASE.md` — live reference for the Neon/Postgres setup: the
   Vercel Marketplace integration, branch-per-environment split (dev vs.
   preview+prod), pooled vs. unpooled connection strings, the Drizzle client
   and migration workflow, and the schema. Read before touching `src/db/`,
@@ -78,6 +78,13 @@ directory misses which ones are live vs. retired:
   the learning-objectives block prints the answer above the opt-in hints. Read
   before touching any `starterGraph`, `problemStatement`, or `QuestionPane`.
   Audited, nothing implemented yet - Phase 0 lists five open decisions.
+- `.claude/docs/pending-save-sync.md` - the save/sync optimization + best-only
+  exam records (on `fix/db-fixes`, unmerged): Postgres as a 5-minute
+  checkpoint rather than a write-through mirror, `localRevision`/
+  `cloudRevision`/`graphHash` bookkeeping, and `exam_attempts` collapsed to one
+  best row per chapter with an attempt count. Read before touching
+  `src/persistence/`, `useAutosave`, or anything exam-scoring. Its "Before this
+  merges" list names the Postgres migration that still has to be run.
 - `.claude/docs/pending-simulation-engine.md` - early brainstorm for a second,
   post-Validate simulation stage. Not scoped into a release yet.
 - `.claude/docs/pending-polish.md` - retired items consolidated out of other

@@ -214,11 +214,11 @@ describe("LearningPath reset progress", () => {
       hydrating: false,
       validationPassedDefinitionIds: new Set(),
       rowsBySlug: new Map(),
-      examAttemptsByDefinition: new Map(),
+      examBestByDefinition: new Map(),
       activeDays: [],
       activeDaysLoaded: true,
     });
-    await db.examAttempts.clear();
+    await db.examBest.clear();
     await db.activeDays.clear();
   });
 

@@ -62,7 +62,7 @@ export function useHomeData(): HomeData {
   const refresh = useCurriculumProgressStore((s) => s.refresh);
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
-  const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
+  const examBestByDefinition = useCurriculumProgressStore((s) => s.examBestByDefinition);
   // The account's per-day activity log - the streak's actual input, not an
   // inference from timestamps. See persistence/active-days.ts.
   const activeDays = useCurriculumProgressStore((s) => s.activeDays);
@@ -102,8 +102,8 @@ export function useHomeData(): HomeData {
   }, [isSignedIn]);
 
   const inputs: ProgressInputs = useMemo(
-    () => ({ validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition }),
-    [validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition],
+    () => ({ validationPassedDefinitionIds, rowsBySlug, examBestByDefinition }),
+    [validationPassedDefinitionIds, rowsBySlug, examBestByDefinition],
   );
 
   return useMemo(() => {

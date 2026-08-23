@@ -1,5 +1,6 @@
-import Dexie, { type EntityTable, type Table } from "dexie";
+import Dexie, { type EntityTable } from "dexie";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
+import { hashCanvasState } from "./graph-hash";
 import type { CustomComponentRecord } from "@/content/components/custom";
 import type { AiSettings } from "@/ai/settings";
 import type { AiCritique } from "@/ai/schema";
@@ -38,6 +39,14 @@ export type CanvasSave = SyncMeta & {
   updatedAt: number;
   nodes: AnyNodeType[];
   edges: ArchitectureEdgeType[];
+  /** Content hash of the persisted graph (persistence/graph-hash.ts). A write
+   * whose hash matches this is a no-op, so it never becomes a cloud write. */
+  graphHash: string;
+  /** Bumped on every real local change. */
+  localRevision: number;
+  /** The revision the server has acknowledged. `localRevision >
+   * cloudRevision` is the one "needs a push" test - see save-revisions.ts. */
+  cloudRevision: number;
 };
 
 /** Fixed key for now — no multi-slot UI yet, this just avoids a schema
@@ -130,20 +139,31 @@ export type ExamQuestionAnswer = {
   correct: boolean;
 };
 
-/** One row per submitted exam attempt — unlimited per chapter until passed
- * (see curriculum/progress.ts). Keyed by [chapterDefinitionId+attemptNumber]
- * since attempt numbers are only unique within their chapter. Replaces the
- * old per-question `QuizProgress` mastery model (schema v8) — the exam-mode
- * pivot scores a submitted attempt, it doesn't track individual question
- * mastery over time (see .claude/docs/pending-quiz-ui.md addendum). */
+/** One row per chapter, holding that chapter's **best** attempt (schema v13).
+ * Attempts are still unlimited until passed, but a beaten attempt is not kept:
+ * only the best score and the answers that earned it survive, plus a count of
+ * how many attempts have been made. Replaces the old per-question
+ * `QuizProgress` mastery model (schema v8) - the exam-mode pivot scores a
+ * submitted attempt, it doesn't track individual question mastery over time
+ * (see .claude/docs/pending-quiz-ui.md addendum). */
 export type ExamAttempt = SyncMeta & {
   chapterDefinitionId: string;
-  attemptNumber: number;
+  /** How many attempts have been submitted for this chapter, best or not.
+   * The exam UI's attempt count (QUIZ_FRAMEWORK.md §1) reads this - it is the
+   * only trace a superseded attempt leaves. */
+  totalAttempts: number;
+  /** When the *best* attempt was submitted, not the latest one. */
   submittedAt: number;
   /** 0-100, rounded — same convention as ProgressSummary.percent. */
   score: number;
   answers: ExamQuestionAnswer[];
 };
+
+/** What one submitted exam produces, before it is folded into the chapter's
+ * stored row (progress-store.ts's mergeExamAttempt). It has no totalAttempts
+ * of its own - the count belongs to the chapter - and no SyncMeta, which the
+ * merge assigns. */
+export type SubmittedExamAttempt = Omit<ExamAttempt, "totalAttempts" | keyof SyncMeta>;
 
 /**
  * One row per local calendar day the learner did something the app records.
@@ -187,9 +207,12 @@ export class ScaleCraftDB extends Dexie {
   aiActiveProfile!: EntityTable<AiActiveProfile, "id">;
   deepCheckSessions!: EntityTable<DeepCheckSession, "id">;
   curriculumProgress!: EntityTable<CurriculumProgress, "slug">;
-  /** Compound primary key — no single field identifies a row, so this is a
-   * plain Table rather than an EntityTable. */
-  examAttempts!: Table<ExamAttempt, [string, number]>;
+  /** Best attempt per chapter (schema v13, renamed from `examAttempts`).
+   * IndexedDB can't change an existing store's primary key, so moving from
+   * [chapterDefinitionId+attemptNumber] to chapterDefinitionId meant a new
+   * store; the v13 upgrade copies the collapsed rows across so no local-only
+   * result is lost. The Postgres table is still `exam_attempts`. */
+  examBest!: EntityTable<ExamAttempt, "chapterDefinitionId">;
   /** Every local day with recorded activity. Cleared on sign-out and on an
    * account switch like every other table (both go through `db.tables`), but
    * never by a progress reset. */
@@ -388,6 +411,84 @@ export class ScaleCraftDB extends Dexie {
       // `syncedAt` is deliberately not indexed: IndexedDB has no null key, so
       // an index on it would silently exclude exactly the unsynced rows a
       // pending-push query needs. One row per day scans in microseconds.
+      activeDays: "day",
+    });
+    // Save/sync optimization release. Two changes, one version:
+    //
+    // 1. `saves` rows gain graphHash/localRevision/cloudRevision, backfilled
+    //    below. Postgres is now a checkpoint of the latest state rather than a
+    //    write-through of every save, and those fields are the bookkeeping
+    //    (see persistence/save-revisions.ts).
+    // 2. `examBest` replaces `examAttempts`: one row per chapter holding the
+    //    best attempt plus a count, instead of a row per submission. A store's
+    //    primary key can't change in place, so this is a copy into a new store
+    //    (deleted in v14) rather than a key change.
+    this.version(13)
+      .stores({
+        saves: "id",
+        customComponents: "id",
+        chapterProgress: "chapterId",
+        aiProfiles: "id",
+        aiActiveProfile: "id",
+        deepCheckSessions: "++id, saveId, [saveId+createdAt], syncId",
+        curriculumProgress: "slug",
+        examAttempts: "[chapterDefinitionId+attemptNumber], chapterDefinitionId",
+        examBest: "chapterDefinitionId",
+        activeDays: "day",
+      })
+      .upgrade(async (trans) => {
+        const saves = await trans.table("saves").toArray();
+        await Promise.all(
+          saves.map((row) =>
+            trans.table("saves").put({
+              ...row,
+              graphHash: hashCanvasState(row.nodes ?? [], row.edges ?? []),
+              // An unsynced row starts behind the cloud so the first
+              // checkpoint pushes it; a synced one starts level.
+              localRevision: 1,
+              cloudRevision: row.dirty ? 0 : 1,
+            }),
+          ),
+        );
+
+        const attempts = await trans.table("examAttempts").toArray();
+        const bestByChapter = new Map<string, ExamAttempt>();
+        const countByChapter = new Map<string, number>();
+        for (const row of attempts) {
+          const id = row.chapterDefinitionId;
+          countByChapter.set(id, (countByChapter.get(id) ?? 0) + 1);
+          const best = bestByChapter.get(id);
+          // Ties keep the earlier attempt: that is when the score was first
+          // reached, and the later one added nothing.
+          if (!best || row.score > best.score || (row.score === best.score && row.submittedAt < best.submittedAt)) {
+            bestByChapter.set(id, row);
+          }
+        }
+        const collapsed = [...bestByChapter.values()].map((row) => ({
+          chapterDefinitionId: row.chapterDefinitionId,
+          totalAttempts: countByChapter.get(row.chapterDefinitionId) ?? 1,
+          submittedAt: row.submittedAt,
+          score: row.score,
+          answers: row.answers,
+          // Rewritten rows have to re-push: the collapsed shape is not what
+          // the server acknowledged, whatever this row's old flag said.
+          dirty: true,
+          syncedAt: row.syncedAt ?? null,
+        }));
+        if (collapsed.length > 0) await trans.table("examBest").bulkPut(collapsed);
+      });
+    // Drops the copied-from store. Separate version so the v13 upgrade above
+    // can still read it.
+    this.version(14).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt], syncId",
+      curriculumProgress: "slug",
+      examAttempts: null,
+      examBest: "chapterDefinitionId",
       activeDays: "day",
     });
   }

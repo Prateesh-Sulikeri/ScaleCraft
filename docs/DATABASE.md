@@ -155,7 +155,10 @@ flakiness, not a migration problem.
 **Cloud-sync mirrors** (mirror a Dexie table, see `src/persistence/db.ts`,
 `updatedAt` used for last-write-wins conflict resolution across devices):
 `savedGraphs`, `customComponents`, `chapterProgress`, `curriculumProgress`,
-`examAttempts`, `deepCheckSessions`. All keyed by Clerk `userId`. Complex
+`examAttempts` (Dexie `examBest`), `deepCheckSessions`. All keyed by Clerk
+`userId`. Two of them are not plain write-through mirrors: `savedGraphs` is
+checkpointed rather than pushed on every save, and `examAttempts` keeps only
+the best result per chapter - see their sections below. Complex
 nested fields (canvas state, exam answers, AI critiques) are stored as
 `jsonb` rather than normalized. Postgres mirrors only the *current* Dexie
 shape, not its version history - a Dexie schema change needs a matching
@@ -199,15 +202,19 @@ confirm the row exists.
 - *Synced mirrors* (`saved_graphs`, `custom_components`, `chapter_progress`,
   `curriculum_progress`, `exam_attempts`, `deep_check_sessions`). IndexedDB
   (Dexie, `src/persistence/db.ts`) is the primary store. Every user action
-  writes Dexie first with `dirty: true, syncedAt: null`, then fires a
-  fire-and-forget POST at `/api/sync/<table>`. The route upserts and returns
-  its own `updatedAt`; the client writes that back as `syncedAt` and clears
-  `dirty` (`src/persistence/cloud-sync.ts`). A failed push is never an error
-  the user sees: the row stays dirty, the header's sync indicator counts it,
-  and `flushDirtyRows()` retries on the next mount and on every `online`
-  event. Reads come from Dexie; Postgres is pulled on mount and on tab
-  refocus (`RefreshFromCloud`) and merged last-write-wins by `syncedAt`
-  (`src/persistence/reconcile.ts`).
+  writes Dexie first with `dirty: true`, then fires a fire-and-forget POST at
+  `/api/sync/<table>`. The route upserts and returns its own `updatedAt`; the
+  client writes that back as `syncedAt` and clears `dirty`
+  (`src/persistence/cloud-sync.ts`). A failed push is never an error the user
+  sees: the row stays dirty, the header's sync indicator counts it, and
+  `flushDirtyRows()` retries on the next mount, on every `online` event, and
+  when the learner clicks that indicator. Reads come from Dexie; Postgres is
+  pulled on mount and on tab refocus (`RefreshFromCloud`) and merged
+  last-write-wins by `syncedAt` (`src/persistence/reconcile.ts`).
+
+  **`saved_graphs` is the one exception to write-through.** A canvas changes
+  hundreds of times per session, so its cloud copy is a *checkpoint*, not a
+  mirror of every save - see its own section below.
 - *Cloud-only* (`bug_reports`, `bug_report_images`). No Dexie table, no
   reconcile, no dirty flag. The request either succeeds or the user sees the
   failure - `src/bugs/client.ts` throws where the sync layer swallows.
@@ -220,6 +227,14 @@ did not also key by `userId`.
 One row per (user, canvas slot). The slot is `scopeId`: `"sandbox"` or
 `"chapter:<chapterId>"`. Mirrors Dexie `saves`.
 
+**Dexie is immediate local safety; this table is the durable latest
+checkpoint.** Every edit still lands in IndexedDB within
+`AUTOSAVE_DEBOUNCE_MS` (2s), but a cloud write costs a round trip and a save
+row is overwritten anyway, so pushing every save bought nothing. The cloud
+copy is refreshed on a schedule and on the way out instead. There is still
+exactly one row per slot and no history: the recovery point is the latest
+state, not a timeline.
+
 | Column | Type | Notes |
 |---|---|---|
 | `id` | text PK | Derived server-side as `${userId}:${scopeId}`, never trusted from the client |
@@ -228,14 +243,40 @@ One row per (user, canvas slot). The slot is `scopeId`: `"sandbox"` or
 | `canvas_state` | jsonb | Raw `{ nodes, edges }` as the canvas store holds them, not the domain `ArchitectureGraph` (which drops zones/comments/Start markers) |
 | `updated_at` | timestamp | Server clock, the ordering key for last-write-wins |
 
+Revisions are **client-side only** - there is no revision column here. The
+Dexie row carries `localRevision` (bumped on every real change),
+`cloudRevision` (the revision this table has acknowledged), and `graphHash`
+(`src/persistence/graph-hash.ts`). `localRevision > cloudRevision` is the one
+"needs a push" test, and `dirty` is kept equal to it so the existing flush and
+indicator machinery works unchanged. `graphHash` covers ids, types, positions
+(rounded to the pixel), parents, and data minus render-only fields, so
+selecting a node, hovering it, or nudging it half a pixel is not a change: a
+write whose hash matches the stored one is dropped before it can become a
+revision, let alone a cloud write. All of this lives in
+`src/persistence/save-revisions.ts`.
+
 | Operation | User perspective | Technical perspective |
 |---|---|---|
-| Upsert | In the **sandbox**, presses Save (or Ctrl+S), or navigates away from the sandbox page | `saveNow` in `use-autosave.ts` (sandbox keeps `syncOnManualSave: true`), plus the sandbox page's unmount effect. Both call `syncSave` -> `POST /api/sync/saves` -> `onConflictDoUpdate` on `id` |
-| Upsert | In a **chapter**, presses Submit | `ChapterWorkspace.handleSubmit` writes Dexie then `syncSave`. This is the only cloud push a chapter canvas ever gets |
-| *(no write)* | In a chapter, drags nodes, edits, presses Save, or lets autosave fire | Dexie only. Chapters pass `syncOnManualSave: false`, and the debounced autosave never syncs on any surface. An in-progress attempt stays on the device until Submit |
+| Upsert (checkpoint) | Keeps editing the **sandbox**; roughly every 5 minutes their work quietly reaches the cloud | `useAutosave`'s `cloudCheckpoint` interval (`CLOUD_CHECKPOINT_MS`) calls `checkpointSave`, which pushes only when `localRevision > cloudRevision`. An idle or unchanged board costs one IndexedDB read and no network |
+| Upsert (exit) | Leaves the sandbox, hides the tab, or closes it | Same `checkpointSave`, from the hook's unmount cleanup and from `pagehide`/`visibilitychange`. The hook owns the exit write, which is why the sandbox page keeps no unmount-save effect of its own |
+| Upsert | In a **chapter**, presses Submit | `ChapterWorkspace.handleSubmit` -> `saveAndSyncNow`: local write then an unconditional push. Submit never waits for a checkpoint. This is still the only cloud push a chapter canvas ever gets |
+| Upsert | Clicks the header's cloud indicator ("Sync now") | `flushDirtyRows()` pushes every dirty row across all six tables, this one included |
+| *(no write)* | Presses Save or Ctrl+S, in either surface | Dexie only. A manual save is a local act; the checkpoint decides when the cloud hears about it |
+| *(no write)* | In a chapter, drags nodes, edits, or lets autosave fire | Dexie only. Chapters pass `cloudCheckpoint: false`, so an in-progress attempt stays on the device until Submit |
+| *(no write)* | Undoes an edit back to where they started | The graph hash is unchanged, so `putSaveLocal` returns early: no revision bump, no `updated_at` move, nothing to push |
 | Delete | Presses "Start over" on the guided tour pill in a chapter | `deleteSaveSync(chapterSaveId(...))` -> `DELETE ?scopeId=`. Without it a previously submitted attempt would be pulled back on the next reconcile |
 | Delete (bulk) | Resets a whole course from the Learning Path | `resetCourse` deletes the save slot of every chapter in that course. The sandbox slot belongs to no course and is never touched |
-| Select | Opens the sandbox or a chapter's Design Editor | `GET ?scopeId=`, then `reconcileRow` against the local row. Freshest `syncedAt` wins; if the fetch fails, local wins (a failed fetch is never read as "the cloud is empty") |
+| Select | Opens the sandbox or a chapter's Design Editor | `GET ?scopeId=`, then `reconcileRow` against the local row. Freshest `syncedAt` wins; if the fetch fails, local wins (a failed fetch is never read as "the cloud is empty"). A remote win is written back through `adoptRemoteSave`, which stamps the hash and lands both revisions level so the adopted state is not immediately pushed back |
+
+A local edit no longer nulls `syncedAt` (it used to). `syncedAt` is the
+server's clock from the last confirmed sync, and `reconcile.ts` needs it to
+tell a row that is about to push from one that has already been beaten by
+another device's write.
+
+**What is lost if the tab dies:** up to `CLOUD_CHECKPOINT_MS` of sandbox work,
+and any unsubmitted chapter work, on that device only - both are already in
+IndexedDB and push on the next visit. That is the trade the checkpoint model
+makes deliberately.
 
 ### `custom_components`
 
@@ -310,27 +351,50 @@ fields instead.
 
 ### `exam_attempts`
 
-One row per exam submission. Unlimited attempts per chapter until passed,
-against the 80% threshold in `QUIZ_FRAMEWORK.md` §1. Composite PK
-`(user_id, chapter_definition_id, attempt_number)`. Mirrors Dexie
-`examAttempts`.
+One row per **chapter**, holding that chapter's **best** attempt. Attempts are
+still unlimited until passed, against the 80% threshold in
+`QUIZ_FRAMEWORK.md` §1, but a beaten attempt is not kept: the row is
+overwritten by whatever scored higher. Composite PK
+`(user_id, chapter_definition_id)`. Mirrors Dexie `examBest`.
+
+The table name is historical - it holds one best result per chapter, not a
+list of attempts. The Dexie store was renamed (`examAttempts` -> `examBest`)
+because IndexedDB cannot re-key a store in place; renaming the Postgres table
+would have churned the `/api/sync/exam-attempts` route path for nothing.
 
 | Column | Type | Notes |
 |---|---|---|
-| `user_id`, `chapter_definition_id`, `attempt_number` | text/text/int | Composite PK |
-| `submitted_at` | timestamp | When the attempt was submitted |
-| `score` | integer | 0-100, rounded |
-| `answers` | jsonb | `ExamQuestionAnswer[]` (question id, answer, correct) |
+| `user_id`, `chapter_definition_id` | text | Composite PK |
+| `total_attempts` | integer | Submissions so far, best or not. All that survives of a discarded attempt, and what the exam UI's attempt count reads |
+| `submitted_at` | timestamp | When the **best** attempt was submitted, not the latest one |
+| `score` | integer | 0-100, rounded. The best score |
+| `answers` | jsonb | `ExamQuestionAnswer[]` from the attempt that earned that score |
 | `updated_at` | timestamp | Last-write-wins ordering |
 
 | Operation | User perspective | Technical perspective |
 |---|---|---|
-| Insert | Submits a chapter exam (pass or fail) | `progress-store.recordExamAttempt` -> Dexie put -> `syncExamAttempt`. Append-only in practice; the upsert exists only so a retried push is idempotent, never to edit a graded attempt |
-| Delete (bulk) | Resets a chapter, or resets a whole course | `DELETE ?chapterDefinitionId=` wipes every attempt for that chapter, mirroring Dexie's `.where("chapterDefinitionId").equals(id).delete()`. Attempt numbering restarts from scratch |
-| Select | Loads the Learning Path or Home (all attempts), or opens one chapter's exam results | `GET`, optionally filtered by `chapterDefinitionId` |
+| Upsert (new best) | Submits an exam and beats their previous score | `progress-store.recordExamAttempt` refreshes first (the row is a full-row overwrite, same rule as `markVisited`), folds the submission in through `mergeExamAttempt`, then Dexie put -> `syncExamAttempt` |
+| Upsert (count only) | Submits an exam and does **not** beat their previous score | Same path. `total_attempts` goes up; score, `submitted_at` and answers stay put. A tie counts as not beaten - an equal score adds nothing, and rewriting the row would move `submitted_at` off the moment the score was first reached |
+| Delete (bulk) | Resets a chapter, or resets a whole course | `DELETE ?chapterDefinitionId=` removes the chapter's row. The count restarts from zero |
+| Select | Loads the Learning Path or Home, or opens one chapter's exam results | `GET`, optionally filtered by `chapterDefinitionId` |
 
-Nothing here is ever edited after the fact: a submitted attempt's score and
-answers are the permanent record of that attempt.
+**The route's upsert is best-preserving, not last-write-wins** (the only route
+here that is). One slot per chapter means a device pushing a worse best - an
+old attempt flushed late, or one from a device that never saw the better
+score - could otherwise overwrite a better one. `ON CONFLICT` takes
+`greatest()` of the score and the count, and carries `submitted_at`/`answers`
+across only when the incoming score actually wins. The losing client converges
+on its next pull.
+
+The results screen right after a submission shows the attempt just submitted,
+not the stored best: someone who scored worse than last time still needs to see
+what they scored now. "View your result" on a passed chapter shows the stored
+best.
+
+**What this gives up:** attempt-by-attempt history. Score-over-time, "your
+first attempt vs. your last", and per-question improvement are not
+reconstructable from this table, by choice - only the best result and the
+number of tries are kept.
 
 ### `deep_check_sessions`
 

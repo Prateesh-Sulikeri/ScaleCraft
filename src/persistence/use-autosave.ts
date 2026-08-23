@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { db } from "./db";
-import { syncSave } from "./cloud-sync";
+import { checkpointSave, putSaveLocal } from "./save-revisions";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 
 /** Idle time after the last edit before autosave writes. Long enough that a
@@ -22,6 +21,11 @@ const SAVED_RECENT_MS = 1500;
  * path. */
 export const AUTOSAVE_VISIBLE_EVERY = 2;
 
+/** How often a still-unsynced design is checkpointed to Postgres. Long
+ * enough that an editing session costs a handful of cloud writes instead of
+ * one per save, short enough that a dead laptop loses minutes, not hours. */
+export const CLOUD_CHECKPOINT_MS = 5 * 60_000;
+
 /** Resting state is "saved", not hidden - the Save button always renders
  * something. "saving" only appears once a write is actually in flight, never
  * during the debounce wait itself (that's what used to make every keystroke/
@@ -32,14 +36,16 @@ export const AUTOSAVE_VISIBLE_EVERY = 2;
 export type SaveStatus = "saved" | "saving" | "saved-recent" | "error";
 
 export type UseAutosaveOptions = {
-  /** Whether the manual saveNow() path (Save button/Ctrl+S) also pushes to
-   * the cloud, on top of its always-on local Dexie write. Defaults to true.
-   * Chapters pass false - Phase 4.2 (pending-6.1.0-poa.md) decided a
-   * chapter's canvas syncs to the cloud only on Submit, not on every manual
-   * save, so an in-progress attempt stays local-only until submitted (see
-   * 4.3's tradeoff note). Sandbox has no Submit, so manual Save is its sync
-   * trigger and keeps the default. */
-  syncOnManualSave?: boolean;
+  /** Whether this slot keeps a cloud checkpoint: a push every
+   * CLOUD_CHECKPOINT_MS while the local row is ahead of the cloud, plus one
+   * when the editor is left or the tab is hidden. Defaults to false.
+   *
+   * Sandbox passes true - it has no Submit, so a checkpoint is its only
+   * durable cloud copy. Chapters stay false: a chapter's canvas reaches the
+   * cloud on Submit and nowhere else, so an in-progress attempt is local
+   * until submitted. No path here pushes on a manual save; saving is a local
+   * act, and the checkpoint decides when the cloud hears about it. */
+  cloudCheckpoint?: boolean;
 };
 
 export type UseAutosaveResult = {
@@ -63,10 +69,12 @@ export type UseAutosaveResult = {
  * Debounced autosave-on-edit (MILESTONES.md #9's "Done when": autosave works
  * offline for both sandbox and chapter attempts), plus `saveNow` for the
  * explicit Save button/Ctrl+S so both paths drive one shared status instead
- * of two separate indicators. Runs alongside - not instead of - the
- * save-on-unmount cleanup already in ChapterWorkspace/SandboxPage: that
- * still covers in-app navigation, this is what stops closing or refreshing
- * the tab from losing work that was never explicitly saved.
+ * of two separate indicators. Runs alongside - not instead of -
+ * ChapterWorkspace's save-on-unmount cleanup: that still covers in-app
+ * navigation, this is what stops closing or refreshing the tab from losing
+ * work that was never explicitly saved. With `cloudCheckpoint` the hook owns
+ * the exit write itself, so a caller that opts in needs no unmount save of
+ * its own.
  *
  * `saveId: null` disables the effect entirely (e.g. ChapterWorkspace before
  * the open chapter resolves). Callers MUST also pass `null` until their own
@@ -84,7 +92,7 @@ export function useAutosave(
   edges: ArchitectureEdgeType[],
   options?: UseAutosaveOptions,
 ): UseAutosaveResult {
-  const syncOnManualSave = options?.syncOnManualSave ?? true;
+  const cloudCheckpoint = options?.cloudCheckpoint ?? false;
   const [status, setStatus] = useState<SaveStatus>("saved");
   const [lastManualSaveAt, setLastManualSaveAt] = useState<number | null>(null);
   // Bumped on every write attempt. A write's completion only applies if it's
@@ -105,30 +113,14 @@ export function useAutosave(
   const hadErrorRef = useRef(false);
 
   const write = useCallback(
-    async (
-      id: string,
-      nodesToSave: AnyNodeType[],
-      edgesToSave: ArchitectureEdgeType[],
-      visible: boolean,
-      sync: boolean,
-    ) => {
+    async (id: string, nodesToSave: AnyNodeType[], edgesToSave: ArchitectureEdgeType[], visible: boolean) => {
       const generation = ++generationRef.current;
       const shouldShow = visible || hadErrorRef.current;
       if (shouldShow) setStatus("saving");
       try {
-        await db.saves.put({
-          id,
-          updatedAt: Date.now(),
-          nodes: nodesToSave,
-          edges: edgesToSave,
-          dirty: true,
-          syncedAt: null,
-        });
-        // Network push is opt-in per call site (Phase 4.2, pending-6.1.0-poa.md):
-        // the debounced autosave path below never syncs (it's a timer, not a
-        // meaningful event), and saveNow syncs only when the caller wants a
-        // manual save to also be a sync trigger.
-        if (sync) void syncSave(id, { nodes: nodesToSave, edges: edgesToSave });
+        // Local only, always. An unchanged graph is a no-op here rather than a
+        // new revision, so it can never turn into a cloud write either.
+        await putSaveLocal(id, nodesToSave, edgesToSave);
         hadErrorRef.current = false;
         if (generationRef.current !== generation) return;
         if (!shouldShow) return;
@@ -151,19 +143,50 @@ export function useAutosave(
     debounceRef.current = setTimeout(() => {
       autosaveCountRef.current += 1;
       const visible = autosaveCountRef.current % AUTOSAVE_VISIBLE_EVERY === 0;
-      void write(saveId, nodes, edges, visible, false);
+      void write(saveId, nodes, edges, visible);
     }, AUTOSAVE_DEBOUNCE_MS);
     return () => clearTimeout(debounceRef.current);
   }, [saveId, nodes, edges, write]);
 
+  // Latest graph, for the checkpoint paths below - they fire from a timer or
+  // a teardown, neither of which has the current render's props in scope.
+  const latestRef = useRef<{ nodes: AnyNodeType[]; edges: ArchitectureEdgeType[] }>({ nodes, edges });
+  useEffect(() => {
+    latestRef.current = { nodes, edges };
+  }, [nodes, edges]);
+
+  // Cloud checkpoints: on a timer while the local row is ahead of the cloud,
+  // and once on the way out (leaving the editor, hiding or closing the tab).
+  // checkpointSave is a no-op when nothing is ahead, so a quiet board costs
+  // one IndexedDB read every CLOUD_CHECKPOINT_MS and no network at all.
+  useEffect(() => {
+    if (!saveId || !cloudCheckpoint) return;
+    const flush = () => {
+      const { nodes: latestNodes, edges: latestEdges } = latestRef.current;
+      void putSaveLocal(saveId, latestNodes, latestEdges).then(() => checkpointSave(saveId));
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    const interval = setInterval(flush, CLOUD_CHECKPOINT_MS);
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      flush();
+    };
+  }, [saveId, cloudCheckpoint]);
+
   const saveNow = useCallback(async () => {
     if (!saveId) return;
     clearTimeout(debounceRef.current);
-    await write(saveId, nodes, edges, true, syncOnManualSave);
+    await write(saveId, nodes, edges, true);
     // hadErrorRef reflects the write() call just above, synchronously set
     // before it returned - false means that write succeeded.
     if (!hadErrorRef.current) setLastManualSaveAt(Date.now());
-  }, [saveId, nodes, edges, write, syncOnManualSave]);
+  }, [saveId, nodes, edges, write]);
 
   // Derived, not effect-driven: a null saveId means autosave is disabled
   // right now, so callers should treat status as inert (AppHeader hides the

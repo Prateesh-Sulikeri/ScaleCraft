@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { examAttempts } from "@/db/schema";
 import { requireUserId } from "@/db/sync/auth";
@@ -8,7 +8,7 @@ import { examAttemptBodySchema } from "@/db/sync/schemas";
 function serialize(row: typeof examAttempts.$inferSelect) {
   return {
     chapterDefinitionId: row.chapterDefinitionId,
-    attemptNumber: row.attemptNumber,
+    totalAttempts: row.totalAttempts,
     submittedAt: row.submittedAt.getTime(),
     score: row.score,
     answers: row.answers,
@@ -17,10 +17,10 @@ function serialize(row: typeof examAttempts.$inferSelect) {
 }
 
 /**
- * Cloud sync for the Dexie `examAttempts` table. With `?chapterDefinitionId=`,
- * returns every attempt for that chapter (unlimited attempts per chapter).
- * Without it, returns every attempt for the user across all chapters
- * (progress-store's bulk hydrate() on first load).
+ * Cloud sync for the Dexie `examBest` table - one row per chapter, holding
+ * that chapter's best attempt and how many have been taken. With
+ * `?chapterDefinitionId=` it returns that chapter's row; without it, every
+ * chapter's (progress-store's bulk hydrate() on first load).
  */
 
 export async function GET(request: Request) {
@@ -42,8 +42,8 @@ export async function GET(request: Request) {
   return NextResponse.json({ attempts: rows.map(serialize) });
 }
 
-/** Bulk delete — mirrors Dexie's `.where("chapterDefinitionId").equals(id).delete()`
- * in progress-store.ts's resetChapter. */
+/** Deletes a chapter's exam record - one row now, but still keyed only by
+ * chapter, mirroring Dexie's delete in progress-store.ts's resetChapter. */
 export async function DELETE(request: Request) {
   const userId = await requireUserId();
   if (userId instanceof NextResponse) return userId;
@@ -69,17 +69,28 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.message }, { status: 400 });
   }
-  const { chapterDefinitionId, attemptNumber, submittedAt, score, answers } = parsed.data;
+  const { chapterDefinitionId, totalAttempts, submittedAt, score, answers } = parsed.data;
 
   const db = getDb();
   const updatedAt = new Date();
   const submittedAtDate = new Date(submittedAt);
+  // Best-preserving, not last-write-wins: the row is one slot per chapter, so
+  // a device pushing a worse best (an old attempt flushed late, or one from a
+  // device that never saw the better score) must not overwrite a better one.
+  // The count only ever goes up. The client converges on the next pull.
+  const keepIncoming = sql`excluded.score > ${examAttempts.score}`;
   await db
     .insert(examAttempts)
-    .values({ userId, chapterDefinitionId, attemptNumber, submittedAt: submittedAtDate, score, answers, updatedAt })
+    .values({ userId, chapterDefinitionId, totalAttempts, submittedAt: submittedAtDate, score, answers, updatedAt })
     .onConflictDoUpdate({
-      target: [examAttempts.userId, examAttempts.chapterDefinitionId, examAttempts.attemptNumber],
-      set: { submittedAt: submittedAtDate, score, answers, updatedAt },
+      target: [examAttempts.userId, examAttempts.chapterDefinitionId],
+      set: {
+        totalAttempts: sql`greatest(${examAttempts.totalAttempts}, excluded.total_attempts)`,
+        submittedAt: sql`case when ${keepIncoming} then excluded.submitted_at else ${examAttempts.submittedAt} end`,
+        score: sql`greatest(${examAttempts.score}, excluded.score)`,
+        answers: sql`case when ${keepIncoming} then excluded.answers else ${examAttempts.answers} end`,
+        updatedAt,
+      },
     });
 
   return NextResponse.json({ updatedAt: updatedAt.getTime() });

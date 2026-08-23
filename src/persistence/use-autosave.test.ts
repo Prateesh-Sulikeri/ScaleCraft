@@ -104,28 +104,28 @@ describe("useAutosave", () => {
   });
 
   it("flips to 'saving' only once a write is actually in flight, then 'saved-recent', then back to 'saved'", async () => {
-    // A held (not-yet-resolved) put lets the test observe "saving" for a
-    // controlled window instead of racing the real, near-instant
-    // fake-indexeddb write against wall-clock polling.
-    let resolvePut!: () => void;
-    const heldPut = new Promise<string>((resolve) => (resolvePut = () => resolve("save-1")));
-    const putSpy = vi
-      .spyOn(db.saves, "put")
-      .mockImplementationOnce(() => heldPut as ReturnType<typeof db.saves.put>);
+    // A held (not-yet-resolved) local write lets the test observe "saving" for
+    // a controlled window instead of racing the real, near-instant
+    // fake-indexeddb write against wall-clock polling. Held at the
+    // transaction, not at db.saves.put: putSaveLocal reads and writes in one
+    // transaction, and a mocked put inside it commits the transaction early.
+    let resolveWrite!: () => void;
+    const heldWrite = new Promise<void>((resolve) => (resolveWrite = resolve));
+    const txSpy = vi.spyOn(db, "transaction").mockImplementationOnce((() => heldWrite) as never);
 
     const { result } = renderHook(() => useAutosave("save-1", [nodeA], edges));
     const savePromise = result.current.saveNow();
 
     await waitFor(() => expect(result.current.status).toBe("saving"));
     await act(async () => {
-      resolvePut();
+      resolveWrite();
       await savePromise;
     });
     expect(result.current.status).toBe("saved-recent");
     // SAVED_RECENT_MS (1500ms) exceeds waitFor's default 1000ms timeout.
     await waitFor(() => expect(result.current.status).toBe("saved"), { timeout: 2000 });
 
-    putSpy.mockRestore();
+    txSpy.mockRestore();
   });
 
   it("does not write anything when saveId is null, and reports 'saved' rather than a hidden/idle state", () => {
@@ -235,17 +235,23 @@ describe("useAutosave", () => {
     });
   });
 
-  // Phase 4.2, pending-6.1.0-poa.md: the debounced path never pushes to the
-  // cloud (only saveNow can, and only when the caller opts in) - a timer
-  // firing is never a "meaningful event."
-  describe("cloud sync gating (Phase 4.2)", () => {
+  // Cloud writes are checkpoints, not write-through. No save path - debounced
+  // or manual - pushes on its own; a slot that opts into `cloudCheckpoint`
+  // pushes on a timer and on the way out, and only when the local row is
+  // actually ahead of the cloud.
+  describe("cloud checkpoints", () => {
     afterEach(() => {
       vi.unstubAllGlobals();
     });
 
-    it("never pushes to the cloud on a debounced autosave", async () => {
+    function stubFetch() {
       const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ updatedAt: 1 }), { status: 200 }));
       vi.stubGlobal("fetch", fetchMock);
+      return fetchMock;
+    }
+
+    it("never pushes to the cloud on a debounced autosave", async () => {
+      const fetchMock = stubFetch();
       renderHook(() => useAutosave("save-1", [nodeA], edges));
 
       await wait(AUTOSAVE_DEBOUNCE_MS + 200);
@@ -253,25 +259,55 @@ describe("useAutosave", () => {
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it("pushes to the cloud on saveNow by default", async () => {
-      const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ updatedAt: 1 }), { status: 200 }));
-      vi.stubGlobal("fetch", fetchMock);
-      const { result } = renderHook(() => useAutosave("save-1", [nodeA], edges));
-
-      await result.current.saveNow();
-      expect(fetchMock).toHaveBeenCalledWith("/api/sync/saves", expect.objectContaining({ method: "POST" }));
-    });
-
-    it("does not push to the cloud on saveNow when syncOnManualSave is false", async () => {
-      const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ updatedAt: 1 }), { status: 200 }));
-      vi.stubGlobal("fetch", fetchMock);
-      const { result } = renderHook(() =>
-        useAutosave("save-1", [nodeA], edges, { syncOnManualSave: false }),
-      );
+    it("never pushes to the cloud on a manual save, checkpointing or not", async () => {
+      const fetchMock = stubFetch();
+      const { result } = renderHook(() => useAutosave("save-1", [nodeA], edges, { cloudCheckpoint: true }));
 
       await result.current.saveNow();
       expect(await db.saves.get("save-1")).toBeDefined();
       expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("pushes on the way out when the slot checkpoints and the local row is ahead", async () => {
+      const fetchMock = stubFetch();
+      const { result, unmount } = renderHook(() =>
+        useAutosave("save-1", [nodeA], edges, { cloudCheckpoint: true }),
+      );
+
+      await result.current.saveNow();
+      unmount();
+
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith("/api/sync/saves", expect.objectContaining({ method: "POST" })),
+      );
+    });
+
+    it("does not push on the way out without cloudCheckpoint - that slot syncs elsewhere", async () => {
+      const fetchMock = stubFetch();
+      const { result, unmount } = renderHook(() => useAutosave("save-1", [nodeA], edges));
+
+      await result.current.saveNow();
+      unmount();
+
+      await wait(200);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("skips the push when the graph has not changed since the last checkpoint", async () => {
+      const fetchMock = stubFetch();
+      const first = renderHook(() => useAutosave("save-1", [nodeA], edges, { cloudCheckpoint: true }));
+      await first.result.current.saveNow();
+      first.unmount();
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+      // Same graph, so the exit write is a no-op and the row is level with the
+      // cloud - nothing to send.
+      const second = renderHook(() => useAutosave("save-1", [nodeA], edges, { cloudCheckpoint: true }));
+      await second.result.current.saveNow();
+      second.unmount();
+
+      await wait(300);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
   });
 });

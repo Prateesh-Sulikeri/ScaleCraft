@@ -11,24 +11,26 @@ export type ProgressInputs = {
   validationPassedDefinitionIds: ReadonlySet<string>;
   /** Curriculum rows by slug (db.curriculumProgress). */
   rowsBySlug: ReadonlyMap<string, CurriculumProgress>;
-  /** Submitted exam attempts, by chapterDefinitionId (db.examAttempts). */
-  examAttemptsByDefinition: ReadonlyMap<string, readonly ExamAttempt[]>;
+  /** Best exam attempt per chapter (db.examBest). One row per chapter, not a
+   *  history: a beaten attempt is replaced, not appended. */
+  examBestByDefinition: ReadonlyMap<string, ExamAttempt>;
 };
 
 export const EXAM_PASS_THRESHOLD = 80;
 
-/** 0 for a chapter with no attempts yet. */
-export function bestExamScore(attempts: readonly ExamAttempt[]): number {
-  return attempts.reduce((best, a) => Math.max(best, a.score), 0);
+/** 0 for a chapter with no attempts yet. The stored row is already the best
+ * attempt, so this is a read, not a reduction. */
+export function bestExamScore(best: ExamAttempt | undefined): number {
+  return best?.score ?? 0;
 }
 
-export function examPassed(attempts: readonly ExamAttempt[]): boolean {
-  return bestExamScore(attempts) >= EXAM_PASS_THRESHOLD;
+export function examPassed(best: ExamAttempt | undefined): boolean {
+  return bestExamScore(best) >= EXAM_PASS_THRESHOLD;
 }
 
 /** Unlimited retries — passing is the only thing that locks the exam. */
-export function examLocked(attempts: readonly ExamAttempt[]): boolean {
-  return examPassed(attempts);
+export function examLocked(best: ExamAttempt | undefined): boolean {
+  return examPassed(best);
 }
 
 /** COMPLETED wins over IN_PROGRESS wins over NOT_STARTED. A manual override
@@ -55,8 +57,7 @@ export function deriveStatus(entry: CurriculumChapter, inputs: ProgressInputs): 
       const quiz = definition?.quiz;
       const hasQuiz = !!quiz && quiz.length > 0;
       if (hasQuiz) {
-        const attempts = inputs.examAttemptsByDefinition.get(entry.chapterDefinitionId) ?? [];
-        if (examPassed(attempts)) return "COMPLETED";
+        if (examPassed(inputs.examBestByDefinition.get(entry.chapterDefinitionId))) return "COMPLETED";
       } else if (!noEditorExercise) {
         return "COMPLETED";
       }

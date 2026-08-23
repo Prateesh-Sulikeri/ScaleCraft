@@ -133,10 +133,10 @@ describe("persistence db", () => {
     expect(restored).toEqual(updated);
   });
 
-  it("round-trips an examAttempts record through IndexedDB keyed by the compound primary key (schema v9)", async () => {
+  it("round-trips an examBest record keyed by chapterDefinitionId, one row per chapter (schema v13)", async () => {
     const attempt: ExamAttempt = {
       chapterDefinitionId: "bb-dummy-1",
-      attemptNumber: 1,
+      totalAttempts: 3,
       submittedAt: Date.now(),
       score: 100,
       answers: [{ questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true }],
@@ -144,12 +144,14 @@ describe("persistence db", () => {
       syncedAt: null,
     };
 
-    await db.examAttempts.put(attempt);
-    const restored = await db.examAttempts.get(["bb-dummy-1", 1]);
-    expect(restored).toEqual(attempt);
+    await db.examBest.put(attempt);
+    expect(await db.examBest.get("bb-dummy-1")).toEqual(attempt);
 
-    const rowsForDefinition = await db.examAttempts.where("chapterDefinitionId").equals("bb-dummy-1").toArray();
-    expect(rowsForDefinition).toEqual([attempt]);
+    // A second put for the same chapter replaces rather than appends - there
+    // is no attempt history to grow.
+    const better: ExamAttempt = { ...attempt, totalAttempts: 4, score: 100 };
+    await db.examBest.put(better);
+    expect(await db.examBest.where("chapterDefinitionId").equals("bb-dummy-1").toArray()).toEqual([better]);
   });
 });
 
@@ -419,7 +421,7 @@ describe("scalecraft db v9 migration (quizProgress -> examAttempts)", () => {
 
       // Was "rows intact" before v10's reset landed.
       expect(await upgraded.curriculumProgress.toArray()).toEqual([]);
-      expect(await upgraded.examAttempts.toArray()).toEqual([]);
+      expect(await upgraded.examBest.toArray()).toEqual([]);
       expect((upgraded as unknown as Record<string, unknown>).quizProgress).toBeUndefined();
 
       upgraded.close();
@@ -491,7 +493,7 @@ describe("scalecraft db v10 reset (6.1.0 one-time clear)", () => {
       expect(await upgraded.customComponents.toArray()).toEqual([]);
       expect(await upgraded.chapterProgress.toArray()).toEqual([]);
       expect(await upgraded.curriculumProgress.toArray()).toEqual([]);
-      expect(await upgraded.examAttempts.toArray()).toEqual([]);
+      expect(await upgraded.examBest.toArray()).toEqual([]);
       expect(await upgraded.deepCheckSessions.toArray()).toEqual([]);
       expect(await upgraded.aiProfiles.toArray()).toEqual([]);
       expect(await upgraded.aiActiveProfile.toArray()).toEqual([]);
@@ -546,6 +548,9 @@ describe("account isolation (Phase 2, pending-6.1.0-poa.md)", () => {
         updatedAt: Date.now(),
         nodes: [],
         edges: [],
+        graphHash: "",
+        localRevision: 1,
+        cloudRevision: 1,
         dirty: false,
         syncedAt: null,
       });
@@ -578,6 +583,9 @@ describe("account isolation (Phase 2, pending-6.1.0-poa.md)", () => {
         updatedAt: Date.now(),
         nodes: [],
         edges: [],
+        graphHash: "",
+        localRevision: 1,
+        cloudRevision: 1,
         dirty: false,
         syncedAt: null,
       });
@@ -603,6 +611,9 @@ describe("account isolation (Phase 2, pending-6.1.0-poa.md)", () => {
         updatedAt: Date.now(),
         nodes: [],
         edges: [],
+        graphHash: "",
+        localRevision: 1,
+        cloudRevision: 1,
         dirty: false,
         syncedAt: null,
       });
@@ -614,6 +625,118 @@ describe("account isolation (Phase 2, pending-6.1.0-poa.md)", () => {
       expect(localStorage.getItem(USER_ID_KEY)).toBe("user-a");
 
       instance.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+});
+
+/**
+ * The v13/v14 pair: `saves` gains its revision bookkeeping, and `examAttempts`
+ * (a row per submission) becomes `examBest` (a row per chapter, holding the
+ * best). IndexedDB cannot re-key a store in place, so the rows are copied to a
+ * new store in v13 and the old one dropped in v14 - which means the collapse
+ * itself has to be right, since there is no second chance to read the
+ * originals.
+ */
+describe("scalecraft db v13 migration (examAttempts -> examBest, save revisions)", () => {
+  function legacyV12Schema(name: string): Dexie {
+    const legacy = new Dexie(name);
+    legacy.version(12).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt], syncId",
+      curriculumProgress: "slug",
+      examAttempts: "[chapterDefinitionId+attemptNumber], chapterDefinitionId",
+      activeDays: "day",
+    });
+    return legacy;
+  }
+
+  async function seedAndUpgrade(name: string, seed: (legacy: Dexie) => Promise<void>) {
+    const legacy = legacyV12Schema(name);
+    await legacy.open();
+    await seed(legacy);
+    legacy.close();
+    const upgraded = new ScaleCraftDB(name);
+    await upgraded.open();
+    return upgraded;
+  }
+
+  it("keeps the best attempt per chapter and counts the rest", async () => {
+    const name = `scalecraft-v13-exam-test-${crypto.randomUUID()}`;
+    try {
+      const upgraded = await seedAndUpgrade(name, async (legacy) => {
+        await legacy.table("examAttempts").bulkPut([
+          { chapterDefinitionId: "bb-1", attemptNumber: 1, submittedAt: 1_000, score: 40, answers: [], dirty: false, syncedAt: 5 },
+          { chapterDefinitionId: "bb-1", attemptNumber: 2, submittedAt: 2_000, score: 90, answers: [], dirty: false, syncedAt: 6 },
+          { chapterDefinitionId: "bb-1", attemptNumber: 3, submittedAt: 3_000, score: 70, answers: [], dirty: false, syncedAt: 7 },
+          { chapterDefinitionId: "bb-2", attemptNumber: 1, submittedAt: 4_000, score: 60, answers: [], dirty: false, syncedAt: 8 },
+        ]);
+      });
+
+      const rows = (await upgraded.examBest.toArray()).sort((a, b) =>
+        a.chapterDefinitionId.localeCompare(b.chapterDefinitionId),
+      );
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toMatchObject({
+        chapterDefinitionId: "bb-1",
+        score: 90,
+        submittedAt: 2_000,
+        totalAttempts: 3,
+        // The collapsed shape is not what the server acknowledged, so it has
+        // to re-push.
+        dirty: true,
+      });
+      expect(rows[1]).toMatchObject({ chapterDefinitionId: "bb-2", score: 60, totalAttempts: 1 });
+      expect((upgraded as unknown as Record<string, unknown>).examAttempts).toBeUndefined();
+
+      upgraded.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+
+  it("breaks a score tie toward the attempt that reached it first", async () => {
+    const name = `scalecraft-v13-tie-test-${crypto.randomUUID()}`;
+    try {
+      const upgraded = await seedAndUpgrade(name, async (legacy) => {
+        await legacy.table("examAttempts").bulkPut([
+          { chapterDefinitionId: "bb-1", attemptNumber: 1, submittedAt: 1_000, score: 80, answers: [], dirty: false, syncedAt: null },
+          { chapterDefinitionId: "bb-1", attemptNumber: 2, submittedAt: 9_000, score: 80, answers: [], dirty: false, syncedAt: null },
+        ]);
+      });
+
+      const row = await upgraded.examBest.get("bb-1");
+      expect(row).toMatchObject({ submittedAt: 1_000, totalAttempts: 2 });
+
+      upgraded.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+
+  it("backfills save revisions, starting an unsynced row behind the cloud so it pushes", async () => {
+    const name = `scalecraft-v13-saves-test-${crypto.randomUUID()}`;
+    try {
+      const upgraded = await seedAndUpgrade(name, async (legacy) => {
+        await legacy.table("saves").bulkPut([
+          { id: "sandbox", updatedAt: 1_000, nodes: [], edges: [], dirty: true, syncedAt: null },
+          { id: "chapter:bb-1", updatedAt: 2_000, nodes: [], edges: [], dirty: false, syncedAt: 500 },
+        ]);
+      });
+
+      const pending = await upgraded.saves.get("sandbox");
+      expect(pending?.localRevision).toBeGreaterThan(pending!.cloudRevision);
+      expect(pending?.graphHash).toBeTruthy();
+
+      const synced = await upgraded.saves.get("chapter:bb-1");
+      expect(synced?.localRevision).toBe(synced?.cloudRevision);
+
+      upgraded.close();
     } finally {
       await Dexie.delete(name);
     }

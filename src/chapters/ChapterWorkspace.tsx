@@ -27,7 +27,8 @@ import type { ChapterOutcome, ChapterValidationOutcome } from "@/engines";
 import { chapterDisplayViolations } from "./chapter-outcome-violations";
 import { chapterSaveId, db, type ChapterProgress } from "@/persistence/db";
 import { useAutosave } from "@/persistence/use-autosave";
-import { deleteSaveSync, hydrateChapterProgress, hydrateSave, syncChapterProgress, syncSave } from "@/persistence/cloud-sync";
+import { deleteSaveSync, hydrateChapterProgress, hydrateSave, syncChapterProgress } from "@/persistence/cloud-sync";
+import { adoptRemoteSave, putSaveLocal, remoteSaveRow, saveAndSyncNow } from "@/persistence/save-revisions";
 import { reconcileRow } from "@/persistence/reconcile";
 import { useSyncStatusStore } from "@/persistence/sync-status";
 import { useCustomComponentsStore } from "@/canvas/custom-components-store";
@@ -208,14 +209,11 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
       // there's no remote row to win, so reconcileRow falls back to
       // whatever's local. Never treated as authoritative "remote is
       // empty" for a row that would otherwise beat an existing local one.
-      const remoteAsSave =
-        remote.ok && remote.data
-          ? { id: scopeId, updatedAt: remote.data.updatedAt, nodes: remote.data.nodes, edges: remote.data.edges, syncedAt: remote.data.updatedAt, dirty: false }
-          : null;
+      const remoteAsSave = remote.ok && remote.data ? remoteSaveRow(scopeId, remote.data) : null;
       const { result: winner, discarded } = reconcileRow(local ?? null, remoteAsSave);
       if (discarded) useSyncStatusStore.getState().recordDiscarded(1);
       if (winner) {
-        if (winner !== local) void db.saves.put(winner);
+        if (winner !== local) void adoptRemoteSave(winner, local ?? null);
         loadCanvasState(winner.nodes, winner.edges);
       } else if (chapter.starterGraph) {
         loadGraph(chapter.starterGraph);
@@ -243,10 +241,10 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     hasLoadedInitialState && chapter?.id ? chapterSaveId(chapter.id) : null,
     nodes,
     edges,
-    // Chapters sync to the cloud only on Submit (Phase 4.2,
-    // pending-6.1.0-poa.md), not on every manual save - see handleSubmit
-    // below for the actual push.
-    { syncOnManualSave: false },
+    // No cloud checkpoint: a chapter's canvas reaches the cloud on Submit and
+    // nowhere else, so an in-progress attempt stays on this device until it is
+    // submitted. See handleSubmit below for the push.
+    { cloudCheckpoint: false },
   );
 
   // Each chapter route mounts a fresh CanvasStoreProvider (key={chapterSlug}
@@ -260,14 +258,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
       // Local-only (Phase 4.2, pending-6.1.0-poa.md): a chapter's canvas
       // syncs to the cloud on Submit, not on every unmount/navigation. See
       // handleSubmit below for the push.
-      void db.saves.put({
-        id: chapterSaveId(chapter.id),
-        updatedAt: Date.now(),
-        nodes,
-        edges,
-        dirty: true,
-        syncedAt: null,
-      });
+      void putSaveLocal(chapterSaveId(chapter.id), nodes, edges);
     };
   }, [storeApi, chapter]);
 
@@ -409,10 +400,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
     // debounced autosave or an unmount. Local Dexie write first so the
     // pushed state always matches what was actually submitted, even if the
     // last debounced autosave hasn't landed yet.
-    const submittedSaveId = chapterSaveId(chapter.id);
-    void db.saves
-      .put({ id: submittedSaveId, updatedAt: Date.now(), nodes, edges, dirty: true, syncedAt: null })
-      .then(() => void syncSave(submittedSaveId, { nodes, edges }));
+    void saveAndSyncNow(chapterSaveId(chapter.id), nodes, edges);
     setValidationOutcome(outcome);
     setValidatedGraphKey(graphKey);
     setLastValidationErrorCount(

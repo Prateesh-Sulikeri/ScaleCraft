@@ -30,17 +30,11 @@ function row(slug: string, fields: Partial<CurriculumProgress> = {}): Curriculum
 }
 
 function inputs(rows: CurriculumProgress[] = [], attempts: ExamAttempt[] = []): ProgressInputs {
-  const examAttemptsByDefinition = new Map<string, ExamAttempt[]>();
-  for (const attempt of attempts) {
-    examAttemptsByDefinition.set(attempt.chapterDefinitionId, [
-      ...(examAttemptsByDefinition.get(attempt.chapterDefinitionId) ?? []),
-      attempt,
-    ]);
-  }
+  const examBestByDefinition = new Map(attempts.map((a) => [a.chapterDefinitionId, a]));
   return {
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(rows.map((r) => [r.slug, r])),
-    examAttemptsByDefinition,
+    examBestByDefinition,
   };
 }
 
@@ -115,7 +109,7 @@ describe("resolveContinueTarget", () => {
   it("counts an exam attempt alone as having started", () => {
     const attempt: ExamAttempt = {
       chapterDefinitionId: "some-definition",
-      attemptNumber: 1,
+      totalAttempts: 1,
       submittedAt: 5_000,
       score: 40,
       answers: [],
@@ -277,7 +271,7 @@ describe("computeStats", () => {
     const [entry] = allEntries(getCourse("building-blocks"));
     const attempt: ExamAttempt = {
       chapterDefinitionId: "any-definition",
-      attemptNumber: 1,
+      totalAttempts: 1,
       submittedAt: now - DAY,
       score: 90,
       answers: [],

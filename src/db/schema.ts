@@ -82,22 +82,25 @@ export const curriculumProgress = pgTable(
   (table) => [primaryKey({ columns: [table.userId, table.slug] })],
 );
 
-/** Mirrors Dexie `examAttempts` (compound-keyed [chapterDefinitionId,
- * attemptNumber], see db.ts) — unlimited attempts per chapter until passed. */
+/** Mirrors Dexie `examBest` (keyed by chapterDefinitionId, see db.ts). One row
+ * per chapter holding that chapter's **best** attempt: attempts stay unlimited
+ * until passed, but a beaten attempt is replaced rather than appended, so this
+ * table never grows a history. `totalAttempts` is all that survives of the
+ * discarded ones, and is what the exam UI's attempt count reads. */
 export const examAttempts = pgTable(
   "exam_attempts",
   {
     userId: text("user_id").notNull(),
     chapterDefinitionId: text("chapter_definition_id").notNull(),
-    attemptNumber: integer("attempt_number").notNull(),
+    /** Submissions so far, best or not. */
+    totalAttempts: integer("total_attempts").notNull(),
+    /** When the best attempt was submitted, not the latest one. */
     submittedAt: timestamp("submitted_at").notNull(),
     score: integer("score").notNull(), // 0-100, rounded
     answers: jsonb("answers").notNull(), // ExamQuestionAnswer[]
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
-  (table) => [
-    primaryKey({ columns: [table.userId, table.chapterDefinitionId, table.attemptNumber] }),
-  ],
+  (table) => [primaryKey({ columns: [table.userId, table.chapterDefinitionId] })],
 );
 
 /** Mirrors Dexie `deepCheckSessions` (auto-increment `id` locally, see
