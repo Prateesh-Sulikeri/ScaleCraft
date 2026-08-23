@@ -599,7 +599,17 @@ describe("resetCourse", () => {
 
   it("deletes the saved canvas for each of the course's chapters", async () => {
     const saveId = chapterSaveId(bbDefinitionId);
-    await db.saves.put({ id: saveId, updatedAt: Date.now(), nodes: [], edges: [], dirty: false, syncedAt: null });
+    await db.saves.put({
+      id: saveId,
+      updatedAt: Date.now(),
+      nodes: [],
+      edges: [],
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 1,
+      dirty: false,
+      syncedAt: null,
+    });
 
     await useCurriculumProgressStore.getState().resetCourse("building-blocks");
 
@@ -631,6 +641,9 @@ describe("resetCourse", () => {
       updatedAt: Date.now(),
       nodes: [],
       edges: [],
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 1,
       dirty: false,
       syncedAt: null,
     });
@@ -645,7 +658,17 @@ describe("resetCourse", () => {
       (e) => e.chapterDefinitionId != null,
     )!.chapterDefinitionId!;
     const rweSaveId = chapterSaveId(rweDefinitionId);
-    await db.saves.put({ id: rweSaveId, updatedAt: Date.now(), nodes: [], edges: [], dirty: false, syncedAt: null });
+    await db.saves.put({
+      id: rweSaveId,
+      updatedAt: Date.now(),
+      nodes: [],
+      edges: [],
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 1,
+      dirty: false,
+      syncedAt: null,
+    });
 
     await useCurriculumProgressStore.getState().resetCourse("building-blocks");
 

@@ -21,7 +21,17 @@ describe("persistence db", () => {
       { id: "n1", type: "component", position: { x: 0, y: 0 }, data: { componentId: "client", config: {} } },
     ];
     const edges: ArchitectureEdgeType[] = [{ id: "e1", source: "n1", target: "n1" }];
-    const save: CanvasSave = { id: SANDBOX_SAVE_ID, updatedAt: Date.now(), nodes, edges, dirty: false, syncedAt: null };
+    const save: CanvasSave = {
+      id: SANDBOX_SAVE_ID,
+      updatedAt: Date.now(),
+      nodes,
+      edges,
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 1,
+      dirty: false,
+      syncedAt: null,
+    };
 
     await db.saves.put(save);
     const restored = await db.saves.get(SANDBOX_SAVE_ID);
@@ -509,7 +519,17 @@ describe("scalecraft db v10 reset (6.1.0 one-time clear)", () => {
     try {
       const fresh = new ScaleCraftDB(name);
       await fresh.open();
-      await fresh.saves.put({ id: "sandbox", updatedAt: Date.now(), nodes: [], edges: [], dirty: false, syncedAt: null });
+      await fresh.saves.put({
+        id: "sandbox",
+        updatedAt: Date.now(),
+        nodes: [],
+        edges: [],
+        graphHash: "test-hash",
+        localRevision: 1,
+        cloudRevision: 1,
+        dirty: false,
+        syncedAt: null,
+      });
       fresh.close();
 
       // Reopening must not re-run the clear — the upgrade is version-gated,

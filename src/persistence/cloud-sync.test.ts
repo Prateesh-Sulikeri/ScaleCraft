@@ -39,7 +39,17 @@ describe("cloud-sync failure reporting", () => {
   });
 
   it("a failed push keeps the local row dirty and reflects it in dirtyCount", async () => {
-    await db.saves.put({ id: "scope-1", updatedAt: 1, nodes: [], edges: [], dirty: true, syncedAt: null });
+    await db.saves.put({
+      id: "scope-1",
+      updatedAt: 1,
+      nodes: [],
+      edges: [],
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 0,
+      dirty: true,
+      syncedAt: null,
+    });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 500 })));
 
     await syncSave("scope-1", { nodes: [], edges: [] });
@@ -50,7 +60,17 @@ describe("cloud-sync failure reporting", () => {
   });
 
   it("a subsequent successful sync clears the dirty flag; dirtyCount reflects it once the writeback lands", async () => {
-    await db.saves.put({ id: "scope-1", updatedAt: 1, nodes: [], edges: [], dirty: true, syncedAt: null });
+    await db.saves.put({
+      id: "scope-1",
+      updatedAt: 1,
+      nodes: [],
+      edges: [],
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 0,
+      dirty: true,
+      syncedAt: null,
+    });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ updatedAt: 42 }), { status: 200 })));
 
     await syncSave("scope-1", { nodes: [], edges: [] });

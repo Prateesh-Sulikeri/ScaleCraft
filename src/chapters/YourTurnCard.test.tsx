@@ -62,7 +62,7 @@ vi.mock("@/app/HeldTransitionLink", () => ({
 }));
 
 const recordExamAttempt = vi.fn().mockResolvedValue(undefined);
-let examBestByDefinition = new Map<string, ExamAttempt[]>();
+let examBestByDefinition = new Map<string, ExamAttempt>();
 let validationPassedDefinitionIds = new Set<string>();
 
 vi.mock("@/curriculum/progress-store", () => ({

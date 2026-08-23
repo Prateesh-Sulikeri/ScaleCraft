@@ -46,7 +46,7 @@ describe("ExamResults", () => {
   it("shows the score and a Passed banner when the attempt meets the threshold", () => {
     const attempt: ExamAttempt = {
       chapterDefinitionId: "ch-1",
-      attemptNumber: 1,
+      totalAttempts: 1,
       submittedAt: Date.now(),
       score: 100,
       answers: [
@@ -65,7 +65,7 @@ describe("ExamResults", () => {
   it("shows a not-yet-passing banner below the threshold", () => {
     const attempt: ExamAttempt = {
       chapterDefinitionId: "ch-1",
-      attemptNumber: 1,
+      totalAttempts: 1,
       submittedAt: Date.now(),
       score: 50,
       answers: [
@@ -84,7 +84,7 @@ describe("ExamResults", () => {
   it("reveals every option's explanation per question, including a non-single kind", () => {
     const attempt: ExamAttempt = {
       chapterDefinitionId: "ch-1",
-      attemptNumber: 1,
+      totalAttempts: 1,
       submittedAt: Date.now(),
       score: 100,
       answers: [
@@ -105,7 +105,7 @@ describe("ExamResults", () => {
   it("labels a skipped question 'Not answered', not 'Incorrect'", () => {
     const attempt: ExamAttempt = {
       chapterDefinitionId: "ch-1",
-      attemptNumber: 1,
+      totalAttempts: 1,
       submittedAt: Date.now(),
       score: 50,
       answers: [
