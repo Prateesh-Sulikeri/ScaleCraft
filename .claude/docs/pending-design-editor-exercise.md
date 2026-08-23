@@ -38,8 +38,14 @@ per session-end verification convention. Check off as each lands.
       is gone (the field stays in `ChapterDefinition` - `ai/prompt.ts`'s Deep Check
       prompt still reads it, that's a separate consumer, out of scope for D2).
       `QuestionPane.test.tsx` updated: 33/33 passing.
-- [ ] T5. Phase 2 - rewrite the brief (`problemStatement` + new `exerciseGoal` /
-      `successCriteria`) for all 13 editor chapters under D3's calibration rule.
+- [x] T5. Phase 2 - rewrote the brief (`problemStatement` shortened + new
+      `exerciseGoal` / `successCriteria`) for all 13 editor chapters under D3's
+      calibration rule. Removed the component/field/direction spoilers Finding B
+      flagged (1.2, 3.4, 3.6, 3.7, 3.9, 3.12) and the ones present but unflagged
+      (3.1, 3.2, 3.3, 3.5, 3.8). 3.9/3.12 use the doc's own worked examples near-
+      verbatim. Manually spot-checked against D3 (Config chapters may name the
+      component, never the direction/value; Fix/Completion chapters name neither).
+      typecheck clean, authoring-invariants + QuestionPane: 48/48 passing.
 - [ ] T6. Phase 3 - add regression gates to `authoring-invariants.test.ts`: spacing
       gate, aspect gate, brief gate, spoiler gate (best-effort).
 - [ ] T7. Phase 4 - update CURRICULUM §11.2/§11.4 layout standard note (if not fully
