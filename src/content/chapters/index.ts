@@ -8255,6 +8255,21 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-11-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-11-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-11-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-11-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-11-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 576, height: 137, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-11-comment-kv",
+        text: "Key-value stores trade relational joins and ad-hoc queries for O(1) lookups by key.",
+        position: { x: 980, y: 432 },
+        width: 240,
+        height: 100,
+        color: "#64748b",
+      },
+    ],
   },
   {
     id: "bb-3-12-replication",
@@ -8679,6 +8694,21 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-12-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-12-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-12-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-12-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-12-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 896, height: 137, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-12-comment-lag",
+        text: "Replicas lag the primary - reads here may be a few milliseconds stale.",
+        position: { x: 980, y: 432 },
+        width: 240,
+        height: 100,
+        color: "#64748b",
+      },
+    ],
   },
   {
     id: "bb-3-13-sharding",
