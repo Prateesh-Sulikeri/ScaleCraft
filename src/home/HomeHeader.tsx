@@ -73,7 +73,11 @@ export function HomeHeader() {
             <BrandMark size={26} />
             <span className="text-base font-semibold tracking-tight">ScaleCraft</span>
           </Link>
-          <nav aria-label="Primary" className="flex items-center gap-1">
+          {/* Hidden below md, not collapsed into a menu: every HOME_NAV entry
+           *  is `upcoming` (no href, not focusable) today, so a menu button
+           *  would only open to show unclickable "Soon" labels. Revisit once
+           *  one ships a real destination. */}
+          <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
             {HOME_NAV.map((item) => (
               <NavItem key={item.label} item={item} />
             ))}

@@ -50,7 +50,7 @@ export function CourseHeader({ course, summary, dayStreak, streakKnown }: Course
         </div>
       </div>
 
-      <section className="grid items-center gap-6 rounded-xl border border-border bg-panel p-5 sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)] sm:gap-7 lg:p-6 xl:grid-cols-[200px_minmax(0,1fr)_auto] xl:gap-8">
+      <section className="grid grid-cols-1 items-center gap-6 rounded-xl border border-border bg-panel p-5 sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)] sm:gap-7 lg:p-6 xl:grid-cols-[200px_minmax(0,1fr)_auto] xl:gap-8">
         <div className="hidden h-[150px] sm:block xl:h-[170px]">
           <CourseIllustration courseId={course.id} />
         </div>

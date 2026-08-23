@@ -66,7 +66,7 @@ type HomeHeroProps = {
 
 export function HomeHero({ continueTarget, now }: HomeHeroProps) {
   return (
-    <section className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+    <section className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
       <div className="flex flex-col justify-center gap-3.5">
         <h1 className="text-balance text-4xl font-semibold leading-[1.12] tracking-tight xl:text-[2.75rem] min-[2200px]:text-5xl">
           Design real systems.

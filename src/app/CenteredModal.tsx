@@ -29,7 +29,7 @@ type CenteredModalProps = {
 };
 
 const PANEL_SIZE = {
-  default: "max-h-[95vh] w-[1020px]",
+  default: "max-h-[95vh] w-[min(1020px,94vw)]",
   wide: "max-h-[85vh] w-[min(1200px,94vw)]",
   viewport: "h-[min(940px,95vh)] w-[min(1340px,96vw)]",
   full: "h-[88vh] w-[min(1320px,94vw)]",

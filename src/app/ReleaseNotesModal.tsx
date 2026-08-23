@@ -303,7 +303,7 @@ export function ReleaseNotesModal({ onClose }: { onClose: () => void }) {
             {release.qualityOfLife && (
               <div className="flex flex-col gap-[clamp(6px,1vh,12px)] border-t border-border pt-[clamp(9px,1.5vh,18px)]">
                 <h4 className={`${LABEL} text-hero-accent`}>Quality of life</h4>
-                <ul className="grid gap-x-[clamp(16px,2vw,36px)] gap-y-[clamp(4px,0.8vh,9px)] sm:grid-cols-2">
+                <ul className="grid grid-cols-1 gap-x-[clamp(16px,2vw,36px)] gap-y-[clamp(4px,0.8vh,9px)] sm:grid-cols-2">
                   {release.qualityOfLife.map((item) => (
                     <li key={item} className="flex items-start gap-2">
                       <Check

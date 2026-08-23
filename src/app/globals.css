@@ -358,6 +358,27 @@ body > div[id^="ddocs-mermaid-"] {
   }
 }
 
+/* Used by MobileDrawer.tsx — the off-canvas panel sliding in from the edge it
+ * is anchored to, so it reads as sliding out of the screen rather than
+ * popping into place. Gated behind motion-safe: at the call site. */
+@keyframes drawer-enter-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawer-enter-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 /* Used by not-found.tsx's route illustration — the tiles and background
  * particles drift 1-2px, slow and staggered, to read as "alive" without
  * looping into anything gamified. Gated behind motion-safe: at every call

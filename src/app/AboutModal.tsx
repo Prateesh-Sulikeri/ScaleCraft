@@ -143,9 +143,9 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-[clamp(16px,2.4vw,40px)] border-t border-border pt-[clamp(13px,2.1vh,26px)] lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-[clamp(16px,2.4vw,40px)] border-t border-border pt-[clamp(13px,2.1vh,26px)] lg:min-h-0 lg:flex-1 lg:grid-cols-2">
           {/* Left: motivation, philosophy, authorship. */}
-          <div className="flex min-h-0 flex-col gap-[clamp(12px,2vh,22px)]">
+          <div className="flex flex-col gap-[clamp(12px,2vh,22px)] lg:min-h-0">
             <section className="flex flex-col gap-[clamp(5px,0.9vh,10px)]">
               <h3 className={LABEL}>Why I built this</h3>
               <p className={BODY}>
@@ -235,7 +235,7 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {/* Right: what sets the product apart, then the version footer. */}
-          <div className="flex min-h-0 flex-col gap-[clamp(8px,1.4vh,14px)] lg:border-l lg:border-border lg:pl-[clamp(20px,2.4vw,40px)]">
+          <div className="flex flex-col gap-[clamp(8px,1.4vh,14px)] lg:min-h-0 lg:border-l lg:border-border lg:pl-[clamp(20px,2.4vw,40px)]">
             <h3 className={LABEL}>What makes ScaleCraft different</h3>
             <ul className="flex flex-col divide-y divide-border">
               {DIFFERENTIATORS.map((item) => (

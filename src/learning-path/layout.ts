@@ -7,4 +7,4 @@
  * a list of one-line chapter rows, and at 1400px a row's title and its trailing
  * arrow end up an inch apart with nothing between them.
  */
-export const LEARNING_PATH_CONTAINER = "mx-auto w-full max-w-[1200px] min-[2200px]:max-w-[1360px] px-6";
+export const LEARNING_PATH_CONTAINER = "mx-auto w-full max-w-[1200px] min-[2200px]:max-w-[1360px] px-4 md:px-6";

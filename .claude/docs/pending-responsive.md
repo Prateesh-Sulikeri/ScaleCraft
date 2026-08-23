@@ -3,12 +3,57 @@
 Release **7.1.0-alpha**. Branch **`feat/size-changes`**, cut from
 `staging/v7.1.0-progress-reset`.
 
-Status: **Phase 1 landed** (commit 8f818ae) - decisions D1-D3 taken as
-recommended (gate moved to the whole `(protected)` group, thresholds
-unchanged, 360px floor). Confirmed via curl against the dev server (no
-browser tool available in this session) - a real DevTools pass at
-360/390/768/1024/1280/1920 is still owed before this ships. Phase 2 (shared
-breakpoint contract, `useIsNarrow()`/`<MobileDrawer>` helpers) next.
+Status: **Phase 1 landed** (commit 8f818ae), decisions D1-D3 taken as
+recommended. **A real-browser Playwright screenshot pass then found Phase 1's
+curl-only verification had missed live overlap/overflow bugs across most of
+the app** - see "What the screenshot pass found" below. Those are fixed and
+verified with follow-up screenshots at 360/390/768/1024/1280/1400. Manual
+DevTools click-through across every Phase 3 surface (not just the ones
+screenshotted) is still owed before this ships.
+
+`<MobileDrawer>` (Phase 2's helper) now exists at `src/app/MobileDrawer.tsx`
+and is proven out on the Chapter Reader (below). `useIsNarrow()` is not yet
+built - nothing needed it; every fix so far was CSS-only or drawer-based.
+
+### What the screenshot pass found (2026-08-23)
+
+Phase 1 was verified with curl (200s, no rendering) because no browser tool
+was available in that session. A later session had Playwright and took real
+screenshots at 390/360px, which surfaced bugs curl cannot catch. Two were
+systemic, not per-surface:
+
+1. **A `grid ... lg:grid-cols-[...]` with no base `grid-cols` class** creates
+   a single *implicit* column that sizes to its widest content instead of
+   the container width - unlike explicit `grid-cols-1`, it doesn't clip a
+   non-wrapping descendant, so a long unbreakable string (a `<code>` file
+   path, a heading) pushes the whole page wider than the viewport. Found and
+   fixed in 6 files: `LearningPath.tsx`, `HomeHero.tsx`, `HomeDashboard.tsx`,
+   `CourseHeader.tsx`, `ReleaseNotesModal.tsx`, `BugDetailsView.tsx`,
+   `BugForm.tsx`. Grep for `grid-cols-\[` or a bare Tailwind `grid-cols-N` at
+   a breakpoint prefix before adding another responsive grid - always pair it
+   with a base `grid-cols-1`.
+2. **`min-h-0`/`flex-1` applied unconditionally to grid items that only need
+   it in a two-column desktop layout** forces CSS Grid's implicit row
+   tracks to split available height evenly instead of sizing to content once
+   `grid-cols-2` collapses to `grid-cols-1` below `lg` - each section's
+   content then overflows its shrunk row and visually overlaps the row
+   below. Found in `AboutModal.tsx` (illegible below `lg` - two stacked
+   sections rendered on top of each other); fixed by scoping `min-h-0`/
+   `flex-1` to `lg:` only. `FeedbackSurveyModal.tsx` and
+   `ReleaseNotesModal.tsx` already had this right (explicit `grid-rows-[...]`
+   or scroll on the outer wrapper only) - worth the same audit before
+   assuming a two-column dialog is fine.
+
+Also fixed, not systemic: `CenteredModal.tsx`'s `default` size had no
+viewport-relative cap (`w-[1020px]`, no `max-w`) unlike its other three sizes
+- overflowed catastrophically below 1020px (Report a Bug's form, Feedback's
+post-submit screen, both use the default size). Now
+`w-[min(1020px,94vw)]`, matching the pattern the other sizes already used.
+`HomeHeader.tsx`'s `HOME_NAV` didn't wrap below `md` and got clipped by
+`body`'s `overflow-hidden` (`src/app/layout.tsx`) instead of scrolling -
+hidden below `md` instead of collapsed into a menu, since every entry is
+`upcoming` (no href) today. `HOME_CONTAINER`/`LEARNING_PATH_CONTAINER` picked
+up the `px-4 md:px-6` this doc's Phase 3.1/3.2 always called for.
 
 ## The product call
 
@@ -139,6 +184,13 @@ re-solving per surface:
   that all need the same off-canvas treatment (reader nav, reader ToC, Learning
   Path filters). Slide-in panel + backdrop + Escape to close. Reuse
   `useEscapeKey` and `useBodyScrollLock`, which `CenteredModal` already uses.
+  **DONE** - `src/app/MobileDrawer.tsx`, proven out on the Chapter Reader's
+  nav and ToC (3.4). No `open` prop, deliberately: it's conditionally mounted
+  by the caller (`{open && <MobileDrawer .../>}`), matching `CenteredModal`'s
+  own convention - two drawers mounted unconditionally side by side broke
+  `useEscapeKey`'s stack (Escape closed whichever mounted last, not whichever
+  was actually open). Learning Path's filters never needed it in the end -
+  the flex-wrap fix in 3.3 was enough.
 
 ## Phase 3 - surface inventory
 
@@ -149,9 +201,9 @@ per surface.
 
 | File | Problem | Target |
 |---|---|---|
-| `src/home/HomeHeader.tsx:66` | Brand + `HOME_NAV` + 3 icon controls all in one non-wrapping row | Below `md`, collapse the `<nav>` into a menu button; keep brand and the control cluster |
-| `src/home/layout.ts` | `HOME_CONTAINER` is `px-6` at every width | `px-4 md:px-6` |
-| `src/learning-path/layout.ts` | `LEARNING_PATH_CONTAINER` same | same |
+| `src/home/HomeHeader.tsx:66` | Brand + `HOME_NAV` + 3 icon controls all in one non-wrapping row, clipped (not scrolled) by `body`'s `overflow-hidden` | **DONE**, but hidden below `md` rather than a menu button - every `HOME_NAV` entry is `upcoming` (no href) today, so a menu opening to unclickable "Soon" labels wasn't worth building. Revisit as a real menu once one ships a destination. |
+| `src/home/layout.ts` | `HOME_CONTAINER` is `px-6` at every width | **DONE** - `px-4 md:px-6` |
+| `src/learning-path/layout.ts` | `LEARNING_PATH_CONTAINER` same | **DONE** - same |
 | `src/home/HomeFooter.tsx:27` | already `flex-wrap`, likely fine | verify only |
 | `src/app/AppHeader.tsx:136` | Workspace header: brand + undo/redo + Validate/Submit + tools, no wrapping | **Gated surface.** Leave alone unless it breaks at 1024 |
 
@@ -177,7 +229,13 @@ two-column split degrades to stacked correctly. What does not:
 
 - `LearningPath.tsx:178` - `w-full lg:w-80` search is fine; the sibling
   "Collapse all" / "Reset progress" buttons in the same row are `shrink-0` and
-  will overflow at 360px. Wrap them.
+  will overflow at 360px. Wrap them. **DONE** (`flex-wrap` on the row). Also
+  found and fixed: the content grid below it (`LearningPath.tsx:224`) had no
+  base `grid-cols-1` before its `lg:grid-cols-[...]`, so its implicit column
+  sized to its widest descendant instead of the container - the section
+  summary paragraph was pushing the whole page wider than the viewport. See
+  "What the screenshot pass found" above; the same bug was fixed in 5 other
+  files.
 - `src/learning-path/CourseStats.tsx:104` - `grid-cols-2 sm:grid-cols-4
   xl:w-[460px]`, probably fine, verify.
 - `src/learning-path/ChapterRow.tsx` - the densest row in the app (number,
@@ -201,11 +259,15 @@ two-column split degrades to stacked correctly. What does not:
 ```
 
 - The left `w-60` nav (`ReaderSidebar.tsx`) must become a drawer below `lg`.
+  **DONE** - `<MobileDrawer>` (new, `src/app/MobileDrawer.tsx`), opened from a
+  menu button in a new mobile-only top bar (`xl:hidden`).
 - The right ToC aside is already `hidden ... xl:flex` - **but** it also holds
   `ReportBugButton`, `ThemeToggle`, and `AppUserButton`, which therefore
   disappear entirely below `xl`. That is a live bug today at 1280px and must be
   fixed as part of this: those three controls need a home that exists at every
-  width.
+  width. **DONE** - the same mobile top bar carries all three whenever the
+  right aside is hidden (`xl:hidden`), plus a second button opening the ToC
+  itself in a right-side `<MobileDrawer>`.
 - Article column: `px-6 py-10` to `px-4 py-6 md:px-6 md:py-10`.
 - Prose content is the real test. Audit
   `src/canvas/docs-panel/markdown/MarkdownRenderer.tsx` and the MDX components
@@ -254,9 +316,14 @@ full:     "h-[88vh] w-[min(1320px,94vw)]"
 `w-[min(1020px,94vw)]`, and give every size a narrow-width behaviour (a
 near-full-screen sheet below `sm` is usually right). This one edit fixes every
 dialog built on the shell at once, so do it before auditing individual dialogs.
+**`default` DONE** - confirmed fixing Report a Bug's form and Feedback's
+post-submit screen (both use `default`), the two worst overflow cases found in
+the screenshot pass. The other three sizes' `min(...,94vw)` clamps were
+already adequate at every target width; a dedicated near-full-screen sheet
+below `sm` wasn't needed on top of that.
 
 Then audit the fixed-width popovers, which are portaled/absolute and can push
-off-screen at 360px:
+off-screen at 360px (not yet done):
 `src/app/ProjectMenu.tsx:98` (`w-64`), `src/app/BoardMenu.tsx:97` (`w-56`),
 `src/app/ModeBadge.tsx:54` (`w-72`), `src/app/ValidationIndicator.tsx:116`
 (`w-96`), `src/canvas/DeleteConfirmPopover.tsx:36` (`w-64`),

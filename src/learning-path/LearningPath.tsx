@@ -174,7 +174,7 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
           <CourseHeader course={course} summary={summary} dayStreak={dayStreak} streakKnown={streakKnown} />
 
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div className="relative w-full lg:w-80">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-foreground/40" />
                 <input
@@ -221,7 +221,7 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
             <StatusFilter value={statusFilter} onChange={setStatusFilter} />
           </div>
 
-          <div className="grid items-start gap-4 pb-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid grid-cols-1 items-start gap-4 pb-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="flex flex-col gap-3">
               {visibleSections.length === 0 ? (
                 <p className="rounded-xl border border-border bg-panel px-4 py-10 text-center text-sm text-foreground/50">
