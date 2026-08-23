@@ -5337,6 +5337,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-3-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-3-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-3-zone-app", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-3-zone-data", label: "Data", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-3-zone-gap", label: "Build here", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-3-4-load-balancer",
@@ -5708,6 +5714,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-4-client"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-4-zone-client", label: "Client", position: { x: 32, y: -48 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-4-zone-app", label: "Application", position: { x: 32, y: 112 }, width: 576, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-4-zone-data", label: "Data", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-4-zone-gap", label: "Build here", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-3-5-api-gateway",
@@ -6063,6 +6075,13 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-5-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-5-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-5-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-5-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-5-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-5-zone-gap", label: "Build here", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-3-6-stateless-services",
@@ -6409,6 +6428,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-6-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-6-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-6-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-6-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-6-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+    ],
   },
   {
     id: "bb-3-7-sessions-and-state-management",
@@ -6748,6 +6773,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-7-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-7-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-7-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-7-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-7-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+    ],
   },
   {
     id: "bb-3-8-horizontal-scaling",
@@ -7125,6 +7156,21 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-8-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-8-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-8-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-8-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-8-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-8-comment-capacity",
+        text: "Peaks at 300 req/s. Each Application Server instance is tested to handle 150.",
+        position: { x: 980, y: 272 },
+        width: 240,
+        height: 100,
+        color: "#64748b",
+      },
+    ],
   },
   {
     id: "bb-3-9-service-discovery",
@@ -7489,6 +7535,21 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-9-browser"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-9-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-9-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-9-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-9-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-9-comment-ttl",
+        text: "TTL controls how long a client is allowed to cache this DNS answer before asking again.",
+        position: { x: 980, y: -48 },
+        width: 240,
+        height: 100,
+        color: "#64748b",
+      },
+    ],
   },
   {
     id: "bb-3-10-databases",
