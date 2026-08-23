@@ -336,6 +336,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       edges: [{ id: "bb-0-1-edge-client-app", source: "bb-0-1-client", target: "bb-0-1-app-server", kind: "async" }],
       entryPointIds: ["bb-0-1-client"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-0-1-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-0-1-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+    ],
   },
   {
     id: "bb-0-2-what-is-system-design",
@@ -2548,6 +2552,11 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-1-2-client"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-1-2-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-1-2-zone-data", label: "Data", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-1-2-zone-gap", label: "Build here", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-1-3-defending-the-design",
@@ -4619,6 +4628,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: ["bb-3-1-client"],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-1-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-1-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-1-zone-data", label: "Data", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-1-zone-gap", label: "Build here", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-3-2-dns",
@@ -4973,6 +4988,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       entryPointIds: [],
     },
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-2-zone-edge", label: "Edge", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-2-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-2-zone-data", label: "Data", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-2-zone-gap", label: "Build here", position: { x: 32, y: -48 }, width: 576, height: 137, color: "#ff3483" },
+    ],
   },
   {
     id: "bb-3-3-reverse-proxy",
