@@ -30,11 +30,14 @@ per session-end verification convention. Check off as each lands.
       `loadGraph` - had to route around that). All 13 chapters render at fit zoom
       1.0 with row counts matching the intended tiering. `authoring-invariants.test.ts`
       re-run: 15/15 passing, no starter graph completes its chapter.
-- [ ] T3. Phase 2 - add `exerciseGoal` and `successCriteria` fields to
-      `ChapterDefinition`.
-- [ ] T4. Phase 2 - update `QuestionPane` to render `Goal` / `You're done when` as
-      headed sections and remove the Learning Objectives block; update
-      `QuestionPane.test.tsx`.
+- [x] T3. Phase 2 - added `exerciseGoal?: string` and `successCriteria?: string[]`
+      to `ChapterDefinition` (`src/content/chapters/types.ts`), both optional so
+      existing chapters typecheck unchanged until T5 backfills them.
+- [x] T4. Phase 2 - `QuestionPane` now renders `exerciseGoal` under a "Goal" heading
+      and `successCriteria` under "You're done when"; the Learning Objectives block
+      is gone (the field stays in `ChapterDefinition` - `ai/prompt.ts`'s Deep Check
+      prompt still reads it, that's a separate consumer, out of scope for D2).
+      `QuestionPane.test.tsx` updated: 33/33 passing.
 - [ ] T5. Phase 2 - rewrite the brief (`problemStatement` + new `exerciseGoal` /
       `successCriteria`) for all 13 editor chapters under D3's calibration rule.
 - [ ] T6. Phase 3 - add regression gates to `authoring-invariants.test.ts`: spacing

@@ -146,18 +146,32 @@ function renderQuestionPane(props: Parameters<typeof Harness>[0]) {
 }
 
 describe("QuestionPane", () => {
-  it("renders the chapter title, problem statement, and learning objectives", () => {
-    const chapter = makeChapter({ learningObjectives: ["Understand round robin"] });
+  it("renders the chapter title, problem statement, goal, and success criteria", () => {
+    const chapter = makeChapter({
+      exerciseGoal: "Give every server an equal share of requests.",
+      successCriteria: ["No single server takes more than its fair share of traffic."],
+    });
     renderQuestionPane({ chapter, nodes: [] });
 
     expect(screen.getByRole("heading", { name: "Load Balancing 101" })).toBeInTheDocument();
     expect(screen.getByText("Balance the load across servers.")).toBeInTheDocument();
-    expect(screen.getByText("Understand round robin")).toBeInTheDocument();
+    expect(screen.getByText("Give every server an equal share of requests.")).toBeInTheDocument();
+    expect(screen.getByText("No single server takes more than its fair share of traffic.")).toBeInTheDocument();
   });
 
-  it("omits the learning objectives section entirely when there are none", () => {
-    renderQuestionPane({ chapter: makeChapter({ learningObjectives: [] }), nodes: [] });
+  it("never renders a learning objectives section - the learner already read it in the lesson", () => {
+    const chapter = makeChapter({ learningObjectives: ["Understand round robin"] });
+    renderQuestionPane({ chapter, nodes: [] });
     expect(screen.queryByText(/learning objectives/i)).not.toBeInTheDocument();
+  });
+
+  it("omits the goal and success-criteria sections entirely when absent", () => {
+    renderQuestionPane({
+      chapter: makeChapter({ exerciseGoal: undefined, successCriteria: undefined }),
+      nodes: [],
+    });
+    expect(screen.queryByText(/^goal$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/done when/i)).not.toBeInTheDocument();
   });
 
   it("computes required-components progress from the live canvas nodes", () => {

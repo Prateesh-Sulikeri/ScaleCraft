@@ -153,14 +153,26 @@ export function QuestionPane({
           <MarkdownRenderer content={chapter.problemStatement} />
         </div>
 
-        {chapter.learningObjectives.length > 0 && (
+        {/* Replaces the old always-visible Learning Objectives block (removed
+         * per CURRICULUM.md §11.2/D2a): the learner already read those in the
+         * lesson, and the "Practical" objective named the exact fix, which
+         * defeated every hint ladder. Goal/successCriteria are calibrated
+         * per §11.2 to name the symptom and goal, never the fix. */}
+        {chapter.exerciseGoal && (
+          <div className="mt-4">
+            <h3 className="text-xs font-semibold tracking-wide text-foreground/60 uppercase">Goal</h3>
+            <p className="mt-1.5 text-sm text-foreground/80">{chapter.exerciseGoal}</p>
+          </div>
+        )}
+
+        {chapter.successCriteria && chapter.successCriteria.length > 0 && (
           <div className="mt-4">
             <h3 className="text-xs font-semibold tracking-wide text-foreground/60 uppercase">
-              Learning objectives
+              You&rsquo;re done when
             </h3>
             <ul className="mt-1.5 list-disc pl-5 text-sm text-foreground/80">
-              {chapter.learningObjectives.map((o, i) => (
-                <li key={i}>{o}</li>
+              {chapter.successCriteria.map((c, i) => (
+                <li key={i}>{c}</li>
               ))}
             </ul>
           </div>

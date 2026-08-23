@@ -115,6 +115,19 @@ export type ChapterDefinition = {
    * Omit (or false) for real chapters. */
   placeholder?: boolean;
   problemStatement: string;
+  /** The Design Editor's exercise brief - what the learner is actually asked
+   * to do. Names the symptom and the goal, never the component/field/edge
+   * kind that fixes it (CURRICULUM.md §11.2's brief-calibration rule). Absent
+   * for chapters with `hasEditorExercise: false`; QuestionPane renders it
+   * under a "Goal" heading instead of `learningObjectives`, which the
+   * learner has already read in the lesson and are not repeated here. */
+  exerciseGoal?: string;
+  /** Observable, system-level outcomes the learner can check for themselves
+   * ("requests reach either server; killing one instance doesn't drop
+   * traffic") - not implementation steps. Rendered under "You're done when"
+   * alongside `exerciseGoal`. At least two entries when `exerciseGoal` is
+   * present (CURRICULUM.md §11.2). */
+  successCriteria?: string[];
   learningObjectives: string[];
   availableComponentIds: string[];
   requiredComponentIds: string[];
