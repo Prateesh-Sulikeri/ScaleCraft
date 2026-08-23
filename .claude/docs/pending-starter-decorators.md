@@ -119,27 +119,34 @@ two-node graph.
 ## Task list
 
 - [x] **T0.** Lock decisions above with the user; write this doc. Commit alone.
-- [ ] **T1.** `src/content/chapters/starter-decorators.ts`: `StarterDecorator`
+- [x] **T1.** `src/content/chapters/starter-decorators.ts`: `StarterDecorator`
       union + `toDecoratorNodes()`. `starterDecorators?` field on
       `ChapterDefinition` (`types.ts`). Typecheck only, no consumers yet.
-- [ ] **T2.** `loadGraph`/`resetGraph` in `store.tsx` take an optional second
+- [x] **T2.** `loadGraph`/`resetGraph` in `store.tsx` take an optional second
       `decorators?: AnyNodeType[]` arg, appended after mapped component nodes.
       Wire both `ChapterWorkspace.tsx` call sites (initial-load reconcile,
-      `handleResetToStarter`). Add store tests.
-- [ ] **T3.** `onResetToStarter` prop on `AppHeader`; render the two-click-arm
-      confirm button after `BoardMenu`, distinct icon. Pass from
+      `handleResetToStarter`). Store tests added (4 new, 42/42 passing).
+- [x] **T3.** `onResetToStarter` prop on `AppHeader`; render the two-click-arm
+      confirm button after `BoardMenu`, distinct `RefreshCw` icon. Pass from
       `ChapterWorkspace.tsx`.
-- [ ] **T4.** `ChapterWorkspace.test.tsx` reset-button coverage. In-browser
-      verify on 0.1 (BB) with a fresh no-saves account (the standing e2e auth
-      account has persisted saves that shadow `starterGraph`, as encountered
-      last session).
-- [ ] **T5.** Author decorators for the small graphs: 0.1, 1.2, 3.1, 3.2.
-- [ ] **T6.** Author decorators for 3.3-3.9.
-- [ ] **T7.** Author decorators for 3.11, 3.12.
-- [ ] **T8.** `authoring-invariants.test.ts`: id-uniqueness, zone/zone
+- [x] **T4.** `ChapterWorkspace.test.tsx`/`AppHeader.test.tsx` reset-button
+      coverage. In-browser verified via Playwright with a fresh no-saves
+      account on BB 0.1 and RWE `rwe-t1-bitly-url-shortener`: button renders
+      in both modes, arms on first click, fires+disarms on second.
+- [x] **T5.** Author decorators for the small graphs: 0.1, 1.2, 3.1, 3.2.
+- [x] **T6.** Author decorators for 3.3-3.9.
+- [x] **T7.** Author decorators for 3.11, 3.12.
+- [x] **T8.** `authoring-invariants.test.ts`: id-uniqueness, zone/zone
       non-overlap, palette-membership, spoiler-gate gates for decorators.
-- [ ] **T9.** In-browser verification pass across all 13 chapters: zoom,
-      label legibility both themes, no zone covering a card/edge label, reset
-      button restores decorators.
+      23/23 passing (4 new).
+- [x] **T9.** In-browser verification pass across all 13 chapters via
+      Playwright (forcing Reset to Default first on each, to bypass stale
+      pre-decorator saves left on the shared test account by earlier
+      verification passes): every chapter's card/zone/comment counts match
+      the authored decorators exactly. Screenshot review of 3.12 (widest
+      layout, lowest fitView zoom at 0.66), 3.5 (has a gap zone), and 0.1
+      (simplest) in both themes - zones and comments render legibly, no
+      zone covers a card or an edge label, the pink gap zone on 3.5 sits
+      exactly in the empty slot without naming what belongs there.
 - [ ] **T10.** Docs: `CURRICULUM.md` §11.5 addition, `DESIGN.md` palette entry,
       `pending-chapters.md` ledger entry, `chapter-author` skill update.
