@@ -122,9 +122,8 @@ export function ShortcutsModal() {
     if (!open) setSearch("");
   }
 
-  // Below 768 the app doesn't render at all (see ScreenSizeGate.tsx / MVP
-  // scope's desktop-first call), so 1 column never actually happens in
-  // practice — kept as a safe floor rather than assumed away.
+  // This modal opens from non-gated surfaces too (AllActivityModal on Home),
+  // so 1 column is a real case below 768, not just a safe floor.
   const viewportWidth = useViewportWidth();
   const columnCount = viewportWidth >= 1024 ? 3 : viewportWidth >= 768 ? 2 : 1;
 

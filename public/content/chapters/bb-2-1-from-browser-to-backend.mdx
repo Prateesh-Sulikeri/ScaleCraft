@@ -1,0 +1,227 @@
+The interviewer asks you to walk them through what happens when a user loads
+your app. You start where your diagram starts: the request arrives at the app
+server, which queries the database and returns a row. "Before that," they say.
+"How did the request find your app server?" You don't have an answer, because
+the three boxes you drew in 1.2 start one step too late. The client and the app
+server are joined by a single arrow, and that arrow is hiding most of the trip.
+
+Every component in Part 3's first group lives on or beside that arrow, and most
+of the rest of Part 3 hangs off the far end of it. Knowing the stops, in order,
+is what turns the rest of this curriculum into a map, not a parts catalog.
+
+> [!NOTE]
+> Think first: between the moment a user hits enter and the moment your app
+> server sees the request, how many separate systems does that request touch?
+> Commit to a number before reading on.
+
+## Resolve, connect, exchange
+
+Every request runs the same three phases in the same order. **Resolve**: turn
+the name in the URL into an address. **Connect**: open a channel to that
+address and secure it. **Exchange**: send the request over that channel and
+read the response back. The first two finish before your application code runs
+at all, which is exactly why they are invisible on a diagram that starts at the
+app server.
+
+What follows is a tour. Every stop is a real component with its own chapter in
+Part 3, where you build it yourself; none of them is on your palette yet, and
+nothing here goes on your canvas this chapter. The Client card from 1.2 appears
+here as a Browser, its most common concrete form.
+
+<Walkthrough
+  title="One request, browser to backend and back"
+  description="Six steps from a typed URL to a rendered response."
+  nodes={[
+    { id: "browser", kind: "component", componentId: "browser" },
+    { id: "dns", kind: "component", componentId: "dns" },
+    { id: "proxy", kind: "component", componentId: "reverse-proxy" },
+    { id: "app", kind: "component", componentId: "app-server" },
+    { id: "db", kind: "component", componentId: "sql-database" },
+  ]}
+  edges={[
+    { id: "e-dns", source: "browser", target: "dns", kind: "control" },
+    { id: "e-edge", source: "browser", target: "proxy", kind: "request-flow" },
+    { id: "e-app", source: "proxy", target: "app", kind: "request-flow" },
+    { id: "e-db", source: "app", target: "db", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "The Browser has a name, not an address. Nothing can be sent yet: a URL names a host, and the network only routes to addresses.",
+      highlightNodeIds: ["browser"],
+    },
+    {
+      caption: "The Browser asks DNS to turn the hostname into an IP address. This runs beside the request path rather than on it, and no page data ever travels through it.",
+      focus: "e-dns",
+    },
+    {
+      caption: "With an address in hand, the Browser opens a TCP connection to the Reverse Proxy and completes a TLS handshake over it. Only now does a secure channel exist.",
+      focus: "e-edge",
+    },
+    {
+      caption: "The Reverse Proxy terminates TLS, decides this request belongs to the application, and forwards it inward over the internal network.",
+      focus: "e-app",
+    },
+    {
+      caption: "The Application Server runs the business logic and queries the SQL Database for the rows it needs. This is the pair 1.2 already had you draw.",
+      focus: "e-db",
+    },
+    {
+      caption: "The response retraces the same path in reverse: SQL Database to Application Server, to Reverse Proxy, to Browser. There is no separate route home.",
+      highlightNodeIds: ["browser", "proxy", "app", "db"],
+      highlightEdgeIds: ["e-edge", "e-app", "e-db"],
+    },
+  ]}
+/>
+
+Note: the DNS edge is drawn as a `control` edge, not `request-flow`. Resolution
+happens beside the request and before it exists; the request's own data never
+passes through the resolver.
+
+## Every stop, and who owns it
+
+Five nodes fit in one diagram. A fuller path has more, and each extra stop is a
+component with a chapter of its own.
+
+| Stop | What it does | Where you build it |
+|---|---|---|
+| Browser | Holds the URL, runs resolve/connect/exchange, renders the response | 3.2 |
+| DNS | Turns a hostname into an IP address, before any connection exists | 3.2 |
+| TCP + TLS handshake | Opens the channel and proves the server is who it claims to be | Not a component - the connect phase, everywhere; 3.1 covers it |
+| Firewall | Drops traffic that has no business reaching you, at the perimeter | 3.1 |
+| Reverse proxy | The single front door: terminates TLS, routes by host or path | 3.3 |
+| Load balancer | Spreads requests across identical app-server instances | 3.4 |
+| API gateway | Auth, rate limits, and request shaping in front of many services | 3.5 |
+| Application server | Business logic, and the only component that talks to the database | 1.2 |
+| SQL database | Stores the rows and returns them | 1.2 |
+
+Not every system has every stop. A two-person startup serves real traffic with
+a browser, DNS, one proxy terminating TLS, one app server and one database. The
+other three rows exist because a specific force showed up: too much traffic for
+one instance (load balancer), too many services behind one address (API
+gateway), too much hostile traffic (firewall). None of them is a default.
+
+Read the middle rows again. Firewall, reverse proxy, load balancer and API
+gateway all sit between the browser and the app server, inside the one arrow
+1.2 drew as a straight line. That segment has a name, the **edge**. Group A of
+Part 3 spends one chapter per stop: 3.1 and 3.2 on the perimeter and the
+resolve phase that precedes it, then 3.3, 3.4 and 3.5 walking the edge itself.
+
+## Before your code runs
+
+The resolve and connect phases have performance behavior of their own, and it
+is the part candidates skip most often.
+
+**Resolution is usually free, because it usually does not happen.** A DNS
+answer carries a TTL (time to live): how long anyone may reuse it before asking
+again. The browser, the operating system, and the recursive resolver your
+network points at - the DNS service that does the lookup on your behalf and
+caches the result - each keep the answer for that long, so a returning user
+typically pays nothing to resolve your name. What that costs you is control
+over timing - when you change where your name points, old answers stay in
+caches until their TTLs expire, so a DNS change is never instant.
+
+**Connecting is not free, and it is priced per connection, not per request.** A
+TCP connection costs a round trip to establish, and a TLS handshake on top of
+it costs one more on TLS 1.3, two on 1.2. On a 100 ms round trip that is 200 to
+300 ms before the first byte of the request is even sent. Browsers hold
+connections open and reuse them for later requests to the same host precisely
+because that setup is worth paying once rather than once per image on the page.
+
+Both phases are compressed here. Real resolution walks a hierarchy of name
+servers rather than asking one, and TLS negotiates versions and keys before it
+agrees on a channel. Neither detail changes a design decision at this stage;
+3.2 opens up the first of them.
+
+## Where TLS ends
+
+The walkthrough terminates TLS at the reverse proxy and forwards plain traffic
+inward. That is a decision, not a fact.
+
+| Terminate at | Buys | Spends |
+|---|---|---|
+| The edge (reverse proxy) | One place holds and renews certificates; internal hops are readable while you debug them | Confidentiality inside your network - anything with access reads request bodies in the clear |
+| The app server, or re-encrypt inward | Confidentiality on every hop | Certificate management on every instance, plus CPU on both ends of every internal hop |
+
+In 1.3's terms: we chose edge termination, accepting plaintext internal
+traffic, because the internal network is ours and one certificate is far less
+to operate. The moment that network stops being trustworthy - shared
+infrastructure, regulated data, a requirement that names encryption in
+transit - the reason has changed, and so should the decision.
+
+## In production
+
+**Cloudflare** customers move the resolve and connect phases into someone
+else's network: DNS is answered there, TLS terminates there, and unwanted
+traffic is dropped there, so the origin only ever sees requests that already
+cleared the front door. The trade-off is a third party in the path of every
+user, including during that third party's own outages.
+
+**Google** shipped QUIC, the transport that now carries HTTP/3, because
+connection setup dominated page load on mobile networks where a single round
+trip can cost hundreds of milliseconds. Collapsing the transport and TLS
+handshakes into fewer round trips was worth changing the protocol for; it
+matters to you when your users sit on high-latency links, and the cost is that
+everything in the path, including proxies you do not own, has to support it
+first.
+
+## Common mistakes
+
+- **Starting the walk at the app server.** The cold open's failure. "A request
+  comes in" skips the two phases that decide whether a request can come in at
+  all.
+- **Treating DNS as part of the request path.** Candidates who miss this draw
+  DNS in front of the proxy, which claims it carries traffic it never sees.
+- **Thinking the edge is one box.** It is a segment several components share,
+  and which of them you have depends on which forces actually showed up.
+- **Assuming the response takes a different route home.** It returns along the
+  connection it arrived on, through the same stops in reverse.
+
+## In an interview
+
+"Walk me through what happens when a user loads the page" is the most common
+way into step 4 of the loop (0.4). It is not a networking quiz. The interviewer
+is checking whether you can hold the whole system in your head in order,
+because nearly everything they ask next attaches to one of these stops.
+
+What that sounds like at a senior level: *"The browser resolves the hostname,
+usually straight from cache, then opens a TLS connection to our edge. The proxy
+terminates TLS and forwards to an app server, which reads from the database and
+returns. The response comes back the same way. Given our read:write ratio, the
+stop I would want to go deeper on is the edge - that is where reads pile up
+first."*
+
+## Recap
+
+- Three phases, always in this order: resolve a name into an address, connect
+  and secure a channel, exchange data over it. The first two finish before your
+  code runs.
+- DNS sits beside the request path, not on it, and its answers are cached under
+  a TTL - which is why a DNS change is never instant.
+- The single arrow 1.2 drew from client to app server is a segment called the
+  edge: firewall, reverse proxy, load balancer, API gateway. Group A of Part 3
+  is one chapter per stop, those four plus the browser and DNS ahead of them.
+- Where TLS terminates is a real trade-off: one certificate and readable
+  internal hops, against plaintext on your own network.
+- The response comes home along the same path, through the same stops in
+  reverse.
+
+## Your turn
+
+No canvas build this chapter, and no new components on your palette - every
+stop above is a Part 3 chapter, not a palette entry. The trace is the exercise,
+and it runs in two places: the walkthrough above, and the knowledge check
+below, which asks you to put the stops in order yourself and read one of these
+paths off a diagram. Read every explanation, including the ones you get right.
+
+## Next
+
+1.2 gave you three boxes and one arrow between the client and the app server.
+This chapter opened that arrow up and named what lives inside it. 1.3's
+trade-off reflex got its first use outside Part 1, on where TLS ends, and
+0.4's step 4 now has a route to narrate rather than a diagram to point at.
+
+You know roughly eight places a request stops. Every one of them can fail, and
+most of them fail as the same thing from the user's side: nothing happens. 2.2
+walks this exact path again, backwards, asking what the user actually sees when
+each stop breaks - starting with the one that fails before your infrastructure
+is ever touched.

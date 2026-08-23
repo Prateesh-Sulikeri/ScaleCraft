@@ -28,7 +28,7 @@ export function ReaderSidebar({ course, chapterSlug }: ReaderSidebarProps) {
   const hydrate = useCurriculumProgressStore((s) => s.hydrate);
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const rowsBySlug = useCurriculumProgressStore((s) => s.rowsBySlug);
-  const examAttemptsByDefinition = useCurriculumProgressStore((s) => s.examAttemptsByDefinition);
+  const examBestByDefinition = useCurriculumProgressStore((s) => s.examBestByDefinition);
   const { isSignedIn } = useAuth();
 
   useEffect(() => {
@@ -41,8 +41,8 @@ export function ReaderSidebar({ course, chapterSlug }: ReaderSidebarProps) {
   }, [hydrate, isSignedIn]);
 
   const inputs: ProgressInputs = useMemo(
-    () => ({ validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition }),
-    [validationPassedDefinitionIds, rowsBySlug, examAttemptsByDefinition],
+    () => ({ validationPassedDefinitionIds, rowsBySlug, examBestByDefinition }),
+    [validationPassedDefinitionIds, rowsBySlug, examBestByDefinition],
   );
 
   return (

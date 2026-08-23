@@ -179,8 +179,13 @@ type CanvasStore = {
   /** Replaces the whole graph — used for seeding a demo/starter graph and,
    * later, loading a chapter's starterGraph or a persisted save. Zones
    * aren't part of ArchitectureGraph (see types.ts), so this never creates
-   * any — it only ever replaces component nodes wholesale. */
-  loadGraph: (graph: ArchitectureGraph) => void;
+   * any from `graph` itself — `decorators` is the one way to seed
+   * zone/comment/flag nodes alongside it, populated by ChapterWorkspace from
+   * ChapterDefinition.starterDecorators via toDecoratorNodes (see
+   * content/chapters/starter-decorators.ts). Absent/empty means no
+   * decorators, matching every caller before this param existed (e.g.
+   * Sandbox's seed graph). */
+  loadGraph: (graph: ArchitectureGraph, decorators?: AnyNodeType[]) => void;
   /** Restores a raw canvas snapshot (see src/persistence/db.ts) — unlike
    * loadGraph, takes AnyNodeType[]/ArchitectureEdgeType[] directly instead
    * of mapping from ArchitectureGraph, so zones survive a restore. */
@@ -190,7 +195,7 @@ type CanvasStore = {
    * the guided tour's Start over (see tour/TourController.tsx): leaving a
    * `past` entry behind there would make Undo available on step 1, which is
    * exactly what the tour's undo step asks the learner to produce. */
-  resetGraph: (graph: ArchitectureGraph) => void;
+  resetGraph: (graph: ArchitectureGraph, decorators?: AnyNodeType[]) => void;
   addNode: (definition: ComponentDefinition, position: XY) => void;
   /** width/height default to the original fixed zone size — the
    * drag-to-draw gesture (see Canvas.tsx) passes explicit dimensions from
@@ -458,14 +463,17 @@ export function createCanvasStore(): StoreApi<CanvasStore> {
   past: [],
   future: [],
 
-  loadGraph: (graph) => {
+  loadGraph: (graph, decorators = []) => {
     set((state) => ({
-      nodes: graph.nodes.map((n) => ({
-        id: n.id,
-        type: "component",
-        position: n.position,
-        data: { componentId: n.componentId, config: n.config },
-      })),
+      nodes: [
+        ...graph.nodes.map((n) => ({
+          id: n.id,
+          type: "component" as const,
+          position: n.position,
+          data: { componentId: n.componentId, config: n.config },
+        })),
+        ...decorators,
+      ],
       edges: graph.edges.map((e) => ({
         id: e.id,
         source: e.source,
@@ -504,8 +512,8 @@ export function createCanvasStore(): StoreApi<CanvasStore> {
     }));
   },
 
-  resetGraph: (graph) => {
-    get().loadGraph(graph);
+  resetGraph: (graph, decorators) => {
+    get().loadGraph(graph, decorators);
     set({ past: [], future: [], pendingUndo: null });
   },
 

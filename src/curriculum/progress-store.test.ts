@@ -1,8 +1,10 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useCurriculumProgressStore } from "./progress-store";
-import { db, type CurriculumProgress, type ExamAttempt } from "@/persistence/db";
+import { chapterSaveId, db, SANDBOX_SAVE_ID, type CurriculumProgress, type ExamAttempt, type SubmittedExamAttempt } from "@/persistence/db";
 import type { SyncResult } from "@/persistence/cloud-sync";
+import { allEntries, getCourse } from "./index";
+import { activityTimestamps, computeDayStreak, localDayIndex } from "@/home/home-data";
 
 // Lets one test control exactly when the reconcile pass's remote fetch
 // resolves, so it can prove markVisited's Dexie write genuinely waits for
@@ -25,15 +27,51 @@ vi.mock("@/persistence/cloud-sync", async (importOriginal) => {
   };
 });
 
+// The day log's remote mirror talks to /api/streak-days (Clerk
+// publicMetadata), so it needs mocking for the same reason the cloud-sync
+// hydrators do: real fetch() fails here. Both halves are swappable:
+// `pushImpl` so a test can prove the reset *aborts* rather than wiping
+// progress when the day log cannot be flushed, and `fetchImpl` so one can
+// return null - "unknown", the state that must never render as a number.
+let pushedDays: number[] | null = null;
+let pushCount = 0;
+let pushImpl: (days: readonly number[]) => Promise<number[] | null> = async (days) => {
+  pushedDays = [...days];
+  return [...days];
+};
+let fetchImpl: () => Promise<number[] | null> = async () => [];
+vi.mock("@/persistence/streak-days", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/persistence/streak-days")>();
+  return {
+    ...actual,
+    fetchStreakDays: () => fetchImpl(),
+    pushStreakDays: (days: readonly number[]) => {
+      pushCount += 1;
+      return pushImpl(days);
+    },
+  };
+});
+
 function attempt(overrides: Partial<ExamAttempt> = {}): ExamAttempt {
   return {
     chapterDefinitionId: "bb-dummy-1",
-    attemptNumber: 1,
+    totalAttempts: 1,
     submittedAt: Date.now(),
     score: 100,
     answers: [{ questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true }],
     dirty: false,
     syncedAt: null,
+    ...overrides,
+  };
+}
+
+/** What one submission carries: no count, no sync bookkeeping. */
+function submission(overrides: Partial<SubmittedExamAttempt> = {}): SubmittedExamAttempt {
+  return {
+    chapterDefinitionId: "bb-dummy-1",
+    submittedAt: Date.now(),
+    score: 100,
+    answers: [{ questionId: "q1", answer: { kind: "single", optionId: "a" }, correct: true }],
     ...overrides,
   };
 }
@@ -47,12 +85,24 @@ beforeEach(async () => {
     hydrating: false,
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(),
-    examAttemptsByDefinition: new Map(),
+    examBestByDefinition: new Map(),
+    activeDays: [],
+    activeDaysLoaded: false,
   });
   await db.curriculumProgress.clear();
   await db.chapterProgress.clear();
-  await db.examAttempts.clear();
+  await db.examBest.clear();
+  await db.saves.clear();
+  await db.deepCheckSessions.clear();
+  await db.activeDays.clear();
   hydrateAllCurriculumProgressImpl = () => Promise.resolve({ ok: true, data: [] });
+  pushedDays = null;
+  pushCount = 0;
+  pushImpl = async (days) => {
+    pushedDays = [...days];
+    return [...days];
+  };
+  fetchImpl = async () => [];
 });
 
 describe("curriculum progress store", () => {
@@ -66,7 +116,7 @@ describe("curriculum progress store", () => {
       syncedAt: null,
     });
     const seeded = attempt();
-    await db.examAttempts.put(seeded);
+    await db.examBest.put(seeded);
 
     await useCurriculumProgressStore.getState().hydrate();
 
@@ -74,7 +124,7 @@ describe("curriculum progress store", () => {
     expect(state.hydrated).toBe(true);
     expect(state.validationPassedDefinitionIds.has("bb-dummy-1")).toBe(true);
     expect(state.rowsBySlug.get("1-2-load-balancing")?.lastVisitedAt).toBeTypeOf("number");
-    expect(state.examAttemptsByDefinition.get("bb-dummy-1")).toEqual([seeded]);
+    expect(state.examBestByDefinition.get("bb-dummy-1")).toEqual(seeded);
   });
 
   // Phase 6, pending-6.1.0-poa.md - fixes audit S5: a failed remote fetch
@@ -155,52 +205,68 @@ describe("curriculum progress store", () => {
     const inputs = useCurriculumProgressStore.getState().inputs();
     expect(inputs.validationPassedDefinitionIds.has("bb-dummy-1")).toBe(true);
     expect(inputs.rowsBySlug).toBeInstanceOf(Map);
-    expect(inputs.examAttemptsByDefinition).toBeInstanceOf(Map);
+    expect(inputs.examBestByDefinition).toBeInstanceOf(Map);
   });
 
-  it("recordExamAttempt writes to Dexie and memory, keyed by [chapterDefinitionId+attemptNumber]", async () => {
-    const seeded = attempt();
-    await useCurriculumProgressStore.getState().recordExamAttempt(seeded);
+  it("recordExamAttempt writes one row per chapter to Dexie and memory", async () => {
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission());
 
-    expect(useCurriculumProgressStore.getState().examAttemptsByDefinition.get("bb-dummy-1")).toEqual([seeded]);
-    const persisted = await db.examAttempts.get(["bb-dummy-1", 1]);
+    const inMemory = useCurriculumProgressStore.getState().examBestByDefinition.get("bb-dummy-1");
+    expect(inMemory).toMatchObject({ score: 100, totalAttempts: 1, dirty: true });
+    const persisted = await db.examBest.get("bb-dummy-1");
     expect(persisted?.score).toBe(100);
+    expect(await db.examBest.count()).toBe(1);
   });
 
-  it("recordExamAttempt for a second attempt number keeps the first attempt", async () => {
-    await useCurriculumProgressStore.getState().recordExamAttempt(attempt({ attemptNumber: 1, score: 40 }));
-    await useCurriculumProgressStore.getState().recordExamAttempt(attempt({ attemptNumber: 2, score: 90 }));
+  it("a better attempt replaces the stored one outright, count included", async () => {
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission({ score: 40, submittedAt: 1_000 }));
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission({ score: 90, submittedAt: 2_000 }));
 
-    const attempts = useCurriculumProgressStore.getState().examAttemptsByDefinition.get("bb-dummy-1");
-    expect(attempts?.map((a) => a.attemptNumber)).toEqual([1, 2]);
+    const row = useCurriculumProgressStore.getState().examBestByDefinition.get("bb-dummy-1");
+    expect(row).toMatchObject({ score: 90, submittedAt: 2_000, totalAttempts: 2 });
+    expect(await db.examBest.count()).toBe(1);
   });
 
-  it("recordExamAttempt replaces an existing attempt with the same attemptNumber", async () => {
-    await useCurriculumProgressStore.getState().recordExamAttempt(attempt({ attemptNumber: 1, score: 40 }));
-    await useCurriculumProgressStore.getState().recordExamAttempt(attempt({ attemptNumber: 1, score: 90 }));
+  it("a worse attempt leaves the best alone but still counts", async () => {
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission({ score: 90, submittedAt: 1_000 }));
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission({ score: 40, submittedAt: 2_000 }));
 
-    const attempts = useCurriculumProgressStore.getState().examAttemptsByDefinition.get("bb-dummy-1");
-    expect(attempts).toHaveLength(1);
-    expect(attempts?.[0].score).toBe(90);
+    const row = useCurriculumProgressStore.getState().examBestByDefinition.get("bb-dummy-1");
+    expect(row).toMatchObject({ score: 90, submittedAt: 1_000, totalAttempts: 2 });
   });
 
-  it("resetChapter deletes the chapter's examAttempts rows, in Dexie and memory", async () => {
-    await useCurriculumProgressStore.getState().recordExamAttempt(attempt());
+  it("an equal score does not move submittedAt off the moment it was first reached", async () => {
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission({ score: 80, submittedAt: 1_000 }));
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission({ score: 80, submittedAt: 2_000 }));
+
+    const row = useCurriculumProgressStore.getState().examBestByDefinition.get("bb-dummy-1");
+    expect(row).toMatchObject({ score: 80, submittedAt: 1_000, totalAttempts: 2 });
+  });
+
+  it("keeps the answers of the attempt that earned the best score", async () => {
+    const winning = [{ questionId: "q1", answer: { kind: "single" as const, optionId: "a" }, correct: true }];
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission({ score: 90, answers: winning }));
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission({ score: 10, answers: [] }));
+
+    expect(useCurriculumProgressStore.getState().examBestByDefinition.get("bb-dummy-1")?.answers).toEqual(winning);
+  });
+
+  it("resetChapter deletes the chapter's exam row, in Dexie and memory", async () => {
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission());
     useCurriculumProgressStore.getState().recordValidationPass("bb-dummy-1");
 
     await useCurriculumProgressStore.getState().resetChapter("1-2-load-balancing", "bb-dummy-1");
 
-    expect(useCurriculumProgressStore.getState().examAttemptsByDefinition.get("bb-dummy-1")).toBeUndefined();
-    expect(await db.examAttempts.get(["bb-dummy-1", 1])).toBeUndefined();
+    expect(useCurriculumProgressStore.getState().examBestByDefinition.get("bb-dummy-1")).toBeUndefined();
+    expect(await db.examBest.get("bb-dummy-1")).toBeUndefined();
   });
 
-  it("resetChapter with a null chapterDefinitionId does not touch examAttempts", async () => {
-    const seeded = attempt();
-    await useCurriculumProgressStore.getState().recordExamAttempt(seeded);
+  it("resetChapter with a null chapterDefinitionId does not touch the exam row", async () => {
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission());
 
     await useCurriculumProgressStore.getState().resetChapter("some-slug", null);
 
-    expect(useCurriculumProgressStore.getState().examAttemptsByDefinition.get("bb-dummy-1")).toEqual([seeded]);
+    expect(useCurriculumProgressStore.getState().examBestByDefinition.get("bb-dummy-1")).toMatchObject({ score: 100 });
   });
 
   // Regression: the mutators used to build their `put` payload from the
@@ -387,6 +453,300 @@ describe("curriculum progress store", () => {
     expect(state.hydrating).toBe(false);
     expect(state.rowsBySlug.size).toBe(0);
     expect(state.validationPassedDefinitionIds.size).toBe(0);
-    expect(state.examAttemptsByDefinition.size).toBe(0);
+    expect(state.examBestByDefinition.size).toBe(0);
+  });
+});
+
+describe("resetCourse", () => {
+  // A slug that really exists in the manifest, so the test exercises the same
+  // lookup the dialog does rather than a fixture the code path never sees.
+  const bbEntries = allEntries(getCourse("building-blocks"));
+  const bbSlugs = bbEntries.map((e) => e.slug);
+  const rweSlugs = allEntries(getCourse("real-world-extraction")).map((e) => e.slug);
+  // A real authored chapter's definition id - resetCourse only deletes ids
+  // the manifest actually lists, so a made-up one would silently survive and
+  // the assertion would be testing nothing.
+  const bbDefinitionId = bbEntries.find((e) => e.chapterDefinitionId != null)!.chapterDefinitionId!;
+
+  const seedVisited = async (slug: string, at: number) =>
+    db.curriculumProgress.put({
+      slug,
+      manuallyCompletedAt: null,
+      lastVisitedAt: at,
+      dirty: false,
+      syncedAt: null,
+    });
+
+  it("wipes the named course back to NOT_STARTED", async () => {
+    const slug = bbSlugs[0];
+    await seedVisited(slug, Date.now());
+    await db.chapterProgress.put({
+      chapterId: bbDefinitionId,
+      completedAt: Date.now(),
+      matchedBlueprintId: null,
+      dirty: false,
+      syncedAt: null,
+    });
+    await db.examBest.put(attempt({ chapterDefinitionId: bbDefinitionId }));
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    const row = useCurriculumProgressStore.getState().rowsBySlug.get(slug);
+    expect(row?.lastVisitedAt).toBeNull();
+    expect(row?.manuallyCompletedAt).toBeNull();
+    // Nulled rather than deleted - /api/sync/curriculum-progress has no
+    // DELETE, and a deleted local row would just be pulled back.
+    expect(await db.curriculumProgress.get(slug)).toBeTruthy();
+    expect(await db.chapterProgress.count()).toBe(0);
+    expect(await db.examBest.count()).toBe(0);
+  });
+
+  it("leaves the other course untouched", async () => {
+    const bb = bbSlugs[0];
+    const rwe = rweSlugs[0];
+    const rweVisitedAt = Date.now();
+    await seedVisited(bb, Date.now());
+    await seedVisited(rwe, rweVisitedAt);
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    expect(useCurriculumProgressStore.getState().rowsBySlug.get(bb)?.lastVisitedAt).toBeNull();
+    expect(useCurriculumProgressStore.getState().rowsBySlug.get(rwe)?.lastVisitedAt).toBe(rweVisitedAt);
+  });
+
+  it("preserves the streak days of the wiped activity", async () => {
+    const day = 20_500;
+    const at = day * 86_400_000 + 12 * 3_600_000; // midday, so no timezone edge
+    await seedVisited(bbSlugs[0], at);
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    // The timestamp is gone, but the day it fell on survived the wipe -
+    // which is the entire point of the snapshot.
+    expect(useCurriculumProgressStore.getState().rowsBySlug.get(bbSlugs[0])?.lastVisitedAt).toBeNull();
+    expect(pushedDays).toContain(localDayIndex(at));
+    expect(useCurriculumProgressStore.getState().activeDays).toContain(localDayIndex(at));
+  });
+
+  it("leaves the day streak exactly where it was - the reset-inflates-the-streak bug", async () => {
+    // The reported symptom: a 1-day streak became a 4-day streak by resetting.
+    // Reset used to be the only writer of the day log, so its response was the
+    // first time the client saw days it had long since forgotten, and the
+    // number jumped. Now every day is banked as it happens, which leaves reset
+    // with nothing to reveal.
+    const today = localDayIndex(Date.now());
+    for (const day of [today - 3, today - 2, today - 1, today]) {
+      await db.activeDays.put({ day, syncedAt: Date.now() });
+    }
+    await useCurriculumProgressStore.getState().refresh();
+
+    const streak = () => {
+      const state = useCurriculumProgressStore.getState();
+      return computeDayStreak(activityTimestamps(state.inputs()), Date.now(), state.activeDays);
+    };
+    const before = streak();
+    expect(before).toBe(4);
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    expect(streak()).toBe(before);
+  });
+
+  it("keeps the streak when the wiped course held the only live timestamps", async () => {
+    // The same invariant from the other side: the day log carries the run on
+    // its own once the timestamps it used to be inferred from are gone.
+    const today = localDayIndex(Date.now());
+    await seedVisited(bbSlugs[0], Date.now());
+    for (const day of [today - 1, today]) {
+      await db.activeDays.put({ day, syncedAt: Date.now() });
+    }
+    await useCurriculumProgressStore.getState().refresh();
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    const state = useCurriculumProgressStore.getState();
+    expect(state.rowsBySlug.get(bbSlugs[0])?.lastVisitedAt).toBeNull();
+    expect(computeDayStreak(activityTimestamps(state.inputs()), Date.now(), state.activeDays)).toBe(2);
+  });
+
+  it("snapshots days from BOTH courses, so resetting the second cannot drop the first's", async () => {
+    const bbAt = 20_500 * 86_400_000 + 12 * 3_600_000;
+    const rweAt = 20_501 * 86_400_000 + 12 * 3_600_000;
+    await seedVisited(bbSlugs[0], bbAt);
+    await seedVisited(rweSlugs[0], rweAt);
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    expect(pushedDays).toEqual(
+      expect.arrayContaining([localDayIndex(bbAt), localDayIndex(rweAt)]),
+    );
+  });
+
+  it("aborts without deleting anything when the streak cannot be saved", async () => {
+    const slug = bbSlugs[0];
+    const visitedAt = Date.now();
+    await seedVisited(slug, visitedAt);
+    await db.examBest.put(attempt({ chapterDefinitionId: bbDefinitionId }));
+    pushImpl = async () => null; // network failure
+
+    await expect(useCurriculumProgressStore.getState().resetCourse("building-blocks")).rejects.toThrow();
+
+    // Progress intact. Losing the streak is worse than a reset the learner
+    // can simply retry, so the wipe must not proceed past a failed snapshot.
+    expect((await db.curriculumProgress.get(slug))?.lastVisitedAt).toBe(visitedAt);
+    expect(await db.examBest.count()).toBe(1);
+  });
+
+  it("deletes the saved canvas for each of the course's chapters", async () => {
+    const saveId = chapterSaveId(bbDefinitionId);
+    await db.saves.put({
+      id: saveId,
+      updatedAt: Date.now(),
+      nodes: [],
+      edges: [],
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 1,
+      dirty: false,
+      syncedAt: null,
+    });
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    // A save left behind would silently reload the old solution the next
+    // time the Design Editor opened - the opposite of starting over.
+    expect(await db.saves.get(saveId)).toBeUndefined();
+  });
+
+  it("deletes Deep Check sessions belonging to those saves", async () => {
+    const saveId = chapterSaveId(bbDefinitionId);
+    await db.deepCheckSessions.put({
+      syncId: "sync-1",
+      saveId,
+      createdAt: Date.now(),
+      critique: {} as never,
+      dirty: false,
+      syncedAt: null,
+    });
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    // Critiques of a graph that no longer exists are orphans.
+    expect(await db.deepCheckSessions.where("saveId").equals(saveId).count()).toBe(0);
+  });
+
+  it("leaves the Sandbox canvas alone - it belongs to no course", async () => {
+    await db.saves.put({
+      id: SANDBOX_SAVE_ID,
+      updatedAt: Date.now(),
+      nodes: [],
+      edges: [],
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 1,
+      dirty: false,
+      syncedAt: null,
+    });
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    expect(await db.saves.get(SANDBOX_SAVE_ID)).toBeTruthy();
+  });
+
+  it("leaves the other course's saved canvases alone", async () => {
+    const rweDefinitionId = allEntries(getCourse("real-world-extraction")).find(
+      (e) => e.chapterDefinitionId != null,
+    )!.chapterDefinitionId!;
+    const rweSaveId = chapterSaveId(rweDefinitionId);
+    await db.saves.put({
+      id: rweSaveId,
+      updatedAt: Date.now(),
+      nodes: [],
+      edges: [],
+      graphHash: "test-hash",
+      localRevision: 1,
+      cloudRevision: 1,
+      dirty: false,
+      syncedAt: null,
+    });
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    expect(await db.saves.get(rweSaveId)).toBeTruthy();
+  });
+
+  it("merges the server's day set back in, picking up another device's reset", async () => {
+    const at = 20_500 * 86_400_000 + 12 * 3_600_000;
+    await seedVisited(bbSlugs[0], at);
+    pushImpl = async (days) => [...days, 19_000]; // a day only the server knew
+
+    await useCurriculumProgressStore.getState().resetCourse("building-blocks");
+
+    expect(useCurriculumProgressStore.getState().activeDays).toContain(19_000);
+  });
+});
+
+describe("recording active days", () => {
+  const slug = allEntries(getCourse("building-blocks"))[0].slug;
+
+  it("banks today when a chapter is opened", async () => {
+    await useCurriculumProgressStore.getState().markVisited(slug);
+
+    // markVisited fires recordToday without awaiting it, so the day lands on
+    // a later tick than the row does.
+    await vi.waitFor(async () => {
+      expect(await db.activeDays.get(localDayIndex(Date.now()))).toBeDefined();
+    });
+    expect(useCurriculumProgressStore.getState().activeDays).toContain(localDayIndex(Date.now()));
+  });
+
+  it("banks today when an exam is submitted", async () => {
+    await useCurriculumProgressStore.getState().recordExamAttempt(submission());
+
+    await vi.waitFor(async () => {
+      expect(await db.activeDays.get(localDayIndex(Date.now()))).toBeDefined();
+    });
+  });
+
+  it("does not treat un-completing a chapter as activity", async () => {
+    // Clearing the flag stamps no timestamp, so it has never been a day the
+    // streak recognised. Recording it would invent activity.
+    await useCurriculumProgressStore.getState().setManualComplete(slug, false);
+
+    expect(await db.activeDays.count()).toBe(0);
+  });
+
+  it("spends exactly one Clerk write per day no matter how much happens", async () => {
+    // The economics the whole metadata-not-Postgres trade rests on. Three
+    // activities in one day must not be three writes.
+    await useCurriculumProgressStore.getState().markVisited(slug);
+    await vi.waitFor(() => expect(pushCount).toBe(1));
+
+    await useCurriculumProgressStore.getState().markVisited(slug);
+    await useCurriculumProgressStore.getState().setManualComplete(slug, true);
+    await vi.waitFor(() =>
+      expect(useCurriculumProgressStore.getState().rowsBySlug.get(slug)?.manuallyCompletedAt).not.toBeNull(),
+    );
+
+    expect(pushCount).toBe(1);
+  });
+
+  it("keeps the day locally when the push fails, and flushes it on the next pass", async () => {
+    pushImpl = async () => null;
+    await useCurriculumProgressStore.getState().markVisited(slug);
+    const today = localDayIndex(Date.now());
+    await vi.waitFor(async () => {
+      expect((await db.activeDays.get(today))?.syncedAt).toBeNull();
+    });
+    // Offline or not, the streak still counts the day on this device.
+    expect(useCurriculumProgressStore.getState().activeDays).toContain(today);
+
+    pushImpl = async (days) => {
+      pushedDays = [...days];
+      return [...days];
+    };
+    await useCurriculumProgressStore.getState().refresh();
+
+    expect((await db.activeDays.get(today))?.syncedAt).not.toBeNull();
   });
 });

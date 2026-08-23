@@ -18,7 +18,7 @@ afterEach(() => {
     hydrating: false,
     validationPassedDefinitionIds: new Set(),
     rowsBySlug: new Map(),
-    examAttemptsByDefinition: new Map(),
+    examBestByDefinition: new Map(),
   });
   useCustomComponentsStore.setState({ customComponents: [], hydrated: false });
 });

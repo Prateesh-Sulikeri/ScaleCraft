@@ -7,6 +7,7 @@ import { categoryLabel, categoryOrder } from "./category-colors";
 import { iconMap } from "./icon-map";
 import type { ComponentCategory } from "@/content/components/types";
 import type { CustomComponentRecord, CustomFieldSpec } from "@/content/components/custom";
+import { useEscapeKey } from "@/lib/use-escape-key";
 
 type FieldKind = "string" | "number" | "boolean" | "enum";
 
@@ -84,6 +85,9 @@ type CreateComponentModalProps = {
  * port each (not multiple named ports), no nested config shapes.
  */
 export function CreateComponentModal({ onClose, onSave, initialRecord }: CreateComponentModalProps) {
+  // Same dismissal set as CenteredModal (backdrop, X, Escape) - this modal
+  // predates that shell and still hand-rolls its own chrome.
+  useEscapeKey(onClose);
   const [error, setError] = useState<string | null>(null);
   const { register, control, handleSubmit, watch, setValue } = useForm<FormValues>({
     defaultValues: initialRecord

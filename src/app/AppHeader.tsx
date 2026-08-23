@@ -1,8 +1,8 @@
 "use client";
 
-import type { RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import Link from "next/link";
-import { AlertTriangle, BookOpen, Check, CheckCheck, Loader2, Redo2, Save, Undo2 } from "lucide-react";
+import { AlertTriangle, BookOpen, Check, CheckCheck, Loader2, Redo2, RefreshCw, Save, Undo2 } from "lucide-react";
 import type { CanvasHandle } from "@/canvas/Canvas";
 import { Tooltip } from "@/app/Tooltip";
 import { ThemeToggle } from "@/app/ThemeToggle";
@@ -14,6 +14,7 @@ import { ModeBadge } from "@/app/ModeBadge";
 import { ShortcutsButton } from "@/app/ShortcutsButton";
 import { AppUserButton } from "@/app/AppUserButton";
 import { CloudSyncIndicator } from "@/app/CloudSyncIndicator";
+import { ReportBugButton } from "@/bugs/ReportBugButton";
 import type { ValidationViolation } from "@/engines";
 import type { DeepCheckContext } from "@/ai/prompt";
 import type { AppMode } from "@/lib/modes";
@@ -62,6 +63,12 @@ type AppHeaderProps = {
    * there's no well-defined target yet (chapter mode's Chapter List view). */
   saveId: string | null;
   onSave: () => void;
+  /** Puts the canvas back to the chapter's authored starterGraph +
+   * starterDecorators, discarding the in-progress attempt (see
+   * ChapterWorkspace.tsx's handleResetToStarter). Omitted entirely in
+   * Sandbox (no starterGraph to reset to) and on the Chapter List view (no
+   * saveId yet) - same optional-prop convention as onSubmit. */
+  onResetToStarter?: () => void;
   /** One shared status for both the explicit Save button/Ctrl+S and
    *  background autosave (see persistence/use-autosave.ts) - rendered on the
    *  Save button as an icon swap plus its tooltip text, with a sr-only echo
@@ -97,11 +104,32 @@ export function AppHeader({
   chapterPassed,
   saveId,
   onSave,
+  onResetToStarter,
   saveStatus,
   docsPanelOpen,
   toggleDocsPanel,
   deepCheckCtx,
 }: AppHeaderProps) {
+  // Arms a same-button confirm step, same pattern as BoardMenu's "Clear
+  // board" - this app avoids modal confirm() dialogs (see BoardMenu.tsx's
+  // doc comment). Auto-disarms after a few seconds so an armed-but-abandoned
+  // button doesn't sit as a trap for a later, unrelated click.
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  useEffect(() => {
+    if (!confirmingReset) return;
+    const timeout = setTimeout(() => setConfirmingReset(false), 4000);
+    return () => clearTimeout(timeout);
+  }, [confirmingReset]);
+
+  const handleResetClick = () => {
+    if (!confirmingReset) {
+      setConfirmingReset(true);
+      return;
+    }
+    onResetToStarter?.();
+    setConfirmingReset(false);
+  };
+
   return (
     <header
       style={{ borderBottomColor: modeColorVar[mode] }}
@@ -207,6 +235,26 @@ export function AppHeader({
           )}
           <ProjectMenu canvasRef={canvasRef} disabled={!saveId} />
           <BoardMenu saveId={saveId} />
+          {onResetToStarter && (
+            <Tooltip
+              label={
+                confirmingReset
+                  ? "Click again to reset - your work on this chapter will be discarded"
+                  : "Reset to the starting design"
+              }
+            >
+              <button
+                onClick={handleResetClick}
+                disabled={!saveId}
+                aria-label="Reset to the starting design"
+                className={`flex h-8 w-8 items-center justify-center rounded-md border bg-panel hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-foreground/70 ${
+                  confirmingReset ? "border-state-error text-state-error" : "border-border text-foreground/70"
+                }`}
+              >
+                <RefreshCw size={16} />
+              </button>
+            </Tooltip>
+          )}
           <Tooltip label="Documentation">
             <button
               onClick={toggleDocsPanel}
@@ -221,6 +269,7 @@ export function AppHeader({
           </Tooltip>
           <ShortcutsButton />
           <CloudSyncIndicator />
+          <ReportBugButton />
           <ThemeToggle />
           <AppUserButton />
         </div>

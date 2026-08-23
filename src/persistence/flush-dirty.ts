@@ -25,13 +25,13 @@ export async function flushDirtyRows(): Promise<void> {
       db.saves.filter((row) => row.dirty).toArray(),
       db.chapterProgress.filter((row) => row.dirty).toArray(),
       db.curriculumProgress.filter((row) => row.dirty).toArray(),
-      db.examAttempts.filter((row) => row.dirty).toArray(),
+      db.examBest.filter((row) => row.dirty).toArray(),
       db.deepCheckSessions.filter((row) => row.dirty).toArray(),
       db.customComponents.filter((row) => row.dirty).toArray(),
     ]);
 
   await Promise.all([
-    ...saves.map((row) => syncSave(row.id, { nodes: row.nodes, edges: row.edges })),
+    ...saves.map((row) => syncSave(row.id, { nodes: row.nodes, edges: row.edges }, row.localRevision)),
     ...chapterProgress.map((row) => syncChapterProgress(row)),
     ...curriculumProgress.map((row) => syncCurriculumProgress(row)),
     ...examAttempts.map((row) => syncExamAttempt(row)),

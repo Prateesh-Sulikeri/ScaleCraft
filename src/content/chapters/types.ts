@@ -1,5 +1,6 @@
 import type { ArchitectureGraph } from "@/lib/graph";
 import type { GraphPattern } from "@/validation-engine/pattern";
+import type { StarterDecorator } from "./starter-decorators";
 
 export type Hint = {
   id: string;
@@ -115,6 +116,19 @@ export type ChapterDefinition = {
    * Omit (or false) for real chapters. */
   placeholder?: boolean;
   problemStatement: string;
+  /** The Design Editor's exercise brief - what the learner is actually asked
+   * to do. Names the symptom and the goal, never the component/field/edge
+   * kind that fixes it (CURRICULUM.md §11.2's brief-calibration rule). Absent
+   * for chapters with `hasEditorExercise: false`; QuestionPane renders it
+   * under a "Goal" heading instead of `learningObjectives`, which the
+   * learner has already read in the lesson and are not repeated here. */
+  exerciseGoal?: string;
+  /** Observable, system-level outcomes the learner can check for themselves
+   * ("requests reach either server; killing one instance doesn't drop
+   * traffic") - not implementation steps. Rendered under "You're done when"
+   * alongside `exerciseGoal`. At least two entries when `exerciseGoal` is
+   * present (CURRICULUM.md §11.2). */
+  successCriteria?: string[];
   learningObjectives: string[];
   availableComponentIds: string[];
   requiredComponentIds: string[];
@@ -131,6 +145,17 @@ export type ChapterDefinition = {
   /** Manual citations into the textbook — no content coupling, just links. */
   readingLinks: { label: string; url: string }[];
   starterGraph?: ArchitectureGraph;
+  /** Zones/comments pre-authored onto the starter canvas - labeled tier
+   * boundaries (client/server/data) and short callouts, colored per
+   * .claude/docs/pending-starter-decorators.md's convention. Deliberately
+   * NOT part of `starterGraph`/`ArchitectureGraph` - the validation engine,
+   * blueprint matching, and the Deep Check payload all iterate
+   * `ArchitectureGraph.nodes` expecting a `componentId`, and
+   * `toArchitectureGraph` already strips non-component canvas nodes on the
+   * way out; this field stays symmetric with that boundary on the way in.
+   * See `toDecoratorNodes` (./starter-decorators.ts) for how these become
+   * real canvas nodes. */
+  starterDecorators?: StarterDecorator[];
   /** Bump when this chapter's lesson file (`getLessonFileUrl` in
    * content/chapters/lessons.ts) changes, so `useMarkdownFile`'s cache knows
    * a previously-fetched copy is stale. Not frontmatter parsed out of the

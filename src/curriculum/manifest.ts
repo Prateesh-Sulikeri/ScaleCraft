@@ -153,7 +153,7 @@ export const courses: Record<CourseId, Course> = {
             number: "2.1",
             title: "From Browser to Backend",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-2-1-from-browser-to-backend",
             estimatedMinutes: 20,
             difficulty: "foundational",
             // §17: hangs off 1.3 - 1.4 is optional and gates nothing.
@@ -167,7 +167,7 @@ export const courses: Record<CourseId, Course> = {
             number: "2.2",
             title: "Where Can Things Go Wrong?",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-2-2-where-can-things-go-wrong",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["2-1-from-browser-to-backend"],
@@ -178,7 +178,7 @@ export const courses: Record<CourseId, Course> = {
             number: "2.3",
             title: "Evolution of Modern Architectures",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-2-3-evolution-of-modern-architectures",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["2-2-where-can-things-go-wrong"],
@@ -199,7 +199,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.1",
             title: "Networking Fundamentals",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-22 (Wave 3, first Group A
+            // chapter). See pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-1-networking-fundamentals",
             estimatedMinutes: 25,
             difficulty: "foundational",
             prerequisiteSlugs: ["2-3-evolution-of-modern-architectures"],
@@ -210,7 +212,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.2",
             title: "DNS",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-22 (Wave 3, second Group A
+            // chapter). See pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-2-dns",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-1-networking-fundamentals"],
@@ -221,7 +225,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.3",
             title: "Reverse Proxy",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-22 (Wave 3, third Group A
+            // chapter). See pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-3-reverse-proxy",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-2-dns"],
@@ -254,7 +260,10 @@ export const courses: Record<CourseId, Course> = {
             number: "3.5",
             title: "API Gateway",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-22 (Wave 3, fourth Group A
+            // chapter - Group A complete). See pending-chapters.md for the
+            // ledger entry.
+            chapterDefinitionId: "bb-3-5-api-gateway",
             estimatedMinutes: 25,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-4-load-balancer"],
@@ -275,7 +284,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.6",
             title: "Stateless Services",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-22 (first Group B chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-6-stateless-services",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-5-api-gateway"],
@@ -286,7 +297,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.7",
             title: "Sessions & State Management",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-23 (second Group B chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-7-sessions-and-state-management",
             estimatedMinutes: 25,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-6-stateless-services"],
@@ -297,7 +310,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.8",
             title: "Horizontal Scaling",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-23 (third Group B chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-8-horizontal-scaling",
             estimatedMinutes: 25,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-7-sessions-and-state-management"],
@@ -308,7 +323,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.9",
             title: "Service Discovery",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-23 (fourth and final Group B
+            // chapter). See pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-9-service-discovery",
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-8-horizontal-scaling"],
@@ -329,7 +346,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.10",
             title: "Databases",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-23 (first Group C chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-10-databases",
             estimatedMinutes: 25,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-9-service-discovery"],
@@ -340,7 +359,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.11",
             title: "SQL vs. NoSQL",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-23 (second Group C chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-11-sql-vs-nosql",
             estimatedMinutes: 25,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-10-databases"],
@@ -351,7 +372,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.12",
             title: "Replication",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-23 (third Group C chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-12-replication",
             estimatedMinutes: 30,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-11-sql-vs-nosql"],
@@ -362,7 +385,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.13",
             title: "Sharding",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-23 (fourth and final Group C
+            // chapter). See pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-13-sharding",
             estimatedMinutes: 30,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-12-replication"],

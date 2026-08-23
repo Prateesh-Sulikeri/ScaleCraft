@@ -54,7 +54,7 @@ export function HomeDashboard() {
 
           {/* Activity is the narrower of the two - four stat tiles need more
            * horizontal room than three activity rows do. */}
-          <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+          <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
             <RecentActivityCard activity={activity} allActivity={allActivity} now={now} isSignedIn={isSignedIn} />
             <AtAGlanceCard stats={stats} />
           </section>

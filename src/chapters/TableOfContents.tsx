@@ -9,6 +9,10 @@ type TableOfContentsProps = {
    *  so scrollspy tracks scroll position within it rather than the window
    *  (which never scrolls - see ReadingProgress.tsx's same note). */
   targetRef: RefObject<HTMLElement | null>;
+  /** Fires after a heading link is clicked - the Chapter Reader's mobile ToC
+   *  drawer uses this to close itself, since jumping to a heading doesn't
+   *  navigate/remount the way a chapter link does. */
+  onNavigate?: () => void;
 };
 
 /**
@@ -32,7 +36,7 @@ type TableOfContentsProps = {
  * that drops the previous chapter's observed elements and recorded positions
  * instead of carrying them into a different document.
  */
-export function TableOfContents({ headings, targetRef }: TableOfContentsProps) {
+export function TableOfContents({ headings, targetRef, onNavigate }: TableOfContentsProps) {
   const items = headings.filter((h) => h.level >= 1);
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -127,6 +131,7 @@ export function TableOfContents({ headings, targetRef }: TableOfContentsProps) {
           <li key={h.id} style={{ paddingLeft: Math.max(0, h.level - 2) * 12 }}>
             <a
               href={`#${h.id}`}
+              onClick={onNavigate}
               className={`block truncate transition-colors ${
                 activeId === h.id ? "font-medium text-foreground" : "text-foreground/60 hover:text-foreground"
               }`}

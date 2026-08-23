@@ -73,7 +73,7 @@ const examQuestionAnswerSchema = z.object({
 
 export const examAttemptBodySchema = z.object({
   chapterDefinitionId: z.string().min(1),
-  attemptNumber: z.number().int().nonnegative(),
+  totalAttempts: z.number().int().positive(),
   submittedAt: z.number(),
   score: z.number().int().min(0).max(100),
   answers: z.array(examQuestionAnswerSchema),

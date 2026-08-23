@@ -11,7 +11,7 @@ vi.mock("@/curriculum/progress-store", () => ({
       hydrate,
       validationPassedDefinitionIds: new Set(),
       rowsBySlug: new Map(),
-      examAttemptsByDefinition: new Map(),
+      examBestByDefinition: new Map(),
     }),
 }));
 

@@ -2,19 +2,29 @@
  * The alpha feedback survey - grouped questions, two free-text boxes, optional
  * screenshots, and an optional reply address, mailed to the author on submit.
  *
- * Delivery is deliberately the simplest thing that actually sends: EmailJS's
- * REST endpoints, called straight from the browser with its *public* key (that
- * key is designed to ship client-side - there is no secret here, no server
- * route, and no new dependency). When those env vars are absent the survey
- * still works: it falls back to opening the visitor's mail client with the
- * whole response pre-filled. That fallback cannot carry files, which is why
- * `isEmailJsConfigured` is exported - the dialog says so up front rather than
+ * This module is the *pure* half: the question content, the plain-text
+ * formatting, the attachment limits, and the client-side submit. Delivery
+ * itself happens server-side in `src/app/api/feedback/route.ts`, because Brevo
+ * authenticates with a secret API key that must never reach the browser - the
+ * client only ever POSTs the answers to our own route.
+ *
+ * Nothing here touches `window` outside `collectContext` and `submitFeedback`,
+ * so the route imports the formatter and the limits from this same file rather
+ * than keeping a second copy of either.
+ *
+ * When the server reports no mail service configured the survey still works: it
+ * falls back to opening the visitor's mail client with the whole response
+ * pre-filled. That fallback cannot carry files, which is why
+ * `isFeedbackEmailConfigured` exists - the dialog says so up front rather than
  * silently dropping attachments.
  *
- * See .env.example for the three values EmailJS needs.
+ * See .env.example for the values Brevo needs.
  */
 
-export const FEEDBACK_RECIPIENT = "sulikeriprateesh7@gmail.com";
+/** The project's own inbox, not a personal address - it is both the Brevo
+ *  sender and where submissions land, and it is what the dialog and the About
+ *  modal show publicly. Overridable per-deployment with FEEDBACK_RECIPIENT_EMAIL. */
+export const FEEDBACK_RECIPIENT = "noreplay.scalecraft@gmail.com";
 
 /** Questions are grouped so the dialog reads as a short interview rather than
  *  a wall of radio buttons. */
@@ -115,6 +125,11 @@ export type FeedbackWrittenField = {
   placeholder: string;
 };
 
+/** Free-text ceiling. Generous rather than tight - the written answers are the
+ *  most useful part of the form - but bounded, so the box can show a live
+ *  count instead of letting someone paste a page into an email body. */
+export const MAX_WRITTEN_CHARS = 1000;
+
 export const FEEDBACK_WRITTEN_FIELDS: readonly FeedbackWrittenField[] = [
   {
     id: "working",
@@ -128,11 +143,12 @@ export const FEEDBACK_WRITTEN_FIELDS: readonly FeedbackWrittenField[] = [
   },
 ];
 
-/** Attachment limits. EmailJS caps a message's attachments well below what a
- *  browser will happily hand over, so this rejects oversized files at the
- *  input instead of failing at send time with an opaque error. */
+/** Attachment limits. Brevo caps a whole message near 10 MB and base64 inflates
+ *  a file by about a third, so 5 MB of images stays comfortably inside that.
+ *  Rejecting at the input beats failing at send time with an opaque error - the
+ *  route re-checks both, since a limit only the client enforces is no limit. */
 export const MAX_IMAGES = 3;
-export const MAX_IMAGE_BYTES_TOTAL = 2 * 1024 * 1024;
+export const MAX_IMAGE_BYTES_TOTAL = 5 * 1024 * 1024;
 
 export type FeedbackResponse = {
   /** Question id -> chosen option, or options for a multi-select. Unanswered
@@ -164,12 +180,40 @@ export function collectContext(version: string): FeedbackContext {
   };
 }
 
+/** A readable name for the technical-details panel, e.g. "Chrome 151". The raw
+ *  user agent is what actually travels with the submission and is shown
+ *  underneath this - it is a label on that string, never a substitute for it.
+ *  Falls back to the agent itself when nothing matches, rather than guessing. */
+export function describeBrowser(userAgent: string): string {
+  /* Order matters: Chromium forks all carry "Chrome/", and every Chrome UA
+     also carries "Safari/", so the specific tokens are tested first. */
+  const rules: readonly [string, RegExp][] = [
+    ["Edge", /Edg(?:e|A|iOS)?\/(\d+)/],
+    ["Opera", /OPR\/(\d+)/],
+    ["Samsung Internet", /SamsungBrowser\/(\d+)/],
+    ["Firefox", /(?:Firefox|FxiOS)\/(\d+)/],
+    ["Chrome", /(?:Chrome|CriOS)\/(\d+)/],
+    ["Safari", /Version\/(\d+)[.\d]* (?:Mobile\/\S+ )?Safari\//],
+  ];
+
+  for (const [name, pattern] of rules) {
+    const match = pattern.exec(userAgent);
+    if (match) return `${name} ${match[1]}`;
+  }
+  return userAgent;
+}
+
 /** Where a submission actually went, so the dialog can tell the truth about
  *  it rather than claiming "sent" either way. */
 export type FeedbackDelivery = "email" | "mail-client";
 
-const EMAILJS_SEND = "https://api.emailjs.com/api/v1.0/email/send";
-const EMAILJS_SEND_FORM = "https://api.emailjs.com/api/v1.0/email/send-form";
+/** Our own route, not Brevo's - the API key stays on the server. */
+const FEEDBACK_ENDPOINT = "/api/feedback";
+
+/** Shared with the route so the subject line has one definition. */
+export function feedbackSubject(version: string): string {
+  return `ScaleCraft feedback (${version})`;
+}
 
 function formatAnswer(value: string | string[] | undefined): string {
   if (value == null) return "(no answer)";
@@ -211,22 +255,58 @@ export function formatFeedbackBody(response: FeedbackResponse, context: Feedback
   return blocks.join("\n\n");
 }
 
-type EmailJsConfig = { serviceId: string; templateId: string; publicKey: string };
-
-/** All three or nothing - a partial config cannot send, so it is treated the
- *  same as none and falls through to the mail-client path. */
-function emailJsConfig(): EmailJsConfig | null {
-  const serviceId = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID;
-  const templateId = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID;
-  const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY;
-  if (!serviceId || !templateId || !publicKey) return null;
-  return { serviceId, templateId, publicKey };
+/**
+ * Whether the server has a mail service configured, asked once on mount so the
+ * dialog can warn about attachments *before* anything is typed. It cannot be
+ * read synchronously the way the old client-side key was - the Brevo key is a
+ * server secret - so this is a cheap GET against our own route.
+ *
+ * Any failure reads as "not configured", which is the conservative answer: it
+ * warns that screenshots may not travel rather than promising they will.
+ */
+export async function isFeedbackEmailConfigured(): Promise<boolean> {
+  try {
+    const res = await fetch(FEEDBACK_ENDPOINT, { method: "GET" });
+    if (!res.ok) return false;
+    const data: unknown = await res.json();
+    return typeof data === "object" && data !== null && (data as { configured?: unknown }).configured === true;
+  } catch {
+    return false;
+  }
 }
 
-/** Lets the dialog warn, before anything is typed, that screenshots cannot be
- *  attached on this install. */
-export function isEmailJsConfigured(): boolean {
-  return emailJsConfig() != null;
+/**
+ * How long the whole `mailto:` URL is allowed to get. Windows hands the URL to
+ * ShellExecute, which cuts it around 2,048 characters and does it *silently* -
+ * the draft simply opens with the end missing and nobody is told. So the
+ * fallback decides where to trim rather than leaving it to the platform, with
+ * headroom under that limit for the recipient and subject.
+ */
+export const MAILTO_MAX_URL = 1900;
+
+/** Left in the draft at the cut, so the person about to send it can see what
+ *  happened and paste the rest in themselves. */
+const TRIM_NOTE = "\n[Trimmed here - a mail draft cannot carry the whole answer.]";
+
+/** Percent-encoding, not `URLSearchParams`. That builds an
+ *  application/x-www-form-urlencoded query, where a space becomes `+` - but a
+ *  mailto URI (RFC 6068) is plain percent-encoding, so a mail client hands
+ *  those pluses straight through and the draft arrives reading
+ *  "How+is+ScaleCraft+working+out". */
+function mailtoHref(body: string, subject: string): string {
+  return `mailto:${FEEDBACK_RECIPIENT}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/** The response with every written answer capped at `limit` characters. The
+ *  free text is the only part that trims: the questions and the environment
+ *  context are short, fixed, and the parts a reply depends on. */
+function capWritten(response: FeedbackResponse, limit: number): FeedbackResponse {
+  const written: Record<string, string> = {};
+  for (const [id, value] of Object.entries(response.written)) {
+    const trimmed = value.trim();
+    written[id] = trimmed.length > limit ? `${trimmed.slice(0, limit).trimEnd()}${TRIM_NOTE}` : trimmed;
+  }
+  return { ...response, written };
 }
 
 export function feedbackMailtoHref(
@@ -234,78 +314,79 @@ export function feedbackMailtoHref(
   context: FeedbackContext,
   subject: string,
 ): string {
-  const query = new URLSearchParams({ subject, body: formatFeedbackBody(response, context) });
-  return `mailto:${FEEDBACK_RECIPIENT}?${query.toString()}`;
+  const full = mailtoHref(formatFeedbackBody(response, context), subject);
+  if (full.length <= MAILTO_MAX_URL) return full;
+
+  /* Binary search the largest per-answer cap that still fits. Percent-encoding
+     makes the URL cost of a character vary (a newline costs three, a letter
+     one), so the length cannot simply be divided out - but it is monotonic in
+     the cap, which is all a search needs. ~10 iterations at this size. */
+  let low = 0;
+  let high = Math.max(...Object.values(response.written).map((v) => v.trim().length), 0);
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (mailtoHref(formatFeedbackBody(capWritten(response, mid), context), subject).length <= MAILTO_MAX_URL) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+  // At cap 0 this is the questions and context alone (~1kB) - already inside
+  // the limit in practice, and the best that can be offered if it ever is not.
+  return mailtoHref(formatFeedbackBody(capWritten(response, low), context), subject);
 }
 
-function templateParams(response: FeedbackResponse, context: FeedbackContext, subject: string) {
-  return {
-    subject,
-    to_email: FEEDBACK_RECIPIENT,
-    reply_to: response.replyTo.trim(),
-    message: formatFeedbackBody(response, context),
-    version: context.version,
-  };
+/** Thrown when the route turns a submission away for coming too fast, so the
+ *  dialog can say that instead of a generic failure - the answers are still in
+ *  the form and the send is worth retrying. */
+export class FeedbackRateLimitError extends Error {
+  constructor() {
+    super("Too many feedback submissions from this address");
+    this.name = "FeedbackRateLimitError";
+  }
 }
 
 /**
- * Sends the survey. Throws on a failed EmailJS call so the dialog can show a
- * real error instead of a false "thanks" - it deliberately does not silently
- * downgrade to the mail client on failure, which would look identical to
- * success from the caller's side.
+ * Sends the survey to `/api/feedback`, which relays it through Brevo. Throws on
+ * a failed call so the dialog can show a real error instead of a false "thanks"
+ * - it deliberately does not silently downgrade to the mail client on failure,
+ * which would look identical to success from the caller's side.
  *
- * With screenshots attached this uses the multipart `send-form` endpoint
- * (`send` accepts JSON only, so it has no way to carry a file); each image is
- * appended under the `attachment` field, which the EmailJS template has to
- * declare as a variable attachment parameter of that name.
+ * The one exception is 501, which is the route saying it has no Brevo
+ * credentials. That is a deployment fact rather than an error, so it takes the
+ * mail-client path - and the caller is told which of the two happened.
+ *
+ * Multipart rather than JSON: screenshots are `File`s, and base64-ing them into
+ * a JSON body would inflate the payload by a third for no gain.
  */
 export async function submitFeedback(
   response: FeedbackResponse,
   context: FeedbackContext,
 ): Promise<FeedbackDelivery> {
-  const subject = `ScaleCraft feedback (${context.version})`;
-  const config = emailJsConfig();
+  const form = new FormData();
+  form.append(
+    "payload",
+    JSON.stringify({
+      answers: response.answers,
+      written: response.written,
+      replyTo: response.replyTo.trim(),
+      context,
+    }),
+  );
+  for (const image of response.images) form.append("image", image, image.name);
 
-  if (!config) {
+  const res = await fetch(FEEDBACK_ENDPOINT, { method: "POST", body: form });
+
+  if (res.status === 501) {
     // A mailto URL cannot carry files. The dialog has already said so, and
     // formatFeedbackBody records how many were selected, so the author knows
     // to ask for them.
-    window.location.href = feedbackMailtoHref(response, context, subject);
+    window.location.href = feedbackMailtoHref(response, context, feedbackSubject(context.version));
     return "mail-client";
   }
-
-  const params = templateParams(response, context, subject);
-
-  const res =
-    response.images.length > 0
-      ? await fetch(EMAILJS_SEND_FORM, { method: "POST", body: buildFormBody(config, params, response.images) })
-      : await fetch(EMAILJS_SEND, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            service_id: config.serviceId,
-            template_id: config.templateId,
-            user_id: config.publicKey,
-            template_params: params,
-          }),
-        });
-
+  if (res.status === 429) throw new FeedbackRateLimitError();
   if (!res.ok) throw new Error(`Feedback send failed (${res.status})`);
   return "email";
-}
-
-function buildFormBody(
-  config: EmailJsConfig,
-  params: Record<string, string>,
-  images: readonly File[],
-): FormData {
-  const form = new FormData();
-  form.append("service_id", config.serviceId);
-  form.append("template_id", config.templateId);
-  form.append("user_id", config.publicKey);
-  for (const [key, value] of Object.entries(params)) form.append(key, value);
-  for (const image of images) form.append("attachment", image, image.name);
-  return form;
 }
 
 export type ImageRejection = "not-an-image" | "too-many" | "too-large";
