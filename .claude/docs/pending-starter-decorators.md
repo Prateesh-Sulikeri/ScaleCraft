@@ -1,6 +1,7 @@
 # Starter-graph decorators + Reset to Default
 
-**Status: in progress on `feat/starter-decorators-and-reset` (off `fix/design-editor-bugs`).**
+**Status: all 11 tasks (T0-T10) complete on `feat/starter-decorators-and-reset`
+(off `fix/design-editor-bugs`). Not merged, not pushed - awaiting review.**
 **Plan authored by an Opus planning pass; execution by Sonnet, one task at a time,
 committing after each completed task (per user direction).**
 
@@ -148,5 +149,9 @@ two-node graph.
       (simplest) in both themes - zones and comments render legibly, no
       zone covers a card or an edge label, the pink gap zone on 3.5 sits
       exactly in the empty slot without naming what belongs there.
-- [ ] **T10.** Docs: `CURRICULUM.md` §11.5 addition, `DESIGN.md` palette entry,
-      `pending-chapters.md` ledger entry, `chapter-author` skill update.
+- [x] **T10.** Docs: `CURRICULUM.md` new §11.6 (decorator convention table +
+      geometry formula), `DESIGN.md`'s Zone section (palette paragraph),
+      `pending-chapters.md` dated cross-cutting ledger entry, chapter-author
+      skill (`SKILL.md`'s `definition` scope list, `author.md`'s scope table
+      + a new starterDecorators paragraph), `docs/CHAPTER_AUTHORING.md`'s
+      manual field checklist.

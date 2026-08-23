@@ -59,10 +59,15 @@ One positional arg, one optional flag:
    - `definition` - the remaining `ChapterDefinition` metadata:
      `problemStatement`, `exerciseGoal`, `successCriteria`,
      `learningObjectives`, `curriculumContext`,
-     `availableComponentIds`/`requiredComponentIds`, `validationRuleIds`.
-     For any chapter with a `starterGraph` and `hasEditorExercise !== false`,
-     `exerciseGoal`/`successCriteria` are required, not optional - see
-     CURRICULUM.md §11.2's brief-calibration rule.
+     `availableComponentIds`/`requiredComponentIds`, `validationRuleIds`,
+     `starterDecorators`. For any chapter with a `starterGraph` and
+     `hasEditorExercise !== false`, `exerciseGoal`/`successCriteria` are
+     required, not optional - see CURRICULUM.md §11.2's brief-calibration
+     rule. `starterDecorators` (zones/comments, CURRICULUM.md §11.6) is
+     optional but expected for any chapter with a `starterGraph` - author it
+     alongside the brief, not as an afterthought, and use the same
+     calibration rule (a zone label or comment can spoil the fix exactly
+     like a sentence in `exerciseGoal` can).
 
    A scoped pass still requires reading the whole chapter for context (a
    quiz revision that contradicts the lesson is a new bug, not a fix) -

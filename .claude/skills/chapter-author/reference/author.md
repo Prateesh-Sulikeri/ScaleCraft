@@ -94,7 +94,7 @@ material instead of reading either cover to cover.
    | `quiz` | §20.6 only (density still governs question prose) - the real framework is `QUIZ_FRAMEWORK.md`, read separately below |
    | `hints` | §11.3 (hint philosophy), §20.1 (voice) |
    | `blueprints` | §5, §11.2, §16 |
-   | `definition` | §11 (all of it - especially §11.2's brief-calibration rule), §16, §5.2 (objective categories) |
+   | `definition` | §11 (all of it - especially §11.2's brief-calibration rule and §11.6's decorator convention), §16, §5.2 (objective categories) |
 
    This map is a floor for a routine pass, not a ceiling - if the chapter's
    own §14/§15 row or ledger entry points at something outside the table
@@ -225,6 +225,17 @@ scenario (2-3 sentences) - it is not the place for the calibrated ask
 either, that's what the new fields are for (§11.2, §20.6 information
 density both apply: a brief that re-narrates the lesson's thesis is a
 density bug, not scene-setting).
+
+For any chapter with a `starterGraph`, also author `starterDecorators`
+(CURRICULUM.md §11.6) - zones per architectural tier (client/edge blue,
+application purple, data emerald, from `ANNOTATION_COLOR_PRESETS`) and, only
+when the fix is a genuinely missing node in identifiable empty canvas space,
+one magenta "Build here" gap zone. Skip the gap zone for a config/wiring fix
+on an already-present node - it would misleadingly imply something is
+missing. The same brief-calibration rule applies to zone labels and comment
+text as to `exerciseGoal`/`successCriteria`: never name the component the
+gap zone marks. `authoring-invariants.test.ts` gates id-uniqueness,
+zone/zone overlap, palette membership, and the spoiler rule.
 
 ## Diagrams: make them inform, not decorate
 

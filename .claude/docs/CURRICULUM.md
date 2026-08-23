@@ -641,6 +641,52 @@ capped at 3 columns per row, so the bounding-box aspect ratio stays at or under
 unreadably small strip. `authoring-invariants.test.ts` enforces both the minimum
 gap and the aspect ceiling for every authored chapter.
 
+### 11.6 Starter graph decorators
+
+A starter graph with a `starterGraph` may also declare `starterDecorators` -
+zones and comments (`src/content/chapters/starter-decorators.ts`'s
+`StarterDecorator` union), pre-authored so the canvas reads as a real
+architecture diagram from the first frame rather than a loose grid of cards
+(see `.claude/docs/pending-starter-decorators.md` for the full rationale).
+Deliberately not part of `starterGraph`/`ArchitectureGraph` - the validation
+engine and blueprint matching never see decorators, so authoring one cannot
+change whether a chapter passes.
+
+**Palette** - `src/canvas/annotation-colors.ts`'s `ANNOTATION_COLOR_PRESETS`
+only, never a hand-typed hex:
+
+| Demarcation | Preset | Hex |
+|---|---|---|
+| Client / edge tier (browser, dns, firewall, client) | Blue | `#3b82f6` |
+| Server / application tier (reverse-proxy, api-gateway, load-balancer, app-server) | Purple | `#a855f7` |
+| Data tier (sql-database, nosql-database, read-replica) | Emerald | `#10b981` |
+| Gap zone - the empty slot the exercise fills | Pink (Zone Magenta) | `#ff3483` |
+| Comments | Slate | `#64748b` |
+
+**Zone geometry**, against the 320x160 pitch (card 200x65): for a tier row
+with `cols` columns starting at `(x0, y0)`, `position = { x: x0 - 28, y: y0 -
+48 }`, `width = 320 * (cols - 1) + 256`, `height = 137`. Nodes sharing a row
+and a tier color merge into one zone spanning `cols` columns rather than one
+box per node - a zone marks a tier boundary, not an individual card.
+
+**Zone vs. comment**: a zone names a tier or trust boundary that already has
+at least one component in it, or is the gap zone. A comment carries one short,
+already-public constraint or definition ("TTL controls how long a client
+caches this answer") - at most 2 per chapter, and it follows the same
+brief-calibration rule as `exerciseGoal`/`successCriteria` (§11.2): never
+names the component/field/edge kind that fixes the exercise.
+
+**Gap zone**: only author one when the fix is a genuinely new node in
+identifiable empty canvas space (an unused column in an existing row, or an
+unused row). Skip it when the fix is a config change or a rewire on an
+already-present node - a gap zone there would misleadingly imply something is
+missing when nothing is. Label it "Build here", never the component that
+belongs there.
+
+`authoring-invariants.test.ts` enforces decorator id-uniqueness (no collision
+with a starter-graph node id), zone/zone non-overlap, palette-membership, and
+the spoiler gate.
+
 ---
 
 ## 12. Learning reinforcement systems

@@ -4568,6 +4568,26 @@ all touched chapters rather than duplicating a row per chapter above.
     Objectives block, which had been printing the exact fix above the opt-in
     hints on several chapters (1.2, 3.4, 3.6, 3.7, 3.9, 3.12).
 
+- **2026-08-23, branch `feat/starter-decorators-and-reset`: starter-graph
+  decorators + Reset to Default, same 13 editor chapters.** Follow-up to the
+  above - the tiered layout fixed spacing but still read as "a loose grid of
+  cards" rather than a real diagram. Two additions, content-only:
+  - **Reset to Default:** a header button (BB and RWE both, one shared
+    `AppHeader`) puts the canvas back to the chapter's `starterGraph` +
+    `starterDecorators`, discarding the in-progress attempt. The underlying
+    `handleResetToStarter` already existed (wired only to the guided tour's
+    "Start over"); this exposes it generally.
+  - **Starter decorators:** all 13 chapters now ship `starterDecorators` -
+    labeled zone rectangles per architectural tier (client/edge blue,
+    application purple, data emerald) plus, on the 6 chapters whose fix is a
+    genuinely missing node in identifiable empty space (1.2, 3.1-3.5), a
+    magenta "Build here" gap zone - skipped on 3.6-3.9/3.11/3.12, whose
+    fixes are config/wiring changes to an already-present node. A handful
+    of factual, non-spoiler comments (3.8 capacity numbers, 3.9 TTL
+    definition, 3.11/3.12 storage-model notes). See CURRICULUM §11.6 for the
+    convention and `.claude/docs/pending-starter-decorators.md` for the full
+    build log.
+
 ---
 
 ## Open decisions blocking or shaping later chapters

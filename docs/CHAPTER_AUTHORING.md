@@ -171,6 +171,13 @@ comments - they're the authoritative source, not this list):
   already satisfying it (hands the exercise over solved -
   `authoring-invariants.test.ts` catches this, but design it right
   rather than relying on the test to bounce you).
+- `starterDecorators` - zones/comments pre-authored onto the starter canvas
+  (CURRICULUM.md §11.6). Zones per architectural tier (client/edge blue,
+  application purple, data emerald, from `ANNOTATION_COLOR_PRESETS`) plus,
+  only when the fix is a genuinely missing node in identifiable empty
+  canvas space, one magenta "Build here" gap zone - skip it for a
+  config/wiring fix on an already-present node. Same brief-calibration rule
+  as `exerciseGoal` applies to zone labels and comment text.
 - `hints` - 2-4, orienting before directional, never the answer itself.
 - `readingLinks` - manual citation URLs into the private textbook only,
   no content coupling.
