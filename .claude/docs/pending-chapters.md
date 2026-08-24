@@ -4588,6 +4588,39 @@ all touched chapters rather than duplicating a row per chapter above.
     convention and `.claude/docs/pending-starter-decorators.md` for the full
     build log.
 
+- **2026-08-24, branch `staging/v7.1.0-progress-reset`: high-level lesson-copy
+  audit, 15 release-7.1.0 chapters (2.1-2.3, 3.1-3.3, 3.5-3.13).** Skim pass for
+  cross-chapter inconsistency and over-complication, not a per-chapter revision.
+  No teaching content, structure, exercise, quiz or graph changed:
+  - **Diagram caption prefix:** 3.9-3.13 used `Caption:`; every earlier chapter
+    (and CURRICULUM §7's own example) uses `Note:`. Normalized to `Note:`.
+  - **Think-first prompt:** 3.9-3.13 had dropped the `Think first:` opener and,
+    in 3.11-3.13, moved "before reading on" to the front. Normalized all five to
+    the 2.1-3.8 form. Also removed the doubled "before reading on ... before
+    reading on" in 3.1 and 3.3.
+  - **DNS on the request path (real error):** 3.3's mermaid labeled the
+    browser->DNS edge `request-flow`, which is exactly the mistake 2.1's Common
+    Mistakes section calls out ("claims it carries traffic it never sees"). Now
+    `lookup`, with 3.2's canvas-shape caveat carried over.
+  - **Verbatim quote openers:** 3.3 opened by block-quoting 3.2's Next
+    paragraph; 3.5 opened by block-quoting 3.3's (including its parenthetical).
+    Both rewritten to state the handoff directly; 3.3's Next parenthetical
+    folded into prose.
+  - **Author-scaffolding leaks:** 3.8/3.9 shipped reviewer asides in learner
+    prose ("checked directly against `load-balancer` and `app-server`'s own
+    `relations` fields"). Trimmed to the learner-facing fact.
+  - **Count/heading mismatches:** 2.2's "Six break points" sat above a 7-row
+    table; 2.1's "who owns it" heading over a "Where you build it" column;
+    3.11's "Two philosophies" over a 3-row table; 3.12's caption ended "nothing
+    but the primary ever accepts one" whose nearest antecedent was *reads*.
+  - **Flagged, not fixed** (deep edits, out of a skim pass's scope): CURRICULUM
+    §6 makes **Connections** a mandatory Building Block section, but only
+    3.10-3.13 have one - 2.1-2.3 and 3.1-3.9 fold it into `Next` instead, and
+    §6's merge allowance covers adjacent sections, which Connections (14) and
+    Transition brief (16) are not. Separately, 3.6's and 3.9's `Your turn`
+    exercises test a different thing than their lesson teaches (instance count;
+    DNS TTL).
+
 ---
 
 ## Open decisions blocking or shaping later chapters

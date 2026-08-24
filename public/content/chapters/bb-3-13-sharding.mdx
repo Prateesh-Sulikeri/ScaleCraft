@@ -10,9 +10,9 @@ what's left once they do: splitting the data itself across independent
 machines, so no single machine has to hold all of it.
 
 > [!NOTE]
-> Before reading on: if replicas don't touch write throughput, and a bigger
-> machine eventually runs out of room to grow, what's actually left? Commit to
-> an answer.
+> Think first: if replicas don't touch write throughput, and a bigger machine
+> eventually runs out of room to grow, what's actually left? Commit to an
+> answer before reading on.
 
 ## Splitting the data, not copying it
 
@@ -30,7 +30,7 @@ flowchart LR
   Router --> S3[("Shard C")]
 ```
 
-Caption: each shard is a normal database holding a fraction of the rows -
+Note: each shard is a normal database holding a fraction of the rows -
 nothing here is a new kind of component, only a configuration decision about
 which rows live where. Contrast this with 3.12's diagram: that one drew
 copies of the same data; this one draws slices of different data.

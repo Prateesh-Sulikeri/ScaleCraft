@@ -50,10 +50,9 @@ balancer's own health checking, the same mechanism 3.4 named. It's the
 reason a dead instance stops receiving traffic without anyone paging in a
 fix by hand - though it isn't instant: the load balancer notices on its next
 check, not the moment the instance actually dies. `control`-kind edges
-depict this in diagrams throughout the curriculum, but no registry component
-accepts one on canvas yet (checked directly against `load-balancer` and
-`app-server`'s own `relations` fields) - health checking is real and this
-chapter relies on it, but it isn't a wire you'll find to draw.
+depict health checking in diagrams throughout the curriculum, but it isn't a
+wire you can draw on canvas yet - real and load-bearing here, just not
+something the palette exposes.
 
 ## How many is enough
 
