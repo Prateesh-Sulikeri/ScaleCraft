@@ -59,6 +59,42 @@ export function isBugActive(status: BugStatus): boolean {
   return status !== "closed";
 }
 
+/** The statuses that put a report on the retention clock: its screenshot is
+ *  deleted on arrival here and the whole report 15 days later. See
+ *  src/bugs/retention.ts.
+ *
+ *  Deliberately wider than `isBugActive` above, which stays as it is. The two
+ *  answer different questions - "is this outstanding work" (which drives the
+ *  list's dot colour) vs. "is this done being evidence" - and a resolved
+ *  report is the case where they diverge. */
+export const TERMINAL_BUG_STATUSES = ["resolved", "closed"] as const satisfies BugStatus[];
+
+export function isBugTerminal(status: BugStatus): boolean {
+  return (TERMINAL_BUG_STATUSES as readonly BugStatus[]).includes(status);
+}
+
+/** How long a terminal report survives before it is deleted outright. Days
+ *  rather than a duration in ms because it is a stated policy the reporter
+ *  reads in the details view, not a tuning knob. */
+export const BUG_RETENTION_DAYS = 15;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** When a report closed at `closedAt` will be deleted, or null while it is
+ *  still active. Server-side so the date the reporter is shown is the same
+ *  one the sweep will act on, on every device. */
+export function bugDeletesAt(closedAt: Date | null): Date | null {
+  return closedAt ? new Date(closedAt.getTime() + BUG_RETENTION_DAYS * DAY_MS) : null;
+}
+
+/** The other end of the same rule: a report whose `closedAt` is before this is
+ *  due for deletion. Kept next to `bugDeletesAt` rather than inlined in the
+ *  sweep so the date the reporter was promised and the date the purge acts on
+ *  cannot drift apart. */
+export function bugRetentionCutoff(now: Date): Date {
+  return new Date(now.getTime() - BUG_RETENTION_DAYS * DAY_MS);
+}
+
 export const TITLE_MAX = 120;
 export const DESCRIPTION_MAX = 4000;
 
@@ -97,6 +133,18 @@ export const createBugSchema = z.object({
 
 export type CreateBugInput = z.infer<typeof createBugSchema>;
 
+/** Body of POST /api/bugs/[id]/close - the author-side triage write. Only the
+ *  two terminal statuses are accepted: this route's job is to *finish* a
+ *  report (and drop its screenshot on the way), and reopening one is a plain
+ *  UPDATE that the nightly sweep already picks up. `seenStatus` is absent
+ *  because leaving it alone is exactly what raises the reporter's badge. */
+export const closeBugSchema = z.object({
+  status: z.enum(TERMINAL_BUG_STATUSES),
+  closingNotes: z.string().trim().max(DESCRIPTION_MAX).nullish(),
+});
+
+export type CloseBugInput = z.infer<typeof closeBugSchema>;
+
 /** What GET /api/bugs returns per row - enough to identify a bug in the list
  *  without shipping every description. */
 export type BugSummary = {
@@ -123,6 +171,14 @@ export type BugDetail = BugSummary & {
   closingNotes: string | null;
   updatedAt: number;
   hasImage: boolean;
+  /** When this report will be deleted outright, or null while it is still
+   *  active. Sent so the details view can state the date rather than leave
+   *  the reporter to discover the deletion - the retention rule is announced,
+   *  not enforced quietly. */
+  deletesAt: number | null;
+  /** When this report's attachment was deleted on close, or null if it never
+   *  had one. `hasImage: false` alone cannot tell those apart. */
+  imageRemovedAt: number | null;
   pagePath: string | null;
   appVersion: string | null;
 };

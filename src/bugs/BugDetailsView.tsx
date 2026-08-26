@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { CategoryChip, PriorityChip, StatusChip, StatusDot, formatBugDateTime } from "./BugChips";
+import {
+  CategoryChip,
+  PriorityChip,
+  StatusChip,
+  StatusDot,
+  formatBugDateTime,
+  formatBugFullDate,
+} from "./BugChips";
 import { bugImageUrl, fetchBug, markBugSeen } from "./client";
 import { setUnreadBugCount } from "./unread-badge-store";
-import type { BugDetail } from "./types";
+import { BUG_RETENTION_DAYS, type BugDetail } from "./types";
 
 /** One label/value row. Values stay `text-foreground/70` so the field names
  *  and the values do not compete for the same weight. */
@@ -112,12 +119,37 @@ export function BugDetailsView({
             </div>
           )}
 
+          {/* The retention rule is stated, never discovered. A reporter whose
+              report disappears on day 15 has to have been told the date, and
+              told that reading it changes nothing - that was the explicit
+              product call, not an inference from it. Sits directly under the
+              closing notes because "here is the resolution" and "here is how
+              long it stays" are one thought. */}
+          {bug.deletesAt != null && (
+            <p className="text-xs leading-relaxed text-foreground/55">
+              This report will be deleted on {formatBugFullDate(bug.deletesAt)}. Closed reports are
+              removed {BUG_RETENTION_DAYS} days after closing, whether or not they have been read.
+            </p>
+          )}
+
           <Field label="Description">
             {/* whitespace-pre-wrap, not a markdown render: this is the
                 reporter's own typed text, and their line breaks are the only
                 structure it has. */}
             <p className="whitespace-pre-wrap leading-relaxed">{bug.description}</p>
           </Field>
+
+          {/* Where the screenshot used to be, which is where the question
+              "what happened to it?" actually gets asked. Only rendered off
+              imageRemovedAt - a report that never had an attachment must not
+              be told about one. */}
+          {!bug.hasImage && bug.imageRemovedAt != null && (
+            <Field label="Attachment">
+              <p className="text-foreground/55">
+                Removed when this report was closed on {formatBugFullDate(bug.imageRemovedAt)}.
+              </p>
+            </Field>
+          )}
 
           {bug.hasImage && (
             <Field label="Attachment">

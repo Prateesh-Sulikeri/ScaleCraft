@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { bugReports } from "@/db/schema";
 import { requireUserId } from "@/db/sync/auth";
-import { asCategory, asPriority, asStatus, type BugDetail } from "@/bugs/types";
+import { asCategory, asPriority, asStatus, bugDeletesAt, type BugDetail } from "@/bugs/types";
 
 /**
  * One bug's full record. Scoped by userId in the WHERE clause rather than
@@ -41,6 +41,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     // The ref itself never leaves the server - the client only needs to know
     // whether to request /image.
     hasImage: row.imageRef != null,
+    // Derived server-side rather than sent as a raw closedAt for the client to
+    // do arithmetic on: the date the reporter is shown has to be the same one
+    // the sweep will act on, on every device.
+    deletesAt: bugDeletesAt(row.closedAt)?.getTime() ?? null,
+    imageRemovedAt: row.imageDeletedAt?.getTime() ?? null,
     pagePath: row.pagePath,
     appVersion: row.appVersion,
   };

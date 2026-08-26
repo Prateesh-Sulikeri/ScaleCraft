@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { BugDetailsView } from "./BugDetailsView";
+import { formatBugFullDate } from "./BugChips";
 import type { BugDetail } from "./types";
 
 const fetchBug = vi.fn<() => Promise<BugDetail>>();
@@ -27,6 +28,8 @@ const detail = (over: Partial<BugDetail> = {}): BugDetail => ({
   updatedAt: Date.parse("2026-08-01T10:00:00Z"),
   unread: false,
   hasImage: false,
+  deletesAt: null,
+  imageRemovedAt: null,
   pagePath: null,
   appVersion: null,
   ...over,
@@ -79,5 +82,56 @@ describe("BugDetailsView", () => {
     expect(await screen.findByText("Steps: open chapter 3.4 at 1280px.")).toBeInTheDocument();
     await waitFor(() => expect(markBugSeen).toHaveBeenCalled());
     expect(screen.queryByText("offline")).not.toBeInTheDocument();
+  });
+});
+
+describe("BugDetailsView retention notices", () => {
+  const closedAt = Date.parse("2026-08-24T09:30:00Z");
+  const deletesAt = Date.parse("2026-09-08T09:30:00Z");
+
+  // The explicit product call: the reporter is told the date, and told that
+  // reading the report does not extend it. Discovering the deletion afterwards
+  // is the failure mode this exists to prevent.
+  it("states the deletion date and that reading changes nothing", async () => {
+    fetchBug.mockResolvedValue(detail({ status: "closed", deletesAt }));
+    render(<BugDetailsView bugId="bug-1" onBack={() => {}} />);
+
+    const notice = await screen.findByText(/This report will be deleted on/);
+    // Compared through the shared formatter rather than a literal: the exact
+    // wording is the viewer's locale, but it must be the *deletion* date and
+    // not, say, the closedAt it was derived from.
+    expect(notice).toHaveTextContent(formatBugFullDate(deletesAt));
+    expect(notice).toHaveTextContent("15 days");
+    expect(notice).toHaveTextContent(/whether or not they have been read/);
+  });
+
+  it("says nothing about deletion while the report is still open", async () => {
+    fetchBug.mockResolvedValue(detail({ status: "in-progress", deletesAt: null }));
+    render(<BugDetailsView bugId="bug-1" onBack={() => {}} />);
+
+    await screen.findByText("Steps: open chapter 3.4 at 1280px.");
+    expect(screen.queryByText(/will be deleted/)).toBeNull();
+  });
+
+  it("explains a screenshot that was removed on close", async () => {
+    fetchBug.mockResolvedValue(
+      detail({ status: "closed", deletesAt, hasImage: false, imageRemovedAt: closedAt }),
+    );
+    render(<BugDetailsView bugId="bug-1" onBack={() => {}} />);
+
+    expect(await screen.findByText(/Removed when this report was closed/)).toHaveTextContent(
+      formatBugFullDate(closedAt),
+    );
+  });
+
+  // A report that never had an attachment must not be told about one.
+  it("says nothing about an attachment that never existed", async () => {
+    fetchBug.mockResolvedValue(
+      detail({ status: "closed", deletesAt, hasImage: false, imageRemovedAt: null }),
+    );
+    render(<BugDetailsView bugId="bug-1" onBack={() => {}} />);
+
+    await screen.findByText(/This report will be deleted on/);
+    expect(screen.queryByText("Attachment")).toBeNull();
   });
 });
