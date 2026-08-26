@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const deleteReportImage = vi.fn();
 const returning = vi.fn();
 type Written = { status: string; closedAt: Date; closingNotes?: string | null };
 const set = vi.fn<(values: Written) => { where: () => { returning: typeof returning } }>(() => ({
@@ -8,7 +7,6 @@ const set = vi.fn<(values: Written) => { where: () => { returning: typeof return
 }));
 const update = vi.fn(() => ({ set }));
 
-vi.mock("@/bugs/retention", () => ({ deleteReportImage }));
 vi.mock("@/db/client", () => ({ getDb: () => ({ update }) }));
 
 function request(body: unknown, authorization = "Bearer s3cret-token") {
@@ -23,7 +21,6 @@ const params = Promise.resolve({ id: "bug-1" });
 
 beforeEach(() => {
   vi.stubEnv("CRON_SECRET", "s3cret-token");
-  deleteReportImage.mockReset().mockResolvedValue(true);
   returning.mockReset().mockResolvedValue([{ id: "bug-1" }]);
   set.mockClear();
   update.mockClear();
@@ -31,7 +28,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("POST /api/bugs/[id]/close", () => {
-  it("closes the report and deletes its screenshot in the same request", async () => {
+  it("closes the report and starts the retention clocks", async () => {
     const { POST } = await import("./route");
     const response = await POST(request({ status: "closed", closingNotes: "Fixed in 7.2.0." }), {
       params,
@@ -41,7 +38,7 @@ describe("POST /api/bugs/[id]/close", () => {
     await expect(response.json()).resolves.toEqual({
       id: "bug-1",
       status: "closed",
-      imageDeleted: true,
+      closedAt: expect.any(String),
     });
 
     const written = set.mock.calls[0]![0];
@@ -52,8 +49,22 @@ describe("POST /api/bugs/[id]/close", () => {
     // Untouched on purpose: seenStatus left behind the new status is what
     // raises the reporter's unread badge.
     expect(written).not.toHaveProperty("seenStatus");
+  });
 
-    expect(deleteReportImage).toHaveBeenCalledWith("bug-1", written.closedAt);
+  // The screenshot has a 7-day grace window, so there is nothing to delete in
+  // this request. One code path does the deleting - the nightly sweep - which
+  // has to handle a hand-SQL close correctly anyway.
+  it("deletes nothing itself", async () => {
+    const retention = await import("@/bugs/retention");
+    expect(retention).not.toHaveProperty("deleteReportImage");
+
+    const { POST } = await import("./route");
+    const response = await POST(request({ status: "closed" }), { params });
+    expect(await response.json()).toEqual({
+      id: "bug-1",
+      status: "closed",
+      closedAt: expect.any(String),
+    });
   });
 
   it("leaves existing closing notes alone when the body omits them", async () => {
@@ -71,8 +82,8 @@ describe("POST /api/bugs/[id]/close", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
-  // Only the two terminal statuses: this route exists to finish a report and
-  // drop its attachment, and reopening one is a plain UPDATE the sweep picks up.
+  // Only the two terminal statuses: this route exists to finish a report, and
+  // reopening one is a plain UPDATE the sweep's unstamp step picks up.
   it("rejects a non-terminal status", async () => {
     const { POST } = await import("./route");
     for (const status of ["open", "in-progress", "deleted"]) {
@@ -87,6 +98,5 @@ describe("POST /api/bugs/[id]/close", () => {
     const { POST } = await import("./route");
     const response = await POST(request({ status: "closed" }), { params });
     expect(response.status).toBe(404);
-    expect(deleteReportImage).not.toHaveBeenCalled();
   });
 });

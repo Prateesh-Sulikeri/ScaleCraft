@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BUG_RETENTION_DAYS, bugDeletesAt, bugRetentionCutoff, isBugTerminal } from "./types";
+import {
+  BUG_IMAGE_RETENTION_DAYS,
+  BUG_RETENTION_DAYS,
+  bugDeletesAt,
+  bugImageDeletesAt,
+  bugImageRetentionCutoff,
+  bugRetentionCutoff,
+  isBugTerminal,
+} from "./types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const NOW = new Date("2026-09-01T04:00:00Z");
@@ -80,6 +88,28 @@ describe("the retention rule itself", () => {
     expect(closedAt < bugRetentionCutoff(new Date(deletesAt.getTime() + 1))).toBe(true);
     expect(closedAt < bugRetentionCutoff(new Date(deletesAt.getTime() - 1))).toBe(false);
   });
+
+  it("removes a screenshot 7 days after close, and never while it is active", () => {
+    const closedAt = new Date("2026-08-24T09:30:00Z");
+    expect(bugImageDeletesAt(closedAt)?.toISOString()).toBe("2026-08-31T09:30:00.000Z");
+    expect(bugImageDeletesAt(null)).toBeNull();
+    expect(BUG_IMAGE_RETENTION_DAYS).toBe(7);
+  });
+
+  it("keeps the promised screenshot date and the sweep cutoff consistent", () => {
+    const closedAt = new Date("2026-08-17T04:00:00Z");
+    const removesAt = bugImageDeletesAt(closedAt)!;
+    expect(closedAt < bugImageRetentionCutoff(new Date(removesAt.getTime() + 1))).toBe(true);
+    expect(closedAt < bugImageRetentionCutoff(new Date(removesAt.getTime() - 1))).toBe(false);
+  });
+
+  // The order the two windows fire in is the whole design: the screenshot goes
+  // while the report is still readable, never the other way round.
+  it("removes the screenshot strictly before the report is purged", () => {
+    expect(BUG_IMAGE_RETENTION_DAYS).toBeLessThan(BUG_RETENTION_DAYS);
+    const closedAt = new Date("2026-08-17T04:00:00Z");
+    expect(bugImageDeletesAt(closedAt)!.getTime()).toBeLessThan(bugDeletesAt(closedAt)!.getTime());
+  });
 });
 
 describe("deleteClosedReportImages", () => {
@@ -102,7 +132,7 @@ describe("deleteClosedReportImages", () => {
     });
   });
 
-  it("does nothing when no terminal report has an attachment", async () => {
+  it("does nothing when no terminal report is past its grace window", async () => {
     const { deleteClosedReportImages, ops } = await loadRetention([[]]);
     expect(await deleteClosedReportImages(NOW)).toBe(0);
     expect(ops.some((o) => o.op === "update")).toBe(false);

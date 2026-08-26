@@ -2,7 +2,7 @@ import { and, eq, inArray, isNotNull, isNull, lt, notInArray } from "drizzle-orm
 import { getDb } from "@/db/client";
 import { bugReports } from "@/db/schema";
 import { deleteBugImage, deleteOrphanBugImages } from "./image-storage";
-import { bugRetentionCutoff, TERMINAL_BUG_STATUSES } from "./types";
+import { bugImageRetentionCutoff, bugRetentionCutoff, TERMINAL_BUG_STATUSES } from "./types";
 
 /**
  * Automatic cleanup for bug reports - see
@@ -12,16 +12,19 @@ import { bugRetentionCutoff, TERMINAL_BUG_STATUSES } from "./types";
  * applied quietly:
  *
  * 1. A report that reaches a terminal status (`resolved` or `closed`) loses its
- *    screenshot immediately. The bytes are the expensive part of a report and
- *    they have no use once the bug is done.
- * 2. The report itself is deleted 15 days after that, unconditionally - read or
- *    not, acknowledged or not.
+ *    screenshot 7 days later. The bytes are the expensive part of a report and
+ *    stop being evidence first, but not the moment the status flips - the
+ *    screenshot is what you re-read while writing the closing notes.
+ * 2. The report itself is deleted 15 days after that same close, unconditionally
+ *    - read or not, acknowledged or not.
  *
- * Every step here is idempotent and safe to re-run, because two different
- * callers drive them: POST /api/bugs/[id]/close runs step 3 for one report the
- * instant it is closed, and the nightly cron runs all of them over everything
- * to catch reports closed by hand SQL. The sweep is the backstop, not the
- * primary path.
+ * Both windows run off one column, `closedAt`, so a report cannot be due for
+ * one and not the other in a way nobody predicted, and reopening it stops both
+ * clocks with a single write.
+ *
+ * Every step here is idempotent and safe to re-run. The nightly cron is the
+ * only thing that drives them; POST /api/bugs/[id]/close just starts the clock,
+ * because with a grace window there is nothing left for it to do immediately.
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -59,9 +62,10 @@ export async function startRetentionClocks(now: Date): Promise<number> {
   return rows.length;
 }
 
-/** Step 2. A reopened report goes back off the clock, and starts a fresh 15
- *  days if it is closed again later. Its screenshot does not come back - that
- *  is the accepted cost of counting `resolved` as terminal. */
+/** Step 2. A reopened report goes back off both clocks, and starts fresh ones
+ *  if it is closed again later. Reopening inside the 7-day window keeps the
+ *  screenshot; reopening after it does not bring the bytes back - that is the
+ *  accepted cost of counting `resolved` as terminal. */
 export async function clearRetentionClocks(): Promise<number> {
   const rows = await getDb()
     .update(bugReports)
@@ -72,7 +76,11 @@ export async function clearRetentionClocks(): Promise<number> {
 }
 
 /**
- * Step 3. Drops the attachments of terminal reports.
+ * Step 3. Drops the attachments of reports that closed more than 7 days ago.
+ *
+ * The `closedAt` bound is what makes the grace window real: step 1 stamps a
+ * hand-SQL close with `now`, so the same sweep that discovers a closed report
+ * cannot also strip it. A report is only ever eligible here on a later run.
  *
  * Bytes first, then the ref - deliberately, and the two writes are not in a
  * transaction because the HTTP driver may put each statement on its own
@@ -86,7 +94,14 @@ export async function deleteClosedReportImages(now: Date): Promise<number> {
   const rows = await db
     .select({ id: bugReports.id, imageRef: bugReports.imageRef })
     .from(bugReports)
-    .where(and(inArray(bugReports.status, terminalStatuses), isNotNull(bugReports.imageRef)));
+    .where(
+      and(
+        inArray(bugReports.status, terminalStatuses),
+        isNotNull(bugReports.imageRef),
+        isNotNull(bugReports.closedAt),
+        lt(bugReports.closedAt, bugImageRetentionCutoff(now)),
+      ),
+    );
 
   let deleted = 0;
   for (const row of rows) {
@@ -99,26 +114,6 @@ export async function deleteClosedReportImages(now: Date): Promise<number> {
     deleted += 1;
   }
   return deleted;
-}
-
-/** Step 3, for a single report - what the close route calls so the screenshot
- *  is gone the moment the bug is, rather than the next morning. */
-export async function deleteReportImage(id: string, now: Date): Promise<boolean> {
-  const db = getDb();
-  const [row] = await db
-    .select({ imageRef: bugReports.imageRef })
-    .from(bugReports)
-    .where(eq(bugReports.id, id))
-    .limit(1);
-
-  if (!row?.imageRef) return false;
-
-  await deleteBugImage(row.imageRef);
-  await db
-    .update(bugReports)
-    .set({ imageRef: null, imageDeletedAt: now })
-    .where(eq(bugReports.id, id));
-  return true;
 }
 
 /** Step 4. The purge. Runs after step 3 in the same sweep, so every row it
@@ -140,7 +135,9 @@ export async function purgeExpiredReports(now: Date): Promise<number> {
  * - unstamp before purging, or a report reopened on day 16 is deleted on the
  *   very sweep that should have rescued it;
  * - drop images before purging, so the purge only ever deletes rows whose
- *   bytes are already gone;
+ *   bytes are already gone (7 days < 15, so every row the purge reaches has
+ *   passed through step 3 on an earlier sweep anyway - this only matters if
+ *   the two windows are ever brought closer together);
  * - orphan sweep last, since step 3 has just created the newest batch of them
  *   (a ref nulled after its bytes were deleted leaves nothing, but a crash in
  *   a *previous* run might have).

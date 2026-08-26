@@ -29,6 +29,7 @@ const detail = (over: Partial<BugDetail> = {}): BugDetail => ({
   unread: false,
   hasImage: false,
   deletesAt: null,
+  imageDeletesAt: null,
   imageRemovedAt: null,
   pagePath: null,
   appVersion: null,
@@ -86,8 +87,9 @@ describe("BugDetailsView", () => {
 });
 
 describe("BugDetailsView retention notices", () => {
-  const closedAt = Date.parse("2026-08-24T09:30:00Z");
+  const imageDeletesAt = Date.parse("2026-08-31T09:30:00Z");
   const deletesAt = Date.parse("2026-09-08T09:30:00Z");
+  const removedAt = imageDeletesAt;
 
   // The explicit product call: the reporter is told the date, and told that
   // reading the report does not extend it. Discovering the deletion afterwards
@@ -113,15 +115,40 @@ describe("BugDetailsView retention notices", () => {
     expect(screen.queryByText(/will be deleted/)).toBeNull();
   });
 
-  it("explains a screenshot that was removed on close", async () => {
+  it("explains a screenshot that was removed after the grace window", async () => {
     fetchBug.mockResolvedValue(
-      detail({ status: "closed", deletesAt, hasImage: false, imageRemovedAt: closedAt }),
+      detail({ status: "closed", deletesAt, hasImage: false, imageRemovedAt: removedAt }),
     );
     render(<BugDetailsView bugId="bug-1" onBack={() => {}} />);
 
-    expect(await screen.findByText(/Removed when this report was closed/)).toHaveTextContent(
-      formatBugFullDate(closedAt),
+    const notice = await screen.findByText(/Removed on/);
+    expect(notice).toHaveTextContent(formatBugFullDate(removedAt));
+    expect(notice).toHaveTextContent("7 days");
+  });
+
+  // The grace window is only worth having if the reporter knows it is running
+  // - the notice goes under the screenshot while there is still one to see.
+  it("dates the screenshot removal while the screenshot is still there", async () => {
+    fetchBug.mockResolvedValue(
+      detail({ status: "closed", deletesAt, imageDeletesAt, hasImage: true }),
     );
+    render(<BugDetailsView bugId="bug-1" onBack={() => {}} />);
+
+    const notice = await screen.findByText(/This screenshot will be removed on/);
+    expect(notice).toHaveTextContent(formatBugFullDate(imageDeletesAt));
+    // Both dates, because "the picture goes first, the report later" is the
+    // part that is genuinely surprising.
+    expect(notice).toHaveTextContent(formatBugFullDate(deletesAt));
+  });
+
+  it("says nothing about screenshot removal while the report is open", async () => {
+    fetchBug.mockResolvedValue(
+      detail({ status: "open", deletesAt: null, imageDeletesAt: null, hasImage: true }),
+    );
+    render(<BugDetailsView bugId="bug-1" onBack={() => {}} />);
+
+    await screen.findByText("Steps: open chapter 3.4 at 1280px.");
+    expect(screen.queryByText(/will be removed on/)).toBeNull();
   });
 
   // A report that never had an attachment must not be told about one.

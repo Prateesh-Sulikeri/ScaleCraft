@@ -95,6 +95,25 @@ export function bugRetentionCutoff(now: Date): Date {
   return new Date(now.getTime() - BUG_RETENTION_DAYS * DAY_MS);
 }
 
+/** How long a closed report keeps its screenshot. Shorter than
+ *  BUG_RETENTION_DAYS because the bytes are the expensive half and stop being
+ *  evidence first - but not zero: the screenshot is what you re-read while
+ *  writing the closing notes, and deleting it the instant the status flips
+ *  takes it away exactly then. */
+export const BUG_IMAGE_RETENTION_DAYS = 7;
+
+/** When a report closed at `closedAt` loses its attachment, or null while it
+ *  is still active. Same server-side-only rule as `bugDeletesAt`. */
+export function bugImageDeletesAt(closedAt: Date | null): Date | null {
+  return closedAt ? new Date(closedAt.getTime() + BUG_IMAGE_RETENTION_DAYS * DAY_MS) : null;
+}
+
+/** A report whose `closedAt` is before this has spent its image grace window.
+ *  Paired with `bugImageDeletesAt` for the same reason as the two above. */
+export function bugImageRetentionCutoff(now: Date): Date {
+  return new Date(now.getTime() - BUG_IMAGE_RETENTION_DAYS * DAY_MS);
+}
+
 export const TITLE_MAX = 120;
 export const DESCRIPTION_MAX = 4000;
 
@@ -176,7 +195,11 @@ export type BugDetail = BugSummary & {
    *  the reporter to discover the deletion - the retention rule is announced,
    *  not enforced quietly. */
   deletesAt: number | null;
-  /** When this report's attachment was deleted on close, or null if it never
+  /** When this report's attachment is due to be removed, or null while the
+   *  report is active. Set while the screenshot is still there - it is the
+   *  notice, not the epitaph. */
+  imageDeletesAt: number | null;
+  /** When this report's attachment was actually deleted, or null if it never
    *  had one. `hasImage: false` alone cannot tell those apart. */
   imageRemovedAt: number | null;
   pagePath: string | null;

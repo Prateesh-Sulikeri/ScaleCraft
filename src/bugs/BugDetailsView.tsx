@@ -12,7 +12,7 @@ import {
 } from "./BugChips";
 import { bugImageUrl, fetchBug, markBugSeen } from "./client";
 import { setUnreadBugCount } from "./unread-badge-store";
-import { BUG_RETENTION_DAYS, type BugDetail } from "./types";
+import { BUG_IMAGE_RETENTION_DAYS, BUG_RETENTION_DAYS, type BugDetail } from "./types";
 
 /** One label/value row. Values stay `text-foreground/70` so the field names
  *  and the values do not compete for the same weight. */
@@ -146,7 +146,8 @@ export function BugDetailsView({
           {!bug.hasImage && bug.imageRemovedAt != null && (
             <Field label="Attachment">
               <p className="text-foreground/55">
-                Removed when this report was closed on {formatBugFullDate(bug.imageRemovedAt)}.
+                Removed on {formatBugFullDate(bug.imageRemovedAt)},
+                {" "}{BUG_IMAGE_RETENTION_DAYS} days after this report was closed.
               </p>
             </Field>
           )}
@@ -162,6 +163,18 @@ export function BugDetailsView({
                 alt={`Screenshot attached to "${bug.title}"`}
                 className="max-h-72 w-auto rounded-md border border-border object-contain"
               />
+              {/* The same "stated, never discovered" rule as the report notice
+                  above, while there is still something to state. A closed
+                  report shows its remaining window under the screenshot it is
+                  about to lose; an active one shows nothing, because no clock
+                  is running. */}
+              {bug.imageDeletesAt != null && (
+                <p className="mt-1.5 text-xs leading-relaxed text-foreground/55">
+                  This screenshot will be removed on {formatBugFullDate(bug.imageDeletesAt)},
+                  {" "}{BUG_IMAGE_RETENTION_DAYS} days after closing. The report itself stays until{" "}
+                  {bug.deletesAt != null && formatBugFullDate(bug.deletesAt)}.
+                </p>
+              )}
             </Field>
           )}
 

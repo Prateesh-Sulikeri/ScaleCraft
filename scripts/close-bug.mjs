@@ -1,5 +1,6 @@
-// Closes a bug report: sets its status and closing notes, and deletes its
-// screenshot immediately rather than leaving it for the nightly sweep.
+// Closes a bug report: sets its status and closing notes and starts the
+// retention clocks. The screenshot is not deleted here - it has a 7-day grace
+// window, and the nightly sweep drops it when that runs out.
 //
 // Run: node scripts/close-bug.mjs <bug-id> [--status closed|resolved] [--notes "..."]
 //
@@ -51,5 +52,5 @@ if (!res.ok) {
   process.exit(1);
 }
 
-console.log(`${body.id} -> ${body.status}${body.imageDeleted ? " (screenshot deleted)" : ""}`);
+console.log(`${body.id} -> ${body.status} (closed at ${body.closedAt})`);
 console.log(`Report will be deleted 15 days from now. The reporter is shown that date.`);
