@@ -1,0 +1,76 @@
+Every build since 3.1 started from a starter graph: the system as the previous
+chapter left it, one piece missing or one field wrong, and a lesson directly
+above it naming the piece. Fourteen times, the hard part was already done.
+
+This one hands you an empty canvas and a product.
+
+Nothing new is taught here, and nothing the brief asks for needs anything you
+have not built at least once. What changes is that nobody tells you which
+requirement is which. Producing a whole system from a description is a different
+skill from adding one component to a system that already exists, and it is the
+skill an interviewer actually watches. It is also the first one that falls apart
+once the scaffolding is gone, which is worth finding out here rather than in
+your first Real World Extraction project.
+
+## Connections
+
+Four groups, four questions. Every requirement below is one of them, asked again
+in the language of a product instead of the language of a chapter.
+
+| Group | The question it answered |
+|---|---|
+| A, Core Infrastructure (3.1-3.5) | How does a request find you, get past the perimeter, and reach something that can answer it? |
+| B, Compute (3.6-3.9) | How do several machines answer requests without the user knowing which one they got? |
+| C, Data (3.10-3.13) | Where does the data live, what shape makes a query cheap, and how do reads scale past one machine? |
+| D, Performance (3.14-3.16) | Which reads can you skip entirely, which can you move closer to the user, and which need a store of their own? |
+
+Two things from those groups are load-bearing here and easy to drop under time
+pressure. A component that is present but doing nothing earns nothing: 3.1's
+firewall set to allow everything and 3.14's cache with nobody asking it are both
+fully drawn and both inert. And every component you place is one you have to
+justify - a store the brief gives you no reason for is a worse answer than no
+store at all, in an interview for exactly the reason it is worse here.
+
+## Your turn
+
+**The product.** A national job board, four years old, being rebuilt this
+quarter. 2.1 million live listings, 40,000 job seekers on a weekday morning,
+nearly all of them arriving at one public domain name in a browser.
+
+What it has to do:
+
+- Seekers search listings in free text. "remote python contract" comes back in
+  well under a second, and the work of answering it does not grow with the 2.1
+  million listings.
+- The same few thousand listings are opened over and over. Monday's front page
+  is the same 2,000 jobs for everyone, and every view currently costs a fresh
+  read from the store that owns them.
+- Recruiters run heavy reports all day, aggregating months of application
+  history. Those reports must not slow down the seekers.
+- A third of the audience is on another continent, and every one of them
+  downloads the same stylesheet, the same script bundle and the same company
+  logos before the first listing renders.
+- Peak traffic is more than one machine can carry, and one machine dying
+  mid-morning must not drop requests.
+- Nothing reaches application code that was not filtered at the perimeter
+  first. The default is closed.
+- The certificate is terminated in one place, not on every machine behind it.
+- One place authenticates API callers and enforces a per-caller request limit,
+  instead of every service doing its own.
+- A listing is created, edited and closed in exactly one store. Anything else
+  holding a copy of a listing has to be rebuildable from that store.
+
+**What you are not told**: which requirement each component answers, what order
+they belong in, or how many of anything you need. Validate reports connections
+the components themselves reject; it does not report a requirement with nothing
+on the canvas answering it. Nothing here starts broken, because nothing starts.
+
+## Next
+
+R1 opens two paths at once - Group E, asynchronous systems, and Group F,
+storage - plus the first Real World Extraction projects. 3.17 Message Queues is
+next in order, and it starts from what everything you just built has in common:
+a request arrives, something answers it, and the user waits for all of it. 3.16
+already left one arrow undrawn for that reason, the write that has to reach the
+search index after the response has gone out, with no edge kind in the palette
+meaning "later". That kind, and what it takes to make later survivable, is 3.17.

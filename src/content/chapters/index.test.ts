@@ -29,6 +29,11 @@ describe("getChaptersForMode", () => {
       "bb-3-11-sql-vs-nosql",
       "bb-3-12-replication",
       "bb-3-13-sharding",
+      "bb-3-14-caching",
+      "bb-3-15-cdn",
+      "bb-3-16-search-systems",
+      "bb-r1-a-site-that-stays-up",
+      "bb-3-17-message-queues",
     ]);
   });
 
