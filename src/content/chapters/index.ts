@@ -9335,6 +9335,2340 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
   },
   {
+    id: "bb-3-14-caching",
+    mode: "building-blocks",
+    title: "Caching",
+    // Real authored content (first Group D chapter, authored immediately
+    // after 3.13 in this same working tree). Spec:
+    // specs/bb-3-14-caching.spec.md. Lesson body:
+    // public/content/chapters/bb-3-14-caching.mdx. Real curriculum-order
+    // prerequisite (3.13) is already shipped here - manifest.ts's
+    // prerequisiteSlugs already points at "3-13-sharding", no pulled-forward
+    // exception needed.
+    problemStatement:
+      "One aggregate query runs on every product-page view, returns the same rows to every visitor, and " +
+      "is now most of what the primary database does. A Cache is already on the canvas with its miss " +
+      "path drawn to the primary, and the database's read load has not moved at all.",
+    exerciseGoal:
+      "Stop the primary from answering the same read over and over, without changing where writes land or how the replica serves its reads.",
+    successCriteria: [
+      "A repeat read is answered without the primary doing the query again.",
+      "A read nobody has asked for before still returns the right answer.",
+      "Writes and the replica's read path are exactly as 3.12 left them.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces cache + distributed-cache).
+    learningObjectives: [
+      "Describe the three steps of cache-aside in order, and name where the logic lives (the application, never the cache).",
+      "Compute the origin load left after a cache at a stated hit ratio, and explain why hit ratio, not cache latency, is what turns a cache into headroom.",
+      "Distinguish what evictionPolicy decides (what gets dropped under memory pressure) from what ttlSeconds decides (how long a value may be wrong), and state a cache's staleness bound as a number.",
+      "Wire a Cache into the read path of a running system so repeat reads stop reaching the primary, and pass Submit.",
+      "Predict the inconsistent-read failure that per-instance caches produce behind a load balancer, and name the shared cache tier as the fix.",
+      "Defend caching over another read replica for a repeat-read workload, naming the staleness it buys the reduction with.",
+    ],
+    // Cumulative palette through 3.13 plus this chapter's own two new
+    // components. CURRICULUM §16's own row: "3.14 | cache, distributed-cache".
+    // required deliberately excludes distributed-cache: it is taught in the
+    // lesson's second half and tested in the quiz, but this system's scale
+    // doesn't justify one, and requiring it would teach exactly the
+    // cargo-culting §9 lens 9 exists to prevent (spec §6).
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+    ],
+    // 3.12's curated set, unchanged. This chapter's own starter fault is a
+    // Cache with an outgoing miss path and nothing feeding it, which is
+    // exactly missing-input-connection's stated case ("looks wired into the
+    // diagram, but no request can ever actually reach it") - and it is
+    // error-severity, so Validate genuinely fails rather than passing with a
+    // warning listed (see spec §7 on open decision 11).
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-14-blueprint",
+        label: "The repeat read stops reaching the primary",
+        require: {
+          id: "bb-3-14-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "One edge, and it's the one that carries the whole pattern: the Application Server now asks the " +
+          "Cache before it asks the primary. The miss path was never the missing piece - a cache with a " +
+          "perfectly good route to its origin and nobody sending it reads is a component that can only " +
+          "ever sit empty. Notice what did not change: writes still go straight to the primary, and the " +
+          "replica still serves the reads that have to be current. The cache didn't replace either path, " +
+          "it removed the repeat work from in front of both.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-14-hint-1",
+        body:
+          "Validate names exactly one problem, and it names the component it's about. Read what it says " +
+          "about direction before you change anything - it isn't saying something is missing from the " +
+          "canvas.",
+      },
+      {
+        id: "bb-3-14-hint-2",
+        body:
+          "Follow one read from the load balancer to whatever produces the answer, and list every node it " +
+          "passes through. Compare that list against the nodes on the canvas.",
+      },
+      {
+        id: "bb-3-14-hint-3",
+        body:
+          "The Cache already knows where to go when it doesn't have an answer. What it has never had is " +
+          "anyone asking it a question - and only one tier on this canvas issues reads at all.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group D: Performance - Chapter 3.14 of 37 (first chapter in Group D).",
+      masteredConcepts: [
+        "The full request chain through 3.13 (browser through app-server to sql-database and " +
+          "nosql-database, plus 3.12's read-replica) is unchanged and still passing.",
+        "3.12's replication and read-your-writes: reads can already be offloaded onto a copy of the " +
+          "primary, and that copy can be behind. This chapter's move is the other one - not doing the " +
+          "read at all.",
+        "3.7's session externalization onto the SQL Database, shipped with an explicit note that a " +
+          "faster purpose-built store arrives in this chapter. That promise is paid off here in prose.",
+        "3.4 and 3.6's multi-instance app tier: consecutive requests from one user land on whichever " +
+          "instance the load balancer picks - the precondition that makes per-instance caching fail.",
+        "1.4's back-of-envelope arithmetic, applied here to hit ratio as a multiplier on origin load.",
+        "3.13's hot-partition problem, reused at the end of the scale ladder for a second store.",
+      ],
+      notYetIntroducedConcepts: [
+        "CDNs and caching at the network edge (3.15) - this chapter's one marked forward tease.",
+        "Search engines and inverted indexes (3.16).",
+        "Queues and event streams (3.17-3.18), which are how real systems invalidate a cache on write " +
+          "rather than waiting out a TTL. Named in the trade-off table, not modeled.",
+        "CAP, quorums, and the consistency spectrum (3.22) - the Distributed Cache's own consistency " +
+          "field is named as a knob that exists, never derived from a model the learner has.",
+        "Everything past Group D.",
+      ],
+      simplifications: [
+        "The canvas draws a Cache's outgoing edge to its origin, while cache-aside as taught puts the " +
+          "miss logic in application code (the app reads the origin, then populates the cache). The edge " +
+          "is how this canvas records which store a cache falls back to, not a claim that the cache " +
+          "fetches on its own. Stated in the lesson's own cache-aside section, not only here.",
+        "Invalidation is TTL-based only at this stage. Explicit invalidate-on-write is named in the " +
+          "trade-off table as write-through's alternative, but nothing on canvas expresses it.",
+        "One cache tier in front of one origin is the topology taught and tested. Real systems layer " +
+          "caches (browser, edge, application, the database's own buffer pool) and cache at several " +
+          "granularities at once; named in \"What changes at scale,\" not modeled.",
+        "Hit ratio is treated as a measured property the learner reasons about arithmetically, not as " +
+          "something this stage predicts from a workload. There is no hit-ratio field on the canvas.",
+      ],
+    },
+    // Six questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3/3, matching
+    // 3.10-3.13's own ramp. Q1 adapts QUIZ_FRAMEWORK.md §11's bank Q1
+    // (cache-aside order), Q3 adapts bank Q2 (the staleness contract), Q4
+    // adapts bank Q3 (the per-instance-cache diagram, with miss edges added
+    // so the graph matches what this chapter teaches - see spec §10), Q5
+    // adapts bank Q4 (stampede), Q6 adapts bank Q10 (hit-ratio arithmetic).
+    // Q2 is original - the "where does cache-aside logic live" misconception
+    // the bank's own Q1 note flags as a separate quiz favorite.
+    // Correct options sit at c, a, d, b, a, d - all four positions used, no
+    // letter repeating in consecutive questions, and the chapter opens on
+    // neither 3.13's opener ("b") nor 3.12's ("a").
+    quiz: [
+      {
+        id: "bb-3-14-caching-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "Cache-aside, in order:",
+        options: [
+          {
+            id: "a",
+            label: "The application writes to the cache, and the cache writes through to the database.",
+            correct: false,
+            explanationMd:
+              "That's write-through, a different pattern with a different cost - it puts the cache on the write path, where cache-aside only ever touches reads.",
+          },
+          {
+            id: "b",
+            label: "Read the database, then check the cache to see whether the value was already there.",
+            correct: false,
+            explanationMd:
+              "The database read is the expensive step. Doing it first means the cache never saves anything.",
+          },
+          {
+            id: "c",
+            label: "Check the cache; on a miss, read the database, populate the cache, and return. On a hit, return immediately.",
+            correct: true,
+            explanationMd:
+              "Correct. The cache is consulted first, and a miss is what teaches it the value - which is why the second request for the same key is the one that pays off.",
+          },
+          {
+            id: "d",
+            label: "The cache subscribes to the database and receives every change as it happens.",
+            correct: false,
+            explanationMd:
+              "That would keep the cache current, but nothing in a cache-aside setup pushes anything - the cache learns a value only when an application miss populates it.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-14-caching-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt: "Where does the cache-aside logic actually live?",
+        options: [
+          {
+            id: "a",
+            label: "In the application code that issues the read.",
+            correct: true,
+            explanationMd:
+              "Correct. The application decides the key, checks the cache, falls back to the origin and populates - the cache itself has no idea what the database holds.",
+          },
+          {
+            id: "b",
+            label: "In the cache, which tracks which keys the database holds and fetches them as needed.",
+            correct: false,
+            explanationMd:
+              "A cache stores what it was told to store. It has no view of the database's contents and no way to know a key exists until something asks for it.",
+          },
+          {
+            id: "c",
+            label: "In the load balancer, which decides which requests are cacheable.",
+            correct: false,
+            explanationMd:
+              "The load balancer's decision is which instance answers (3.4). It never sees the query behind the request, let alone the cache key.",
+          },
+          {
+            id: "d",
+            label: "In the database, which pushes changed rows out to the cache.",
+            correct: false,
+            explanationMd:
+              "Databases don't push. That's why the staleness window in this chapter exists at all - nothing tells the cache a value has changed.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-14-caching-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A cache with a 60-second TTL fronts product prices. Someone on the business side asks whether the prices on the site are accurate. The honest answer:",
+        options: [
+          {
+            id: "a",
+            label: "Yes - the cache is refreshed whenever a price is written, so it can't be behind.",
+            correct: false,
+            explanationMd:
+              "Nothing in cache-aside refreshes on write. A price change reaches the cache when the old entry expires, not when the write lands.",
+          },
+          {
+            id: "b",
+            label: "Yes - caching changes how cheaply a price is served, not what the price is.",
+            correct: false,
+            explanationMd:
+              "It changes both. The value served comes from a copy taken at some earlier moment, which is exactly what a TTL bounds.",
+          },
+          {
+            id: "c",
+            label: "The database is no longer on the price path, so accuracy is the cache's responsibility now.",
+            correct: false,
+            explanationMd:
+              "The database is still the source of truth - the cache holds a dated copy of it. Relocating responsibility doesn't answer the question that was asked.",
+          },
+          {
+            id: "d",
+            label: "A price change may show up to roughly 60 seconds late, and that bounded staleness is what bought the read reduction.",
+            correct: true,
+            explanationMd:
+              "Correct. Stating the bound as a number is the engineering habit here - a cache is a staleness contract, and the TTL is where the contract is written down.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-14-caching-q4",
+        kind: "diagram",
+        difficulty: 2,
+        prompt:
+          "Users report that one page shows an old value, then a new one, flipping on every refresh. The database holds exactly one correct value the whole time. Reading the diagram, what is happening and what fixes it?",
+        graph: {
+          nodes: [
+            { id: "c1", componentId: "client", position: { x: 40, y: 240 }, config: {} },
+            { id: "lb1", componentId: "load-balancer", position: { x: 220, y: 240 }, config: {} },
+            { id: "s1", componentId: "app-server", position: { x: 400, y: 120 }, config: {} },
+            { id: "s2", componentId: "app-server", position: { x: 400, y: 360 }, config: {} },
+            { id: "k1", componentId: "cache", position: { x: 580, y: 120 }, config: {} },
+            { id: "k2", componentId: "cache", position: { x: 580, y: 360 }, config: {} },
+            { id: "d1", componentId: "sql-database", position: { x: 760, y: 240 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "c1", target: "lb1", kind: "request-flow" },
+            { id: "e2", source: "lb1", target: "s1", kind: "request-flow" },
+            { id: "e3", source: "lb1", target: "s2", kind: "request-flow" },
+            { id: "e4", source: "s1", target: "k1", kind: "request-flow" },
+            { id: "e5", source: "s2", target: "k2", kind: "request-flow" },
+            { id: "e6", source: "k1", target: "d1", kind: "request-flow" },
+            { id: "e7", source: "k2", target: "d1", kind: "request-flow" },
+          ],
+          entryPointIds: ["c1"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "The database is returning inconsistent rows and should be restored from a backup.",
+            correct: false,
+            explanationMd:
+              "The prompt rules this out - the database holds one correct value throughout. The disagreement is downstream of it.",
+          },
+          {
+            id: "b",
+            label: "Each Application Server has its own private cache holding a different generation of the value, and consecutive requests land on different servers. Consolidate them into one cache tier both servers reach.",
+            correct: true,
+            explanationMd:
+              "Correct. Neither cache is wrong - each faithfully serves what it captured, at a different moment. One shared tier gives the two servers one copy of the answer instead of two.",
+          },
+          {
+            id: "c",
+            label: "The load balancer should cache the response itself, so both servers see the same copy.",
+            correct: false,
+            explanationMd:
+              "That moves the cache somewhere it can't see the query or the key, and it re-couples every cached response to the one component the whole tier already depends on.",
+          },
+          {
+            id: "d",
+            label: "The TTLs are too long. Set them to zero so nothing is ever served stale.",
+            correct: false,
+            explanationMd:
+              "A zero TTL is a 0% hit ratio - it removes the symptom by removing the cache. The two caches would still disagree at any TTL above zero.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-14-caching-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Your homepage's cache key expires at 3pm, at peak. Two thousand in-flight requests miss at the same instant, all reach the database together, and it falls over. Name it, and name a fix:",
+        options: [
+          {
+            id: "a",
+            label: "A cache stampede. Serve the stale value while one request refreshes, lock the refresh so only one caller does it, or jitter TTLs so keys stop expiring in lockstep.",
+            correct: true,
+            explanationMd:
+              "Correct. The database's worst second is the one right after the cache stops helping it, and every fix here is a way of making sure only one request pays the miss.",
+          },
+          {
+            id: "b",
+            label: "Replication lag. Add read replicas so the misses spread across more machines.",
+            correct: false,
+            explanationMd:
+              "Lag (3.12) is a copy being behind, which isn't what happened. More replicas would absorb some of the burst, but the burst itself is a synchronized expiry.",
+          },
+          {
+            id: "c",
+            label: "A hot partition. Reshard the data so that key's load spreads across shards.",
+            correct: false,
+            explanationMd:
+              "A hot partition (3.13) is sustained skew toward one shard. This is one instant of load from one key that was, until 3pm, costing the database nothing at all.",
+          },
+          {
+            id: "d",
+            label: "Cache poisoning. Put authentication in front of the cache.",
+            correct: false,
+            explanationMd:
+              "Poisoning is an attacker planting a bad value. Nothing here is malicious - the cache did precisely what its TTL told it to.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-14-caching-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "One query runs 100 times a second and averages 30 ms on the database. You put a cache in front of it and measure a 95% hit ratio. Roughly what does the database serve from this query now?",
+        options: [
+          {
+            id: "a",
+            label: "Still 100 a second - the cache shortens the response, it doesn't remove the query.",
+            correct: false,
+            explanationMd:
+              "A hit never reaches the database at all. That's the entire mechanism - the cache absorbs the request rather than accelerating it.",
+          },
+          {
+            id: "b",
+            label: "About 50 a second.",
+            correct: false,
+            explanationMd:
+              "That would be a 50% hit ratio. The measured ratio is the multiplier, and it's 95%.",
+          },
+          {
+            id: "c",
+            label: "Zero - once the value is cached, the database never sees this query again.",
+            correct: false,
+            explanationMd:
+              "Misses keep happening: entries expire, get evicted, and the cache restarts empty. A cache that never missed would be a copy of the database, not a cache.",
+          },
+          {
+            id: "d",
+            label: "About 5 a second - only the misses reach it.",
+            correct: true,
+            explanationMd:
+              "Correct: 100 x 5% = 5. Doing this arithmetic on the spot is what turns \"add a cache\" from a reflex into a capacity argument.",
+          },
+        ],
+      },
+    ],
+    // Fix-shaped, one fault: 3.13's passing system with a Cache added, its
+    // miss path to the primary already drawn, and nothing feeding it. That
+    // fires missing-input-connection (error) - "it looks wired into the
+    // diagram, but no request can ever actually reach it" - which is exactly
+    // the chapter's point: a cache nobody reads from is a cache that does
+    // nothing. The single missing edge is the whole cache-aside pattern.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-14-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-14-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-14-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-14-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-14-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-14-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-14-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-14-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-14-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "document" } },
+        { id: "bb-3-14-replica", componentId: "read-replica", position: { x: 700, y: 480 }, config: {} },
+        { id: "bb-3-14-cache", componentId: "cache", position: { x: 380, y: 640 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+      ],
+      edges: [
+        { id: "bb-3-14-e1", source: "bb-3-14-browser", target: "bb-3-14-dns", kind: "request-flow" },
+        { id: "bb-3-14-e2", source: "bb-3-14-dns", target: "bb-3-14-fw", kind: "request-flow" },
+        { id: "bb-3-14-e3", source: "bb-3-14-fw", target: "bb-3-14-proxy", kind: "request-flow" },
+        { id: "bb-3-14-e4", source: "bb-3-14-proxy", target: "bb-3-14-gateway", kind: "request-flow" },
+        { id: "bb-3-14-e5", source: "bb-3-14-gateway", target: "bb-3-14-lb", kind: "request-flow" },
+        { id: "bb-3-14-e6", source: "bb-3-14-lb", target: "bb-3-14-app", kind: "request-flow" },
+        { id: "bb-3-14-e7", source: "bb-3-14-app", target: "bb-3-14-db", kind: "request-flow" },
+        { id: "bb-3-14-e8", source: "bb-3-14-app", target: "bb-3-14-nosql", kind: "request-flow" },
+        { id: "bb-3-14-e9", source: "bb-3-14-db", target: "bb-3-14-replica", kind: "replication" },
+        { id: "bb-3-14-e10", source: "bb-3-14-replica", target: "bb-3-14-app", kind: "request-flow" },
+        { id: "bb-3-14-e11", source: "bb-3-14-cache", target: "bb-3-14-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-14-browser"],
+    },
+    // No magenta gap zone: the fix is a wire between two nodes that are both
+    // already on the canvas, not a missing node in empty space (§11.6).
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-14-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-14-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-14-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-14-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 896, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-14-zone-cache", label: "Cache tier", position: { x: 352, y: 592 }, width: 256, height: 137, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-14-comment-latency",
+        text: "An answer already held here returns in about 1 ms. The same answer computed on the primary costs about 40 ms.",
+        position: { x: 980, y: 592 },
+        width: 260,
+        height: 120,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-15-cdn",
+    mode: "building-blocks",
+    title: "CDN",
+    // Real authored content (second Group D chapter, authored immediately
+    // after 3.14 in this same working tree). Spec:
+    // specs/bb-3-15-cdn.spec.md. Lesson body:
+    // public/content/chapters/bb-3-15-cdn.mdx. Real curriculum-order
+    // prerequisite (3.14) is already shipped here - manifest.ts's
+    // prerequisiteSlugs already points at "3-14-caching".
+    problemStatement:
+      "The same product page returns in 40 ms next to your servers and takes most of a second in Sydney, " +
+      "on the same servers, at the same cache hit ratio. Most of what makes that page is images and " +
+      "script bundles that are identical for every visitor and change only when you deploy, and every " +
+      "one of them crosses an ocean on every request.",
+    exerciseGoal:
+      "Stop bytes that never change from crossing the whole network on every request, without altering what the origin does for the requests that genuinely have to reach it.",
+    successCriteria: [
+      "A request for something a nearby user already asked for is answered without crossing the network to the origin.",
+      "The first request for something nobody nearby has asked for still returns the right bytes.",
+      "Traffic that cannot be served from a copy still arrives at the firewall, and everything behind it is untouched.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces cdn).
+    learningObjectives: [
+      "Explain what an edge node holds, what happens on a hit and on a miss, and which requests the origin still sees once a CDN is in front of it.",
+      "Decide whether a given response belongs at the edge by testing it against two properties: identical for many users, and tolerant of being up to its TTL out of date.",
+      "Contrast pull and push provisioning and name what each one costs.",
+      "Place a CDN on the request path in front of the origin so repeat requests for shared bytes are answered near the user, and pass Submit.",
+      "Answer \"why is a CDN steered by DNS rather than by anything downstream?\" by naming resolution as the earliest point a user can be pointed somewhere.",
+      "Defend fingerprinted filenames plus a long TTL over a short TTL, naming what each choice costs.",
+    ],
+    // Cumulative palette through 3.14 plus this chapter's own new component.
+    // CURRICULUM §16's own row: "3.15 | cdn". distributed-cache stays
+    // available-but-not-required for 3.14's own recorded reason.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+    ],
+    // 3.14's curated set, unchanged. Nothing on this canvas is wired wrong at
+    // the start - the starter graph validates clean, deliberately (spec §7):
+    // the exercise's gap is a missing component, which Submit's blueprint
+    // check owns, not a rule violation. The set still matters during the
+    // build: a CDN dropped on the canvas and left unwired fires
+    // missing-input-connection or orphan-component while the learner works.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-15-blueprint",
+        label: "The edge answers first, the origin sees only what it must",
+        require: {
+          id: "bb-3-15-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+          ],
+          // dns -> fw is deliberately NOT required: a learner who inserts the
+          // CDN and deletes the old direct edge has built the cleaner version
+          // of the same answer, and requiring the edge they just removed would
+          // fail the better build. Keeping it is also legal (containment
+          // matching) - see the spec's §8 on why neither is forced.
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "The CDN went in at the very front, where resolution can steer a user to it, and everything " +
+          "behind the firewall is exactly as 3.14 left it. That placement is the whole point: a copy " +
+          "kept anywhere downstream of the firewall would still be on the far side of the crossing you " +
+          "were trying to avoid. Notice what the origin still does. Every request the edge can't answer " +
+          "from a copy - anything per-user, anything that writes - takes the same path it always did, " +
+          "hits the same cache, reads the same replica. The edge removed distance from the requests that " +
+          "could tolerate it, and left the rest alone.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-15-hint-1",
+        body:
+          "Validate has nothing to say about this canvas, and that is honest - nothing here is wired " +
+          "wrong. What's wrong is where the answer is, not what the answer is, and no validation rule " +
+          "measures distance.",
+      },
+      {
+        id: "bb-3-15-hint-2",
+        body:
+          "The bytes in question are identical for every visitor and change only when you deploy. " +
+          "Keeping a copy of an answer that doesn't change is a move you already know - the open " +
+          "question is which end of the path the copy should sit at.",
+      },
+      {
+        id: "bb-3-15-hint-3",
+        body:
+          "Look at the very front of the request path. One thing there already decides where a request " +
+          "goes before it goes anywhere, and it is the only decision in this system that can be made " +
+          "differently for a user in Sydney than for a user in Virginia.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group D: Performance - Chapter 3.15 of 37 (second chapter in Group D).",
+      masteredConcepts: [
+        "3.14's cache-aside read path, wired and passing: the hit/miss shape, hit ratio as the multiplier " +
+          "on origin load, and a TTL as a staleness bound written down as a number. This chapter reuses " +
+          "all of it one layer out.",
+        "3.2's DNS: resolution, record TTLs, and its closing claim that changing what a name resolves to " +
+          "is how traffic gets routed. That is the mechanism this chapter's steering rests on, and the " +
+          "foreshadow it pays off.",
+        "3.3's reverse proxy: something in front of the origin that terminates connections and answers " +
+          "what it can. A CDN is the same job, in a few hundred locations, run by someone else.",
+        "The full request chain through 3.14 (browser through app-server to sql-database and " +
+          "nosql-database, plus the read-replica and the cache) is unchanged and still passing.",
+        "3.14's stampede, reused here as the herd that follows a global purge.",
+      ],
+      notYetIntroducedConcepts: [
+        "Search engines and inverted indexes (3.16) - this chapter's one marked forward tease.",
+        "Object storage (3.20), which is where the bytes a CDN fronts actually live in a real system. " +
+          "This chapter's CDN sits in front of the same origin the browser was already reaching.",
+        "Queues and event streams (3.17-3.18), which are how a real invalidation fans out to every " +
+          "location. Purging is named as an operation, not modeled.",
+        "Multi-region origins and geo-replicated data. This chapter moves copies of responses closer to " +
+          "users; moving the system itself closer is not in this curriculum's Building Blocks.",
+        "Everything past Group D.",
+      ],
+      simplifications: [
+        "One CDN node on canvas stands for the entire distributed tier - a few hundred locations, each " +
+          "with its own cache and its own hit ratio. The lesson's walkthrough draws two of them for " +
+          "exactly this reason; the exercise canvas has room for one box.",
+        "Cache keys, Cache-Control and ETag negotiation, and per-object headers are the real control " +
+          "surface at the edge. On canvas there is one cacheTtlSeconds for the whole node, and per-user " +
+          "cacheability is a single cacheDynamicContent boolean.",
+        "DNS steering is taught as the mechanism because it is the one 3.2 already built. Many CDNs " +
+          "steer with anycast instead, announcing one address from every location; the lesson names " +
+          "this in a clause rather than teaching it.",
+        "Push provisioning is taught in the lesson and the walkthrough but has no expression on canvas - " +
+          "the cdn component has no push/pull field. The build is pull-shaped by default.",
+        "TLS termination at the edge, request collapsing, and origin shielding are named at their " +
+          "beats and not modeled. A shield tier would be a second cdn node, which this system's scale " +
+          "does not justify.",
+      ],
+    },
+    // Six questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3/3, matching
+    // 3.10-3.14's own ramp. Q3 adapts QUIZ_FRAMEWORK.md §11's bank Q5 (what
+    // belongs on a CDN) into a multi-select, which is what §14's own row asks
+    // this chapter's trade-off exercise to be ("which of five asset types
+    // belong on the CDN"). Q4 adapts bank Q6 (why DNS-steered). The other
+    // four are original.
+    // Correct options on the five single-choice questions sit at d, b, a, c,
+    // b - all four positions used, no letter in consecutive questions, and
+    // the chapter opens on "d", which 3.12 ("a"), 3.13 ("b") and 3.14 ("c")
+    // all avoid.
+    quiz: [
+      {
+        id: "bb-3-15-cdn-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Your API's P50 is 40 ms in Virginia and 600 ms in Sydney. Same servers, same cache, the same 95% hit ratio measured in both regions, and no box is above 30% CPU. What is the other 560 ms?",
+        options: [
+          {
+            id: "a",
+            label: "Sydney's requests are missing the cache and recomputing against the primary.",
+            correct: false,
+            explanationMd:
+              "The hit ratio is stated as identical in both regions, and a miss on this system costs tens of milliseconds, not hundreds. Whatever the 560 ms is, it is being paid on hits too.",
+          },
+          {
+            id: "b",
+            label: "The app tier is short of instances now that a second region's traffic has arrived.",
+            correct: false,
+            explanationMd:
+              "Every box is under 30% CPU. Adding instances adds capacity, and capacity is not what is short - a queue would show up as load, and there is none.",
+          },
+          {
+            id: "c",
+            label: "The database is the bottleneck; a read replica in Sydney would fix it.",
+            correct: false,
+            explanationMd:
+              "A replica near the user only helps if the code issuing the read is near the user too. The app tier is still in Virginia, so the request crosses the ocean before any query runs.",
+          },
+          {
+            id: "d",
+            label: "Round trips. The request crosses an ocean, and a fresh connection pays two more crossings on the TCP and TLS handshakes before the first byte of the response moves.",
+            correct: true,
+            explanationMd:
+              "Correct. Distance is not work, which is why none of the levers that make work faster or rarer move this number. The only fix is to answer from somewhere closer.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-15-cdn-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "You put a pull-provisioned CDN in front of your assets. A user in Sao Paulo is the first person in Brazil to request `hero.jpg`. What do they get, and what do the next ten thousand Brazilian visitors get?",
+        options: [
+          {
+            id: "a",
+            label: "Nobody in Brazil gets anything until the file has been copied to every location, which is what a deploy does.",
+            correct: false,
+            explanationMd:
+              "That describes push provisioning, and even then a deploy doesn't block reads. Under pull, nothing is pre-copied anywhere and the first request is what fills the location.",
+          },
+          {
+            id: "b",
+            label: "The first user pays a round trip to the origin plus the local hop; everyone after them is served out of Sao Paulo without the origin being involved.",
+            correct: true,
+            explanationMd:
+              "Correct. Under pull, exactly one user per location per object pays the crossing, and the rest of that region inherits the copy their miss created.",
+          },
+          {
+            id: "c",
+            label: "All ten thousand and one are served from Sao Paulo, because a CDN copies your assets to every location when you configure it.",
+            correct: false,
+            explanationMd:
+              "That is push, described as if it were the default. Push exists and is the right answer for a launch, but it means every location stores every object whether or not anyone there asks.",
+          },
+          {
+            id: "d",
+            label: "All ten thousand and one reach the origin; the CDN shortens the network path but doesn't hold anything.",
+            correct: false,
+            explanationMd:
+              "Then it would be a route optimization, not a cache. Holding the response is the entire mechanism - a CDN that forwarded everything would add a hop and remove nothing.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-15-cdn-q3",
+        kind: "multi",
+        difficulty: 2,
+        prompt:
+          "Your CDN is in front of the whole site. Select every response below that belongs at the edge as it stands (select all that apply).",
+        options: [
+          {
+            id: "a",
+            label: "`/static/app.9f3c1.js` - a bundle rebuilt and renamed on every deploy.",
+            correct: true,
+            explanationMd:
+              "Yes. Identical for everyone, and the fingerprint in the name means the URL changes whenever the content does, so this copy can never go stale. Cache it for a year.",
+          },
+          {
+            id: "b",
+            label: "Product images, byte-identical for every viewer.",
+            correct: true,
+            explanationMd:
+              "Yes, and this is usually where most of the win is. Images and video are the largest thing you ship and the least likely to differ between two users.",
+          },
+          {
+            id: "c",
+            label: "`/account` - rendered with the signed-in user's name and recent orders.",
+            correct: false,
+            explanationMd:
+              "No. It fails the first property outright: identical for nobody. One copy served twice here is one customer reading another's data, which is a different class of failure from staleness.",
+          },
+          {
+            id: "d",
+            label: "`/category/tents` - the signed-out listing page, the same for every anonymous visitor, updated a few times an hour.",
+            correct: true,
+            explanationMd:
+              "Yes, with a short TTL. It is identical per visitor and it tolerates being behind; the TTL is where you write down how far behind you are willing to be.",
+          },
+          {
+            id: "e",
+            label: "`POST /cart/checkout`.",
+            correct: false,
+            explanationMd:
+              "No. It is not a read at all - there is nothing to copy, and it has to change state at the origin. Caching it would mean serving a stored response to a request meant to do something.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-15-cdn-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate asks why the choice of which edge node serves a user is made by DNS, when the load balancer and the gateway already route traffic. The strongest answer:",
+        options: [
+          {
+            id: "a",
+            label: "Resolution is the earliest moment a user can be pointed anywhere: the same name can return a different address depending on where it was asked from, and it happens before the request exists.",
+            correct: true,
+            explanationMd:
+              "Correct, and this is 3.2's closing claim in its most common form - changing what a name resolves to is how traffic gets routed, here per-region rather than per-incident.",
+          },
+          {
+            id: "b",
+            label: "DNS is the only protocol that works globally, so no other component could carry the decision.",
+            correct: false,
+            explanationMd:
+              "Overstated to the point of being false - anycast routing steers plenty of CDNs without DNS. The reason is timing, not exclusivity.",
+          },
+          {
+            id: "c",
+            label: "The load balancer could do it, but its health checks would be too slow to run across continents.",
+            correct: false,
+            explanationMd:
+              "By the time a load balancer sees a request, the request has already crossed the ocean. The cost you were avoiding was paid before that component was reached, whatever it then decides.",
+          },
+          {
+            id: "d",
+            label: "It is historical: CDNs predate load balancers, and the mechanism stuck.",
+            correct: false,
+            explanationMd:
+              "Not historical and not true. DNS carries the decision because it is the only step that happens before the request is sent.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-15-cdn-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "You ship a CSS fix at 2pm. At 4pm some users still see the broken layout, and the edge TTL on `/static/site.css` is 24 hours. Which move fixes this permanently rather than fixing it once?",
+        options: [
+          {
+            id: "a",
+            label: "Purge the file at every location as the last step of every deploy.",
+            correct: false,
+            explanationMd:
+              "This works today, and it is the standard fallback. But a purge is a control-plane operation with its own latency, it has to be right every deploy, and it does nothing about copies already sitting in browsers.",
+          },
+          {
+            id: "b",
+            label: "Cut the edge TTL on all static assets to 60 seconds so mistakes correct themselves quickly.",
+            correct: false,
+            explanationMd:
+              "That pays origin traffic on every asset, forever, for a problem that only exists on deploy days - and still leaves a window. Short TTLs are how you publish a page, not how you publish a build.",
+          },
+          {
+            id: "c",
+            label: "Give each build a new filename, `site.9f3c1.css`, and keep the long TTL.",
+            correct: true,
+            explanationMd:
+              "Correct. A URL that changes with its contents can never serve a stale copy, so the TTL can be a year and the publish is instant. The cost is a build step that fingerprints assets and rewrites every reference.",
+          },
+          {
+            id: "d",
+            label: "Stop caching CSS and JS at the edge; keep the CDN for images only.",
+            correct: false,
+            explanationMd:
+              "That surrenders a reliably cacheable class of assets to avoid a problem with a standard solution. Bundles are among the best CDN candidates there are, precisely because they can be versioned.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-15-cdn-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Two hours after you enable HTML caching at the edge, a ticket arrives: a signed-in customer saw a different customer's name in the page header. Origin logs show one request for that page in the whole window. Name the cause and the fix.",
+        options: [
+          {
+            id: "a",
+            label: "Replication lag - the edge served a copy taken before that customer's session was written.",
+            correct: false,
+            explanationMd:
+              "Lag (3.12) explains an old value, not someone else's value. No amount of staleness puts a different person's name in a page; only reusing their response does.",
+          },
+          {
+            id: "b",
+            label: "A per-user response was cached under a key that doesn't include who it was for, so one render was handed to everyone who asked next. Responses that vary by user don't belong at the edge at all.",
+            correct: true,
+            explanationMd:
+              "Correct, and the single origin request is the tell: one render was made and then reused. The fix is not a better key on that page, it is keeping per-user responses off the edge entirely.",
+          },
+          {
+            id: "c",
+            label: "The TTL is too long. Drop it to 30 seconds so a wrong page expires almost immediately.",
+            correct: false,
+            explanationMd:
+              "A 30-second window in which customers can read each other's data is not a smaller version of correct. TTL bounds how old a value is, never who it belonged to.",
+          },
+          {
+            id: "d",
+            label: "A cache stampede - many requests missed at once and one response got reused across all of them.",
+            correct: false,
+            explanationMd:
+              "A stampede (3.14) is many requests reaching the origin at once; the logs show one. Reuse is what caching is for - the bug is what was reused, not that reuse happened.",
+          },
+        ],
+      },
+    ],
+    // Completion-shaped, and the first authored starter graph that validates
+    // clean on purpose: it is 3.14's solved system, cache wired. The gap is a
+    // component that is missing rather than a component that is wrong, which
+    // is what the magenta zone marks and what Submit's blueprint check
+    // catches. See the spec's §7 and §8.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-15-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-15-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-15-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-15-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-15-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-15-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-15-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-15-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-15-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "document" } },
+        { id: "bb-3-15-replica", componentId: "read-replica", position: { x: 700, y: 480 }, config: {} },
+        { id: "bb-3-15-cache", componentId: "cache", position: { x: 380, y: 640 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+      ],
+      edges: [
+        { id: "bb-3-15-e1", source: "bb-3-15-browser", target: "bb-3-15-dns", kind: "request-flow" },
+        { id: "bb-3-15-e2", source: "bb-3-15-dns", target: "bb-3-15-fw", kind: "request-flow" },
+        { id: "bb-3-15-e3", source: "bb-3-15-fw", target: "bb-3-15-proxy", kind: "request-flow" },
+        { id: "bb-3-15-e4", source: "bb-3-15-proxy", target: "bb-3-15-gateway", kind: "request-flow" },
+        { id: "bb-3-15-e5", source: "bb-3-15-gateway", target: "bb-3-15-lb", kind: "request-flow" },
+        { id: "bb-3-15-e6", source: "bb-3-15-lb", target: "bb-3-15-app", kind: "request-flow" },
+        { id: "bb-3-15-e7", source: "bb-3-15-app", target: "bb-3-15-db", kind: "request-flow" },
+        { id: "bb-3-15-e8", source: "bb-3-15-app", target: "bb-3-15-nosql", kind: "request-flow" },
+        { id: "bb-3-15-e9", source: "bb-3-15-db", target: "bb-3-15-replica", kind: "replication" },
+        { id: "bb-3-15-e10", source: "bb-3-15-replica", target: "bb-3-15-app", kind: "request-flow" },
+        { id: "bb-3-15-e11", source: "bb-3-15-app", target: "bb-3-15-cache", kind: "request-flow" },
+        { id: "bb-3-15-e12", source: "bb-3-15-cache", target: "bb-3-15-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-15-browser"],
+    },
+    // A magenta gap zone is warranted here and was not on 3.14: the fix is a
+    // genuinely missing node in identifiable empty canvas space (the unused
+    // middle slot of the second row, between resolution above it and the
+    // application tier below), not a rewire of something already present
+    // (§11.6).
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-15-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-15-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-15-zone-gap", label: "Build here", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-15-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-15-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 896, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-15-zone-cache", label: "Cache tier", position: { x: 352, y: 592 }, width: 256, height: 137, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-15-comment-distance",
+        text: "A round trip from Sydney to this system runs about 200 ms, and a new connection pays two more on handshakes. Nothing behind the firewall makes that number smaller.",
+        position: { x: 980, y: 112 },
+        width: 260,
+        height: 140,
+        color: "#64748b",
+      },
+      {
+        kind: "comment",
+        id: "bb-3-15-comment-bytes",
+        text: "Most of a product page's bytes are images and script bundles: identical for every visitor, changed only by a deploy.",
+        position: { x: 980, y: 432 },
+        width: 260,
+        height: 120,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-16-search-systems",
+    mode: "building-blocks",
+    title: "Search Systems",
+    // Real authored content (third and final Group D chapter, authored
+    // immediately after 3.15 in this same working tree). Spec:
+    // specs/bb-3-16-search-systems.spec.md. Lesson body:
+    // public/content/chapters/bb-3-16-search-systems.mdx. Real
+    // curriculum-order prerequisite (3.15) is already shipped here -
+    // manifest.ts's prerequisiteSlugs already points at "3-15-cdn".
+    problemStatement:
+      "The catalog has 4.2 million products and the search box runs a substring match against every " +
+      "description. It returns in 12 ms against the 5,000 rows on a laptop and takes 6 seconds in " +
+      "production, and the cost tracks the size of the catalog rather than the number of products that " +
+      "actually match. Nothing already in this design answers that query any faster.",
+    exerciseGoal:
+      "Make a text query over four million products answerable without reading four million rows, while the products themselves stay exactly where they are.",
+    successCriteria: [
+      "A query like \"waterproof jacket\" is answered by something whose cost tracks the number of matches rather than the size of the catalog.",
+      "The products table is still the only place a product is created, changed or deleted - nothing else owns one.",
+      "The rest of the system is untouched: the same edge tier, the same cache, the same replica, all still passing.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces search-engine).
+    learningObjectives: [
+      "Explain why a leading-wildcard match reads every row, and why a replica, a cache and a CDN each fail to reduce that cost for a different reason.",
+      "Describe an inverted index as a map from term to the documents containing it, and name what that reversal changes about the cost of a query.",
+      "Decide which of three sync paths (write both stores in the request, follow the primary's change stream, rebuild on a schedule) fits a given freshness requirement, naming what each one costs.",
+      "Add a second store that answers text queries, wired so the primary stays the only source of truth, and pass Submit.",
+      "Answer \"is a ten-second search lag acceptable?\" by stating a freshness target and naming the one flow that breaks under it.",
+      "Defend a database's own full-text search over a separate search cluster at small corpus size, naming the specific ceiling that changes the answer.",
+    ],
+    // Cumulative palette through 3.15 plus this chapter's own new component.
+    // CURRICULUM §16's own row: "3.16 | search-engine". distributed-cache
+    // stays available-but-not-required for 3.14's own recorded reason.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+    ],
+    // 3.14's curated set, unchanged for a third chapter. As in 3.15, nothing
+    // on this canvas is wired wrong at the start - the starter graph is 3.15's
+    // solved system and validates clean (spec §7). The set still earns its
+    // place during the build: a Search Engine dropped on the canvas and left
+    // unwired fires orphan-component, and one wired from the database rather
+    // than the application tier fires component-relations off the component's
+    // own declared inputs.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-16-blueprint",
+        label: "A second store for the question the primary cannot answer",
+        require: {
+          id: "bb-3-16-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "One edge, and it is the only one the canvas will let you draw into a search engine: the " +
+          "application tier asks it a question. Everything else stayed where it was, which is the point - " +
+          "the products table is still the only thing that owns a product, and the index is a projection " +
+          "of it that you could delete and rebuild tonight. Look at what that single line is doing, though. " +
+          "It carries the query, which is genuinely synchronous, and it also has to carry every edit on its " +
+          "way into the index, which should not be. There is no second arrow to draw because the edge kind " +
+          "that means \"after the response is sent\" does not exist in your palette yet. That missing line " +
+          "is 3.17.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-16-hint-1",
+        body:
+          "Nothing on this canvas is broken, so Validate stays quiet again. Look instead at what each " +
+          "existing component is organized around: a request path, a copy of an answer, or a table of " +
+          "products keyed by id. The query in the brief is none of those.",
+      },
+      {
+        id: "bb-3-16-hint-2",
+        body:
+          "The data does not need to move. It needs to exist a second time, arranged so that a word leads " +
+          "to the products containing it instead of an id leading to a product. That is a different store, " +
+          "not a different setting on an existing one.",
+      },
+      {
+        id: "bb-3-16-hint-3",
+        body:
+          "Whatever you add, only one tier in this system is allowed to talk to it - the same tier that " +
+          "already talks to the database and the cache. Try drawing the edge from anywhere else and the " +
+          "component itself will tell you why it refused.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group D: Performance - Chapter 3.16 of 37 (third and last chapter in Group D, immediately before Checkpoint R1).",
+      masteredConcepts: [
+        "3.14's cache-aside path and 3.15's edge tier, both wired and passing. This chapter's opening " +
+          "argument is that neither of them helps here, so both have to be understood well enough to be " +
+          "ruled out.",
+        "3.10 and 3.11: a store's shape decides which questions are cheap, and an index is what makes a " +
+          "lookup cheap in the first place. This chapter is that argument taken to the point where the " +
+          "answer is a second store rather than a second index.",
+        "3.12's replication: a copy of the data that lags the primary, and the read-your-writes carve-out " +
+          "that lag forces. Both return here in a store that lags for a different reason.",
+        "The full request chain through 3.15 (browser through DNS and the CDN to the app tier, its cache, " +
+          "the primary and the read replica) is unchanged and still passing.",
+      ],
+      notYetIntroducedConcepts: [
+        "Queues, workers and the async edge kind (3.17) - this chapter's one marked forward tease, and " +
+          "the machinery for the indexing path it can describe but not draw.",
+        "Event streams and change-data-capture pipelines (3.18). The lesson names \"follow the primary's " +
+          "change stream\" as the sync path most products use; the components that implement it arrive later.",
+        "Background jobs and scheduling (3.19), which is what a nightly rebuild actually runs on.",
+        "Object storage (3.20). Documents here are rows in the primary, not blobs.",
+        "Everything past Group D, and Checkpoint R1 itself.",
+      ],
+      simplifications: [
+        "One search-engine node stands for a cluster. The component exposes a shards field (index " +
+          "parallelism), but sharding, replication and merge behaviour are taught in the scaling section " +
+          "rather than modeled, and the exercise leaves shards at its default of 1.",
+        "The canvas allows exactly one connection into a search engine: a request-flow edge from the " +
+          "compute tier. That edge is honest for the query path and wrong for the indexing path, and the " +
+          "lesson says so outright rather than letting the drawing imply that indexing is a synchronous " +
+          "request. The edge kind that would model it correctly arrives in 3.17.",
+        "A search engine has no output port on this canvas, so results coming back are implied rather " +
+          "than drawn - the same convention every earlier chapter's read paths use.",
+        "Analysis (tokenizing, stemming, stop words) and ranking are described at the level needed to " +
+          "explain why a query is cheap and why results have an order. Scoring functions, synonym and " +
+          "typo handling, and faceting are named but not developed.",
+        "\"Follow the primary's change stream\" is taught as one sync path among three. What actually " +
+          "reads that stream, how it is made durable, and what happens when it falls behind are Group E " +
+          "and F material.",
+      ],
+    },
+    // Six questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3/3, matching
+    // 3.10-3.15's own ramp. Q1 adapts QUIZ_FRAMEWORK.md §11's bank Q7 (why
+    // LIKE dies in prod), Q3 its bank Q8 (the derived-data obligation), Q5 its
+    // bank Q9 (the freshness SLO) - all three of the bank's 3.16-tagged
+    // questions are spent. The other three are original.
+    // Correct options across the six single-choice questions sit at a, c, b,
+    // d, a, c - all four positions used, no letter in consecutive questions,
+    // and the chapter opens on "a", which 3.13 ("b"), 3.14 ("c") and 3.15
+    // ("d") all avoid.
+    quiz: [
+      {
+        id: "bb-3-16-search-systems-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "`SELECT ... WHERE description LIKE '%waterproof%'` returns in 12 ms against 5,000 rows in development and takes 6 seconds against 4.2 million in production. There is an index on `description`. Why doesn't it help?",
+        options: [
+          {
+            id: "a",
+            label: "A leading wildcard leaves no prefix to seek to, so the index is unusable and the database reads every row. The cost grows with the table, not with the number of matches.",
+            correct: true,
+            explanationMd:
+              "Correct. An ordinary index orders rows by their leading characters. `'waterproof%'` could seek straight to a range; `'%waterproof%'` names no starting point, so the only plan left is a full scan.",
+          },
+          {
+            id: "b",
+            label: "The production database is under-provisioned. 4.2 million rows is not a large table, and the same query on bigger hardware would return in milliseconds.",
+            correct: false,
+            explanationMd:
+              "Hardware moves the constant, not the growth rate. A scan that reads every row still reads every row on a faster machine, and doubling the catalog doubles the work again.",
+          },
+          {
+            id: "c",
+            label: "The query is missing a `LIMIT`, so the database materializes all matches before returning the first page.",
+            correct: false,
+            explanationMd:
+              "A `LIMIT` can stop a scan early once enough rows match, but it cannot stop it from scanning when few rows match or none do - and the slow case is exactly the one where the database has to look everywhere to be sure.",
+          },
+          {
+            id: "d",
+            label: "Text columns are stored out of line, so every row costs an extra read. Shortening the descriptions would fix it.",
+            correct: false,
+            explanationMd:
+              "Storage layout affects how expensive each row is, not how many rows get read. The problem is the row count, and it is the row count that grows.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-16-search-systems-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Before adding anything new, a teammate suggests putting a cache in front of the search query - it worked for the product page in 3.14. Your catalog gets 90,000 distinct search strings a day and the top 200 account for 8% of them. What happens?",
+        options: [
+          {
+            id: "a",
+            label: "It works: search results are read-mostly, which is exactly what a cache is for.",
+            correct: false,
+            explanationMd:
+              "Read-mostly is necessary, not sufficient. A cache also needs the same key to be asked for repeatedly, and that is the property this workload lacks.",
+          },
+          {
+            id: "b",
+            label: "It works once the TTL is long enough, because a longer TTL raises the hit ratio on any workload.",
+            correct: false,
+            explanationMd:
+              "A longer TTL only helps entries that get asked for again before they expire. A query string asked once in its life never gets a second request at any TTL.",
+          },
+          {
+            id: "c",
+            label: "It removes about 8% of the load and leaves the rest, because almost every other query is a distinct key asked once. The 6 seconds is still paid on every miss.",
+            correct: true,
+            explanationMd:
+              "Correct, and caching the head of a search workload is a real technique - it is just not a fix. The long tail is where the scans live, and a cache cannot make a first request cheap.",
+          },
+          {
+            id: "d",
+            label: "It makes things worse: every miss now pays the cache round trip on top of the scan.",
+            correct: false,
+            explanationMd:
+              "A miss costs a sub-millisecond lookup against a 6-second scan, which is not the reason to reject this. The reason is that the hit ratio is near zero, so there is almost nothing to win.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-16-search-systems-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "You add a search engine alongside the primary database. Which new obligation does that create?",
+        options: [
+          {
+            id: "a",
+            label: "The primary has to become a NoSQL store, because search engines index documents rather than rows.",
+            correct: false,
+            explanationMd:
+              "A search engine indexes whatever you feed it. What the primary is has nothing to do with it - plenty of relational systems feed a search index, and this one does.",
+          },
+          {
+            id: "b",
+            label: "The index is derived data: it has to be kept in sync with the source of truth, and how each change gets there is a design decision with real failure modes.",
+            correct: true,
+            explanationMd:
+              "Correct, and the sync path is the whole engineering content of this chapter. It also implies the second obligation - the index must stay rebuildable from the primary, or a divergence has no repair.",
+          },
+          {
+            id: "c",
+            label: "None. A search engine subscribes to the database and keeps itself current.",
+            correct: false,
+            explanationMd:
+              "Something can be built that does this - a process that reads the primary's change stream is one of the three sync paths - but nothing does it for you. Believing otherwise is how indexes silently drift.",
+          },
+          {
+            id: "d",
+            label: "Search becomes the read path for the product catalog, so the primary now serves writes only.",
+            correct: false,
+            explanationMd:
+              "Backwards, and dangerous. The index answers which products match; the primary still answers what they are. Serving data that exists only in the index turns a disposable projection into data you can lose.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-16-search-systems-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate proposes writing to the search index inside the same request handler that writes the row, \"so search is never stale.\" What is the strongest objection?",
+        options: [
+          {
+            id: "a",
+            label: "It is slower. Every product edit now waits on a second system before it can return.",
+            correct: false,
+            explanationMd:
+              "True, and worth saying, but latency is the recoverable half. The write path getting slower is a cost you can measure and budget for; the objection below is a failure you cannot see.",
+          },
+          {
+            id: "b",
+            label: "Indexing belongs to the search engine, not the application. The app should not know the index exists.",
+            correct: false,
+            explanationMd:
+              "The application has to be involved somewhere - either it writes the index or it operates the process that does. Where the code lives is a smaller question than what happens when half of it fails.",
+          },
+          {
+            id: "c",
+            label: "You would need a distributed transaction across the database and the search engine to make it correct.",
+            correct: false,
+            explanationMd:
+              "This correctly identifies the atomicity problem and then proposes the worse cure. A two-phase commit across a database and a search cluster couples their availability tightly and is not how anyone solves this.",
+          },
+          {
+            id: "d",
+            label: "The two writes are not one transaction. When the second fails and the first succeeded, the stores disagree, nothing in the system compares them, and the divergence is permanent until someone reindexes.",
+            correct: true,
+            explanationMd:
+              "Correct. Synchronous indexing does not remove the staleness risk, it converts a bounded lag into an unbounded, undetected inconsistency - and it puts the search engine's availability on your write path as well.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-16-search-systems-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Your indexing pipeline runs roughly 10 seconds behind the primary. The interviewer asks whether that is acceptable. The strongest answer:",
+        options: [
+          {
+            id: "a",
+            label: "Usually yes - state it as a freshness target, then name the flows that break under it. \"Find the thing I just published\" is the one that does, and that read gets served from the primary instead.",
+            correct: true,
+            explanationMd:
+              "Correct. Freshness is a requirement to negotiate and write down, not a property to maximize. Naming the one flow that the lag breaks, and carving it out, is what separates this from a shrug.",
+          },
+          {
+            id: "b",
+            label: "No. Search reflects what users can see, so it has to be current; make the indexing write synchronous to remove the lag.",
+            correct: false,
+            explanationMd:
+              "This trades a bounded, measurable lag for an unbounded, invisible divergence, and puts a second system on the write path. It is the fix that makes the guarantee worse while sounding stricter.",
+          },
+          {
+            id: "c",
+            label: "Yes, and it does not need a number. Any asynchronous pipeline lags, and users understand that search is approximate.",
+            correct: false,
+            explanationMd:
+              "\"It lags\" without a bound is not an answer. An unbounded lag is indistinguishable from a broken indexer, and there is no alert you can write for it.",
+          },
+          {
+            id: "d",
+            label: "It depends on the database. If the primary is strongly consistent, its change stream is too, so the index is effectively current.",
+            correct: false,
+            explanationMd:
+              "The primary's consistency says nothing about how far behind a downstream consumer is. The lag lives in the pipeline that reads the stream and applies changes, not in the store that produced it.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-16-search-systems-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Three engineers, 200,000 help-center articles, and a product manager who wants relevance ranking, typo tolerance and filtering by category. What do you build first?",
+        options: [
+          {
+            id: "a",
+            label: "A `LIKE` query with an index on `lower(description)`, which is cheap and covers the basic case.",
+            correct: false,
+            explanationMd:
+              "An expression index helps an exact or prefix match on the lowered value; it does nothing for a substring match, and nothing at all for ranking, stemming or typos. This is the option the chapter opened by ruling out.",
+          },
+          {
+            id: "b",
+            label: "A dedicated search cluster. Ranking and typo tolerance are what search engines are for, and retrofitting one later means a migration.",
+            correct: false,
+            explanationMd:
+              "A real position, and the right one at a different size - but it buys a second store, a sync path and a new thing to operate for a corpus a single database can index comfortably. That is the cargo-cult failure this curriculum keeps warning about.",
+          },
+          {
+            id: "c",
+            label: "The database's own full-text index. It handles this corpus, and it needs no second store and no sync path at all. Move when corpus size, query volume, or the ranking control you need outgrows it.",
+            correct: true,
+            explanationMd:
+              "Correct. It is the same inverted index, inside a store you already run, with the derived-data problem eliminated rather than managed. Naming the specific ceilings that would change the answer is the senior half of this answer.",
+          },
+          {
+            id: "d",
+            label: "Neither yet - buy a hosted search API so there is nothing to operate.",
+            correct: false,
+            explanationMd:
+              "It removes the operational work, not the design work. You still own the sync path, the freshness target and the rebuild story, and you have added a vendor to the write path of a product with three engineers.",
+          },
+        ],
+      },
+    ],
+    // Build-shaped, and the second consecutive starter graph that validates
+    // clean on purpose (see 3.15, and the spec's §7): it is 3.15's solved
+    // system, CDN inserted and the now-redundant direct dns -> firewall edge
+    // removed. The gap is a component that is missing rather than one that is
+    // wrong, which is what the magenta zone marks and what Submit's blueprint
+    // check catches.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-16-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-16-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-16-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-16-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-16-cdn", componentId: "cdn", position: { x: 380, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+        { id: "bb-3-16-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-16-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-16-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-16-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-16-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "document" } },
+        { id: "bb-3-16-replica", componentId: "read-replica", position: { x: 700, y: 480 }, config: {} },
+        { id: "bb-3-16-cache", componentId: "cache", position: { x: 380, y: 640 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+      ],
+      edges: [
+        { id: "bb-3-16-e1", source: "bb-3-16-browser", target: "bb-3-16-dns", kind: "request-flow" },
+        { id: "bb-3-16-e2", source: "bb-3-16-dns", target: "bb-3-16-cdn", kind: "request-flow" },
+        { id: "bb-3-16-e3", source: "bb-3-16-cdn", target: "bb-3-16-fw", kind: "request-flow" },
+        { id: "bb-3-16-e4", source: "bb-3-16-fw", target: "bb-3-16-proxy", kind: "request-flow" },
+        { id: "bb-3-16-e5", source: "bb-3-16-proxy", target: "bb-3-16-gateway", kind: "request-flow" },
+        { id: "bb-3-16-e6", source: "bb-3-16-gateway", target: "bb-3-16-lb", kind: "request-flow" },
+        { id: "bb-3-16-e7", source: "bb-3-16-lb", target: "bb-3-16-app", kind: "request-flow" },
+        { id: "bb-3-16-e8", source: "bb-3-16-app", target: "bb-3-16-db", kind: "request-flow" },
+        { id: "bb-3-16-e9", source: "bb-3-16-app", target: "bb-3-16-nosql", kind: "request-flow" },
+        { id: "bb-3-16-e10", source: "bb-3-16-db", target: "bb-3-16-replica", kind: "replication" },
+        { id: "bb-3-16-e11", source: "bb-3-16-replica", target: "bb-3-16-app", kind: "request-flow" },
+        { id: "bb-3-16-e12", source: "bb-3-16-app", target: "bb-3-16-cache", kind: "request-flow" },
+        { id: "bb-3-16-e13", source: "bb-3-16-cache", target: "bb-3-16-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-16-browser"],
+    },
+    // A magenta gap zone is warranted (§11.6): the fix is a genuinely missing
+    // node in identifiable empty canvas space - the unused right-hand slot of
+    // the bottom row, beside the cache tier and below the data tier - not a
+    // rewire of something already present. 3.15's zones carried forward, with
+    // its former gap slot now occupied by the CDN and relabeled to the edge
+    // tier it belongs to.
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-16-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-16-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-16-zone-cdn", label: "Edge", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-16-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-16-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 896, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-16-zone-cache", label: "Cache tier", position: { x: 352, y: 592 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-16-zone-gap", label: "Build here", position: { x: 672, y: 592 }, width: 256, height: 137, color: "#ff3483" },
+      {
+        kind: "comment",
+        id: "bb-3-16-comment-scan",
+        text: "The products table holds 4.2 million rows. A substring match on the description reads all of them, and that number grows with the catalog rather than with how many products actually match.",
+        position: { x: 980, y: 112 },
+        width: 260,
+        height: 150,
+        color: "#64748b",
+      },
+      {
+        kind: "comment",
+        id: "bb-3-16-comment-tail",
+        text: "90,000 distinct search strings a day; the top 200 are 8% of them. Keeping a copy of an answer only pays when the same question gets asked twice.",
+        position: { x: 980, y: 432 },
+        width: 260,
+        height: 130,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-r1-a-site-that-stays-up",
+    mode: "building-blocks",
+    title: "Checkpoint · A Site That Stays Up",
+    // Real authored content - the curriculum's first Checkpoint (CURRICULUM.md
+    // §4/§14 Part 4), authored immediately after 3.16 in this same working
+    // tree. Spec: specs/bb-r1-a-site-that-stays-up.spec.md. Lesson body:
+    // public/content/chapters/bb-r1-a-site-that-stays-up.mdx. Checkpoint
+    // consequences, all deliberate: no `quiz` (§22 - the build is the
+    // assessment), no `starterGraph` (§14 - blank canvas, so no
+    // `starterDecorators` either), and a §6 section inventory of four
+    // (cold open, Connections, transition brief, preview of next).
+    problemStatement:
+      "A national job board, four years old, being rebuilt this quarter. 2.1 million live listings, " +
+      "40,000 job seekers on a weekday morning, nearly all of them arriving at one public domain name " +
+      "in a browser. What it has to do:\n\n" +
+      "- Seekers search listings in free text. \"remote python contract\" comes back in well under a " +
+      "second, and the work of answering it does not grow with the 2.1 million listings.\n" +
+      "- The same few thousand listings are opened over and over. Monday's front page is the same 2,000 " +
+      "jobs for everyone, and every view currently costs a fresh read from the store that owns them.\n" +
+      "- Recruiters run heavy reports all day, aggregating months of application history. Those reports " +
+      "must not slow down the seekers.\n" +
+      "- A third of the audience is on another continent, and every one of them downloads the same " +
+      "stylesheet, the same script bundle and the same company logos before the first listing renders.\n" +
+      "- Peak traffic is more than one machine can carry, and one machine dying mid-morning must not " +
+      "drop requests.\n" +
+      "- Nothing reaches application code that was not filtered at the perimeter first. The default is " +
+      "closed.\n" +
+      "- The certificate is terminated in one place, not on every machine behind it.\n" +
+      "- One place authenticates API callers and enforces a per-caller request limit, instead of every " +
+      "service doing its own.\n" +
+      "- A listing is created, edited and closed in exactly one store. Anything else holding a copy of a " +
+      "listing has to be rebuildable from that store.",
+    exerciseGoal:
+      "Build the whole thing on an empty canvas. Every requirement above is answered by something you " +
+      "have already built at least once between 3.1 and 3.16, and nothing here needs anything you have " +
+      "not been taught.",
+    successCriteria: [
+      "A free-text search over 2.1 million listings is answered by something whose cost tracks the matches rather than the catalog.",
+      "Repeat views of the same popular listings stop reaching the store that owns them, and the recruiters' reports run against something other than the store taking writes.",
+      "Losing one machine in the tier that runs application code drops no requests, and the bytes every visitor downloads are served near them rather than from the origin.",
+      "Nothing reaches application code before it has been filtered at the perimeter, terminated once, authenticated and rate-limited.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Five objectives, one per §5.2 category. A checkpoint teaches nothing new
+    // (§4), so every objective is a composition or retrieval objective over
+    // Groups A-D rather than a claim about new material.
+    learningObjectives: [
+      "Name, for each requirement in a product brief, which taught component answers it and which chapter established that.",
+      "Order the request path from browser to data tier so that each stop only receives traffic a component upstream of it has already handled.",
+      "Assemble the full Group A-D stack on an empty canvas, with no starter graph and no per-requirement prompt, and pass Submit.",
+      "Answer \"walk me through your design\" as one pass over the request path rather than a list of components, naming what each stop is there to do.",
+      "Justify leaving a taught component out of a design by pointing at the requirement that would have motivated it and showing the brief does not contain one.",
+    ],
+    // The full palette through Group D - CURRICULUM §14's own R1 line
+    // ("Palette: everything through Group D"), identical to 3.16's
+    // availableComponentIds. required is the 12 the brief's requirements
+    // actually motivate. `nosql-database` and `distributed-cache` are
+    // deliberately available but not required: nothing in the brief describes
+    // a document-shaped workload or a cache tier too large for one machine,
+    // and requiring a store the brief gives no reason for is the cargo-culting
+    // this checkpoint's own lesson warns against (spec §6, same reasoning
+    // 3.14 used to leave distributed-cache out of its required list).
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+    ],
+    // The widest curated set any Building Blocks chapter ships, which is what
+    // a composition gate is for: every rule here corresponds to something
+    // Groups A-D taught, and on a blank canvas all of them are reachable by a
+    // wrong build. `single-instance-load-balancer` and `permissive-firewall`
+    // are warnings (they do not block Submit) but both fire on exactly the
+    // "present but inert" failure the lesson's Connections section names.
+    // `no-direct-client-database` cannot fire here at all: it keys on `client`,
+    // which is not in this palette (nor in 3.14-3.16's, which carry it too).
+    // Kept for continuity rather than making this the one chapter that drops
+    // it, and flagged in the spec's §12 as one decision for all four. A
+    // browser-to-data edge is already refused by component-relations, off the
+    // browser's own declared outputs. Verified against
+    // src/validation-engine/rules/index.ts.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+      "request-flow-cycle",
+      "single-instance-load-balancer",
+      "permissive-firewall",
+    ],
+    // Two blueprints, and they are the same system: the redundancy requirement
+    // has two honest expressions on this canvas. 3.8 taught the first (one
+    // stateless node, instance count raised), and the canvas permits the
+    // second (two nodes behind the load balancer), which is what
+    // single-instance-load-balancer itself counts as capacity. Neither is
+    // padding; a learner who builds either has answered the brief.
+    blueprints: [
+      {
+        id: "bb-r1-blueprint-instances",
+        label: "One stateless tier, sized to survive losing an instance",
+        require: {
+          id: "bb-r1-blueprint-instances",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "Twelve components, and every one of them is on the canvas because a line in the brief asked " +
+          "for it. Worth reading your own graph back in that order: the perimeter, the one place TLS " +
+          "ends, the one place callers are authenticated and limited, then the tier that can lose a " +
+          "machine without losing the site. Behind it, three different answers to three different reads " +
+          "- the same listing asked for repeatedly, the recruiters' reports that must not touch the " +
+          "store taking writes, and a query the primary cannot answer at all - plus the bytes that never " +
+          "needed to reach you. The only thing you changed that was not a box or a line is the instance " +
+          "count, which is 3.8's whole point: once a tier is stateless and load-balanced, surviving a " +
+          "failure is a number, not a redesign.",
+      },
+      {
+        id: "bb-r1-blueprint-two-nodes",
+        label: "The same system, redundancy drawn as a second application node",
+        require: {
+          id: "bb-r1-blueprint-two-nodes",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "app2", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "lb", to: "app2", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "Same system, redundancy drawn instead of configured: two application nodes, both fed by the " +
+          "load balancer, so losing either leaves the other serving. This passes, and in a real diagram " +
+          "it is how a fleet is often shown. Know what the drawing is not saying, though. Two nodes are " +
+          "only interchangeable if they are genuinely identical - same code, same downstream reach, no " +
+          "state either one owns - and nothing on this canvas checks that. The instance-count version of " +
+          "the same answer (3.8) cannot drift that way, which is why it is the one the last nine " +
+          "chapters drew.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-r1-hint-1",
+        body:
+          "Nothing is on the canvas, so Validate has nothing to report until you put something there. " +
+          "Start from the person, not the store: write down what one request passes through, in order, " +
+          "before anything reads or writes data at all. Four of the brief's lines are about that path " +
+          "and nothing else.",
+      },
+      {
+        id: "bb-r1-hint-2",
+        body:
+          "Sort the rest of the brief by what kind of read it describes, because each kind has a " +
+          "different answer: the same thing asked for over and over, a different question every time, a " +
+          "heavy query that must not touch the store taking writes, and bytes that are identical for " +
+          "every visitor on earth. Four reads, four answers, and no two of them are the same component.",
+      },
+      {
+        id: "bb-r1-hint-3",
+        body:
+          "If Submit says a component is missing while you are looking straight at it on the canvas, it " +
+          "is reading a value on that component rather than hunting for a second copy. One requirement " +
+          "in this brief is answered by a number instead of another box.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position:
+        "Building Blocks, Part 4: Checkpoints - Checkpoint R1, immediately after chapter 3.16 of 37. Gates Group E, Group F and Real World Extraction Tier 1.",
+      masteredConcepts: [
+        "Everything in Groups A-D, which is the whole point of the exercise: the request path (3.1-3.5), " +
+          "the stateless multi-instance app tier (3.6-3.9), the data tier with its replicas and " +
+          "partitions (3.10-3.13), and the performance layer of cache, CDN and search index (3.14-3.16).",
+        "The exact system built and passed across 3.14, 3.15 and 3.16 - browser through DNS and the CDN " +
+          "to the edge tier, the load balancer, the app tier, its cache, the primary, a read replica and " +
+          "a search index. R1's answer is that system re-derived from a product description instead of " +
+          "handed over as a starter graph.",
+        "3.8's N+1 reasoning: once a tier is stateless and load-balanced, capacity for a failure is an " +
+          "instance count, not new architecture.",
+        "That a component present but inert is a design fault, not a neutral extra (3.1's allow-all " +
+          "firewall, 3.14's unasked cache), and that an unmotivated component is worse than none.",
+      ],
+      notYetIntroducedConcepts: [
+        "Queues, workers, dead-letter queues and the async edge kind (3.17), which is the one marked " +
+          "forward tease in this chapter's Next section.",
+        "Event-driven architecture and change streams (3.18) and scheduled background work (3.19).",
+        "Object storage, file storage, consistency models, quorums and CAP (Groups F and G). Nothing in " +
+          "this brief is a blob-storage or consistency-model problem, deliberately.",
+        "Anything about writes that outlive the request that started them. Every path in this design is " +
+          "synchronous, and the learner has no vocabulary yet for one that is not.",
+      ],
+      simplifications: [
+        "One node stands for a fleet throughout, and the application tier's redundancy is expressed " +
+          "either as an instance count on one node or as a second node behind the load balancer. Both " +
+          "pass; the canvas cannot express that two nodes are identical, so nothing checks it.",
+        "The brief describes nine requirements and the passing design answers them with twelve " +
+          "components. Real rebuilds of a system this size involve dozens of decisions this palette " +
+          "cannot express (deployment, monitoring, authentication storage, payment, email) and their " +
+          "absence is scope, not an omission the learner should be marked down for.",
+        "A search engine has no output port on this canvas and a cache's miss path is drawn to its " +
+          "origin - both are the canvas conventions established in 3.14 and 3.16, not claims about how " +
+          "either component behaves.",
+        "Sharding (3.13) is taught but not motivated by this brief: 2.1 million listings fit on one " +
+          "primary. A learner who partitions anyway has not failed, but nothing here asks for it.",
+      ],
+    },
+    // No `quiz` - CURRICULUM.md §22 and §14 Part 4: checkpoints have none, the
+    // build is the assessment. deriveStatus (src/curriculum/progress.ts)
+    // handles this: with a Design Editor exercise and no quiz, a validation
+    // pass alone completes the chapter.
+  },
+  {
+    id: "bb-3-17-message-queues",
+    mode: "building-blocks",
+    title: "Message Queues",
+    // Real authored content (first Group E chapter, authored immediately after
+    // Checkpoint R1 in this same working tree). Spec:
+    // specs/bb-3-17-message-queues.spec.md. Lesson body:
+    // public/content/chapters/bb-3-17-message-queues.mdx. Real curriculum-order
+    // prerequisite (R1) is already shipped here - manifest.ts's
+    // prerequisiteSlugs already points at "checkpoint-r1-a-site-that-stays-up".
+    problemStatement:
+      "R1's job board is live, and publishing a listing takes 4.2 seconds at p95 - 40 ms of which is " +
+      "the listing's own database write. The same request also mails 900 subscribers, builds three " +
+      "thumbnail sizes and updates the search index before it answers. When the mail provider was down " +
+      "last Tuesday, publishes returned 500 for listings that had already been saved.",
+    exerciseGoal:
+      "Get the recruiter their answer as soon as the listing itself is stored, and give the rest of that publish handler's work somewhere else to run - including the jobs that keep failing.",
+    successCriteria: [
+      "A publish returns as soon as the listing itself is stored, and the work it hands off outlives the request that handed it off.",
+      "The search index still receives every published listing, but the recruiter's request no longer waits on it.",
+      "A job that fails every attempt stops retrying and ends up somewhere a person can inspect it, rather than blocking the jobs behind it.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces message-queue, worker,
+    // dead-letter-queue and the async edge kind).
+    learningObjectives: [
+      "Explain why a queue's durability is what makes it safe to answer a user before the work is finished.",
+      "Decide whether a job belongs off the request path by asking whether the user's success depends on its result, rather than whether it is slow.",
+      "Describe what at-least-once delivery obliges a consumer to do, and name two ways to make a job safe to run twice.",
+      "Build a queue-and-consumer path that takes work off the request path and gives repeatedly-failing jobs somewhere to land, and pass Submit.",
+      "Answer \"what happens when the consumer fails?\" by naming redelivery, backoff, and the point at which a message stops being retried.",
+      "Justify moving one specific job off the request path aloud, naming the latency it removes and the new state the interface now has to represent.",
+    ],
+    // Cumulative palette through R1 plus this chapter's own three new
+    // components. CURRICULUM §16's own row: "3.17 | message-queue, worker,
+    // dead-letter-queue + edge async" - the one sanctioned 3-component chapter
+    // (§18.1's "≤3 (3.17 only)"). distributed-cache stays
+    // available-but-not-required for 3.14's own recorded reason.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+    ],
+    // 3.14's curated set plus this chapter's own teaching instrument.
+    // queue-without-dead-letter-queue is why §14 calls the three components
+    // "one cohesive pattern": the moment a learner drops a queue on the canvas
+    // and wires a consumer to it, the rule fires with the poison-message
+    // explanation, before Submit is ever pressed. That is the "fix (missing
+    // DLQ)" half of §14's exercise line, delivered as productive failure
+    // inside the build rather than as a separate broken starter graph.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+      "queue-without-dead-letter-queue",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-17-blueprint",
+        label: "Work handed off durably, with somewhere for failures to land",
+        require: {
+          id: "bb-3-17-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+            { alias: "queue", componentId: "message-queue" },
+            { alias: "worker", componentId: "worker" },
+            { alias: "dlq", componentId: "dead-letter-queue" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+            { from: "app", to: "queue", kind: "async" },
+            { from: "queue", to: "worker", kind: "async" },
+            { from: "queue", to: "dlq", kind: "async" },
+            { from: "worker", to: "search", kind: "request-flow" },
+          ],
+        },
+        commentary:
+          "Four new edges, and only three of them are dashed. The app-to-queue edge is the one that " +
+          "changes the recruiter's experience: it is the first line in this whole system that means " +
+          "\"written down, not waited for\", which is why the response can go out before any of the work " +
+          "behind it runs. The queue-to-consumer edge is the same kind for the same reason. But look at " +
+          "the last one. The consumer's write into the index is a solid line, because it genuinely is a " +
+          "blocking call - the consumer waits for it. Nothing about that call became asynchronous; it " +
+          "just stopped happening while a recruiter watched. That distinction is the whole chapter, and " +
+          "it is why 3.16's single edge was honest about the query and wrong about the indexing. The " +
+          "third dashed edge, the one into the dead letter queue, is the only path in this design that " +
+          "ends at a person rather than a machine.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-17-hint-1",
+        body:
+          "Validate is quiet because nothing here is wired wrong. The fault is in what one request is " +
+          "doing, not in what connects to what: four separate jobs run inside the publish, and the " +
+          "recruiter is billed for the time of all four. Start by deciding which single one of them they " +
+          "are actually waiting for.",
+      },
+      {
+        id: "bb-3-17-hint-2",
+        body:
+          "The other three jobs still have to happen, so they cannot simply be deleted from the design. " +
+          "They need somewhere to be recorded that survives the request ending - and something on the " +
+          "other side that reads that record and does the work at its own pace.",
+      },
+      {
+        id: "bb-3-17-hint-3",
+        body:
+          "Once you have that pair, Validate will start talking. It will point at a job that fails every " +
+          "attempt and has nowhere to go, which is the third piece. Watch the line styles as you draw: " +
+          "the canvas will only let you use the dashed kind where a hand-off is genuinely one-way.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group E: Asynchronous Systems - Chapter 3.17 of 37 (first chapter in Group E, immediately after Checkpoint R1).",
+      masteredConcepts: [
+        "Everything R1 asked the learner to rebuild from a blank canvas: the edge tier, the load-balanced " +
+          "stateless app tier, the primary with its replica, the cache, the CDN and the search index. " +
+          "This chapter's starter graph is that system, and every request path in it is synchronous.",
+        "3.16's closing argument: one edge into the search index carries both the query (honestly " +
+          "synchronous) and the indexing write (not), because no edge kind meant \"after the response is " +
+          "sent\". This chapter introduces that kind and the exercise redraws the indexing path with it.",
+        "3.6's stateless services and 3.8's horizontal scaling. Both return in a new distribution model: " +
+          "consumers pull work rather than having it routed to them, so adding one needs no registry and " +
+          "no load balancer.",
+        "3.12's replication lag and its read-your-writes carve-out - the same shape of problem as a job " +
+          "the user cannot see the result of yet, arrived at from a different direction.",
+      ],
+      notYetIntroducedConcepts: [
+        "Publish/subscribe, event buses and the log (3.18) - this chapter's one marked forward tease. " +
+          "The lesson states the queue's one-consumer semantics as a property, never as a limitation " +
+          "with a named solution.",
+        "Cron jobs, scheduled work and serverless consumers (3.19). The lesson mentions polling a jobs " +
+          "table as the boring first version, without naming what runs the poll.",
+        "Idempotency keys, circuit breakers and distributed locks as named patterns (3.23). Idempotence " +
+          "is taught here as an obligation on the consumer, with concrete examples, not as the pattern " +
+          "catalogue it becomes there.",
+        "Consistency models, quorums and CAP (3.22), which is where \"the queue accepted it and the work " +
+          "has not run yet\" gets its formal vocabulary.",
+        "Everything in Groups F and G, and the Real World Extraction projects that lean on this chapter.",
+      ],
+      simplifications: [
+        "One message-queue node stands for a broker with many queues on it, and one worker node stands " +
+          "for a consumer fleet. Splitting queues by job class and bulkheading consumer pools are taught " +
+          "in the scaling section rather than modeled - the canvas has no way to express either.",
+        "The dead-letter-queue component's maxRetries field and the message-queue's deliveryGuarantee " +
+          "are both left at their defaults (5 and at-least-once) and are not gated by the blueprint. " +
+          "Both defaults are the values the lesson argues for, so gating them would grade a dropdown the " +
+          "learner never had reason to touch.",
+        "Visibility timeouts, acknowledgement protocols, backoff schedules and jitter are lesson content " +
+          "with no canvas representation. The graph shows that a message can come back and that an " +
+          "exhausted message moves aside; it cannot show the timing that decides either.",
+        "A worker has an output port and a dead letter queue does not, so the consumer's write is drawn " +
+          "and the human triage path out of the dead letter queue is not. The lesson says outright that " +
+          "the only way out of that box is a person.",
+        "The publish handler's four jobs are prose. The canvas models the one whose destination exists " +
+          "in the palette (the search index); the emails, thumbnails and analytics rows have no " +
+          "component and are represented by the consumer itself rather than by four separate paths.",
+      ],
+    },
+    // Six questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3/3, matching
+    // 3.10-3.16's own ramp. All six of QUIZ_FRAMEWORK.md §12's bank questions
+    // tagged (3.17) are spent: bank Q1 as Q1, Q2 as Q2, Q3 as Q3, Q4 as Q4
+    // (the diagram question, carried over near-verbatim in topology), Q5 as
+    // Q5, Q6 as Q6. Correct options across the six sit at b, d, c, a, d, b -
+    // all four positions used, no letter twice in a row, and the chapter opens
+    // on "b", which 3.14 ("c"), 3.15 ("d") and 3.16 ("a") all avoid.
+    quiz: [
+      {
+        id: "bb-3-17-message-queues-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "The publish handler emails 900 subscribers before it returns. A teammate argues the emails should stay on the request path because \"the recruiter should know if their notifications failed.\" What is the strongest argument against?",
+        options: [
+          {
+            id: "a",
+            label: "Email delivery is unreliable, and unreliable work does not belong on a request path.",
+            correct: false,
+            explanationMd:
+              "Reliability is not the test. The listing's own database write can fail too, and it belongs there anyway - because that write is what the recruiter asked for.",
+          },
+          {
+            id: "b",
+            label: "The recruiter's publish succeeded the moment the listing was stored. Keeping the emails inline makes them wait on, and be failed by, work whose result is not theirs.",
+            correct: true,
+            explanationMd:
+              "Correct. The question is always whether the user's success depends on this job's result. Here it does not, so the only thing the coupling buys is a longer wait and a shared failure.",
+          },
+          {
+            id: "c",
+            label: "Notifications are low priority, and low-priority work should run after high-priority work.",
+            correct: false,
+            explanationMd:
+              "Priority is a different axis. A payment confirmation is high priority and still does not belong on the request path; a slow permissions check is low priority and has to stay.",
+          },
+          {
+            id: "d",
+            label: "A request handler cannot hold a connection open long enough to make 900 sends.",
+            correct: false,
+            explanationMd:
+              "It can, which is exactly the problem - the 4.2-second p95 is that connection being held. The design is bad, not impossible.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-17-message-queues-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Monday at 09:00 the board takes 40x its usual publish rate for ten minutes. The notification work now sits behind a queue with a fixed number of consumers. What actually happens?",
+        options: [
+          {
+            id: "a",
+            label: "The consumers process faster during the burst, because there is more work immediately available to them.",
+            correct: false,
+            explanationMd:
+              "Batching can shave a little overhead, but a consumer's throughput is set by the work each job costs. A queue does not make anything faster.",
+          },
+          {
+            id: "b",
+            label: "The queue sheds the excess so that the consumers keep up, which is how it protects the system.",
+            correct: false,
+            explanationMd:
+              "That is a load shedder, not a queue. A queue's default behaviour is to keep everything - dropping messages is the one thing you were trying to avoid.",
+          },
+          {
+            id: "c",
+            label: "Publishes start being rejected once the consumers saturate, but with a clearer error than before.",
+            correct: false,
+            explanationMd:
+              "The publish path no longer touches the consumers at all. That decoupling is the point: a saturated consumer pool is invisible to the recruiter except as a delay.",
+          },
+          {
+            id: "d",
+            label: "Every publish returns at its normal speed. The queue's depth grows through the burst and drains afterwards, and nothing about the consumers changed.",
+            correct: true,
+            explanationMd:
+              "Correct. The queue converts a rate problem into a depth problem - which is fine for a burst, and fatal if arrivals exceed processing on average rather than in spikes.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-17-message-queues-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Your queue delivers at-least-once. Which property must every consumer have, and why?",
+        options: [
+          {
+            id: "a",
+            label: "Statelessness, so that any consumer can pick up any message.",
+            correct: false,
+            explanationMd:
+              "True and useful (3.6), but it is what lets you add consumers - not what makes redelivery safe. A stateless consumer can still charge a card twice.",
+          },
+          {
+            id: "b",
+            label: "Single-threaded processing, so that two messages are never handled at once.",
+            correct: false,
+            explanationMd:
+              "That limits throughput without fixing anything: the duplicate arrives later, on the same consumer, and is processed a second time regardless of how many threads there were.",
+          },
+          {
+            id: "c",
+            label: "Idempotence - a message may be delivered more than once, so processing it twice must not have twice the effect.",
+            correct: true,
+            explanationMd:
+              "Correct. At-least-once means redelivery is normal, not exceptional. Either the effect is naturally idempotent, or the job carries an id the consumer checks before acting.",
+          },
+          {
+            id: "d",
+            label: "Speed - finishing inside the visibility timeout, so a message is never redelivered while still being worked on.",
+            correct: false,
+            explanationMd:
+              "A real concern, and one cause of duplicates worth tuning for. But it removes one source of redelivery, not the guarantee: a crash after the work and before the acknowledgement still redelivers.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-17-message-queues-q4",
+        kind: "diagram",
+        difficulty: 2,
+        prompt:
+          "A subscriber row with a malformed address crashes the consumer every single time that message is processed. In the topology shown, what happens next?",
+        graph: {
+          nodes: [
+            { id: "app", componentId: "app-server", position: { x: 40, y: 240 }, config: {} },
+            { id: "queue", componentId: "message-queue", position: { x: 360, y: 240 }, config: {} },
+            { id: "worker", componentId: "worker", position: { x: 680, y: 240 }, config: {} },
+            { id: "db", componentId: "sql-database", position: { x: 680, y: 400 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "app", target: "queue", kind: "async" },
+            { id: "e2", source: "queue", target: "worker", kind: "async" },
+            { id: "e3", source: "worker", target: "db", kind: "request-flow" },
+          ],
+          entryPointIds: ["app"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "It is redelivered indefinitely over e2, and the consumer spends its time crash-looping on that one message instead of the jobs queued behind it. Nothing here catches a message that has exhausted its attempts.",
+            correct: true,
+            explanationMd:
+              "Correct - this is a poison message, and the diagram has nowhere for it to go. The consumer pool is finite, so one message nothing can process costs you the throughput of whatever keeps picking it up.",
+          },
+          {
+            id: "b",
+            label: "The Message Queue notices the repeated failures and discards the message after a few attempts.",
+            correct: false,
+            explanationMd:
+              "A queue can be configured to stop retrying, but the message then has to go somewhere. Silently discarding it is the other failure this chapter names: a job that never ran and nobody was told.",
+          },
+          {
+            id: "c",
+            label: "The crash removes that consumer from the pool, so the message stays unprocessed and the rest of the system is unaffected.",
+            correct: false,
+            explanationMd:
+              "Consumers restart. The one that died comes back, takes the same message off the front of the queue, and dies again - the loop is the failure, not the individual crash.",
+          },
+          {
+            id: "d",
+            label: "The write over e3 rolls back and the queue marks the message failed, where it stays until someone queries it.",
+            correct: false,
+            explanationMd:
+              "The consumer never reached e3 - it crashed before the write. And \"marked failed and kept\" is exactly what the topology is missing: a dead letter queue is the component that does that.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-17-message-queues-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Six weeks after shipping the queue, someone opens the dead letter queue for the first time. It holds 4,300 messages. What does that number mean, and what should have been in place?",
+        options: [
+          {
+            id: "a",
+            label: "Nothing is wrong. That is the dead letter queue doing its job: the working queue stayed clear and none of those messages blocked anything.",
+            correct: false,
+            explanationMd:
+              "Half right, which is what makes it dangerous. It did protect throughput - and it did so by absorbing 4,300 failures nobody saw. Both things are true at once.",
+          },
+          {
+            id: "b",
+            label: "The retry limit was set too low. Raising the maximum attempts would have let most of those messages eventually succeed.",
+            correct: false,
+            explanationMd:
+              "Retries only fix failures another attempt could change. A message that exhausted five attempts against a permanent cause will exhaust fifty, more slowly and at more cost.",
+          },
+          {
+            id: "c",
+            label: "Failed messages should be replayed into the main queue automatically, so nothing is ever left unprocessed.",
+            correct: false,
+            explanationMd:
+              "That is the crash loop with a longer period. Replay is the right ending, but only after a person has established that the cause is fixed - otherwise the message returns to fail again.",
+          },
+          {
+            id: "d",
+            label: "4,300 jobs never ran and nobody found out for six weeks. The queue needed an owner and an alert on its depth, and each batch of messages needs diagnosing before it is replayed or discarded deliberately.",
+            correct: true,
+            explanationMd:
+              "Correct. A dead letter queue is an operational contract, not a topology box - it converts silent failure into visible failure only if something is actually watching it.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-17-message-queues-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A downstream API starts returning 503s under load. Your 40 consumers each retry immediately on failure, up to five attempts. What does that do to the API, and what is the fix?",
+        options: [
+          {
+            id: "a",
+            label: "Little that is measurable. Retries are spread across 40 independent consumers, so the added load is a fraction of normal traffic.",
+            correct: false,
+            explanationMd:
+              "They are independent but simultaneous - they all failed at the same moment because the same dependency broke, so their retries land together rather than spreading out.",
+          },
+          {
+            id: "b",
+            label: "It multiplies the request rate against the API by up to six times, at exactly the moment it can least afford it. Exponential backoff with jitter spaces the attempts out and desynchronizes them.",
+            correct: true,
+            explanationMd:
+              "Correct. This is a retry storm: resilience logic becoming the load. Backoff gives the dependency room to recover; jitter stops every consumer from returning at the same instant.",
+          },
+          {
+            id: "c",
+            label: "It helps the API recover, because the retries keep connections warm and its caches populated during the incident.",
+            correct: false,
+            explanationMd:
+              "Warm connections are not the constraint of an overloaded service. You are adding requests to something already failing to serve the ones it has.",
+          },
+          {
+            id: "d",
+            label: "Nothing much: a 503 is cheap for the API to return, so the extra requests cost it almost nothing.",
+            correct: false,
+            explanationMd:
+              "The 503 is cheap only once the service has decided to shed that request. Getting there still costs a connection, a thread and a routing decision - and the 503 usually means something upstream of that is already saturated.",
+          },
+        ],
+      },
+    ],
+    // Build-shaped, and the third consecutive starter graph that validates
+    // clean on purpose (see 3.15, 3.16 and the spec's §7): it is R1's own
+    // reference system, which is 3.16's solved graph. The fault is not in the
+    // wiring at all this time - it is in what one request handler does, which
+    // no rule can see.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-17-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-17-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
+        { id: "bb-3-17-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-17-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
+        { id: "bb-3-17-cdn", componentId: "cdn", position: { x: 380, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+        { id: "bb-3-17-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-17-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
+        { id: "bb-3-17-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-17-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-17-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "document" } },
+        { id: "bb-3-17-replica", componentId: "read-replica", position: { x: 700, y: 480 }, config: {} },
+        { id: "bb-3-17-cache", componentId: "cache", position: { x: 380, y: 640 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+        { id: "bb-3-17-search", componentId: "search-engine", position: { x: 700, y: 640 }, config: { shards: 1 } },
+      ],
+      edges: [
+        { id: "bb-3-17-e1", source: "bb-3-17-browser", target: "bb-3-17-dns", kind: "request-flow" },
+        { id: "bb-3-17-e2", source: "bb-3-17-dns", target: "bb-3-17-cdn", kind: "request-flow" },
+        { id: "bb-3-17-e3", source: "bb-3-17-cdn", target: "bb-3-17-fw", kind: "request-flow" },
+        { id: "bb-3-17-e4", source: "bb-3-17-fw", target: "bb-3-17-proxy", kind: "request-flow" },
+        { id: "bb-3-17-e5", source: "bb-3-17-proxy", target: "bb-3-17-gateway", kind: "request-flow" },
+        { id: "bb-3-17-e6", source: "bb-3-17-gateway", target: "bb-3-17-lb", kind: "request-flow" },
+        { id: "bb-3-17-e7", source: "bb-3-17-lb", target: "bb-3-17-app", kind: "request-flow" },
+        { id: "bb-3-17-e8", source: "bb-3-17-app", target: "bb-3-17-db", kind: "request-flow" },
+        { id: "bb-3-17-e9", source: "bb-3-17-app", target: "bb-3-17-nosql", kind: "request-flow" },
+        { id: "bb-3-17-e10", source: "bb-3-17-db", target: "bb-3-17-replica", kind: "replication" },
+        { id: "bb-3-17-e11", source: "bb-3-17-replica", target: "bb-3-17-app", kind: "request-flow" },
+        { id: "bb-3-17-e12", source: "bb-3-17-app", target: "bb-3-17-cache", kind: "request-flow" },
+        { id: "bb-3-17-e13", source: "bb-3-17-cache", target: "bb-3-17-db", kind: "request-flow" },
+        { id: "bb-3-17-e14", source: "bb-3-17-app", target: "bb-3-17-search", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-17-browser"],
+    },
+    // A magenta gap zone is warranted (§11.6): the fix is genuinely missing
+    // nodes in identifiable empty canvas space - the whole unused row below
+    // the derived-data row - rather than a rewire of anything present. 3.16's
+    // zones carried forward, with its former gap slot now occupied by the
+    // search index and merged into the emerald row it shares with the cache
+    // (§11.6: same row, same tier colour, one zone).
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-17-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-17-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-17-zone-cdn", label: "Edge", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-17-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-17-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 896, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-17-zone-derived", label: "Derived data", position: { x: 352, y: 592 }, width: 576, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-17-zone-gap", label: "Build here", position: { x: 32, y: 752 }, width: 896, height: 137, color: "#ff3483" },
+      {
+        kind: "comment",
+        id: "bb-3-17-comment-budget",
+        text: "Publishing a listing takes 4.2 s at p95. The listing's own row is written in 40 ms of that; the other 4.16 s is work the recruiter's browser holds a connection open for and nobody reads.",
+        position: { x: 980, y: 112 },
+        width: 260,
+        height: 160,
+        color: "#64748b",
+      },
+      {
+        kind: "comment",
+        id: "bb-3-17-comment-outage",
+        text: "Last Tuesday the mail provider was down for 20 minutes. Every publish returned a 500, for listings that had already been saved.",
+        position: { x: 980, y: 432 },
+        width: 260,
+        height: 130,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
     id: "rwe-dummy-1",
     mode: "real-world-extraction",
     title: "Placeholder Project",

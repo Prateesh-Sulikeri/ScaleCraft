@@ -1,0 +1,258 @@
+3.14 and 3.15 both removed reads by keeping a copy of the answer somewhere
+cheaper. This one has no answer to copy.
+
+Your catalog has 4.2 million products. The search box runs
+`SELECT ... WHERE description LIKE '%waterproof%'`: 12 ms against the 5,000 rows
+on your laptop, 6 seconds in production. An index on `description` orders rows
+by their leading characters, so `'waterproof%'` could seek straight to them; a
+leading `%` has nothing to seek to, so the database reads every row and the cost
+grows with the catalog rather than with the matches. Caching doesn't rescue it
+either: search queries are a long tail, so past the few hundred most common ones
+almost every query is asked once and misses.
+
+> [!NOTE]
+> Think first: a replica copies the store, a cache and a CDN copy the answer.
+> This query defeats all three - the store copies the same scan, and the answer
+> is different every time. What would you change instead? Commit to an answer
+> before reading on.
+
+## A second store, shaped by the question
+
+Your database stores products by id, so it can find a product from an id
+instantly. Search asks the opposite question: given a word, which products
+contain it? That inversion is a different data structure, and past a certain
+size it is a different store - one that holds the same data a second time,
+arranged for the question the primary is bad at.
+
+<Walkthrough
+  title="One product, written twice and read from both"
+  description="A description is edited, then a shopper searches for it."
+  nodes={[
+    { id: "browser", kind: "component", componentId: "browser", label: "Browser" },
+    { id: "app", kind: "component", componentId: "app-server", label: "App Server" },
+    { id: "db", kind: "component", componentId: "sql-database", label: "SQL Database" },
+    { id: "search", kind: "component", componentId: "search-engine", label: "Search Engine" },
+  ]}
+  edges={[
+    { id: "ask", source: "browser", target: "app", kind: "request-flow" },
+    { id: "write", source: "app", target: "db", kind: "request-flow" },
+    { id: "index", source: "app", target: "search", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "A seller edits a product description. The Browser sends the write to the App Server, which updates the row in the SQL Database. That row is the source of truth, and nothing in this chapter changes that.",
+      focus: ["ask", "write"],
+    },
+    {
+      caption: "The same edit has to reach the Search Engine, or a shopper searching the new wording finds nothing. Here the App Server sends it there itself, on the same request: two stores, two writes, one request.",
+      focus: "index",
+    },
+    {
+      caption: "Later, a shopper searches for 'waterproof jacket'. The Browser sends the query to the App Server, which does not forward it to the SQL Database - there is no cheap way for the database to answer it.",
+      focus: "ask",
+    },
+    {
+      caption: "The App Server asks the Search Engine instead. The index already knows which documents contain each word, so it reads the products that match rather than all 4.2 million.",
+      focus: "index",
+    },
+    {
+      caption: "The Search Engine returns ranked product ids, and the App Server reads those rows from the SQL Database to build the page. The index answers which products match; the source of truth still answers what they are.",
+      focus: "write",
+    },
+    {
+      caption: "The failure to remember: if step 2's write to the Search Engine fails while the database write succeeds, the row is right and the indexed document is stale. Nothing here compares the two, so only a shopper notices.",
+      highlightNodeIds: ["app", "search"],
+      highlightEdgeIds: ["index"],
+    },
+  ]}
+/>
+
+Note: the App Server writes to both stores and reads from both, and only one of
+the two can be rebuilt from the other.
+
+## What an inverted index actually is
+
+One table, read in the direction the query needs:
+
+| Term | Products containing it |
+|---|---|
+| waterproof | 41, 208, 1177, 90412 |
+| jacket | 208, 913, 90412 |
+| tent | 17, 1177 |
+
+"waterproof jacket" is the intersection of two of those lists: products 208 and
+90412. The database's answer required 4.2 million row reads; this one required
+reading two lists whose length is the number of products containing each word.
+That is the entire trick - the cost moved from the size of the catalog to the
+size of the match.
+
+Two steps make it work, and you write neither. **Analysis** turns text into
+terms before storing it - lowercase, split, strip stop words, stem - so
+"Waterproof Jackets" and "waterproof jacket" land on the same two terms.
+**Ranking** then orders the matches, since an intersection has no natural order:
+a rare term counts for more than a common one, a match in a short title for more
+than one buried in a description. Both run over the query with the same rules as
+the documents, or the two sides never meet.
+
+## The obligation you just took on
+
+An index is not a backup. It is a projection - **derived data**: contents that
+could be recomputed from a source of truth, stored separately because
+recomputing on demand is too slow. This is the curriculum's first derived store,
+and it carries two obligations.
+
+**It must stay rebuildable.** If a product attribute exists only in the index,
+the index is a source of truth and a corrupted index is lost data. Keep it a
+pure projection and every divergence has the same repair: throw it away and
+reindex from the primary.
+
+**Something has to carry every change into it.** That path is the real design
+decision:
+
+| Sync path | How it works | What it costs |
+|---|---|---|
+| Write both in the request | The app writes the row, then writes the document | Simplest to build, worst to operate: the two writes are not one transaction, so a failed second write leaves a divergence nothing detects, and search's availability is now on your write path |
+| Follow the primary's changes | A separate process reads the database's change stream and applies each change to the index | One write path, so a partial failure cannot diverge the stores. Costs a process you now operate, and the index runs seconds behind |
+| Rebuild on a schedule | Reindex the corpus from scratch, nightly | Trivially correct, worst freshness, and the rebuild cost grows with the corpus |
+
+Most products run the second, with the third as the repair tool. The first row
+is the shape the walkthrough drew, and the shape its last step failed.
+
+On the canvas, a search engine accepts one kind of connection: a request-flow
+edge from the application tier. For the query that is right - asking the index
+for matches is a synchronous read like any other. For the indexing path it is
+wrong, and nothing in the palette yet says "this happens after the response is
+sent." One line carries both jobs, and the one it is honest about is the query.
+Coming in 3.17: the edge kind that fixes the other.
+
+## Trade-offs
+
+| Decision | What it buys | What it costs |
+|---|---|---|
+| Index synchronously | Search never lags the database | A second system on your write path, and a partial failure that silently diverges the two |
+| Index asynchronously | Writes stay fast and cannot half-fail | Search is seconds behind, and "find the thing I just posted" stops working |
+| Store whole documents in the index | Search answers alone, no second round trip | The index gets large, and every field you duplicate is a field that can drift |
+| Store ids only, hydrate from the primary | The index stays small and cheap to rebuild | Every result page costs a second read, and the index can return ids for rows that were just deleted |
+
+The decision under all four: whether you need a separate search engine at all. A
+database's own full-text support indexes terms the same way, with no second
+store and no sync path. It runs out at a specific place - corpus size, query
+volume, how much control you need over ranking - and until you are near it, it
+wins. Three people and 200,000 documents are not near it.
+
+## What breaks
+
+- **Silent divergence.** The database write succeeds and the index write does
+  not. The row is right, the document is stale, and nothing in the system reads
+  both to compare. It stays wrong until a user reports that they cannot find
+  something, which is why rebuildability is not optional.
+- **Read-your-writes, again.** A seller publishes a product and immediately
+  searches for it; under any asynchronous path it is not there yet. This is
+  3.12's replication lag in a store that lags for a different reason, and the
+  fix has the same shape: serve that one read from the primary.
+- **Deleted but still indexed.** An item removed from the database keeps ranking
+  until its deletion reaches the index, so a result links to a page that 404s.
+  Hydrating from the primary turns a broken link into a missing row, which is
+  the failure you would rather have.
+- **The reindex that takes the site down.** A full rebuild reads the entire
+  primary at whatever rate the indexer can manage, which is exactly the load the
+  index existed to prevent. Rebuilds get their own rate limit, or their own
+  replica to read from.
+
+## What changes at scale
+
+At 10x you add memory: posting lists are read constantly and want to be
+resident, so the index outgrowing RAM shows up as latency that degrades with
+corpus size rather than with traffic. At 100x you split the index into shards,
+each holding a slice of the documents. Every query fans out to all of them and
+merges, so your tail latency becomes the slowest shard's rather than the
+average, and each shard then gets replicas - shards for corpus, replicas for
+traffic. At 1000x indexing and serving are separate fleets with separate failure
+domains, and freshness stops being a side effect of how fast the indexer runs
+and becomes a number you publish and get paged on.
+
+## In production
+
+Slack's message search runs on an index built and served separately from the
+message store, for the reason this chapter opened with: "which messages mention
+the deploy freeze" is not a question a store organized by channel and timestamp
+answers without reading nearly everything. The trade-off they accepted is the
+sync table's second row - a message becomes searchable a moment after it is
+sent, not in the instant it appears. Worth making at their corpus size, and a
+poor trade at 200,000 documents, where the same query is a database feature.
+
+## Common mistakes
+
+- **Treating the index as a store.** Writing something only to search, or
+  serving a field from search that does not exist in the primary, converts a
+  disposable projection into data you can lose.
+- **Indexing synchronously to avoid lag.** You do not remove the lag, you trade
+  it for a divergence you cannot see and a write path that fails when search
+  does.
+- **Reaching for a search cluster first.** The database's own full-text index
+  answers the same query with no second store and no sync path. Prove it is not
+  enough before you take on the operational cost of one that is.
+- **Expecting search to enumerate.** A search engine ranks. Exact result counts
+  and deep pagination through ranked results are both expensive and usually
+  approximate, and a product that promises either is promising the wrong thing.
+
+## In an interview
+
+Medium-to-high relevance, and it is one of the few topics where mentioning the
+component is the easy half. It lands at step 4 - any product with a search box
+has a second store in its first architecture - and the deep dive at step 5 is
+never the index, it is the sync path and the freshness you are willing to accept.
+
+What that sounds like at a senior level: *"Search goes in its own index, because
+the primary can't answer a term query without a full scan. I'd feed it from the
+database's change stream rather than writing both stores in the request handler -
+a dual write that half-fails leaves a divergence nothing detects. That means
+search runs a few seconds behind, so I'd state the freshness target explicitly
+and serve read-your-writes cases from the primary. And the index stays a pure
+projection, so the repair for anything that drifts is a reindex."*
+
+## Connections
+
+3.11 argued that a store's shape decides which questions are cheap; this is that
+argument's sharpest case, the same data held twice in two shapes because one
+question is unanswerable in the other. 3.12 introduced a copy that lags, but a
+replica is the same shape answering the same query - this copy is a different
+shape answering a query the primary cannot. And 3.14 and 3.15 both worked by
+keeping the answer; here every query is a different question, which is why
+neither helped and why a second store was the move left.
+
+Coming in 3.17: the machinery for the arrow this chapter could not draw - the
+work that happens after the response is sent, and what happens when it fails.
+
+## Recap
+
+- `LIKE '%term%'` cannot use an ordinary index, so its cost grows with the table
+  rather than the matches - and replicas, caches and CDNs each fail to help for
+  their own reason.
+- An inverted index maps term to documents. That reversal moves the cost from
+  catalog size to match count.
+- A search index is derived data: it must be rebuildable from the primary, and
+  something must carry every change into it.
+- Writing both stores in the request is the sync path that diverges silently;
+  following the primary's own changes trades freshness for that safety, and
+  usually wins.
+- Until a database's own full-text search runs out, it is the better answer -
+  one store, no sync path, nothing new to operate.
+
+## Your turn
+
+The starter graph is the system as 3.15 left it, and it is correct: Validate has
+nothing to report, same as last chapter. What it cannot report is that the
+catalog's search box runs a query no part of this design answers well. Every
+component here either stores products by id or keeps a copy of an answer, and
+the question being asked is neither. A text query needs somewhere to land whose
+cost is the size of the match rather than the size of the catalog - and wherever
+it lands, the products table stays the only thing that owns a product.
+
+## Next
+
+R1, A Site That Stays Up, is a checkpoint: a blank canvas, a described product,
+and everything from Group A through Group D to assemble from memory - edge, load
+balancer, stateless tier, cache, database, replicas, CDN and search. Every build
+so far handed you a starter graph with most of the answer already on it. This
+one hands you nothing.
