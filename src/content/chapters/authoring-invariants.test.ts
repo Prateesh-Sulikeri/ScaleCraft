@@ -173,14 +173,34 @@ describe("authored chapter invariants", () => {
   // holds the property that actually matters instead: **the flow advances
   // left-to-right.** Every request-flow edge must move its target to the
   // right of its source, or sit in the same column (a fan-out branch).
-  // Nothing steps backwards.
+  // Nothing steps backwards - except a genuine feedback path, see below.
+  //
+  // FEEDBACK_SOURCES is the one exemption. A read replica serving reads back
+  // to the application tier is inherently right-to-left: the replica sits in
+  // the data column, right of the app that queries it, so the read-back
+  // always steps left. It is not a wrapped pipeline, which is what this gate
+  // exists to catch. reference-layout.ts already takes exactly this position
+  // for the rendered reference diagrams ("a real feedback path, not a layout
+  // bug, matching how a hand-drawn AWS diagram curves a replication/read-back
+  // arrow against the main flow"); that reasoning never reached this gate
+  // only because no starter graph carried a correct read-back until 3.14.
+  //
+  // The direction itself is fixed by curriculum, not layout: 3.12 teaches
+  // that `app -> replica` is the *error* (its success criterion is that the
+  // replica's data comes from the primary, not the application tier), so
+  // every chapter after it models the read path as `replica -> app`.
+  // CURRICULUM.md §11.5 carries the same exception in prose.
+  const FEEDBACK_SOURCES = new Set(["read-replica"]);
+
   it("every starter graph's request flow advances left to right", () => {
     for (const chapter of authored) {
       const graph = chapter.starterGraph;
       if (!graph || graph.nodes.length < 2) continue;
       const xById = new Map(graph.nodes.map((n) => [n.id, n.position.x]));
+      const componentById = new Map(graph.nodes.map((n) => [n.id, n.componentId]));
       for (const edge of graph.edges) {
         if (edge.kind !== "request-flow") continue;
+        if (FEEDBACK_SOURCES.has(componentById.get(edge.source) ?? "")) continue;
         const from = xById.get(edge.source);
         const to = xById.get(edge.target);
         if (from === undefined || to === undefined) continue;

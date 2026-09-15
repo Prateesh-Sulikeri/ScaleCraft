@@ -1433,3 +1433,22 @@ click-to-connect cancel are untouched.
 diagram) keeps `smoothstep` + `animated: false`. It is a printed figure, not
 a board, and orthogonal connectors are the convention there.
 `fanOutStepPositions`/`EDGE_STUB`/`EDGE_CORNER_RADIUS` are still live for it.
+
+## Amendment (2026-09-15) - feedback edges exempt from the left-to-right gate
+
+Merging `feat/content-audit` into `staging/v7.2.0` surfaced the first starter
+graphs carrying a *correct* read-replica read-back (`replica -> app`,
+request-flow, chapters 3.14-3.17). That edge is right-to-left by construction -
+the replica sits in the data column, right of the app that queries it - so the
+left-to-right gate rejected all four.
+
+Flipping it was not an option: 3.12 teaches that `app -> replica` is the error,
+and its blueprint and referenceGraph both use `replica -> app`.
+
+Resolved by exempting genuine feedback paths, not by relaxing the rule:
+`FEEDBACK_SOURCES` in `authoring-invariants.test.ts` (currently just
+`read-replica`), documented in `CURRICULUM.md` §11.5. This is the position
+`reference-layout.ts` already took for rendered reference diagrams; it simply
+had not reached the starter-graph gate, because no starter graph had a correct
+read-back until 3.14. Add to that set only for another true feedback path -
+never to quiet a pipeline that actually wraps.

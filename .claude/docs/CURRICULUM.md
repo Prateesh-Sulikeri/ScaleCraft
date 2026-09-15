@@ -658,6 +658,18 @@ Rules that follow from it:
 - **Never step left.** `x` never decreases along a request-flow edge. Inside a
   tier the flow runs straight down (same `x`); between tiers it runs right.
   Nothing wraps onto a second row, and nothing doubles back.
+- **One exception: a genuine feedback path may step left.** A read replica
+  serving reads back to the application tier (`replica -> app`, request-flow)
+  is right-to-left by construction - the replica lives in the data column,
+  right of the app that queries it. That is a feedback arrow, not a wrapped
+  pipeline, and it is drawn against the main flow exactly as a hand-drawn
+  cloud diagram would. The direction is fixed by curriculum rather than
+  layout: 3.12 teaches that `app -> replica` is the *error*, so every chapter
+  after it models the read path as `replica -> app`. The gate carries the
+  exemption as `FEEDBACK_SOURCES` in `authoring-invariants.test.ts`;
+  `reference-layout.ts` already took the same position for rendered reference
+  diagrams. Add to that set only for another true feedback path - never to
+  quiet a pipeline that actually wraps.
 - **The client gets its own column.** A Browser or Client is the one thing on
   the board the learner does not operate, so it is its own tier rather than the
   first row of Edge. That also keeps Edge to three rows, which is what keeps
