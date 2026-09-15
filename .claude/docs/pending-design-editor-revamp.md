@@ -1,10 +1,13 @@
 # Pending: Design Editor revamp
 
-**Status: ALL STEPS DONE.** Release **7.2.0-alpha**, all work on
+**Status: ALL STEPS DONE, INCLUDING THE STEP 6 VERIFICATION AUDIT.** Release **7.2.0-alpha**, all work on
 `feat/design-editor-revamp` (D20). **D1-D20 are all locked, no open
-questions.** D13 was delegated to Claude; the rest are the user's. Nothing
-is committed and nothing is pushed - the whole of Steps 1-5b is sitting
-uncommitted on `feat/design-editor-revamp`, ready for the user's review.
+questions.** D13 was delegated to Claude; the rest are the user's. Steps
+1-5f are **committed and pushed** as `a797b91`; Step 6's tests and this
+doc update follow it. The branch is ready for the user's code review and
+their own merge (D20) - what still has to happen before it merges is the
+`chore(release):` version bump and release-notes entry, which live at
+release-branch level, not here.
 
 | Step | State |
 |---|---|
@@ -20,6 +23,7 @@ uncommitted on `feat/design-editor-revamp`, ready for the user's review.
 | 5d - Flow-diagram rules on the live canvas + all 14 starter graphs | done 2026-09-12 |
 | 5e - Ports rebuilt (connection bugs), layout tightened | done 2026-09-12 |
 | 5f - Connect band, two-way + blocked edges, armed-click cancel | done 2026-09-12 |
+| 6 - Verification audit (full pipeline, e2e, 2 new test files) | done 2026-09-15 |
 
 **Scope in one line:** shrink and redraw the component card, make edges easy to
 connect, move the information the card loses into a redesigned inspector, then
@@ -1297,6 +1301,79 @@ cleanly separable and nothing in Steps 1-4 depends on them.
 
 ---
 
+## Step 6 - Verification audit: DONE (2026-09-15)
+
+The branch was committed (`a797b91`) and pushed. Full pipeline clean:
+typecheck, lint, **2461 unit tests / 248 files**, build (22 routes). Full
+Playwright suite **22 passed, 1 skipped** - the skip is
+`global.setup.ts`'s CI-only route-warming step, not a disabled test.
+
+Two test files close the gaps the earlier steps left:
+
+**`src/canvas/card-geometry.test.ts`** (8 tests). The constants'
+*relationships*, which nothing checked. `authoring-invariants.test.ts`
+measures authored content **against** these numbers; it cannot notice the
+numbers drifting out of agreement with each other. The failure it exists to
+catch is a future card resize: pushing `CARD_WIDTH` back toward the old 200
+silently degrades D6's whole-card drop target, and nothing renders
+differently, so every other test stays green.
+
+Its coverage test samples the card surface on a 2px grid rather than using a
+closed form. The first draft asserted `CONNECTION_RADIUS >= min(w, h) / 2`
+on the reasoning that the worst-covered point is the centre - **that is
+false for a card much wider than it is tall**, and a mutation to
+`CARD_WIDTH = 400` passed it. Sampling catches the same mutation at
+(94, 0), 105.5px from any handle. Don't reintroduce the shortcut.
+
+**`e2e/design-editor-geometry.spec.ts`** (3 tests). Only claims jsdom
+structurally cannot settle, per playwright.config.ts's bar:
+
+| Test | Why it can only run in a browser |
+|---|---|
+| no overlapping cards, all 14 starter graphs | jsdom gives every node a zero-sized rect, so the unit gates check authored *coordinates* and assume the renderer honours them |
+| every authored edge draws a real path | xyflow measures nodes through a ResizeObserver jsdom never runs, so an unmeasured node draws no path at all |
+| the 13 Debrief reference diagrams draw, and fit their column | same, and this was **explicitly unverified** - see the old note 2 below |
+| ports hidden at rest, revealed on hover | CSS `:hover` and computed opacity |
+| a drop on the card's dead centre still lands | real pointer hit-testing against `CONNECTION_RADIUS` |
+
+The first three rows are **one test**, not three. They started as three, each
+loading `/dev/starter-layout-lab` and looping all 14 chapters to check one
+thing; they are now a single pass checking all three. That is why:
+
+> Adding the 5-test version to the front of the suite made
+> `multi-device-sync.spec.ts` fail intermittently at the tail of it - a
+> different test each run. It is **not** state interference (running the new
+> spec directly before it is clean, twice), it is cumulative load against a
+> 20s cross-device poll budget. Full evidence table in
+> `pending-e2e-quarantine.md`. Consolidating cut the cost; the underlying
+> fragility in that spec is untouched and can resurface.
+
+The lab reads authored content directly (a learner's save cannot shadow it)
+and mounts no `useAutosave` - checked, and it matters, because the suite
+shares one Clerk account at `workers: 1`.
+
+**The loop guards are deliberate.** Every assertion in that merged test is
+the body of a loop or an `if`, which is the exact shape of vacuous test
+`pending-e2e-quarantine.md` found ~106 of - a loop over an empty list passes
+having asserted nothing. So the counts are pinned
+(`AUTHORED_STARTER_CHAPTERS = 14`, `AUTHORED_REFERENCE_GRAPHS = 13`, both
+measured off the registry) and the inner bodies count their own iterations.
+Update those constants when a chapter gains or loses a graph; do not relax
+them to `> 0`.
+
+Both files were mutation-tested, not just observed green: `CARD_WIDTH = 400`
+makes the unit file fail 3 tests and the overlap assertion name the
+colliding pair (`bb-0-1-welcome`: "NET Client" / "COMP Application
+Server"). Re-verified after the merge, then reverted.
+
+**Still not done, and deliberately not mine (D20):** `VERSION` and
+`package.json` are still `7.1.0-alpha`, and there is no `7.2.0-alpha`
+release-notes entry. Prior releases land both as their own `chore(release):`
+commits at release-branch level (`a8ab69b`, `1a85f8b`), not on a feature
+branch.
+
+---
+
 ## Resume here - this doc's work is complete
 
 **Branch:** `feat/design-editor-revamp`. **Nothing is committed, nothing is
@@ -1317,14 +1394,14 @@ files), `npm run build` succeeded (22 routes, no errors).
    exceeds a 2.5:1 bounding-box aspect ratio" - are **re-enabled and
    passing**. If a future chapter edit breaks either, that is a real
    authoring regression, not a stale constant - do not skip them again.
-2. Steps 1-4 have all been looked at in a browser; Step 5b was verified only
-   through the automated suite and `ReferenceGraphCanvas`'s own unit tests
-   (see that component's own note on why jsdom can't render a real edge
-   path), not eyeballed live. Still unclicked from Step 3: the exact 31px
-   hit-disc geometry and the hover-reveal states as a deliberate mouse-hover
-   gesture. A manual click-through of the 12 new Debrief reference diagrams
-   in a real browser is worth doing before this branch merges, even though
-   nothing in the automated pipeline flagged a problem.
+2. ~~Step 5b was verified only through the automated suite...~~
+   **Closed by Step 6.** The reference diagrams, the hover-reveal states and
+   the drop radius now all have real-browser coverage in
+   `e2e/design-editor-geometry.spec.ts`. What that spec does *not* judge is
+   whether the diagrams look *good* - it asserts they draw, don't overlap
+   and fit their column, not that they read well. A human look at the 13
+   diagrams is still worth it before merge, but it is now a design review,
+   not a correctness gap.
 
 ---
 
