@@ -460,6 +460,141 @@ body > div[id^="ddocs-mermaid-"] {
   fill: var(--foreground);
 }
 
+
+/* Connection ports.
+ *
+ * xyflow ships each handle as a 6px #1a192b dot with `cursor: crosshair`.
+ * Three problems: 6px is an unreasonable hit target beside a 120px card, the
+ * navy belongs to no token in this app, and a crosshair is the cursor for
+ * dragging out a marquee, not for pulling a wire out of something.
+ *
+ * The port itself stays small and quiet; the *hit area* is a 31px circle
+ * drawn by ::after, so catching a connection never needs pixel-perfect aim.
+ * That covers the grab end of the gesture; CONNECTION_RADIUS
+ * (canvas/card-geometry.ts) covers the drop end. */
+.react-flow__handle {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  background: var(--panel);
+  border: 1.5px solid color-mix(in srgb, var(--foreground) 45%, transparent);
+  /* Revealed, not permanent - twenty cards' worth of always-on dots is
+   * noise on a graph the learner is reading rather than editing. A handle
+   * that cannot take part in a connection (the Start marker's anchor on an
+   * input-less component) never gets `connectionindicator` from xyflow and
+   * so never becomes visible at all. */
+  opacity: 0;
+  transition:
+    opacity 120ms ease-out,
+    width 120ms ease-out,
+    height 120ms ease-out,
+    background-color 120ms ease-out,
+    border-color 120ms ease-out;
+}
+
+/* The forgiving part: a transparent band running the length of the side the
+ * port sits on, not a disc around the 9px dot.
+ *
+ * A disc was measured (a grid-scan of press-and-drag outcomes over a whole
+ * card) to leave roughly four fifths of the card's surface starting a *node
+ * drag* instead of a connection - and since the dots are invisible at rest,
+ * hitting one means hovering first, finding a 9px target and landing within
+ * ~14px of its centre. That is the "it doesn't connect a lot of the time"
+ * bug: nothing was wrong with where the wire landed, only with where it could
+ * be picked up.
+ *
+ * A band makes the whole perimeter live and continuous: there is no dot to
+ * find, only an edge of the card to grab, and each side still maps to exactly
+ * one port so edge-routing.ts's four-port model is untouched. The card's
+ * interior still drags the node, which is why the band reaches only ~14px
+ * inward. The corner inset keeps adjacent bands from overlapping, so a corner
+ * belongs to exactly one side.
+ *
+ * Only the hit area changes. `handleBounds` is measured from the handle
+ * element itself, never the pseudo-element, so edges still attach at the side
+ * midpoints exactly as before.
+ *
+ * Scoped to `.connectionindicator` because that is the only state in which
+ * xyflow gives a handle `pointer-events: all` - anywhere else the
+ * pseudo-element would be inert regardless. */
+.react-flow__handle.connectionindicator::after {
+  content: "";
+  position: absolute;
+  inset: -11px;
+  border-radius: 9999px;
+}
+
+/* The handle is 9px, centred on the card's edge. To stretch its band to
+ * `--sc-card-h` minus a corner at each end, the offset is half the leftover:
+ * -((card - 9px) / 2 - corner). Outward reach is kept smaller than inward so
+ * two cards a learner has dragged close together keep their bands apart. */
+.react-flow__handle-left.connectionindicator::after,
+.react-flow__handle-right.connectionindicator::after {
+  inset-block: calc(-1 * ((var(--sc-card-h, 96px) - 9px) / 2 - 16px));
+  inset-inline: -9px;
+  border-radius: 7px;
+}
+.react-flow__handle-top.connectionindicator::after,
+.react-flow__handle-bottom.connectionindicator::after {
+  inset-inline: calc(-1 * ((var(--sc-card-w, 120px) - 9px) / 2 - 16px));
+  inset-block: -9px;
+  border-radius: 7px;
+}
+
+/* Overrides xyflow's own `cursor: crosshair` on the same selector; this
+ * file is imported after its stylesheet (see app/layout.tsx), so equal
+ * specificity resolves here. */
+.react-flow__handle.connectionindicator {
+  cursor: grab;
+}
+.react-flow__handle.connectingfrom,
+.react-flow__handle.connectingto {
+  cursor: grabbing;
+}
+
+/* Visible while the card is under the cursor or selected, and - via the
+ * wrapper class Canvas.tsx sets from its own onConnectStart/End state - on
+ * every legal destination for the whole duration of a drag, so the user can
+ * see where a wire is allowed to land before letting go. */
+.react-flow__node:hover .react-flow__handle.connectionindicator,
+.react-flow__node.selected .react-flow__handle.connectionindicator,
+.sc-canvas-connecting .react-flow__handle.connectionindicator {
+  opacity: 1;
+}
+
+.react-flow__handle.connectionindicator:hover {
+  width: 12px;
+  height: 12px;
+  border-color: var(--foreground);
+}
+
+/* The port the wire is currently being pulled out of. */
+.react-flow__handle.connectingfrom {
+  opacity: 1;
+  background: var(--foreground);
+  border-color: var(--foreground);
+}
+
+/* The port the wire would land on if released now. `valid` is xyflow's own
+ * class, set from the isValidConnection predicate in Canvas.tsx - so a drop
+ * that the component's declared inputs/outputs forbid says so before the
+ * release, rather than silently doing nothing. */
+.react-flow__handle.connectingto {
+  opacity: 1;
+  background: color-mix(in srgb, var(--state-error) 30%, var(--panel));
+  border-color: var(--state-error);
+}
+.react-flow__handle.connectingto.valid {
+  background: color-mix(in srgb, var(--state-valid) 35%, var(--panel));
+  border-color: var(--state-valid);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__handle {
+    transition: none;
+  }
+}
+
 /* xyflow's default box-select uses a hardcoded blue
  * (rgba(0,89,220,...)) regardless of colorMode — collides with the
  * "networking" category color and doesn't adapt to light/dark. Override with

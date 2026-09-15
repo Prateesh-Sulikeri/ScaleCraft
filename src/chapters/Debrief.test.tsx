@@ -1,7 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { Debrief } from "./Debrief";
+import { stubResizeObserver } from "@/canvas/canvas-test-utils";
 import type { Blueprint } from "@/content/chapters/types";
+
+beforeAll(() => {
+  stubResizeObserver();
+});
 
 const cacheAside: Blueprint = {
   id: "cache-aside",
@@ -60,7 +65,7 @@ describe("Debrief", () => {
     expect(screen.getByText(queueBased.commentary)).toBeInTheDocument();
   });
 
-  it("renders a referenceGraph as a component-label edge summary", () => {
+  it("renders a referenceGraph as a real canvas of component cards", () => {
     render(<Debrief blueprints={[cacheAside]} matchedBlueprintId={null} />);
     fireEvent.click(screen.getByRole("button", { name: /debrief/i }));
 

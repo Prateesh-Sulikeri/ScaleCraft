@@ -7,6 +7,17 @@ import { evaluateChapter } from "@/validation-engine/chapter-outcome";
 import { ANNOTATION_COLOR_PRESETS } from "@/canvas/annotation-colors";
 import type { ArchitectureGraph } from "@/lib/graph";
 import type { ChapterDefinition } from "./types";
+import {
+  CARD_HEIGHT,
+  CARD_WIDTH,
+  MIN_HORIZONTAL_GAP,
+  MIN_VERTICAL_GAP,
+  PITCH_X,
+  PITCH_Y,
+  ZONE_PAD_BOTTOM,
+  ZONE_PAD_SIDE,
+  ZONE_PAD_TOP,
+} from "@/canvas/card-geometry";
 
 /**
  * Guards the authoring contract in .claude/docs/CURRICULUM.md and
@@ -115,15 +126,18 @@ describe("authored chapter invariants", () => {
   // .claude/docs/pending-design-editor-exercise.md §1.3: every Part 3 starter
   // graph was authored at a 200px x-pitch against a 200px-wide card, so the
   // gap between adjacent cards was 0px and edges rendered as invisible dots.
-  // Card geometry per src/canvas/ComponentNode.tsx: width = data.width ?? 200,
-  // MIN_HEIGHT = 65 (both measured, not exported - re-measure there if this
-  // ever fails for a reason other than a genuinely cramped starter graph).
-  const CARD_WIDTH = 200;
-  const CARD_HEIGHT = 65;
-  const MIN_HORIZONTAL_GAP = 120;
-  const MIN_VERTICAL_GAP = 95;
+  //
+  // Card geometry is imported, never re-declared. It used to be two hand-copied
+  // literals here with a comment asking whoever resized the card to remember to
+  // update them; when the card became 140x100 those literals silently went on
+  // asserting a 200x65 card, so the gate passed while measuring a card that no
+  // longer existed. See src/canvas/card-geometry.ts.
   const PROXIMITY_THRESHOLD = 40;
 
+  // Re-enabled in Step 4 of .claude/docs/pending-design-editor-revamp.md: all
+  // 14 starter graphs are now authored at the 260x195 pitch against the
+  // 120x96 card, which clears both minimums with room to spare (140/99 real
+  // gap against a 120/95 floor).
   it("no starter graph packs two nodes closer than the minimum gap", () => {
     for (const chapter of authored) {
       const nodes = chapter.starterGraph?.nodes;
@@ -149,22 +163,119 @@ describe("authored chapter invariants", () => {
     }
   });
 
-  // Same doc, §1.2/§1.3: fitView fits the bounding box, so a long single-row
-  // chain gets width-constrained into an unreadably small zoom. Exempt below
-  // 4 nodes - a 2-3 node chain has no room to tier and isn't the failure mode
-  // this gate exists for.
-  it("no 4+ node starter graph exceeds a 2.5:1 bounding-box aspect ratio", () => {
+  // Replaces an earlier 2.5:1 bounding-box aspect ceiling. That ceiling
+  // existed to stop fitView zooming a long chain down to an unreadable size,
+  // and it worked by forcing a pipeline to tier into stacked rows. CURRICULUM
+  // .md §11.5 now requires the opposite: a starter graph is one continuous
+  // left-to-right pipeline, wide by construction, with the canvas opening at
+  // a readable floor zoom and panning rather than fitting the whole width
+  // (see Canvas.tsx's fitViewOptions). So the ceiling is gone and this gate
+  // holds the property that actually matters instead: **the flow advances
+  // left-to-right.** Every request-flow edge must move its target to the
+  // right of its source, or sit in the same column (a fan-out branch).
+  // Nothing steps backwards.
+  it("every starter graph's request flow advances left to right", () => {
     for (const chapter of authored) {
-      const nodes = chapter.starterGraph?.nodes;
-      if (!nodes || nodes.length < 4) continue;
-      const xs = nodes.map((n) => n.position.x);
-      const ys = nodes.map((n) => n.position.y);
-      const width = Math.max(...xs) + CARD_WIDTH - Math.min(...xs);
-      const height = Math.max(...ys) + CARD_HEIGHT - Math.min(...ys);
+      const graph = chapter.starterGraph;
+      if (!graph || graph.nodes.length < 2) continue;
+      const xById = new Map(graph.nodes.map((n) => [n.id, n.position.x]));
+      for (const edge of graph.edges) {
+        if (edge.kind !== "request-flow") continue;
+        const from = xById.get(edge.source);
+        const to = xById.get(edge.target);
+        if (from === undefined || to === undefined) continue;
+        expect(
+          to >= from,
+          `${chapter.id}: edge ${edge.id} runs right-to-left (${edge.source} at x=${from} -> ${edge.target} at x=${to})`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  // The same pipeline rule, stated as a shape: a starter graph occupies one
+  // row per parallel branch, never a row per tier. More rows than the widest
+  // fan-out means a pipeline was tiered into stacked bands again.
+  it("no starter graph uses more rows than its widest fan-out needs", () => {
+    for (const chapter of authored) {
+      const graph = chapter.starterGraph;
+      if (!graph || graph.nodes.length < 4) continue;
+      const rows = new Set(graph.nodes.map((n) => n.position.y)).size;
+      const perColumn = new Map<number, number>();
+      for (const n of graph.nodes) perColumn.set(n.position.x, (perColumn.get(n.position.x) ?? 0) + 1);
+      const widestFanOut = Math.max(...perColumn.values());
       expect(
-        width / height,
-        `${chapter.id}'s starter graph bounding box is ${width}x${height} (aspect ${(width / height).toFixed(2)}), above the 2.5:1 ceiling`,
-      ).toBeLessThanOrEqual(2.5);
+        rows,
+        `${chapter.id}'s starter graph spans ${rows} rows but its widest column holds only ${widestFanOut} node(s) - a pipeline tiered into bands instead of one left-to-right row`,
+      ).toBeLessThanOrEqual(widestFanOut);
+    }
+  });
+
+  // CURRICULUM.md §11.6: `PITCH_Y - CARD_HEIGHT` is 64px and two stacked
+  // zones split it three ways, so the pads decide whether the gap between
+  // their borders is readable. At 44/16 it was 4px and bb-3-4's Application
+  // and Build here boxes read as one merged container.
+  it("no two starter-decorator zones stacked in one column sit closer than the readable gap", () => {
+    const MIN_ZONE_GAP = 12;
+    for (const chapter of authored) {
+      const zones = (chapter.starterDecorators ?? []).filter((d) => d.kind === "zone");
+      for (let a = 0; a < zones.length; a++) {
+        for (let b = a + 1; b < zones.length; b++) {
+          const [top, bottom] =
+            zones[a].position.y <= zones[b].position.y ? [zones[a], zones[b]] : [zones[b], zones[a]];
+          // Only zones sharing a column stack; side-by-side tiers never do.
+          if (top.position.x + top.width <= bottom.position.x) continue;
+          if (bottom.position.x + bottom.width <= top.position.x) continue;
+          const gap = bottom.position.y - (top.position.y + top.height);
+          expect(
+            gap,
+            `${chapter.id}: zones ${top.id} and ${bottom.id} stack ${gap}px apart, below the ${MIN_ZONE_GAP}px minimum - they read as one box`,
+          ).toBeGreaterThanOrEqual(MIN_ZONE_GAP);
+        }
+      }
+    }
+  });
+
+  // bb-3-2 asks for two components (browser and dns) and marked a one-card
+  // slot to put them in. Counts distinct missing componentIds, so it cannot
+  // see an exercise whose answer is a *second* instance of something already
+  // on the canvas (bb-3-4's app-server pool) - that case needs a human.
+  it("every Build here zone has room for the components the learner still has to add", () => {
+    for (const chapter of authored) {
+      const graph = chapter.starterGraph;
+      const gapZones = (chapter.starterDecorators ?? [])
+        .filter((d) => d.kind === "zone")
+        .filter((z) => z.label.toLowerCase() === "build here");
+      if (!graph || gapZones.length === 0) continue;
+      const present = new Set(graph.nodes.map((n) => n.componentId));
+      const missing = (chapter.requiredComponentIds ?? []).filter((id) => !present.has(id)).length;
+      const slots = gapZones.reduce((total, z) => {
+        const cols = Math.round((z.width - CARD_WIDTH - 2 * ZONE_PAD_SIDE) / PITCH_X) + 1;
+        const rows =
+          Math.round((z.height - CARD_HEIGHT - ZONE_PAD_TOP - ZONE_PAD_BOTTOM) / PITCH_Y) + 1;
+        return total + cols * rows;
+      }, 0);
+      expect(
+        slots,
+        `${chapter.id}: the Build here zone holds ${slots} card slot(s) but the exercise adds ${missing} component(s)`,
+      ).toBeGreaterThanOrEqual(missing);
+    }
+  });
+
+  // CURRICULUM.md §11.6: two bands wanting the same name are one tier. This
+  // caught seven chapters shipping an "Application" zone holding only the
+  // reverse proxy, directly above a second "Application" zone holding the
+  // rest of the tier - a whole wasted band and two boxes a learner had no way
+  // to tell apart.
+  it("no chapter gives two starter-decorator zones the same label", () => {
+    for (const chapter of authored) {
+      const labels = (chapter.starterDecorators ?? [])
+        .filter((d) => d.kind === "zone")
+        .map((d) => d.label);
+      const duplicates = labels.filter((l, i) => labels.indexOf(l) !== i);
+      expect(
+        [...new Set(duplicates)],
+        `${chapter.id} has more than one zone labelled ${[...new Set(duplicates)].join(", ")}`,
+      ).toEqual([]);
     }
   });
 
@@ -277,6 +388,95 @@ describe("authored chapter invariants", () => {
           decoratorText.includes(label.toLowerCase()),
           `${chapter.id}'s decorators name "${label}", a component the learner still has to add`,
         ).toBe(false);
+      }
+    }
+  });
+});
+
+describe("authored reference-graph invariants", () => {
+  // Every blueprint reference graph Debrief can actually render. A chapter
+  // with no editor exercise never mounts Debrief (see D16 in
+  // pending-design-editor-revamp.md), so it is excluded rather than failed.
+  const referenceGraphs = authored
+    .filter((c) => c.hasEditorExercise !== false)
+    .flatMap((c) => (c.blueprints ?? []).map((b) => ({ chapter: c, blueprint: b })))
+    .filter((x) => x.blueprint.referenceGraph);
+
+  it("every chapter that can show a Debrief has a reference graph to show", () => {
+    for (const chapter of authored) {
+      if (chapter.hasEditorExercise === false || !chapter.blueprints?.length) continue;
+      for (const blueprint of chapter.blueprints) {
+        expect(
+          blueprint.referenceGraph,
+          `${chapter.id}'s blueprint "${blueprint.id}" has no referenceGraph, so its Debrief renders commentary with no diagram`,
+        ).toBeDefined();
+      }
+    }
+  });
+
+  // The Start badge (ReferenceStartBadge.tsx) is drawn from entryPointIds and
+  // from nothing else, so an empty or stale list silently produces a diagram
+  // with no stated entry point - a flow diagram that never says where the
+  // flow begins. ReferenceGraphCanvas also ranks columns from these ids, so a
+  // bad list costs the left-to-right ordering too, not just the badge.
+  it("every reference graph names at least one entry point", () => {
+    for (const { chapter, blueprint } of referenceGraphs) {
+      expect(
+        blueprint.referenceGraph!.entryPointIds.length,
+        `${chapter.id}'s blueprint "${blueprint.id}" has no entryPointIds - no Start badge would render`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("every reference graph's entry points are real nodes in that same graph", () => {
+    for (const { chapter, blueprint } of referenceGraphs) {
+      const graph = blueprint.referenceGraph!;
+      const nodeIds = new Set(graph.nodes.map((n) => n.id));
+      for (const id of graph.entryPointIds) {
+        expect(
+          nodeIds.has(id),
+          `${chapter.id}'s blueprint "${blueprint.id}" lists entry point "${id}", which is not one of its nodes`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("every reference-graph edge connects two nodes in that same graph", () => {
+    for (const { chapter, blueprint } of referenceGraphs) {
+      const graph = blueprint.referenceGraph!;
+      const nodeIds = new Set(graph.nodes.map((n) => n.id));
+      for (const edge of graph.edges) {
+        expect(
+          nodeIds.has(edge.source) && nodeIds.has(edge.target),
+          `${chapter.id}'s blueprint "${blueprint.id}" has a dangling edge "${edge.id}"`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  // A node no edge reaches from an entry point is ranked into column 0 by
+  // reference-layout.ts's fallback, where it reads as a second, unexplained
+  // starting point of the diagram.
+  it("every reference-graph node is reachable from an entry point", () => {
+    for (const { chapter, blueprint } of referenceGraphs) {
+      const graph = blueprint.referenceGraph!;
+      const out = new Map<string, string[]>(graph.nodes.map((n) => [n.id, []]));
+      for (const e of graph.edges) out.get(e.source)?.push(e.target);
+      const seen = new Set(graph.entryPointIds);
+      const queue = [...graph.entryPointIds];
+      while (queue.length > 0) {
+        for (const next of out.get(queue.pop()!) ?? []) {
+          if (!seen.has(next)) {
+            seen.add(next);
+            queue.push(next);
+          }
+        }
+      }
+      for (const node of graph.nodes) {
+        expect(
+          seen.has(node.id),
+          `${chapter.id}'s blueprint "${blueprint.id}" has "${node.id}" unreachable from any entry point`,
+        ).toBe(true);
       }
     }
   });
