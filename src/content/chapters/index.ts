@@ -93,6 +93,21 @@ export const chapterRegistry: ChapterDefinition[] = [
           "A client talks to an app server, which reads and writes to a database - the " +
           "smallest shape that's still a real, three-tier architecture. Every later " +
           "chapter builds on this one.",
+        // `position` is vestigial on a referenceGraph - reference-layout.ts
+        // computes the left-to-right layout from the edges and ignores these.
+        // They're here only because GraphNode requires the field.
+        referenceGraph: {
+          nodes: [
+            { id: "bb-0-1-ref-client", componentId: "client", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-0-1-ref-app", componentId: "app-server", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-0-1-ref-db", componentId: "sql-database", position: { x: 580, y: 195 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-0-1-ref-e1", source: "bb-0-1-ref-client", target: "bb-0-1-ref-app", kind: "request-flow" },
+            { id: "bb-0-1-ref-e2", source: "bb-0-1-ref-app", target: "bb-0-1-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-0-1-ref-client"],
+        },
       },
     ],
     hints: [
@@ -330,15 +345,15 @@ export const chapterRegistry: ChapterDefinition[] = [
     // "fix-edge"/"revalidate-clean" steps for the guided remediation.
     starterGraph: {
       nodes: [
-        { id: "bb-0-1-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-0-1-app-server", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
+        { id: "bb-0-1-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-0-1-app-server", componentId: "app-server", position: { x: 320, y: 0 }, config: {} },
       ],
       edges: [{ id: "bb-0-1-edge-client-app", source: "bb-0-1-client", target: "bb-0-1-app-server", kind: "async" }],
       entryPointIds: ["bb-0-1-client"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-0-1-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-0-1-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-0-1-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-0-1-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#a855f7" },
     ],
   },
   {
@@ -1933,6 +1948,18 @@ export const chapterRegistry: ChapterDefinition[] = [
           "A client talks to an app server, which is the only thing that reads or writes to the " +
           "database - the smallest shape that is still a real, three-tier architecture. Every later " +
           "Building Block chapter extends this shape; none of them replace it.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-1-2-ref-client", componentId: "client", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-1-2-ref-app", componentId: "app-server", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-1-2-ref-db", componentId: "sql-database", position: { x: 580, y: 195 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-1-2-ref-e1", source: "bb-1-2-ref-client", target: "bb-1-2-ref-app", kind: "request-flow" },
+            { id: "bb-1-2-ref-e2", source: "bb-1-2-ref-app", target: "bb-1-2-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-1-2-ref-client"],
+        },
       },
     ],
     hints: [
@@ -2544,8 +2571,8 @@ export const chapterRegistry: ChapterDefinition[] = [
     //     on kind (see that rule's own module comment).
     starterGraph: {
       nodes: [
-        { id: "bb-1-2-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-1-2-sql-database", componentId: "sql-database", position: { x: 380, y: 160 }, config: {} },
+        { id: "bb-1-2-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-1-2-sql-database", componentId: "sql-database", position: { x: 580, y: 0 }, config: {} },
       ],
       edges: [
         { id: "bb-1-2-edge-client-db", source: "bb-1-2-client", target: "bb-1-2-sql-database", kind: "request-flow" },
@@ -2553,9 +2580,9 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-1-2-client"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-1-2-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-1-2-zone-data", label: "Data", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-1-2-zone-gap", label: "Build here", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#ff3483" },
+      { kind: "zone", id: "bb-1-2-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-1-2-zone-data", label: "Data", position: { x: 552, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-1-2-zone-gap", label: "Build here", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#ff3483" },
     ],
   },
   {
@@ -4373,6 +4400,20 @@ export const chapterRegistry: ChapterDefinition[] = [
           "The firewall sits between the client and everything else, filtering on address, port and " +
           "protocol before any of it is reachable. It doesn't replace the app server's own job of " +
           "mediating database access - it's a second, earlier gate, not a substitute for the first one.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-1-ref-client", componentId: "client", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-1-ref-fw", componentId: "firewall", position: { x: 320, y: 195 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-1-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: {} },
+            { id: "bb-3-1-ref-db", componentId: "sql-database", position: { x: 840, y: 195 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-1-ref-e1", source: "bb-3-1-ref-client", target: "bb-3-1-ref-fw", kind: "request-flow" },
+            { id: "bb-3-1-ref-e2", source: "bb-3-1-ref-fw", target: "bb-3-1-ref-app", kind: "request-flow" },
+            { id: "bb-3-1-ref-e3", source: "bb-3-1-ref-app", target: "bb-3-1-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-1-ref-client"],
+        },
       },
     ],
     hints: [
@@ -4618,9 +4659,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     // precedent, adapted for a Completion rather than a Fix exercise).
     starterGraph: {
       nodes: [
-        { id: "bb-3-1-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-1-app", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
-        { id: "bb-3-1-db", componentId: "sql-database", position: { x: 700, y: 160 }, config: {} },
+        { id: "bb-3-1-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-1-app", componentId: "app-server", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-1-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
       ],
       edges: [
         { id: "bb-3-1-e1", source: "bb-3-1-client", target: "bb-3-1-app", kind: "request-flow" },
@@ -4629,10 +4670,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-1-client"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-1-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-1-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-1-zone-data", label: "Data", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-3-1-zone-gap", label: "Build here", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-1-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-1-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-1-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-1-zone-gap", label: "Build here", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#ff3483" },
     ],
   },
   {
@@ -4712,6 +4753,22 @@ export const chapterRegistry: ChapterDefinition[] = [
         commentary:
           "The lookup happens before the request, not instead of it - DNS hands back an address, then " +
           "the same request path 3.1 built carries the traffic the rest of the way.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-2-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-2-ref-dns", componentId: "dns", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-2-ref-fw", componentId: "firewall", position: { x: 60, y: 390 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-2-ref-app", componentId: "app-server", position: { x: 320, y: 390 }, config: {} },
+            { id: "bb-3-2-ref-db", componentId: "sql-database", position: { x: 580, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-2-ref-e1", source: "bb-3-2-ref-browser", target: "bb-3-2-ref-dns", kind: "request-flow" },
+            { id: "bb-3-2-ref-e2", source: "bb-3-2-ref-dns", target: "bb-3-2-ref-fw", kind: "request-flow" },
+            { id: "bb-3-2-ref-e3", source: "bb-3-2-ref-fw", target: "bb-3-2-ref-app", kind: "request-flow" },
+            { id: "bb-3-2-ref-e4", source: "bb-3-2-ref-app", target: "bb-3-2-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-2-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -4978,9 +5035,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     // Completion exercise).
     starterGraph: {
       nodes: [
-        { id: "bb-3-2-fw", componentId: "firewall", position: { x: 60, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-2-app", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
-        { id: "bb-3-2-db", componentId: "sql-database", position: { x: 700, y: 160 }, config: {} },
+        { id: "bb-3-2-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-2-app", componentId: "app-server", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-2-db", componentId: "sql-database", position: { x: 840, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-3-2-e1", source: "bb-3-2-fw", target: "bb-3-2-app", kind: "request-flow" },
@@ -4989,10 +5046,16 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: [],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-2-zone-edge", label: "Edge", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-2-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-2-zone-data", label: "Data", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-3-2-zone-gap", label: "Build here", position: { x: 32, y: -48 }, width: 576, height: 137, color: "#ff3483" },
+      // The Build here zone is two rows, not one: this exercise is the only
+      // one that asks for *two* components (browser and dns, per
+      // requiredComponentIds), and a one-row slot gave the learner nowhere to
+      // put the second. Two rows in one column is the same shape every tier
+      // band uses (§11.5), and the tiers below sit on row 1 so the DNS the
+      // learner adds leaves level with the firewall it feeds.
+      { kind: "zone", id: "bb-3-2-zone-gap", label: "Build here", position: { x: 32, y: -40 }, width: 176, height: 308, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-2-zone-edge", label: "Edge", position: { x: 292, y: 120 }, width: 176, height: 148, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-2-zone-app", label: "Application", position: { x: 552, y: 120 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-2-zone-data", label: "Data", position: { x: 812, y: 120 }, width: 176, height: 148, color: "#10b981" },
     ],
   },
   {
@@ -5071,6 +5134,24 @@ export const chapterRegistry: ChapterDefinition[] = [
           "The proxy is the one address anything outside ever learns - the firewall decided whether " +
           "traffic gets this far, the proxy decides where it goes next, and the app tier behind it can " +
           "change shape without either of those first two stops noticing.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-3-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-3-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-3-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-3-ref-proxy", componentId: "reverse-proxy", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-3-ref-app", componentId: "app-server", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-3-ref-db", componentId: "sql-database", position: { x: 320, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-3-ref-e1", source: "bb-3-3-ref-browser", target: "bb-3-3-ref-dns", kind: "request-flow" },
+            { id: "bb-3-3-ref-e2", source: "bb-3-3-ref-dns", target: "bb-3-3-ref-fw", kind: "request-flow" },
+            { id: "bb-3-3-ref-e3", source: "bb-3-3-ref-fw", target: "bb-3-3-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-3-ref-e4", source: "bb-3-3-ref-proxy", target: "bb-3-3-ref-app", kind: "request-flow" },
+            { id: "bb-3-3-ref-e5", source: "bb-3-3-ref-app", target: "bb-3-3-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-3-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -5325,10 +5406,10 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-3-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-3-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-3-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-3-app", componentId: "app-server", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-3-db", componentId: "sql-database", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-3-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-3-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-3-app", componentId: "app-server", position: { x: 840, y: 160 }, config: {} },
+        { id: "bb-3-3-db", componentId: "sql-database", position: { x: 1100, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-3-3-e1", source: "bb-3-3-browser", target: "bb-3-3-dns", kind: "request-flow" },
@@ -5338,10 +5419,11 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-3-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-3-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-3-zone-app", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-3-zone-data", label: "Data", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-3-3-zone-gap", label: "Build here", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-3-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-3-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 308, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-3-zone-app", label: "Application", position: { x: 812, y: 120 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-3-zone-data", label: "Data", position: { x: 1072, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-3-zone-gap", label: "Build here", position: { x: 552, y: 120 }, width: 176, height: 148, color: "#ff3483" },
     ],
   },
   {
@@ -5423,6 +5505,23 @@ export const chapterRegistry: ChapterDefinition[] = [
           "Two app-server instances behind one load balancer, both still mediating access to the " +
           "database the way 1.6 established - the load balancer adds distribution and health checking " +
           "on top, it doesn't change who's allowed to touch the data.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-4-ref-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-4-ref-lb", componentId: "load-balancer", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-4-ref-app1", componentId: "app-server", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-4-ref-app2", componentId: "app-server", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-4-ref-db", componentId: "sql-database", position: { x: 320, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-4-ref-e1", source: "bb-3-4-ref-client", target: "bb-3-4-ref-lb", kind: "request-flow" },
+            { id: "bb-3-4-ref-e2", source: "bb-3-4-ref-lb", target: "bb-3-4-ref-app1", kind: "request-flow" },
+            { id: "bb-3-4-ref-e3", source: "bb-3-4-ref-lb", target: "bb-3-4-ref-app2", kind: "request-flow" },
+            { id: "bb-3-4-ref-e4", source: "bb-3-4-ref-app1", target: "bb-3-4-ref-db", kind: "request-flow" },
+            { id: "bb-3-4-ref-e5", source: "bb-3-4-ref-app2", target: "bb-3-4-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-4-ref-client"],
+        },
       },
     ],
     hints: [
@@ -5703,9 +5802,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-4-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-4-lb", componentId: "load-balancer", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-4-app1", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
-        { id: "bb-3-4-db", componentId: "sql-database", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-4-lb", componentId: "load-balancer", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-4-app1", componentId: "app-server", position: { x: 320, y: 160 }, config: {} },
+        { id: "bb-3-4-db", componentId: "sql-database", position: { x: 580, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-3-4-edge-client-lb", source: "bb-3-4-client", target: "bb-3-4-lb", kind: "request-flow" },
@@ -5715,10 +5814,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-4-client"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-4-zone-client", label: "Client", position: { x: 32, y: -48 }, width: 256, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-4-zone-app", label: "Application", position: { x: 32, y: 112 }, width: 576, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-4-zone-data", label: "Data", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-3-4-zone-gap", label: "Build here", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-4-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-4-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 308, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-4-zone-data", label: "Data", position: { x: 552, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-4-zone-gap", label: "Build here", position: { x: 292, y: 280 }, width: 176, height: 148, color: "#ff3483" },
     ],
   },
   {
@@ -5803,6 +5902,26 @@ export const chapterRegistry: ChapterDefinition[] = [
           "The gateway is the last stop before the app tier that gets to say no - by the time a " +
           "request reaches the app server, the gateway has already decided who's asking and how " +
           "often, which is exactly what neither the proxy nor a bare app server ever checked.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-5-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-5-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-5-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-5-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-5-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 390 }, config: {} },
+            { id: "bb-3-5-ref-app", componentId: "app-server", position: { x: 60, y: 585 }, config: {} },
+            { id: "bb-3-5-ref-db", componentId: "sql-database", position: { x: 60, y: 780 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-5-ref-e1", source: "bb-3-5-ref-browser", target: "bb-3-5-ref-dns", kind: "request-flow" },
+            { id: "bb-3-5-ref-e2", source: "bb-3-5-ref-dns", target: "bb-3-5-ref-fw", kind: "request-flow" },
+            { id: "bb-3-5-ref-e3", source: "bb-3-5-ref-fw", target: "bb-3-5-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-5-ref-e4", source: "bb-3-5-ref-proxy", target: "bb-3-5-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-5-ref-e5", source: "bb-3-5-ref-gateway", target: "bb-3-5-ref-app", kind: "request-flow" },
+            { id: "bb-3-5-ref-e6", source: "bb-3-5-ref-app", target: "bb-3-5-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-5-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -6061,11 +6180,11 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-5-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-5-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-5-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-5-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-5-app", componentId: "app-server", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-5-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-5-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-5-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-5-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-5-app", componentId: "app-server", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-5-db", componentId: "sql-database", position: { x: 1100, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-5-e1", source: "bb-3-5-browser", target: "bb-3-5-dns", kind: "request-flow" },
@@ -6076,11 +6195,11 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-5-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-5-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-5-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-5-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-5-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-3-5-zone-gap", label: "Build here", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-5-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-5-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-5-zone-app", label: "Application", position: { x: 812, y: 280 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-5-zone-data", label: "Data", position: { x: 1072, y: 280 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-5-zone-gap", label: "Build here", position: { x: 552, y: 280 }, width: 176, height: 148, color: "#ff3483" },
     ],
   },
   {
@@ -6174,6 +6293,28 @@ export const chapterRegistry: ChapterDefinition[] = [
           "node, the same edges. Only the Instances count moved. That's the entire chapter: once a " +
           "tier keeps nothing that only one of its instances remembers, giving it more capacity is a " +
           "number to change, not a system to redesign.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-6-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-6-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-6-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-6-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-6-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-6-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-6-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 2 } },
+            { id: "bb-3-6-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-6-ref-e1", source: "bb-3-6-ref-browser", target: "bb-3-6-ref-dns", kind: "request-flow" },
+            { id: "bb-3-6-ref-e2", source: "bb-3-6-ref-dns", target: "bb-3-6-ref-fw", kind: "request-flow" },
+            { id: "bb-3-6-ref-e3", source: "bb-3-6-ref-fw", target: "bb-3-6-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-6-ref-e4", source: "bb-3-6-ref-proxy", target: "bb-3-6-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-6-ref-e5", source: "bb-3-6-ref-gateway", target: "bb-3-6-ref-lb", kind: "request-flow" },
+            { id: "bb-3-6-ref-e6", source: "bb-3-6-ref-lb", target: "bb-3-6-ref-app", kind: "request-flow" },
+            { id: "bb-3-6-ref-e7", source: "bb-3-6-ref-app", target: "bb-3-6-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-6-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -6409,13 +6550,13 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-6-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-6-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-6-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-6-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-6-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-6-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-6-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 1 } },
-        { id: "bb-3-6-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-6-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-6-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-6-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-6-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-6-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-6-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 1 } },
+        { id: "bb-3-6-db", componentId: "sql-database", position: { x: 840, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-6-e1", source: "bb-3-6-browser", target: "bb-3-6-dns", kind: "request-flow" },
@@ -6429,10 +6570,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-6-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-6-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-6-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-6-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-6-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-6-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-6-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-6-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-6-zone-data", label: "Data", position: { x: 812, y: 280 }, width: 176, height: 148, color: "#10b981" },
     ],
   },
   {
@@ -6522,6 +6663,28 @@ export const chapterRegistry: ChapterDefinition[] = [
           "that now carries session reads and writes alongside business data, which is the entire " +
           "point: externalizing state didn't need a new component, only for the app tier to treat " +
           "sessions the same way it already treats everything else it can't afford to lose.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-7-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-7-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-7-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-7-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-7-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-7-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-7-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 2 } },
+            { id: "bb-3-7-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-7-ref-e1", source: "bb-3-7-ref-browser", target: "bb-3-7-ref-dns", kind: "request-flow" },
+            { id: "bb-3-7-ref-e2", source: "bb-3-7-ref-dns", target: "bb-3-7-ref-fw", kind: "request-flow" },
+            { id: "bb-3-7-ref-e3", source: "bb-3-7-ref-fw", target: "bb-3-7-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-7-ref-e4", source: "bb-3-7-ref-proxy", target: "bb-3-7-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-7-ref-e5", source: "bb-3-7-ref-gateway", target: "bb-3-7-ref-lb", kind: "request-flow" },
+            { id: "bb-3-7-ref-e6", source: "bb-3-7-ref-lb", target: "bb-3-7-ref-app", kind: "request-flow" },
+            { id: "bb-3-7-ref-e7", source: "bb-3-7-ref-app", target: "bb-3-7-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-7-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -6755,13 +6918,13 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-7-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-7-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-7-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-7-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-7-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-7-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-7-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 2 } },
-        { id: "bb-3-7-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-7-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-7-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-7-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-7-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-7-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-7-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 2 } },
+        { id: "bb-3-7-db", componentId: "sql-database", position: { x: 840, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-7-e1", source: "bb-3-7-browser", target: "bb-3-7-dns", kind: "request-flow" },
@@ -6774,10 +6937,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-7-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-7-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-7-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-7-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-7-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-7-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-7-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-7-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-7-zone-data", label: "Data", position: { x: 812, y: 280 }, width: 176, height: 148, color: "#10b981" },
     ],
   },
   {
@@ -6865,6 +7028,28 @@ export const chapterRegistry: ChapterDefinition[] = [
           "enough that losing any one instance still covers it. That's the whole chapter: once the " +
           "tier is stateless and already load-balanced, sizing for a failure is a number, not a " +
           "redesign.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-8-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-8-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-8-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-8-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-8-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-8-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-8-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 3 } },
+            { id: "bb-3-8-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-8-ref-e1", source: "bb-3-8-ref-browser", target: "bb-3-8-ref-dns", kind: "request-flow" },
+            { id: "bb-3-8-ref-e2", source: "bb-3-8-ref-dns", target: "bb-3-8-ref-fw", kind: "request-flow" },
+            { id: "bb-3-8-ref-e3", source: "bb-3-8-ref-fw", target: "bb-3-8-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-8-ref-e4", source: "bb-3-8-ref-proxy", target: "bb-3-8-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-8-ref-e5", source: "bb-3-8-ref-gateway", target: "bb-3-8-ref-lb", kind: "request-flow" },
+            { id: "bb-3-8-ref-e6", source: "bb-3-8-ref-lb", target: "bb-3-8-ref-app", kind: "request-flow" },
+            { id: "bb-3-8-ref-e7", source: "bb-3-8-ref-app", target: "bb-3-8-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-8-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -7137,13 +7322,13 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-8-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-8-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-8-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-8-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-8-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-8-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-8-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 2 } },
-        { id: "bb-3-8-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-8-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-8-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-8-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-8-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-8-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-8-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 2 } },
+        { id: "bb-3-8-db", componentId: "sql-database", position: { x: 840, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-8-e1", source: "bb-3-8-browser", target: "bb-3-8-dns", kind: "request-flow" },
@@ -7157,15 +7342,15 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-8-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-8-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-8-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-8-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-8-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-8-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-8-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-8-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-8-zone-data", label: "Data", position: { x: 812, y: 280 }, width: 176, height: 148, color: "#10b981" },
       {
         kind: "comment",
         id: "bb-3-8-comment-capacity",
         text: "Peaks at 300 req/s. Each Application Server instance is tested to handle 150.",
-        position: { x: 980, y: 272 },
+        position: { x: 1100, y: 320 },
         width: 240,
         height: 100,
         color: "#64748b",
@@ -7253,6 +7438,28 @@ export const chapterRegistry: ChapterDefinition[] = [
           "a number that can't outlast the cutover it's meant to survive. That's the whole chapter: " +
           "membership freshness is a config value with a real cost on both sides, not a detail to " +
           "leave at its default.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-9-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-9-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { ttlSeconds: 30 } },
+            { id: "bb-3-9-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-9-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-9-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-9-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-9-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 3 } },
+            { id: "bb-3-9-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-9-ref-e1", source: "bb-3-9-ref-browser", target: "bb-3-9-ref-dns", kind: "request-flow" },
+            { id: "bb-3-9-ref-e2", source: "bb-3-9-ref-dns", target: "bb-3-9-ref-fw", kind: "request-flow" },
+            { id: "bb-3-9-ref-e3", source: "bb-3-9-ref-fw", target: "bb-3-9-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-9-ref-e4", source: "bb-3-9-ref-proxy", target: "bb-3-9-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-9-ref-e5", source: "bb-3-9-ref-gateway", target: "bb-3-9-ref-lb", kind: "request-flow" },
+            { id: "bb-3-9-ref-e6", source: "bb-3-9-ref-lb", target: "bb-3-9-ref-app", kind: "request-flow" },
+            { id: "bb-3-9-ref-e7", source: "bb-3-9-ref-app", target: "bb-3-9-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-9-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -7516,13 +7723,13 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-9-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-9-dns", componentId: "dns", position: { x: 380, y: 0 }, config: { ttlSeconds: 300 } },
-        { id: "bb-3-9-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-9-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-9-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-9-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-9-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
-        { id: "bb-3-9-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-9-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { ttlSeconds: 300 } },
+        { id: "bb-3-9-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-9-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-9-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-9-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-9-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-9-db", componentId: "sql-database", position: { x: 840, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-9-e1", source: "bb-3-9-browser", target: "bb-3-9-dns", kind: "request-flow" },
@@ -7536,15 +7743,19 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-9-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-9-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-9-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-9-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-9-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-9-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-9-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-9-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-9-zone-data", label: "Data", position: { x: 812, y: 280 }, width: 176, height: 148, color: "#10b981" },
       {
         kind: "comment",
         id: "bb-3-9-comment-ttl",
         text: "TTL controls how long a client is allowed to cache this DNS answer before asking again.",
-        position: { x: 980, y: -48 },
+        // Under the Client zone's own free rows, one column left of the DNS
+        // card it describes. It used to sit at x: 1100 - past the Data tier,
+        // the full width of the board away from DNS and next to nothing it
+        // had anything to say about.
+        position: { x: 32, y: 160 },
         width: 240,
         height: 100,
         color: "#64748b",
@@ -7969,6 +8180,30 @@ export const chapterRegistry: ChapterDefinition[] = [
           "migration, which is exactly what the fixed relational schema was fighting every sprint. " +
           "This is the chapter's own thesis in miniature - not a replacement, a second store for a " +
           "second shape.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-11-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-11-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-11-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-11-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-11-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-11-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-11-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 3 } },
+            { id: "bb-3-11-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+            { id: "bb-3-11-ref-nosql", componentId: "nosql-database", position: { x: 320, y: 390 }, config: { model: "document" } },
+          ],
+          edges: [
+            { id: "bb-3-11-ref-e1", source: "bb-3-11-ref-browser", target: "bb-3-11-ref-dns", kind: "request-flow" },
+            { id: "bb-3-11-ref-e2", source: "bb-3-11-ref-dns", target: "bb-3-11-ref-fw", kind: "request-flow" },
+            { id: "bb-3-11-ref-e3", source: "bb-3-11-ref-fw", target: "bb-3-11-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-11-ref-e4", source: "bb-3-11-ref-proxy", target: "bb-3-11-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-11-ref-e5", source: "bb-3-11-ref-gateway", target: "bb-3-11-ref-lb", kind: "request-flow" },
+            { id: "bb-3-11-ref-e6", source: "bb-3-11-ref-lb", target: "bb-3-11-ref-app", kind: "request-flow" },
+            { id: "bb-3-11-ref-e7", source: "bb-3-11-ref-app", target: "bb-3-11-ref-db", kind: "request-flow" },
+            { id: "bb-3-11-ref-e8", source: "bb-3-11-ref-app", target: "bb-3-11-ref-nosql", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-11-ref-browser"],
+        },
       },
     ],
     hasEditorExercise: true,
@@ -8235,14 +8470,14 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-11-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-11-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-11-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-11-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-11-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-11-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-11-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
-        { id: "bb-3-11-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
-        { id: "bb-3-11-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "key-value" } },
+        { id: "bb-3-11-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-11-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-11-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-11-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-11-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-11-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-11-db", componentId: "sql-database", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-11-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "key-value" } },
       ],
       edges: [
         { id: "bb-3-11-e1", source: "bb-3-11-browser", target: "bb-3-11-dns", kind: "request-flow" },
@@ -8256,15 +8491,15 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-11-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-11-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-11-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-11-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-11-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 576, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-11-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-11-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-11-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-11-zone-data", label: "Data", position: { x: 812, y: 120 }, width: 176, height: 308, color: "#10b981" },
       {
         kind: "comment",
         id: "bb-3-11-comment-kv",
         text: "Key-value stores trade relational joins and ad-hoc queries for O(1) lookups by key.",
-        position: { x: 980, y: 432 },
+        position: { x: 1100, y: 160 },
         width: 240,
         height: 100,
         color: "#64748b",
@@ -8376,6 +8611,33 @@ export const chapterRegistry: ChapterDefinition[] = [
           "never a query. In its place: one edge carrying the replication stream in from the primary, and " +
           "one edge carrying reads back out to the Application Server. Reads and writes now travel " +
           "genuinely different paths - the split this chapter is about.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-12-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-12-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-12-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-12-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-12-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-12-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-12-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 3 } },
+            { id: "bb-3-12-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+            { id: "bb-3-12-ref-nosql", componentId: "nosql-database", position: { x: 320, y: 390 }, config: { model: "document" } },
+            { id: "bb-3-12-ref-replica", componentId: "read-replica", position: { x: 580, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-12-ref-e1", source: "bb-3-12-ref-browser", target: "bb-3-12-ref-dns", kind: "request-flow" },
+            { id: "bb-3-12-ref-e2", source: "bb-3-12-ref-dns", target: "bb-3-12-ref-fw", kind: "request-flow" },
+            { id: "bb-3-12-ref-e3", source: "bb-3-12-ref-fw", target: "bb-3-12-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-12-ref-e4", source: "bb-3-12-ref-proxy", target: "bb-3-12-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-12-ref-e5", source: "bb-3-12-ref-gateway", target: "bb-3-12-ref-lb", kind: "request-flow" },
+            { id: "bb-3-12-ref-e6", source: "bb-3-12-ref-lb", target: "bb-3-12-ref-app", kind: "request-flow" },
+            { id: "bb-3-12-ref-e7", source: "bb-3-12-ref-app", target: "bb-3-12-ref-db", kind: "request-flow" },
+            { id: "bb-3-12-ref-e8", source: "bb-3-12-ref-app", target: "bb-3-12-ref-nosql", kind: "request-flow" },
+            { id: "bb-3-12-ref-e9", source: "bb-3-12-ref-db", target: "bb-3-12-ref-replica", kind: "replication" },
+            { id: "bb-3-12-ref-e10", source: "bb-3-12-ref-replica", target: "bb-3-12-ref-app", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-12-ref-browser"],
+        },
       },
     ],
     hasEditorExercise: true,
@@ -8671,15 +8933,15 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-12-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-12-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-12-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-12-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-12-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-12-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-12-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
-        { id: "bb-3-12-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
-        { id: "bb-3-12-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "document" } },
-        { id: "bb-3-12-replica", componentId: "read-replica", position: { x: 700, y: 480 }, config: {} },
+        { id: "bb-3-12-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-12-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-12-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-12-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-12-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-12-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-12-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-3-12-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-12-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-12-e1", source: "bb-3-12-browser", target: "bb-3-12-dns", kind: "request-flow" },
@@ -8695,15 +8957,15 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-12-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-12-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-12-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-12-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-12-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 896, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-12-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-12-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-12-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-12-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#10b981" },
       {
         kind: "comment",
         id: "bb-3-12-comment-lag",
         text: "Replicas lag the primary - reads here may be a few milliseconds stale.",
-        position: { x: 980, y: 432 },
+        position: { x: 1100, y: 320 },
         width: 240,
         height: 100,
         color: "#64748b",
@@ -9092,7 +9354,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     readingLinks: [],
     // Same reasoning as bb-dummy-1's starterGraph above.
     starterGraph: {
-      nodes: [{ id: "rwe-dummy-1-starter-client", componentId: "client", position: { x: 80, y: 120 }, config: {} }],
+      nodes: [{ id: "rwe-dummy-1-starter-client", componentId: "client", position: { x: 60, y: 0 }, config: {} }],
       edges: [],
       entryPointIds: [],
     },

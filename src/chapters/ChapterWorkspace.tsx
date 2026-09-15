@@ -566,7 +566,7 @@ function ChapterWorkspaceContent({ mode, chapterSlug }: ChapterWorkspaceProps) {
         )}
         {/* Stays mounted across focus-mode toggles — see DocsPanel.tsx. */}
         <div data-tour="canvas" className="relative flex flex-1 flex-col">
-          <Canvas ref={canvasRef} nodeStates={nodeStates} />
+          <Canvas ref={canvasRef} nodeStates={nodeStates} violations={violations} />
         </div>
 
         {docsPanelOpen && <DocsPanel />}

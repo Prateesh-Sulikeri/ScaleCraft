@@ -109,6 +109,12 @@ function CommentNodeInner({ id, data, selected }: NodeProps<CommentNodeType>) {
         // convention as ZoneNode's label input) so clicking in to type
         // doesn't drag the whole note instead of placing a text cursor.
         className="no-scrollbar nodrag min-h-0 flex-1 resize-none bg-transparent text-xs leading-snug text-foreground/80 outline-none placeholder:text-foreground/40"
+        // The lock chip is only *mostly* outside the corner: 14 of its 20px sit
+        // back over the node, past the container's 8px padding, so it covered
+        // the first couple of characters ("TTL controls..." read as "TL
+        // controls..." on bb-3-9). Indent the first line past it, and only
+        // while it is there.
+        style={locked ? { textIndent: 12 } : undefined}
       />
     </div>
   );

@@ -29,6 +29,7 @@ describe("persistence db", () => {
       graphHash: "test-hash",
       localRevision: 1,
       cloudRevision: 1,
+      pitchVersion: 2,
       dirty: false,
       syncedAt: null,
     };
@@ -527,6 +528,7 @@ describe("scalecraft db v10 reset (6.1.0 one-time clear)", () => {
         graphHash: "test-hash",
         localRevision: 1,
         cloudRevision: 1,
+        pitchVersion: 2,
         dirty: false,
         syncedAt: null,
       });
@@ -571,6 +573,7 @@ describe("account isolation (Phase 2, pending-6.1.0-poa.md)", () => {
         graphHash: "",
         localRevision: 1,
         cloudRevision: 1,
+        pitchVersion: 2,
         dirty: false,
         syncedAt: null,
       });
@@ -606,6 +609,7 @@ describe("account isolation (Phase 2, pending-6.1.0-poa.md)", () => {
         graphHash: "",
         localRevision: 1,
         cloudRevision: 1,
+        pitchVersion: 2,
         dirty: false,
         syncedAt: null,
       });
@@ -634,6 +638,7 @@ describe("account isolation (Phase 2, pending-6.1.0-poa.md)", () => {
         graphHash: "",
         localRevision: 1,
         cloudRevision: 1,
+        pitchVersion: 2,
         dirty: false,
         syncedAt: null,
       });
@@ -755,6 +760,105 @@ describe("scalecraft db v13 migration (examAttempts -> examBest, save revisions)
 
       const synced = await upgraded.saves.get("chapter:bb-1");
       expect(synced?.localRevision).toBe(synced?.cloudRevision);
+
+      upgraded.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+});
+
+describe("scalecraft db v15 migration (pitch rescale, pending-design-editor-revamp.md D19)", () => {
+  function legacyV14Schema(name: string): Dexie {
+    const legacy = new Dexie(name);
+    legacy.version(14).stores({
+      saves: "id",
+      customComponents: "id",
+      chapterProgress: "chapterId",
+      aiProfiles: "id",
+      aiActiveProfile: "id",
+      deepCheckSessions: "++id, saveId, [saveId+createdAt], syncId",
+      curriculumProgress: "slug",
+      examBest: "chapterDefinitionId",
+      activeDays: "day",
+    });
+    return legacy;
+  }
+
+  async function seedAndUpgrade(name: string, seed: (legacy: Dexie) => Promise<void>) {
+    const legacy = legacyV14Schema(name);
+    await legacy.open();
+    await seed(legacy);
+    legacy.close();
+    const upgraded = new ScaleCraftDB(name);
+    await upgraded.open();
+    return upgraded;
+  }
+
+  it("rescales a legacy save's node and zone positions to the 260x195 pitch and stamps pitchVersion", async () => {
+    const name = `scalecraft-v15-pitch-test-${crypto.randomUUID()}`;
+    try {
+      const upgraded = await seedAndUpgrade(name, async (legacy) => {
+        await legacy.table("saves").bulkPut([
+          {
+            id: "sandbox",
+            updatedAt: 1_000,
+            nodes: [
+              { id: "n1", type: "component", position: { x: 60, y: 160 }, data: { componentId: "client", config: {} } },
+              { id: "n2", type: "component", position: { x: 380, y: 160 }, data: { componentId: "app-server", config: {} } },
+              {
+                id: "z1",
+                type: "zone",
+                position: { x: 32, y: 112 },
+                data: { label: "Client", width: 256, height: 137 },
+              },
+            ],
+            edges: [],
+            graphHash: "irrelevant-for-this-test",
+            localRevision: 3,
+            cloudRevision: 3,
+            dirty: false,
+            syncedAt: 900,
+          },
+        ]);
+      });
+
+      const row = await upgraded.saves.get("sandbox");
+      expect(row?.pitchVersion).toBe(2);
+      // The bounding-box origin is computed across every node, decorators
+      // included - the zone's (32, 112) is the smallest x/y here, not
+      // either component node's, so it (and only it) stays put while
+      // everything else scales relative to it.
+      const zone = row?.nodes[2] as unknown as { position: { x: number; y: number }; data: { width: number; height: number } };
+      expect(zone.position).toEqual({ x: 32, y: 112 });
+      expect(row?.nodes[0].position.x).toBeCloseTo(54.75, 2);
+      expect(row?.nodes[0].position.y).toBeCloseTo(170.5, 2);
+      expect(row?.nodes[1].position.x).toBeCloseTo(314.75, 2);
+      expect(row?.nodes[1].position.y).toBeCloseTo(170.5, 2);
+      expect(zone.data.width).toBeCloseTo(208, 0);
+      expect(zone.data.height).toBeCloseTo(167, 0);
+      // Rewritten so the rescale propagates to the cloud checkpoint, not just
+      // this browser (D19's "must not be forgotten" note).
+      expect(row?.localRevision).toBe(4);
+      expect(row?.dirty).toBe(true);
+
+      upgraded.close();
+    } finally {
+      await Dexie.delete(name);
+    }
+  });
+
+  it("stamps pitchVersion even on a save with no nodes to rescale", async () => {
+    const name = `scalecraft-v15-empty-test-${crypto.randomUUID()}`;
+    try {
+      const upgraded = await seedAndUpgrade(name, async (legacy) => {
+        await legacy.table("saves").bulkPut([
+          { id: "sandbox", updatedAt: 1_000, nodes: [], edges: [], dirty: false, syncedAt: null },
+        ]);
+      });
+
+      const row = await upgraded.saves.get("sandbox");
+      expect(row?.pitchVersion).toBe(2);
 
       upgraded.close();
     } finally {
