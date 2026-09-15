@@ -170,7 +170,9 @@ separate table (not a column) so list queries never drag image bytes along,
 and so swapping to object storage later (Vercel Blob is the natural fit) is
 a table removal rather than a bug-record migration. See
 `src/bugs/image-storage.ts` for the storage seam - `bugReports.imageRef` is
-an opaque ref only that module parses.
+an opaque ref only that module parses. These two are also the only tables the
+app deletes from on its own: a nightly cron drops a closed report's screenshot
+and purges the report itself 15 days later (`src/bugs/retention.ts`).
 
 Route Handlers per synced table live under `src/app/api/sync/<table>/`
 (saves, custom-components, chapter-progress, curriculum-progress,
@@ -435,20 +437,33 @@ nothing to work on offline, nothing to reconcile, no merge.
 | `closing_notes` | text, nullable | The author's write-up of how it was closed. Null until triaged; the details view renders the section only when set |
 | `seen_status` | text, default `'open'` | The status the reporter has already looked at. Unread is `seen_status <> status` |
 | `image_ref` | text, nullable | Opaque handle, never a URL and never bytes. Only `src/bugs/image-storage.ts` parses it |
+| `closed_at` | timestamp, nullable | When the report reached a terminal status (`resolved` or `closed`) - the start of the 15-day retention clock. Null while active, cleared again if reopened. Deliberately not `updated_at`, which closing notes would reset and `seen` never bumps |
+| `image_deleted_at` | timestamp, nullable | When the retention sweep dropped this report's attachment. Exists only so the details view can tell "never had a screenshot" from "the screenshot was deleted on close" |
 | `page_path`, `app_version` | text, nullable | Captured by the client at submit time - without them, every report costs a "which page? which build?" round trip |
 | `created_at`, `updated_at` | timestamp | |
 
 | Operation | User perspective | Technical perspective |
 |---|---|---|
 | Insert | Fills in the Report a Bug form and submits | `POST /api/bugs`. If a screenshot is attached it is stored **first** (a stored image with no bug row is a harmless orphan; a bug row pointing at a ref that failed to write is a broken record the user can see). `status` and `seenStatus` both default to `open`, so a fresh report is never unread to its own reporter. The response returns the summary shape so the list updates with no refetch |
-| Update (triage) | Sees a report move from Open to In progress/Fixed/Won't fix, with closing notes | **Not done by the app.** No route writes `status` or `closing_notes` - the author runs a plain SQL `UPDATE` against the Neon branch. Because unread is derived as `seen_status <> status`, that single UPDATE raises the reporter's badge with no extra bookkeeping column to remember to touch |
+| Update (triage, closing) | Sees a report move to Fixed/Won't fix with closing notes, and its screenshot disappear | `POST /api/bugs/[id]/close` (`npm run bugs:close <id>`). Author-side: guarded by `CRON_SECRET`, **no ownership filter** - closing someone else's report is the whole function, the inverse of every other bug route. Sets `status`, `closing_notes`, `closed_at`, then deletes the attachment in the same request. Leaves `seen_status` alone, which is what raises the reporter's badge |
+| Update (triage, by hand) | Same | Still supported: a plain SQL `UPDATE status = ...` against the Neon branch. `closed_at` is then stamped by the next nightly sweep instead of instantly, so the retention clock starts up to a day late. Hand SQL is the fallback path now, not the primary one |
 | Update (acknowledge) | Opens the report's details view after it changed status | `POST /api/bugs/[id]/seen` copies `status` into `seen_status` and returns the fresh unread count. A POST, not a side effect of GET, so a prefetch or a double render cannot mark an update read that nobody saw. `updated_at` is deliberately not bumped - this is the reporter looking, not the report changing |
 | Select (list) | Opens "My reports" | `GET /api/bugs` - summary columns only (no `description`, no image), newest first, `unread` computed per row |
 | Select (one) | Opens one report | `GET /api/bugs/[id]`. Ownership lives in the WHERE clause, so a foreign id is an ordinary 404. The `imageRef` never leaves the server; the client only learns `hasImage` |
 | Select (count) | Any page with the Report a Bug button mounted | `GET /api/bugs/unread-count` - its own route so the badge does not pay for a list the user has not opened |
+| Update (retention clocks) | Invisible | The nightly sweep stamps `closed_at` on terminal reports that lack one (catching hand-SQL closes) and clears it on reopened ones. `src/bugs/retention.ts`, steps 1-2 |
+| Update (drop attachment) | The details view says the screenshot was removed when the report was closed | Terminal reports have their `image_ref` nulled and `image_deleted_at` stamped, after the bytes are deleted. `src/bugs/retention.ts` step 3 - also run for a single report by the close route |
+| **Delete** | The report vanishes 15 days after it was closed | `GET /api/cron/bug-retention` step 4: `DELETE` where `closed_at` is more than `BUG_RETENTION_DAYS` (15) old. Unconditional - read or not, acknowledged or not. Runs after step 3 in the same sweep, so every row it deletes has already lost its attachment |
 
-**No DELETE.** A reporter cannot delete a report, and nothing in the app
-removes one.
+**The reporter is told about the deletion.** `GET /api/bugs/[id]` returns a
+server-computed `deletesAt` (`closed_at` + 15 days) and `imageRemovedAt`, and
+the details view states the date plus "whether or not they have been read".
+That is a product requirement, not a nicety - a report that silently
+disappears is indistinguishable from a bug in the app. Do not remove the
+notice while the purge exists.
+
+**A reporter still cannot delete their own report.** The only DELETE is the
+automatic one above.
 
 ### `bug_report_images`
 
@@ -469,12 +484,22 @@ than a bug-record migration.
 |---|---|---|
 | Insert | Attaches a screenshot to a bug report | `putBugImage` during `POST /api/bugs`. Rejects rather than truncates: empty or over `MAX_IMAGE_BYTES` (2 MB) returns 400, because a half-stored screenshot is worse than a report with none |
 | Select | The details view renders the attachment | `GET /api/bugs/[id]/image` proves ownership on the bug row first, then `getBugImage` checks `userId` again, then streams real bytes with `cache-control: private, max-age=3600, immutable` so the browser may keep it but no shared cache may |
-| Delete | Never | Nothing deletes an image, including the (nonexistent) bug delete path |
+| Delete (on close) | Screenshot disappears as soon as the report is closed | `deleteBugImage`, from `POST /api/bugs/[id]/close` (immediately) or the nightly sweep (for a report closed by hand SQL). The bytes go **first**, then `bug_reports.image_ref` is nulled: a crash between the two leaves a dangling ref the image route already 404s and the next sweep tidies, whereas the reverse order strands the bytes forever with nothing pointing at them |
+| Delete (orphans) | Invisible | `deleteOrphanBugImages`, last step of the nightly sweep. Clears rows no report references and older than 24h - real, not theoretical: `POST /api/bugs` writes the image before the bug row on purpose, so every abandoned submit leaves one. The age floor keeps it from racing a submit that is mid-flight |
 
 Swapping to Vercel Blob later means minting `blob:<url>` refs in
 `putBugImage` and teaching `getBugImage` the new prefix, leaving the `db:`
 branch for rows already written. No route contract, client code, or bug
-record changes.
+record changes. Deletion lives behind the same seam for the same reason - a
+Postgres trigger doing the retention cleanup would have had to parse
+`db:<uuid>` in SQL and would have silently stopped working on that swap.
+
+**Scheduled cleanup.** `vercel.json` runs `GET /api/cron/bug-retention` daily
+at 04:00 UTC. Crons only fire on production deployments, so a preview branch
+never deletes production rows. Auth is `CRON_SECRET` (Vercel sends it as
+`Authorization: Bearer ...`); the route and the close route both fail closed
+with a 503 when it is unset. Full rationale:
+`.claude/docs/pending-bug-retention.md`.
 
 ## Deliberately not in Postgres
 

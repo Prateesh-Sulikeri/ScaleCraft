@@ -14,6 +14,7 @@
     "test:coverage": "NODE_ENV=test vitest run --coverage",
     "test:e2e": "playwright test",
     "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
+    "bugs:close": "node scripts/close-bug.mjs",
     "db:migrate": "NODE_OPTIONS=\"$NODE_OPTIONS --no-network-family-autoselection\" dotenv -e .env.local -- node scripts/migrate.mjs"
   },
   "dependencies": {

@@ -161,9 +161,18 @@ all three entry points (picker, drop, paste). `ImageAttachField` wires them up.
 
 ## Not built
 
-No admin/triage UI - `status` and `closingNotes` are both moved by hand
+No admin/triage UI. `status` and `closingNotes` still move by hand
 (`UPDATE bug_reports SET status = 'resolved', closing_notes = '...' WHERE
 id = ...`), which the `seenStatus` design makes sufficient: that one statement
-is also what raises the reporter's badge. No edit or delete of a submitted
-report. The badge is fetched once per mount rather than polled or pushed - the
-author answers in hours or days, so a page load catches it.
+is also what raises the reporter's badge. No edit of a submitted report, and no
+reporter-initiated delete. The badge is fetched once per mount rather than
+polled or pushed - the author answers in hours or days, so a page load catches
+it.
+
+**Superseded in part** by the retention work
+(`.claude/docs/pending-bug-retention.md`): closing a report now has a real code
+path, `POST /api/bugs/[id]/close` / `npm run bugs:close`, which is the seed of
+the triage UI above and does what hand SQL cannot - drop the screenshot in the
+same breath. Hand SQL still works and is still picked up. And reports *are*
+deleted now, automatically: 15 days after closing, unconditionally, with the
+date shown to the reporter.
