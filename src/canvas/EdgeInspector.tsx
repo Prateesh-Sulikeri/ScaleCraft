@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, Spline } from "lucide-react";
 import { useCanvasStore } from "./store";
+import { isHandPlaced } from "./edge-routing";
 import { EDGE_KINDS, EDGE_KIND_CAPTIONS, EDGE_COLOR_VAR } from "./edge-styles";
 import { componentDisplayNames } from "./component-display-name";
 import type { EdgeKind } from "@/lib/graph";
@@ -37,6 +38,7 @@ export function EdgeInspector({ violations }: EdgeInspectorProps) {
   const nodes = useCanvasStore((s) => s.nodes);
   const setEdgeKind = useCanvasStore((s) => s.setEdgeKind);
   const reverseEdge = useCanvasStore((s) => s.reverseEdge);
+  const autoRouteEdge = useCanvasStore((s) => s.autoRouteEdge);
 
   const edge = edges.find((e) => e.id === selectedEdgeId);
   if (!edge) return null;
@@ -46,6 +48,12 @@ export function EdgeInspector({ violations }: EdgeInspectorProps) {
   const sourceLabel = names.get(edge.source) ?? edge.source;
   const targetLabel = names.get(edge.target) ?? edge.target;
   const edgeIssues = (violations ?? []).filter((v) => v.offendingEdgeIds.includes(edge.id));
+  // An edge drawn by hand keeps the two ports it was dropped on. That is the
+  // point, but it means moving the cards afterwards can leave it reaching
+  // backwards across a card, with nothing to do about it but delete and
+  // redraw. This is that something: it drops the ports and lets the router
+  // pick sides from where the cards now sit.
+  const placedByHand = isHandPlaced(edge);
 
   return (
     // bottom-right, same corner as xyflow's own zoom/fit/lock Controls panel
@@ -81,12 +89,23 @@ export function EdgeInspector({ violations }: EdgeInspectorProps) {
           * card's left side says "this end receives". Reversing already
           * existed on the edge's right-click menu, which is not where anyone
           * looks after clicking an edge and finding this panel open. */}
+        {placedByHand && (
+          <button
+            type="button"
+            onClick={() => autoRouteEdge(edge.id)}
+            title="Re-route automatically"
+            aria-label="Re-route this connection automatically, from where the components now sit"
+            className="ml-auto shrink-0 rounded border border-border p-1 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground"
+          >
+            <Spline size={12} aria-hidden="true" />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => reverseEdge(edge.id)}
           title="Reverse direction"
           aria-label={`Reverse direction: make this ${targetLabel} to ${sourceLabel}`}
-          className="ml-auto shrink-0 rounded border border-border p-1 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground"
+          className={`${placedByHand ? "" : "ml-auto "}shrink-0 rounded border border-border p-1 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground`}
         >
           <ArrowLeftRight size={12} aria-hidden="true" />
         </button>

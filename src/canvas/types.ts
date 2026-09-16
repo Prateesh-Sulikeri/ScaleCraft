@@ -125,5 +125,13 @@ export type StartNodeType = Node<StartNodeData, "start">;
 
 export type AnyNodeType = ComponentNodeType | ZoneNodeType | CommentNodeType | StartNodeType;
 
-export type ArchitectureEdgeData = { kind: EdgeKind };
+export type ArchitectureEdgeData = {
+  kind: EdgeKind;
+  /** Display-only, and never in the store: Canvas.tsx recomputes it from live
+   * card positions and attaches it to a throwaway copy of the edge so
+   * ArchitectureEdge can bow the path around whatever stands in the run. Same
+   * reasoning as the handle ids - see canvas/edge-routing.ts, "attachment side
+   * is presentation, not data". */
+  bow?: { x: number; y: number } | null;
+};
 export type ArchitectureEdgeType = Edge<ArchitectureEdgeData>;
