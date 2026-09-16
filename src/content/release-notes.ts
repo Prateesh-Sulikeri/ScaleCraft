@@ -66,8 +66,8 @@ export const releaseNotes: ReleaseNote[] = [
         icon: "canvas",
       },
       {
-        title: "Four new chapters and a checkpoint",
-        body: "Caching, CDN, Search Systems and Message Queues are live, along with R1 - the first checkpoint, a blank canvas where you rebuild a site that stays up.",
+        title: "Six new chapters and a checkpoint",
+        body: "Caching, CDN, Search, Message Queues, Event-Driven Architecture and Background Jobs are live, plus R1 - a blank-canvas checkpoint where you rebuild a site that stays up.",
         icon: "content",
       },
       {
@@ -83,6 +83,7 @@ export const releaseNotes: ReleaseNote[] = [
     ],
     qualityOfLife: [
       "Twelve earlier chapters revised for density",
+      "A connection keeps the port you dropped it on",
       "Node settings and edge details open in a cleaner panel",
       "A closed bug report keeps its screenshot for seven days",
     ],
