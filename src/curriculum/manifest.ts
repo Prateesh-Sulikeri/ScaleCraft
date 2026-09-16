@@ -408,7 +408,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.14",
             title: "Caching",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-26 (first Group D chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-14-caching",
             estimatedMinutes: 35,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-13-sharding"],
@@ -419,7 +421,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.15",
             title: "CDN",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-26 (second Group D chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-15-cdn",
             estimatedMinutes: 25,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-14-caching"],
@@ -430,7 +434,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.16",
             title: "Search Systems",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-08-27 (third Group D chapter, Group D
+            // complete). See pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-16-search-systems",
             estimatedMinutes: 30,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-15-cdn"],
@@ -441,7 +447,10 @@ export const courses: Record<CourseId, Course> = {
             number: "R1",
             title: "Checkpoint · A Site That Stays Up",
             kind: "checkpoint",
-            chapterDefinitionId: null,
+            // Real content authored 2026-09-07 (the curriculum's first
+            // checkpoint - blank canvas, no quiz). See pending-chapters.md
+            // for the ledger entry.
+            chapterDefinitionId: "bb-r1-a-site-that-stays-up",
             estimatedMinutes: 45,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-16-search-systems"],
@@ -462,7 +471,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.17",
             title: "Message Queues",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-09-10 (first Group E chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-17-message-queues",
             estimatedMinutes: 35,
             difficulty: "intermediate",
             // §17: Groups E and F are both gated on R1 only, not on each
@@ -475,7 +486,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.18",
             title: "Event-Driven Architecture",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-09-16 (second Group E chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-18-event-driven-architecture",
             estimatedMinutes: 35,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-17-message-queues"],
@@ -486,7 +499,10 @@ export const courses: Record<CourseId, Course> = {
             number: "3.19",
             title: "Background Jobs & Scheduling",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-09-16 (third Group E chapter, which
+            // completes the group). See pending-chapters.md for the ledger
+            // entry.
+            chapterDefinitionId: "bb-3-19-background-jobs-and-scheduling",
             estimatedMinutes: 25,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-18-event-driven-architecture"],

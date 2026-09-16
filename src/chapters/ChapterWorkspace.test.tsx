@@ -356,6 +356,7 @@ describe("ChapterWorkspace", () => {
       graphHash: "test-hash",
       localRevision: 1,
       cloudRevision: 1,
+      pitchVersion: 2,
       dirty: false,
       syncedAt: null,
     });

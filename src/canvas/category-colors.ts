@@ -33,3 +33,17 @@ export const categoryOrder: ComponentCategory[] = [
   "messaging",
   "distributed-systems",
 ];
+
+/** Uppercase category code shown on the canvas card (DESIGN.md Node Card),
+ * mirroring `modeShortCode` in src/lib/modes.ts. The word is what carries
+ * category identity for anyone who can't separate the six hues - so it
+ * renders in neutral ink, not the category color, which also keeps it above
+ * 4.5:1 in both themes (--category-compute is 4.35:1 on dark panel). */
+export const categoryShortCode: Record<ComponentCategory, string> = {
+  networking: "NET",
+  compute: "COMP",
+  data: "DATA",
+  caching: "CACHE",
+  messaging: "MSG",
+  "distributed-systems": "DIST",
+};

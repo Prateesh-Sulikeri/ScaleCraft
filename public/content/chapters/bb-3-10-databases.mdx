@@ -11,10 +11,10 @@ This chapter asks what the database actually promises, and why the moves that
 come after it spend correctness, not money.
 
 > [!NOTE]
-> You scaled the app tier by adding identical copies behind a load balancer.
-> Why doesn't the same move work here - just point half the app servers at a
-> second, independent database and call it solved? Commit to an answer before
-> reading on.
+> Think first: you scaled the app tier by adding identical copies behind a
+> load balancer. Why doesn't the same move work here - just point half the app
+> servers at a second, independent database and call it solved? Commit to an
+> answer before reading on.
 
 ## The one box that doesn't get to just duplicate itself
 
@@ -28,7 +28,7 @@ flowchart LR
   A3 --> DB
 ```
 
-Caption: 3.8 let you add app-server copies for free - the load balancer
+Note: 3.8 let you add app-server copies for free - the load balancer
 absorbs each one. Every copy still ends at the same single database, the one
 node in this diagram that can't be duplicated the same way without answering
 a much harder question first: which copy is the real one when they disagree?
@@ -62,7 +62,7 @@ flowchart TB
   end
 ```
 
-Caption: with no index, a lookup costs one check per row - a scan. An index
+Note: with no index, a lookup costs one check per row - a scan. An index
 maintains a sorted structure that turns that scan into a small number of
 jumps, at a real cost: every write has to update the index too, and the
 index itself takes disk space. Indexing is a trade, not a free upgrade -

@@ -47,6 +47,7 @@ describe("cloud-sync failure reporting", () => {
       graphHash: "test-hash",
       localRevision: 1,
       cloudRevision: 0,
+      pitchVersion: 2,
       dirty: true,
       syncedAt: null,
     });
@@ -68,6 +69,7 @@ describe("cloud-sync failure reporting", () => {
       graphHash: "test-hash",
       localRevision: 1,
       cloudRevision: 0,
+      pitchVersion: 2,
       dirty: true,
       syncedAt: null,
     });

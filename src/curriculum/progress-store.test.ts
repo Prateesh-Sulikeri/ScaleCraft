@@ -607,6 +607,7 @@ describe("resetCourse", () => {
       graphHash: "test-hash",
       localRevision: 1,
       cloudRevision: 1,
+      pitchVersion: 2,
       dirty: false,
       syncedAt: null,
     });
@@ -644,6 +645,7 @@ describe("resetCourse", () => {
       graphHash: "test-hash",
       localRevision: 1,
       cloudRevision: 1,
+      pitchVersion: 2,
       dirty: false,
       syncedAt: null,
     });
@@ -666,6 +668,7 @@ describe("resetCourse", () => {
       graphHash: "test-hash",
       localRevision: 1,
       cloudRevision: 1,
+      pitchVersion: 2,
       dirty: false,
       syncedAt: null,
     });

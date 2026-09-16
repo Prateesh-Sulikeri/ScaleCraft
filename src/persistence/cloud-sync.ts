@@ -12,8 +12,13 @@ import type { CustomComponentRecord } from "@/content/components/custom";
 import { useSyncStatusStore } from "@/persistence/sync-status";
 
 /** Raw canvas nodes/edges — the shape `saves` syncs (Phase 3.4,
- * pending-6.1.0-poa.md), not the lossy domain ArchitectureGraph. */
-type CanvasState = { nodes: AnyNodeType[]; edges: ArchitectureEdgeType[] };
+ * pending-6.1.0-poa.md), not the lossy domain ArchitectureGraph.
+ * `pitchVersion` (D19, pending-design-editor-revamp.md) rides inside this
+ * same opaque blob rather than a new Postgres column - the server already
+ * stores/returns `canvasState` verbatim, so this is a client-only schema
+ * change. Optional because a save written before this field existed has
+ * none - see pitch-migration.ts's `needsPitchMigration`. */
+type CanvasState = { nodes: AnyNodeType[]; edges: ArchitectureEdgeType[]; pitchVersion?: number };
 
 /** Distinguishes "fetched, and there's nothing there" from "the fetch
  * itself failed" (release 6.1.0-alpha Phase 6, pending-6.1.0-poa.md - fixes

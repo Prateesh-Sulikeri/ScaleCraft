@@ -277,6 +277,7 @@ function SandboxPageContent() {
           <Canvas
             ref={canvasRef}
             nodeStates={nodeStates}
+            violations={violations}
             // Clicking blank canvas dismisses the last Validate run
             // (the green/red ring on every node, and the header
             // button's own color) — without this, a passing run had
