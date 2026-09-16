@@ -6,7 +6,6 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 import {
   applyNodeChanges,
   applyEdgeChanges,
-  addEdge as rfAddEdge,
   type NodeChange,
   type EdgeChange,
   type Connection,
@@ -348,6 +347,8 @@ type CanvasStore = {
    * itself (which would import registry.ts, which itself imports this
    * store for custom components — see Canvas.tsx's onConnect wrapper). */
   onConnect: (connection: Connection, kind?: EdgeKind) => void;
+  /** Clears an edge's hand-placed ports so Canvas.tsx routes it again. */
+  autoRouteEdge: (edgeId: string) => void;
   setEdgeKind: (edgeId: string, kind: EdgeKind) => void;
   setSelectedEdgeId: (id: string | null) => void;
   setSelectedNodeId: (id: string | null) => void;
@@ -738,20 +739,60 @@ export function createCanvasStore(): StoreApi<CanvasStore> {
     });
   },
 
+  /**
+   * The ports a drag landed on are kept, exactly as dropped.
+   *
+   * Which sides an edge joins is the user's call, not the router's: if a
+   * connection is legal - the source declares outputs, the target declares
+   * inputs, and the kind is allowed between those two categories - then any
+   * port on one card may join any port on the other, and it stays where it was
+   * put. Canvas.tsx only routes edges that carry *no* handles, which is every
+   * authored starter edge and nothing a learner drew.
+   *
+   * De-duping is done here rather than left to `rfAddEdge`, which compares
+   * source/target/sourceHandle/targetHandle: now that the ports are real and
+   * varied, that would count A -> B drawn a second time from a different port
+   * as a different connection. Two edges, one meaning, stacked on the board.
+   * The domain graph has one edge per ordered pair, so that is what this
+   * enforces - the opposite direction is still its own edge.
+   */
   onConnect: (connection, kind = "request-flow") => {
-    set((state) => ({
-      edges: rfAddEdge<ArchitectureEdgeType>(
-        {
-          ...connection,
-          id: crypto.randomUUID(),
-          data: { kind },
-          ...edgeStyle(kind),
-        },
-        state.edges,
-      ),
-      past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
-      future: [],
-    }));
+    set((state) => {
+      const duplicate = state.edges.some(
+        (e) => e.source === connection.source && e.target === connection.target,
+      );
+      // Snapshotting a rejected duplicate would put an undo step on the stack
+      // that undoes nothing.
+      if (duplicate) return {};
+      const edge: ArchitectureEdgeType = {
+        ...connection,
+        id: crypto.randomUUID(),
+        data: { kind },
+        ...edgeStyle(kind),
+      };
+      return {
+        edges: [...state.edges, edge],
+        past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+        future: [],
+      };
+    });
+  },
+
+  /** Hands a hand-placed edge back to the router - the escape hatch for one
+   * that has been left pointing somewhere odd by moving the cards under it.
+   * See Canvas.tsx: an edge with no handles is routed from live positions. */
+  autoRouteEdge: (edgeId) => {
+    set((state) => {
+      const edge = state.edges.find((e) => e.id === edgeId);
+      if (!edge || (edge.sourceHandle == null && edge.targetHandle == null)) return {};
+      return {
+        edges: state.edges.map((e) =>
+          e.id === edgeId ? { ...e, sourceHandle: null, targetHandle: null } : e,
+        ),
+        past: pushHistory(state.past, state.nodes, state.edges, crypto.randomUUID()),
+        future: [],
+      };
+    });
   },
 
   setEdgeKind: (edgeId, kind) => {

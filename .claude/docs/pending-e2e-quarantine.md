@@ -67,3 +67,34 @@ shared Clerk account means parallel specs overwrite each other's synced state.
 - `mode-isolation.spec.ts` - hardcoded `http://localhost:3000/` in two
   `waitForURL` calls. Works in CI but breaks on any other port. Now matches on
   pathname.
+
+## `multi-device-sync.spec.ts` is load-sensitive (observed 2026-09-15)
+
+Measured while adding `e2e/design-editor-geometry.spec.ts` (Design Editor
+revamp, Step 6). Adding ~30s of browser work to the front of the suite made
+`multi-device-sync.spec.ts` fail intermittently at the tail of the full run:
+
+| Configuration | Result |
+|---|---|
+| Full suite, without the new spec (x2) | clean |
+| Full suite, with the new spec, 5 tests (x2) | 1 failure each, **a different test each time** |
+| `multi-device-sync` alone | clean, 10 passed |
+| new spec -> `multi-device-sync`, back to back | clean, 15 passed |
+
+**It is not state interference.** Running the new spec immediately before
+`multi-device-sync` is clean, and the failing test differed between runs
+(`:159` "picks up a change when refocused", then `:273` "a stale device
+opening a chapter"). Both failures were `expect.poll` timeouts waiting for
+device B to pull device A's write.
+
+So the tests are sensitive to **cumulative** load: two browser contexts
+polling a `next dev` server for a cross-device sync inside a 20s budget, at
+the end of a long run. The spec is also `mode: "serial"` (line 96), so one
+failure marks the rest of the block "did not run" - the count looks worse
+than it is.
+
+Mitigated, not fixed. The new spec was consolidated from 5 tests to 3 (one
+pass over all 14 chapters instead of three), which cut its cost. The
+underlying fragility is untouched: anything else added to this suite can
+resurface it. If it needs a real fix, the poll budgets in that spec - not
+the specs around it - are where to look.

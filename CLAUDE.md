@@ -83,7 +83,25 @@ directory misses which ones are live vs. retired:
   boxes that force `fitView` down to 0.56, and briefs that read as essays while
   the learning-objectives block prints the answer above the opt-in hints. Read
   before touching any `starterGraph`, `problemStatement`, or `QuestionPane`.
-  Audited, nothing implemented yet - Phase 0 lists five open decisions.
+  **Done** - T0-T9 all landed 2026-08-23 (320x160 pitch retrofit,
+  `exerciseGoal`/`successCriteria`, four invariant gates, CURRICULUM §11.5/§11.6).
+  Read it as the historical record of why those standards exist; the standards
+  themselves are being superseded by `pending-design-editor-revamp.md`.
+- `.claude/docs/pending-design-editor-revamp.md` - POA *and* build log for the
+  Design Editor redesign (release 7.2.0-alpha, branch
+  `feat/design-editor-revamp`). **All steps done** (1-5f, 2026-09-12): a 120x96
+  icon-forward component card with no description line; forgiving edge
+  connection (four ports, a 31px hit disc, `connectionRadius` 60, loose
+  `connectionMode`, `connection-rules.ts`, click-to-connect with an armed-click
+  cancel); redesigned `NodeConfigPopover`/`EdgeInspector`; all 14 starter graphs
+  re-authored to the 260x195 pitch behind a Dexie v15 migration; and 13
+  chapters of `referenceGraph` rendered by a new read-only `ReferenceGraphCanvas`
+  in the Debrief. Holds 20 locked decisions (D1-D20) and the derived
+  pitch/zone/short-code constants. Both invariant gates that Step 1 skipped are
+  re-enabled and passing - do not skip them again. Read before touching
+  `ComponentNode`, `card-geometry.ts`, `edge-routing.ts`, handles/connection
+  code, `NodeConfigPopover`, `EdgeInspector`, `ReferenceGraphCanvas`, or any
+  `starterGraph`/`starterDecorators`.
 - `.claude/docs/pending-save-sync.md` - the save/sync optimization + best-only
   exam records (on `fix/db-fixes`, unmerged): Postgres as a 5-minute
   checkpoint rather than a write-through mirror, `localRevision`/

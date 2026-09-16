@@ -1,6 +1,7 @@
 import { db, type CanvasSave } from "./db";
 import { hashCanvasState } from "./graph-hash";
 import { syncSave } from "./cloud-sync";
+import { CURRENT_PITCH_VERSION, migrateNodesToCurrentPitch, needsPitchMigration } from "./pitch-migration";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 
 /**
@@ -41,6 +42,13 @@ export async function putSaveLocal(
       // clock from the last confirmed sync, and reconcile.ts needs it to tell
       // "about to push" apart from "stale, already beaten by another device."
       syncedAt: prev?.syncedAt ?? null,
+      // Carried over, never silently bumped to current here: `nodes` came
+      // from the live canvas store, but that doesn't mean this row's marker
+      // is trustworthy - only the two real migration paths (the Dexie v15
+      // upgrade and remoteSaveRow below) may advance it, because only they
+      // actually rescale the coordinates. A brand-new row (no `prev`) has no
+      // legacy coordinates to worry about, so it starts current.
+      pitchVersion: prev?.pitchVersion ?? CURRENT_PITCH_VERSION,
     };
     await db.saves.put(row);
     return { row, changed: true };
@@ -59,7 +67,7 @@ export function needsCloudPush(row: CanvasSave | undefined): boolean {
 export async function checkpointSave(id: string): Promise<boolean> {
   const row = await db.saves.get(id);
   if (!needsCloudPush(row) || !row) return false;
-  await syncSave(id, { nodes: row.nodes, edges: row.edges }, row.localRevision);
+  await syncSave(id, { nodes: row.nodes, edges: row.edges, pitchVersion: row.pitchVersion }, row.localRevision);
   return true;
 }
 
@@ -71,25 +79,33 @@ export async function saveAndSyncNow(
   edges: ArchitectureEdgeType[],
 ): Promise<void> {
   const { row } = await putSaveLocal(id, nodes, edges);
-  await syncSave(id, { nodes: row.nodes, edges: row.edges }, row.localRevision);
+  await syncSave(id, { nodes: row.nodes, edges: row.edges, pitchVersion: row.pitchVersion }, row.localRevision);
 }
 
 /** The shape a pulled cloud row takes for reconciliation. Revisions are local
- * bookkeeping, so a remote row carries none until it is adopted below. */
+ * bookkeeping, so a remote row carries none until it is adopted below.
+ *
+ * Migrates on the way in if the remote payload predates the current pitch
+ * (D19 of pending-design-editor-revamp.md) - a fresh browser with no local
+ * `saves` row never runs the Dexie v15 upgrade against this data, since that
+ * upgrade only rewrites rows that already existed locally at upgrade time. */
 export function remoteSaveRow(
   id: string,
-  remote: { nodes: AnyNodeType[]; edges: ArchitectureEdgeType[]; updatedAt: number },
+  remote: { nodes: AnyNodeType[]; edges: ArchitectureEdgeType[]; updatedAt: number; pitchVersion?: number },
 ): CanvasSave {
+  const migrate = needsPitchMigration(remote.pitchVersion);
+  const nodes = migrate ? migrateNodesToCurrentPitch(remote.nodes) : remote.nodes;
   return {
     id,
     updatedAt: remote.updatedAt,
-    nodes: remote.nodes,
+    nodes,
     edges: remote.edges,
-    graphHash: hashCanvasState(remote.nodes, remote.edges),
+    graphHash: hashCanvasState(nodes, remote.edges),
     localRevision: 0,
     cloudRevision: 0,
     syncedAt: remote.updatedAt,
     dirty: false,
+    pitchVersion: migrate ? CURRENT_PITCH_VERSION : (remote.pitchVersion ?? CURRENT_PITCH_VERSION),
   };
 }
 

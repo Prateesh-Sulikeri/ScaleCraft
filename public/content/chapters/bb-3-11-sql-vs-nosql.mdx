@@ -12,9 +12,9 @@ look at the data's shape, how it's actually queried, and how it needs to
 scale - and the store picks itself.
 
 > [!NOTE]
-> The catalog above is one table, fighting its own shape every sprint. Before
-> reading on: would you reach for a different kind of database here, or fix
-> it some other way? Commit to an answer.
+> Think first: the catalog above is one table, fighting its own shape every
+> sprint. Would you reach for a different kind of database here, or fix it
+> some other way? Commit to an answer before reading on.
 
 ## The three questions that pick a store
 
@@ -33,7 +33,7 @@ flowchart TD
   Q3 -->|Not yet| Either["Either - pick what your team runs well"]
 ```
 
-Caption: shape and access pattern get asked before scale - a workload that
+Note: shape and access pattern get asked before scale - a workload that
 needs cross-row transactions or joins is decided immediately; scale only
 breaks the tie for what's left.
 
@@ -53,7 +53,7 @@ tables). Picking the wrong one loses the exact benefit the choice was
 supposed to buy - a key-value store has no room for a catalog item's varying
 attribute set; that's a document's job.
 
-## Two philosophies, one decision
+## Three workloads, three answers
 
 | Scenario | Store | Why |
 |---|---|---|

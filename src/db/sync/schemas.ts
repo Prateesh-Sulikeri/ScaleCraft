@@ -32,6 +32,12 @@ const canvasEdgeSchema = z.looseObject({
 export const canvasStateSchema = z.object({
   nodes: z.array(canvasNodeSchema),
   edges: z.array(canvasEdgeSchema),
+  // Which authored pitch the node positions are at (pitch-migration.ts,
+  // pending-design-editor-revamp.md D19). Optional - a save written before
+  // this field existed has none, and the client treats a missing value as
+  // the oldest pitch. Rides inside this opaque jsonb blob rather than a new
+  // Postgres column.
+  pitchVersion: z.number().optional(),
 });
 
 export const savesBodySchema = z.object({
