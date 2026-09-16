@@ -106,6 +106,15 @@ const COLUMN_EPSILON = 40;
  *    whatever card sits between them, and a tier-skipping edge runs clean
  *    through the tier it skipped.
  *  - **Straight.** The shortest clean pair for the direction of travel.
+ *
+ * **Orthogonal renderers only.** Same-side pairs are an instruction to
+ * smoothstep, not a shape: they only bow outward because the step path is
+ * built from the handle normals. Feed the same pair to a bezier and the two
+ * control offsets collapse to zero (xyflow's `calculateControlOffset` is
+ * driven by the gap *along* the handle's own axis, which is 0 when the two
+ * cards are aligned), leaving a straight line ruled along the blocker's
+ * border - and an edge that appears to leave one card's output side and
+ * arrive at another's. The curved canvas uses `routeCurvedEdge` instead.
  */
 export function pickEdgeHandles(
   dx: number,
@@ -130,6 +139,18 @@ export function pickEdgeHandles(
 export type Box = { x: number; y: number; width: number; height: number };
 
 /**
+ * How far the cards blocking a run stick out either side of it, measured from
+ * the run's own centre line. `plus` is right (vertical run) or down
+ * (horizontal run); `minus` is the other way.
+ *
+ * A bare "blocked: true" was enough when routing around meant picking a
+ * different port, but a curved detour has to know *how far* to bow to clear
+ * what's in the way - a learner can resize a card, so the blocker is not
+ * always one CARD_WIDTH wide.
+ */
+export type Overhang = { plus: number; minus: number };
+
+/**
  * Whether a straight vertical run between two column-aligned cards would pass
  * through a third.
  *
@@ -137,20 +158,34 @@ export type Box = { x: number; y: number; width: number; height: number };
  * matters rather than being a general obstacle test: the band between the two
  * cards, as wide as the wider of them.
  */
-export function verticalRunBlocked(source: Box, target: Box, others: Iterable<Box>): boolean {
+export function verticalRunOverhang(
+  source: Box,
+  target: Box,
+  others: Iterable<Box>,
+): Overhang | null {
   const [upper, lower] = source.y <= target.y ? [source, target] : [target, source];
   const runTop = upper.y + upper.height;
   const runBottom = lower.y;
-  if (runBottom <= runTop) return false; // overlapping or adjacent, no corridor
+  if (runBottom <= runTop) return null; // overlapping or adjacent, no corridor
   const left = Math.min(source.x, target.x);
   const right = Math.max(source.x + source.width, target.x + target.width);
+  const centerX = (source.x + source.width / 2 + (target.x + target.width / 2)) / 2;
+  let hit = false;
+  let plus = 0;
+  let minus = 0;
   for (const o of others) {
     if (o === source || o === target) continue;
     if (o.x < right && o.x + o.width > left && o.y + o.height > runTop && o.y < runBottom) {
-      return true;
+      hit = true;
+      plus = Math.max(plus, o.x + o.width - centerX);
+      minus = Math.max(minus, centerX - o.x);
     }
   }
-  return false;
+  return hit ? { plus, minus } : null;
+}
+
+export function verticalRunBlocked(source: Box, target: Box, others: Iterable<Box>): boolean {
+  return verticalRunOverhang(source, target, others) !== null;
 }
 
 /**
@@ -161,30 +196,47 @@ export function verticalRunBlocked(source: Box, target: Box, others: Iterable<Bo
  * card it skipped, which reads as an edge joining cards it has nothing to do
  * with.
  */
-export function horizontalRunBlocked(source: Box, target: Box, others: Iterable<Box>): boolean {
+export function horizontalRunOverhang(
+  source: Box,
+  target: Box,
+  others: Iterable<Box>,
+): Overhang | null {
   const [leftBox, rightBox] = source.x <= target.x ? [source, target] : [target, source];
   const runLeft = leftBox.x + leftBox.width;
   const runRight = rightBox.x;
-  if (runRight <= runLeft) return false; // overlapping or adjacent, no corridor
+  if (runRight <= runLeft) return null; // overlapping or adjacent, no corridor
   const top = Math.min(source.y, target.y);
   const bottom = Math.max(source.y + source.height, target.y + target.height);
+  const centerY = (source.y + source.height / 2 + (target.y + target.height / 2)) / 2;
+  let hit = false;
+  let plus = 0;
+  let minus = 0;
   for (const o of others) {
     if (o === source || o === target) continue;
     if (o.y < bottom && o.y + o.height > top && o.x + o.width > runLeft && o.x < runRight) {
-      return true;
+      hit = true;
+      plus = Math.max(plus, o.y + o.height - centerY);
+      minus = Math.max(minus, centerY - o.y);
     }
   }
-  return false;
+  return hit ? { plus, minus } : null;
+}
+
+export function horizontalRunBlocked(source: Box, target: Box, others: Iterable<Box>): boolean {
+  return horizontalRunOverhang(source, target, others) !== null;
 }
 
 /**
- * The one entry point both canvases use: picks the axis, asks the right
- * blocking question for it, and returns the handle pair.
+ * The orthogonal router - `ReferenceGraphCanvas` (smoothstep) and nothing
+ * else. Picks the axis, asks the right blocking question for it, and returns
+ * the handle pair.
  *
- * Exists because the live canvas and the read-only reference diagram had
- * already drifted apart once, each answering "which side does this edge leave
- * from" differently. Routing lives here, in full, so there is nothing left to
- * drift.
+ * The live canvas draws curves and calls `routeCurvedEdge` below. That is not
+ * the drift this module was written to prevent - the two canvases still share
+ * one answer to "what is in the way and how far out does it stick"
+ * (`verticalRunOverhang`/`horizontalRunOverhang`) and one set of port ids.
+ * They differ only where the renderers genuinely differ: a step path detours
+ * by leaving from a different side, a curve detours by bending.
  */
 export function routeEdge(
   source: Box,
@@ -200,6 +252,110 @@ export function routeEdge(
       ? horizontalRunBlocked(source, target, boxes)
       : verticalRunBlocked(source, target, boxes);
   return pickEdgeHandles(dx, dy, ids, { blocked, reciprocal });
+}
+
+/**
+ * Whether an edge was attached by hand rather than left to the router.
+ *
+ * A learner's drag records the two ports it ran between and keeps them: any
+ * port may join any port so long as the connection is legal, and which sides
+ * those are is their call. Authored starter edges carry no handles at all, so
+ * this is also, exactly, "should `routeCurvedEdge` have an opinion about this
+ * edge" - see Canvas.tsx, and `autoRouteEdge` in store.tsx for the way back.
+ *
+ * Both ends or neither: a half-attached edge has no meaning and is safer
+ * routed than left with one port guessed.
+ */
+export function isHandPlaced(edge: {
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+}): boolean {
+  return edge.sourceHandle != null && edge.targetHandle != null;
+}
+
+/**
+ * The curved canvas's router: a directional handle pair plus, when the run
+ * needs to dodge something, a sideways bow for the path to follow.
+ *
+ * `routeEdge` above expresses "go around" by putting *both* ends on the same
+ * side of their cards. That is an orthogonal-renderer idiom and it does not
+ * survive the translation to a bezier (see `pickEdgeHandles`): it degenerates
+ * into a straight line grazing the card it was meant to avoid, and, because
+ * both ends sit on the same side, it reads as an edge joining one card's
+ * output to another's output. Which is not a thing.
+ *
+ * So the two concerns are separated here. The **handles** only ever say which
+ * way the edge travels - right -> left, left -> right, bottom -> top,
+ * top -> bottom, no exceptions - so an edge always leaves a trailing side and
+ * arrives at a leading one whatever else is going on. The **bow** carries the
+ * detour, as an offset vector the renderer applies to the middle of the path.
+ * Nothing about the shape depends on a handle pair meaning something other
+ * than direction.
+ */
+export type CurvedRoute = HandlePair & {
+  /** Where the middle of the path sits relative to the straight run between
+   * the two ports, in flow px. `null` for the overwhelming majority of edges,
+   * which want the plain curve. */
+  bow: { x: number; y: number } | null;
+};
+
+/** Clearance between a bow's apex and the card it is going around. Small
+ * enough to read as one detour rather than a loop, big enough that the arc is
+ * unambiguously outside the card at the two points it passes its corners. */
+export const BOW_CLEARANCE = 32;
+
+/** Apex offset for the backward half of a two-way pair with nothing actually
+ * in the way - it is not avoiding a card, only its own twin, so it needs to
+ * clear one stroke rather than one card. */
+export const BOW_SEPARATION = 52;
+
+/** A bow past this stops reading as a detour and starts reading as a second,
+ * unrelated wire looping across the board. */
+export const MAX_BOW = 220;
+
+export function routeCurvedEdge(
+  source: Box,
+  target: Box,
+  others: Iterable<Box>,
+  ids: SideHandleIds = PORT_IDS,
+  reciprocal = false,
+): CurvedRoute {
+  const { dx, dy } = centerDelta(source, target);
+  const boxes = [...others];
+  const rowRun = Math.abs(dx) > COLUMN_EPSILON;
+
+  const handles: HandlePair = rowRun
+    ? dx > 0
+      ? { sourceHandle: ids.right, targetHandle: ids.left }
+      : { sourceHandle: ids.left, targetHandle: ids.right }
+    : dy >= 0
+      ? { sourceHandle: ids.bottom, targetHandle: ids.top }
+      : { sourceHandle: ids.top, targetHandle: ids.bottom };
+
+  // Exactly one half of a two-way pair moves, same as routeEdge - the one
+  // travelling backwards. Moving both would separate them just as well but
+  // leaves no edge on the direct line, so a plain request/response pair would
+  // read as two detours rather than a path and its answer.
+  const backward = reciprocal && (rowRun ? dx < 0 : dy < 0);
+  const overhang = rowRun
+    ? horizontalRunOverhang(source, target, boxes)
+    : verticalRunOverhang(source, target, boxes);
+
+  const clearance = overhang
+    ? Math.max(0, backward ? overhang.minus : overhang.plus) + BOW_CLEARANCE
+    : backward
+      ? BOW_SEPARATION
+      : 0;
+  if (clearance <= 0) return { ...handles, bow: null };
+
+  const magnitude = Math.min(clearance, MAX_BOW);
+  // Bows are absolute, not relative to the direction of travel: a vertical run
+  // detours right, a horizontal one detours below, and the backward half of a
+  // pair goes the other way. Deriving the side from the source -> target
+  // vector instead would flip it whenever the edge points up or left, so two
+  // edges dodging the same card would dodge it on opposite sides.
+  const signed = backward ? -magnitude : magnitude;
+  return { ...handles, bow: rowRun ? { x: 0, y: signed } : { x: signed, y: 0 } };
 }
 
 /**

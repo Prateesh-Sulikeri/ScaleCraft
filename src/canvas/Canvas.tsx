@@ -32,8 +32,9 @@ import { getComponent } from "@/content/components/registry";
 import { pickDefaultKind } from "./legal-edge-kinds";
 import { CARD_HEIGHT, CARD_WIDTH, CONNECTION_RADIUS } from "./card-geometry";
 import { canConnect } from "./connection-rules";
+import { ArchitectureEdge } from "./ArchitectureEdge";
 import { EDGE_COLOR_VAR } from "./edge-styles";
-import { reciprocalEdgeIds, routeEdge, PORT_IDS } from "./edge-routing";
+import { isHandPlaced, reciprocalEdgeIds, routeCurvedEdge, PORT_IDS } from "./edge-routing";
 import { categoryColorVar } from "./category-colors";
 import { iconMap } from "./icon-map";
 import { Server } from "lucide-react";
@@ -53,6 +54,9 @@ import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "./types
 import type { ValidationViolation } from "@/engines";
 
 const nodeTypes = { component: ComponentNode, zone: ZoneNode, comment: CommentNode, start: StartNode };
+/** Only the real edges below get this type; a Start marker's pointer keeps
+ * xyflow's default bezier, which is the same curve minus the bow. */
+const edgeTypes = { architecture: ArchitectureEdge };
 
 /** Drag-to-draw defaults for the two resizable annotation types — "start"
  * isn't here since it's fixed-size and never drag-sized (see
@@ -777,12 +781,26 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     return boxes;
   }, [storeNodes]);
 
-  // Curved (default bezier) connectors with a direction arrowhead, attached
-  // to the sides the current layout actually calls for (see
-  // canvas/edge-routing.ts). Routing still matters - authored edges carry no
-  // handle ids, so xyflow was resolving every one of them to Left/Right - but
-  // the path itself stays a curve: right-angle connectors were tried and read
-  // as stiff/mechanical on an editable board.
+  // Curved connectors with a direction arrowhead, attached to the sides the
+  // current layout actually calls for and bowed around anything standing in
+  // the run (see canvas/edge-routing.ts + ArchitectureEdge.tsx). Routing still
+  // matters - authored edges carry no handle ids, so xyflow was resolving
+  // every one of them to Left/Right - but the path itself stays a curve:
+  // right-angle connectors were tried and read as stiff/mechanical on an
+  // editable board.
+  //
+  // Routing applies to authored edges *only*. An edge a learner drew carries
+  // the two ports they dropped it on and keeps them: any port may join any
+  // port so long as the connection is legal, and second-guessing that was the
+  // original complaint here (a primary wired to its replica came back
+  // re-attached right-side to right-side). `autoRouteEdge` in store.tsx hands
+  // one back to the router if moving the cards has left it pointing oddly.
+  //
+  // For the edges this *does* route, handles are always directional (a
+  // trailing side to a leading one) and the detour is in `data.bow`, not in
+  // the ports: routing a blocked run by putting both ends on the same side is
+  // a smoothstep idiom, and on a bezier it drew a straight line along the
+  // blocker's border that looked like an output wired to an output.
   //
   // `animated` (xyflow's marching-ants dash) is left to store.tsx's
   // edgeStyle, which turns it on for every kind.
@@ -796,13 +814,18 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     return edges.map((e) => {
       const source = componentBoxes.get(e.source);
       const target = componentBoxes.get(e.target);
-      const handles =
-        source && target
-          ? routeEdge(source, target, allBoxes, PORT_IDS, reciprocal.has(e.id))
+      const route =
+        !isHandPlaced(e) && source && target
+          ? routeCurvedEdge(source, target, allBoxes, PORT_IDS, reciprocal.has(e.id))
           : null;
       return {
         ...e,
-        ...(handles ?? {}),
+        ...(route ? { sourceHandle: route.sourceHandle, targetHandle: route.targetHandle } : {}),
+        type: "architecture",
+        // A hand-placed edge is drawn between the ports it was given and
+        // nothing else. Bowing it would be the router overriding the choice
+        // again, one step further down.
+        data: { ...(e.data ?? { kind: "request-flow" as const }), bow: route?.bow ?? null },
         markerEnd: {
           type: MarkerType.ArrowClosed,
           width: 16,
@@ -844,6 +867,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         nodes={nodes}
         edges={displayEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}

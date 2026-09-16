@@ -1452,3 +1452,100 @@ Resolved by exempting genuine feedback paths, not by relaxing the rule:
 had not reached the starter-graph gate, because no starter graph had a correct
 read-back until 3.14. Add to that set only for another true feedback path -
 never to quiet a pipeline that actually wraps.
+
+## Amendment (2026-09-16) - the route-around did not survive the move back to bezier
+
+User report, on 3.12: *"how can an output edge of SQL DB connect to an output
+edge of a Read Replica - that makes no sense."* They dragged the primary's
+right port to the replica's left port; what appeared was a straight line ruled
+down the right-hand border of all three data cards, touching both cards' right
+side.
+
+Step 5f's claim that the route-around and reciprocal-detour rules "read fine as
+bezier arcs" was wrong, and wrong in a way that is exactly checkable. Both
+rules express "go around" by putting **both ends on the same side** of their
+cards. That is an instruction to a *step* renderer, which builds its path from
+the handle normals and so bows outward. A bezier builds its control points from
+`calculateControlOffset`, which is driven by the gap **along the handle's own
+axis** - and for two column-aligned cards that gap is zero. Both control points
+land on their own endpoints and the "detour" is a straight line at
+`x = cardRight`, which is the blocker's border. `ArchitectureEdge.test.ts`
+asserts precisely this, so the claim cannot be made again by accident.
+
+An audit over every authored graph found **57** same-side routes, 7 of them on
+starter graphs that ship on the live canvas (3.14, 3.15, 3.16, 3.17 - the
+`db -> replica` and `cache -> db` runs in the data column).
+
+### What changed
+
+**The two concerns are now separate.** Handles only say *direction* - right ->
+left, left -> right, bottom -> top, top -> bottom, no exceptions - so an edge
+always leaves a trailing side and arrives at a leading one. The detour is a
+**bow**: an offset vector applied to the middle of the path.
+
+- `edge-routing.ts` gains `routeCurvedEdge()` (the live canvas) alongside
+  `routeEdge()` (now documented as the orthogonal router, `ReferenceGraphCanvas`
+  only). `verticalRunBlocked`/`horizontalRunBlocked` are thin wrappers over new
+  `*RunOverhang()` functions that return *how far* blockers stick out either
+  side of the run, because a curve has to know how wide to bow and a learner can
+  resize the card in the way.
+- `ArchitectureEdge.tsx` (new) is the canvas's edge renderer: xyflow's own
+  bezier when there is no bow - byte for byte, asserted - and a cubic whose
+  midpoint sits exactly `bow` off the straight run when there is. The 4/3 on the
+  control offsets is what makes "exactly" true, which is what lets the router
+  state a bow as plain px of clearance instead of a number tuned by eye.
+- Bows are absolute (a vertical run detours right, a horizontal one below), not
+  derived from the direction of travel - otherwise two edges dodging the same
+  card dodge it on opposite sides.
+
+**Second fix, same report.** `rfAddEdge` de-dupes on
+source/target/sourceHandle/targetHandle, and a drag recorded whichever port it
+landed on, so drawing A -> B a second time from a different port was a
+*different* connection to it: two edges, identical once routed, stacked on one
+line, only the top one selectable. `store.onConnect` now stores both handles as
+`null` (they are presentation and get recomputed every render anyway), which
+makes "A already connects to B" the thing it de-dupes on, and skips the history
+push when a duplicate is rejected.
+
+### Amendment to the amendment - the ports are the user's
+
+User, same session: *"the condition should be valid input to valid output and
+not the edge position. A legal edge should be allowed to connect irrespective
+of what edge input/output combinations the user selects."*
+
+This overturns "attachment side is presentation, not data" for edges a learner
+draws, and it is the right call: re-routing a hand-drawn edge is the same
+override that produced the original complaint, just one step earlier. So:
+
+- **`onConnect` keeps the two ports the drag landed on.** Right to top, bottom
+  to left, any combination - the gate is legality (`connection-rules.ts`: the
+  source declares outputs, the target declares inputs; plus the kind matrix in
+  `legal-edge-kinds.ts`), never geometry. Nothing about port identity was ever
+  gating connection anyway - `connectionMode="loose"` and four `source` handles
+  saw to that - so this changes what is *kept*, not what is *allowed*.
+- **`Canvas.tsx` routes only edges with no handles**, which is every authored
+  starter edge and nothing a learner drew (`isHandPlaced`). The bow goes with
+  it: a hand-placed edge is drawn between its own two ports, unbowed.
+- **De-duping moved out of `rfAddEdge`**, which compares handles - now that the
+  ports are real and varied it would count A -> B drawn again from a different
+  port as a new connection. `onConnect` de-dupes on the ordered pair instead,
+  which is what the domain graph means by an edge. The opposite direction is
+  still its own edge.
+- **`autoRouteEdge` + a re-route button on the EdgeInspector** are the way
+  back. Without it, moving cards under a hand-placed edge leaves it reaching
+  backwards with no remedy but delete-and-redraw.
+
+`routeCurvedEdge` and the bow are unchanged and still do all the work for the
+14 authored starter graphs, which is where the 7 broken live-canvas routes
+were.
+
+### Deliberately not changed
+
+`ReferenceGraphCanvas` keeps `routeEdge` + smoothstep. Its same-side pairs do
+bow correctly there - a step path detours by leaving from a different side -
+and an out-and-back on one side is standard notation in a printed figure. The
+semantic objection ("an output joined to an output") does still apply to it,
+and 50 of the 57 same-side routes are in reference diagrams. **Open for the
+user:** whether the Debrief figures should adopt the same direction-only handle
+rule. Not done here because it means re-validating 13 chapter figures against
+`e2e/design-editor-geometry.spec.ts` for a defect nobody has reported.

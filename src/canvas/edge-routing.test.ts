@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  isHandPlaced,
+  BOW_CLEARANCE,
+  BOW_SEPARATION,
+  MAX_BOW,
+  routeCurvedEdge,
+  type CurvedRoute,
   centerDelta,
   fanOutStepPositions,
   horizontalRunBlocked,
@@ -212,5 +218,123 @@ describe("two-way pairs", () => {
     const blockedDetour = routeEdge(far, a, [a, middle, far], PORT_IDS, true);
     const blockedForward = routeEdge(a, far, [a, middle, far], PORT_IDS, true);
     expect(blockedDetour).not.toEqual(blockedForward);
+  });
+});
+
+// The bug these cover, in the user's words: "how can an output edge of SQL DB
+// connect to an output edge of a Read Replica". 3.12's starter graph stacks
+// sql-database, nosql-database and read-replica in one column 160px apart.
+// Wiring the primary to the replica is the whole exercise, and the run is
+// blocked by the NoSQL card between them - which `routeEdge` answered by
+// putting both ends on their cards' right side. Correct for smoothstep,
+// meaningless on the bezier the live canvas actually draws.
+describe("routeCurvedEdge", () => {
+  const db = box(840, 0);
+  const nosql = box(840, 160);
+  const replica = box(840, 320);
+  const column = [db, nosql, replica];
+
+  it("never puts both ends of an edge on the same side", () => {
+    const cases: [string, CurvedRoute][] = [
+      ["blocked column", routeCurvedEdge(db, replica, column)],
+      ["blocked column, upward", routeCurvedEdge(replica, db, column)],
+      ["blocked row", routeCurvedEdge(box(0, 0), box(520, 0), [box(0, 0), box(260, 0), box(520, 0)])],
+      ["two-way, forward", routeCurvedEdge(box(0, 0), box(260, 0), [], PORT_IDS, true)],
+      ["two-way, backward", routeCurvedEdge(box(260, 0), box(0, 0), [], PORT_IDS, true)],
+      ["two-way column, backward", routeCurvedEdge(box(0, 320), box(0, 0), [], PORT_IDS, true)],
+      ["plain", routeCurvedEdge(box(0, 0), box(260, 0), [])],
+    ];
+    for (const [label, route] of cases) {
+      expect(route.sourceHandle, label).not.toBe(route.targetHandle);
+    }
+  });
+
+  it("keeps a blocked run leaving a trailing side and arriving at a leading one", () => {
+    expect(routeCurvedEdge(db, replica, column)).toMatchObject({
+      sourceHandle: PORT_IDS.bottom,
+      targetHandle: PORT_IDS.top,
+    });
+  });
+
+  it("bows a blocked column run clear of the card in the way", () => {
+    const { bow } = routeCurvedEdge(db, replica, column);
+    // Half a card from the run's centre line, plus the clearance.
+    expect(bow).toEqual({ x: 60 + BOW_CLEARANCE, y: 0 });
+  });
+
+  it("bows wider when the card in the way is wider", () => {
+    const wide = { x: 840, y: 160, width: 220, height: 96 };
+    const { bow } = routeCurvedEdge(db, replica, [db, wide, replica]);
+    expect(bow!.x).toBe(840 + 220 - 900 + BOW_CLEARANCE);
+  });
+
+  it("sends a blocked row run under the card in the way", () => {
+    const a = box(0, 0);
+    const middle = box(260, 0);
+    const c = box(520, 0);
+    expect(routeCurvedEdge(a, c, [a, middle, c])).toEqual({
+      sourceHandle: PORT_IDS.right,
+      targetHandle: PORT_IDS.left,
+      // Half a card *height* this time - the run is horizontal, so the bow is.
+      bow: { x: 0, y: 48 + BOW_CLEARANCE },
+    });
+  });
+
+  // Two cards dodged on opposite sides would read as two unrelated wires, so
+  // the bow is an absolute direction, not one derived from the direction of
+  // travel.
+  it("dodges a card on the same side whichever way the edge travels", () => {
+    expect(routeCurvedEdge(db, replica, column).bow).toEqual(
+      routeCurvedEdge(replica, db, column).bow,
+    );
+  });
+
+  it("leaves an unobstructed one-way edge on the plain curve", () => {
+    expect(routeCurvedEdge(box(0, 0), box(260, 0), [box(0, 0), box(260, 0)]).bow).toBeNull();
+    expect(routeCurvedEdge(db, nosql, column).bow).toBeNull();
+  });
+
+  // Same rule routeEdge follows: move one half, so the pair still reads as a
+  // path and its answer rather than two detours.
+  it("moves exactly the backward half of a two-way pair", () => {
+    const a = box(0, 0);
+    const b = box(260, 0);
+    expect(routeCurvedEdge(a, b, [a, b], PORT_IDS, true).bow).toBeNull();
+    expect(routeCurvedEdge(b, a, [a, b], PORT_IDS, true).bow).toEqual({ x: 0, y: -BOW_SEPARATION });
+  });
+
+  it("sends a two-way detour opposite the side a blocked run uses", () => {
+    const a = box(0, 0);
+    const middle = box(260, 0);
+    const c = box(520, 0);
+    const forward = routeCurvedEdge(a, c, [a, middle, c], PORT_IDS, true);
+    const backward = routeCurvedEdge(c, a, [a, middle, c], PORT_IDS, true);
+    expect(Math.sign(forward.bow!.y)).toBe(1);
+    expect(Math.sign(backward.bow!.y)).toBe(-1);
+  });
+
+  it("caps a bow before it reads as a second wire looping across the board", () => {
+    const huge = { x: 840, y: 160, width: 4000, height: 96 };
+    expect(routeCurvedEdge(db, replica, [db, huge, replica]).bow!.x).toBe(MAX_BOW);
+  });
+});
+
+// Routing is for authored edges. An edge a learner drew keeps the two ports
+// they dropped it on, whatever combination that is - right to top, bottom to
+// left - so long as the connection itself is legal.
+describe("isHandPlaced", () => {
+  it("claims an edge that names both of its ports", () => {
+    expect(isHandPlaced({ sourceHandle: PORT_IDS.right, targetHandle: PORT_IDS.top })).toBe(true);
+    expect(isHandPlaced({ sourceHandle: PORT_IDS.bottom, targetHandle: PORT_IDS.left })).toBe(true);
+  });
+
+  it("leaves an authored edge to the router", () => {
+    expect(isHandPlaced({})).toBe(false);
+    expect(isHandPlaced({ sourceHandle: null, targetHandle: null })).toBe(false);
+  });
+
+  it("routes a half-attached edge rather than guessing its other port", () => {
+    expect(isHandPlaced({ sourceHandle: PORT_IDS.right, targetHandle: null })).toBe(false);
+    expect(isHandPlaced({ sourceHandle: null, targetHandle: PORT_IDS.left })).toBe(false);
   });
 });
