@@ -11872,6 +11872,1198 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
   },
   {
+    id: "bb-3-18-event-driven-architecture",
+    mode: "building-blocks",
+    title: "Event-Driven Architecture",
+    // Real authored content (second Group E chapter, authored immediately
+    // after 3.17 in this same working tree). Spec:
+    // specs/bb-3-18-event-driven-architecture.spec.md. Lesson body:
+    // public/content/chapters/bb-3-18-event-driven-architecture.mdx.
+    // manifest.ts's prerequisiteSlugs already points at
+    // "3-17-message-queues", which is shipped.
+    problemStatement:
+      "Fraud screening and partner syndication both shipped last sprint, and both were added as consumers " +
+      "of the queue the publish handler already writes to. Three weeks later the numbers say screening " +
+      "looked at 31% of publishes, syndication at 34%, and the notification consumer took the rest. " +
+      "Nothing errored, nothing was lost, and a listing that should have been held went live.",
+    exerciseGoal:
+      "Get every published listing to all three of the disconnected services at once, without the application tier keeping a list of which services those are - so the fourth one next quarter needs no change to the publish handler.",
+    successCriteria: [
+      "Every published listing reaches all three of the currently disconnected services, and none of them takes a listing away from the others.",
+      "The application tier still emits one hand-off per publish however many services are listening, so adding a fourth needs no change on the publishing side.",
+      "The notification path is untouched: that work still goes to one consumer, and repeatedly-failing jobs still have somewhere to land.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces event-bus and kafka).
+    learningObjectives: [
+      "Explain why a queue and a bus behave differently for the same message, in terms of who the message is addressed to.",
+      "Decide whether a given message is a task or a fact, and route it to the shape whose delivery semantics match.",
+      "Describe what a log keeps that a bus does not, and what offsets and consumer groups let a consumer do as a result.",
+      "Build a fan-out path that delivers every published event to three independent services without the producer naming any of them, and pass Submit.",
+      "Answer \"how do you guarantee ordering?\" by naming the partition key and stating what ordering you are not getting.",
+      "Justify choosing one announcement over three addressed hand-offs aloud, naming whose code stops changing and what visibility is given up in exchange.",
+    ],
+    // 3.17's palette plus this chapter's own two new components. CURRICULUM
+    // §16's own row: "3.18 | event-bus, kafka". kafka is available but not
+    // required - see the spec's §6 and §8 for the reasoning (this chapter's
+    // build has no replay requirement, and requiring a log where a bus is
+    // the right answer would teach the opposite of the trade-offs section).
+    // distributed-cache stays available-but-not-required for 3.14's own
+    // recorded reason.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "kafka",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+    ],
+    // 3.17's set carried forward unchanged. orphan-component is the one
+    // doing real work at the start this time: the three deployed-but-unwired
+    // services are three warnings on the starter graph, and its explanation
+    // ("no incoming or outgoing connections at all, so it plays no part in
+    // the architecture as drawn") is the learner's first confirmation that
+    // the board really is missing something. queue-without-dead-letter-queue
+    // stays in the set to guard 3.17's path, which this chapter asks the
+    // learner to leave alone rather than rebuild.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+      "queue-without-dead-letter-queue",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-18-blueprint",
+        label: "One announcement, three independent subscribers, and the task path left alone",
+        require: {
+          id: "bb-3-18-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+            { alias: "queue", componentId: "message-queue" },
+            { alias: "dlq", componentId: "dead-letter-queue" },
+            { alias: "notifier", componentId: "worker" },
+            { alias: "bus", componentId: "event-bus" },
+            { alias: "sub1", componentId: "worker" },
+            { alias: "sub2", componentId: "worker" },
+            { alias: "sub3", componentId: "worker" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+            { from: "app", to: "queue", kind: "async" },
+            { from: "queue", to: "notifier", kind: "async" },
+            { from: "queue", to: "dlq", kind: "async" },
+            { from: "notifier", to: "search", kind: "request-flow" },
+            { from: "app", to: "bus", kind: "async" },
+            { from: "bus", to: "sub1", kind: "async" },
+            { from: "bus", to: "sub2", kind: "async" },
+            { from: "bus", to: "sub3", kind: "async" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-18-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-18-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-18-ref-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+            { id: "bb-3-18-ref-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-18-ref-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+            { id: "bb-3-18-ref-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+            { id: "bb-3-18-ref-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+            { id: "bb-3-18-ref-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+            { id: "bb-3-18-ref-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-18-ref-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+            { id: "bb-3-18-ref-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+            { id: "bb-3-18-ref-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+            { id: "bb-3-18-ref-queue", componentId: "message-queue", position: { x: 1100, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "bb-3-18-ref-notifier", componentId: "worker", position: { x: 1100, y: 160 }, config: {} },
+            { id: "bb-3-18-ref-dlq", componentId: "dead-letter-queue", position: { x: 1100, y: 320 }, config: { maxRetries: 5 } },
+            { id: "bb-3-18-ref-search", componentId: "search-engine", position: { x: 1360, y: 160 }, config: { shards: 1 } },
+            { id: "bb-3-18-ref-bus", componentId: "event-bus", position: { x: 1620, y: 160 }, config: { deliveryMode: "fan-out" } },
+            { id: "bb-3-18-ref-screen", componentId: "worker", position: { x: 1880, y: 0 }, config: {} },
+            { id: "bb-3-18-ref-syndicate", componentId: "worker", position: { x: 1880, y: 160 }, config: {} },
+            { id: "bb-3-18-ref-rollup", componentId: "worker", position: { x: 1880, y: 320 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-18-ref-e1", source: "bb-3-18-ref-browser", target: "bb-3-18-ref-dns", kind: "request-flow" },
+            { id: "bb-3-18-ref-e2", source: "bb-3-18-ref-dns", target: "bb-3-18-ref-cdn", kind: "request-flow" },
+            { id: "bb-3-18-ref-e3", source: "bb-3-18-ref-cdn", target: "bb-3-18-ref-fw", kind: "request-flow" },
+            { id: "bb-3-18-ref-e4", source: "bb-3-18-ref-fw", target: "bb-3-18-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-18-ref-e5", source: "bb-3-18-ref-proxy", target: "bb-3-18-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-18-ref-e6", source: "bb-3-18-ref-gateway", target: "bb-3-18-ref-lb", kind: "request-flow" },
+            { id: "bb-3-18-ref-e7", source: "bb-3-18-ref-lb", target: "bb-3-18-ref-app", kind: "request-flow" },
+            { id: "bb-3-18-ref-e8", source: "bb-3-18-ref-app", target: "bb-3-18-ref-db", kind: "request-flow" },
+            { id: "bb-3-18-ref-e9", source: "bb-3-18-ref-app", target: "bb-3-18-ref-nosql", kind: "request-flow" },
+            { id: "bb-3-18-ref-e10", source: "bb-3-18-ref-db", target: "bb-3-18-ref-replica", kind: "replication" },
+            { id: "bb-3-18-ref-e11", source: "bb-3-18-ref-replica", target: "bb-3-18-ref-app", kind: "request-flow" },
+            { id: "bb-3-18-ref-e12", source: "bb-3-18-ref-app", target: "bb-3-18-ref-cache", kind: "request-flow" },
+            { id: "bb-3-18-ref-e13", source: "bb-3-18-ref-cache", target: "bb-3-18-ref-db", kind: "request-flow" },
+            { id: "bb-3-18-ref-e14", source: "bb-3-18-ref-app", target: "bb-3-18-ref-search", kind: "request-flow" },
+            { id: "bb-3-18-ref-e15", source: "bb-3-18-ref-app", target: "bb-3-18-ref-queue", kind: "async" },
+            { id: "bb-3-18-ref-e16", source: "bb-3-18-ref-queue", target: "bb-3-18-ref-notifier", kind: "async" },
+            { id: "bb-3-18-ref-e17", source: "bb-3-18-ref-queue", target: "bb-3-18-ref-dlq", kind: "async" },
+            { id: "bb-3-18-ref-e18", source: "bb-3-18-ref-notifier", target: "bb-3-18-ref-search", kind: "request-flow" },
+            { id: "bb-3-18-ref-e19", source: "bb-3-18-ref-app", target: "bb-3-18-ref-bus", kind: "async" },
+            { id: "bb-3-18-ref-e20", source: "bb-3-18-ref-bus", target: "bb-3-18-ref-screen", kind: "async" },
+            { id: "bb-3-18-ref-e21", source: "bb-3-18-ref-bus", target: "bb-3-18-ref-syndicate", kind: "async" },
+            { id: "bb-3-18-ref-e22", source: "bb-3-18-ref-bus", target: "bb-3-18-ref-rollup", kind: "async" },
+          ],
+          entryPointIds: ["bb-3-18-ref-browser"],
+        },
+        commentary:
+          "Count the dashed lines leaving the Application Server: two, and they mean different things. One " +
+          "is addressed - it carries a task to a queue whose consumer is the only thing allowed to run it, " +
+          "and the Dead Letter Queue behind it exists because somebody has to answer for that task failing. " +
+          "The other is not addressed at all. It carries a fact, and the fan-out happens on the far side of " +
+          "the Event Bus, which is the entire point: three services got the news and the publish handler " +
+          "names none of them. If you had solved this with three queues instead, this diagram would have " +
+          "four lines leaving the Application Server and a fifth one next quarter, each of them a change to " +
+          "the publishing team's code. The shape you drew is the one where that team is finished.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-18-hint-1",
+        body:
+          "Validate is right - three services really are connected to nothing. The useful question is not " +
+          "how to connect them but what to connect them to. Ask what all three of them want out of a " +
+          "publish, and whether it is the same thing the notification consumer wants.",
+      },
+      {
+        id: "bb-3-18-hint-2",
+        body:
+          "Pointing all three at the existing hand-off is what the team already tried, and it is why each " +
+          "of them saw about a third of the publishes: that hand-off gives each message to one consumer. " +
+          "You need one where a single write is read by everybody who asked for it, independently.",
+      },
+      {
+        id: "bb-3-18-hint-3",
+        body:
+          "Whatever you add, count the lines leaving the application tier when you are done. If there are " +
+          "three of them, one per service, the list of interested parties has moved into the publish " +
+          "handler rather than out of it - and the fourth service next quarter is back on that team's desk.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group E: Asynchronous Systems - Chapter 3.18 of 37 (second chapter in Group E, directly after 3.17).",
+      masteredConcepts: [
+        "3.17's whole pattern: the message-queue/worker/dead-letter-queue trio, the async edge kind, " +
+          "durability as what makes it safe to answer before the work is done, at-least-once delivery and " +
+          "the idempotence it obliges. This chapter's starter graph is 3.17's solved system.",
+        "3.17's delivery rule stated as a property rather than a limitation: a queue hands each message to " +
+          "exactly one consumer. This chapter is what happens when that property meets three services that " +
+          "each need every message.",
+        "3.16's derived data - a second store that has to be kept in sync with the one that owns the " +
+          "records. The analytics rollup is another instance, and the sync arrow is now a subscription.",
+        "3.13's shard key: choosing which records must stay together and which may spread. The partition " +
+          "key is the same decision on a log, and the lesson names the connection explicitly.",
+        "3.12's replication lag and the read-your-writes carve-out, which is the same shape of problem as " +
+          "a subscriber that has not caught up yet.",
+      ],
+      notYetIntroducedConcepts: [
+        "Cron jobs, scheduled work and serverless consumers (3.19) - this chapter's one marked forward " +
+          "tease, phrased as work that no person triggered rather than as a component that exists.",
+        "Object storage and the rest of Group F, which is parallel-eligible with this group rather than " +
+          "after it, so nothing here may assume it.",
+        "Consistency models, quorums and CAP (3.22), which is where \"three subscribers are at three " +
+          "different positions in the same stream\" gets its formal vocabulary.",
+        "Idempotency keys, circuit breakers and distributed locks as named patterns (3.23). Idempotence is " +
+          "reinforced here as an obligation every subscriber carries independently, not as a catalogue.",
+        "Event sourcing, CQRS and change data capture. The log is taught as a delivery and retention " +
+          "substrate only; none of the architectures built on top of it are in this curriculum.",
+        "Schema registries as a product. Event versioning appears as a failure mode and a scaling pressure, " +
+          "not as tooling to adopt.",
+      ],
+      simplifications: [
+        "One event-bus node stands for a broker with many topics on it, and one kafka node would stand for " +
+          "a cluster. Topics, subscriptions and consumer groups are lesson content with no canvas " +
+          "representation - the graph can show that three services each receive the event, not how the " +
+          "broker is organized to make that true.",
+        "kafka is in the palette but not in the blueprint. This chapter's exercise has no replay or " +
+          "late-consumer requirement, and its own trade-off table argues against reaching for a log " +
+          "without one, so requiring it would contradict the lesson. Its partitions and retentionHours " +
+          "fields are taught and not gated, for the same reason 3.17 left maxRetries alone.",
+        "The three subscriber nodes are identical Worker cards - the canvas has no per-node label, so " +
+          "which one is fraud screening and which is partner syndication exists only in the brief. " +
+          "Nothing in the exercise depends on telling them apart, because all three take the same edge.",
+        "The wrong shape (three consumers competing on one queue) is drawn in the lesson and described in " +
+          "the brief, but never sits on the canvas. It is a legal topology that no validation rule can " +
+          "object to, so shipping it as the starter graph would have taught that Validate catches it.",
+        "Offsets, partition assignment and rebalancing are prose and one Mermaid diagram. The walkthrough " +
+          "shows a subscriber failing without affecting the others; it cannot show a consumer's position " +
+          "in a stream, because a Walkthrough step has no faulted or per-node state to carry it.",
+      ],
+    },
+    // Six questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3/3, matching
+    // 3.10-3.17's own ramp. All three of QUIZ_FRAMEWORK.md §12's bank
+    // questions tagged (3.18) are spent: bank Q7 as Q1, Q9 as Q4, Q8 as Q5.
+    // Bank Q10-Q11 belong to 3.19 and are untouched. Correct options across
+    // the six sit at c, a, d, b, c, a - all four positions used, no letter
+    // twice in a row, and the chapter opens on "c", which is the least
+    // recently used opener among the neighbours the per-chapter CI test
+    // cannot see (3.17 opens on b, 3.16 on a, 3.15 on d, 3.14 on c).
+    quiz: [
+      {
+        id: "bb-3-18-event-driven-architecture-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Three services - fraud screening, partner syndication and an analytics rollup - each need to see every published listing. A teammate adds all three as consumers of the queue the publish handler already writes to. A week later each has processed about a third of the publishes, with no errors anywhere. Why?",
+        options: [
+          {
+            id: "a",
+            label: "The three consumers are competing for CPU on the same machines, so each gets through roughly a third of the work.",
+            correct: false,
+            explanationMd:
+              "Nothing here is resource-starved. Each service finished everything it took; the question is why it only ever took a third.",
+          },
+          {
+            id: "b",
+            label: "At-least-once delivery only promises a message reaches one consumer eventually, so two of the three see it late or not at all.",
+            correct: false,
+            explanationMd:
+              "At-least-once is about redelivery after a failure, not about how many distinct consumers a message reaches. Even a perfect exactly-once queue would still hand each message to one of them.",
+          },
+          {
+            id: "c",
+            label: "A queue delivers each message to exactly one consumer. The three services were not each receiving the publishes, they were dividing them.",
+            correct: true,
+            explanationMd:
+              "Correct. Competing consumers are a queue's feature, not its bug - it is how you add throughput to a task. It is the wrong shape the moment the message is a fact several services each need in full.",
+          },
+          {
+            id: "d",
+            label: "The queue round-robins between consumers, which is fixed by raising each consumer's concurrency so it can take more messages.",
+            correct: false,
+            explanationMd:
+              "More concurrency makes each consumer faster, and faster consumers still split the same stream. The split is in the delivery semantics, not in the consumers' capacity.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-18-event-driven-architecture-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "You are sorting the job board's messages into two piles: the ones that go to one owner, and the ones that get announced to everybody interested. Which of these most clearly belongs in the first pile?",
+        options: [
+          {
+            id: "a",
+            label: "\"Send the 900 saved-search emails for listing 4471.\" One team owns doing it, and doing it twice sends the emails twice.",
+            correct: true,
+            explanationMd:
+              "Correct. That is a task: there is a single right owner, the effect is externally visible, and a second execution is a defect rather than a duplicate read.",
+          },
+          {
+            id: "b",
+            label: "\"Listing 4471 was published.\" Three services depend on it, so it needs the shape with the stronger delivery guarantee.",
+            correct: false,
+            explanationMd:
+              "Delivery guarantees exist on both shapes. Three dependents is the argument for announcing it once to all of them, not for handing it to whichever one asks first.",
+          },
+          {
+            id: "c",
+            label: "\"Fraud screening cleared listing 4471.\" It comes from a single service, so it belongs on that service's queue.",
+            correct: false,
+            explanationMd:
+              "Who produced a message never decides its shape; who needs it does. A clearance is a fact, and the listing service and the syndication feed both want to know about it.",
+          },
+          {
+            id: "d",
+            label: "\"A listing was viewed.\" There are millions of these an hour, and high-volume messages need a queue's buffering.",
+            correct: false,
+            explanationMd:
+              "Volume is not the discriminator either. A view is a fact with several interested parties - analytics, recommendations, the recruiter's own dashboard - and a queue would hand each view to exactly one of them.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-18-event-driven-architecture-q3",
+        kind: "diagram",
+        difficulty: 2,
+        prompt:
+          "The topology shown has been running for six months. Today you bring up a fourth service that has to produce a report covering every listing published this year. What does this topology give it?",
+        graph: {
+          nodes: [
+            { id: "app", componentId: "app-server", position: { x: 40, y: 240 }, config: {} },
+            { id: "bus", componentId: "event-bus", position: { x: 360, y: 240 }, config: {} },
+            { id: "s1", componentId: "worker", position: { x: 680, y: 80 }, config: {} },
+            { id: "s2", componentId: "worker", position: { x: 680, y: 240 }, config: {} },
+            { id: "s3", componentId: "worker", position: { x: 680, y: 400 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "app", target: "bus", kind: "async" },
+            { id: "e2", source: "bus", target: "s1", kind: "async" },
+            { id: "e3", source: "bus", target: "s2", kind: "async" },
+            { id: "e4", source: "bus", target: "s3", kind: "async" },
+          ],
+          entryPointIds: ["app"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "Everything it needs: it subscribes and reads the backlog from the start of the topic.",
+            correct: false,
+            explanationMd:
+              "That describes a log, which keeps records and lets each consumer choose where to start. A bus routes an event to whoever is subscribed at the moment of publish and keeps nothing afterwards.",
+          },
+          {
+            id: "b",
+            label: "Nothing, and nothing can fix that: history like this can only ever come from a fresh export of the primary database.",
+            correct: false,
+            explanationMd:
+              "Too strong. A log retains events precisely so a consumer that arrives late can read history. The primary is the fallback here, not the only possible source.",
+          },
+          {
+            id: "c",
+            label: "Everything since the other three subscribers last acknowledged, because the bus holds unacknowledged events.",
+            correct: false,
+            explanationMd:
+              "Per-consumer backlogs are queue behaviour, and one consumer's backlog would not be another's history anyway. A subscriber that did not exist has nothing to inherit.",
+          },
+          {
+            id: "d",
+            label: "Only what is published from now on. The bus routed the previous six months to whoever was subscribed at the time and kept none of it.",
+            correct: true,
+            explanationMd:
+              "Correct, and this is the limitation that sends teams to a log. A bus is a router, not a store - its memory is exactly the set of subscriptions that existed when each event went out.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-18-event-driven-architecture-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "You move the listing stream onto a log. A listing's created, edited and closed events must be processed in that order, and you also want several consumers working in parallel. How do you partition the topic?",
+        options: [
+          {
+            id: "a",
+            label: "One partition, so that every event in the topic is globally ordered.",
+            correct: false,
+            explanationMd:
+              "That buys ordering you do not need and gives up the parallelism you do. One partition is read by one member of a consumer group, so throughput is capped at a single consumer forever.",
+          },
+          {
+            id: "b",
+            label: "Partition by listing id. Each listing's events land on one partition and serialize there, while different listings spread across partitions.",
+            correct: true,
+            explanationMd:
+              "Correct, and it is 3.13's shard-key decision again: pick the key whose values must stay together, and let everything else spread. You get ordering per listing and parallelism across listings.",
+          },
+          {
+            id: "c",
+            label: "Partition by event type, so that creates are ordered against creates and closes against closes.",
+            correct: false,
+            explanationMd:
+              "That orders the wrong things. A listing's close now sits on a different partition from its own create, so it can be processed before the listing exists.",
+          },
+          {
+            id: "d",
+            label: "Partition by timestamp bucket, so that events which happened close together stay close together.",
+            correct: false,
+            explanationMd:
+              "Time buckets guarantee nothing about one listing. A create at 10:59 and its edit at 11:01 land in different partitions with no defined order between them.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-18-event-driven-architecture-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Your log retains events for seven days. A new recommendations service starts today and begins reading the topic from offset 0. What is it actually able to do, and what does that cost you?",
+        options: [
+          {
+            id: "a",
+            label: "It reads the topic's full history and rebuilds its state exactly. The only cost is a slower start while it catches up.",
+            correct: false,
+            explanationMd:
+              "Offset 0 is the oldest record still inside the retention window, not the first event ever written. Seven days of retention means seven days of history, and the phrase \"from the beginning\" quietly means \"from the beginning of the window\".",
+          },
+          {
+            id: "b",
+            label: "It reads the last seven days, and the existing consumer groups fall behind while it catches up, because they share the same partitions.",
+            correct: false,
+            explanationMd:
+              "Groups hold their own offsets and do not move each other's. A large replay is a broker throughput question you may have to plan for, not a correctness problem for the other groups.",
+          },
+          {
+            id: "c",
+            label: "It reads the last seven days and rebuilds from that, and nothing older is recoverable. You pay storage for the window, and every consumer now owns its own position and its own ordering assumptions.",
+            correct: true,
+            explanationMd:
+              "Correct. Replay is what a log buys and the retention window is its limit. The bill is storage plus a real shift in responsibility: the broker stopped tracking who has processed what, so each consumer does.",
+          },
+          {
+            id: "d",
+            label: "It reads the last seven days, and because replay is routine here it can skip idempotence - a replayed event is not a duplicate.",
+            correct: false,
+            explanationMd:
+              "From the side effect's point of view a replayed event is exactly a duplicate. Replay makes idempotence more necessary, not less, because now you deliberately reprocess events that already ran.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-18-event-driven-architecture-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Checkout publishes an OrderPlaced event, then waits for the payment service to publish PaymentConfirmed before it answers the customer. The team describes the design as fully asynchronous. What have they actually built?",
+        options: [
+          {
+            id: "a",
+            label: "A synchronous call with extra hops. The customer still waits on payment, so the dependency is unchanged - the fix is to answer as soon as the order is durable and show the payment state separately.",
+            correct: true,
+            explanationMd:
+              "Correct. Asynchronous machinery does not make a synchronous dependency asynchronous; only removing the dependency does. Worse, the round trip now has no timeout the caller controls and no error path it owns.",
+          },
+          {
+            id: "b",
+            label: "A correct event-driven design. The customer has to know whether payment succeeded, so the wait is unavoidable and the events at least give them a durable trail.",
+            correct: false,
+            explanationMd:
+              "The durability is real and the wait is the problem. 3.17's test still applies: if the customer's success genuinely depends on payment completing, the bus has changed nothing except adding two hops.",
+          },
+          {
+            id: "c",
+            label: "A double-charge hazard: PaymentConfirmed can be delivered twice. Idempotency keys on the payment consumer fix it.",
+            correct: false,
+            explanationMd:
+              "A real hazard, and worth fixing on its own terms - but with perfect idempotence the customer is still blocked on a second service, which is what is actually wrong here.",
+          },
+          {
+            id: "d",
+            label: "An ordering bug: PaymentConfirmed can arrive before OrderPlaced is committed. Partitioning both by order id fixes it.",
+            correct: false,
+            explanationMd:
+              "Also a genuine hazard with the right tool named. Fixing the ordering still leaves the customer waiting on a round trip between two services, so it repairs a symptom rather than the shape.",
+          },
+        ],
+      },
+    ],
+    // 3.17's solved system, plus three services the team has deployed and
+    // wired to nothing. The starter therefore does NOT validate clean - it
+    // reports three orphan-component warnings, breaking the run of clean
+    // starters at 3.15/3.16/3.17 (see the spec's §8). The wrong shape those
+    // three services were in for three weeks (all of them consuming the one
+    // queue) is deliberately not drawn here: it is a legal topology no rule
+    // objects to, so shipping it would have taught that Validate catches it.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-18-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-18-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-18-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+        { id: "bb-3-18-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-18-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+        { id: "bb-3-18-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-18-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-18-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-18-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-3-18-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-18-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-18-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+        { id: "bb-3-18-queue", componentId: "message-queue", position: { x: 1100, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+        { id: "bb-3-18-notifier", componentId: "worker", position: { x: 1100, y: 160 }, config: {} },
+        { id: "bb-3-18-dlq", componentId: "dead-letter-queue", position: { x: 1100, y: 320 }, config: { maxRetries: 5 } },
+        { id: "bb-3-18-search", componentId: "search-engine", position: { x: 1360, y: 160 }, config: { shards: 1 } },
+        { id: "bb-3-18-screen", componentId: "worker", position: { x: 1880, y: 0 }, config: {} },
+        { id: "bb-3-18-syndicate", componentId: "worker", position: { x: 1880, y: 160 }, config: {} },
+        { id: "bb-3-18-rollup", componentId: "worker", position: { x: 1880, y: 320 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-18-e1", source: "bb-3-18-browser", target: "bb-3-18-dns", kind: "request-flow" },
+        { id: "bb-3-18-e2", source: "bb-3-18-dns", target: "bb-3-18-cdn", kind: "request-flow" },
+        { id: "bb-3-18-e3", source: "bb-3-18-cdn", target: "bb-3-18-fw", kind: "request-flow" },
+        { id: "bb-3-18-e4", source: "bb-3-18-fw", target: "bb-3-18-proxy", kind: "request-flow" },
+        { id: "bb-3-18-e5", source: "bb-3-18-proxy", target: "bb-3-18-gateway", kind: "request-flow" },
+        { id: "bb-3-18-e6", source: "bb-3-18-gateway", target: "bb-3-18-lb", kind: "request-flow" },
+        { id: "bb-3-18-e7", source: "bb-3-18-lb", target: "bb-3-18-app", kind: "request-flow" },
+        { id: "bb-3-18-e8", source: "bb-3-18-app", target: "bb-3-18-db", kind: "request-flow" },
+        { id: "bb-3-18-e9", source: "bb-3-18-app", target: "bb-3-18-nosql", kind: "request-flow" },
+        { id: "bb-3-18-e10", source: "bb-3-18-db", target: "bb-3-18-replica", kind: "replication" },
+        { id: "bb-3-18-e11", source: "bb-3-18-replica", target: "bb-3-18-app", kind: "request-flow" },
+        { id: "bb-3-18-e12", source: "bb-3-18-app", target: "bb-3-18-cache", kind: "request-flow" },
+        { id: "bb-3-18-e13", source: "bb-3-18-cache", target: "bb-3-18-db", kind: "request-flow" },
+        { id: "bb-3-18-e14", source: "bb-3-18-app", target: "bb-3-18-search", kind: "request-flow" },
+        { id: "bb-3-18-e15", source: "bb-3-18-app", target: "bb-3-18-queue", kind: "async" },
+        { id: "bb-3-18-e16", source: "bb-3-18-queue", target: "bb-3-18-notifier", kind: "async" },
+        { id: "bb-3-18-e17", source: "bb-3-18-queue", target: "bb-3-18-dlq", kind: "async" },
+        { id: "bb-3-18-e18", source: "bb-3-18-notifier", target: "bb-3-18-search", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-18-browser"],
+    },
+    // One magenta gap zone, one slot wide (§11.6): exactly one component is
+    // missing, and it sits between the tier that publishes and the tier that
+    // listens. The three unwired services get their own purple band so the
+    // canvas reads as "deployed, waiting" rather than "stray cards".
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-18-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-18-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 628, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-18-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-18-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#10b981" },
+      { kind: "zone", id: "bb-3-18-zone-cache", label: "Cache tier", position: { x: 812, y: 440 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-18-zone-handoff", label: "Handed-off work", position: { x: 1072, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-18-zone-derived", label: "Derived data", position: { x: 1332, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-18-zone-gap", label: "Build here", position: { x: 1592, y: 120 }, width: 176, height: 148, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-18-zone-waiting", label: "Deployed, receiving nothing", position: { x: 1852, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      {
+        kind: "comment",
+        id: "bb-3-18-comment-split",
+        text: "Three weeks of numbers from the attempt that was rolled back on Tuesday: fraud screening handled 31% of publishes, partner syndication 34%, and the notification consumer the remaining 35%. No errors, no lost messages.",
+        position: { x: 32, y: 680 },
+        width: 520,
+        height: 140,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-19-background-jobs-and-scheduling",
+    mode: "building-blocks",
+    title: "Background Jobs & Scheduling",
+    // Real authored content (third and final Group E chapter, authored
+    // immediately after 3.18 in this same working tree). Spec:
+    // specs/bb-3-19-background-jobs-and-scheduling.spec.md. Lesson body:
+    // public/content/chapters/bb-3-19-background-jobs-and-scheduling.mdx.
+    // manifest.ts's prerequisiteSlugs already points at
+    // "3-18-event-driven-architecture", which is shipped.
+    problemStatement:
+      "The month's close runs as a timer inside the application server process, and the pool is " +
+      "configured with three instances. Last Tuesday finance received three identical invoice sets " +
+      "at 02:00, with no error logged anywhere. Separately, logo uploads are 4% of requests and " +
+      "about 60% of the pool's CPU, in bursts of a few minutes a day.",
+    exerciseGoal:
+      "Get the 02:00 close running once a night on its own, whatever the instance count, and take the logo-upload path off the application pool so the pool stops being sized all day for four minutes of bursty work.",
+    successCriteria: [
+      "The nightly close starts on its own with no request and no person behind it, and happens once per night however many application instances are running.",
+      "Logo uploads no longer reach the application pool, and forty arriving at once changes nothing about how that pool is sized.",
+      "The resized logos are recorded against the listing they belong to, in the store that already holds listing documents.",
+      "Everything 3.18 left in place still works, and the front door still decides which path goes where.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces cron-job and
+    // serverless-function).
+    learningObjectives: [
+      "Explain why a schedule held inside a horizontally scaled pool runs once per instance, and why an instance-id flag does not fix it.",
+      "Decide which of the four triggers - a request, a handed-off message, a clock, or a rare burst - a given piece of work has, and pick the compute shape that matches.",
+      "Describe the two constraints that decide whether work fits a serverless function: the per-invocation timeout ceiling and the cold start on a path someone is waiting on.",
+      "Build a scheduled path and an on-demand path into an existing architecture without changing the request path either one of them replaces, and pass Submit.",
+      "Answer \"where does the nightly report live?\" by naming the trigger first and then what scheduled work gives up - no caller, no error path, no retry unless you build one.",
+      "Justify keeping a job on the application server aloud, naming the operational cost of the narrower shape rather than defending the default.",
+    ],
+    // 3.18's palette plus this chapter's own two new components. CURRICULUM
+    // §16's own row: "3.19 | cron-job, serverless-function". kafka and
+    // distributed-cache stay available-but-not-required for 3.18's and
+    // 3.14's own recorded reasons.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "kafka",
+      "cron-job",
+      "serverless-function",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "cron-job",
+      "serverless-function",
+    ],
+    // 3.18's set carried forward unchanged. Nothing new is needed: this
+    // chapter's fault is behavioural (a timer inside a pool of three) and has
+    // no graph representation, so the starter validates clean on purpose and
+    // Submit's blueprint drift is the feedback surface - 3.15's shape, argued
+    // fresh in the spec's §8. component-relations is the rule doing real work
+    // here: it is what stops a learner wiring the scheduled job's trigger
+    // backwards, since a Cron Job declares no input port at all.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+      "queue-without-dead-letter-queue",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-19-blueprint",
+        label: "A schedule outside the pool, and a burst path that costs nothing when idle",
+        require: {
+          id: "bb-3-19-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+            { alias: "queue", componentId: "message-queue" },
+            { alias: "dlq", componentId: "dead-letter-queue" },
+            { alias: "notifier", componentId: "worker" },
+            { alias: "bus", componentId: "event-bus" },
+            { alias: "sub1", componentId: "worker" },
+            { alias: "sub2", componentId: "worker" },
+            { alias: "sub3", componentId: "worker" },
+            { alias: "cron", componentId: "cron-job" },
+            { alias: "fn", componentId: "serverless-function" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+            { from: "app", to: "queue", kind: "async" },
+            { from: "queue", to: "notifier", kind: "async" },
+            { from: "queue", to: "dlq", kind: "async" },
+            { from: "notifier", to: "search", kind: "request-flow" },
+            { from: "app", to: "bus", kind: "async" },
+            { from: "bus", to: "sub1", kind: "async" },
+            { from: "bus", to: "sub2", kind: "async" },
+            { from: "bus", to: "sub3", kind: "async" },
+            { from: "cron", to: "db", kind: "request-flow" },
+            { from: "gateway", to: "fn", kind: "request-flow" },
+            { from: "fn", to: "nosql", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-19-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-19-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-19-ref-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+            { id: "bb-3-19-ref-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-19-ref-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+            { id: "bb-3-19-ref-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+            { id: "bb-3-19-ref-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+            { id: "bb-3-19-ref-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+            { id: "bb-3-19-ref-fn", componentId: "serverless-function", position: { x: 580, y: 480 }, config: { maxConcurrency: 50, timeoutSeconds: 30 } },
+            { id: "bb-3-19-ref-cron", componentId: "cron-job", position: { x: 580, y: 640 }, config: { scheduleIntervalMinutes: 1440 } },
+            { id: "bb-3-19-ref-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-19-ref-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+            { id: "bb-3-19-ref-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+            { id: "bb-3-19-ref-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+            { id: "bb-3-19-ref-queue", componentId: "message-queue", position: { x: 1100, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "bb-3-19-ref-notifier", componentId: "worker", position: { x: 1100, y: 160 }, config: {} },
+            { id: "bb-3-19-ref-dlq", componentId: "dead-letter-queue", position: { x: 1100, y: 320 }, config: { maxRetries: 5 } },
+            { id: "bb-3-19-ref-search", componentId: "search-engine", position: { x: 1360, y: 160 }, config: { shards: 1 } },
+            { id: "bb-3-19-ref-bus", componentId: "event-bus", position: { x: 1620, y: 160 }, config: { deliveryMode: "fan-out" } },
+            { id: "bb-3-19-ref-screen", componentId: "worker", position: { x: 1880, y: 0 }, config: {} },
+            { id: "bb-3-19-ref-syndicate", componentId: "worker", position: { x: 1880, y: 160 }, config: {} },
+            { id: "bb-3-19-ref-rollup", componentId: "worker", position: { x: 1880, y: 320 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-19-ref-e1", source: "bb-3-19-ref-browser", target: "bb-3-19-ref-dns", kind: "request-flow" },
+            { id: "bb-3-19-ref-e2", source: "bb-3-19-ref-dns", target: "bb-3-19-ref-cdn", kind: "request-flow" },
+            { id: "bb-3-19-ref-e3", source: "bb-3-19-ref-cdn", target: "bb-3-19-ref-fw", kind: "request-flow" },
+            { id: "bb-3-19-ref-e4", source: "bb-3-19-ref-fw", target: "bb-3-19-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-19-ref-e5", source: "bb-3-19-ref-proxy", target: "bb-3-19-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-19-ref-e6", source: "bb-3-19-ref-gateway", target: "bb-3-19-ref-lb", kind: "request-flow" },
+            { id: "bb-3-19-ref-e7", source: "bb-3-19-ref-lb", target: "bb-3-19-ref-app", kind: "request-flow" },
+            { id: "bb-3-19-ref-e8", source: "bb-3-19-ref-app", target: "bb-3-19-ref-db", kind: "request-flow" },
+            { id: "bb-3-19-ref-e9", source: "bb-3-19-ref-app", target: "bb-3-19-ref-nosql", kind: "request-flow" },
+            { id: "bb-3-19-ref-e10", source: "bb-3-19-ref-db", target: "bb-3-19-ref-replica", kind: "replication" },
+            { id: "bb-3-19-ref-e11", source: "bb-3-19-ref-replica", target: "bb-3-19-ref-app", kind: "request-flow" },
+            { id: "bb-3-19-ref-e12", source: "bb-3-19-ref-app", target: "bb-3-19-ref-cache", kind: "request-flow" },
+            { id: "bb-3-19-ref-e13", source: "bb-3-19-ref-cache", target: "bb-3-19-ref-db", kind: "request-flow" },
+            { id: "bb-3-19-ref-e14", source: "bb-3-19-ref-app", target: "bb-3-19-ref-search", kind: "request-flow" },
+            { id: "bb-3-19-ref-e15", source: "bb-3-19-ref-app", target: "bb-3-19-ref-queue", kind: "async" },
+            { id: "bb-3-19-ref-e16", source: "bb-3-19-ref-queue", target: "bb-3-19-ref-notifier", kind: "async" },
+            { id: "bb-3-19-ref-e17", source: "bb-3-19-ref-queue", target: "bb-3-19-ref-dlq", kind: "async" },
+            { id: "bb-3-19-ref-e18", source: "bb-3-19-ref-notifier", target: "bb-3-19-ref-search", kind: "request-flow" },
+            { id: "bb-3-19-ref-e19", source: "bb-3-19-ref-app", target: "bb-3-19-ref-bus", kind: "async" },
+            { id: "bb-3-19-ref-e20", source: "bb-3-19-ref-bus", target: "bb-3-19-ref-screen", kind: "async" },
+            { id: "bb-3-19-ref-e21", source: "bb-3-19-ref-bus", target: "bb-3-19-ref-syndicate", kind: "async" },
+            { id: "bb-3-19-ref-e22", source: "bb-3-19-ref-bus", target: "bb-3-19-ref-rollup", kind: "async" },
+            { id: "bb-3-19-ref-e23", source: "bb-3-19-ref-cron", target: "bb-3-19-ref-db", kind: "request-flow" },
+            { id: "bb-3-19-ref-e24", source: "bb-3-19-ref-gateway", target: "bb-3-19-ref-fn", kind: "request-flow" },
+            { id: "bb-3-19-ref-e25", source: "bb-3-19-ref-fn", target: "bb-3-19-ref-nosql", kind: "request-flow" },
+          ],
+          // Two Start badges, on purpose. The Cron Job is the first node in
+          // any authored chapter that begins work without anything upstream
+          // asking, so it is a second entry point rather than an unreachable
+          // node - and the badge says exactly what the chapter teaches.
+          entryPointIds: ["bb-3-19-ref-browser", "bb-3-19-ref-cron"],
+        },
+        commentary:
+          "Two cards were added and they are wired in opposite directions. The Cron Job has no incoming " +
+          "arrow at all, which is the whole point: nothing calls it, so nothing about the pool's instance " +
+          "count, deploy schedule or autoscaling can change how many times the close runs. The Serverless " +
+          "Function is the mirror image - it has a caller, and the caller is the same front door every " +
+          "other request already comes through, routing one path somewhere that costs nothing for the " +
+          "twenty-three hours a day nobody uploads a logo. The Application Server did not shrink and " +
+          "nothing was taken off the request path. What changed is that two pieces of work stopped " +
+          "borrowing a process that was only ever sized for requests.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-19-hint-1",
+        body:
+          "Validate has nothing to say, which is correct - nothing on the board is miswired. Both problems " +
+          "are about where work lives rather than how it is connected. For each of the two, ask what " +
+          "actually starts it, and whether the answer is a request at all.",
+      },
+      {
+        id: "bb-3-19-hint-2",
+        body:
+          "The close has no caller. Every card on this canvas today needs something upstream before it can " +
+          "do anything, which is exactly why the close ended up inside the pool in the first place. You " +
+          "need something whose entire job is starting by itself, on a clock, with nothing pointing at it.",
+      },
+      {
+        id: "bb-3-19-hint-3",
+        body:
+          "The uploads do have a caller, and it is the front door that already decides which path goes " +
+          "where - so you are adding a second destination behind it, not a second door. Whatever you put " +
+          "there has to cost nothing during the twenty-three hours nobody is uploading, and has to leave " +
+          "its result somewhere the listing already lives.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group E: Asynchronous Systems - Chapter 3.19 of 37 (third and final chapter in Group E, directly after 3.18).",
+      masteredConcepts: [
+        "3.17's and 3.18's whole async vocabulary: queue, worker, dead letter queue, event bus, the async " +
+          "edge kind, at-least-once delivery and the idempotence it obliges. This chapter's starter graph " +
+          "is 3.18's solved system.",
+        "3.6's statelessness and 3.8's horizontal scaling - that any instance must be able to answer any " +
+          "request, and that instances are added and removed freely. The cold open is the bill for putting " +
+          "something non-interchangeable inside a pool of three.",
+        "3.5's API Gateway as the single front door that routes by path. This chapter reuses it unchanged, " +
+          "routing one path to something that is not the application pool.",
+        "3.17's separation of work from the request path. A scheduled job is off the request path for the " +
+          "same reason a worker is; the difference taught here is only the trigger.",
+        "3.12's replication and 3.14's cache-aside path, both still present in the starter graph and both " +
+          "deliberately untouched by this exercise.",
+      ],
+      notYetIntroducedConcepts: [
+        "Distributed locks, leases and the lock service (3.23) - this chapter's one marked forward tease. " +
+          "Cron overlap is stated as a hazard and named as needing mutual exclusion; the component that " +
+          "provides it is not introduced here.",
+        "Object storage (3.20), which is where the resized image bytes actually belong. The lesson's Next " +
+          "section states the problem and stops there; nothing in the exercise depends on it.",
+        "Idempotency keys, retries with backoff and circuit breakers as named patterns (3.23). Idempotence " +
+          "is reinforced here as an obligation a truncated batch re-incurs, not as a catalogue.",
+        "Workflow engines, DAG schedulers and step functions as products. Airflow appears as one company's " +
+          "decision to move a schedule out of crontab, not as tooling to adopt.",
+        "Leader election as a named mechanism (3.26 homes `leader` and `follower`). The lesson " +
+          "describes an instance-id flag as a hand-written rule for deciding which instance is in " +
+          "charge, without using the term or going further.",
+      ],
+      simplifications: [
+        "One cron-job node stands for a scheduler and the job it runs. The schedule interval is a single " +
+          "number of minutes on the card, not a cron expression, so \"02:00 nightly\" is modelled as a " +
+          "1440-minute interval and the time of day exists only in the brief.",
+        "The scheduled close is drawn as one edge straight into the primary database. A real nightly close " +
+          "of this size would more often enqueue work rather than mutate rows directly, and the lesson's " +
+          "own Common Mistakes section says so - but the chapter is teaching the trigger, and routing it " +
+          "through 3.17's notification queue would put unrelated work on a queue this chapter asks the " +
+          "learner to leave alone.",
+        "The serverless function's maxConcurrency and timeoutSeconds are taught and not gated. The lesson " +
+          "argues the timeout ceiling decides shapes; the exercise's own upload path fits comfortably " +
+          "inside any default, so there is no defensible single correct value to grade.",
+        "Cold start is prose and one walkthrough step. Nothing on the canvas shows latency, and a " +
+          "Walkthrough step has no per-node timing state to carry it.",
+        "The resized logos are recorded in the document store next to the listing. That is the wrong home " +
+          "for image bytes and the chapter says so in its Next section rather than pretending otherwise - " +
+          "object storage has not been introduced yet.",
+      ],
+    },
+    // Five questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3 - one shorter
+    // than 3.10-3.18's six, matching this chapter's shorter estimate. Both of
+    // QUIZ_FRAMEWORK.md §12's bank questions tagged (3.19) are spent: bank Q10
+    // as Q1, bank Q11 as Q5. The §12 bank is now fully consumed across
+    // 3.17/3.18/3.19. Correct options sit at d, a, c, b, a - all four
+    // positions used, no letter twice in a row, and the chapter opens on "d",
+    // the least recently used opener among the neighbours the per-chapter CI
+    // test cannot see (3.15 opens on d, 3.16 on a, 3.17 on b, 3.18 on c).
+    quiz: [
+      {
+        id: "bb-3-19-background-jobs-and-scheduling-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "You are placing four pieces of work: a nightly invoice reconciliation, an image resize that happens on upload, the API that serves the listing page, and a consumer draining a queue of outbound emails. What single question decides the shape for each one?",
+        options: [
+          {
+            id: "a",
+            label: "How long each one runs. Anything that takes more than a few seconds needs a machine of its own.",
+            correct: false,
+            explanationMd:
+              "Duration is one input, and it does rule some shapes out - a forty-minute job will not fit in one serverless invocation. But it does not tell you where the other three belong, and two of them are short.",
+          },
+          {
+            id: "b",
+            label: "What each one costs to run, since the cheapest shape that does the job is the right one.",
+            correct: false,
+            explanationMd:
+              "Cost is how you choose between two shapes that both fit, not how you find the candidates. Deciding by price alone is how a busy all-day path ends up on per-invocation billing.",
+          },
+          {
+            id: "c",
+            label: "Which language and runtime each one is written in, since not every shape supports every stack.",
+            correct: false,
+            explanationMd:
+              "Runtime support is a constraint you check late, and it almost never binds. It has nothing to say about why a scheduled job should not live inside a pool of three instances.",
+          },
+          {
+            id: "d",
+            label: "What wakes each one up, and how much of the day it is busy: a clock, an upload, a request, or a queued message.",
+            correct: true,
+            explanationMd:
+              "Correct. The trigger and the duty cycle are the organizing question. A clock means the schedule must live outside anything that scales; a rare burst means nothing should be sitting idle waiting for it; a request someone is waiting on means something has to be up already.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-19-background-jobs-and-scheduling-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "The nightly reconciliation runs as a timer inside the application server process. The pool is configured with three instances. At 02:00 finance receives three copies of every invoice, and nothing errored. What happened?",
+        options: [
+          {
+            id: "a",
+            label: "Every instance in the pool ran its own copy of the timer. The schedule was stored in a thing that exists three times, so it fired three times.",
+            correct: true,
+            explanationMd:
+              "Correct. Nothing routed the 02:00 tick anywhere - each process simply had its own clock. That is why the count of invoice sets tracks the instance count, and why scaling the pool would make it worse.",
+          },
+          {
+            id: "b",
+            label: "The timer fired three times on one instance, because the reconciliation took longer than the interval between fires.",
+            correct: false,
+            explanationMd:
+              "That is overlap, a real failure and the one this chapter's failure-modes section ends on - but it produces runs that start an interval apart, not three that start together, and it does not scale with the instance count.",
+          },
+          {
+            id: "c",
+            label: "The load balancer delivered the 02:00 trigger to all three instances instead of picking one.",
+            correct: false,
+            explanationMd:
+              "No trigger crossed the network at all. Nothing sent the reconciliation a request, which is exactly the property that makes scheduled work different - and it is why a load balancer had no opportunity to make this decision.",
+          },
+          {
+            id: "d",
+            label: "The reconciliation is not idempotent, so the automatic retry after a partial failure wrote the invoices again.",
+            correct: false,
+            explanationMd:
+              "Idempotence is the right concern for retried work, but nothing failed and nothing retried here. All three runs succeeded - that is what makes this so quiet.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-19-background-jobs-and-scheduling-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate proposes moving the nightly reconciliation onto a serverless function, on the grounds that it runs for forty minutes once a day and paying for an idle machine the other twenty-three hours is waste. What is the strongest objection?",
+        options: [
+          {
+            id: "a",
+            label: "Functions are stateless, and a reconciliation has to accumulate running totals as it goes.",
+            correct: false,
+            explanationMd:
+              "Statelessness is real but not binding here: the totals can live in the database the job is already reading, exactly as they would for a long-running process.",
+          },
+          {
+            id: "b",
+            label: "The cold start would add latency to the report, which finance needs on their desk at 06:00.",
+            correct: false,
+            explanationMd:
+              "Cold start matters when a person is waiting. A second or two against a forty-minute batch that starts at 02:00 is the one place the penalty genuinely does not matter.",
+          },
+          {
+            id: "c",
+            label: "One invocation is capped, commonly around fifteen minutes. Forty minutes does not fit, so the work has to be split into chunks that can each be retried.",
+            correct: true,
+            explanationMd:
+              "Correct, and it is arithmetic rather than taste. The timeout ceiling is the constraint that decides shapes: past it, the work is no longer one unit, and splitting it means designing for a chunk that dies halfway.",
+          },
+          {
+            id: "d",
+            label: "A forty-minute invocation would hold forty minutes of the account's concurrency, starving every other function.",
+            correct: false,
+            explanationMd:
+              "One invocation consumes one unit of concurrency however long it runs. Concurrency limits bite on a burst of many simultaneous calls, which is the opposite of this job's shape.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-19-background-jobs-and-scheduling-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Logo resize now runs as a function behind the API gateway. The first upload each morning takes 2.3 seconds to respond; every upload after that takes about 400 ms. What is happening, and does it matter?",
+        options: [
+          {
+            id: "a",
+            label: "The function is being throttled by its concurrency limit, which is lowest when traffic is lowest.",
+            correct: false,
+            explanationMd:
+              "Concurrency limits cap simultaneous invocations; one upload at 09:00 is not near any limit. Throttling would also show up during the busy burst, not in the quietest moment of the day.",
+          },
+          {
+            id: "b",
+            label: "The first invocation after an idle period pays a cold start while the platform creates a runtime. It matters here because somebody is waiting; on the nightly job nobody would notice.",
+            correct: true,
+            explanationMd:
+              "Correct. Scale-to-zero and cold start are the same property seen from two sides. The question is never \"is there a cold start\" but \"is there a person on the other end of the first one\".",
+          },
+          {
+            id: "c",
+            label: "The gateway's auth check is uncached on the first request of a session and cheap on every one after it.",
+            correct: false,
+            explanationMd:
+              "A plausible reading of 3.5's gateway, but it would pay that cost once per session for every path, not once per idle period on this one - and it would not scale with how long the upload path had been quiet.",
+          },
+          {
+            id: "d",
+            label: "The function is sharing a machine with another tenant's first request of the morning, so the delay is contention from a noisy neighbour.",
+            correct: false,
+            explanationMd:
+              "Contention is real on shared infrastructure, but it would be intermittent and unrelated to idleness. The tell here is that the penalty lands precisely on the first call after a quiet period, every time.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-19-background-jobs-and-scheduling-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Your nightly close used to take 20 minutes and now takes 70. It is scheduled hourly across the close window. Nothing has errored and no alert has fired. What is the exposure, and what class of fix does it need?",
+        options: [
+          {
+            id: "a",
+            label: "Two runs now overlap on the same rows, each acting on data the other is partway through changing. The fix is mutual exclusion - something outside both runs that only one can hold - or a schedule and scope that cannot overlap.",
+            correct: true,
+            explanationMd:
+              "Correct. Both runs are the same correct code firing on time; neither can see the other. Nothing inside either run can fix that, which is why this needs a mechanism outside them both.",
+          },
+          {
+            id: "b",
+            label: "Nothing yet. A scheduler will not start a run while the previous one is still going, so the schedule simply slips.",
+            correct: false,
+            explanationMd:
+              "Some schedulers offer that as an option, and it is worth knowing whether yours does. The default almost everywhere is to fire on time regardless, which is what makes this a design assumption rather than a guarantee.",
+          },
+          {
+            id: "c",
+            label: "The 03:00 run is skipped, so the close falls an hour further behind every night until it stops running at all.",
+            correct: false,
+            explanationMd:
+              "This describes a queue draining slower than it fills, which is a real shape but not this one. A schedule holds no backlog: each fire is independent and none of them waits for another.",
+          },
+          {
+            id: "d",
+            label: "The scheduler kills any run that exceeds its own interval, so every night's close is now left half-finished at the 60-minute mark.",
+            correct: false,
+            explanationMd:
+              "No such rule exists by default; an interval says when to start, not when to stop. A timeout that truncates a batch is a real hazard, but it is one you configure deliberately, not one the schedule imposes.",
+          },
+        ],
+      },
+    ],
+    // 3.18's solved system, unchanged - the queue path, the bus and its three
+    // subscribers are all where 3.18 left them, so a learner recognizes their
+    // own answer. It validates clean on purpose: this chapter's fault is
+    // behavioural (a timer inside a pool of three) and has no graph
+    // representation at all, since a schedule held inside a process is not
+    // drawable as a node or an edge. See the spec's §8 - the argument is new
+    // each time a starter validates clean, and this one is that the fault is
+    // in what a process contains rather than in what the diagram connects.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-19-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-19-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-19-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+        { id: "bb-3-19-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-19-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+        { id: "bb-3-19-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-19-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-19-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-19-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-3-19-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-19-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-19-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+        { id: "bb-3-19-queue", componentId: "message-queue", position: { x: 1100, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+        { id: "bb-3-19-notifier", componentId: "worker", position: { x: 1100, y: 160 }, config: {} },
+        { id: "bb-3-19-dlq", componentId: "dead-letter-queue", position: { x: 1100, y: 320 }, config: { maxRetries: 5 } },
+        { id: "bb-3-19-search", componentId: "search-engine", position: { x: 1360, y: 160 }, config: { shards: 1 } },
+        { id: "bb-3-19-bus", componentId: "event-bus", position: { x: 1620, y: 160 }, config: { deliveryMode: "fan-out" } },
+        { id: "bb-3-19-screen", componentId: "worker", position: { x: 1880, y: 0 }, config: {} },
+        { id: "bb-3-19-syndicate", componentId: "worker", position: { x: 1880, y: 160 }, config: {} },
+        { id: "bb-3-19-rollup", componentId: "worker", position: { x: 1880, y: 320 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-19-e1", source: "bb-3-19-browser", target: "bb-3-19-dns", kind: "request-flow" },
+        { id: "bb-3-19-e2", source: "bb-3-19-dns", target: "bb-3-19-cdn", kind: "request-flow" },
+        { id: "bb-3-19-e3", source: "bb-3-19-cdn", target: "bb-3-19-fw", kind: "request-flow" },
+        { id: "bb-3-19-e4", source: "bb-3-19-fw", target: "bb-3-19-proxy", kind: "request-flow" },
+        { id: "bb-3-19-e5", source: "bb-3-19-proxy", target: "bb-3-19-gateway", kind: "request-flow" },
+        { id: "bb-3-19-e6", source: "bb-3-19-gateway", target: "bb-3-19-lb", kind: "request-flow" },
+        { id: "bb-3-19-e7", source: "bb-3-19-lb", target: "bb-3-19-app", kind: "request-flow" },
+        { id: "bb-3-19-e8", source: "bb-3-19-app", target: "bb-3-19-db", kind: "request-flow" },
+        { id: "bb-3-19-e9", source: "bb-3-19-app", target: "bb-3-19-nosql", kind: "request-flow" },
+        { id: "bb-3-19-e10", source: "bb-3-19-db", target: "bb-3-19-replica", kind: "replication" },
+        { id: "bb-3-19-e11", source: "bb-3-19-replica", target: "bb-3-19-app", kind: "request-flow" },
+        { id: "bb-3-19-e12", source: "bb-3-19-app", target: "bb-3-19-cache", kind: "request-flow" },
+        { id: "bb-3-19-e13", source: "bb-3-19-cache", target: "bb-3-19-db", kind: "request-flow" },
+        { id: "bb-3-19-e14", source: "bb-3-19-app", target: "bb-3-19-search", kind: "request-flow" },
+        { id: "bb-3-19-e15", source: "bb-3-19-app", target: "bb-3-19-queue", kind: "async" },
+        { id: "bb-3-19-e16", source: "bb-3-19-queue", target: "bb-3-19-notifier", kind: "async" },
+        { id: "bb-3-19-e17", source: "bb-3-19-queue", target: "bb-3-19-dlq", kind: "async" },
+        { id: "bb-3-19-e18", source: "bb-3-19-notifier", target: "bb-3-19-search", kind: "request-flow" },
+        { id: "bb-3-19-e19", source: "bb-3-19-app", target: "bb-3-19-bus", kind: "async" },
+        { id: "bb-3-19-e20", source: "bb-3-19-bus", target: "bb-3-19-screen", kind: "async" },
+        { id: "bb-3-19-e21", source: "bb-3-19-bus", target: "bb-3-19-syndicate", kind: "async" },
+        { id: "bb-3-19-e22", source: "bb-3-19-bus", target: "bb-3-19-rollup", kind: "async" },
+      ],
+      entryPointIds: ["bb-3-19-browser"],
+    },
+    // 3.18's zones carried forward, with its magenta gap column now holding
+    // the Event Bus under an "Announcements" band, and a new two-slot gap zone
+    // directly under the Application tier - the two additions are both
+    // application-tier compute, so the column they belong in is the one the
+    // pool already occupies (§11.6). Two slots, because exactly two components
+    // are missing and a wider box would imply more.
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-19-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-19-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 628, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-19-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-19-zone-gap", label: "Build here", position: { x: 552, y: 440 }, width: 176, height: 308, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-19-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#10b981" },
+      { kind: "zone", id: "bb-3-19-zone-cache", label: "Cache tier", position: { x: 812, y: 440 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-19-zone-handoff", label: "Handed-off work", position: { x: 1072, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-19-zone-derived", label: "Derived data", position: { x: 1332, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-19-zone-announce", label: "Announcements", position: { x: 1592, y: 120 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-19-zone-subscribers", label: "Subscribers", position: { x: 1852, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      {
+        kind: "comment",
+        id: "bb-3-19-comment-numbers",
+        text: "Last Tuesday's 02:00 close produced three identical invoice sets. The pool runs three instances, the close ran to completion on each of them, and nothing errored. Separately: logo uploads are 4% of requests and about 60% of the pool's CPU, in bursts totalling four minutes a day.",
+        position: { x: 32, y: 800 },
+        width: 620,
+        height: 160,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
     id: "rwe-dummy-1",
     mode: "real-world-extraction",
     title: "Placeholder Project",

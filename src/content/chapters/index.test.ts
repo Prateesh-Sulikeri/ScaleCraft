@@ -34,6 +34,8 @@ describe("getChaptersForMode", () => {
       "bb-3-16-search-systems",
       "bb-r1-a-site-that-stays-up",
       "bb-3-17-message-queues",
+      "bb-3-18-event-driven-architecture",
+      "bb-3-19-background-jobs-and-scheduling",
     ]);
   });
 

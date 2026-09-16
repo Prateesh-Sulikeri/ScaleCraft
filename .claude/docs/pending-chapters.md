@@ -5265,6 +5265,343 @@ rather than done silently, since this skill does not write tests.
 
 ---
 
+## 3.18 Event-Driven Architecture
+
+- **Authored 2026-09-16** - one-shot `chapter-author` pass (Opus), no cold
+  second read yet - committed and pushed to `staging/v7.2.0` (authored in a
+  working tree on `fix/edge-connection-ports`, moved to staging at the user's
+  direction before commit)
+- Definition id `bb-3-18-event-driven-architecture` - manifest slug
+  `3-18-event-driven-architecture` - spec
+  `src/content/chapters/specs/bb-3-18-event-driven-architecture.spec.md` -
+  lesson `public/content/chapters/bb-3-18-event-driven-architecture.mdx`
+- Type: **Building Block**, per CURRICULUM §14's own "New: `event-bus`,
+  `kafka`" and §16's audit row - intermediate - 35 min - assumes 3.17,
+  authored in this same working tree immediately before it.
+- **Second Group E chapter.** Two new components, no new edge kind (`async`
+  came in at 3.17 and carries everything here), so §18.1's "≤2/chapter" for
+  Groups E-G holds with room. `pending-content.md` puts Group E in Wave 6; the
+  real prerequisite is authored and sits directly before it, so only the wave
+  grouping is out of order - the same note every Wave 3/4/5 chapter carried.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-18-event-driven-architecture.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-18-event-driven-architecture.mdx` (~2,300 words excluding the walkthrough's prop literals and the two mermaid blocks) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None new - 3.17's set carried forward unchanged |
+| 5 | Quiz | 6 questions, ramp 1/1/2/2/3/3; five `single` and one `diagram` |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **The starter graph deliberately does not validate clean, breaking the run at
+  3.15/3.16/3.17.** Three `worker` nodes (fraud screening, partner syndication,
+  the analytics rollup) sit on the canvas with no edges, so `orphan-component`
+  reports three warnings before the learner touches anything. 3.16's spec asked
+  for a real justification for a third clean starter and 3.17's supplied one; a
+  fourth would have taught that Validate is decorative. This is warning-severity
+  rather than error, so `runChapterValidation`'s error-count-only `passed` is
+  still true on the starter - open decision 11's shape again, not a new one.
+- **The wrong shape is drawn in the lesson and kept off the canvas.** §14's row
+  asks the learner to "discover why a queue is the wrong shape first". Three
+  consumers competing on one queue is a completely legal topology no rule can
+  object to, so shipping it as the starter graph would have taught that Validate
+  catches semantic errors - the opposite of this chapter's point. It would also
+  have required the learner to *delete* edges to fix it, and `blueprint-drift.ts`
+  is `forbid`-blind (decision 11(a)), so a build that left them in place would
+  have passed silently. 3.15 declined a required deletion for exactly this
+  reason. The discovery is delivered instead by the cold open's three
+  percentages, the beat-2 mermaid, the Think-first prompt and quiz Q1.
+- **`kafka` is introduced, taught, diagrammed and quizzed, but is not in the
+  blueprint.** The exercise has no replay or late-consumer requirement, and the
+  chapter's own trade-off section argues that reaching for a log without one is
+  over-buying - a blueprint requiring it would contradict the lesson grading it.
+  Same terms as 3.14's `distributed-cache` and R1's `nosql-database`. Flagged in
+  spec §12 as the call most worth a reviewer's second opinion: a component the
+  learner is taught twice over and never has to build is unusual.
+- **Four `worker` aliases in one blueprint** (the queue's notification consumer
+  plus three bus subscribers). `pattern.ts`'s backtracking search uses injective
+  bindings, so four distinct worker nodes are genuinely required and the match is
+  correct. `blueprint-drift.ts` is the weak spot: its best-effort binding takes
+  each alias's *first* structural candidate, so an incomplete build reports
+  "Event Bus -> Worker (async)" more than once instead of naming a count. New
+  instance of decision 11's drift-message problem, mitigated R1-style - the
+  message is only reachable from an incomplete build, and hint 3 names the
+  failure shape without naming the component.
+- **Three diagrams, which is one more than the chapter norm, and they are a real
+  progression.** Wrong shape (mermaid topology, beat 2) -> right shape
+  (`<Walkthrough>`, beat 5) -> the shape that keeps history (mermaid log layout,
+  beat 7). The beat-2 mermaid is another application of open decision 3's narrow
+  Mermaid-for-topology exception (after 1.6 and 3.4), declared in spec §5 rather
+  than assumed. The beat-7 diagram has no components in it, so §7.2's
+  one-topology-per-chapter rule is not in play, and it carries partitions,
+  offsets, consumer groups and group independence in one picture.
+- **Fourth consecutive `<Walkthrough>` as the primary diagram.** Six component
+  nodes, five edges (four `async`, one `request-flow`), six steps: the single
+  publish at 1, three non-competing deliveries at 2-4, a contained subscriber
+  failure at 5, and the payoff at 6 (one line leaves the App Server, whatever the
+  subscriber count). No algorithm variants. Step 5 hits open decision 14 (no
+  faulted state) again, handled with 2.2's inversion convention and a caption
+  that names it. Validated green against `walkthrough-invariants.test.ts`.
+- **`event-bus.outputs` allows category `compute` only**, checked directly
+  against `src/content/components/config/messaging.ts`. A subscriber is always a
+  compute node, which is correct semantics rather than a limitation, and it is
+  why the walkthrough's analytics rollup writes to the store instead of the bus
+  writing to it. Also checked: `queue-without-dead-letter-queue` keys on
+  `componentId === "message-queue"`, so adding a bus raises no dead-letter
+  obligation the chapter has not argued for.
+- **Two config fields taught and not gated** (`kafka.partitions`,
+  `kafka.retentionHours`). Same reasoning as 3.17's `maxRetries` and 3.14's
+  `ttlSeconds` - a failed config predicate reports as `missingComponents`, and
+  there is no defensible single correct partition count for this system anyway.
+  Another instance under decision 11, not a new decision.
+- **§14's "trade-off (queue vs. bus vs. log x3 scenarios)" ships as lesson plus
+  quiz**, not as presented graphs in the Editor. §11.1's Trade-off scenario type
+  needs a "2+ presented graphs, pick per scenario" affordance the Design Editor
+  does not have; applied `pending-content.md`'s own named degradation path rather
+  than treating it as new. The three-shapes table is the comparison, and Q2, Q3
+  and Q5 are the three scenarios.
+- **Production examples: LinkedIn (Kafka) and Uber.** LinkedIn was unused by any
+  authored chapter (checked by grep across every `.mdx`); Uber appears once, in
+  3.5, for a different decision. Both are load-bearing and public per §13:
+  LinkedIn's was an organizational bottleneck rather than a technical one, and
+  Uber's is the specific case for a log (the same events read live by one
+  consumer and from the beginning by another). Closes on §9 lens 9 - three
+  function calls in one transaction, and the org-chart threshold where that stops
+  being right.
+- **All three of QUIZ_FRAMEWORK §12's bank questions tagged "(3.18)" are spent**
+  (Q7 -> Q1, re-set at difficulty 1 since the cold open makes it comprehension;
+  Q9 -> Q4; Q8 -> Q5). Bank Q10-Q11 belong to 3.19 and are untouched. Three
+  questions are original: the task-or-fact sort (Q2), the diagram question on the
+  bus's lack of history (Q3), and the distributed monolith (Q6). Six of the
+  bank's own distractors were joke options under §1 point 3 ("Queues are too
+  slow", "It is the right shape", "Nothing different", "Write events back in
+  time", "Ordering is impossible", "Sort on read") and were replaced with real
+  positions.
+- **Answer letters c, a, d, b, c, a.** All four positions used, no letter twice
+  in a row, and checked by eye against the four neighbours the per-chapter CI
+  test cannot see: 3.14 opens on c, 3.15 on d, 3.16 on a, 3.17 on b - every
+  opener is spoken for, so c (the least recent) was reused deliberately.
+- **A density revision pass was performed as a distinct drafting round** - added
+  a two-sentence topic/subscription gloss the core-mechanics section was missing,
+  cut a paragraph restating the decoupling claim the walkthrough's own caption
+  had already made, collapsed the log section's lead-in, and tightened the
+  cost-ladder paragraph. ~2,300 prose words for 35 minutes, the same rate as
+  3.17's 2,371.
+
+**Cross-reference checks against other chapters' own pre-committed rows:**
+
+- **Open decision 15's Group E row - second of three checked, 2026-09-16 -
+  matches.** 2.3's row for Group E: "work that does not belong on the request
+  path | 3.17-3.19." This chapter does not restate the row (3.17 already did);
+  it extends it one step - the work is already off the request path, and the new
+  pressure is that more than one party wants it. Same judgment 3.7 and 3.11 made
+  as second chapters under their own groups' rows. 3.19 keeps Group E open;
+  Groups F and G remain untouched.
+- **3.17's forward promise, paid off.** 3.17's Connections ends "Coming in 3.18:
+  a queue delivers each message to exactly one consumer, which is correct for
+  work and wrong the moment three different services each need to know that the
+  same thing happened", and its "Next" repeats it with the stealing metaphor.
+  The cold open turns that into three percentages and one listing that went live
+  unheld; the mental-model section resolves it.
+- **3.17's solved system survives intact as this chapter's starter graph** -
+  the queue, its consumer, its dead letter queue and the index write are all
+  where 3.17 left them, and the brief says outright to leave that path alone. A
+  learner recognizes their own 3.17 answer on the canvas.
+- **"Next" names 3.19** (`manifest.ts`'s `prerequisiteSlugs:
+  ["3-18-event-driven-architecture"]` confirms it), and the single §19 forward
+  tease is also 3.19 - the two coincide, same as 3.17, so the tease budget is
+  spent once.
+- **No new open decisions raised.** Decision 3 was applied again (Mermaid
+  topology in the Reader, third instance), decision 5 gained a seventh instance
+  (nuggets), decision 11 gained two (the ungated kafka config fields, and the
+  four-alias drift shape), decision 14 was hit again with no new shape, and
+  decision 15's Group E row is now checked for its second chapter.
+
+---
+
+## 3.19 Background Jobs & Scheduling
+
+- **Authored 2026-09-16** - one-shot `chapter-author` pass (Opus), no cold
+  second read yet - committed and pushed to `staging/v7.2.0` (authored in a
+  working tree on `fix/edge-connection-ports`, moved to staging at the user's
+  direction before commit)
+- Definition id `bb-3-19-background-jobs-and-scheduling` - manifest slug
+  `3-19-background-jobs-and-scheduling` - spec
+  `src/content/chapters/specs/bb-3-19-background-jobs-and-scheduling.spec.md` -
+  lesson `public/content/chapters/bb-3-19-background-jobs-and-scheduling.mdx`
+- Type: **Building Block**, per CURRICULUM §14's own "New: `cron-job`,
+  `serverless-function`" and §16's audit row - intermediate - 25 min - assumes
+  3.18, authored in this same working tree immediately before it.
+- **Third Group E chapter, and it completes the group.** Two new components, no
+  new edge kind (both are wired with `request-flow`), so §18.1's "≤2/chapter"
+  for Groups E-G holds. `pending-content.md` puts Group E in Wave 6; the real
+  prerequisite is authored and sits directly before it, so only the wave
+  grouping is out of order - the same note every Wave 3/4/5 chapter carried.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `src/content/chapters/specs/bb-3-19-background-jobs-and-scheduling.spec.md` |
+| 2 | Lesson markdown | `public/content/chapters/bb-3-19-background-jobs-and-scheduling.mdx` (~2,030 words excluding the walkthrough's prop literals, the mermaid block and table cells) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts` |
+| 4 | Validation rules | None new - 3.18's set carried forward unchanged |
+| 5 | Quiz | 5 questions, ramp 1/1/2/2/3; all `single` |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls made:**
+
+- **The §19 forward tease and the §6 "Preview of next" name different
+  chapters, deliberately.** CURRICULUM §14's own row for this chapter requires
+  the cron-overlap hazard to be "seeded for 3.23's lock service", and
+  `manifest.ts`'s row order puts 3.20 Object Storage next. Connections teases
+  3.23 (the single §19 tease), Next previews 3.20 (the mandatory §6 section).
+  3.17 and 3.18 both had the two coincide because they sat directly before
+  their own successors inside one group; this chapter ends Group E, so they
+  cannot. Precedent for the split is 3.16, which teased 3.17 in Connections
+  while sitting before Checkpoint R1. Declared in spec §4's omission 2.
+- **The starter graph validates clean again, and the justification is new
+  rather than carried forward.** 3.16's spec asked that each clean starter earn
+  its own argument, and 3.15/3.16/3.17 each supplied a different one. This
+  chapter's is that **the fault has no graph representation at all**: a timer
+  inside the application server process is neither a node nor an edge - it is
+  something a process *contains*, and the canvas draws what components connect
+  to. 3.18 broke the clean run with three orphan warnings, so this is one clean
+  starter after a non-clean one rather than a fourth in a row. The transition
+  brief says outright that Validate will report nothing and why.
+- **Both new components go in the application column, below the pool, and the
+  board does not widen.** The alternative was a new tier column inserted after
+  Application, which would have shifted six columns right onto a ~2,260px
+  board - and 3.18's own spec already flagged board width as the thing its
+  layout tested hardest. The placement is honest rather than a dodge: both
+  additions are application-tier compute (one runs application work on a clock,
+  the other runs one of the application's own request paths), and it keeps the
+  gateway-to-function edge inside a single tier. It also has to be this way:
+  §11.5's left-to-right rule means anything the gateway feeds must sit right of
+  x=580, and every downstream tier is already there, so a function in any
+  column right of Data would need an edge across the whole board.
+- **The reference graph declares two entry points - the first authored chapter
+  to do so.** `authoring-invariants.test.ts` requires every reference-graph node
+  to be reachable *forward* from `entryPointIds`, and `cron-job` has no inbound
+  edge by construction (`inputs: []`, no `relations.inputs` key), so it would
+  otherwise fail that gate. Listing it as a second entry point is the correct
+  reading rather than a workaround: a clock is a second thing that starts work,
+  and the second Start badge on the Debrief diagram says exactly what the
+  chapter teaches. Flagged in spec §12 for a look at where
+  `ReferenceGraphCanvas` actually ranks it.
+- **`cron-job`'s missing input port is taught as the point, not as a quirk.**
+  Checked directly: `missing-input-connection.ts`'s own doc comment names Cron
+  Job as a pure origin it never flags, and `component-relations` is what stops a
+  learner wiring something into it. The primary diagram's caption is "the Cron
+  Job is the only card with no incoming arrow", and that is the chapter's thesis
+  rendered by the registry rather than only asserted in prose.
+- **Open decision 14 (no faulted state in `<Walkthrough>`) was not hit, for the
+  first time in Group E.** 3.17 and 3.18 both had a failure step inside their
+  walkthrough and both worked around the gap with 2.2's inversion convention.
+  This chapter's failure diagram is a Mermaid `sequenceDiagram` of two
+  overlapping runs, chosen because the failure is two runs interleaving in time
+  rather than a node going dark - so it draws the failure directly, per §7.2,
+  with no workaround to record.
+- **§7.1's decision tree for 3.19 ships as a table.** The selection procedure
+  has one question with four answers, so a tree would be a root with four leaves
+  - a picture of a table. §20.6's "prefer the format with the highest scan
+  value" decides it; declared in spec §5 rather than silently skipped.
+- **Three config fields taught and not gated** (`scheduleIntervalMinutes`,
+  `maxConcurrency`, `timeoutSeconds`). Same reasoning as 3.18's
+  `partitions`/`retentionHours` and 3.17's `maxRetries` - a failed config
+  predicate reports as `missingComponents`. The reference graph carries the
+  honest values (1440 minutes; platform defaults for the function) so the
+  Debrief shows them without grading them. Another instance under decision 11,
+  not a new decision.
+- **The scheduled write goes straight to the primary database, and the lesson's
+  own Common Mistakes section argues against it.** A nightly close of this size
+  would more often enqueue. Routing it through 3.17's notification queue would
+  put unrelated work on a queue the brief explicitly asks the learner to leave
+  alone, and the chapter is teaching the trigger rather than the durability of
+  the work. Disclosed in the lesson prose as well as in
+  `curriculumContext.simplifications`, per decision 10's standing note that the
+  list alone is not a disclosure surface. Flagged in spec §12 as the call most
+  worth a reviewer's second opinion.
+- **Production examples: Airbnb (Airflow) and Coca-Cola (vending telemetry).**
+  Airbnb was last used in 3.9, ten chapters back, for a different decision;
+  Coca-Cola is unused anywhere in the curriculum (checked by grep across every
+  `.mdx`). Both are load-bearing and public per §13: the schedule moving out of
+  crontab once jobs began depending on each other, and a crossover request
+  volume modelled rather than assumed. Coca-Cola's figures are stated
+  qualitatively rather than quoted - flagged in spec §12, since §20.1 prefers
+  concrete numbers and the public ones come from a conference talk.
+- **Both of QUIZ_FRAMEWORK §12's bank questions tagged "(3.19)" are spent**
+  (Q10 -> Q1, Q11 -> Q5), which means **§12's bank is now fully consumed**
+  across 3.17 (Q1-Q6), 3.18 (Q7-Q9) and this chapter (Q10-Q11). Three questions
+  are original: the triple invoice re-asked as diagnosis (Q2), the timeout
+  ceiling as a shape constraint (Q3), and cold start read off a latency pattern
+  (Q4). Six of the bank's own distractors were joke options under §1 point 3
+  ("Cost only", "Language support", "Team preference", "Nothing - crons queue
+  politely", "The cron stops running", "The OS prevents overlap automatically")
+  and were replaced with real positions.
+- **Five questions rather than six**, the first Part 3 chapter since 3.9 not to
+  ship six. Ramp 1/1/2/2/3 = 40/40/20 against §3's "roughly 30/45/25"; a second
+  level-3 question would have had to test material this chapter defers to 3.23.
+  §3's sanctioned range is 3-6, so this is inside it, not an exception.
+- **Answer letters d, a, c, b, a.** All four positions used, no letter twice in
+  a row, and checked by eye against the four neighbours the per-chapter CI test
+  cannot see: 3.15 opens on d, 3.16 on a, 3.17 on b, 3.18 on c - so d is the
+  least recent opener.
+- **Two forward-referenced terms were caught in this pass's own self-check and
+  removed.** The draft called the instance-id flag "a hand-written leader
+  election with one member" and ended the senior answer on "I want a lock before
+  that happens". §16 homes `leader`/`follower` at 3.26 and `lock-service` at
+  3.23, so both were ScaleCraft-taught labels used inline before their home
+  chapters (§18.2 rule 1, §20.5), and §10.3 separately requires the senior
+  answer to use only vocabulary the chapter itself teaches. Both rephrased in the
+  chapter's own terms. Worth recording because this is material where both terms
+  are the natural word to reach for.
+- **A density revision pass was performed as a distinct drafting round**, and it
+  cut about 20% (2,563 prose words to 2,036): a six-sentence cold open to four,
+  two trade-off paragraphs, the 1000x paragraph, the interview lead-in, the
+  transition brief and the Next. **The result is still above 3.17's and 3.18's
+  word rate** (~2,030 words for 25 minutes against their ~2,150 for 35), and the
+  reason is structural: the fifteen mandatory §6 sections account for roughly
+  1,300 words before either new component's mechanics. Raised in spec §12 as a
+  call a reviewer owes - move the §14/`manifest.ts` estimate to 30 minutes, or
+  cut a mandatory section here with written justification. Not resolved in this
+  pass, because `estimatedMinutes` is a §14 row value and CURRICULUM edits
+  belong in their own commit.
+
+**Cross-reference checks against other chapters' own pre-committed rows:**
+
+- **Open decision 15's Group E row - third of three checked, 2026-09-16, and
+  the row now closes.** 2.3's row for Group E: "work that does not belong on the
+  request path | 3.17-3.19." 3.17 stated it, 3.18 extended it to more than one
+  interested party, and this chapter closes it from the other side - the work in
+  3.17 and 3.18 was still *caused* by a request, and this is the work no request
+  caused at all. Group E is the fourth of seven groups to fully resolve its own
+  row, after A, B, C and D. Appended to decision 15's own entry as well, since
+  its text still read "Groups E-G remain open".
+- **3.18's forward promise and its "Next", both paid off.** 3.18's Connections
+  ends "Coming in 3.19: everything in this chapter and the last one is triggered
+  by something a person did. Some work is triggered by nothing at all", and its
+  Next names the 06:00 report and "there is nothing on your canvas that a clock
+  can talk to". The cold open is that report; the primary diagram's caption is
+  the missing arrow stated as the chapter's own point.
+- **3.18's solved system survives intact as this chapter's starter graph** - the
+  queue path, the bus and its three subscribers are all at the same coordinates
+  3.18 left them, so a learner recognizes their own 3.18 answer on the canvas.
+- **"Next" names 3.20** (`manifest.ts`'s row order puts Object Storage directly
+  after this chapter; §17 has Groups E and F both gated on R1 rather than on
+  each other, so 3.20's `prerequisiteSlugs` correctly does not name 3.19). The
+  §19 tease names 3.23 instead - see the first judgment call above.
+- **No new open decisions raised.** Decision 5 gained an eighth instance
+  (nuggets), decision 11 gained one (the three ungated config fields), decision
+  10 was honoured rather than hit (the simplification is disclosed in prose as
+  well as listed), decision 14 was **not** hit for the first time in Group E,
+  and decision 15's Group E row is now checked and closed.
+
+---
 ## Cross-cutting revisions (post-authoring)
 
 Entries here touch many already-authored chapters at once for a mechanical or
@@ -5897,6 +6234,16 @@ doc edit or a build decision.
    case: 3.14 and 3.15 both moved reads the database *could* have answered,
    while 3.16 removes the read the database was never the right shape to
    answer. Groups E-G remain open as their own chapters are authored.
+   **Group E checked and closed across all three of its chapters, 2026-09-16 -
+   the fourth of the seven groups to resolve its own row entirely.** 2.3's row
+   for Group E: "work that does not belong on the request path | 3.17-3.19."
+   3.17 stated it (a 4.2 s publish of which 40 ms is the recruiter's own
+   write); 3.18 extended it one step, to work already off the request path that
+   more than one party wants; 3.19 closes it from the other side - 3.17's and
+   3.18's work was still *caused* by a request, and a scheduled job is the work
+   no request caused at all. Recorded here rather than only in the chapters'
+   own entries because this decision's text otherwise still read "Groups E-G
+   remain open". Groups F and G remain open.
 
 16. **CURRICULUM.md §6's own "engineered-cliffhanger" example doesn't parse
     under current chapter numbering, raised authoring 3.8 (2026-08-23).**

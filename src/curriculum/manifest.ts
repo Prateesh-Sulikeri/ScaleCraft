@@ -486,7 +486,9 @@ export const courses: Record<CourseId, Course> = {
             number: "3.18",
             title: "Event-Driven Architecture",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-09-16 (second Group E chapter). See
+            // pending-chapters.md for the ledger entry.
+            chapterDefinitionId: "bb-3-18-event-driven-architecture",
             estimatedMinutes: 35,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-17-message-queues"],
@@ -497,7 +499,10 @@ export const courses: Record<CourseId, Course> = {
             number: "3.19",
             title: "Background Jobs & Scheduling",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Real content authored 2026-09-16 (third Group E chapter, which
+            // completes the group). See pending-chapters.md for the ledger
+            // entry.
+            chapterDefinitionId: "bb-3-19-background-jobs-and-scheduling",
             estimatedMinutes: 25,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-18-event-driven-architecture"],
