@@ -93,6 +93,21 @@ export const chapterRegistry: ChapterDefinition[] = [
           "A client talks to an app server, which reads and writes to a database - the " +
           "smallest shape that's still a real, three-tier architecture. Every later " +
           "chapter builds on this one.",
+        // `position` is vestigial on a referenceGraph - reference-layout.ts
+        // computes the left-to-right layout from the edges and ignores these.
+        // They're here only because GraphNode requires the field.
+        referenceGraph: {
+          nodes: [
+            { id: "bb-0-1-ref-client", componentId: "client", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-0-1-ref-app", componentId: "app-server", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-0-1-ref-db", componentId: "sql-database", position: { x: 580, y: 195 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-0-1-ref-e1", source: "bb-0-1-ref-client", target: "bb-0-1-ref-app", kind: "request-flow" },
+            { id: "bb-0-1-ref-e2", source: "bb-0-1-ref-app", target: "bb-0-1-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-0-1-ref-client"],
+        },
       },
     ],
     hints: [
@@ -330,15 +345,15 @@ export const chapterRegistry: ChapterDefinition[] = [
     // "fix-edge"/"revalidate-clean" steps for the guided remediation.
     starterGraph: {
       nodes: [
-        { id: "bb-0-1-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-0-1-app-server", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
+        { id: "bb-0-1-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-0-1-app-server", componentId: "app-server", position: { x: 320, y: 0 }, config: {} },
       ],
       edges: [{ id: "bb-0-1-edge-client-app", source: "bb-0-1-client", target: "bb-0-1-app-server", kind: "async" }],
       entryPointIds: ["bb-0-1-client"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-0-1-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-0-1-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
+      { kind: "zone", id: "bb-0-1-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-0-1-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#a855f7" },
     ],
   },
   {
@@ -1933,6 +1948,18 @@ export const chapterRegistry: ChapterDefinition[] = [
           "A client talks to an app server, which is the only thing that reads or writes to the " +
           "database - the smallest shape that is still a real, three-tier architecture. Every later " +
           "Building Block chapter extends this shape; none of them replace it.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-1-2-ref-client", componentId: "client", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-1-2-ref-app", componentId: "app-server", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-1-2-ref-db", componentId: "sql-database", position: { x: 580, y: 195 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-1-2-ref-e1", source: "bb-1-2-ref-client", target: "bb-1-2-ref-app", kind: "request-flow" },
+            { id: "bb-1-2-ref-e2", source: "bb-1-2-ref-app", target: "bb-1-2-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-1-2-ref-client"],
+        },
       },
     ],
     hints: [
@@ -2544,8 +2571,8 @@ export const chapterRegistry: ChapterDefinition[] = [
     //     on kind (see that rule's own module comment).
     starterGraph: {
       nodes: [
-        { id: "bb-1-2-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-1-2-sql-database", componentId: "sql-database", position: { x: 380, y: 160 }, config: {} },
+        { id: "bb-1-2-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-1-2-sql-database", componentId: "sql-database", position: { x: 580, y: 0 }, config: {} },
       ],
       edges: [
         { id: "bb-1-2-edge-client-db", source: "bb-1-2-client", target: "bb-1-2-sql-database", kind: "request-flow" },
@@ -2553,9 +2580,9 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-1-2-client"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-1-2-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-1-2-zone-data", label: "Data", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-1-2-zone-gap", label: "Build here", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#ff3483" },
+      { kind: "zone", id: "bb-1-2-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-1-2-zone-data", label: "Data", position: { x: 552, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-1-2-zone-gap", label: "Build here", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#ff3483" },
     ],
   },
   {
@@ -4373,6 +4400,20 @@ export const chapterRegistry: ChapterDefinition[] = [
           "The firewall sits between the client and everything else, filtering on address, port and " +
           "protocol before any of it is reachable. It doesn't replace the app server's own job of " +
           "mediating database access - it's a second, earlier gate, not a substitute for the first one.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-1-ref-client", componentId: "client", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-1-ref-fw", componentId: "firewall", position: { x: 320, y: 195 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-1-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: {} },
+            { id: "bb-3-1-ref-db", componentId: "sql-database", position: { x: 840, y: 195 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-1-ref-e1", source: "bb-3-1-ref-client", target: "bb-3-1-ref-fw", kind: "request-flow" },
+            { id: "bb-3-1-ref-e2", source: "bb-3-1-ref-fw", target: "bb-3-1-ref-app", kind: "request-flow" },
+            { id: "bb-3-1-ref-e3", source: "bb-3-1-ref-app", target: "bb-3-1-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-1-ref-client"],
+        },
       },
     ],
     hints: [
@@ -4618,9 +4659,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     // precedent, adapted for a Completion rather than a Fix exercise).
     starterGraph: {
       nodes: [
-        { id: "bb-3-1-client", componentId: "client", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-1-app", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
-        { id: "bb-3-1-db", componentId: "sql-database", position: { x: 700, y: 160 }, config: {} },
+        { id: "bb-3-1-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-1-app", componentId: "app-server", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-1-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
       ],
       edges: [
         { id: "bb-3-1-e1", source: "bb-3-1-client", target: "bb-3-1-app", kind: "request-flow" },
@@ -4629,10 +4670,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-1-client"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-1-zone-client", label: "Client", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-1-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-1-zone-data", label: "Data", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-3-1-zone-gap", label: "Build here", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-1-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-1-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-1-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-1-zone-gap", label: "Build here", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#ff3483" },
     ],
   },
   {
@@ -4712,6 +4753,22 @@ export const chapterRegistry: ChapterDefinition[] = [
         commentary:
           "The lookup happens before the request, not instead of it - DNS hands back an address, then " +
           "the same request path 3.1 built carries the traffic the rest of the way.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-2-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-2-ref-dns", componentId: "dns", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-2-ref-fw", componentId: "firewall", position: { x: 60, y: 390 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-2-ref-app", componentId: "app-server", position: { x: 320, y: 390 }, config: {} },
+            { id: "bb-3-2-ref-db", componentId: "sql-database", position: { x: 580, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-2-ref-e1", source: "bb-3-2-ref-browser", target: "bb-3-2-ref-dns", kind: "request-flow" },
+            { id: "bb-3-2-ref-e2", source: "bb-3-2-ref-dns", target: "bb-3-2-ref-fw", kind: "request-flow" },
+            { id: "bb-3-2-ref-e3", source: "bb-3-2-ref-fw", target: "bb-3-2-ref-app", kind: "request-flow" },
+            { id: "bb-3-2-ref-e4", source: "bb-3-2-ref-app", target: "bb-3-2-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-2-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -4978,9 +5035,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     // Completion exercise).
     starterGraph: {
       nodes: [
-        { id: "bb-3-2-fw", componentId: "firewall", position: { x: 60, y: 160 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-2-app", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
-        { id: "bb-3-2-db", componentId: "sql-database", position: { x: 700, y: 160 }, config: {} },
+        { id: "bb-3-2-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-2-app", componentId: "app-server", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-2-db", componentId: "sql-database", position: { x: 840, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-3-2-e1", source: "bb-3-2-fw", target: "bb-3-2-app", kind: "request-flow" },
@@ -4989,10 +5046,16 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: [],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-2-zone-edge", label: "Edge", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-2-zone-app", label: "Application", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-2-zone-data", label: "Data", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-3-2-zone-gap", label: "Build here", position: { x: 32, y: -48 }, width: 576, height: 137, color: "#ff3483" },
+      // The Build here zone is two rows, not one: this exercise is the only
+      // one that asks for *two* components (browser and dns, per
+      // requiredComponentIds), and a one-row slot gave the learner nowhere to
+      // put the second. Two rows in one column is the same shape every tier
+      // band uses (§11.5), and the tiers below sit on row 1 so the DNS the
+      // learner adds leaves level with the firewall it feeds.
+      { kind: "zone", id: "bb-3-2-zone-gap", label: "Build here", position: { x: 32, y: -40 }, width: 176, height: 308, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-2-zone-edge", label: "Edge", position: { x: 292, y: 120 }, width: 176, height: 148, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-2-zone-app", label: "Application", position: { x: 552, y: 120 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-2-zone-data", label: "Data", position: { x: 812, y: 120 }, width: 176, height: 148, color: "#10b981" },
     ],
   },
   {
@@ -5071,6 +5134,24 @@ export const chapterRegistry: ChapterDefinition[] = [
           "The proxy is the one address anything outside ever learns - the firewall decided whether " +
           "traffic gets this far, the proxy decides where it goes next, and the app tier behind it can " +
           "change shape without either of those first two stops noticing.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-3-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-3-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-3-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-3-ref-proxy", componentId: "reverse-proxy", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-3-ref-app", componentId: "app-server", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-3-ref-db", componentId: "sql-database", position: { x: 320, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-3-ref-e1", source: "bb-3-3-ref-browser", target: "bb-3-3-ref-dns", kind: "request-flow" },
+            { id: "bb-3-3-ref-e2", source: "bb-3-3-ref-dns", target: "bb-3-3-ref-fw", kind: "request-flow" },
+            { id: "bb-3-3-ref-e3", source: "bb-3-3-ref-fw", target: "bb-3-3-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-3-ref-e4", source: "bb-3-3-ref-proxy", target: "bb-3-3-ref-app", kind: "request-flow" },
+            { id: "bb-3-3-ref-e5", source: "bb-3-3-ref-app", target: "bb-3-3-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-3-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -5325,10 +5406,10 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-3-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-3-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-3-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-3-app", componentId: "app-server", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-3-db", componentId: "sql-database", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-3-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-3-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-3-app", componentId: "app-server", position: { x: 840, y: 160 }, config: {} },
+        { id: "bb-3-3-db", componentId: "sql-database", position: { x: 1100, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-3-3-e1", source: "bb-3-3-browser", target: "bb-3-3-dns", kind: "request-flow" },
@@ -5338,10 +5419,11 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-3-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-3-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-3-zone-app", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-3-zone-data", label: "Data", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-3-3-zone-gap", label: "Build here", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-3-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-3-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 308, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-3-zone-app", label: "Application", position: { x: 812, y: 120 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-3-zone-data", label: "Data", position: { x: 1072, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-3-zone-gap", label: "Build here", position: { x: 552, y: 120 }, width: 176, height: 148, color: "#ff3483" },
     ],
   },
   {
@@ -5423,6 +5505,23 @@ export const chapterRegistry: ChapterDefinition[] = [
           "Two app-server instances behind one load balancer, both still mediating access to the " +
           "database the way 1.6 established - the load balancer adds distribution and health checking " +
           "on top, it doesn't change who's allowed to touch the data.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-4-ref-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-4-ref-lb", componentId: "load-balancer", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-4-ref-app1", componentId: "app-server", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-4-ref-app2", componentId: "app-server", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-4-ref-db", componentId: "sql-database", position: { x: 320, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-4-ref-e1", source: "bb-3-4-ref-client", target: "bb-3-4-ref-lb", kind: "request-flow" },
+            { id: "bb-3-4-ref-e2", source: "bb-3-4-ref-lb", target: "bb-3-4-ref-app1", kind: "request-flow" },
+            { id: "bb-3-4-ref-e3", source: "bb-3-4-ref-lb", target: "bb-3-4-ref-app2", kind: "request-flow" },
+            { id: "bb-3-4-ref-e4", source: "bb-3-4-ref-app1", target: "bb-3-4-ref-db", kind: "request-flow" },
+            { id: "bb-3-4-ref-e5", source: "bb-3-4-ref-app2", target: "bb-3-4-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-4-ref-client"],
+        },
       },
     ],
     hints: [
@@ -5703,9 +5802,9 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-4-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-4-lb", componentId: "load-balancer", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-4-app1", componentId: "app-server", position: { x: 380, y: 160 }, config: {} },
-        { id: "bb-3-4-db", componentId: "sql-database", position: { x: 60, y: 320 }, config: {} },
+        { id: "bb-3-4-lb", componentId: "load-balancer", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-4-app1", componentId: "app-server", position: { x: 320, y: 160 }, config: {} },
+        { id: "bb-3-4-db", componentId: "sql-database", position: { x: 580, y: 160 }, config: {} },
       ],
       edges: [
         { id: "bb-3-4-edge-client-lb", source: "bb-3-4-client", target: "bb-3-4-lb", kind: "request-flow" },
@@ -5715,10 +5814,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-4-client"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-4-zone-client", label: "Client", position: { x: 32, y: -48 }, width: 256, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-4-zone-app", label: "Application", position: { x: 32, y: 112 }, width: 576, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-4-zone-data", label: "Data", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-3-4-zone-gap", label: "Build here", position: { x: 672, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-4-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-4-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 308, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-4-zone-data", label: "Data", position: { x: 552, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-4-zone-gap", label: "Build here", position: { x: 292, y: 280 }, width: 176, height: 148, color: "#ff3483" },
     ],
   },
   {
@@ -5803,6 +5902,26 @@ export const chapterRegistry: ChapterDefinition[] = [
           "The gateway is the last stop before the app tier that gets to say no - by the time a " +
           "request reaches the app server, the gateway has already decided who's asking and how " +
           "often, which is exactly what neither the proxy nor a bare app server ever checked.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-5-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-5-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-5-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-5-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-5-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 390 }, config: {} },
+            { id: "bb-3-5-ref-app", componentId: "app-server", position: { x: 60, y: 585 }, config: {} },
+            { id: "bb-3-5-ref-db", componentId: "sql-database", position: { x: 60, y: 780 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-5-ref-e1", source: "bb-3-5-ref-browser", target: "bb-3-5-ref-dns", kind: "request-flow" },
+            { id: "bb-3-5-ref-e2", source: "bb-3-5-ref-dns", target: "bb-3-5-ref-fw", kind: "request-flow" },
+            { id: "bb-3-5-ref-e3", source: "bb-3-5-ref-fw", target: "bb-3-5-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-5-ref-e4", source: "bb-3-5-ref-proxy", target: "bb-3-5-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-5-ref-e5", source: "bb-3-5-ref-gateway", target: "bb-3-5-ref-app", kind: "request-flow" },
+            { id: "bb-3-5-ref-e6", source: "bb-3-5-ref-app", target: "bb-3-5-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-5-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -6061,11 +6180,11 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-5-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-5-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-5-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-5-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-5-app", componentId: "app-server", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-5-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-5-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-5-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-5-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-5-app", componentId: "app-server", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-5-db", componentId: "sql-database", position: { x: 1100, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-5-e1", source: "bb-3-5-browser", target: "bb-3-5-dns", kind: "request-flow" },
@@ -6076,11 +6195,11 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-5-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-5-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-5-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-5-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-5-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
-      { kind: "zone", id: "bb-3-5-zone-gap", label: "Build here", position: { x: 352, y: 112 }, width: 256, height: 137, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-5-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-5-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-5-zone-app", label: "Application", position: { x: 812, y: 280 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-5-zone-data", label: "Data", position: { x: 1072, y: 280 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-5-zone-gap", label: "Build here", position: { x: 552, y: 280 }, width: 176, height: 148, color: "#ff3483" },
     ],
   },
   {
@@ -6174,6 +6293,28 @@ export const chapterRegistry: ChapterDefinition[] = [
           "node, the same edges. Only the Instances count moved. That's the entire chapter: once a " +
           "tier keeps nothing that only one of its instances remembers, giving it more capacity is a " +
           "number to change, not a system to redesign.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-6-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-6-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-6-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-6-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-6-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-6-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-6-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 2 } },
+            { id: "bb-3-6-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-6-ref-e1", source: "bb-3-6-ref-browser", target: "bb-3-6-ref-dns", kind: "request-flow" },
+            { id: "bb-3-6-ref-e2", source: "bb-3-6-ref-dns", target: "bb-3-6-ref-fw", kind: "request-flow" },
+            { id: "bb-3-6-ref-e3", source: "bb-3-6-ref-fw", target: "bb-3-6-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-6-ref-e4", source: "bb-3-6-ref-proxy", target: "bb-3-6-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-6-ref-e5", source: "bb-3-6-ref-gateway", target: "bb-3-6-ref-lb", kind: "request-flow" },
+            { id: "bb-3-6-ref-e6", source: "bb-3-6-ref-lb", target: "bb-3-6-ref-app", kind: "request-flow" },
+            { id: "bb-3-6-ref-e7", source: "bb-3-6-ref-app", target: "bb-3-6-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-6-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -6409,13 +6550,13 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-6-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-6-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-6-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-6-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-6-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-6-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-6-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 1 } },
-        { id: "bb-3-6-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-6-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-6-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-6-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-6-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-6-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-6-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 1 } },
+        { id: "bb-3-6-db", componentId: "sql-database", position: { x: 840, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-6-e1", source: "bb-3-6-browser", target: "bb-3-6-dns", kind: "request-flow" },
@@ -6429,10 +6570,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-6-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-6-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-6-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-6-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-6-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-6-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-6-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-6-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-6-zone-data", label: "Data", position: { x: 812, y: 280 }, width: 176, height: 148, color: "#10b981" },
     ],
   },
   {
@@ -6522,6 +6663,28 @@ export const chapterRegistry: ChapterDefinition[] = [
           "that now carries session reads and writes alongside business data, which is the entire " +
           "point: externalizing state didn't need a new component, only for the app tier to treat " +
           "sessions the same way it already treats everything else it can't afford to lose.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-7-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-7-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-7-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-7-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-7-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-7-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-7-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 2 } },
+            { id: "bb-3-7-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-7-ref-e1", source: "bb-3-7-ref-browser", target: "bb-3-7-ref-dns", kind: "request-flow" },
+            { id: "bb-3-7-ref-e2", source: "bb-3-7-ref-dns", target: "bb-3-7-ref-fw", kind: "request-flow" },
+            { id: "bb-3-7-ref-e3", source: "bb-3-7-ref-fw", target: "bb-3-7-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-7-ref-e4", source: "bb-3-7-ref-proxy", target: "bb-3-7-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-7-ref-e5", source: "bb-3-7-ref-gateway", target: "bb-3-7-ref-lb", kind: "request-flow" },
+            { id: "bb-3-7-ref-e6", source: "bb-3-7-ref-lb", target: "bb-3-7-ref-app", kind: "request-flow" },
+            { id: "bb-3-7-ref-e7", source: "bb-3-7-ref-app", target: "bb-3-7-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-7-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -6755,13 +6918,13 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-7-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-7-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-7-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-7-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-7-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-7-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-7-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 2 } },
-        { id: "bb-3-7-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-7-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-7-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-7-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-7-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-7-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-7-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 2 } },
+        { id: "bb-3-7-db", componentId: "sql-database", position: { x: 840, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-7-e1", source: "bb-3-7-browser", target: "bb-3-7-dns", kind: "request-flow" },
@@ -6774,10 +6937,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-7-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-7-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-7-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-7-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-7-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-7-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-7-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-7-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-7-zone-data", label: "Data", position: { x: 812, y: 280 }, width: 176, height: 148, color: "#10b981" },
     ],
   },
   {
@@ -6865,6 +7028,28 @@ export const chapterRegistry: ChapterDefinition[] = [
           "enough that losing any one instance still covers it. That's the whole chapter: once the " +
           "tier is stateless and already load-balanced, sizing for a failure is a number, not a " +
           "redesign.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-8-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-8-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-8-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-8-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-8-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-8-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-8-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 3 } },
+            { id: "bb-3-8-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-8-ref-e1", source: "bb-3-8-ref-browser", target: "bb-3-8-ref-dns", kind: "request-flow" },
+            { id: "bb-3-8-ref-e2", source: "bb-3-8-ref-dns", target: "bb-3-8-ref-fw", kind: "request-flow" },
+            { id: "bb-3-8-ref-e3", source: "bb-3-8-ref-fw", target: "bb-3-8-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-8-ref-e4", source: "bb-3-8-ref-proxy", target: "bb-3-8-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-8-ref-e5", source: "bb-3-8-ref-gateway", target: "bb-3-8-ref-lb", kind: "request-flow" },
+            { id: "bb-3-8-ref-e6", source: "bb-3-8-ref-lb", target: "bb-3-8-ref-app", kind: "request-flow" },
+            { id: "bb-3-8-ref-e7", source: "bb-3-8-ref-app", target: "bb-3-8-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-8-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -7137,13 +7322,13 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-8-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-8-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-8-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-8-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-8-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-8-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-8-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 2 } },
-        { id: "bb-3-8-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-8-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-8-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-8-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-8-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-8-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-8-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 2 } },
+        { id: "bb-3-8-db", componentId: "sql-database", position: { x: 840, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-8-e1", source: "bb-3-8-browser", target: "bb-3-8-dns", kind: "request-flow" },
@@ -7157,15 +7342,15 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-8-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-8-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-8-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-8-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-8-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-8-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-8-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-8-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-8-zone-data", label: "Data", position: { x: 812, y: 280 }, width: 176, height: 148, color: "#10b981" },
       {
         kind: "comment",
         id: "bb-3-8-comment-capacity",
         text: "Peaks at 300 req/s. Each Application Server instance is tested to handle 150.",
-        position: { x: 980, y: 272 },
+        position: { x: 1100, y: 320 },
         width: 240,
         height: 100,
         color: "#64748b",
@@ -7253,6 +7438,28 @@ export const chapterRegistry: ChapterDefinition[] = [
           "a number that can't outlast the cutover it's meant to survive. That's the whole chapter: " +
           "membership freshness is a config value with a real cost on both sides, not a detail to " +
           "leave at its default.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-9-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-9-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { ttlSeconds: 30 } },
+            { id: "bb-3-9-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-9-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-9-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-9-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-9-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 3 } },
+            { id: "bb-3-9-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-9-ref-e1", source: "bb-3-9-ref-browser", target: "bb-3-9-ref-dns", kind: "request-flow" },
+            { id: "bb-3-9-ref-e2", source: "bb-3-9-ref-dns", target: "bb-3-9-ref-fw", kind: "request-flow" },
+            { id: "bb-3-9-ref-e3", source: "bb-3-9-ref-fw", target: "bb-3-9-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-9-ref-e4", source: "bb-3-9-ref-proxy", target: "bb-3-9-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-9-ref-e5", source: "bb-3-9-ref-gateway", target: "bb-3-9-ref-lb", kind: "request-flow" },
+            { id: "bb-3-9-ref-e6", source: "bb-3-9-ref-lb", target: "bb-3-9-ref-app", kind: "request-flow" },
+            { id: "bb-3-9-ref-e7", source: "bb-3-9-ref-app", target: "bb-3-9-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-9-ref-browser"],
+        },
       },
     ],
     hints: [
@@ -7516,13 +7723,13 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-9-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-9-dns", componentId: "dns", position: { x: 380, y: 0 }, config: { ttlSeconds: 300 } },
-        { id: "bb-3-9-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-9-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-9-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-9-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-9-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
-        { id: "bb-3-9-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
+        { id: "bb-3-9-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { ttlSeconds: 300 } },
+        { id: "bb-3-9-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-9-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-9-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-9-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-9-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-9-db", componentId: "sql-database", position: { x: 840, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-9-e1", source: "bb-3-9-browser", target: "bb-3-9-dns", kind: "request-flow" },
@@ -7536,15 +7743,19 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-9-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-9-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-9-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-9-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-9-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 256, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-9-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-9-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-9-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-9-zone-data", label: "Data", position: { x: 812, y: 280 }, width: 176, height: 148, color: "#10b981" },
       {
         kind: "comment",
         id: "bb-3-9-comment-ttl",
         text: "TTL controls how long a client is allowed to cache this DNS answer before asking again.",
-        position: { x: 980, y: -48 },
+        // Under the Client zone's own free rows, one column left of the DNS
+        // card it describes. It used to sit at x: 1100 - past the Data tier,
+        // the full width of the board away from DNS and next to nothing it
+        // had anything to say about.
+        position: { x: 32, y: 160 },
         width: 240,
         height: 100,
         color: "#64748b",
@@ -7969,6 +8180,30 @@ export const chapterRegistry: ChapterDefinition[] = [
           "migration, which is exactly what the fixed relational schema was fighting every sprint. " +
           "This is the chapter's own thesis in miniature - not a replacement, a second store for a " +
           "second shape.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-11-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-11-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-11-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-11-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-11-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-11-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-11-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 3 } },
+            { id: "bb-3-11-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+            { id: "bb-3-11-ref-nosql", componentId: "nosql-database", position: { x: 320, y: 390 }, config: { model: "document" } },
+          ],
+          edges: [
+            { id: "bb-3-11-ref-e1", source: "bb-3-11-ref-browser", target: "bb-3-11-ref-dns", kind: "request-flow" },
+            { id: "bb-3-11-ref-e2", source: "bb-3-11-ref-dns", target: "bb-3-11-ref-fw", kind: "request-flow" },
+            { id: "bb-3-11-ref-e3", source: "bb-3-11-ref-fw", target: "bb-3-11-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-11-ref-e4", source: "bb-3-11-ref-proxy", target: "bb-3-11-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-11-ref-e5", source: "bb-3-11-ref-gateway", target: "bb-3-11-ref-lb", kind: "request-flow" },
+            { id: "bb-3-11-ref-e6", source: "bb-3-11-ref-lb", target: "bb-3-11-ref-app", kind: "request-flow" },
+            { id: "bb-3-11-ref-e7", source: "bb-3-11-ref-app", target: "bb-3-11-ref-db", kind: "request-flow" },
+            { id: "bb-3-11-ref-e8", source: "bb-3-11-ref-app", target: "bb-3-11-ref-nosql", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-11-ref-browser"],
+        },
       },
     ],
     hasEditorExercise: true,
@@ -8235,14 +8470,14 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-11-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-11-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-11-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-11-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-11-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-11-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-11-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
-        { id: "bb-3-11-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
-        { id: "bb-3-11-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "key-value" } },
+        { id: "bb-3-11-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-11-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-11-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-11-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-11-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-11-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-11-db", componentId: "sql-database", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-11-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "key-value" } },
       ],
       edges: [
         { id: "bb-3-11-e1", source: "bb-3-11-browser", target: "bb-3-11-dns", kind: "request-flow" },
@@ -8256,15 +8491,15 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-11-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-11-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-11-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-11-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-11-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 576, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-11-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-11-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-11-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-11-zone-data", label: "Data", position: { x: 812, y: 120 }, width: 176, height: 308, color: "#10b981" },
       {
         kind: "comment",
         id: "bb-3-11-comment-kv",
         text: "Key-value stores trade relational joins and ad-hoc queries for O(1) lookups by key.",
-        position: { x: 980, y: 432 },
+        position: { x: 1100, y: 160 },
         width: 240,
         height: 100,
         color: "#64748b",
@@ -8376,6 +8611,33 @@ export const chapterRegistry: ChapterDefinition[] = [
           "never a query. In its place: one edge carrying the replication stream in from the primary, and " +
           "one edge carrying reads back out to the Application Server. Reads and writes now travel " +
           "genuinely different paths - the split this chapter is about.",
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-12-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-12-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-12-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-12-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-12-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+            { id: "bb-3-12-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+            { id: "bb-3-12-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 3 } },
+            { id: "bb-3-12-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+            { id: "bb-3-12-ref-nosql", componentId: "nosql-database", position: { x: 320, y: 390 }, config: { model: "document" } },
+            { id: "bb-3-12-ref-replica", componentId: "read-replica", position: { x: 580, y: 390 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-12-ref-e1", source: "bb-3-12-ref-browser", target: "bb-3-12-ref-dns", kind: "request-flow" },
+            { id: "bb-3-12-ref-e2", source: "bb-3-12-ref-dns", target: "bb-3-12-ref-fw", kind: "request-flow" },
+            { id: "bb-3-12-ref-e3", source: "bb-3-12-ref-fw", target: "bb-3-12-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-12-ref-e4", source: "bb-3-12-ref-proxy", target: "bb-3-12-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-12-ref-e5", source: "bb-3-12-ref-gateway", target: "bb-3-12-ref-lb", kind: "request-flow" },
+            { id: "bb-3-12-ref-e6", source: "bb-3-12-ref-lb", target: "bb-3-12-ref-app", kind: "request-flow" },
+            { id: "bb-3-12-ref-e7", source: "bb-3-12-ref-app", target: "bb-3-12-ref-db", kind: "request-flow" },
+            { id: "bb-3-12-ref-e8", source: "bb-3-12-ref-app", target: "bb-3-12-ref-nosql", kind: "request-flow" },
+            { id: "bb-3-12-ref-e9", source: "bb-3-12-ref-db", target: "bb-3-12-ref-replica", kind: "replication" },
+            { id: "bb-3-12-ref-e10", source: "bb-3-12-ref-replica", target: "bb-3-12-ref-app", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-12-ref-browser"],
+        },
       },
     ],
     hasEditorExercise: true,
@@ -8671,15 +8933,15 @@ export const chapterRegistry: ChapterDefinition[] = [
     starterGraph: {
       nodes: [
         { id: "bb-3-12-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
-        { id: "bb-3-12-dns", componentId: "dns", position: { x: 380, y: 0 }, config: {} },
-        { id: "bb-3-12-fw", componentId: "firewall", position: { x: 700, y: 0 }, config: { defaultPolicy: "allow-listed" } },
-        { id: "bb-3-12-proxy", componentId: "reverse-proxy", position: { x: 60, y: 160 }, config: {} },
-        { id: "bb-3-12-gateway", componentId: "api-gateway", position: { x: 60, y: 320 }, config: {} },
-        { id: "bb-3-12-lb", componentId: "load-balancer", position: { x: 380, y: 320 }, config: {} },
-        { id: "bb-3-12-app", componentId: "app-server", position: { x: 700, y: 320 }, config: { instances: 3 } },
-        { id: "bb-3-12-db", componentId: "sql-database", position: { x: 60, y: 480 }, config: {} },
-        { id: "bb-3-12-nosql", componentId: "nosql-database", position: { x: 380, y: 480 }, config: { model: "document" } },
-        { id: "bb-3-12-replica", componentId: "read-replica", position: { x: 700, y: 480 }, config: {} },
+        { id: "bb-3-12-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-12-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-12-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-12-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-12-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-12-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-12-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-3-12-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-12-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
       ],
       edges: [
         { id: "bb-3-12-e1", source: "bb-3-12-browser", target: "bb-3-12-dns", kind: "request-flow" },
@@ -8695,15 +8957,15 @@ export const chapterRegistry: ChapterDefinition[] = [
       entryPointIds: ["bb-3-12-browser"],
     },
     starterDecorators: [
-      { kind: "zone", id: "bb-3-12-zone-edge", label: "Edge", position: { x: 32, y: -48 }, width: 896, height: 137, color: "#3b82f6" },
-      { kind: "zone", id: "bb-3-12-zone-proxy", label: "Application", position: { x: 32, y: 112 }, width: 256, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-12-zone-app", label: "Application", position: { x: 32, y: 272 }, width: 896, height: 137, color: "#a855f7" },
-      { kind: "zone", id: "bb-3-12-zone-data", label: "Data", position: { x: 32, y: 432 }, width: 896, height: 137, color: "#10b981" },
+      { kind: "zone", id: "bb-3-12-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-12-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-12-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-12-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#10b981" },
       {
         kind: "comment",
         id: "bb-3-12-comment-lag",
         text: "Replicas lag the primary - reads here may be a few milliseconds stale.",
-        position: { x: 980, y: 432 },
+        position: { x: 1100, y: 320 },
         width: 240,
         height: 100,
         color: "#64748b",
@@ -9073,6 +9335,3735 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
   },
   {
+    id: "bb-3-14-caching",
+    mode: "building-blocks",
+    title: "Caching",
+    // Real authored content (first Group D chapter, authored immediately
+    // after 3.13 in this same working tree). Spec:
+    // specs/bb-3-14-caching.spec.md. Lesson body:
+    // public/content/chapters/bb-3-14-caching.mdx. Real curriculum-order
+    // prerequisite (3.13) is already shipped here - manifest.ts's
+    // prerequisiteSlugs already points at "3-13-sharding", no pulled-forward
+    // exception needed.
+    problemStatement:
+      "One aggregate query runs on every product-page view, returns the same rows to every visitor, and " +
+      "is now most of what the primary database does. A Cache is already on the canvas with its miss " +
+      "path drawn to the primary, and the database's read load has not moved at all.",
+    exerciseGoal:
+      "Stop the primary from answering the same read over and over, without changing where writes land or how the replica serves its reads.",
+    successCriteria: [
+      "A repeat read is answered without the primary doing the query again.",
+      "A read nobody has asked for before still returns the right answer.",
+      "Writes and the replica's read path are exactly as 3.12 left them.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces cache + distributed-cache).
+    learningObjectives: [
+      "Describe the three steps of cache-aside in order, and name where the logic lives (the application, never the cache).",
+      "Compute the origin load left after a cache at a stated hit ratio, and explain why hit ratio, not cache latency, is what turns a cache into headroom.",
+      "Distinguish what evictionPolicy decides (what gets dropped under memory pressure) from what ttlSeconds decides (how long a value may be wrong), and state a cache's staleness bound as a number.",
+      "Wire a Cache into the read path of a running system so repeat reads stop reaching the primary, and pass Submit.",
+      "Predict the inconsistent-read failure that per-instance caches produce behind a load balancer, and name the shared cache tier as the fix.",
+      "Defend caching over another read replica for a repeat-read workload, naming the staleness it buys the reduction with.",
+    ],
+    // Cumulative palette through 3.13 plus this chapter's own two new
+    // components. CURRICULUM §16's own row: "3.14 | cache, distributed-cache".
+    // required deliberately excludes distributed-cache: it is taught in the
+    // lesson's second half and tested in the quiz, but this system's scale
+    // doesn't justify one, and requiring it would teach exactly the
+    // cargo-culting §9 lens 9 exists to prevent (spec §6).
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+    ],
+    // 3.12's curated set, unchanged. This chapter's own starter fault is a
+    // Cache with an outgoing miss path and nothing feeding it, which is
+    // exactly missing-input-connection's stated case ("looks wired into the
+    // diagram, but no request can ever actually reach it") - and it is
+    // error-severity, so Validate genuinely fails rather than passing with a
+    // warning listed (see spec §7 on open decision 11).
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-14-blueprint",
+        label: "The repeat read stops reaching the primary",
+        require: {
+          id: "bb-3-14-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+              { id: "bb-3-14-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+              { id: "bb-3-14-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+              { id: "bb-3-14-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+              { id: "bb-3-14-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+              { id: "bb-3-14-ref-gateway", componentId: "api-gateway", position: { x: 60, y: 195 }, config: {} },
+              { id: "bb-3-14-ref-lb", componentId: "load-balancer", position: { x: 320, y: 195 }, config: {} },
+              { id: "bb-3-14-ref-app", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 3 } },
+              { id: "bb-3-14-ref-db", componentId: "sql-database", position: { x: 840, y: 195 }, config: {} },
+              { id: "bb-3-14-ref-nosql", componentId: "nosql-database", position: { x: 60, y: 390 }, config: { model: "document" } },
+              { id: "bb-3-14-ref-replica", componentId: "read-replica", position: { x: 320, y: 390 }, config: {} },
+              { id: "bb-3-14-ref-cache", componentId: "cache", position: { x: 580, y: 390 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+          ],
+          edges: [
+              { id: "bb-3-14-ref-e1", source: "bb-3-14-ref-browser", target: "bb-3-14-ref-dns", kind: "request-flow" },
+              { id: "bb-3-14-ref-e2", source: "bb-3-14-ref-dns", target: "bb-3-14-ref-fw", kind: "request-flow" },
+              { id: "bb-3-14-ref-e3", source: "bb-3-14-ref-fw", target: "bb-3-14-ref-proxy", kind: "request-flow" },
+              { id: "bb-3-14-ref-e4", source: "bb-3-14-ref-proxy", target: "bb-3-14-ref-gateway", kind: "request-flow" },
+              { id: "bb-3-14-ref-e5", source: "bb-3-14-ref-gateway", target: "bb-3-14-ref-lb", kind: "request-flow" },
+              { id: "bb-3-14-ref-e6", source: "bb-3-14-ref-lb", target: "bb-3-14-ref-app", kind: "request-flow" },
+              { id: "bb-3-14-ref-e7", source: "bb-3-14-ref-app", target: "bb-3-14-ref-db", kind: "request-flow" },
+              { id: "bb-3-14-ref-e8", source: "bb-3-14-ref-app", target: "bb-3-14-ref-nosql", kind: "request-flow" },
+              { id: "bb-3-14-ref-e9", source: "bb-3-14-ref-db", target: "bb-3-14-ref-replica", kind: "replication" },
+              { id: "bb-3-14-ref-e10", source: "bb-3-14-ref-replica", target: "bb-3-14-ref-app", kind: "request-flow" },
+              { id: "bb-3-14-ref-e11", source: "bb-3-14-ref-app", target: "bb-3-14-ref-cache", kind: "request-flow" },
+              { id: "bb-3-14-ref-e12", source: "bb-3-14-ref-cache", target: "bb-3-14-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-14-ref-browser"],
+        },
+        commentary:
+          "One edge, and it's the one that carries the whole pattern: the Application Server now asks the " +
+          "Cache before it asks the primary. The miss path was never the missing piece - a cache with a " +
+          "perfectly good route to its origin and nobody sending it reads is a component that can only " +
+          "ever sit empty. Notice what did not change: writes still go straight to the primary, and the " +
+          "replica still serves the reads that have to be current. The cache didn't replace either path, " +
+          "it removed the repeat work from in front of both.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-14-hint-1",
+        body:
+          "Validate names exactly one problem, and it names the component it's about. Read what it says " +
+          "about direction before you change anything - it isn't saying something is missing from the " +
+          "canvas.",
+      },
+      {
+        id: "bb-3-14-hint-2",
+        body:
+          "Follow one read from the load balancer to whatever produces the answer, and list every node it " +
+          "passes through. Compare that list against the nodes on the canvas.",
+      },
+      {
+        id: "bb-3-14-hint-3",
+        body:
+          "The Cache already knows where to go when it doesn't have an answer. What it has never had is " +
+          "anyone asking it a question - and only one tier on this canvas issues reads at all.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group D: Performance - Chapter 3.14 of 37 (first chapter in Group D).",
+      masteredConcepts: [
+        "The full request chain through 3.13 (browser through app-server to sql-database and " +
+          "nosql-database, plus 3.12's read-replica) is unchanged and still passing.",
+        "3.12's replication and read-your-writes: reads can already be offloaded onto a copy of the " +
+          "primary, and that copy can be behind. This chapter's move is the other one - not doing the " +
+          "read at all.",
+        "3.7's session externalization onto the SQL Database, shipped with an explicit note that a " +
+          "faster purpose-built store arrives in this chapter. That promise is paid off here in prose.",
+        "3.4 and 3.6's multi-instance app tier: consecutive requests from one user land on whichever " +
+          "instance the load balancer picks - the precondition that makes per-instance caching fail.",
+        "1.4's back-of-envelope arithmetic, applied here to hit ratio as a multiplier on origin load.",
+        "3.13's hot-partition problem, reused at the end of the scale ladder for a second store.",
+      ],
+      notYetIntroducedConcepts: [
+        "CDNs and caching at the network edge (3.15) - this chapter's one marked forward tease.",
+        "Search engines and inverted indexes (3.16).",
+        "Queues and event streams (3.17-3.18), which are how real systems invalidate a cache on write " +
+          "rather than waiting out a TTL. Named in the trade-off table, not modeled.",
+        "CAP, quorums, and the consistency spectrum (3.22) - the Distributed Cache's own consistency " +
+          "field is named as a knob that exists, never derived from a model the learner has.",
+        "Everything past Group D.",
+      ],
+      simplifications: [
+        "The canvas draws a Cache's outgoing edge to its origin, while cache-aside as taught puts the " +
+          "miss logic in application code (the app reads the origin, then populates the cache). The edge " +
+          "is how this canvas records which store a cache falls back to, not a claim that the cache " +
+          "fetches on its own. Stated in the lesson's own cache-aside section, not only here.",
+        "Invalidation is TTL-based only at this stage. Explicit invalidate-on-write is named in the " +
+          "trade-off table as write-through's alternative, but nothing on canvas expresses it.",
+        "One cache tier in front of one origin is the topology taught and tested. Real systems layer " +
+          "caches (browser, edge, application, the database's own buffer pool) and cache at several " +
+          "granularities at once; named in \"What changes at scale,\" not modeled.",
+        "Hit ratio is treated as a measured property the learner reasons about arithmetically, not as " +
+          "something this stage predicts from a workload. There is no hit-ratio field on the canvas.",
+      ],
+    },
+    // Six questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3/3, matching
+    // 3.10-3.13's own ramp. Q1 adapts QUIZ_FRAMEWORK.md §11's bank Q1
+    // (cache-aside order), Q3 adapts bank Q2 (the staleness contract), Q4
+    // adapts bank Q3 (the per-instance-cache diagram, with miss edges added
+    // so the graph matches what this chapter teaches - see spec §10), Q5
+    // adapts bank Q4 (stampede), Q6 adapts bank Q10 (hit-ratio arithmetic).
+    // Q2 is original - the "where does cache-aside logic live" misconception
+    // the bank's own Q1 note flags as a separate quiz favorite.
+    // Correct options sit at c, a, d, b, a, d - all four positions used, no
+    // letter repeating in consecutive questions, and the chapter opens on
+    // neither 3.13's opener ("b") nor 3.12's ("a").
+    quiz: [
+      {
+        id: "bb-3-14-caching-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt: "Cache-aside, in order:",
+        options: [
+          {
+            id: "a",
+            label: "The application writes to the cache, and the cache writes through to the database.",
+            correct: false,
+            explanationMd:
+              "That's write-through, a different pattern with a different cost - it puts the cache on the write path, where cache-aside only ever touches reads.",
+          },
+          {
+            id: "b",
+            label: "Read the database, then check the cache to see whether the value was already there.",
+            correct: false,
+            explanationMd:
+              "The database read is the expensive step. Doing it first means the cache never saves anything.",
+          },
+          {
+            id: "c",
+            label: "Check the cache; on a miss, read the database, populate the cache, and return. On a hit, return immediately.",
+            correct: true,
+            explanationMd:
+              "Correct. The cache is consulted first, and a miss is what teaches it the value - which is why the second request for the same key is the one that pays off.",
+          },
+          {
+            id: "d",
+            label: "The cache subscribes to the database and receives every change as it happens.",
+            correct: false,
+            explanationMd:
+              "That would keep the cache current, but nothing in a cache-aside setup pushes anything - the cache learns a value only when an application miss populates it.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-14-caching-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt: "Where does the cache-aside logic actually live?",
+        options: [
+          {
+            id: "a",
+            label: "In the application code that issues the read.",
+            correct: true,
+            explanationMd:
+              "Correct. The application decides the key, checks the cache, falls back to the origin and populates - the cache itself has no idea what the database holds.",
+          },
+          {
+            id: "b",
+            label: "In the cache, which tracks which keys the database holds and fetches them as needed.",
+            correct: false,
+            explanationMd:
+              "A cache stores what it was told to store. It has no view of the database's contents and no way to know a key exists until something asks for it.",
+          },
+          {
+            id: "c",
+            label: "In the load balancer, which decides which requests are cacheable.",
+            correct: false,
+            explanationMd:
+              "The load balancer's decision is which instance answers (3.4). It never sees the query behind the request, let alone the cache key.",
+          },
+          {
+            id: "d",
+            label: "In the database, which pushes changed rows out to the cache.",
+            correct: false,
+            explanationMd:
+              "Databases don't push. That's why the staleness window in this chapter exists at all - nothing tells the cache a value has changed.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-14-caching-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A cache with a 60-second TTL fronts product prices. Someone on the business side asks whether the prices on the site are accurate. The honest answer:",
+        options: [
+          {
+            id: "a",
+            label: "Yes - the cache is refreshed whenever a price is written, so it can't be behind.",
+            correct: false,
+            explanationMd:
+              "Nothing in cache-aside refreshes on write. A price change reaches the cache when the old entry expires, not when the write lands.",
+          },
+          {
+            id: "b",
+            label: "Yes - caching changes how cheaply a price is served, not what the price is.",
+            correct: false,
+            explanationMd:
+              "It changes both. The value served comes from a copy taken at some earlier moment, which is exactly what a TTL bounds.",
+          },
+          {
+            id: "c",
+            label: "The database is no longer on the price path, so accuracy is the cache's responsibility now.",
+            correct: false,
+            explanationMd:
+              "The database is still the source of truth - the cache holds a dated copy of it. Relocating responsibility doesn't answer the question that was asked.",
+          },
+          {
+            id: "d",
+            label: "A price change may show up to roughly 60 seconds late, and that bounded staleness is what bought the read reduction.",
+            correct: true,
+            explanationMd:
+              "Correct. Stating the bound as a number is the engineering habit here - a cache is a staleness contract, and the TTL is where the contract is written down.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-14-caching-q4",
+        kind: "diagram",
+        difficulty: 2,
+        prompt:
+          "Users report that one page shows an old value, then a new one, flipping on every refresh. The database holds exactly one correct value the whole time. Reading the diagram, what is happening and what fixes it?",
+        graph: {
+          nodes: [
+            { id: "c1", componentId: "client", position: { x: 40, y: 240 }, config: {} },
+            { id: "lb1", componentId: "load-balancer", position: { x: 220, y: 240 }, config: {} },
+            { id: "s1", componentId: "app-server", position: { x: 400, y: 120 }, config: {} },
+            { id: "s2", componentId: "app-server", position: { x: 400, y: 360 }, config: {} },
+            { id: "k1", componentId: "cache", position: { x: 580, y: 120 }, config: {} },
+            { id: "k2", componentId: "cache", position: { x: 580, y: 360 }, config: {} },
+            { id: "d1", componentId: "sql-database", position: { x: 760, y: 240 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "c1", target: "lb1", kind: "request-flow" },
+            { id: "e2", source: "lb1", target: "s1", kind: "request-flow" },
+            { id: "e3", source: "lb1", target: "s2", kind: "request-flow" },
+            { id: "e4", source: "s1", target: "k1", kind: "request-flow" },
+            { id: "e5", source: "s2", target: "k2", kind: "request-flow" },
+            { id: "e6", source: "k1", target: "d1", kind: "request-flow" },
+            { id: "e7", source: "k2", target: "d1", kind: "request-flow" },
+          ],
+          entryPointIds: ["c1"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "The database is returning inconsistent rows and should be restored from a backup.",
+            correct: false,
+            explanationMd:
+              "The prompt rules this out - the database holds one correct value throughout. The disagreement is downstream of it.",
+          },
+          {
+            id: "b",
+            label: "Each Application Server has its own private cache holding a different generation of the value, and consecutive requests land on different servers. Consolidate them into one cache tier both servers reach.",
+            correct: true,
+            explanationMd:
+              "Correct. Neither cache is wrong - each faithfully serves what it captured, at a different moment. One shared tier gives the two servers one copy of the answer instead of two.",
+          },
+          {
+            id: "c",
+            label: "The load balancer should cache the response itself, so both servers see the same copy.",
+            correct: false,
+            explanationMd:
+              "That moves the cache somewhere it can't see the query or the key, and it re-couples every cached response to the one component the whole tier already depends on.",
+          },
+          {
+            id: "d",
+            label: "The TTLs are too long. Set them to zero so nothing is ever served stale.",
+            correct: false,
+            explanationMd:
+              "A zero TTL is a 0% hit ratio - it removes the symptom by removing the cache. The two caches would still disagree at any TTL above zero.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-14-caching-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Your homepage's cache key expires at 3pm, at peak. Two thousand in-flight requests miss at the same instant, all reach the database together, and it falls over. Name it, and name a fix:",
+        options: [
+          {
+            id: "a",
+            label: "A cache stampede. Serve the stale value while one request refreshes, lock the refresh so only one caller does it, or jitter TTLs so keys stop expiring in lockstep.",
+            correct: true,
+            explanationMd:
+              "Correct. The database's worst second is the one right after the cache stops helping it, and every fix here is a way of making sure only one request pays the miss.",
+          },
+          {
+            id: "b",
+            label: "Replication lag. Add read replicas so the misses spread across more machines.",
+            correct: false,
+            explanationMd:
+              "Lag (3.12) is a copy being behind, which isn't what happened. More replicas would absorb some of the burst, but the burst itself is a synchronized expiry.",
+          },
+          {
+            id: "c",
+            label: "A hot partition. Reshard the data so that key's load spreads across shards.",
+            correct: false,
+            explanationMd:
+              "A hot partition (3.13) is sustained skew toward one shard. This is one instant of load from one key that was, until 3pm, costing the database nothing at all.",
+          },
+          {
+            id: "d",
+            label: "Cache poisoning. Put authentication in front of the cache.",
+            correct: false,
+            explanationMd:
+              "Poisoning is an attacker planting a bad value. Nothing here is malicious - the cache did precisely what its TTL told it to.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-14-caching-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "One query runs 100 times a second and averages 30 ms on the database. You put a cache in front of it and measure a 95% hit ratio. Roughly what does the database serve from this query now?",
+        options: [
+          {
+            id: "a",
+            label: "Still 100 a second - the cache shortens the response, it doesn't remove the query.",
+            correct: false,
+            explanationMd:
+              "A hit never reaches the database at all. That's the entire mechanism - the cache absorbs the request rather than accelerating it.",
+          },
+          {
+            id: "b",
+            label: "About 50 a second.",
+            correct: false,
+            explanationMd:
+              "That would be a 50% hit ratio. The measured ratio is the multiplier, and it's 95%.",
+          },
+          {
+            id: "c",
+            label: "Zero - once the value is cached, the database never sees this query again.",
+            correct: false,
+            explanationMd:
+              "Misses keep happening: entries expire, get evicted, and the cache restarts empty. A cache that never missed would be a copy of the database, not a cache.",
+          },
+          {
+            id: "d",
+            label: "About 5 a second - only the misses reach it.",
+            correct: true,
+            explanationMd:
+              "Correct: 100 x 5% = 5. Doing this arithmetic on the spot is what turns \"add a cache\" from a reflex into a capacity argument.",
+          },
+        ],
+      },
+    ],
+    // Fix-shaped, one fault: 3.13's passing system with a Cache added, its
+    // miss path to the primary already drawn, and nothing feeding it. That
+    // fires missing-input-connection (error) - "it looks wired into the
+    // diagram, but no request can ever actually reach it" - which is exactly
+    // the chapter's point: a cache nobody reads from is a cache that does
+    // nothing. The single missing edge is the whole cache-aside pattern.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-14-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-14-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-14-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-14-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-3-14-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-14-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-14-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-14-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-3-14-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-14-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-14-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+      ],
+      edges: [
+        { id: "bb-3-14-e1", source: "bb-3-14-browser", target: "bb-3-14-dns", kind: "request-flow" },
+        { id: "bb-3-14-e2", source: "bb-3-14-dns", target: "bb-3-14-fw", kind: "request-flow" },
+        { id: "bb-3-14-e3", source: "bb-3-14-fw", target: "bb-3-14-proxy", kind: "request-flow" },
+        { id: "bb-3-14-e4", source: "bb-3-14-proxy", target: "bb-3-14-gateway", kind: "request-flow" },
+        { id: "bb-3-14-e5", source: "bb-3-14-gateway", target: "bb-3-14-lb", kind: "request-flow" },
+        { id: "bb-3-14-e6", source: "bb-3-14-lb", target: "bb-3-14-app", kind: "request-flow" },
+        { id: "bb-3-14-e7", source: "bb-3-14-app", target: "bb-3-14-db", kind: "request-flow" },
+        { id: "bb-3-14-e8", source: "bb-3-14-app", target: "bb-3-14-nosql", kind: "request-flow" },
+        { id: "bb-3-14-e9", source: "bb-3-14-db", target: "bb-3-14-replica", kind: "replication" },
+        { id: "bb-3-14-e10", source: "bb-3-14-replica", target: "bb-3-14-app", kind: "request-flow" },
+        { id: "bb-3-14-e11", source: "bb-3-14-cache", target: "bb-3-14-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-14-browser"],
+    },
+    // No magenta gap zone: the fix is a wire between two nodes that are both
+    // already on the canvas, not a missing node in empty space (§11.6).
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-14-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-14-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-14-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-14-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#10b981" },
+      { kind: "zone", id: "bb-3-14-zone-cache", label: "Cache tier", position: { x: 812, y: 440 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-14-comment-latency",
+        text: "An answer already held here returns in about 1 ms. The same answer computed on the primary costs about 40 ms.",
+        position: { x: 1100, y: -40 },
+        width: 260,
+        height: 120,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-15-cdn",
+    mode: "building-blocks",
+    title: "CDN",
+    // Real authored content (second Group D chapter, authored immediately
+    // after 3.14 in this same working tree). Spec:
+    // specs/bb-3-15-cdn.spec.md. Lesson body:
+    // public/content/chapters/bb-3-15-cdn.mdx. Real curriculum-order
+    // prerequisite (3.14) is already shipped here - manifest.ts's
+    // prerequisiteSlugs already points at "3-14-caching".
+    problemStatement:
+      "The same product page returns in 40 ms next to your servers and takes most of a second in Sydney, " +
+      "on the same servers, at the same cache hit ratio. Most of what makes that page is images and " +
+      "script bundles that are identical for every visitor and change only when you deploy, and every " +
+      "one of them crosses an ocean on every request.",
+    exerciseGoal:
+      "Stop bytes that never change from crossing the whole network on every request, without altering what the origin does for the requests that genuinely have to reach it.",
+    successCriteria: [
+      "A request for something a nearby user already asked for is answered without crossing the network to the origin.",
+      "The first request for something nobody nearby has asked for still returns the right bytes.",
+      "Traffic that cannot be served from a copy still arrives at the firewall, and everything behind it is untouched.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces cdn).
+    learningObjectives: [
+      "Explain what an edge node holds, what happens on a hit and on a miss, and which requests the origin still sees once a CDN is in front of it.",
+      "Decide whether a given response belongs at the edge by testing it against two properties: identical for many users, and tolerant of being up to its TTL out of date.",
+      "Contrast pull and push provisioning and name what each one costs.",
+      "Place a CDN on the request path in front of the origin so repeat requests for shared bytes are answered near the user, and pass Submit.",
+      "Answer \"why is a CDN steered by DNS rather than by anything downstream?\" by naming resolution as the earliest point a user can be pointed somewhere.",
+      "Defend fingerprinted filenames plus a long TTL over a short TTL, naming what each choice costs.",
+    ],
+    // Cumulative palette through 3.14 plus this chapter's own new component.
+    // CURRICULUM §16's own row: "3.15 | cdn". distributed-cache stays
+    // available-but-not-required for 3.14's own recorded reason.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+    ],
+    // 3.14's curated set, unchanged. Nothing on this canvas is wired wrong at
+    // the start - the starter graph validates clean, deliberately (spec §7):
+    // the exercise's gap is a missing component, which Submit's blueprint
+    // check owns, not a rule violation. The set still matters during the
+    // build: a CDN dropped on the canvas and left unwired fires
+    // missing-input-connection or orphan-component while the learner works.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-15-blueprint",
+        label: "The edge answers first, the origin sees only what it must",
+        require: {
+          id: "bb-3-15-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+          ],
+          // dns -> fw is deliberately NOT required: a learner who inserts the
+          // CDN and deletes the old direct edge has built the cleaner version
+          // of the same answer, and requiring the edge they just removed would
+          // fail the better build. Keeping it is also legal (containment
+          // matching) - see the spec's §8 on why neither is forced.
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+              { id: "bb-3-15-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+              { id: "bb-3-15-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+              { id: "bb-3-15-ref-cdn", componentId: "cdn", position: { x: 580, y: 0 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+              { id: "bb-3-15-ref-fw", componentId: "firewall", position: { x: 840, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+              { id: "bb-3-15-ref-proxy", componentId: "reverse-proxy", position: { x: 60, y: 195 }, config: {} },
+              { id: "bb-3-15-ref-gateway", componentId: "api-gateway", position: { x: 320, y: 195 }, config: {} },
+              { id: "bb-3-15-ref-lb", componentId: "load-balancer", position: { x: 580, y: 195 }, config: {} },
+              { id: "bb-3-15-ref-app", componentId: "app-server", position: { x: 840, y: 195 }, config: { instances: 3 } },
+              { id: "bb-3-15-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+              { id: "bb-3-15-ref-nosql", componentId: "nosql-database", position: { x: 320, y: 390 }, config: { model: "document" } },
+              { id: "bb-3-15-ref-replica", componentId: "read-replica", position: { x: 580, y: 390 }, config: {} },
+              { id: "bb-3-15-ref-cache", componentId: "cache", position: { x: 840, y: 390 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+          ],
+          edges: [
+              { id: "bb-3-15-ref-e1", source: "bb-3-15-ref-browser", target: "bb-3-15-ref-dns", kind: "request-flow" },
+              { id: "bb-3-15-ref-e2", source: "bb-3-15-ref-dns", target: "bb-3-15-ref-cdn", kind: "request-flow" },
+              { id: "bb-3-15-ref-e3", source: "bb-3-15-ref-cdn", target: "bb-3-15-ref-fw", kind: "request-flow" },
+              { id: "bb-3-15-ref-e4", source: "bb-3-15-ref-fw", target: "bb-3-15-ref-proxy", kind: "request-flow" },
+              { id: "bb-3-15-ref-e5", source: "bb-3-15-ref-proxy", target: "bb-3-15-ref-gateway", kind: "request-flow" },
+              { id: "bb-3-15-ref-e6", source: "bb-3-15-ref-gateway", target: "bb-3-15-ref-lb", kind: "request-flow" },
+              { id: "bb-3-15-ref-e7", source: "bb-3-15-ref-lb", target: "bb-3-15-ref-app", kind: "request-flow" },
+              { id: "bb-3-15-ref-e8", source: "bb-3-15-ref-app", target: "bb-3-15-ref-db", kind: "request-flow" },
+              { id: "bb-3-15-ref-e9", source: "bb-3-15-ref-app", target: "bb-3-15-ref-nosql", kind: "request-flow" },
+              { id: "bb-3-15-ref-e10", source: "bb-3-15-ref-db", target: "bb-3-15-ref-replica", kind: "replication" },
+              { id: "bb-3-15-ref-e11", source: "bb-3-15-ref-replica", target: "bb-3-15-ref-app", kind: "request-flow" },
+              { id: "bb-3-15-ref-e12", source: "bb-3-15-ref-app", target: "bb-3-15-ref-cache", kind: "request-flow" },
+              { id: "bb-3-15-ref-e13", source: "bb-3-15-ref-cache", target: "bb-3-15-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-15-ref-browser"],
+        },
+        commentary:
+          "The CDN went in at the very front, where resolution can steer a user to it, and everything " +
+          "behind the firewall is exactly as 3.14 left it. That placement is the whole point: a copy " +
+          "kept anywhere downstream of the firewall would still be on the far side of the crossing you " +
+          "were trying to avoid. Notice what the origin still does. Every request the edge can't answer " +
+          "from a copy - anything per-user, anything that writes - takes the same path it always did, " +
+          "hits the same cache, reads the same replica. The edge removed distance from the requests that " +
+          "could tolerate it, and left the rest alone.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-15-hint-1",
+        body:
+          "Validate has nothing to say about this canvas, and that is honest - nothing here is wired " +
+          "wrong. What's wrong is where the answer is, not what the answer is, and no validation rule " +
+          "measures distance.",
+      },
+      {
+        id: "bb-3-15-hint-2",
+        body:
+          "The bytes in question are identical for every visitor and change only when you deploy. " +
+          "Keeping a copy of an answer that doesn't change is a move you already know - the open " +
+          "question is which end of the path the copy should sit at.",
+      },
+      {
+        id: "bb-3-15-hint-3",
+        body:
+          "Look at the very front of the request path. One thing there already decides where a request " +
+          "goes before it goes anywhere, and it is the only decision in this system that can be made " +
+          "differently for a user in Sydney than for a user in Virginia.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group D: Performance - Chapter 3.15 of 37 (second chapter in Group D).",
+      masteredConcepts: [
+        "3.14's cache-aside read path, wired and passing: the hit/miss shape, hit ratio as the multiplier " +
+          "on origin load, and a TTL as a staleness bound written down as a number. This chapter reuses " +
+          "all of it one layer out.",
+        "3.2's DNS: resolution, record TTLs, and its closing claim that changing what a name resolves to " +
+          "is how traffic gets routed. That is the mechanism this chapter's steering rests on, and the " +
+          "foreshadow it pays off.",
+        "3.3's reverse proxy: something in front of the origin that terminates connections and answers " +
+          "what it can. A CDN is the same job, in a few hundred locations, run by someone else.",
+        "The full request chain through 3.14 (browser through app-server to sql-database and " +
+          "nosql-database, plus the read-replica and the cache) is unchanged and still passing.",
+        "3.14's stampede, reused here as the herd that follows a global purge.",
+      ],
+      notYetIntroducedConcepts: [
+        "Search engines and inverted indexes (3.16) - this chapter's one marked forward tease.",
+        "Object storage (3.20), which is where the bytes a CDN fronts actually live in a real system. " +
+          "This chapter's CDN sits in front of the same origin the browser was already reaching.",
+        "Queues and event streams (3.17-3.18), which are how a real invalidation fans out to every " +
+          "location. Purging is named as an operation, not modeled.",
+        "Multi-region origins and geo-replicated data. This chapter moves copies of responses closer to " +
+          "users; moving the system itself closer is not in this curriculum's Building Blocks.",
+        "Everything past Group D.",
+      ],
+      simplifications: [
+        "One CDN node on canvas stands for the entire distributed tier - a few hundred locations, each " +
+          "with its own cache and its own hit ratio. The lesson's walkthrough draws two of them for " +
+          "exactly this reason; the exercise canvas has room for one box.",
+        "Cache keys, Cache-Control and ETag negotiation, and per-object headers are the real control " +
+          "surface at the edge. On canvas there is one cacheTtlSeconds for the whole node, and per-user " +
+          "cacheability is a single cacheDynamicContent boolean.",
+        "DNS steering is taught as the mechanism because it is the one 3.2 already built. Many CDNs " +
+          "steer with anycast instead, announcing one address from every location; the lesson names " +
+          "this in a clause rather than teaching it.",
+        "Push provisioning is taught in the lesson and the walkthrough but has no expression on canvas - " +
+          "the cdn component has no push/pull field. The build is pull-shaped by default.",
+        "TLS termination at the edge, request collapsing, and origin shielding are named at their " +
+          "beats and not modeled. A shield tier would be a second cdn node, which this system's scale " +
+          "does not justify.",
+      ],
+    },
+    // Six questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3/3, matching
+    // 3.10-3.14's own ramp. Q3 adapts QUIZ_FRAMEWORK.md §11's bank Q5 (what
+    // belongs on a CDN) into a multi-select, which is what §14's own row asks
+    // this chapter's trade-off exercise to be ("which of five asset types
+    // belong on the CDN"). Q4 adapts bank Q6 (why DNS-steered). The other
+    // four are original.
+    // Correct options on the five single-choice questions sit at d, b, a, c,
+    // b - all four positions used, no letter in consecutive questions, and
+    // the chapter opens on "d", which 3.12 ("a"), 3.13 ("b") and 3.14 ("c")
+    // all avoid.
+    quiz: [
+      {
+        id: "bb-3-15-cdn-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Your API's P50 is 40 ms in Virginia and 600 ms in Sydney. Same servers, same cache, the same 95% hit ratio measured in both regions, and no box is above 30% CPU. What is the other 560 ms?",
+        options: [
+          {
+            id: "a",
+            label: "Sydney's requests are missing the cache and recomputing against the primary.",
+            correct: false,
+            explanationMd:
+              "The hit ratio is stated as identical in both regions, and a miss on this system costs tens of milliseconds, not hundreds. Whatever the 560 ms is, it is being paid on hits too.",
+          },
+          {
+            id: "b",
+            label: "The app tier is short of instances now that a second region's traffic has arrived.",
+            correct: false,
+            explanationMd:
+              "Every box is under 30% CPU. Adding instances adds capacity, and capacity is not what is short - a queue would show up as load, and there is none.",
+          },
+          {
+            id: "c",
+            label: "The database is the bottleneck; a read replica in Sydney would fix it.",
+            correct: false,
+            explanationMd:
+              "A replica near the user only helps if the code issuing the read is near the user too. The app tier is still in Virginia, so the request crosses the ocean before any query runs.",
+          },
+          {
+            id: "d",
+            label: "Round trips. The request crosses an ocean, and a fresh connection pays two more crossings on the TCP and TLS handshakes before the first byte of the response moves.",
+            correct: true,
+            explanationMd:
+              "Correct. Distance is not work, which is why none of the levers that make work faster or rarer move this number. The only fix is to answer from somewhere closer.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-15-cdn-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "You put a pull-provisioned CDN in front of your assets. A user in Sao Paulo is the first person in Brazil to request `hero.jpg`. What do they get, and what do the next ten thousand Brazilian visitors get?",
+        options: [
+          {
+            id: "a",
+            label: "Nobody in Brazil gets anything until the file has been copied to every location, which is what a deploy does.",
+            correct: false,
+            explanationMd:
+              "That describes push provisioning, and even then a deploy doesn't block reads. Under pull, nothing is pre-copied anywhere and the first request is what fills the location.",
+          },
+          {
+            id: "b",
+            label: "The first user pays a round trip to the origin plus the local hop; everyone after them is served out of Sao Paulo without the origin being involved.",
+            correct: true,
+            explanationMd:
+              "Correct. Under pull, exactly one user per location per object pays the crossing, and the rest of that region inherits the copy their miss created.",
+          },
+          {
+            id: "c",
+            label: "All ten thousand and one are served from Sao Paulo, because a CDN copies your assets to every location when you configure it.",
+            correct: false,
+            explanationMd:
+              "That is push, described as if it were the default. Push exists and is the right answer for a launch, but it means every location stores every object whether or not anyone there asks.",
+          },
+          {
+            id: "d",
+            label: "All ten thousand and one reach the origin; the CDN shortens the network path but doesn't hold anything.",
+            correct: false,
+            explanationMd:
+              "Then it would be a route optimization, not a cache. Holding the response is the entire mechanism - a CDN that forwarded everything would add a hop and remove nothing.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-15-cdn-q3",
+        kind: "multi",
+        difficulty: 2,
+        prompt:
+          "Your CDN is in front of the whole site. Select every response below that belongs at the edge as it stands (select all that apply).",
+        options: [
+          {
+            id: "a",
+            label: "`/static/app.9f3c1.js` - a bundle rebuilt and renamed on every deploy.",
+            correct: true,
+            explanationMd:
+              "Yes. Identical for everyone, and the fingerprint in the name means the URL changes whenever the content does, so this copy can never go stale. Cache it for a year.",
+          },
+          {
+            id: "b",
+            label: "Product images, byte-identical for every viewer.",
+            correct: true,
+            explanationMd:
+              "Yes, and this is usually where most of the win is. Images and video are the largest thing you ship and the least likely to differ between two users.",
+          },
+          {
+            id: "c",
+            label: "`/account` - rendered with the signed-in user's name and recent orders.",
+            correct: false,
+            explanationMd:
+              "No. It fails the first property outright: identical for nobody. One copy served twice here is one customer reading another's data, which is a different class of failure from staleness.",
+          },
+          {
+            id: "d",
+            label: "`/category/tents` - the signed-out listing page, the same for every anonymous visitor, updated a few times an hour.",
+            correct: true,
+            explanationMd:
+              "Yes, with a short TTL. It is identical per visitor and it tolerates being behind; the TTL is where you write down how far behind you are willing to be.",
+          },
+          {
+            id: "e",
+            label: "`POST /cart/checkout`.",
+            correct: false,
+            explanationMd:
+              "No. It is not a read at all - there is nothing to copy, and it has to change state at the origin. Caching it would mean serving a stored response to a request meant to do something.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-15-cdn-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate asks why the choice of which edge node serves a user is made by DNS, when the load balancer and the gateway already route traffic. The strongest answer:",
+        options: [
+          {
+            id: "a",
+            label: "Resolution is the earliest moment a user can be pointed anywhere: the same name can return a different address depending on where it was asked from, and it happens before the request exists.",
+            correct: true,
+            explanationMd:
+              "Correct, and this is 3.2's closing claim in its most common form - changing what a name resolves to is how traffic gets routed, here per-region rather than per-incident.",
+          },
+          {
+            id: "b",
+            label: "DNS is the only protocol that works globally, so no other component could carry the decision.",
+            correct: false,
+            explanationMd:
+              "Overstated to the point of being false - anycast routing steers plenty of CDNs without DNS. The reason is timing, not exclusivity.",
+          },
+          {
+            id: "c",
+            label: "The load balancer could do it, but its health checks would be too slow to run across continents.",
+            correct: false,
+            explanationMd:
+              "By the time a load balancer sees a request, the request has already crossed the ocean. The cost you were avoiding was paid before that component was reached, whatever it then decides.",
+          },
+          {
+            id: "d",
+            label: "It is historical: CDNs predate load balancers, and the mechanism stuck.",
+            correct: false,
+            explanationMd:
+              "Not historical and not true. DNS carries the decision because it is the only step that happens before the request is sent.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-15-cdn-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "You ship a CSS fix at 2pm. At 4pm some users still see the broken layout, and the edge TTL on `/static/site.css` is 24 hours. Which move fixes this permanently rather than fixing it once?",
+        options: [
+          {
+            id: "a",
+            label: "Purge the file at every location as the last step of every deploy.",
+            correct: false,
+            explanationMd:
+              "This works today, and it is the standard fallback. But a purge is a control-plane operation with its own latency, it has to be right every deploy, and it does nothing about copies already sitting in browsers.",
+          },
+          {
+            id: "b",
+            label: "Cut the edge TTL on all static assets to 60 seconds so mistakes correct themselves quickly.",
+            correct: false,
+            explanationMd:
+              "That pays origin traffic on every asset, forever, for a problem that only exists on deploy days - and still leaves a window. Short TTLs are how you publish a page, not how you publish a build.",
+          },
+          {
+            id: "c",
+            label: "Give each build a new filename, `site.9f3c1.css`, and keep the long TTL.",
+            correct: true,
+            explanationMd:
+              "Correct. A URL that changes with its contents can never serve a stale copy, so the TTL can be a year and the publish is instant. The cost is a build step that fingerprints assets and rewrites every reference.",
+          },
+          {
+            id: "d",
+            label: "Stop caching CSS and JS at the edge; keep the CDN for images only.",
+            correct: false,
+            explanationMd:
+              "That surrenders a reliably cacheable class of assets to avoid a problem with a standard solution. Bundles are among the best CDN candidates there are, precisely because they can be versioned.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-15-cdn-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Two hours after you enable HTML caching at the edge, a ticket arrives: a signed-in customer saw a different customer's name in the page header. Origin logs show one request for that page in the whole window. Name the cause and the fix.",
+        options: [
+          {
+            id: "a",
+            label: "Replication lag - the edge served a copy taken before that customer's session was written.",
+            correct: false,
+            explanationMd:
+              "Lag (3.12) explains an old value, not someone else's value. No amount of staleness puts a different person's name in a page; only reusing their response does.",
+          },
+          {
+            id: "b",
+            label: "A per-user response was cached under a key that doesn't include who it was for, so one render was handed to everyone who asked next. Responses that vary by user don't belong at the edge at all.",
+            correct: true,
+            explanationMd:
+              "Correct, and the single origin request is the tell: one render was made and then reused. The fix is not a better key on that page, it is keeping per-user responses off the edge entirely.",
+          },
+          {
+            id: "c",
+            label: "The TTL is too long. Drop it to 30 seconds so a wrong page expires almost immediately.",
+            correct: false,
+            explanationMd:
+              "A 30-second window in which customers can read each other's data is not a smaller version of correct. TTL bounds how old a value is, never who it belonged to.",
+          },
+          {
+            id: "d",
+            label: "A cache stampede - many requests missed at once and one response got reused across all of them.",
+            correct: false,
+            explanationMd:
+              "A stampede (3.14) is many requests reaching the origin at once; the logs show one. Reuse is what caching is for - the bug is what was reused, not that reuse happened.",
+          },
+        ],
+      },
+    ],
+    // Completion-shaped, and the first authored starter graph that validates
+    // clean on purpose: it is 3.14's solved system, cache wired. The gap is a
+    // component that is missing rather than a component that is wrong, which
+    // is what the magenta zone marks and what Submit's blueprint check
+    // catches. See the spec's §7 and §8.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-15-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-15-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-15-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-15-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+        { id: "bb-3-15-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-15-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-15-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-15-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-3-15-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-15-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-15-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+      ],
+      edges: [
+        { id: "bb-3-15-e1", source: "bb-3-15-browser", target: "bb-3-15-dns", kind: "request-flow" },
+        { id: "bb-3-15-e2", source: "bb-3-15-dns", target: "bb-3-15-fw", kind: "request-flow" },
+        { id: "bb-3-15-e3", source: "bb-3-15-fw", target: "bb-3-15-proxy", kind: "request-flow" },
+        { id: "bb-3-15-e4", source: "bb-3-15-proxy", target: "bb-3-15-gateway", kind: "request-flow" },
+        { id: "bb-3-15-e5", source: "bb-3-15-gateway", target: "bb-3-15-lb", kind: "request-flow" },
+        { id: "bb-3-15-e6", source: "bb-3-15-lb", target: "bb-3-15-app", kind: "request-flow" },
+        { id: "bb-3-15-e7", source: "bb-3-15-app", target: "bb-3-15-db", kind: "request-flow" },
+        { id: "bb-3-15-e8", source: "bb-3-15-app", target: "bb-3-15-nosql", kind: "request-flow" },
+        { id: "bb-3-15-e9", source: "bb-3-15-db", target: "bb-3-15-replica", kind: "replication" },
+        { id: "bb-3-15-e10", source: "bb-3-15-replica", target: "bb-3-15-app", kind: "request-flow" },
+        { id: "bb-3-15-e11", source: "bb-3-15-app", target: "bb-3-15-cache", kind: "request-flow" },
+        { id: "bb-3-15-e12", source: "bb-3-15-cache", target: "bb-3-15-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-15-browser"],
+    },
+    // A magenta gap zone is warranted here and was not on 3.14: the fix is a
+    // genuinely missing node in identifiable empty canvas space - the unused
+    // second row of the edge column, between public resolution above it and
+    // the origin's own front door below - not a rewire of something already
+    // present (§11.6). The edge column splits into three bands so the gap
+    // zone is a sibling of the tiers rather than nested inside one; 3.16
+    // merges them back into a single Edge band once the CDN fills the slot.
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-15-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-15-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-15-zone-gap", label: "Build here", position: { x: 292, y: 120 }, width: 176, height: 148, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-15-zone-origin", label: "Origin", position: { x: 292, y: 280 }, width: 176, height: 308, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-15-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-15-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#10b981" },
+      { kind: "zone", id: "bb-3-15-zone-cache", label: "Cache tier", position: { x: 812, y: 440 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-15-comment-distance",
+        text: "A round trip from Sydney to this system runs about 200 ms, and a new connection pays two more on handshakes. Nothing behind the firewall makes that number smaller.",
+        position: { x: 1100, y: -40 },
+        width: 260,
+        height: 140,
+        color: "#64748b",
+      },
+      {
+        kind: "comment",
+        id: "bb-3-15-comment-bytes",
+        text: "Most of a product page's bytes are images and script bundles: identical for every visitor, changed only by a deploy.",
+        position: { x: 1100, y: 280 },
+        width: 260,
+        height: 120,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-16-search-systems",
+    mode: "building-blocks",
+    title: "Search Systems",
+    // Real authored content (third and final Group D chapter, authored
+    // immediately after 3.15 in this same working tree). Spec:
+    // specs/bb-3-16-search-systems.spec.md. Lesson body:
+    // public/content/chapters/bb-3-16-search-systems.mdx. Real
+    // curriculum-order prerequisite (3.15) is already shipped here -
+    // manifest.ts's prerequisiteSlugs already points at "3-15-cdn".
+    problemStatement:
+      "The catalog has 4.2 million products and the search box runs a substring match against every " +
+      "description. It returns in 12 ms against the 5,000 rows on a laptop and takes 6 seconds in " +
+      "production, and the cost tracks the size of the catalog rather than the number of products that " +
+      "actually match. Nothing already in this design answers that query any faster.",
+    exerciseGoal:
+      "Make a text query over four million products answerable without reading four million rows, while the products themselves stay exactly where they are.",
+    successCriteria: [
+      "A query like \"waterproof jacket\" is answered by something whose cost tracks the number of matches rather than the size of the catalog.",
+      "The products table is still the only place a product is created, changed or deleted - nothing else owns one.",
+      "The rest of the system is untouched: the same edge tier, the same cache, the same replica, all still passing.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces search-engine).
+    learningObjectives: [
+      "Explain why a leading-wildcard match reads every row, and why a replica, a cache and a CDN each fail to reduce that cost for a different reason.",
+      "Describe an inverted index as a map from term to the documents containing it, and name what that reversal changes about the cost of a query.",
+      "Decide which of three sync paths (write both stores in the request, follow the primary's change stream, rebuild on a schedule) fits a given freshness requirement, naming what each one costs.",
+      "Add a second store that answers text queries, wired so the primary stays the only source of truth, and pass Submit.",
+      "Answer \"is a ten-second search lag acceptable?\" by stating a freshness target and naming the one flow that breaks under it.",
+      "Defend a database's own full-text search over a separate search cluster at small corpus size, naming the specific ceiling that changes the answer.",
+    ],
+    // Cumulative palette through 3.15 plus this chapter's own new component.
+    // CURRICULUM §16's own row: "3.16 | search-engine". distributed-cache
+    // stays available-but-not-required for 3.14's own recorded reason.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+    ],
+    // 3.14's curated set, unchanged for a third chapter. As in 3.15, nothing
+    // on this canvas is wired wrong at the start - the starter graph is 3.15's
+    // solved system and validates clean (spec §7). The set still earns its
+    // place during the build: a Search Engine dropped on the canvas and left
+    // unwired fires orphan-component, and one wired from the database rather
+    // than the application tier fires component-relations off the component's
+    // own declared inputs.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-16-blueprint",
+        label: "A second store for the question the primary cannot answer",
+        require: {
+          id: "bb-3-16-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+              { id: "bb-3-16-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+              { id: "bb-3-16-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+              { id: "bb-3-16-ref-cdn", componentId: "cdn", position: { x: 580, y: 0 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+              { id: "bb-3-16-ref-fw", componentId: "firewall", position: { x: 840, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+              { id: "bb-3-16-ref-proxy", componentId: "reverse-proxy", position: { x: 60, y: 195 }, config: {} },
+              { id: "bb-3-16-ref-gateway", componentId: "api-gateway", position: { x: 320, y: 195 }, config: {} },
+              { id: "bb-3-16-ref-lb", componentId: "load-balancer", position: { x: 580, y: 195 }, config: {} },
+              { id: "bb-3-16-ref-app", componentId: "app-server", position: { x: 840, y: 195 }, config: { instances: 3 } },
+              { id: "bb-3-16-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+              { id: "bb-3-16-ref-nosql", componentId: "nosql-database", position: { x: 320, y: 390 }, config: { model: "document" } },
+              { id: "bb-3-16-ref-replica", componentId: "read-replica", position: { x: 580, y: 390 }, config: {} },
+              { id: "bb-3-16-ref-cache", componentId: "cache", position: { x: 840, y: 390 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+              { id: "bb-3-16-ref-search", componentId: "search-engine", position: { x: 60, y: 585 }, config: { shards: 1 } },
+          ],
+          edges: [
+              { id: "bb-3-16-ref-e1", source: "bb-3-16-ref-browser", target: "bb-3-16-ref-dns", kind: "request-flow" },
+              { id: "bb-3-16-ref-e2", source: "bb-3-16-ref-dns", target: "bb-3-16-ref-cdn", kind: "request-flow" },
+              { id: "bb-3-16-ref-e3", source: "bb-3-16-ref-cdn", target: "bb-3-16-ref-fw", kind: "request-flow" },
+              { id: "bb-3-16-ref-e4", source: "bb-3-16-ref-fw", target: "bb-3-16-ref-proxy", kind: "request-flow" },
+              { id: "bb-3-16-ref-e5", source: "bb-3-16-ref-proxy", target: "bb-3-16-ref-gateway", kind: "request-flow" },
+              { id: "bb-3-16-ref-e6", source: "bb-3-16-ref-gateway", target: "bb-3-16-ref-lb", kind: "request-flow" },
+              { id: "bb-3-16-ref-e7", source: "bb-3-16-ref-lb", target: "bb-3-16-ref-app", kind: "request-flow" },
+              { id: "bb-3-16-ref-e8", source: "bb-3-16-ref-app", target: "bb-3-16-ref-db", kind: "request-flow" },
+              { id: "bb-3-16-ref-e9", source: "bb-3-16-ref-app", target: "bb-3-16-ref-nosql", kind: "request-flow" },
+              { id: "bb-3-16-ref-e10", source: "bb-3-16-ref-db", target: "bb-3-16-ref-replica", kind: "replication" },
+              { id: "bb-3-16-ref-e11", source: "bb-3-16-ref-replica", target: "bb-3-16-ref-app", kind: "request-flow" },
+              { id: "bb-3-16-ref-e12", source: "bb-3-16-ref-app", target: "bb-3-16-ref-cache", kind: "request-flow" },
+              { id: "bb-3-16-ref-e13", source: "bb-3-16-ref-cache", target: "bb-3-16-ref-db", kind: "request-flow" },
+              { id: "bb-3-16-ref-e14", source: "bb-3-16-ref-app", target: "bb-3-16-ref-search", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-16-ref-browser"],
+        },
+        commentary:
+          "One edge, and it is the only one the canvas will let you draw into a search engine: the " +
+          "application tier asks it a question. Everything else stayed where it was, which is the point - " +
+          "the products table is still the only thing that owns a product, and the index is a projection " +
+          "of it that you could delete and rebuild tonight. Look at what that single line is doing, though. " +
+          "It carries the query, which is genuinely synchronous, and it also has to carry every edit on its " +
+          "way into the index, which should not be. There is no second arrow to draw because the edge kind " +
+          "that means \"after the response is sent\" does not exist in your palette yet. That missing line " +
+          "is 3.17.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-16-hint-1",
+        body:
+          "Nothing on this canvas is broken, so Validate stays quiet again. Look instead at what each " +
+          "existing component is organized around: a request path, a copy of an answer, or a table of " +
+          "products keyed by id. The query in the brief is none of those.",
+      },
+      {
+        id: "bb-3-16-hint-2",
+        body:
+          "The data does not need to move. It needs to exist a second time, arranged so that a word leads " +
+          "to the products containing it instead of an id leading to a product. That is a different store, " +
+          "not a different setting on an existing one.",
+      },
+      {
+        id: "bb-3-16-hint-3",
+        body:
+          "Whatever you add, only one tier in this system is allowed to talk to it - the same tier that " +
+          "already talks to the database and the cache. Try drawing the edge from anywhere else and the " +
+          "component itself will tell you why it refused.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group D: Performance - Chapter 3.16 of 37 (third and last chapter in Group D, immediately before Checkpoint R1).",
+      masteredConcepts: [
+        "3.14's cache-aside path and 3.15's edge tier, both wired and passing. This chapter's opening " +
+          "argument is that neither of them helps here, so both have to be understood well enough to be " +
+          "ruled out.",
+        "3.10 and 3.11: a store's shape decides which questions are cheap, and an index is what makes a " +
+          "lookup cheap in the first place. This chapter is that argument taken to the point where the " +
+          "answer is a second store rather than a second index.",
+        "3.12's replication: a copy of the data that lags the primary, and the read-your-writes carve-out " +
+          "that lag forces. Both return here in a store that lags for a different reason.",
+        "The full request chain through 3.15 (browser through DNS and the CDN to the app tier, its cache, " +
+          "the primary and the read replica) is unchanged and still passing.",
+      ],
+      notYetIntroducedConcepts: [
+        "Queues, workers and the async edge kind (3.17) - this chapter's one marked forward tease, and " +
+          "the machinery for the indexing path it can describe but not draw.",
+        "Event streams and change-data-capture pipelines (3.18). The lesson names \"follow the primary's " +
+          "change stream\" as the sync path most products use; the components that implement it arrive later.",
+        "Background jobs and scheduling (3.19), which is what a nightly rebuild actually runs on.",
+        "Object storage (3.20). Documents here are rows in the primary, not blobs.",
+        "Everything past Group D, and Checkpoint R1 itself.",
+      ],
+      simplifications: [
+        "One search-engine node stands for a cluster. The component exposes a shards field (index " +
+          "parallelism), but sharding, replication and merge behaviour are taught in the scaling section " +
+          "rather than modeled, and the exercise leaves shards at its default of 1.",
+        "The canvas allows exactly one connection into a search engine: a request-flow edge from the " +
+          "compute tier. That edge is honest for the query path and wrong for the indexing path, and the " +
+          "lesson says so outright rather than letting the drawing imply that indexing is a synchronous " +
+          "request. The edge kind that would model it correctly arrives in 3.17.",
+        "A search engine has no output port on this canvas, so results coming back are implied rather " +
+          "than drawn - the same convention every earlier chapter's read paths use.",
+        "Analysis (tokenizing, stemming, stop words) and ranking are described at the level needed to " +
+          "explain why a query is cheap and why results have an order. Scoring functions, synonym and " +
+          "typo handling, and faceting are named but not developed.",
+        "\"Follow the primary's change stream\" is taught as one sync path among three. What actually " +
+          "reads that stream, how it is made durable, and what happens when it falls behind are Group E " +
+          "and F material.",
+      ],
+    },
+    // Six questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3/3, matching
+    // 3.10-3.15's own ramp. Q1 adapts QUIZ_FRAMEWORK.md §11's bank Q7 (why
+    // LIKE dies in prod), Q3 its bank Q8 (the derived-data obligation), Q5 its
+    // bank Q9 (the freshness SLO) - all three of the bank's 3.16-tagged
+    // questions are spent. The other three are original.
+    // Correct options across the six single-choice questions sit at a, c, b,
+    // d, a, c - all four positions used, no letter in consecutive questions,
+    // and the chapter opens on "a", which 3.13 ("b"), 3.14 ("c") and 3.15
+    // ("d") all avoid.
+    quiz: [
+      {
+        id: "bb-3-16-search-systems-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "`SELECT ... WHERE description LIKE '%waterproof%'` returns in 12 ms against 5,000 rows in development and takes 6 seconds against 4.2 million in production. There is an index on `description`. Why doesn't it help?",
+        options: [
+          {
+            id: "a",
+            label: "A leading wildcard leaves no prefix to seek to, so the index is unusable and the database reads every row. The cost grows with the table, not with the number of matches.",
+            correct: true,
+            explanationMd:
+              "Correct. An ordinary index orders rows by their leading characters. `'waterproof%'` could seek straight to a range; `'%waterproof%'` names no starting point, so the only plan left is a full scan.",
+          },
+          {
+            id: "b",
+            label: "The production database is under-provisioned. 4.2 million rows is not a large table, and the same query on bigger hardware would return in milliseconds.",
+            correct: false,
+            explanationMd:
+              "Hardware moves the constant, not the growth rate. A scan that reads every row still reads every row on a faster machine, and doubling the catalog doubles the work again.",
+          },
+          {
+            id: "c",
+            label: "The query is missing a `LIMIT`, so the database materializes all matches before returning the first page.",
+            correct: false,
+            explanationMd:
+              "A `LIMIT` can stop a scan early once enough rows match, but it cannot stop it from scanning when few rows match or none do - and the slow case is exactly the one where the database has to look everywhere to be sure.",
+          },
+          {
+            id: "d",
+            label: "Text columns are stored out of line, so every row costs an extra read. Shortening the descriptions would fix it.",
+            correct: false,
+            explanationMd:
+              "Storage layout affects how expensive each row is, not how many rows get read. The problem is the row count, and it is the row count that grows.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-16-search-systems-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Before adding anything new, a teammate suggests putting a cache in front of the search query - it worked for the product page in 3.14. Your catalog gets 90,000 distinct search strings a day and the top 200 account for 8% of them. What happens?",
+        options: [
+          {
+            id: "a",
+            label: "It works: search results are read-mostly, which is exactly what a cache is for.",
+            correct: false,
+            explanationMd:
+              "Read-mostly is necessary, not sufficient. A cache also needs the same key to be asked for repeatedly, and that is the property this workload lacks.",
+          },
+          {
+            id: "b",
+            label: "It works once the TTL is long enough, because a longer TTL raises the hit ratio on any workload.",
+            correct: false,
+            explanationMd:
+              "A longer TTL only helps entries that get asked for again before they expire. A query string asked once in its life never gets a second request at any TTL.",
+          },
+          {
+            id: "c",
+            label: "It removes about 8% of the load and leaves the rest, because almost every other query is a distinct key asked once. The 6 seconds is still paid on every miss.",
+            correct: true,
+            explanationMd:
+              "Correct, and caching the head of a search workload is a real technique - it is just not a fix. The long tail is where the scans live, and a cache cannot make a first request cheap.",
+          },
+          {
+            id: "d",
+            label: "It makes things worse: every miss now pays the cache round trip on top of the scan.",
+            correct: false,
+            explanationMd:
+              "A miss costs a sub-millisecond lookup against a 6-second scan, which is not the reason to reject this. The reason is that the hit ratio is near zero, so there is almost nothing to win.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-16-search-systems-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "You add a search engine alongside the primary database. Which new obligation does that create?",
+        options: [
+          {
+            id: "a",
+            label: "The primary has to become a NoSQL store, because search engines index documents rather than rows.",
+            correct: false,
+            explanationMd:
+              "A search engine indexes whatever you feed it. What the primary is has nothing to do with it - plenty of relational systems feed a search index, and this one does.",
+          },
+          {
+            id: "b",
+            label: "The index is derived data: it has to be kept in sync with the source of truth, and how each change gets there is a design decision with real failure modes.",
+            correct: true,
+            explanationMd:
+              "Correct, and the sync path is the whole engineering content of this chapter. It also implies the second obligation - the index must stay rebuildable from the primary, or a divergence has no repair.",
+          },
+          {
+            id: "c",
+            label: "None. A search engine subscribes to the database and keeps itself current.",
+            correct: false,
+            explanationMd:
+              "Something can be built that does this - a process that reads the primary's change stream is one of the three sync paths - but nothing does it for you. Believing otherwise is how indexes silently drift.",
+          },
+          {
+            id: "d",
+            label: "Search becomes the read path for the product catalog, so the primary now serves writes only.",
+            correct: false,
+            explanationMd:
+              "Backwards, and dangerous. The index answers which products match; the primary still answers what they are. Serving data that exists only in the index turns a disposable projection into data you can lose.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-16-search-systems-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate proposes writing to the search index inside the same request handler that writes the row, \"so search is never stale.\" What is the strongest objection?",
+        options: [
+          {
+            id: "a",
+            label: "It is slower. Every product edit now waits on a second system before it can return.",
+            correct: false,
+            explanationMd:
+              "True, and worth saying, but latency is the recoverable half. The write path getting slower is a cost you can measure and budget for; the objection below is a failure you cannot see.",
+          },
+          {
+            id: "b",
+            label: "Indexing belongs to the search engine, not the application. The app should not know the index exists.",
+            correct: false,
+            explanationMd:
+              "The application has to be involved somewhere - either it writes the index or it operates the process that does. Where the code lives is a smaller question than what happens when half of it fails.",
+          },
+          {
+            id: "c",
+            label: "You would need a distributed transaction across the database and the search engine to make it correct.",
+            correct: false,
+            explanationMd:
+              "This correctly identifies the atomicity problem and then proposes the worse cure. A two-phase commit across a database and a search cluster couples their availability tightly and is not how anyone solves this.",
+          },
+          {
+            id: "d",
+            label: "The two writes are not one transaction. When the second fails and the first succeeded, the stores disagree, nothing in the system compares them, and the divergence is permanent until someone reindexes.",
+            correct: true,
+            explanationMd:
+              "Correct. Synchronous indexing does not remove the staleness risk, it converts a bounded lag into an unbounded, undetected inconsistency - and it puts the search engine's availability on your write path as well.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-16-search-systems-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Your indexing pipeline runs roughly 10 seconds behind the primary. The interviewer asks whether that is acceptable. The strongest answer:",
+        options: [
+          {
+            id: "a",
+            label: "Usually yes - state it as a freshness target, then name the flows that break under it. \"Find the thing I just published\" is the one that does, and that read gets served from the primary instead.",
+            correct: true,
+            explanationMd:
+              "Correct. Freshness is a requirement to negotiate and write down, not a property to maximize. Naming the one flow that the lag breaks, and carving it out, is what separates this from a shrug.",
+          },
+          {
+            id: "b",
+            label: "No. Search reflects what users can see, so it has to be current; make the indexing write synchronous to remove the lag.",
+            correct: false,
+            explanationMd:
+              "This trades a bounded, measurable lag for an unbounded, invisible divergence, and puts a second system on the write path. It is the fix that makes the guarantee worse while sounding stricter.",
+          },
+          {
+            id: "c",
+            label: "Yes, and it does not need a number. Any asynchronous pipeline lags, and users understand that search is approximate.",
+            correct: false,
+            explanationMd:
+              "\"It lags\" without a bound is not an answer. An unbounded lag is indistinguishable from a broken indexer, and there is no alert you can write for it.",
+          },
+          {
+            id: "d",
+            label: "It depends on the database. If the primary is strongly consistent, its change stream is too, so the index is effectively current.",
+            correct: false,
+            explanationMd:
+              "The primary's consistency says nothing about how far behind a downstream consumer is. The lag lives in the pipeline that reads the stream and applies changes, not in the store that produced it.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-16-search-systems-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Three engineers, 200,000 help-center articles, and a product manager who wants relevance ranking, typo tolerance and filtering by category. What do you build first?",
+        options: [
+          {
+            id: "a",
+            label: "A `LIKE` query with an index on `lower(description)`, which is cheap and covers the basic case.",
+            correct: false,
+            explanationMd:
+              "An expression index helps an exact or prefix match on the lowered value; it does nothing for a substring match, and nothing at all for ranking, stemming or typos. This is the option the chapter opened by ruling out.",
+          },
+          {
+            id: "b",
+            label: "A dedicated search cluster. Ranking and typo tolerance are what search engines are for, and retrofitting one later means a migration.",
+            correct: false,
+            explanationMd:
+              "A real position, and the right one at a different size - but it buys a second store, a sync path and a new thing to operate for a corpus a single database can index comfortably. That is the cargo-cult failure this curriculum keeps warning about.",
+          },
+          {
+            id: "c",
+            label: "The database's own full-text index. It handles this corpus, and it needs no second store and no sync path at all. Move when corpus size, query volume, or the ranking control you need outgrows it.",
+            correct: true,
+            explanationMd:
+              "Correct. It is the same inverted index, inside a store you already run, with the derived-data problem eliminated rather than managed. Naming the specific ceilings that would change the answer is the senior half of this answer.",
+          },
+          {
+            id: "d",
+            label: "Neither yet - buy a hosted search API so there is nothing to operate.",
+            correct: false,
+            explanationMd:
+              "It removes the operational work, not the design work. You still own the sync path, the freshness target and the rebuild story, and you have added a vendor to the write path of a product with three engineers.",
+          },
+        ],
+      },
+    ],
+    // Build-shaped, and the second consecutive starter graph that validates
+    // clean on purpose (see 3.15, and the spec's §7): it is 3.15's solved
+    // system, CDN inserted and the now-redundant direct dns -> firewall edge
+    // removed. The gap is a component that is missing rather than one that is
+    // wrong, which is what the magenta zone marks and what Submit's blueprint
+    // check catches.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-16-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-16-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-16-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+        { id: "bb-3-16-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-16-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+        { id: "bb-3-16-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-16-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-16-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-16-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-3-16-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-16-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-16-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+      ],
+      edges: [
+        { id: "bb-3-16-e1", source: "bb-3-16-browser", target: "bb-3-16-dns", kind: "request-flow" },
+        { id: "bb-3-16-e2", source: "bb-3-16-dns", target: "bb-3-16-cdn", kind: "request-flow" },
+        { id: "bb-3-16-e3", source: "bb-3-16-cdn", target: "bb-3-16-fw", kind: "request-flow" },
+        { id: "bb-3-16-e4", source: "bb-3-16-fw", target: "bb-3-16-proxy", kind: "request-flow" },
+        { id: "bb-3-16-e5", source: "bb-3-16-proxy", target: "bb-3-16-gateway", kind: "request-flow" },
+        { id: "bb-3-16-e6", source: "bb-3-16-gateway", target: "bb-3-16-lb", kind: "request-flow" },
+        { id: "bb-3-16-e7", source: "bb-3-16-lb", target: "bb-3-16-app", kind: "request-flow" },
+        { id: "bb-3-16-e8", source: "bb-3-16-app", target: "bb-3-16-db", kind: "request-flow" },
+        { id: "bb-3-16-e9", source: "bb-3-16-app", target: "bb-3-16-nosql", kind: "request-flow" },
+        { id: "bb-3-16-e10", source: "bb-3-16-db", target: "bb-3-16-replica", kind: "replication" },
+        { id: "bb-3-16-e11", source: "bb-3-16-replica", target: "bb-3-16-app", kind: "request-flow" },
+        { id: "bb-3-16-e12", source: "bb-3-16-app", target: "bb-3-16-cache", kind: "request-flow" },
+        { id: "bb-3-16-e13", source: "bb-3-16-cache", target: "bb-3-16-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-16-browser"],
+    },
+    // A magenta gap zone is warranted (§11.6): the fix is a genuinely missing
+    // node in identifiable empty canvas space - its own column to the right of
+    // the data tier, level with the application server that queries it - not a
+    // rewire of something already present. 3.15's three edge bands merge back
+    // into one Edge column here, its former gap slot now holding the CDN.
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-16-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-16-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 628, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-16-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-16-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#10b981" },
+      { kind: "zone", id: "bb-3-16-zone-cache", label: "Cache tier", position: { x: 812, y: 440 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-16-zone-gap", label: "Build here", position: { x: 1072, y: 280 }, width: 176, height: 148, color: "#ff3483" },
+      {
+        kind: "comment",
+        id: "bb-3-16-comment-scan",
+        text: "The products table holds 4.2 million rows. A substring match on the description reads all of them, and that number grows with the catalog rather than with how many products actually match.",
+        position: { x: 1360, y: -40 },
+        width: 260,
+        height: 150,
+        color: "#64748b",
+      },
+      {
+        kind: "comment",
+        id: "bb-3-16-comment-tail",
+        text: "90,000 distinct search strings a day; the top 200 are 8% of them. Keeping a copy of an answer only pays when the same question gets asked twice.",
+        position: { x: 1360, y: 280 },
+        width: 260,
+        height: 130,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-r1-a-site-that-stays-up",
+    mode: "building-blocks",
+    title: "Checkpoint · A Site That Stays Up",
+    // Real authored content - the curriculum's first Checkpoint (CURRICULUM.md
+    // §4/§14 Part 4), authored immediately after 3.16 in this same working
+    // tree. Spec: specs/bb-r1-a-site-that-stays-up.spec.md. Lesson body:
+    // public/content/chapters/bb-r1-a-site-that-stays-up.mdx. Checkpoint
+    // consequences, all deliberate: no `quiz` (§22 - the build is the
+    // assessment), no `starterGraph` (§14 - blank canvas, so no
+    // `starterDecorators` either), and a §6 section inventory of four
+    // (cold open, Connections, transition brief, preview of next).
+    problemStatement:
+      "A national job board, four years old, being rebuilt this quarter. 2.1 million live listings, " +
+      "40,000 job seekers on a weekday morning, nearly all of them arriving at one public domain name " +
+      "in a browser. What it has to do:\n\n" +
+      "- Seekers search listings in free text. \"remote python contract\" comes back in well under a " +
+      "second, and the work of answering it does not grow with the 2.1 million listings.\n" +
+      "- The same few thousand listings are opened over and over. Monday's front page is the same 2,000 " +
+      "jobs for everyone, and every view currently costs a fresh read from the store that owns them.\n" +
+      "- Recruiters run heavy reports all day, aggregating months of application history. Those reports " +
+      "must not slow down the seekers.\n" +
+      "- A third of the audience is on another continent, and every one of them downloads the same " +
+      "stylesheet, the same script bundle and the same company logos before the first listing renders.\n" +
+      "- Peak traffic is more than one machine can carry, and one machine dying mid-morning must not " +
+      "drop requests.\n" +
+      "- Nothing reaches application code that was not filtered at the perimeter first. The default is " +
+      "closed.\n" +
+      "- The certificate is terminated in one place, not on every machine behind it.\n" +
+      "- One place authenticates API callers and enforces a per-caller request limit, instead of every " +
+      "service doing its own.\n" +
+      "- A listing is created, edited and closed in exactly one store. Anything else holding a copy of a " +
+      "listing has to be rebuildable from that store.",
+    exerciseGoal:
+      "Build the whole thing on an empty canvas. Every requirement above is answered by something you " +
+      "have already built at least once between 3.1 and 3.16, and nothing here needs anything you have " +
+      "not been taught.",
+    successCriteria: [
+      "A free-text search over 2.1 million listings is answered by something whose cost tracks the matches rather than the catalog.",
+      "Repeat views of the same popular listings stop reaching the store that owns them, and the recruiters' reports run against something other than the store taking writes.",
+      "Losing one machine in the tier that runs application code drops no requests, and the bytes every visitor downloads are served near them rather than from the origin.",
+      "Nothing reaches application code before it has been filtered at the perimeter, terminated once, authenticated and rate-limited.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Five objectives, one per §5.2 category. A checkpoint teaches nothing new
+    // (§4), so every objective is a composition or retrieval objective over
+    // Groups A-D rather than a claim about new material.
+    learningObjectives: [
+      "Name, for each requirement in a product brief, which taught component answers it and which chapter established that.",
+      "Order the request path from browser to data tier so that each stop only receives traffic a component upstream of it has already handled.",
+      "Assemble the full Group A-D stack on an empty canvas, with no starter graph and no per-requirement prompt, and pass Submit.",
+      "Answer \"walk me through your design\" as one pass over the request path rather than a list of components, naming what each stop is there to do.",
+      "Justify leaving a taught component out of a design by pointing at the requirement that would have motivated it and showing the brief does not contain one.",
+    ],
+    // The full palette through Group D - CURRICULUM §14's own R1 line
+    // ("Palette: everything through Group D"), identical to 3.16's
+    // availableComponentIds. required is the 12 the brief's requirements
+    // actually motivate. `nosql-database` and `distributed-cache` are
+    // deliberately available but not required: nothing in the brief describes
+    // a document-shaped workload or a cache tier too large for one machine,
+    // and requiring a store the brief gives no reason for is the cargo-culting
+    // this checkpoint's own lesson warns against (spec §6, same reasoning
+    // 3.14 used to leave distributed-cache out of its required list).
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+    ],
+    // The widest curated set any Building Blocks chapter ships, which is what
+    // a composition gate is for: every rule here corresponds to something
+    // Groups A-D taught, and on a blank canvas all of them are reachable by a
+    // wrong build. `single-instance-load-balancer` and `permissive-firewall`
+    // are warnings (they do not block Submit) but both fire on exactly the
+    // "present but inert" failure the lesson's Connections section names.
+    // `no-direct-client-database` cannot fire here at all: it keys on `client`,
+    // which is not in this palette (nor in 3.14-3.16's, which carry it too).
+    // Kept for continuity rather than making this the one chapter that drops
+    // it, and flagged in the spec's §12 as one decision for all four. A
+    // browser-to-data edge is already refused by component-relations, off the
+    // browser's own declared outputs. Verified against
+    // src/validation-engine/rules/index.ts.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+      "request-flow-cycle",
+      "single-instance-load-balancer",
+      "permissive-firewall",
+    ],
+    // Two blueprints, and they are the same system: the redundancy requirement
+    // has two honest expressions on this canvas. 3.8 taught the first (one
+    // stateless node, instance count raised), and the canvas permits the
+    // second (two nodes behind the load balancer), which is what
+    // single-instance-load-balancer itself counts as capacity. Neither is
+    // padding; a learner who builds either has answered the brief.
+    blueprints: [
+      {
+        id: "bb-r1-blueprint-instances",
+        label: "One stateless tier, sized to survive losing an instance",
+        require: {
+          id: "bb-r1-blueprint-instances",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+              { id: "bb-r1-ref-inst-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+              { id: "bb-r1-ref-inst-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+              { id: "bb-r1-ref-inst-cdn", componentId: "cdn", position: { x: 580, y: 0 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+              { id: "bb-r1-ref-inst-fw", componentId: "firewall", position: { x: 840, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+              { id: "bb-r1-ref-inst-proxy", componentId: "reverse-proxy", position: { x: 60, y: 195 }, config: {} },
+              { id: "bb-r1-ref-inst-gateway", componentId: "api-gateway", position: { x: 320, y: 195 }, config: {} },
+              { id: "bb-r1-ref-inst-lb", componentId: "load-balancer", position: { x: 580, y: 195 }, config: {} },
+              { id: "bb-r1-ref-inst-app", componentId: "app-server", position: { x: 840, y: 195 }, config: { instances: 3 } },
+              { id: "bb-r1-ref-inst-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+              { id: "bb-r1-ref-inst-replica", componentId: "read-replica", position: { x: 320, y: 390 }, config: {} },
+              { id: "bb-r1-ref-inst-cache", componentId: "cache", position: { x: 580, y: 390 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+              { id: "bb-r1-ref-inst-search", componentId: "search-engine", position: { x: 840, y: 390 }, config: { shards: 1 } },
+          ],
+          edges: [
+              { id: "bb-r1-ref-inst-e1", source: "bb-r1-ref-inst-browser", target: "bb-r1-ref-inst-dns", kind: "request-flow" },
+              { id: "bb-r1-ref-inst-e2", source: "bb-r1-ref-inst-dns", target: "bb-r1-ref-inst-cdn", kind: "request-flow" },
+              { id: "bb-r1-ref-inst-e3", source: "bb-r1-ref-inst-cdn", target: "bb-r1-ref-inst-fw", kind: "request-flow" },
+              { id: "bb-r1-ref-inst-e4", source: "bb-r1-ref-inst-fw", target: "bb-r1-ref-inst-proxy", kind: "request-flow" },
+              { id: "bb-r1-ref-inst-e5", source: "bb-r1-ref-inst-proxy", target: "bb-r1-ref-inst-gateway", kind: "request-flow" },
+              { id: "bb-r1-ref-inst-e6", source: "bb-r1-ref-inst-gateway", target: "bb-r1-ref-inst-lb", kind: "request-flow" },
+              { id: "bb-r1-ref-inst-e7", source: "bb-r1-ref-inst-lb", target: "bb-r1-ref-inst-app", kind: "request-flow" },
+              { id: "bb-r1-ref-inst-e8", source: "bb-r1-ref-inst-app", target: "bb-r1-ref-inst-db", kind: "request-flow" },
+              { id: "bb-r1-ref-inst-e9", source: "bb-r1-ref-inst-db", target: "bb-r1-ref-inst-replica", kind: "replication" },
+              { id: "bb-r1-ref-inst-e10", source: "bb-r1-ref-inst-replica", target: "bb-r1-ref-inst-app", kind: "request-flow" },
+              { id: "bb-r1-ref-inst-e11", source: "bb-r1-ref-inst-app", target: "bb-r1-ref-inst-cache", kind: "request-flow" },
+              { id: "bb-r1-ref-inst-e12", source: "bb-r1-ref-inst-cache", target: "bb-r1-ref-inst-db", kind: "request-flow" },
+              { id: "bb-r1-ref-inst-e13", source: "bb-r1-ref-inst-app", target: "bb-r1-ref-inst-search", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-r1-ref-inst-browser"],
+        },
+        commentary:
+          "Twelve components, and every one of them is on the canvas because a line in the brief asked " +
+          "for it. Worth reading your own graph back in that order: the perimeter, the one place TLS " +
+          "ends, the one place callers are authenticated and limited, then the tier that can lose a " +
+          "machine without losing the site. Behind it, three different answers to three different reads " +
+          "- the same listing asked for repeatedly, the recruiters' reports that must not touch the " +
+          "store taking writes, and a query the primary cannot answer at all - plus the bytes that never " +
+          "needed to reach you. The only thing you changed that was not a box or a line is the instance " +
+          "count, which is 3.8's whole point: once a tier is stateless and load-balanced, surviving a " +
+          "failure is a number, not a redesign.",
+      },
+      {
+        id: "bb-r1-blueprint-two-nodes",
+        label: "The same system, redundancy drawn as a second application node",
+        require: {
+          id: "bb-r1-blueprint-two-nodes",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "app2", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "lb", to: "app2", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+              { id: "bb-r1-ref-two-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+              { id: "bb-r1-ref-two-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+              { id: "bb-r1-ref-two-cdn", componentId: "cdn", position: { x: 580, y: 0 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+              { id: "bb-r1-ref-two-fw", componentId: "firewall", position: { x: 840, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+              { id: "bb-r1-ref-two-proxy", componentId: "reverse-proxy", position: { x: 60, y: 195 }, config: {} },
+              { id: "bb-r1-ref-two-gateway", componentId: "api-gateway", position: { x: 320, y: 195 }, config: {} },
+              { id: "bb-r1-ref-two-lb", componentId: "load-balancer", position: { x: 580, y: 195 }, config: {} },
+              { id: "bb-r1-ref-two-app", componentId: "app-server", position: { x: 840, y: 195 }, config: { instances: 1 } },
+              { id: "bb-r1-ref-two-app2", componentId: "app-server", position: { x: 60, y: 390 }, config: { instances: 1 } },
+              { id: "bb-r1-ref-two-db", componentId: "sql-database", position: { x: 320, y: 390 }, config: {} },
+              { id: "bb-r1-ref-two-replica", componentId: "read-replica", position: { x: 580, y: 390 }, config: {} },
+              { id: "bb-r1-ref-two-cache", componentId: "cache", position: { x: 840, y: 390 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+              { id: "bb-r1-ref-two-search", componentId: "search-engine", position: { x: 60, y: 585 }, config: { shards: 1 } },
+          ],
+          edges: [
+              { id: "bb-r1-ref-two-e1", source: "bb-r1-ref-two-browser", target: "bb-r1-ref-two-dns", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e2", source: "bb-r1-ref-two-dns", target: "bb-r1-ref-two-cdn", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e3", source: "bb-r1-ref-two-cdn", target: "bb-r1-ref-two-fw", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e4", source: "bb-r1-ref-two-fw", target: "bb-r1-ref-two-proxy", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e5", source: "bb-r1-ref-two-proxy", target: "bb-r1-ref-two-gateway", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e6", source: "bb-r1-ref-two-gateway", target: "bb-r1-ref-two-lb", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e7", source: "bb-r1-ref-two-lb", target: "bb-r1-ref-two-app", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e8", source: "bb-r1-ref-two-lb", target: "bb-r1-ref-two-app2", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e9", source: "bb-r1-ref-two-app", target: "bb-r1-ref-two-db", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e10", source: "bb-r1-ref-two-db", target: "bb-r1-ref-two-replica", kind: "replication" },
+              { id: "bb-r1-ref-two-e11", source: "bb-r1-ref-two-replica", target: "bb-r1-ref-two-app", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e12", source: "bb-r1-ref-two-app", target: "bb-r1-ref-two-cache", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e13", source: "bb-r1-ref-two-cache", target: "bb-r1-ref-two-db", kind: "request-flow" },
+              { id: "bb-r1-ref-two-e14", source: "bb-r1-ref-two-app", target: "bb-r1-ref-two-search", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-r1-ref-two-browser"],
+        },
+        commentary:
+          "Same system, redundancy drawn instead of configured: two application nodes, both fed by the " +
+          "load balancer, so losing either leaves the other serving. This passes, and in a real diagram " +
+          "it is how a fleet is often shown. Know what the drawing is not saying, though. Two nodes are " +
+          "only interchangeable if they are genuinely identical - same code, same downstream reach, no " +
+          "state either one owns - and nothing on this canvas checks that. The instance-count version of " +
+          "the same answer (3.8) cannot drift that way, which is why it is the one the last nine " +
+          "chapters drew.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-r1-hint-1",
+        body:
+          "Nothing is on the canvas, so Validate has nothing to report until you put something there. " +
+          "Start from the person, not the store: write down what one request passes through, in order, " +
+          "before anything reads or writes data at all. Four of the brief's lines are about that path " +
+          "and nothing else.",
+      },
+      {
+        id: "bb-r1-hint-2",
+        body:
+          "Sort the rest of the brief by what kind of read it describes, because each kind has a " +
+          "different answer: the same thing asked for over and over, a different question every time, a " +
+          "heavy query that must not touch the store taking writes, and bytes that are identical for " +
+          "every visitor on earth. Four reads, four answers, and no two of them are the same component.",
+      },
+      {
+        id: "bb-r1-hint-3",
+        body:
+          "If Submit says a component is missing while you are looking straight at it on the canvas, it " +
+          "is reading a value on that component rather than hunting for a second copy. One requirement " +
+          "in this brief is answered by a number instead of another box.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position:
+        "Building Blocks, Part 4: Checkpoints - Checkpoint R1, immediately after chapter 3.16 of 37. Gates Group E, Group F and Real World Extraction Tier 1.",
+      masteredConcepts: [
+        "Everything in Groups A-D, which is the whole point of the exercise: the request path (3.1-3.5), " +
+          "the stateless multi-instance app tier (3.6-3.9), the data tier with its replicas and " +
+          "partitions (3.10-3.13), and the performance layer of cache, CDN and search index (3.14-3.16).",
+        "The exact system built and passed across 3.14, 3.15 and 3.16 - browser through DNS and the CDN " +
+          "to the edge tier, the load balancer, the app tier, its cache, the primary, a read replica and " +
+          "a search index. R1's answer is that system re-derived from a product description instead of " +
+          "handed over as a starter graph.",
+        "3.8's N+1 reasoning: once a tier is stateless and load-balanced, capacity for a failure is an " +
+          "instance count, not new architecture.",
+        "That a component present but inert is a design fault, not a neutral extra (3.1's allow-all " +
+          "firewall, 3.14's unasked cache), and that an unmotivated component is worse than none.",
+      ],
+      notYetIntroducedConcepts: [
+        "Queues, workers, dead-letter queues and the async edge kind (3.17), which is the one marked " +
+          "forward tease in this chapter's Next section.",
+        "Event-driven architecture and change streams (3.18) and scheduled background work (3.19).",
+        "Object storage, file storage, consistency models, quorums and CAP (Groups F and G). Nothing in " +
+          "this brief is a blob-storage or consistency-model problem, deliberately.",
+        "Anything about writes that outlive the request that started them. Every path in this design is " +
+          "synchronous, and the learner has no vocabulary yet for one that is not.",
+      ],
+      simplifications: [
+        "One node stands for a fleet throughout, and the application tier's redundancy is expressed " +
+          "either as an instance count on one node or as a second node behind the load balancer. Both " +
+          "pass; the canvas cannot express that two nodes are identical, so nothing checks it.",
+        "The brief describes nine requirements and the passing design answers them with twelve " +
+          "components. Real rebuilds of a system this size involve dozens of decisions this palette " +
+          "cannot express (deployment, monitoring, authentication storage, payment, email) and their " +
+          "absence is scope, not an omission the learner should be marked down for.",
+        "A search engine has no output port on this canvas and a cache's miss path is drawn to its " +
+          "origin - both are the canvas conventions established in 3.14 and 3.16, not claims about how " +
+          "either component behaves.",
+        "Sharding (3.13) is taught but not motivated by this brief: 2.1 million listings fit on one " +
+          "primary. A learner who partitions anyway has not failed, but nothing here asks for it.",
+      ],
+    },
+    // No `quiz` - CURRICULUM.md §22 and §14 Part 4: checkpoints have none, the
+    // build is the assessment. deriveStatus (src/curriculum/progress.ts)
+    // handles this: with a Design Editor exercise and no quiz, a validation
+    // pass alone completes the chapter.
+  },
+  {
+    id: "bb-3-17-message-queues",
+    mode: "building-blocks",
+    title: "Message Queues",
+    // Real authored content (first Group E chapter, authored immediately after
+    // Checkpoint R1 in this same working tree). Spec:
+    // specs/bb-3-17-message-queues.spec.md. Lesson body:
+    // public/content/chapters/bb-3-17-message-queues.mdx. Real curriculum-order
+    // prerequisite (R1) is already shipped here - manifest.ts's
+    // prerequisiteSlugs already points at "checkpoint-r1-a-site-that-stays-up".
+    problemStatement:
+      "R1's job board is live, and publishing a listing takes 4.2 seconds at p95 - 40 ms of which is " +
+      "the listing's own database write. The same request also mails 900 subscribers, builds three " +
+      "thumbnail sizes and updates the search index before it answers. When the mail provider was down " +
+      "last Tuesday, publishes returned 500 for listings that had already been saved.",
+    exerciseGoal:
+      "Get the recruiter their answer as soon as the listing itself is stored, and give the rest of that publish handler's work somewhere else to run - including the jobs that keep failing.",
+    successCriteria: [
+      "A publish returns as soon as the listing itself is stored, and the work it hands off outlives the request that handed it off.",
+      "The search index still receives every published listing, but the recruiter's request no longer waits on it.",
+      "A job that fails every attempt stops retrying and ends up somewhere a person can inspect it, rather than blocking the jobs behind it.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces message-queue, worker,
+    // dead-letter-queue and the async edge kind).
+    learningObjectives: [
+      "Explain why a queue's durability is what makes it safe to answer a user before the work is finished.",
+      "Decide whether a job belongs off the request path by asking whether the user's success depends on its result, rather than whether it is slow.",
+      "Describe what at-least-once delivery obliges a consumer to do, and name two ways to make a job safe to run twice.",
+      "Build a queue-and-consumer path that takes work off the request path and gives repeatedly-failing jobs somewhere to land, and pass Submit.",
+      "Answer \"what happens when the consumer fails?\" by naming redelivery, backoff, and the point at which a message stops being retried.",
+      "Justify moving one specific job off the request path aloud, naming the latency it removes and the new state the interface now has to represent.",
+    ],
+    // Cumulative palette through R1 plus this chapter's own three new
+    // components. CURRICULUM §16's own row: "3.17 | message-queue, worker,
+    // dead-letter-queue + edge async" - the one sanctioned 3-component chapter
+    // (§18.1's "≤3 (3.17 only)"). distributed-cache stays
+    // available-but-not-required for 3.14's own recorded reason.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+    ],
+    // 3.14's curated set plus this chapter's own teaching instrument.
+    // queue-without-dead-letter-queue is why §14 calls the three components
+    // "one cohesive pattern": the moment a learner drops a queue on the canvas
+    // and wires a consumer to it, the rule fires with the poison-message
+    // explanation, before Submit is ever pressed. That is the "fix (missing
+    // DLQ)" half of §14's exercise line, delivered as productive failure
+    // inside the build rather than as a separate broken starter graph.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+      "queue-without-dead-letter-queue",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-17-blueprint",
+        label: "Work handed off durably, with somewhere for failures to land",
+        require: {
+          id: "bb-3-17-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+            { alias: "queue", componentId: "message-queue" },
+            { alias: "worker", componentId: "worker" },
+            { alias: "dlq", componentId: "dead-letter-queue" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+            { from: "app", to: "queue", kind: "async" },
+            { from: "queue", to: "worker", kind: "async" },
+            { from: "queue", to: "dlq", kind: "async" },
+            { from: "worker", to: "search", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+              { id: "bb-3-17-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+              { id: "bb-3-17-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+              { id: "bb-3-17-ref-cdn", componentId: "cdn", position: { x: 580, y: 0 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+              { id: "bb-3-17-ref-fw", componentId: "firewall", position: { x: 840, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+              { id: "bb-3-17-ref-proxy", componentId: "reverse-proxy", position: { x: 60, y: 195 }, config: {} },
+              { id: "bb-3-17-ref-gateway", componentId: "api-gateway", position: { x: 320, y: 195 }, config: {} },
+              { id: "bb-3-17-ref-lb", componentId: "load-balancer", position: { x: 580, y: 195 }, config: {} },
+              { id: "bb-3-17-ref-app", componentId: "app-server", position: { x: 840, y: 195 }, config: { instances: 3 } },
+              { id: "bb-3-17-ref-db", componentId: "sql-database", position: { x: 60, y: 390 }, config: {} },
+              { id: "bb-3-17-ref-nosql", componentId: "nosql-database", position: { x: 320, y: 390 }, config: { model: "document" } },
+              { id: "bb-3-17-ref-replica", componentId: "read-replica", position: { x: 580, y: 390 }, config: {} },
+              { id: "bb-3-17-ref-cache", componentId: "cache", position: { x: 840, y: 390 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+              { id: "bb-3-17-ref-search", componentId: "search-engine", position: { x: 60, y: 585 }, config: { shards: 1 } },
+              { id: "bb-3-17-ref-queue", componentId: "message-queue", position: { x: 320, y: 585 }, config: { deliveryGuarantee: "at-least-once" } },
+              { id: "bb-3-17-ref-worker", componentId: "worker", position: { x: 580, y: 585 }, config: { instances: 2 } },
+              { id: "bb-3-17-ref-dlq", componentId: "dead-letter-queue", position: { x: 840, y: 585 }, config: {} },
+          ],
+          edges: [
+              { id: "bb-3-17-ref-e1", source: "bb-3-17-ref-browser", target: "bb-3-17-ref-dns", kind: "request-flow" },
+              { id: "bb-3-17-ref-e2", source: "bb-3-17-ref-dns", target: "bb-3-17-ref-cdn", kind: "request-flow" },
+              { id: "bb-3-17-ref-e3", source: "bb-3-17-ref-cdn", target: "bb-3-17-ref-fw", kind: "request-flow" },
+              { id: "bb-3-17-ref-e4", source: "bb-3-17-ref-fw", target: "bb-3-17-ref-proxy", kind: "request-flow" },
+              { id: "bb-3-17-ref-e5", source: "bb-3-17-ref-proxy", target: "bb-3-17-ref-gateway", kind: "request-flow" },
+              { id: "bb-3-17-ref-e6", source: "bb-3-17-ref-gateway", target: "bb-3-17-ref-lb", kind: "request-flow" },
+              { id: "bb-3-17-ref-e7", source: "bb-3-17-ref-lb", target: "bb-3-17-ref-app", kind: "request-flow" },
+              { id: "bb-3-17-ref-e8", source: "bb-3-17-ref-app", target: "bb-3-17-ref-db", kind: "request-flow" },
+              { id: "bb-3-17-ref-e9", source: "bb-3-17-ref-app", target: "bb-3-17-ref-nosql", kind: "request-flow" },
+              { id: "bb-3-17-ref-e10", source: "bb-3-17-ref-db", target: "bb-3-17-ref-replica", kind: "replication" },
+              { id: "bb-3-17-ref-e11", source: "bb-3-17-ref-replica", target: "bb-3-17-ref-app", kind: "request-flow" },
+              { id: "bb-3-17-ref-e12", source: "bb-3-17-ref-app", target: "bb-3-17-ref-cache", kind: "request-flow" },
+              { id: "bb-3-17-ref-e13", source: "bb-3-17-ref-cache", target: "bb-3-17-ref-db", kind: "request-flow" },
+              { id: "bb-3-17-ref-e14", source: "bb-3-17-ref-app", target: "bb-3-17-ref-search", kind: "request-flow" },
+              { id: "bb-3-17-ref-e15", source: "bb-3-17-ref-app", target: "bb-3-17-ref-queue", kind: "async" },
+              { id: "bb-3-17-ref-e16", source: "bb-3-17-ref-queue", target: "bb-3-17-ref-worker", kind: "async" },
+              { id: "bb-3-17-ref-e17", source: "bb-3-17-ref-queue", target: "bb-3-17-ref-dlq", kind: "async" },
+              { id: "bb-3-17-ref-e18", source: "bb-3-17-ref-worker", target: "bb-3-17-ref-search", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-17-ref-browser"],
+        },
+        commentary:
+          "Four new edges, and only three of them are dashed. The app-to-queue edge is the one that " +
+          "changes the recruiter's experience: it is the first line in this whole system that means " +
+          "\"written down, not waited for\", which is why the response can go out before any of the work " +
+          "behind it runs. The queue-to-consumer edge is the same kind for the same reason. But look at " +
+          "the last one. The consumer's write into the index is a solid line, because it genuinely is a " +
+          "blocking call - the consumer waits for it. Nothing about that call became asynchronous; it " +
+          "just stopped happening while a recruiter watched. That distinction is the whole chapter, and " +
+          "it is why 3.16's single edge was honest about the query and wrong about the indexing. The " +
+          "third dashed edge, the one into the dead letter queue, is the only path in this design that " +
+          "ends at a person rather than a machine.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-17-hint-1",
+        body:
+          "Validate is quiet because nothing here is wired wrong. The fault is in what one request is " +
+          "doing, not in what connects to what: four separate jobs run inside the publish, and the " +
+          "recruiter is billed for the time of all four. Start by deciding which single one of them they " +
+          "are actually waiting for.",
+      },
+      {
+        id: "bb-3-17-hint-2",
+        body:
+          "The other three jobs still have to happen, so they cannot simply be deleted from the design. " +
+          "They need somewhere to be recorded that survives the request ending - and something on the " +
+          "other side that reads that record and does the work at its own pace.",
+      },
+      {
+        id: "bb-3-17-hint-3",
+        body:
+          "Once you have that pair, Validate will start talking. It will point at a job that fails every " +
+          "attempt and has nowhere to go, which is the third piece. Watch the line styles as you draw: " +
+          "the canvas will only let you use the dashed kind where a hand-off is genuinely one-way.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group E: Asynchronous Systems - Chapter 3.17 of 37 (first chapter in Group E, immediately after Checkpoint R1).",
+      masteredConcepts: [
+        "Everything R1 asked the learner to rebuild from a blank canvas: the edge tier, the load-balanced " +
+          "stateless app tier, the primary with its replica, the cache, the CDN and the search index. " +
+          "This chapter's starter graph is that system, and every request path in it is synchronous.",
+        "3.16's closing argument: one edge into the search index carries both the query (honestly " +
+          "synchronous) and the indexing write (not), because no edge kind meant \"after the response is " +
+          "sent\". This chapter introduces that kind and the exercise redraws the indexing path with it.",
+        "3.6's stateless services and 3.8's horizontal scaling. Both return in a new distribution model: " +
+          "consumers pull work rather than having it routed to them, so adding one needs no registry and " +
+          "no load balancer.",
+        "3.12's replication lag and its read-your-writes carve-out - the same shape of problem as a job " +
+          "the user cannot see the result of yet, arrived at from a different direction.",
+      ],
+      notYetIntroducedConcepts: [
+        "Publish/subscribe, event buses and the log (3.18) - this chapter's one marked forward tease. " +
+          "The lesson states the queue's one-consumer semantics as a property, never as a limitation " +
+          "with a named solution.",
+        "Cron jobs, scheduled work and serverless consumers (3.19). The lesson mentions polling a jobs " +
+          "table as the boring first version, without naming what runs the poll.",
+        "Idempotency keys, circuit breakers and distributed locks as named patterns (3.23). Idempotence " +
+          "is taught here as an obligation on the consumer, with concrete examples, not as the pattern " +
+          "catalogue it becomes there.",
+        "Consistency models, quorums and CAP (3.22), which is where \"the queue accepted it and the work " +
+          "has not run yet\" gets its formal vocabulary.",
+        "Everything in Groups F and G, and the Real World Extraction projects that lean on this chapter.",
+      ],
+      simplifications: [
+        "One message-queue node stands for a broker with many queues on it, and one worker node stands " +
+          "for a consumer fleet. Splitting queues by job class and bulkheading consumer pools are taught " +
+          "in the scaling section rather than modeled - the canvas has no way to express either.",
+        "The dead-letter-queue component's maxRetries field and the message-queue's deliveryGuarantee " +
+          "are both left at their defaults (5 and at-least-once) and are not gated by the blueprint. " +
+          "Both defaults are the values the lesson argues for, so gating them would grade a dropdown the " +
+          "learner never had reason to touch.",
+        "Visibility timeouts, acknowledgement protocols, backoff schedules and jitter are lesson content " +
+          "with no canvas representation. The graph shows that a message can come back and that an " +
+          "exhausted message moves aside; it cannot show the timing that decides either.",
+        "A worker has an output port and a dead letter queue does not, so the consumer's write is drawn " +
+          "and the human triage path out of the dead letter queue is not. The lesson says outright that " +
+          "the only way out of that box is a person.",
+        "The publish handler's four jobs are prose. The canvas models the one whose destination exists " +
+          "in the palette (the search index); the emails, thumbnails and analytics rows have no " +
+          "component and are represented by the consumer itself rather than by four separate paths.",
+      ],
+    },
+    // Six questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3/3, matching
+    // 3.10-3.16's own ramp. All six of QUIZ_FRAMEWORK.md §12's bank questions
+    // tagged (3.17) are spent: bank Q1 as Q1, Q2 as Q2, Q3 as Q3, Q4 as Q4
+    // (the diagram question, carried over near-verbatim in topology), Q5 as
+    // Q5, Q6 as Q6. Correct options across the six sit at b, d, c, a, d, b -
+    // all four positions used, no letter twice in a row, and the chapter opens
+    // on "b", which 3.14 ("c"), 3.15 ("d") and 3.16 ("a") all avoid.
+    quiz: [
+      {
+        id: "bb-3-17-message-queues-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "The publish handler emails 900 subscribers before it returns. A teammate argues the emails should stay on the request path because \"the recruiter should know if their notifications failed.\" What is the strongest argument against?",
+        options: [
+          {
+            id: "a",
+            label: "Email delivery is unreliable, and unreliable work does not belong on a request path.",
+            correct: false,
+            explanationMd:
+              "Reliability is not the test. The listing's own database write can fail too, and it belongs there anyway - because that write is what the recruiter asked for.",
+          },
+          {
+            id: "b",
+            label: "The recruiter's publish succeeded the moment the listing was stored. Keeping the emails inline makes them wait on, and be failed by, work whose result is not theirs.",
+            correct: true,
+            explanationMd:
+              "Correct. The question is always whether the user's success depends on this job's result. Here it does not, so the only thing the coupling buys is a longer wait and a shared failure.",
+          },
+          {
+            id: "c",
+            label: "Notifications are low priority, and low-priority work should run after high-priority work.",
+            correct: false,
+            explanationMd:
+              "Priority is a different axis. A payment confirmation is high priority and still does not belong on the request path; a slow permissions check is low priority and has to stay.",
+          },
+          {
+            id: "d",
+            label: "A request handler cannot hold a connection open long enough to make 900 sends.",
+            correct: false,
+            explanationMd:
+              "It can, which is exactly the problem - the 4.2-second p95 is that connection being held. The design is bad, not impossible.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-17-message-queues-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Monday at 09:00 the board takes 40x its usual publish rate for ten minutes. The notification work now sits behind a queue with a fixed number of consumers. What actually happens?",
+        options: [
+          {
+            id: "a",
+            label: "The consumers process faster during the burst, because there is more work immediately available to them.",
+            correct: false,
+            explanationMd:
+              "Batching can shave a little overhead, but a consumer's throughput is set by the work each job costs. A queue does not make anything faster.",
+          },
+          {
+            id: "b",
+            label: "The queue sheds the excess so that the consumers keep up, which is how it protects the system.",
+            correct: false,
+            explanationMd:
+              "That is a load shedder, not a queue. A queue's default behaviour is to keep everything - dropping messages is the one thing you were trying to avoid.",
+          },
+          {
+            id: "c",
+            label: "Publishes start being rejected once the consumers saturate, but with a clearer error than before.",
+            correct: false,
+            explanationMd:
+              "The publish path no longer touches the consumers at all. That decoupling is the point: a saturated consumer pool is invisible to the recruiter except as a delay.",
+          },
+          {
+            id: "d",
+            label: "Every publish returns at its normal speed. The queue's depth grows through the burst and drains afterwards, and nothing about the consumers changed.",
+            correct: true,
+            explanationMd:
+              "Correct. The queue converts a rate problem into a depth problem - which is fine for a burst, and fatal if arrivals exceed processing on average rather than in spikes.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-17-message-queues-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Your queue delivers at-least-once. Which property must every consumer have, and why?",
+        options: [
+          {
+            id: "a",
+            label: "Statelessness, so that any consumer can pick up any message.",
+            correct: false,
+            explanationMd:
+              "True and useful (3.6), but it is what lets you add consumers - not what makes redelivery safe. A stateless consumer can still charge a card twice.",
+          },
+          {
+            id: "b",
+            label: "Single-threaded processing, so that two messages are never handled at once.",
+            correct: false,
+            explanationMd:
+              "That limits throughput without fixing anything: the duplicate arrives later, on the same consumer, and is processed a second time regardless of how many threads there were.",
+          },
+          {
+            id: "c",
+            label: "Idempotence - a message may be delivered more than once, so processing it twice must not have twice the effect.",
+            correct: true,
+            explanationMd:
+              "Correct. At-least-once means redelivery is normal, not exceptional. Either the effect is naturally idempotent, or the job carries an id the consumer checks before acting.",
+          },
+          {
+            id: "d",
+            label: "Speed - finishing inside the visibility timeout, so a message is never redelivered while still being worked on.",
+            correct: false,
+            explanationMd:
+              "A real concern, and one cause of duplicates worth tuning for. But it removes one source of redelivery, not the guarantee: a crash after the work and before the acknowledgement still redelivers.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-17-message-queues-q4",
+        kind: "diagram",
+        difficulty: 2,
+        prompt:
+          "A subscriber row with a malformed address crashes the consumer every single time that message is processed. In the topology shown, what happens next?",
+        graph: {
+          nodes: [
+            { id: "app", componentId: "app-server", position: { x: 40, y: 240 }, config: {} },
+            { id: "queue", componentId: "message-queue", position: { x: 360, y: 240 }, config: {} },
+            { id: "worker", componentId: "worker", position: { x: 680, y: 240 }, config: {} },
+            { id: "db", componentId: "sql-database", position: { x: 680, y: 400 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "app", target: "queue", kind: "async" },
+            { id: "e2", source: "queue", target: "worker", kind: "async" },
+            { id: "e3", source: "worker", target: "db", kind: "request-flow" },
+          ],
+          entryPointIds: ["app"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "It is redelivered indefinitely over e2, and the consumer spends its time crash-looping on that one message instead of the jobs queued behind it. Nothing here catches a message that has exhausted its attempts.",
+            correct: true,
+            explanationMd:
+              "Correct - this is a poison message, and the diagram has nowhere for it to go. The consumer pool is finite, so one message nothing can process costs you the throughput of whatever keeps picking it up.",
+          },
+          {
+            id: "b",
+            label: "The Message Queue notices the repeated failures and discards the message after a few attempts.",
+            correct: false,
+            explanationMd:
+              "A queue can be configured to stop retrying, but the message then has to go somewhere. Silently discarding it is the other failure this chapter names: a job that never ran and nobody was told.",
+          },
+          {
+            id: "c",
+            label: "The crash removes that consumer from the pool, so the message stays unprocessed and the rest of the system is unaffected.",
+            correct: false,
+            explanationMd:
+              "Consumers restart. The one that died comes back, takes the same message off the front of the queue, and dies again - the loop is the failure, not the individual crash.",
+          },
+          {
+            id: "d",
+            label: "The write over e3 rolls back and the queue marks the message failed, where it stays until someone queries it.",
+            correct: false,
+            explanationMd:
+              "The consumer never reached e3 - it crashed before the write. And \"marked failed and kept\" is exactly what the topology is missing: a dead letter queue is the component that does that.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-17-message-queues-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Six weeks after shipping the queue, someone opens the dead letter queue for the first time. It holds 4,300 messages. What does that number mean, and what should have been in place?",
+        options: [
+          {
+            id: "a",
+            label: "Nothing is wrong. That is the dead letter queue doing its job: the working queue stayed clear and none of those messages blocked anything.",
+            correct: false,
+            explanationMd:
+              "Half right, which is what makes it dangerous. It did protect throughput - and it did so by absorbing 4,300 failures nobody saw. Both things are true at once.",
+          },
+          {
+            id: "b",
+            label: "The retry limit was set too low. Raising the maximum attempts would have let most of those messages eventually succeed.",
+            correct: false,
+            explanationMd:
+              "Retries only fix failures another attempt could change. A message that exhausted five attempts against a permanent cause will exhaust fifty, more slowly and at more cost.",
+          },
+          {
+            id: "c",
+            label: "Failed messages should be replayed into the main queue automatically, so nothing is ever left unprocessed.",
+            correct: false,
+            explanationMd:
+              "That is the crash loop with a longer period. Replay is the right ending, but only after a person has established that the cause is fixed - otherwise the message returns to fail again.",
+          },
+          {
+            id: "d",
+            label: "4,300 jobs never ran and nobody found out for six weeks. The queue needed an owner and an alert on its depth, and each batch of messages needs diagnosing before it is replayed or discarded deliberately.",
+            correct: true,
+            explanationMd:
+              "Correct. A dead letter queue is an operational contract, not a topology box - it converts silent failure into visible failure only if something is actually watching it.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-17-message-queues-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A downstream API starts returning 503s under load. Your 40 consumers each retry immediately on failure, up to five attempts. What does that do to the API, and what is the fix?",
+        options: [
+          {
+            id: "a",
+            label: "Little that is measurable. Retries are spread across 40 independent consumers, so the added load is a fraction of normal traffic.",
+            correct: false,
+            explanationMd:
+              "They are independent but simultaneous - they all failed at the same moment because the same dependency broke, so their retries land together rather than spreading out.",
+          },
+          {
+            id: "b",
+            label: "It multiplies the request rate against the API by up to six times, at exactly the moment it can least afford it. Exponential backoff with jitter spaces the attempts out and desynchronizes them.",
+            correct: true,
+            explanationMd:
+              "Correct. This is a retry storm: resilience logic becoming the load. Backoff gives the dependency room to recover; jitter stops every consumer from returning at the same instant.",
+          },
+          {
+            id: "c",
+            label: "It helps the API recover, because the retries keep connections warm and its caches populated during the incident.",
+            correct: false,
+            explanationMd:
+              "Warm connections are not the constraint of an overloaded service. You are adding requests to something already failing to serve the ones it has.",
+          },
+          {
+            id: "d",
+            label: "Nothing much: a 503 is cheap for the API to return, so the extra requests cost it almost nothing.",
+            correct: false,
+            explanationMd:
+              "The 503 is cheap only once the service has decided to shed that request. Getting there still costs a connection, a thread and a routing decision - and the 503 usually means something upstream of that is already saturated.",
+          },
+        ],
+      },
+    ],
+    // Build-shaped, and the third consecutive starter graph that validates
+    // clean on purpose (see 3.15, 3.16 and the spec's §7): it is R1's own
+    // reference system, which is 3.16's solved graph. The fault is not in the
+    // wiring at all this time - it is in what one request handler does, which
+    // no rule can see.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-17-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-17-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-17-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+        { id: "bb-3-17-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-17-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+        { id: "bb-3-17-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-17-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-17-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-17-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-3-17-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-17-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-17-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+        { id: "bb-3-17-search", componentId: "search-engine", position: { x: 1100, y: 320 }, config: { shards: 1 } },
+      ],
+      edges: [
+        { id: "bb-3-17-e1", source: "bb-3-17-browser", target: "bb-3-17-dns", kind: "request-flow" },
+        { id: "bb-3-17-e2", source: "bb-3-17-dns", target: "bb-3-17-cdn", kind: "request-flow" },
+        { id: "bb-3-17-e3", source: "bb-3-17-cdn", target: "bb-3-17-fw", kind: "request-flow" },
+        { id: "bb-3-17-e4", source: "bb-3-17-fw", target: "bb-3-17-proxy", kind: "request-flow" },
+        { id: "bb-3-17-e5", source: "bb-3-17-proxy", target: "bb-3-17-gateway", kind: "request-flow" },
+        { id: "bb-3-17-e6", source: "bb-3-17-gateway", target: "bb-3-17-lb", kind: "request-flow" },
+        { id: "bb-3-17-e7", source: "bb-3-17-lb", target: "bb-3-17-app", kind: "request-flow" },
+        { id: "bb-3-17-e8", source: "bb-3-17-app", target: "bb-3-17-db", kind: "request-flow" },
+        { id: "bb-3-17-e9", source: "bb-3-17-app", target: "bb-3-17-nosql", kind: "request-flow" },
+        { id: "bb-3-17-e10", source: "bb-3-17-db", target: "bb-3-17-replica", kind: "replication" },
+        { id: "bb-3-17-e11", source: "bb-3-17-replica", target: "bb-3-17-app", kind: "request-flow" },
+        { id: "bb-3-17-e12", source: "bb-3-17-app", target: "bb-3-17-cache", kind: "request-flow" },
+        { id: "bb-3-17-e13", source: "bb-3-17-cache", target: "bb-3-17-db", kind: "request-flow" },
+        { id: "bb-3-17-e14", source: "bb-3-17-app", target: "bb-3-17-search", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-17-browser"],
+    },
+    // A magenta gap zone is warranted (§11.6): the fix is genuinely missing
+    // nodes in identifiable empty canvas space - their own column to the right
+    // of the derived-data tier, three slots deep - rather than a rewire of
+    // anything present. 3.16's gap slot now holds the search index, which gets
+    // its own Derived data band beside the cache.
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-17-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-17-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 628, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-17-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-17-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#10b981" },
+      { kind: "zone", id: "bb-3-17-zone-cache", label: "Cache tier", position: { x: 812, y: 440 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-17-zone-derived", label: "Derived data", position: { x: 1072, y: 280 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-17-zone-gap", label: "Build here", position: { x: 1332, y: 120 }, width: 176, height: 468, color: "#ff3483" },
+      {
+        kind: "comment",
+        id: "bb-3-17-comment-budget",
+        text: "Publishing a listing takes 4.2 s at p95. The listing's own row is written in 40 ms of that; the other 4.16 s is work the recruiter's browser holds a connection open for and nobody reads.",
+        position: { x: 1620, y: -40 },
+        width: 260,
+        height: 160,
+        color: "#64748b",
+      },
+      {
+        kind: "comment",
+        id: "bb-3-17-comment-outage",
+        text: "Last Tuesday the mail provider was down for 20 minutes. Every publish returned a 500, for listings that had already been saved.",
+        position: { x: 1620, y: 280 },
+        width: 260,
+        height: 130,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-18-event-driven-architecture",
+    mode: "building-blocks",
+    title: "Event-Driven Architecture",
+    // Real authored content (second Group E chapter, authored immediately
+    // after 3.17 in this same working tree). Spec:
+    // specs/bb-3-18-event-driven-architecture.spec.md. Lesson body:
+    // public/content/chapters/bb-3-18-event-driven-architecture.mdx.
+    // manifest.ts's prerequisiteSlugs already points at
+    // "3-17-message-queues", which is shipped.
+    problemStatement:
+      "Fraud screening and partner syndication both shipped last sprint, and both were added as consumers " +
+      "of the queue the publish handler already writes to. Three weeks later the numbers say screening " +
+      "looked at 31% of publishes, syndication at 34%, and the notification consumer took the rest. " +
+      "Nothing errored, nothing was lost, and a listing that should have been held went live.",
+    exerciseGoal:
+      "Get every published listing to all three of the disconnected services at once, without the application tier keeping a list of which services those are - so the fourth one next quarter needs no change to the publish handler.",
+    successCriteria: [
+      "Every published listing reaches all three of the currently disconnected services, and none of them takes a listing away from the others.",
+      "The application tier still emits one hand-off per publish however many services are listening, so adding a fourth needs no change on the publishing side.",
+      "The notification path is untouched: that work still goes to one consumer, and repeatedly-failing jobs still have somewhere to land.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces event-bus and kafka).
+    learningObjectives: [
+      "Explain why a queue and a bus behave differently for the same message, in terms of who the message is addressed to.",
+      "Decide whether a given message is a task or a fact, and route it to the shape whose delivery semantics match.",
+      "Describe what a log keeps that a bus does not, and what offsets and consumer groups let a consumer do as a result.",
+      "Build a fan-out path that delivers every published event to three independent services without the producer naming any of them, and pass Submit.",
+      "Answer \"how do you guarantee ordering?\" by naming the partition key and stating what ordering you are not getting.",
+      "Justify choosing one announcement over three addressed hand-offs aloud, naming whose code stops changing and what visibility is given up in exchange.",
+    ],
+    // 3.17's palette plus this chapter's own two new components. CURRICULUM
+    // §16's own row: "3.18 | event-bus, kafka". kafka is available but not
+    // required - see the spec's §6 and §8 for the reasoning (this chapter's
+    // build has no replay requirement, and requiring a log where a bus is
+    // the right answer would teach the opposite of the trade-offs section).
+    // distributed-cache stays available-but-not-required for 3.14's own
+    // recorded reason.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "kafka",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+    ],
+    // 3.17's set carried forward unchanged. orphan-component is the one
+    // doing real work at the start this time: the three deployed-but-unwired
+    // services are three warnings on the starter graph, and its explanation
+    // ("no incoming or outgoing connections at all, so it plays no part in
+    // the architecture as drawn") is the learner's first confirmation that
+    // the board really is missing something. queue-without-dead-letter-queue
+    // stays in the set to guard 3.17's path, which this chapter asks the
+    // learner to leave alone rather than rebuild.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+      "queue-without-dead-letter-queue",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-18-blueprint",
+        label: "One announcement, three independent subscribers, and the task path left alone",
+        require: {
+          id: "bb-3-18-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+            { alias: "queue", componentId: "message-queue" },
+            { alias: "dlq", componentId: "dead-letter-queue" },
+            { alias: "notifier", componentId: "worker" },
+            { alias: "bus", componentId: "event-bus" },
+            { alias: "sub1", componentId: "worker" },
+            { alias: "sub2", componentId: "worker" },
+            { alias: "sub3", componentId: "worker" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+            { from: "app", to: "queue", kind: "async" },
+            { from: "queue", to: "notifier", kind: "async" },
+            { from: "queue", to: "dlq", kind: "async" },
+            { from: "notifier", to: "search", kind: "request-flow" },
+            { from: "app", to: "bus", kind: "async" },
+            { from: "bus", to: "sub1", kind: "async" },
+            { from: "bus", to: "sub2", kind: "async" },
+            { from: "bus", to: "sub3", kind: "async" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-18-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-18-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-18-ref-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+            { id: "bb-3-18-ref-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-18-ref-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+            { id: "bb-3-18-ref-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+            { id: "bb-3-18-ref-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+            { id: "bb-3-18-ref-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+            { id: "bb-3-18-ref-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-18-ref-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+            { id: "bb-3-18-ref-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+            { id: "bb-3-18-ref-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+            { id: "bb-3-18-ref-queue", componentId: "message-queue", position: { x: 1100, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "bb-3-18-ref-notifier", componentId: "worker", position: { x: 1100, y: 160 }, config: {} },
+            { id: "bb-3-18-ref-dlq", componentId: "dead-letter-queue", position: { x: 1100, y: 320 }, config: { maxRetries: 5 } },
+            { id: "bb-3-18-ref-search", componentId: "search-engine", position: { x: 1360, y: 160 }, config: { shards: 1 } },
+            { id: "bb-3-18-ref-bus", componentId: "event-bus", position: { x: 1620, y: 160 }, config: { deliveryMode: "fan-out" } },
+            { id: "bb-3-18-ref-screen", componentId: "worker", position: { x: 1880, y: 0 }, config: {} },
+            { id: "bb-3-18-ref-syndicate", componentId: "worker", position: { x: 1880, y: 160 }, config: {} },
+            { id: "bb-3-18-ref-rollup", componentId: "worker", position: { x: 1880, y: 320 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-18-ref-e1", source: "bb-3-18-ref-browser", target: "bb-3-18-ref-dns", kind: "request-flow" },
+            { id: "bb-3-18-ref-e2", source: "bb-3-18-ref-dns", target: "bb-3-18-ref-cdn", kind: "request-flow" },
+            { id: "bb-3-18-ref-e3", source: "bb-3-18-ref-cdn", target: "bb-3-18-ref-fw", kind: "request-flow" },
+            { id: "bb-3-18-ref-e4", source: "bb-3-18-ref-fw", target: "bb-3-18-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-18-ref-e5", source: "bb-3-18-ref-proxy", target: "bb-3-18-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-18-ref-e6", source: "bb-3-18-ref-gateway", target: "bb-3-18-ref-lb", kind: "request-flow" },
+            { id: "bb-3-18-ref-e7", source: "bb-3-18-ref-lb", target: "bb-3-18-ref-app", kind: "request-flow" },
+            { id: "bb-3-18-ref-e8", source: "bb-3-18-ref-app", target: "bb-3-18-ref-db", kind: "request-flow" },
+            { id: "bb-3-18-ref-e9", source: "bb-3-18-ref-app", target: "bb-3-18-ref-nosql", kind: "request-flow" },
+            { id: "bb-3-18-ref-e10", source: "bb-3-18-ref-db", target: "bb-3-18-ref-replica", kind: "replication" },
+            { id: "bb-3-18-ref-e11", source: "bb-3-18-ref-replica", target: "bb-3-18-ref-app", kind: "request-flow" },
+            { id: "bb-3-18-ref-e12", source: "bb-3-18-ref-app", target: "bb-3-18-ref-cache", kind: "request-flow" },
+            { id: "bb-3-18-ref-e13", source: "bb-3-18-ref-cache", target: "bb-3-18-ref-db", kind: "request-flow" },
+            { id: "bb-3-18-ref-e14", source: "bb-3-18-ref-app", target: "bb-3-18-ref-search", kind: "request-flow" },
+            { id: "bb-3-18-ref-e15", source: "bb-3-18-ref-app", target: "bb-3-18-ref-queue", kind: "async" },
+            { id: "bb-3-18-ref-e16", source: "bb-3-18-ref-queue", target: "bb-3-18-ref-notifier", kind: "async" },
+            { id: "bb-3-18-ref-e17", source: "bb-3-18-ref-queue", target: "bb-3-18-ref-dlq", kind: "async" },
+            { id: "bb-3-18-ref-e18", source: "bb-3-18-ref-notifier", target: "bb-3-18-ref-search", kind: "request-flow" },
+            { id: "bb-3-18-ref-e19", source: "bb-3-18-ref-app", target: "bb-3-18-ref-bus", kind: "async" },
+            { id: "bb-3-18-ref-e20", source: "bb-3-18-ref-bus", target: "bb-3-18-ref-screen", kind: "async" },
+            { id: "bb-3-18-ref-e21", source: "bb-3-18-ref-bus", target: "bb-3-18-ref-syndicate", kind: "async" },
+            { id: "bb-3-18-ref-e22", source: "bb-3-18-ref-bus", target: "bb-3-18-ref-rollup", kind: "async" },
+          ],
+          entryPointIds: ["bb-3-18-ref-browser"],
+        },
+        commentary:
+          "Count the dashed lines leaving the Application Server: two, and they mean different things. One " +
+          "is addressed - it carries a task to a queue whose consumer is the only thing allowed to run it, " +
+          "and the Dead Letter Queue behind it exists because somebody has to answer for that task failing. " +
+          "The other is not addressed at all. It carries a fact, and the fan-out happens on the far side of " +
+          "the Event Bus, which is the entire point: three services got the news and the publish handler " +
+          "names none of them. If you had solved this with three queues instead, this diagram would have " +
+          "four lines leaving the Application Server and a fifth one next quarter, each of them a change to " +
+          "the publishing team's code. The shape you drew is the one where that team is finished.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-18-hint-1",
+        body:
+          "Validate is right - three services really are connected to nothing. The useful question is not " +
+          "how to connect them but what to connect them to. Ask what all three of them want out of a " +
+          "publish, and whether it is the same thing the notification consumer wants.",
+      },
+      {
+        id: "bb-3-18-hint-2",
+        body:
+          "Pointing all three at the existing hand-off is what the team already tried, and it is why each " +
+          "of them saw about a third of the publishes: that hand-off gives each message to one consumer. " +
+          "You need one where a single write is read by everybody who asked for it, independently.",
+      },
+      {
+        id: "bb-3-18-hint-3",
+        body:
+          "Whatever you add, count the lines leaving the application tier when you are done. If there are " +
+          "three of them, one per service, the list of interested parties has moved into the publish " +
+          "handler rather than out of it - and the fourth service next quarter is back on that team's desk.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group E: Asynchronous Systems - Chapter 3.18 of 37 (second chapter in Group E, directly after 3.17).",
+      masteredConcepts: [
+        "3.17's whole pattern: the message-queue/worker/dead-letter-queue trio, the async edge kind, " +
+          "durability as what makes it safe to answer before the work is done, at-least-once delivery and " +
+          "the idempotence it obliges. This chapter's starter graph is 3.17's solved system.",
+        "3.17's delivery rule stated as a property rather than a limitation: a queue hands each message to " +
+          "exactly one consumer. This chapter is what happens when that property meets three services that " +
+          "each need every message.",
+        "3.16's derived data - a second store that has to be kept in sync with the one that owns the " +
+          "records. The analytics rollup is another instance, and the sync arrow is now a subscription.",
+        "3.13's shard key: choosing which records must stay together and which may spread. The partition " +
+          "key is the same decision on a log, and the lesson names the connection explicitly.",
+        "3.12's replication lag and the read-your-writes carve-out, which is the same shape of problem as " +
+          "a subscriber that has not caught up yet.",
+      ],
+      notYetIntroducedConcepts: [
+        "Cron jobs, scheduled work and serverless consumers (3.19) - this chapter's one marked forward " +
+          "tease, phrased as work that no person triggered rather than as a component that exists.",
+        "Object storage and the rest of Group F, which is parallel-eligible with this group rather than " +
+          "after it, so nothing here may assume it.",
+        "Consistency models, quorums and CAP (3.22), which is where \"three subscribers are at three " +
+          "different positions in the same stream\" gets its formal vocabulary.",
+        "Idempotency keys, circuit breakers and distributed locks as named patterns (3.23). Idempotence is " +
+          "reinforced here as an obligation every subscriber carries independently, not as a catalogue.",
+        "Event sourcing, CQRS and change data capture. The log is taught as a delivery and retention " +
+          "substrate only; none of the architectures built on top of it are in this curriculum.",
+        "Schema registries as a product. Event versioning appears as a failure mode and a scaling pressure, " +
+          "not as tooling to adopt.",
+      ],
+      simplifications: [
+        "One event-bus node stands for a broker with many topics on it, and one kafka node would stand for " +
+          "a cluster. Topics, subscriptions and consumer groups are lesson content with no canvas " +
+          "representation - the graph can show that three services each receive the event, not how the " +
+          "broker is organized to make that true.",
+        "kafka is in the palette but not in the blueprint. This chapter's exercise has no replay or " +
+          "late-consumer requirement, and its own trade-off table argues against reaching for a log " +
+          "without one, so requiring it would contradict the lesson. Its partitions and retentionHours " +
+          "fields are taught and not gated, for the same reason 3.17 left maxRetries alone.",
+        "The three subscriber nodes are identical Worker cards - the canvas has no per-node label, so " +
+          "which one is fraud screening and which is partner syndication exists only in the brief. " +
+          "Nothing in the exercise depends on telling them apart, because all three take the same edge.",
+        "The wrong shape (three consumers competing on one queue) is drawn in the lesson and described in " +
+          "the brief, but never sits on the canvas. It is a legal topology that no validation rule can " +
+          "object to, so shipping it as the starter graph would have taught that Validate catches it.",
+        "Offsets, partition assignment and rebalancing are prose and one Mermaid diagram. The walkthrough " +
+          "shows a subscriber failing without affecting the others; it cannot show a consumer's position " +
+          "in a stream, because a Walkthrough step has no faulted or per-node state to carry it.",
+      ],
+    },
+    // Six questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3/3, matching
+    // 3.10-3.17's own ramp. All three of QUIZ_FRAMEWORK.md §12's bank
+    // questions tagged (3.18) are spent: bank Q7 as Q1, Q9 as Q4, Q8 as Q5.
+    // Bank Q10-Q11 belong to 3.19 and are untouched. Correct options across
+    // the six sit at c, a, d, b, c, a - all four positions used, no letter
+    // twice in a row, and the chapter opens on "c", which is the least
+    // recently used opener among the neighbours the per-chapter CI test
+    // cannot see (3.17 opens on b, 3.16 on a, 3.15 on d, 3.14 on c).
+    quiz: [
+      {
+        id: "bb-3-18-event-driven-architecture-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Three services - fraud screening, partner syndication and an analytics rollup - each need to see every published listing. A teammate adds all three as consumers of the queue the publish handler already writes to. A week later each has processed about a third of the publishes, with no errors anywhere. Why?",
+        options: [
+          {
+            id: "a",
+            label: "The three consumers are competing for CPU on the same machines, so each gets through roughly a third of the work.",
+            correct: false,
+            explanationMd:
+              "Nothing here is resource-starved. Each service finished everything it took; the question is why it only ever took a third.",
+          },
+          {
+            id: "b",
+            label: "At-least-once delivery only promises a message reaches one consumer eventually, so two of the three see it late or not at all.",
+            correct: false,
+            explanationMd:
+              "At-least-once is about redelivery after a failure, not about how many distinct consumers a message reaches. Even a perfect exactly-once queue would still hand each message to one of them.",
+          },
+          {
+            id: "c",
+            label: "A queue delivers each message to exactly one consumer. The three services were not each receiving the publishes, they were dividing them.",
+            correct: true,
+            explanationMd:
+              "Correct. Competing consumers are a queue's feature, not its bug - it is how you add throughput to a task. It is the wrong shape the moment the message is a fact several services each need in full.",
+          },
+          {
+            id: "d",
+            label: "The queue round-robins between consumers, which is fixed by raising each consumer's concurrency so it can take more messages.",
+            correct: false,
+            explanationMd:
+              "More concurrency makes each consumer faster, and faster consumers still split the same stream. The split is in the delivery semantics, not in the consumers' capacity.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-18-event-driven-architecture-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "You are sorting the job board's messages into two piles: the ones that go to one owner, and the ones that get announced to everybody interested. Which of these most clearly belongs in the first pile?",
+        options: [
+          {
+            id: "a",
+            label: "\"Send the 900 saved-search emails for listing 4471.\" One team owns doing it, and doing it twice sends the emails twice.",
+            correct: true,
+            explanationMd:
+              "Correct. That is a task: there is a single right owner, the effect is externally visible, and a second execution is a defect rather than a duplicate read.",
+          },
+          {
+            id: "b",
+            label: "\"Listing 4471 was published.\" Three services depend on it, so it needs the shape with the stronger delivery guarantee.",
+            correct: false,
+            explanationMd:
+              "Delivery guarantees exist on both shapes. Three dependents is the argument for announcing it once to all of them, not for handing it to whichever one asks first.",
+          },
+          {
+            id: "c",
+            label: "\"Fraud screening cleared listing 4471.\" It comes from a single service, so it belongs on that service's queue.",
+            correct: false,
+            explanationMd:
+              "Who produced a message never decides its shape; who needs it does. A clearance is a fact, and the listing service and the syndication feed both want to know about it.",
+          },
+          {
+            id: "d",
+            label: "\"A listing was viewed.\" There are millions of these an hour, and high-volume messages need a queue's buffering.",
+            correct: false,
+            explanationMd:
+              "Volume is not the discriminator either. A view is a fact with several interested parties - analytics, recommendations, the recruiter's own dashboard - and a queue would hand each view to exactly one of them.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-18-event-driven-architecture-q3",
+        kind: "diagram",
+        difficulty: 2,
+        prompt:
+          "The topology shown has been running for six months. Today you bring up a fourth service that has to produce a report covering every listing published this year. What does this topology give it?",
+        graph: {
+          nodes: [
+            { id: "app", componentId: "app-server", position: { x: 40, y: 240 }, config: {} },
+            { id: "bus", componentId: "event-bus", position: { x: 360, y: 240 }, config: {} },
+            { id: "s1", componentId: "worker", position: { x: 680, y: 80 }, config: {} },
+            { id: "s2", componentId: "worker", position: { x: 680, y: 240 }, config: {} },
+            { id: "s3", componentId: "worker", position: { x: 680, y: 400 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "app", target: "bus", kind: "async" },
+            { id: "e2", source: "bus", target: "s1", kind: "async" },
+            { id: "e3", source: "bus", target: "s2", kind: "async" },
+            { id: "e4", source: "bus", target: "s3", kind: "async" },
+          ],
+          entryPointIds: ["app"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "Everything it needs: it subscribes and reads the backlog from the start of the topic.",
+            correct: false,
+            explanationMd:
+              "That describes a log, which keeps records and lets each consumer choose where to start. A bus routes an event to whoever is subscribed at the moment of publish and keeps nothing afterwards.",
+          },
+          {
+            id: "b",
+            label: "Nothing, and nothing can fix that: history like this can only ever come from a fresh export of the primary database.",
+            correct: false,
+            explanationMd:
+              "Too strong. A log retains events precisely so a consumer that arrives late can read history. The primary is the fallback here, not the only possible source.",
+          },
+          {
+            id: "c",
+            label: "Everything since the other three subscribers last acknowledged, because the bus holds unacknowledged events.",
+            correct: false,
+            explanationMd:
+              "Per-consumer backlogs are queue behaviour, and one consumer's backlog would not be another's history anyway. A subscriber that did not exist has nothing to inherit.",
+          },
+          {
+            id: "d",
+            label: "Only what is published from now on. The bus routed the previous six months to whoever was subscribed at the time and kept none of it.",
+            correct: true,
+            explanationMd:
+              "Correct, and this is the limitation that sends teams to a log. A bus is a router, not a store - its memory is exactly the set of subscriptions that existed when each event went out.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-18-event-driven-architecture-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "You move the listing stream onto a log. A listing's created, edited and closed events must be processed in that order, and you also want several consumers working in parallel. How do you partition the topic?",
+        options: [
+          {
+            id: "a",
+            label: "One partition, so that every event in the topic is globally ordered.",
+            correct: false,
+            explanationMd:
+              "That buys ordering you do not need and gives up the parallelism you do. One partition is read by one member of a consumer group, so throughput is capped at a single consumer forever.",
+          },
+          {
+            id: "b",
+            label: "Partition by listing id. Each listing's events land on one partition and serialize there, while different listings spread across partitions.",
+            correct: true,
+            explanationMd:
+              "Correct, and it is 3.13's shard-key decision again: pick the key whose values must stay together, and let everything else spread. You get ordering per listing and parallelism across listings.",
+          },
+          {
+            id: "c",
+            label: "Partition by event type, so that creates are ordered against creates and closes against closes.",
+            correct: false,
+            explanationMd:
+              "That orders the wrong things. A listing's close now sits on a different partition from its own create, so it can be processed before the listing exists.",
+          },
+          {
+            id: "d",
+            label: "Partition by timestamp bucket, so that events which happened close together stay close together.",
+            correct: false,
+            explanationMd:
+              "Time buckets guarantee nothing about one listing. A create at 10:59 and its edit at 11:01 land in different partitions with no defined order between them.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-18-event-driven-architecture-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Your log retains events for seven days. A new recommendations service starts today and begins reading the topic from offset 0. What is it actually able to do, and what does that cost you?",
+        options: [
+          {
+            id: "a",
+            label: "It reads the topic's full history and rebuilds its state exactly. The only cost is a slower start while it catches up.",
+            correct: false,
+            explanationMd:
+              "Offset 0 is the oldest record still inside the retention window, not the first event ever written. Seven days of retention means seven days of history, and the phrase \"from the beginning\" quietly means \"from the beginning of the window\".",
+          },
+          {
+            id: "b",
+            label: "It reads the last seven days, and the existing consumer groups fall behind while it catches up, because they share the same partitions.",
+            correct: false,
+            explanationMd:
+              "Groups hold their own offsets and do not move each other's. A large replay is a broker throughput question you may have to plan for, not a correctness problem for the other groups.",
+          },
+          {
+            id: "c",
+            label: "It reads the last seven days and rebuilds from that, and nothing older is recoverable. You pay storage for the window, and every consumer now owns its own position and its own ordering assumptions.",
+            correct: true,
+            explanationMd:
+              "Correct. Replay is what a log buys and the retention window is its limit. The bill is storage plus a real shift in responsibility: the broker stopped tracking who has processed what, so each consumer does.",
+          },
+          {
+            id: "d",
+            label: "It reads the last seven days, and because replay is routine here it can skip idempotence - a replayed event is not a duplicate.",
+            correct: false,
+            explanationMd:
+              "From the side effect's point of view a replayed event is exactly a duplicate. Replay makes idempotence more necessary, not less, because now you deliberately reprocess events that already ran.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-18-event-driven-architecture-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Checkout publishes an OrderPlaced event, then waits for the payment service to publish PaymentConfirmed before it answers the customer. The team describes the design as fully asynchronous. What have they actually built?",
+        options: [
+          {
+            id: "a",
+            label: "A synchronous call with extra hops. The customer still waits on payment, so the dependency is unchanged - the fix is to answer as soon as the order is durable and show the payment state separately.",
+            correct: true,
+            explanationMd:
+              "Correct. Asynchronous machinery does not make a synchronous dependency asynchronous; only removing the dependency does. Worse, the round trip now has no timeout the caller controls and no error path it owns.",
+          },
+          {
+            id: "b",
+            label: "A correct event-driven design. The customer has to know whether payment succeeded, so the wait is unavoidable and the events at least give them a durable trail.",
+            correct: false,
+            explanationMd:
+              "The durability is real and the wait is the problem. 3.17's test still applies: if the customer's success genuinely depends on payment completing, the bus has changed nothing except adding two hops.",
+          },
+          {
+            id: "c",
+            label: "A double-charge hazard: PaymentConfirmed can be delivered twice. Idempotency keys on the payment consumer fix it.",
+            correct: false,
+            explanationMd:
+              "A real hazard, and worth fixing on its own terms - but with perfect idempotence the customer is still blocked on a second service, which is what is actually wrong here.",
+          },
+          {
+            id: "d",
+            label: "An ordering bug: PaymentConfirmed can arrive before OrderPlaced is committed. Partitioning both by order id fixes it.",
+            correct: false,
+            explanationMd:
+              "Also a genuine hazard with the right tool named. Fixing the ordering still leaves the customer waiting on a round trip between two services, so it repairs a symptom rather than the shape.",
+          },
+        ],
+      },
+    ],
+    // 3.17's solved system, plus three services the team has deployed and
+    // wired to nothing. The starter therefore does NOT validate clean - it
+    // reports three orphan-component warnings, breaking the run of clean
+    // starters at 3.15/3.16/3.17 (see the spec's §8). The wrong shape those
+    // three services were in for three weeks (all of them consuming the one
+    // queue) is deliberately not drawn here: it is a legal topology no rule
+    // objects to, so shipping it would have taught that Validate catches it.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-18-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-18-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-18-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+        { id: "bb-3-18-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-18-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+        { id: "bb-3-18-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-18-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-18-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-18-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-3-18-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-18-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-18-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+        { id: "bb-3-18-queue", componentId: "message-queue", position: { x: 1100, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+        { id: "bb-3-18-notifier", componentId: "worker", position: { x: 1100, y: 160 }, config: {} },
+        { id: "bb-3-18-dlq", componentId: "dead-letter-queue", position: { x: 1100, y: 320 }, config: { maxRetries: 5 } },
+        { id: "bb-3-18-search", componentId: "search-engine", position: { x: 1360, y: 160 }, config: { shards: 1 } },
+        { id: "bb-3-18-screen", componentId: "worker", position: { x: 1880, y: 0 }, config: {} },
+        { id: "bb-3-18-syndicate", componentId: "worker", position: { x: 1880, y: 160 }, config: {} },
+        { id: "bb-3-18-rollup", componentId: "worker", position: { x: 1880, y: 320 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-18-e1", source: "bb-3-18-browser", target: "bb-3-18-dns", kind: "request-flow" },
+        { id: "bb-3-18-e2", source: "bb-3-18-dns", target: "bb-3-18-cdn", kind: "request-flow" },
+        { id: "bb-3-18-e3", source: "bb-3-18-cdn", target: "bb-3-18-fw", kind: "request-flow" },
+        { id: "bb-3-18-e4", source: "bb-3-18-fw", target: "bb-3-18-proxy", kind: "request-flow" },
+        { id: "bb-3-18-e5", source: "bb-3-18-proxy", target: "bb-3-18-gateway", kind: "request-flow" },
+        { id: "bb-3-18-e6", source: "bb-3-18-gateway", target: "bb-3-18-lb", kind: "request-flow" },
+        { id: "bb-3-18-e7", source: "bb-3-18-lb", target: "bb-3-18-app", kind: "request-flow" },
+        { id: "bb-3-18-e8", source: "bb-3-18-app", target: "bb-3-18-db", kind: "request-flow" },
+        { id: "bb-3-18-e9", source: "bb-3-18-app", target: "bb-3-18-nosql", kind: "request-flow" },
+        { id: "bb-3-18-e10", source: "bb-3-18-db", target: "bb-3-18-replica", kind: "replication" },
+        { id: "bb-3-18-e11", source: "bb-3-18-replica", target: "bb-3-18-app", kind: "request-flow" },
+        { id: "bb-3-18-e12", source: "bb-3-18-app", target: "bb-3-18-cache", kind: "request-flow" },
+        { id: "bb-3-18-e13", source: "bb-3-18-cache", target: "bb-3-18-db", kind: "request-flow" },
+        { id: "bb-3-18-e14", source: "bb-3-18-app", target: "bb-3-18-search", kind: "request-flow" },
+        { id: "bb-3-18-e15", source: "bb-3-18-app", target: "bb-3-18-queue", kind: "async" },
+        { id: "bb-3-18-e16", source: "bb-3-18-queue", target: "bb-3-18-notifier", kind: "async" },
+        { id: "bb-3-18-e17", source: "bb-3-18-queue", target: "bb-3-18-dlq", kind: "async" },
+        { id: "bb-3-18-e18", source: "bb-3-18-notifier", target: "bb-3-18-search", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-18-browser"],
+    },
+    // One magenta gap zone, one slot wide (§11.6): exactly one component is
+    // missing, and it sits between the tier that publishes and the tier that
+    // listens. The three unwired services get their own purple band so the
+    // canvas reads as "deployed, waiting" rather than "stray cards".
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-18-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-18-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 628, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-18-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-18-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#10b981" },
+      { kind: "zone", id: "bb-3-18-zone-cache", label: "Cache tier", position: { x: 812, y: 440 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-18-zone-handoff", label: "Handed-off work", position: { x: 1072, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-18-zone-derived", label: "Derived data", position: { x: 1332, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-18-zone-gap", label: "Build here", position: { x: 1592, y: 120 }, width: 176, height: 148, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-18-zone-waiting", label: "Deployed, receiving nothing", position: { x: 1852, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      {
+        kind: "comment",
+        id: "bb-3-18-comment-split",
+        text: "Three weeks of numbers from the attempt that was rolled back on Tuesday: fraud screening handled 31% of publishes, partner syndication 34%, and the notification consumer the remaining 35%. No errors, no lost messages.",
+        position: { x: 32, y: 680 },
+        width: 520,
+        height: 140,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-19-background-jobs-and-scheduling",
+    mode: "building-blocks",
+    title: "Background Jobs & Scheduling",
+    // Real authored content (third and final Group E chapter, authored
+    // immediately after 3.18 in this same working tree). Spec:
+    // specs/bb-3-19-background-jobs-and-scheduling.spec.md. Lesson body:
+    // public/content/chapters/bb-3-19-background-jobs-and-scheduling.mdx.
+    // manifest.ts's prerequisiteSlugs already points at
+    // "3-18-event-driven-architecture", which is shipped.
+    problemStatement:
+      "The month's close runs as a timer inside the application server process, and the pool is " +
+      "configured with three instances. Last Tuesday finance received three identical invoice sets " +
+      "at 02:00, with no error logged anywhere. Separately, logo uploads are 4% of requests and " +
+      "about 60% of the pool's CPU, in bursts of a few minutes a day.",
+    exerciseGoal:
+      "Get the 02:00 close running once a night on its own, whatever the instance count, and take the logo-upload path off the application pool so the pool stops being sized all day for four minutes of bursty work.",
+    successCriteria: [
+      "The nightly close starts on its own with no request and no person behind it, and happens once per night however many application instances are running.",
+      "Logo uploads no longer reach the application pool, and forty arriving at once changes nothing about how that pool is sized.",
+      "The resized logos are recorded against the listing they belong to, in the store that already holds listing documents.",
+      "Everything 3.18 left in place still works, and the front door still decides which path goes where.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7). All five categories present -
+    // Building Block type per §4/§16 (introduces cron-job and
+    // serverless-function).
+    learningObjectives: [
+      "Explain why a schedule held inside a horizontally scaled pool runs once per instance, and why an instance-id flag does not fix it.",
+      "Decide which of the four triggers - a request, a handed-off message, a clock, or a rare burst - a given piece of work has, and pick the compute shape that matches.",
+      "Describe the two constraints that decide whether work fits a serverless function: the per-invocation timeout ceiling and the cold start on a path someone is waiting on.",
+      "Build a scheduled path and an on-demand path into an existing architecture without changing the request path either one of them replaces, and pass Submit.",
+      "Answer \"where does the nightly report live?\" by naming the trigger first and then what scheduled work gives up - no caller, no error path, no retry unless you build one.",
+      "Justify keeping a job on the application server aloud, naming the operational cost of the narrower shape rather than defending the default.",
+    ],
+    // 3.18's palette plus this chapter's own two new components. CURRICULUM
+    // §16's own row: "3.19 | cron-job, serverless-function". kafka and
+    // distributed-cache stay available-but-not-required for 3.18's and
+    // 3.14's own recorded reasons.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "kafka",
+      "cron-job",
+      "serverless-function",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "cron-job",
+      "serverless-function",
+    ],
+    // 3.18's set carried forward unchanged. Nothing new is needed: this
+    // chapter's fault is behavioural (a timer inside a pool of three) and has
+    // no graph representation, so the starter validates clean on purpose and
+    // Submit's blueprint drift is the feedback surface - 3.15's shape, argued
+    // fresh in the spec's §8. component-relations is the rule doing real work
+    // here: it is what stops a learner wiring the scheduled job's trigger
+    // backwards, since a Cron Job declares no input port at all.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+      "queue-without-dead-letter-queue",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-19-blueprint",
+        label: "A schedule outside the pool, and a burst path that costs nothing when idle",
+        require: {
+          id: "bb-3-19-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+            { alias: "queue", componentId: "message-queue" },
+            { alias: "dlq", componentId: "dead-letter-queue" },
+            { alias: "notifier", componentId: "worker" },
+            { alias: "bus", componentId: "event-bus" },
+            { alias: "sub1", componentId: "worker" },
+            { alias: "sub2", componentId: "worker" },
+            { alias: "sub3", componentId: "worker" },
+            { alias: "cron", componentId: "cron-job" },
+            { alias: "fn", componentId: "serverless-function" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+            { from: "app", to: "queue", kind: "async" },
+            { from: "queue", to: "notifier", kind: "async" },
+            { from: "queue", to: "dlq", kind: "async" },
+            { from: "notifier", to: "search", kind: "request-flow" },
+            { from: "app", to: "bus", kind: "async" },
+            { from: "bus", to: "sub1", kind: "async" },
+            { from: "bus", to: "sub2", kind: "async" },
+            { from: "bus", to: "sub3", kind: "async" },
+            { from: "cron", to: "db", kind: "request-flow" },
+            { from: "gateway", to: "fn", kind: "request-flow" },
+            { from: "fn", to: "nosql", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-19-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-19-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-19-ref-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+            { id: "bb-3-19-ref-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-19-ref-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+            { id: "bb-3-19-ref-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+            { id: "bb-3-19-ref-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+            { id: "bb-3-19-ref-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+            { id: "bb-3-19-ref-fn", componentId: "serverless-function", position: { x: 580, y: 480 }, config: { maxConcurrency: 50, timeoutSeconds: 30 } },
+            { id: "bb-3-19-ref-cron", componentId: "cron-job", position: { x: 580, y: 640 }, config: { scheduleIntervalMinutes: 1440 } },
+            { id: "bb-3-19-ref-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-19-ref-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+            { id: "bb-3-19-ref-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+            { id: "bb-3-19-ref-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+            { id: "bb-3-19-ref-queue", componentId: "message-queue", position: { x: 1100, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "bb-3-19-ref-notifier", componentId: "worker", position: { x: 1100, y: 160 }, config: {} },
+            { id: "bb-3-19-ref-dlq", componentId: "dead-letter-queue", position: { x: 1100, y: 320 }, config: { maxRetries: 5 } },
+            { id: "bb-3-19-ref-search", componentId: "search-engine", position: { x: 1360, y: 160 }, config: { shards: 1 } },
+            { id: "bb-3-19-ref-bus", componentId: "event-bus", position: { x: 1620, y: 160 }, config: { deliveryMode: "fan-out" } },
+            { id: "bb-3-19-ref-screen", componentId: "worker", position: { x: 1880, y: 0 }, config: {} },
+            { id: "bb-3-19-ref-syndicate", componentId: "worker", position: { x: 1880, y: 160 }, config: {} },
+            { id: "bb-3-19-ref-rollup", componentId: "worker", position: { x: 1880, y: 320 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-19-ref-e1", source: "bb-3-19-ref-browser", target: "bb-3-19-ref-dns", kind: "request-flow" },
+            { id: "bb-3-19-ref-e2", source: "bb-3-19-ref-dns", target: "bb-3-19-ref-cdn", kind: "request-flow" },
+            { id: "bb-3-19-ref-e3", source: "bb-3-19-ref-cdn", target: "bb-3-19-ref-fw", kind: "request-flow" },
+            { id: "bb-3-19-ref-e4", source: "bb-3-19-ref-fw", target: "bb-3-19-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-19-ref-e5", source: "bb-3-19-ref-proxy", target: "bb-3-19-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-19-ref-e6", source: "bb-3-19-ref-gateway", target: "bb-3-19-ref-lb", kind: "request-flow" },
+            { id: "bb-3-19-ref-e7", source: "bb-3-19-ref-lb", target: "bb-3-19-ref-app", kind: "request-flow" },
+            { id: "bb-3-19-ref-e8", source: "bb-3-19-ref-app", target: "bb-3-19-ref-db", kind: "request-flow" },
+            { id: "bb-3-19-ref-e9", source: "bb-3-19-ref-app", target: "bb-3-19-ref-nosql", kind: "request-flow" },
+            { id: "bb-3-19-ref-e10", source: "bb-3-19-ref-db", target: "bb-3-19-ref-replica", kind: "replication" },
+            { id: "bb-3-19-ref-e11", source: "bb-3-19-ref-replica", target: "bb-3-19-ref-app", kind: "request-flow" },
+            { id: "bb-3-19-ref-e12", source: "bb-3-19-ref-app", target: "bb-3-19-ref-cache", kind: "request-flow" },
+            { id: "bb-3-19-ref-e13", source: "bb-3-19-ref-cache", target: "bb-3-19-ref-db", kind: "request-flow" },
+            { id: "bb-3-19-ref-e14", source: "bb-3-19-ref-app", target: "bb-3-19-ref-search", kind: "request-flow" },
+            { id: "bb-3-19-ref-e15", source: "bb-3-19-ref-app", target: "bb-3-19-ref-queue", kind: "async" },
+            { id: "bb-3-19-ref-e16", source: "bb-3-19-ref-queue", target: "bb-3-19-ref-notifier", kind: "async" },
+            { id: "bb-3-19-ref-e17", source: "bb-3-19-ref-queue", target: "bb-3-19-ref-dlq", kind: "async" },
+            { id: "bb-3-19-ref-e18", source: "bb-3-19-ref-notifier", target: "bb-3-19-ref-search", kind: "request-flow" },
+            { id: "bb-3-19-ref-e19", source: "bb-3-19-ref-app", target: "bb-3-19-ref-bus", kind: "async" },
+            { id: "bb-3-19-ref-e20", source: "bb-3-19-ref-bus", target: "bb-3-19-ref-screen", kind: "async" },
+            { id: "bb-3-19-ref-e21", source: "bb-3-19-ref-bus", target: "bb-3-19-ref-syndicate", kind: "async" },
+            { id: "bb-3-19-ref-e22", source: "bb-3-19-ref-bus", target: "bb-3-19-ref-rollup", kind: "async" },
+            { id: "bb-3-19-ref-e23", source: "bb-3-19-ref-cron", target: "bb-3-19-ref-db", kind: "request-flow" },
+            { id: "bb-3-19-ref-e24", source: "bb-3-19-ref-gateway", target: "bb-3-19-ref-fn", kind: "request-flow" },
+            { id: "bb-3-19-ref-e25", source: "bb-3-19-ref-fn", target: "bb-3-19-ref-nosql", kind: "request-flow" },
+          ],
+          // Two Start badges, on purpose. The Cron Job is the first node in
+          // any authored chapter that begins work without anything upstream
+          // asking, so it is a second entry point rather than an unreachable
+          // node - and the badge says exactly what the chapter teaches.
+          entryPointIds: ["bb-3-19-ref-browser", "bb-3-19-ref-cron"],
+        },
+        commentary:
+          "Two cards were added and they are wired in opposite directions. The Cron Job has no incoming " +
+          "arrow at all, which is the whole point: nothing calls it, so nothing about the pool's instance " +
+          "count, deploy schedule or autoscaling can change how many times the close runs. The Serverless " +
+          "Function is the mirror image - it has a caller, and the caller is the same front door every " +
+          "other request already comes through, routing one path somewhere that costs nothing for the " +
+          "twenty-three hours a day nobody uploads a logo. The Application Server did not shrink and " +
+          "nothing was taken off the request path. What changed is that two pieces of work stopped " +
+          "borrowing a process that was only ever sized for requests.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-19-hint-1",
+        body:
+          "Validate has nothing to say, which is correct - nothing on the board is miswired. Both problems " +
+          "are about where work lives rather than how it is connected. For each of the two, ask what " +
+          "actually starts it, and whether the answer is a request at all.",
+      },
+      {
+        id: "bb-3-19-hint-2",
+        body:
+          "The close has no caller. Every card on this canvas today needs something upstream before it can " +
+          "do anything, which is exactly why the close ended up inside the pool in the first place. You " +
+          "need something whose entire job is starting by itself, on a clock, with nothing pointing at it.",
+      },
+      {
+        id: "bb-3-19-hint-3",
+        body:
+          "The uploads do have a caller, and it is the front door that already decides which path goes " +
+          "where - so you are adding a second destination behind it, not a second door. Whatever you put " +
+          "there has to cost nothing during the twenty-three hours nobody is uploading, and has to leave " +
+          "its result somewhere the listing already lives.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group E: Asynchronous Systems - Chapter 3.19 of 37 (third and final chapter in Group E, directly after 3.18).",
+      masteredConcepts: [
+        "3.17's and 3.18's whole async vocabulary: queue, worker, dead letter queue, event bus, the async " +
+          "edge kind, at-least-once delivery and the idempotence it obliges. This chapter's starter graph " +
+          "is 3.18's solved system.",
+        "3.6's statelessness and 3.8's horizontal scaling - that any instance must be able to answer any " +
+          "request, and that instances are added and removed freely. The cold open is the bill for putting " +
+          "something non-interchangeable inside a pool of three.",
+        "3.5's API Gateway as the single front door that routes by path. This chapter reuses it unchanged, " +
+          "routing one path to something that is not the application pool.",
+        "3.17's separation of work from the request path. A scheduled job is off the request path for the " +
+          "same reason a worker is; the difference taught here is only the trigger.",
+        "3.12's replication and 3.14's cache-aside path, both still present in the starter graph and both " +
+          "deliberately untouched by this exercise.",
+      ],
+      notYetIntroducedConcepts: [
+        "Distributed locks, leases and the lock service (3.23) - this chapter's one marked forward tease. " +
+          "Cron overlap is stated as a hazard and named as needing mutual exclusion; the component that " +
+          "provides it is not introduced here.",
+        "Object storage (3.20), which is where the resized image bytes actually belong. The lesson's Next " +
+          "section states the problem and stops there; nothing in the exercise depends on it.",
+        "Idempotency keys, retries with backoff and circuit breakers as named patterns (3.23). Idempotence " +
+          "is reinforced here as an obligation a truncated batch re-incurs, not as a catalogue.",
+        "Workflow engines, DAG schedulers and step functions as products. Airflow appears as one company's " +
+          "decision to move a schedule out of crontab, not as tooling to adopt.",
+        "Leader election as a named mechanism (3.26 homes `leader` and `follower`). The lesson " +
+          "describes an instance-id flag as a hand-written rule for deciding which instance is in " +
+          "charge, without using the term or going further.",
+      ],
+      simplifications: [
+        "One cron-job node stands for a scheduler and the job it runs. The schedule interval is a single " +
+          "number of minutes on the card, not a cron expression, so \"02:00 nightly\" is modelled as a " +
+          "1440-minute interval and the time of day exists only in the brief.",
+        "The scheduled close is drawn as one edge straight into the primary database. A real nightly close " +
+          "of this size would more often enqueue work rather than mutate rows directly, and the lesson's " +
+          "own Common Mistakes section says so - but the chapter is teaching the trigger, and routing it " +
+          "through 3.17's notification queue would put unrelated work on a queue this chapter asks the " +
+          "learner to leave alone.",
+        "The serverless function's maxConcurrency and timeoutSeconds are taught and not gated. The lesson " +
+          "argues the timeout ceiling decides shapes; the exercise's own upload path fits comfortably " +
+          "inside any default, so there is no defensible single correct value to grade.",
+        "Cold start is prose and one walkthrough step. Nothing on the canvas shows latency, and a " +
+          "Walkthrough step has no per-node timing state to carry it.",
+        "The resized logos are recorded in the document store next to the listing. That is the wrong home " +
+          "for image bytes and the chapter says so in its Next section rather than pretending otherwise - " +
+          "object storage has not been introduced yet.",
+      ],
+    },
+    // Five questions (§3's sanctioned 3-6 range), ramp 1/1/2/2/3 - one shorter
+    // than 3.10-3.18's six, matching this chapter's shorter estimate. Both of
+    // QUIZ_FRAMEWORK.md §12's bank questions tagged (3.19) are spent: bank Q10
+    // as Q1, bank Q11 as Q5. The §12 bank is now fully consumed across
+    // 3.17/3.18/3.19. Correct options sit at d, a, c, b, a - all four
+    // positions used, no letter twice in a row, and the chapter opens on "d",
+    // the least recently used opener among the neighbours the per-chapter CI
+    // test cannot see (3.15 opens on d, 3.16 on a, 3.17 on b, 3.18 on c).
+    quiz: [
+      {
+        id: "bb-3-19-background-jobs-and-scheduling-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "You are placing four pieces of work: a nightly invoice reconciliation, an image resize that happens on upload, the API that serves the listing page, and a consumer draining a queue of outbound emails. What single question decides the shape for each one?",
+        options: [
+          {
+            id: "a",
+            label: "How long each one runs. Anything that takes more than a few seconds needs a machine of its own.",
+            correct: false,
+            explanationMd:
+              "Duration is one input, and it does rule some shapes out - a forty-minute job will not fit in one serverless invocation. But it does not tell you where the other three belong, and two of them are short.",
+          },
+          {
+            id: "b",
+            label: "What each one costs to run, since the cheapest shape that does the job is the right one.",
+            correct: false,
+            explanationMd:
+              "Cost is how you choose between two shapes that both fit, not how you find the candidates. Deciding by price alone is how a busy all-day path ends up on per-invocation billing.",
+          },
+          {
+            id: "c",
+            label: "Which language and runtime each one is written in, since not every shape supports every stack.",
+            correct: false,
+            explanationMd:
+              "Runtime support is a constraint you check late, and it almost never binds. It has nothing to say about why a scheduled job should not live inside a pool of three instances.",
+          },
+          {
+            id: "d",
+            label: "What wakes each one up, and how much of the day it is busy: a clock, an upload, a request, or a queued message.",
+            correct: true,
+            explanationMd:
+              "Correct. The trigger and the duty cycle are the organizing question. A clock means the schedule must live outside anything that scales; a rare burst means nothing should be sitting idle waiting for it; a request someone is waiting on means something has to be up already.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-19-background-jobs-and-scheduling-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "The nightly reconciliation runs as a timer inside the application server process. The pool is configured with three instances. At 02:00 finance receives three copies of every invoice, and nothing errored. What happened?",
+        options: [
+          {
+            id: "a",
+            label: "Every instance in the pool ran its own copy of the timer. The schedule was stored in a thing that exists three times, so it fired three times.",
+            correct: true,
+            explanationMd:
+              "Correct. Nothing routed the 02:00 tick anywhere - each process simply had its own clock. That is why the count of invoice sets tracks the instance count, and why scaling the pool would make it worse.",
+          },
+          {
+            id: "b",
+            label: "The timer fired three times on one instance, because the reconciliation took longer than the interval between fires.",
+            correct: false,
+            explanationMd:
+              "That is overlap, a real failure and the one this chapter's failure-modes section ends on - but it produces runs that start an interval apart, not three that start together, and it does not scale with the instance count.",
+          },
+          {
+            id: "c",
+            label: "The load balancer delivered the 02:00 trigger to all three instances instead of picking one.",
+            correct: false,
+            explanationMd:
+              "No trigger crossed the network at all. Nothing sent the reconciliation a request, which is exactly the property that makes scheduled work different - and it is why a load balancer had no opportunity to make this decision.",
+          },
+          {
+            id: "d",
+            label: "The reconciliation is not idempotent, so the automatic retry after a partial failure wrote the invoices again.",
+            correct: false,
+            explanationMd:
+              "Idempotence is the right concern for retried work, but nothing failed and nothing retried here. All three runs succeeded - that is what makes this so quiet.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-19-background-jobs-and-scheduling-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A teammate proposes moving the nightly reconciliation onto a serverless function, on the grounds that it runs for forty minutes once a day and paying for an idle machine the other twenty-three hours is waste. What is the strongest objection?",
+        options: [
+          {
+            id: "a",
+            label: "Functions are stateless, and a reconciliation has to accumulate running totals as it goes.",
+            correct: false,
+            explanationMd:
+              "Statelessness is real but not binding here: the totals can live in the database the job is already reading, exactly as they would for a long-running process.",
+          },
+          {
+            id: "b",
+            label: "The cold start would add latency to the report, which finance needs on their desk at 06:00.",
+            correct: false,
+            explanationMd:
+              "Cold start matters when a person is waiting. A second or two against a forty-minute batch that starts at 02:00 is the one place the penalty genuinely does not matter.",
+          },
+          {
+            id: "c",
+            label: "One invocation is capped, commonly around fifteen minutes. Forty minutes does not fit, so the work has to be split into chunks that can each be retried.",
+            correct: true,
+            explanationMd:
+              "Correct, and it is arithmetic rather than taste. The timeout ceiling is the constraint that decides shapes: past it, the work is no longer one unit, and splitting it means designing for a chunk that dies halfway.",
+          },
+          {
+            id: "d",
+            label: "A forty-minute invocation would hold forty minutes of the account's concurrency, starving every other function.",
+            correct: false,
+            explanationMd:
+              "One invocation consumes one unit of concurrency however long it runs. Concurrency limits bite on a burst of many simultaneous calls, which is the opposite of this job's shape.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-19-background-jobs-and-scheduling-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Logo resize now runs as a function behind the API gateway. The first upload each morning takes 2.3 seconds to respond; every upload after that takes about 400 ms. What is happening, and does it matter?",
+        options: [
+          {
+            id: "a",
+            label: "The function is being throttled by its concurrency limit, which is lowest when traffic is lowest.",
+            correct: false,
+            explanationMd:
+              "Concurrency limits cap simultaneous invocations; one upload at 09:00 is not near any limit. Throttling would also show up during the busy burst, not in the quietest moment of the day.",
+          },
+          {
+            id: "b",
+            label: "The first invocation after an idle period pays a cold start while the platform creates a runtime. It matters here because somebody is waiting; on the nightly job nobody would notice.",
+            correct: true,
+            explanationMd:
+              "Correct. Scale-to-zero and cold start are the same property seen from two sides. The question is never \"is there a cold start\" but \"is there a person on the other end of the first one\".",
+          },
+          {
+            id: "c",
+            label: "The gateway's auth check is uncached on the first request of a session and cheap on every one after it.",
+            correct: false,
+            explanationMd:
+              "A plausible reading of 3.5's gateway, but it would pay that cost once per session for every path, not once per idle period on this one - and it would not scale with how long the upload path had been quiet.",
+          },
+          {
+            id: "d",
+            label: "The function is sharing a machine with another tenant's first request of the morning, so the delay is contention from a noisy neighbour.",
+            correct: false,
+            explanationMd:
+              "Contention is real on shared infrastructure, but it would be intermittent and unrelated to idleness. The tell here is that the penalty lands precisely on the first call after a quiet period, every time.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-19-background-jobs-and-scheduling-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Your nightly close used to take 20 minutes and now takes 70. It is scheduled hourly across the close window. Nothing has errored and no alert has fired. What is the exposure, and what class of fix does it need?",
+        options: [
+          {
+            id: "a",
+            label: "Two runs now overlap on the same rows, each acting on data the other is partway through changing. The fix is mutual exclusion - something outside both runs that only one can hold - or a schedule and scope that cannot overlap.",
+            correct: true,
+            explanationMd:
+              "Correct. Both runs are the same correct code firing on time; neither can see the other. Nothing inside either run can fix that, which is why this needs a mechanism outside them both.",
+          },
+          {
+            id: "b",
+            label: "Nothing yet. A scheduler will not start a run while the previous one is still going, so the schedule simply slips.",
+            correct: false,
+            explanationMd:
+              "Some schedulers offer that as an option, and it is worth knowing whether yours does. The default almost everywhere is to fire on time regardless, which is what makes this a design assumption rather than a guarantee.",
+          },
+          {
+            id: "c",
+            label: "The 03:00 run is skipped, so the close falls an hour further behind every night until it stops running at all.",
+            correct: false,
+            explanationMd:
+              "This describes a queue draining slower than it fills, which is a real shape but not this one. A schedule holds no backlog: each fire is independent and none of them waits for another.",
+          },
+          {
+            id: "d",
+            label: "The scheduler kills any run that exceeds its own interval, so every night's close is now left half-finished at the 60-minute mark.",
+            correct: false,
+            explanationMd:
+              "No such rule exists by default; an interval says when to start, not when to stop. A timeout that truncates a batch is a real hazard, but it is one you configure deliberately, not one the schedule imposes.",
+          },
+        ],
+      },
+    ],
+    // 3.18's solved system, unchanged - the queue path, the bus and its three
+    // subscribers are all where 3.18 left them, so a learner recognizes their
+    // own answer. It validates clean on purpose: this chapter's fault is
+    // behavioural (a timer inside a pool of three) and has no graph
+    // representation at all, since a schedule held inside a process is not
+    // drawable as a node or an edge. See the spec's §8 - the argument is new
+    // each time a starter validates clean, and this one is that the fault is
+    // in what a process contains rather than in what the diagram connects.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-19-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-19-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-19-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+        { id: "bb-3-19-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-19-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+        { id: "bb-3-19-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-19-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-19-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-19-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-3-19-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-19-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-19-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+        { id: "bb-3-19-queue", componentId: "message-queue", position: { x: 1100, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+        { id: "bb-3-19-notifier", componentId: "worker", position: { x: 1100, y: 160 }, config: {} },
+        { id: "bb-3-19-dlq", componentId: "dead-letter-queue", position: { x: 1100, y: 320 }, config: { maxRetries: 5 } },
+        { id: "bb-3-19-search", componentId: "search-engine", position: { x: 1360, y: 160 }, config: { shards: 1 } },
+        { id: "bb-3-19-bus", componentId: "event-bus", position: { x: 1620, y: 160 }, config: { deliveryMode: "fan-out" } },
+        { id: "bb-3-19-screen", componentId: "worker", position: { x: 1880, y: 0 }, config: {} },
+        { id: "bb-3-19-syndicate", componentId: "worker", position: { x: 1880, y: 160 }, config: {} },
+        { id: "bb-3-19-rollup", componentId: "worker", position: { x: 1880, y: 320 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-19-e1", source: "bb-3-19-browser", target: "bb-3-19-dns", kind: "request-flow" },
+        { id: "bb-3-19-e2", source: "bb-3-19-dns", target: "bb-3-19-cdn", kind: "request-flow" },
+        { id: "bb-3-19-e3", source: "bb-3-19-cdn", target: "bb-3-19-fw", kind: "request-flow" },
+        { id: "bb-3-19-e4", source: "bb-3-19-fw", target: "bb-3-19-proxy", kind: "request-flow" },
+        { id: "bb-3-19-e5", source: "bb-3-19-proxy", target: "bb-3-19-gateway", kind: "request-flow" },
+        { id: "bb-3-19-e6", source: "bb-3-19-gateway", target: "bb-3-19-lb", kind: "request-flow" },
+        { id: "bb-3-19-e7", source: "bb-3-19-lb", target: "bb-3-19-app", kind: "request-flow" },
+        { id: "bb-3-19-e8", source: "bb-3-19-app", target: "bb-3-19-db", kind: "request-flow" },
+        { id: "bb-3-19-e9", source: "bb-3-19-app", target: "bb-3-19-nosql", kind: "request-flow" },
+        { id: "bb-3-19-e10", source: "bb-3-19-db", target: "bb-3-19-replica", kind: "replication" },
+        { id: "bb-3-19-e11", source: "bb-3-19-replica", target: "bb-3-19-app", kind: "request-flow" },
+        { id: "bb-3-19-e12", source: "bb-3-19-app", target: "bb-3-19-cache", kind: "request-flow" },
+        { id: "bb-3-19-e13", source: "bb-3-19-cache", target: "bb-3-19-db", kind: "request-flow" },
+        { id: "bb-3-19-e14", source: "bb-3-19-app", target: "bb-3-19-search", kind: "request-flow" },
+        { id: "bb-3-19-e15", source: "bb-3-19-app", target: "bb-3-19-queue", kind: "async" },
+        { id: "bb-3-19-e16", source: "bb-3-19-queue", target: "bb-3-19-notifier", kind: "async" },
+        { id: "bb-3-19-e17", source: "bb-3-19-queue", target: "bb-3-19-dlq", kind: "async" },
+        { id: "bb-3-19-e18", source: "bb-3-19-notifier", target: "bb-3-19-search", kind: "request-flow" },
+        { id: "bb-3-19-e19", source: "bb-3-19-app", target: "bb-3-19-bus", kind: "async" },
+        { id: "bb-3-19-e20", source: "bb-3-19-bus", target: "bb-3-19-screen", kind: "async" },
+        { id: "bb-3-19-e21", source: "bb-3-19-bus", target: "bb-3-19-syndicate", kind: "async" },
+        { id: "bb-3-19-e22", source: "bb-3-19-bus", target: "bb-3-19-rollup", kind: "async" },
+      ],
+      entryPointIds: ["bb-3-19-browser"],
+    },
+    // 3.18's zones carried forward, with its magenta gap column now holding
+    // the Event Bus under an "Announcements" band, and a new two-slot gap zone
+    // directly under the Application tier - the two additions are both
+    // application-tier compute, so the column they belong in is the one the
+    // pool already occupies (§11.6). Two slots, because exactly two components
+    // are missing and a wider box would imply more.
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-19-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-19-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 628, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-19-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-19-zone-gap", label: "Build here", position: { x: 552, y: 440 }, width: 176, height: 308, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-19-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#10b981" },
+      { kind: "zone", id: "bb-3-19-zone-cache", label: "Cache tier", position: { x: 812, y: 440 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-19-zone-handoff", label: "Handed-off work", position: { x: 1072, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-19-zone-derived", label: "Derived data", position: { x: 1332, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-19-zone-announce", label: "Announcements", position: { x: 1592, y: 120 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-19-zone-subscribers", label: "Subscribers", position: { x: 1852, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      {
+        kind: "comment",
+        id: "bb-3-19-comment-numbers",
+        text: "Last Tuesday's 02:00 close produced three identical invoice sets. The pool runs three instances, the close ran to completion on each of them, and nothing errored. Separately: logo uploads are 4% of requests and about 60% of the pool's CPU, in bursts totalling four minutes a day.",
+        position: { x: 32, y: 800 },
+        width: 620,
+        height: 160,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
     id: "rwe-dummy-1",
     mode: "real-world-extraction",
     title: "Placeholder Project",
@@ -9092,7 +13083,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     readingLinks: [],
     // Same reasoning as bb-dummy-1's starterGraph above.
     starterGraph: {
-      nodes: [{ id: "rwe-dummy-1-starter-client", componentId: "client", position: { x: 80, y: 120 }, config: {} }],
+      nodes: [{ id: "rwe-dummy-1-starter-client", componentId: "client", position: { x: 60, y: 0 }, config: {} }],
       edges: [],
       entryPointIds: [],
     },

@@ -42,16 +42,22 @@ function EdgeGlyph({ kind }: { kind: EdgeKind }) {
   );
 }
 
-/** A lightweight textual shape summary, not a full canvas render — reusing
- * React Flow here would drag in a heavy dependency tree for what's always a
- * read-only aside (Debrief's reference graphs, quiz diagram questions).
- * "Fit-to-graph initial viewport" (see .claude/docs/pending-quiz-ui.md Phase
- * 5) doesn't apply to this component specifically — there's no viewport to
- * fit, it's a list, not a canvas. What Phase 5 actually asked for and this
- * delivers: real category colors (CategoryDot) and edge-kind color/dash
- * styling (EdgeGlyph), both pulled from the same tokens the live canvas
- * uses, not re-invented here. Shared by Debrief.tsx and
- * chapters/quiz/DiagramQuestion.tsx — do not fork a second copy. */
+/** A lightweight textual shape summary, not a full canvas render. Used to be
+ * shared by Debrief.tsx and chapters/quiz/DiagramQuestion.tsx; as of the
+ * Design Editor revamp's Step 5a, Debrief's reference graphs render through
+ * ReferenceGraphCanvas.tsx instead — a real, read-only React Flow render at
+ * the graph's authored positions, using the live card anatomy. That's a
+ * second, genuinely different renderer for a different job (a rendered
+ * architecture vs. an accessible textual shape summary a quiz question can
+ * be asked about), not a fork of this one: DiagramQuestion keeps this exact
+ * component untouched (D17, .claude/docs/pending-design-editor-revamp.md) —
+ * its sr-only edge-kind captions (EdgeGlyph below) matter there because the
+ * graph *is* the question's content, unlike a blueprint's reference graph,
+ * which always sits next to prose (`commentary`) that already explains the
+ * design. Real category colors (CategoryDot) and edge-kind color/dash
+ * styling (EdgeGlyph) are pulled from the same tokens the live canvas uses,
+ * not re-invented here. Do not fork *this* component again — extend
+ * ReferenceGraphCanvas.tsx instead if a reference-graph-only need comes up. */
 export function ReadOnlyGraphSummary({ graph }: { graph: ArchitectureGraph }) {
   const nodeFor = (nodeId: string) => graph.nodes.find((n) => n.id === nodeId);
   const componentFor = (nodeId: string) => {

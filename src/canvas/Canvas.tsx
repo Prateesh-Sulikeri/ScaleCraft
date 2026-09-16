@@ -14,11 +14,15 @@ import {
   ReactFlow,
   ReactFlowProvider,
   Background,
+  ConnectionLineType,
+  ConnectionMode,
   Controls,
   MarkerType,
   getNodesBounds,
   getViewportForBounds,
+  useNodesInitialized,
   useReactFlow,
+  useStoreApi,
   type Connection,
 } from "@xyflow/react";
 import { toJpeg, toPng } from "html-to-image";
@@ -26,6 +30,11 @@ import { useTheme } from "next-themes";
 import { useHasMounted } from "@/lib/use-has-mounted";
 import { getComponent } from "@/content/components/registry";
 import { pickDefaultKind } from "./legal-edge-kinds";
+import { CARD_HEIGHT, CARD_WIDTH, CONNECTION_RADIUS } from "./card-geometry";
+import { canConnect } from "./connection-rules";
+import { ArchitectureEdge } from "./ArchitectureEdge";
+import { EDGE_COLOR_VAR } from "./edge-styles";
+import { isHandPlaced, reciprocalEdgeIds, routeCurvedEdge, PORT_IDS } from "./edge-routing";
 import { categoryColorVar } from "./category-colors";
 import { iconMap } from "./icon-map";
 import { Server } from "lucide-react";
@@ -42,8 +51,12 @@ import { HIGHLIGHT_GOLD } from "./selection-style";
 import { useCanvasStore, type PlacementMode } from "./store";
 import { isEditableTarget } from "./use-canvas-shortcuts";
 import type { AnyNodeType, ArchitectureEdgeType, ValidationState } from "./types";
+import type { ValidationViolation } from "@/engines";
 
 const nodeTypes = { component: ComponentNode, zone: ZoneNode, comment: CommentNode, start: StartNode };
+/** Only the real edges below get this type; a Start marker's pointer keeps
+ * xyflow's default bezier, which is the same curve minus the bow. */
+const edgeTypes = { architecture: ArchitectureEdge };
 
 /** Drag-to-draw defaults for the two resizable annotation types — "start"
  * isn't here since it's fixed-size and never drag-sized (see
@@ -67,6 +80,15 @@ const PLACEMENT_HINT: Record<Exclude<PlacementMode, null>, string> = {
 const EXPORT_IMAGE_WIDTH = 1600;
 const EXPORT_IMAGE_HEIGHT = 1200;
 
+/** Breathing room around the graph when fitting it into view, as a fraction
+ * of the pane. */
+const FIT_PADDING = 0.1;
+/** The zoom below which a card's 11px label stops being readable. A starter
+ * graph is a wide left-to-right pipeline (CURRICULUM.md §11.5), so fitting
+ * one to width can ask for 0.5 or less - past this floor the view stops
+ * shrinking and starts panning instead (see fitGraphIntoView). */
+const MIN_FIT_ZOOM = 0.7;
+
 export type CanvasHandle = {
   exportImage: (opts: { format: "png" | "jpg"; backgroundColor?: string }) => Promise<void>;
 };
@@ -76,6 +98,12 @@ type FlowCanvasProps = {
    * node data at render time only. Never written back into the store: the
    * store holds the graph a user is editing, not validation results. */
   nodeStates?: Record<string, ValidationState>;
+  /** The full last-Validate-run result, same source as `nodeStates` above
+   * (page.tsx/ChapterWorkspace.tsx) — passed through untouched to
+   * NodeConfigPopover/EdgeInspector (Step 3, D5/D14) so each can filter to
+   * the violations naming the node or edge it's currently showing. Also
+   * never written back into the store, for the same reason nodeStates isn't. */
+  violations?: ValidationViolation[] | null;
   /** Fires on top of Canvas's own pane-click handling (deselect/clear
    * highlight) — lets sandbox/page.tsx also dismiss its last Validate run
    * (nodeStates above, plus the header button's own pass/fail color) on the
@@ -90,10 +118,10 @@ type FlowCanvasProps = {
 };
 
 const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas(
-  { nodeStates, onCanvasPaneClick },
+  { nodeStates, violations, onCanvasPaneClick },
   ref,
 ) {
-  const { screenToFlowPosition, getNodes, fitView, zoomIn, zoomOut, zoomTo } = useReactFlow();
+  const { screenToFlowPosition, getNodes, fitView, setViewport, zoomIn, zoomOut, zoomTo } = useReactFlow();
 
   useImperativeHandle(ref, () => ({
     exportImage: async ({ format, backgroundColor }) => {
@@ -148,6 +176,17 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     },
     [storeNodes, storeOnConnect],
   );
+
+  /** Restates, for loose connectionMode, the direction rule that handle
+   * types used to enforce geometrically. See canvas/connection-rules.ts. */
+  const isValidConnection = useCallback(
+    (connection: Connection | ArchitectureEdgeType) =>
+      canConnect(
+        storeNodes.find((n) => n.id === connection.source),
+        storeNodes.find((n) => n.id === connection.target),
+      ),
+    [storeNodes],
+  );
   const addZone = useCanvasStore((s) => s.addZone);
   const addComment = useCanvasStore((s) => s.addComment);
   const addStartMarker = useCanvasStore((s) => s.addStartMarker);
@@ -187,6 +226,43 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   // resize keeps the view honest instead. Debounced so a panel-width drag
   // (many resize events in a row) settles once, not on every frame.
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Fit, but never below the zoom where a card's label stops being readable,
+   * and when that floor bites, anchor the view to the graph's **left** edge
+   * rather than its centre.
+   *
+   * Starter graphs are one continuous left-to-right pipeline now
+   * (CURRICULUM.md §11.5), so an eight-stage chapter is ~1940px wide and a
+   * plain fit lands near 0.5 zoom - a 62px card carrying 5px type. Clamping
+   * the zoom alone isn't enough: xyflow centres the bounds, which opens a
+   * wide diagram in the middle of the pipeline. A flow diagram is read from
+   * its entry point, so a clamped fit starts at the left and the learner
+   * pans right, the same way they'd read the architecture itself.
+   */
+  const fitGraphIntoView = useCallback(
+    (duration?: number) => {
+      const el = wrapperRef.current;
+      const bounds = getNodesBounds(getNodes());
+      if (!el || bounds.width === 0 || bounds.height === 0) {
+        fitView({ padding: FIT_PADDING, maxZoom: 1, duration });
+        return;
+      }
+      const { width, height } = el.getBoundingClientRect();
+      if (width === 0 || height === 0) return;
+      const viewport = getViewportForBounds(bounds, width, height, MIN_FIT_ZOOM, 1, FIT_PADDING);
+      const overflowsHorizontally = bounds.width * viewport.zoom > width;
+      setViewport(
+        {
+          ...viewport,
+          x: overflowsHorizontally ? FIT_PADDING * width - bounds.x * viewport.zoom : viewport.x,
+        },
+        duration ? { duration } : undefined,
+      );
+    },
+    [fitView, getNodes, setViewport],
+  );
+
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
@@ -198,20 +274,91 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         return;
       }
       clearTimeout(debounceId);
-      debounceId = setTimeout(() => fitView({ padding: 0.1, maxZoom: 1, duration: 200 }), 120);
+      debounceId = setTimeout(() => fitGraphIntoView(200), 120);
     });
     observer.observe(el);
     return () => {
       clearTimeout(debounceId);
       observer.disconnect();
     };
-  }, [fitView]);
+  }, [fitGraphIntoView]);
+
+  // Same left-anchored, floor-clamped fit on mount, replacing <ReactFlow>'s
+  // declarative `fitView` prop (which centres and has no zoom floor).
+  //
+  // Gated on useNodesInitialized rather than a rAF. xyflow measures nodes with
+  // its own ResizeObserver, and zone/comment decorators carry their size in
+  // `data` rather than on the node, so until that lands getNodesBounds returns
+  // a box smaller than the drawing. The fit computed from it came out a few
+  // percent too big and pushed the rightmost tier off the pane: bb-3-3 mounted
+  // at zoom 0.95 against a correct 0.84, with its whole DATA zone off-screen at
+  // a 1116px pane. One-shot, so a node the learner adds later never re-frames
+  // the board under them.
+  const nodesInitialized = useNodesInitialized();
+  const hasFittedRef = useRef(false);
+  useEffect(() => {
+    // False while the canvas is empty, so on a canvas that starts with nothing
+    // this fires at the first node instead of at mount - harmless (one node,
+    // one fit) and the only case where the shot is not spent on a loaded graph.
+    if (!nodesInitialized || hasFittedRef.current) return;
+    hasFittedRef.current = true;
+    fitGraphIntoView();
+  }, [nodesInitialized, fitGraphIntoView]);
 
   const [menu, setMenu] = useState<ContextMenuTarget | null>(null);
   // Set on pointerdown on a handle, before any drag motion — disables
   // selectionOnDrag for the gesture's whole duration so a connection drag
   // that passes over an intervening node never also starts a selection box.
   const [isConnecting, setIsConnecting] = useState(false);
+  /**
+   * A click-to-connect is armed: one port has been clicked and the canvas is
+   * waiting for the second click.
+   *
+   * React Flow arms this itself (`connectOnClick`, on by default) but never
+   * disarms it - clicking empty canvas, pressing Escape, dragging a card and
+   * clicking a card body all leave it armed, and the arm has no visible state
+   * of its own. A stray click on a port therefore sat there indefinitely, and
+   * the next port click anywhere on the board silently produced an edge
+   * between two cards the learner never meant to join. Measured: all four of
+   * those gestures leak.
+   *
+   * So the arm is mirrored here, shown (every legal port is revealed while it
+   * is live, the same way a drag reveals them), and cancelled on every gesture
+   * that plainly means "never mind".
+   */
+  const [isArmed, setIsArmed] = useState(false);
+  const flowStore = useStoreApi();
+  const cancelArmedConnection = useCallback(() => {
+    // `connectionClickStartHandle` is React Flow's own arm state; there is no
+    // public action to clear it, and leaving it set is the bug.
+    flowStore.setState({ connectionClickStartHandle: null });
+    setIsArmed(false);
+  }, [flowStore]);
+
+  /**
+   * One rule disarms it: the next pointerdown that isn't on a port.
+   *
+   * Deliberately not a set of per-gesture handlers. The first attempt hung the
+   * cancel off `onPaneClick`, `onNodeClick` and `onNodeDragStart`, and it
+   * missed - `onPaneClick` does not fire while the pane is in selection mode,
+   * which is most of the time, so clicking empty canvas still left the
+   * connection armed. Anything that starts anywhere other than a port means
+   * the learner has moved on, so that is what this listens for.
+   *
+   * Capture phase, so it runs before xyflow's own handler. Only attached while
+   * armed, and the arming click itself is safe: `isArmed` is still false at
+   * that pointerdown, so there is no listener yet.
+   */
+  useEffect(() => {
+    if (!isArmed) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest?.(".react-flow__handle")) return;
+      cancelArmedConnection();
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [isArmed, cancelArmedConnection]);
   const [previewRect, setPreviewRect] = useState<{
     left: number;
     top: number;
@@ -258,7 +405,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       }
       if (event.shiftKey && event.code === "Digit1") { // Shift+1
         event.preventDefault();
-        fitView({ padding: 0.1, maxZoom: 2, duration: 300 });
+        fitGraphIntoView(300);
         return;
       }
       if (event.shiftKey && event.code === "Digit2") { // Shift+2
@@ -275,6 +422,12 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       // highlight side effect) — bail here so this listener doesn't also
       // clear an unrelated highlight underneath it while it's open.
       if (componentPicker) return;
+      // Ahead of placement and highlight: an armed connection is the most
+      // recent thing the user started, so it is what Escape should undo.
+      if (isArmed) {
+        cancelArmedConnection();
+        return;
+      }
       if (pendingComponentPlacement) {
         setPendingComponentPlacement(null);
         return;
@@ -286,7 +439,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       }
       if (highlight) clearHighlight();
     },
-    [zoomIn, zoomOut, zoomTo, fitView, getNodes, componentPicker, pendingComponentPlacement, setPendingComponentPlacement, placementMode, setPlacementMode, highlight, clearHighlight],
+    [zoomIn, zoomOut, zoomTo, fitView, fitGraphIntoView, getNodes, componentPicker, pendingComponentPlacement, setPendingComponentPlacement, placementMode, setPlacementMode, highlight, clearHighlight, isArmed, cancelArmedConnection],
   );
 
   useEffect(() => {
@@ -590,7 +743,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
           source: n.id,
           sourceHandle: "start-source",
           target: (n as Extract<AnyNodeType, { type: "start" }>).data.targetId!,
-          targetHandle: "start-target",
+          targetHandle: PORT_IDS.top,
           // No explicit `type` — falls back to React Flow's default bezier
           // edge, same as every real edge (none of them set `type` either).
           // Previously hardcoded to "straight", which is exactly why this
@@ -611,9 +764,81 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       );
   }, [storeNodes]);
 
+  // Where each card currently sits, for edge routing below. Read from the
+  // store's own nodes rather than xyflow's measured internals so it's
+  // available on the very first render, before any ResizeObserver has fired.
+  const componentBoxes = useMemo(() => {
+    const boxes = new Map<string, { x: number; y: number; width: number; height: number }>();
+    for (const n of storeNodes) {
+      if (n.type !== "component") continue;
+      boxes.set(n.id, {
+        x: n.position.x,
+        y: n.position.y,
+        width: n.data.width ?? CARD_WIDTH,
+        height: n.data.height ?? CARD_HEIGHT,
+      });
+    }
+    return boxes;
+  }, [storeNodes]);
+
+  // Curved connectors with a direction arrowhead, attached to the sides the
+  // current layout actually calls for and bowed around anything standing in
+  // the run (see canvas/edge-routing.ts + ArchitectureEdge.tsx). Routing still
+  // matters - authored edges carry no handle ids, so xyflow was resolving
+  // every one of them to Left/Right - but the path itself stays a curve:
+  // right-angle connectors were tried and read as stiff/mechanical on an
+  // editable board.
+  //
+  // Routing applies to authored edges *only*. An edge a learner drew carries
+  // the two ports they dropped it on and keeps them: any port may join any
+  // port so long as the connection is legal, and second-guessing that was the
+  // original complaint here (a primary wired to its replica came back
+  // re-attached right-side to right-side). `autoRouteEdge` in store.tsx hands
+  // one back to the router if moving the cards has left it pointing oddly.
+  //
+  // For the edges this *does* route, handles are always directional (a
+  // trailing side to a leading one) and the detour is in `data.bow`, not in
+  // the ports: routing a blocked run by putting both ends on the same side is
+  // a smoothstep idiom, and on a bezier it drew a straight line along the
+  // blocker's border that looked like an output wired to an output.
+  //
+  // `animated` (xyflow's marching-ants dash) is left to store.tsx's
+  // edgeStyle, which turns it on for every kind.
+  //
+  // Pointer edges are deliberately excluded: a Start marker's arrow names its
+  // own `start-source`/`start-target` pair and is not part of the domain
+  // graph.
+  const routedEdges = useMemo(() => {
+    const allBoxes = [...componentBoxes.values()];
+    const reciprocal = reciprocalEdgeIds(edges);
+    return edges.map((e) => {
+      const source = componentBoxes.get(e.source);
+      const target = componentBoxes.get(e.target);
+      const route =
+        !isHandPlaced(e) && source && target
+          ? routeCurvedEdge(source, target, allBoxes, PORT_IDS, reciprocal.has(e.id))
+          : null;
+      return {
+        ...e,
+        ...(route ? { sourceHandle: route.sourceHandle, targetHandle: route.targetHandle } : {}),
+        type: "architecture",
+        // A hand-placed edge is drawn between the ports it was given and
+        // nothing else. Bowing it would be the router overriding the choice
+        // again, one step further down.
+        data: { ...(e.data ?? { kind: "request-flow" as const }), bow: route?.bow ?? null },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 16,
+          height: 16,
+          color: EDGE_COLOR_VAR[e.data?.kind ?? "request-flow"],
+        },
+      };
+    });
+  }, [edges, componentBoxes]);
+
   const displayEdges = useMemo(
     () =>
-      [...edges, ...pointerEdges].map((e) => {
+      [...routedEdges, ...pointerEdges].map((e) => {
         if (!highlightSets) return e;
         if (highlightSets.connectedEdgeIds.has(e.id)) {
           // Same gold as ComponentNode's ring (HIGHLIGHT_GOLD) — a connected
@@ -624,21 +849,39 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         }
         return { ...e, style: { ...e.style, opacity: 0.15, transition: "opacity 150ms ease-out" } };
       }),
-    [edges, pointerEdges, highlightSets],
+    [routedEdges, pointerEdges, highlightSets],
   );
 
   return (
-    <div ref={wrapperRef} className="relative h-full w-full">
+    <div
+      ref={wrapperRef}
+      // Drives the "show every legal port" rule in globals.css for the
+      // duration of a connection drag - xyflow exposes the per-handle
+      // classes but nothing on the container saying a drag is in flight.
+      // An armed click-to-connect gets the same treatment: it is a connection
+      // in progress too, and until it showed something it was invisible.
+      className={`relative h-full w-full${isConnecting || isArmed ? " sc-canvas-connecting" : ""}`}
+    >
       <ReactFlow
         colorMode={colorMode}
         nodes={nodes}
         edges={displayEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        isValidConnection={isValidConnection}
+        connectionMode={ConnectionMode.Loose}
+        connectionRadius={CONNECTION_RADIUS}
+        // The wire being dragged curves the same way the edge it becomes
+        // will - a preview of a different shape would misstate what is about
+        // to be drawn.
+        connectionLineType={ConnectionLineType.Bezier}
         onConnectStart={() => setIsConnecting(true)}
         onConnectEnd={() => setIsConnecting(false)}
+        onClickConnectStart={() => setIsArmed(true)}
+        onClickConnectEnd={() => setIsArmed(false)}
         onEdgeClick={(_, edge) => {
           setSelectedEdgeId(edge.id);
           setSelectedNodeId(null);
@@ -720,8 +963,6 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         // "wheel scrolls, Ctrl+wheel zooms" (see pending.md).
         panOnScroll
         zoomActivationKeyCode="Control"
-        fitView
-        fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
       >
         <Background />
         {/* bottom-right, not xyflow's bottom-left default — that corner is
@@ -729,10 +970,10 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
          * ReleaseNotesButton.tsx, mounted in the root layout). */}
         <Controls position="bottom-right" />
       </ReactFlow>
-      <EdgeInspector />
+      <EdgeInspector violations={violations} />
       <ContextMenu target={menu} onClose={() => setMenu(null)} centerOnNode={centerOnNode} />
       <AnnotationEditor />
-      <NodeConfigPopover />
+      <NodeConfigPopover nodeStates={nodeStates} violations={violations} />
       <ComponentPicker />
 
       {placementMode && (

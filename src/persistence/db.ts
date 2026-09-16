@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import type { AnyNodeType, ArchitectureEdgeType } from "@/canvas/types";
 import { hashCanvasState } from "./graph-hash";
+import { CURRENT_PITCH_VERSION, migrateNodesToCurrentPitch } from "./pitch-migration";
 import type { CustomComponentRecord } from "@/content/components/custom";
 import type { AiSettings } from "@/ai/settings";
 import type { AiCritique } from "@/ai/schema";
@@ -47,6 +48,11 @@ export type CanvasSave = SyncMeta & {
   /** The revision the server has acknowledged. `localRevision >
    * cloudRevision` is the one "needs a push" test - see save-revisions.ts. */
   cloudRevision: number;
+  /** Which authored pitch this save's coordinates are at - see
+   * pitch-migration.ts. Carried through cloud sync (cloud-sync.ts's
+   * `CanvasState`) rather than kept local-only, since a save can arrive from
+   * another device already migrated. */
+  pitchVersion: number;
 };
 
 /** Fixed key for now — no multi-slot UI yet, this just avoids a schema
@@ -491,6 +497,47 @@ export class ScaleCraftDB extends Dexie {
       examBest: "chapterDefinitionId",
       activeDays: "day",
     });
+    // D19/D15 of pending-design-editor-revamp.md (release 7.2.0-alpha): the
+    // Design Editor's authored pitch shrank from 320x160 to 260x195, and a
+    // save persists positions at whatever pitch was current when it was
+    // written. No store shape changes - only existing rows' coordinates.
+    //
+    // Every row here predates the `pitchVersion` field, so all of them are
+    // unconditionally migrated (needsPitchMigration would say the same for
+    // an `undefined` field, but there is no field to read yet at this point
+    // in the version chain). Rewritten rows are marked dirty so the rescale
+    // propagates to the cloud checkpoint, not just this browser.
+    this.version(15)
+      .stores({
+        saves: "id",
+        customComponents: "id",
+        chapterProgress: "chapterId",
+        aiProfiles: "id",
+        aiActiveProfile: "id",
+        deepCheckSessions: "++id, saveId, [saveId+createdAt], syncId",
+        curriculumProgress: "slug",
+        examAttempts: null,
+        examBest: "chapterDefinitionId",
+        activeDays: "day",
+      })
+      .upgrade(async (trans) => {
+        const saves = await trans.table("saves").toArray();
+        await Promise.all(
+          saves.map((row) => {
+            const hasNodes = (row.nodes?.length ?? 0) > 0;
+            return trans.table("saves").put({
+              ...row,
+              nodes: hasNodes ? migrateNodesToCurrentPitch(row.nodes) : row.nodes,
+              pitchVersion: CURRENT_PITCH_VERSION,
+              // An empty save has nothing to rescale, so it stays exactly as
+              // in sync (or not) as it already was - no need to force a
+              // pointless re-push.
+              localRevision: hasNodes ? (row.localRevision ?? 0) + 1 : row.localRevision,
+              dirty: hasNodes ? true : row.dirty,
+            });
+          }),
+        );
+      });
   }
 }
 

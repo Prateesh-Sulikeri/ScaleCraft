@@ -1,8 +1,6 @@
-3.3 closed with a promise: "3.5 API Gateway, two chapters out, is where
-reverse proxy, load balancer and API gateway - all three - finally get told
-apart in one place; this chapter already drew the first line: routing lives
-here, authentication and rate limiting don't." 3.4 filled in the middle word
-of that promise: a load balancer spreads traffic across identical,
+3.3 built a front door that routes by host and path, and drew the first line
+around what a proxy does not do: authentication and rate limiting live
+somewhere else. 3.4 added a load balancer, spreading traffic across identical,
 health-checked copies of one service. Neither chapter said what happens once
 there's more than one service.
 

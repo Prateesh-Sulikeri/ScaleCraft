@@ -93,6 +93,18 @@ export function formatBugDate(at: number): string {
   });
 }
 
+/** Month spelled out, always with the year. Used for the retention notice,
+ *  where the date is a policy statement rather than a timeline entry - "8 Sep"
+ *  reads as a log line, and this has to read as a sentence. No time of day: the
+ *  sweep runs once a night, so an hour would be false precision. */
+export function formatBugFullDate(at: number): string {
+  return new Date(at).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 /** The details view shows a time too - "when exactly" matters when correlating
  *  a report against a deploy, and the list has already covered "roughly when". */
 export function formatBugDateTime(at: number): string {

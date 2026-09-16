@@ -10,9 +10,9 @@ somewhere else to go, and about the one guarantee that gets genuinely harder
 the moment they do: seeing your own write, right after you make it.
 
 > [!NOTE]
-> Before reading on: if you added a second copy of the primary database, just
-> to absorb read traffic, what could go wrong that adding a second app-server
-> copy (3.8) never had to worry about? Commit to an answer.
+> Think first: if you added a second copy of the primary database, just to
+> absorb read traffic, what could go wrong that adding a second app-server
+> copy (3.8) never had to worry about? Commit to an answer before reading on.
 
 ## One primary, any number of copies
 
@@ -27,9 +27,9 @@ flowchart LR
   R -->|reads| App
 ```
 
-Caption: the replication edge only flows primary to replica - a write never
+Note: the replication edge only flows primary to replica - a write never
 travels the other way. Reads flow back out to the Application Server from the
-Replica; nothing but the primary ever accepts one.
+Replica; writes have nowhere to land but the primary.
 
 ## The gap between write and copy
 
@@ -55,7 +55,7 @@ sequenceDiagram
   R-->>A: Old name
 ```
 
-Caption: the write is acknowledged before replication catches the replica up
+Note: the write is acknowledged before replication catches the replica up
 - a read landing in that window sees the value the row had before the write,
 not after. This is read-your-writes: the first consistency guarantee in this
 curriculum that isn't free.
