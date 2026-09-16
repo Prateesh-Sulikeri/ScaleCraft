@@ -72,7 +72,7 @@ export const releaseNotes: ReleaseNote[] = [
       },
       {
         title: "The Debrief draws the reference design",
-        body: "Eighteen chapters now render the reference answer as a real diagram beside the commentary, instead of describing it as a list of components and links.",
+        body: "Nineteen chapters now render the reference answer as a real diagram beside the commentary, instead of describing it as a list of components and links.",
         icon: "quiz",
       },
       {
