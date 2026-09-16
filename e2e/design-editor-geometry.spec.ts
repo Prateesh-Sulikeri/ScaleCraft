@@ -36,8 +36,8 @@ const LAB = "/dev/starter-layout-lab";
  *  pass by never running - the exact shape of vacuous guard the e2e audit
  *  (pending-e2e-quarantine.md) found ~106 of. These make the count itself
  *  the assertion. Update them when a chapter gains or loses a graph. */
-const AUTHORED_STARTER_CHAPTERS = 14;
-const AUTHORED_REFERENCE_GRAPHS = 13;
+const AUTHORED_STARTER_CHAPTERS = 20;
+const AUTHORED_REFERENCE_GRAPHS = 19;
 
 /** Screen-space boxes of every component card currently on the live canvas. */
 async function cardBoxes(page: Page) {
@@ -68,10 +68,10 @@ async function authoredCounts(page: Page) {
 test("every authored starter graph and reference diagram renders correctly", async ({
   page,
 }) => {
-  // One pass over all 14 chapters, asserting everything the lab can show, in
-  // place of three passes asserting one thing each. The three used to be
-  // separate tests; they cost three page loads and three full chapter loops
-  // to check claims that are all functions of the same selected chapter.
+  // One pass over every authored chapter, asserting everything the lab can
+  // show, in place of three passes asserting one thing each. The three used
+  // to be separate tests; they cost three page loads and three full chapter
+  // loops to check claims that are all functions of the same selected chapter.
   // playwright.config.ts is explicit that browser time is the cost this
   // suite is managing (102 tests -> 18), and the longer this file ran, the
   // more often multi-device-sync flaked at the tail of the full suite.
@@ -93,6 +93,8 @@ test("every authored starter graph and reference diagram renders correctly", asy
   let pairsCompared = 0;
   let livePathsChecked = 0;
   let chaptersWithDiagram = 0;
+  let chaptersFitting = 0;
+  let chaptersPannable = 0;
 
   for (const chapterId of chapterIds) {
     await select.selectOption(chapterId);
@@ -146,15 +148,45 @@ test("every authored starter graph and reference diagram renders correctly", asy
       expect(d, `${chapterId}: a reference edge rendered an empty path`).toMatch(/^M[\s\d.,-]/);
     }
 
-    // The figure has to fit its column rather than spill out of the panel.
+    // How the figure sits in its column. Which of the two cases applies is
+    // arithmetic, not a judgement call: the fit floors at REFERENCE_MIN_ZOOM
+    // (0.55) because a card's label stops being readable below it, so a
+    // drawing wider than `panel / 0.55` cannot be made to fit and the panel
+    // pans instead - anchored at the entry point, with its own zoom controls
+    // (ReferenceGraphCanvas.tsx). 3.16 onward are past that line: at 13-22
+    // nodes no packing reference-layout.ts can pick is narrow enough.
     const panel = (await reference.boundingBox())!;
-    for (const card of await refCards.all()) {
-      const box = await card.boundingBox();
-      if (!box) continue;
+    const refBoxes = (
+      await Promise.all((await refCards.all()).map((c) => c.boundingBox()))
+    ).filter((b) => b !== null);
+    expect(refBoxes.length, `${chapterId}: reference cards failed to measure`).toBeGreaterThan(0);
+    const contentLeft = Math.min(...refBoxes.map((b) => b.x));
+    const contentRight = Math.max(...refBoxes.map((b) => b.x + b.width));
+
+    if (contentRight - contentLeft <= panel.width) {
+      // Fits: then it has to actually be inside the frame, not merely small.
+      chaptersFitting++;
       expect(
-        box.x + box.width,
+        contentRight,
         `${chapterId}: a reference card overflows the diagram's right edge`,
       ).toBeLessThanOrEqual(panel.x + panel.width + 1);
+      expect(
+        contentLeft,
+        `${chapterId}: a reference card overflows the diagram's left edge`,
+      ).toBeGreaterThanOrEqual(panel.x - 1);
+    } else {
+      // Pans: the end that must be on screen is the entry point, i.e. the
+      // left edge of the drawing - the whole reason the fit anchors rather
+      // than centres, since centring cuts both ends.
+      chaptersPannable++;
+      expect(
+        contentLeft,
+        `${chapterId}: the pannable diagram is not anchored at its entry point`,
+      ).toBeGreaterThanOrEqual(panel.x - 1);
+      expect(
+        contentLeft,
+        `${chapterId}: the pannable diagram starts past the panel's right edge`,
+      ).toBeLessThan(panel.x + panel.width);
     }
   }
 
@@ -167,6 +199,14 @@ test("every authored starter graph and reference diagram renders correctly", asy
   expect(chaptersWithDiagram, "wrong number of reference diagrams rendered").toBe(
     AUTHORED_REFERENCE_GRAPHS,
   );
+  // Deliberately not a fourth pinned constant: which chapters pan is a
+  // function of authored node count and moves with every chapter written.
+  // What has to hold is that every diagram took one branch or the other, and
+  // that the fitting branch is still exercised at all.
+  expect(chaptersFitting + chaptersPannable, "a diagram took neither branch").toBe(
+    chaptersWithDiagram,
+  );
+  expect(chaptersFitting, "no reference diagram fit its panel").toBeGreaterThan(0);
 });
 
 test("ports stay hidden until the card is hovered", async ({ page }) => {
