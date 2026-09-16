@@ -56,6 +56,39 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "7.2.0-alpha",
+    date: "2026-09-15",
+    title: "The Design Editor is easier to draw in.",
+    highlights: [
+      {
+        title: "Edges connect where you aim",
+        body: "Drag from anywhere on a card and the wire snaps to the nearest port, or click one card and then the next. Landing a connection no longer takes three tries.",
+        icon: "canvas",
+      },
+      {
+        title: "Six new chapters and a checkpoint",
+        body: "Caching, CDN, Search, Message Queues, Event-Driven Architecture and Background Jobs are live, plus R1 - a blank-canvas checkpoint where you rebuild a site that stays up.",
+        icon: "content",
+      },
+      {
+        title: "The Debrief draws the reference design",
+        body: "Nineteen chapters now render the reference answer as a real diagram beside the commentary, instead of describing it as a list of components and links.",
+        icon: "quiz",
+      },
+      {
+        title: "Narrower cards, roomier canvas",
+        body: "Component cards lead with their icon and drop the description line, so a ten-node design fits on screen at a readable zoom.",
+        icon: "canvas",
+      },
+    ],
+    qualityOfLife: [
+      "Twelve earlier chapters revised for density",
+      "A connection keeps the port you dropped it on",
+      "Node settings and edge details open in a cleaner panel",
+      "A closed bug report keeps its screenshot for seven days",
+    ],
+  },
+  {
     version: "7.1.0-alpha",
     date: "2026-08-23",
     title: "Fourteen new chapters take Building Blocks through Part 3.",

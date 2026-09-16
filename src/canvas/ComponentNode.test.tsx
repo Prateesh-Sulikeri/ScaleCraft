@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { act, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { ComponentNode } from "./ComponentNode";
 import { renderWithCanvasStore, stubResizeObserver } from "./canvas-test-utils";
@@ -35,22 +35,62 @@ function renderNode(props: ReturnType<typeof baseProps>) {
 }
 
 describe("ComponentNode", () => {
-  it("renders the definition's label and summary for a known component (client: no input handle)", () => {
-    const { container } = renderNode(baseProps());
+  it("renders the definition's label and category short code", () => {
+    renderNode(baseProps());
     expect(screen.getByText("Client")).toBeInTheDocument();
-    expect(screen.getByText("Issues requests into the system")).toBeInTheDocument();
-    // Client has no declared inputs (it's always an origin, never a
-    // destination) — no visible Position.Left target handle, even though it
-    // does have an output (Position.Right source handle).
-    expect(container.querySelector(".react-flow__handle-left")).not.toBeInTheDocument();
-    expect(container.querySelector(".react-flow__handle-right")).toBeInTheDocument();
+    expect(screen.getByText("NET")).toBeInTheDocument();
   });
 
-  it("renders both input and output handles for a component with both ports (app-server)", () => {
+  // Every side carries a port on every component, including a Client, which
+  // declares no inputs. A side-conditional handle used to mean an authored
+  // edge into an input-less component resolved to no handle at all, and
+  // xyflow dropped the edge without drawing anything.
+  it("renders a port on all four sides, whatever the component declares", () => {
+    for (const componentId of ["client", "app-server", "sql-database"]) {
+      const { container, unmount } = renderNode(baseProps({ componentId }));
+      for (const side of ["left", "top", "right", "bottom"]) {
+        expect(
+          container.querySelector(`.react-flow__handle-${side}`),
+          `${componentId} is missing its ${side} port`,
+        ).toBeInTheDocument();
+      }
+      unmount();
+    }
+  });
+
+  // Every port is a `source` handle: under loose connectionMode that is the
+  // only kind that can serve as either end of an edge, so it is what lets an
+  // edge leave any side. See canvas/edge-routing.ts.
+  it("makes every port a source handle with an explicit id", () => {
     const { container } = renderNode(baseProps({ componentId: "app-server" }));
-    expect(screen.getByText("Application Server")).toBeInTheDocument();
-    expect(container.querySelector(".react-flow__handle-left")).toBeInTheDocument();
-    expect(container.querySelector(".react-flow__handle-right")).toBeInTheDocument();
+    const handles = [...container.querySelectorAll(".react-flow__handle")];
+    expect(handles).toHaveLength(4);
+    expect(handles.every((h) => h.classList.contains("source"))).toBe(true);
+    expect(handles.map((h) => h.getAttribute("data-handleid")).sort()).toEqual([
+      "port-bottom",
+      "port-left",
+      "port-right",
+      "port-top",
+    ]);
+  });
+
+  // Direction is a semantic rule (connection-rules.ts), not a geometric one -
+  // so a Client's ports stay connectable and a drag onto one is refused with
+  // visible feedback, rather than dying silently on an inert handle.
+  it("leaves every port connectable, and lets connection-rules judge direction", () => {
+    const { container } = renderNode(baseProps());
+    const handles = [...container.querySelectorAll(".react-flow__handle")];
+    expect(handles.every((h) => h.classList.contains("connectable"))).toBe(true);
+  });
+
+  it("no longer renders the definition summary - the description moved to the inspector", () => {
+    renderNode(baseProps());
+    expect(screen.queryByText("Issues requests into the system")).not.toBeInTheDocument();
+  });
+
+  it("ignores data.description, which is now inspector-only", () => {
+    renderNode(baseProps({ description: "Custom per-instance note" }));
+    expect(screen.queryByText("Custom per-instance note")).not.toBeInTheDocument();
   });
 
   it("renders nothing for an unknown componentId (deleted custom component)", () => {
@@ -61,33 +101,27 @@ describe("ComponentNode", () => {
   it("shows the user-set instance name alongside the type label when present", () => {
     renderNode(baseProps({ name: "server-1-ind" }));
     expect(screen.getByText("server-1-ind")).toBeInTheDocument();
+    expect(screen.getByText("Client")).toBeInTheDocument();
   });
 
-  it("does not show an instance name element when name is unset", () => {
+  it("does not show an instance name when name is unset or whitespace-only", () => {
     renderNode(baseProps());
     expect(screen.queryByText(/server-1-ind/)).not.toBeInTheDocument();
+
+    const { container } = renderNode(baseProps({ name: "   " }));
+    expect(container.textContent).not.toMatch(/\S\s{3,}\S/);
   });
 
-  it("does not show an instance name element when name is whitespace-only", () => {
-    renderNode(baseProps({ name: "   " }));
-    // Only the type label itself should render, no extra whitespace node.
-    expect(screen.getAllByText("Client")).toHaveLength(1);
-  });
-
-  it("prefers data.description over the definition's summary when set", () => {
-    renderNode(baseProps({ description: "Custom per-instance note" }));
-    expect(screen.getByText("Custom per-instance note")).toBeInTheDocument();
-    expect(screen.queryByText("Issues requests into the system")).not.toBeInTheDocument();
-  });
-
-  it("defaults to width 200 when data.width is unset, and uses data.width when set", () => {
+  it("defaults to 120x96 and honors data.width / data.height when set", () => {
     const { container: c1 } = renderNode(baseProps());
     const card1 = c1.firstChild as HTMLElement;
-    expect(card1.style.width).toBe("200px");
+    expect(card1.style.width).toBe("120px");
+    expect(card1.style.height).toBe("96px");
 
-    const { container: c2 } = renderNode(baseProps({ width: 260 }));
+    const { container: c2 } = renderNode(baseProps({ width: 260, height: 180 }));
     const card2 = c2.firstChild as HTMLElement;
     expect(card2.style.width).toBe("260px");
+    expect(card2.style.height).toBe("180px");
   });
 
   it("shows a validation-state outline color matching stateRingVar for the given state", () => {
@@ -100,6 +134,39 @@ describe("ComponentNode", () => {
     const { container } = renderNode(baseProps());
     const card = container.firstChild as HTMLElement;
     expect(card.style.outline).toContain("var(--border)");
+  });
+
+  // DESIGN.md §2 "Color Blindness Support" — state must not be carried by hue
+  // alone. The ring color is the at-a-glance channel; this glyph is the
+  // redundant one, and it is what makes valid distinguishable from error.
+  it.each([
+    ["valid", "Valid"],
+    ["warning", "Has a warning"],
+    ["error", "Has an error"],
+  ] as const)("pairs the %s ring with a labelled glyph, not hue alone", (state, label) => {
+    renderNode(baseProps({ validationState: state }));
+    expect(screen.getByLabelText(label)).toBeInTheDocument();
+  });
+
+  it("shows no state glyph when the node has not been validated", () => {
+    renderNode(baseProps());
+    expect(screen.queryByLabelText(/Valid|warning|error/i)).not.toBeInTheDocument();
+  });
+
+  it("marks a node whose config differs from the component default as configured", () => {
+    // app-server's only field is `instances`, default 1.
+    renderNode(baseProps({ componentId: "app-server", config: { instances: 3 } }));
+    expect(screen.getByLabelText("Configured")).toBeInTheDocument();
+  });
+
+  it("does not mark a node still sitting on its component defaults", () => {
+    renderNode(baseProps({ componentId: "app-server", config: { instances: 1 } }));
+    expect(screen.queryByLabelText("Configured")).not.toBeInTheDocument();
+  });
+
+  it("treats an empty config (nothing ever set) as unconfigured", () => {
+    renderNode(baseProps({ componentId: "app-server", config: {} }));
+    expect(screen.queryByLabelText("Configured")).not.toBeInTheDocument();
   });
 
   it("shows the highlight-gold ring when data.highlighted is true, taking priority over plain selection", () => {
@@ -118,36 +185,5 @@ describe("ComponentNode", () => {
     const { container } = renderNode(baseProps({}, false));
     const card = container.firstChild as HTMLElement;
     expect(card.style.boxShadow).toBe("");
-  });
-
-  it("clamps description lines via ResizeObserver once manually resized (data.height set)", () => {
-    // Exercises the isManuallyResized branch — data.height becomes a real
-    // number only after a user drags the resize handle (see resizeNode in
-    // store.ts); this stubs ResizeObserver's callback to simulate one
-    // measurement pass instead of relying on a real layout engine in jsdom.
-    let capturedCallback: ResizeObserverCallback | undefined;
-    class CapturingResizeObserver {
-      constructor(cb: ResizeObserverCallback) {
-        capturedCallback = cb;
-      }
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    }
-    const original = global.ResizeObserver;
-    global.ResizeObserver = CapturingResizeObserver;
-
-    renderNode(baseProps({ height: 140 }));
-    expect(capturedCallback).toBeDefined();
-
-    act(() => {
-      capturedCallback!(
-        [{ contentRect: { height: 30 } } as ResizeObserverEntry],
-        {} as ResizeObserver,
-      );
-    });
-
-    expect(screen.getByText("Issues requests into the system")).toBeInTheDocument();
-    global.ResizeObserver = original;
   });
 });

@@ -43,6 +43,82 @@ describe("Canvas workflow — drag, connect, delete", () => {
     expect(graph.edges.every((e) => e.kind === "request-flow")).toBe(true);
   });
 
+  // A drag records the port it landed on, and rfAddEdge de-dupes on
+  // source/target/sourceHandle/targetHandle - so wiring A -> B a second time
+  // from a different port used to be a *different* connection to it. Two
+  // edges, identical once routed, stacked on one line, only the top one
+  // selectable or deletable.
+  it("refuses a second edge between a pair that already connects", () => {
+    store.getState().addNode(component("app-server"), { x: 0, y: 0 });
+    store.getState().addNode(component("sql-database"), { x: 300, y: 0 });
+    const [a, b] = store.getState().nodes;
+
+    store.getState().onConnect(
+      { source: a.id, target: b.id, sourceHandle: "port-right", targetHandle: "port-left" },
+      "request-flow",
+    );
+    const historyAfterFirst = store.getState().past.length;
+    store.getState().onConnect(
+      { source: a.id, target: b.id, sourceHandle: "port-bottom", targetHandle: "port-top" },
+      "request-flow",
+    );
+
+    expect(store.getState().edges).toHaveLength(1);
+    // And the rejected one leaves no undo step behind that undoes nothing.
+    expect(store.getState().past).toHaveLength(historyAfterFirst);
+  });
+
+  // The whole point of the change: a legal connection attaches where the user
+  // put it. Any port may join any port - right to top, bottom to left - and
+  // the router does not get a second opinion.
+  it("keeps the ports a drag landed on", () => {
+    store.getState().addNode(component("sql-database"), { x: 0, y: 0 });
+    store.getState().addNode(component("read-replica"), { x: 0, y: 320 });
+    const [db, replica] = store.getState().nodes;
+
+    store.getState().onConnect(
+      { source: db.id, target: replica.id, sourceHandle: "port-right", targetHandle: "port-top" },
+      "replication",
+    );
+
+    const edge = store.getState().edges[0];
+    expect(edge.sourceHandle).toBe("port-right");
+    expect(edge.targetHandle).toBe("port-top");
+  });
+
+  it("hands an edge back to the router on request, and leaves authored ones alone", () => {
+    store.getState().addNode(component("sql-database"), { x: 0, y: 0 });
+    store.getState().addNode(component("read-replica"), { x: 0, y: 320 });
+    const [db, replica] = store.getState().nodes;
+    store.getState().onConnect(
+      { source: db.id, target: replica.id, sourceHandle: "port-right", targetHandle: "port-top" },
+      "replication",
+    );
+    const edgeId = store.getState().edges[0].id;
+
+    store.getState().autoRouteEdge(edgeId);
+    expect(store.getState().edges[0].sourceHandle).toBeNull();
+    expect(store.getState().edges[0].targetHandle).toBeNull();
+
+    // Already routed - nothing to clear, so no undo step either.
+    const history = store.getState().past.length;
+    store.getState().autoRouteEdge(edgeId);
+    expect(store.getState().past).toHaveLength(history);
+  });
+
+  // The reverse direction is a different edge - a replica reading back to the
+  // app server is a real, separate connection.
+  it("still allows the opposite direction", () => {
+    store.getState().addNode(component("app-server"), { x: 0, y: 0 });
+    store.getState().addNode(component("read-replica"), { x: 300, y: 0 });
+    const [a, b] = store.getState().nodes;
+
+    store.getState().onConnect({ source: a.id, target: b.id, sourceHandle: null, targetHandle: null }, "request-flow");
+    store.getState().onConnect({ source: b.id, target: a.id, sourceHandle: null, targetHandle: null }, "request-flow");
+
+    expect(store.getState().edges).toHaveLength(2);
+  });
+
   it("supports edge kind changes", () => {
     store.getState().addNode(component("sql-database"), { x: 0, y: 0 });
     store.getState().addNode(component("read-replica"), { x: 300, y: 0 });

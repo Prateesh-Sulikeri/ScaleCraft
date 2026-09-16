@@ -631,15 +631,73 @@ deliberate scaffold fade.
 
 ### 11.5 Starter graph layout
 
-Every starter graph is authored at a 320x160 pitch (120px horizontal / 95px
-vertical gap against the 200x65 card, DESIGN.md's Node Card section) - never the
-200px pitch the Part 3 template originally copy-pasted forward, which left
-adjacent cards touching with no room for an edge to render. Chapters of 4+ nodes
-tier into rows by architectural layer (edge/client, then routing/app, then data),
-capped at 3 columns per row, so the bounding-box aspect ratio stays at or under
-2.5:1 and `fitView` lands near zoom 1.0 rather than width-constraining into an
-unreadably small strip. `authoring-invariants.test.ts` enforces both the minimum
-gap and the aspect ceiling for every authored chapter.
+Every starter graph is authored at a **260x160 pitch** (140px horizontal / 64px
+vertical gap against the **120x96** card, DESIGN.md's Node Card section) - the
+pitch used since the release 7.2.0-alpha Design Editor revamp
+(`.claude/docs/pending-design-editor-revamp.md`), replacing the 320x160 pitch
+authored against the older 200x65 card.
+
+The axes are asymmetric on purpose. Horizontal gap is where tier-to-tier
+connectors run, and a fan-out needs room for several of them side by side, so
+it stays wide. Vertical gap only ever carries one short arrow between two
+stacked cards in the same tier. An earlier 99px vertical made a tier column
+mostly empty space and pushed a four-deep stack past 750px tall for four
+cards' worth of content.
+
+**One column per tier, flowing left to right; the tier's own members stack top
+down inside it.** This is the shape of a published cloud architecture diagram,
+and it is what keeps a ten-node design legible in a 1080p pane. Concretely:
+
+| | Meaning |
+|---|---|
+| Column | An architectural tier - client, edge, application, data. |
+| Row inside a column | Position within that tier: sequence for a chain (DNS above Firewall above Reverse Proxy), or one row per branch for a fan-out (three databases). |
+
+Rules that follow from it:
+
+- **Never step left.** `x` never decreases along a request-flow edge. Inside a
+  tier the flow runs straight down (same `x`); between tiers it runs right.
+  Nothing wraps onto a second row, and nothing doubles back.
+- **One exception: a genuine feedback path may step left.** A read replica
+  serving reads back to the application tier (`replica -> app`, request-flow)
+  is right-to-left by construction - the replica lives in the data column,
+  right of the app that queries it. That is a feedback arrow, not a wrapped
+  pipeline, and it is drawn against the main flow exactly as a hand-drawn
+  cloud diagram would. The direction is fixed by curriculum rather than
+  layout: 3.12 teaches that `app -> replica` is the *error*, so every chapter
+  after it models the read path as `replica -> app`. The gate carries the
+  exemption as `FEEDBACK_SOURCES` in `authoring-invariants.test.ts`;
+  `reference-layout.ts` already took the same position for rendered reference
+  diagrams. Add to that set only for another true feedback path - never to
+  quiet a pipeline that actually wraps.
+- **The client gets its own column.** A Browser or Client is the one thing on
+  the board the learner does not operate, so it is its own tier rather than the
+  first row of Edge. That also keeps Edge to three rows, which is what keeps
+  the tier-exit connector short.
+- **Keep a tier to three rows where the content allows.** A column's last node
+  connects to the next column's first, so column height *is* the length of that
+  connector. Four rows was the old shape and it made a 585px climb; three makes
+  it 320px, inside the diagram's own height, where it reads as normal.
+- **Align the next tier with the previous tier's exit where it fits.** A
+  chapter with only two stacked tiers can put the second tier's entry on the
+  same row the first tier ends on, and then the connector is a straight
+  horizontal line with no climb at all (3.3 and 3.5 both do this). Past two
+  tiers the rows run out and one climb per boundary is the right trade.
+- **A one-node tier aligns with the node feeding it**, rather than top-aligning
+  against a tier that starts lower - so a lone database sits level with the app
+  server that reads from it.
+- **Tier zones are vertical bands.** See §11.6.
+
+This replaces an earlier rule that tiered 4+ node chapters into horizontal
+bands and held the bounding box under a 2.5:1 aspect ceiling. Horizontal bands
+put a right-to-left jump at every tier boundary - in a diagram whose entire
+subject is the order things happen in. A single unwrapped row was tried in
+between and rejected for the opposite reason: an eight-stage chapter came out
+1940px wide and `fitView` shrank it past readability on a 1080p screen.
+Vertical tier columns are what satisfy both. `authoring-invariants.test.ts`
+enforces the standard: the minimum gap, that every request-flow edge advances
+left to right, that a graph never uses more rows than its widest column needs,
+and that no two zones share a label.
 
 ### 11.6 Starter graph decorators
 
@@ -657,17 +715,36 @@ only, never a hand-typed hex:
 
 | Demarcation | Preset | Hex |
 |---|---|---|
-| Client / edge tier (browser, dns, firewall, client) | Blue | `#3b82f6` |
+| Client tier (browser, client) | Slate | `#64748b` |
+| Edge tier (dns, firewall, reverse-proxy) | Blue | `#3b82f6` |
 | Server / application tier (reverse-proxy, api-gateway, load-balancer, app-server) | Purple | `#a855f7` |
 | Data tier (sql-database, nosql-database, read-replica) | Emerald | `#10b981` |
 | Gap zone - the empty slot the exercise fills | Pink (Zone Magenta) | `#ff3483` |
 | Comments | Slate | `#64748b` |
 
-**Zone geometry**, against the 320x160 pitch (card 200x65): for a tier row
-with `cols` columns starting at `(x0, y0)`, `position = { x: x0 - 28, y: y0 -
-48 }`, `width = 320 * (cols - 1) + 256`, `height = 137`. Nodes sharing a row
-and a tier color merge into one zone spanning `cols` columns rather than one
-box per node - a zone marks a tier boundary, not an individual card.
+**Zone geometry**, against the 260x160 pitch (card 120x96): for a tier covering
+`cols` columns and `rows` rows with its top-left node at `(x0, y0)`,
+`position = { x: x0 - 28, y: y0 - 40 }`, `width = 260 * (cols - 1) + 176`,
+`height = 160 * (rows - 1) + 148`. The padding terms live in
+`canvas/card-geometry.ts` as `ZONE_PAD_SIDE`/`TOP`/`BOTTOM` (28 / 40 / 12);
+the extra room above the card is where the zone's own label sits. They
+tightened with the pitch: at the old 48/24 padding two zones stacked in the
+same column would have overlapped by 8px once the pitch dropped to 160.
+The vertical pair tightened again (44/16 -> 40/12) once a browser pass showed
+what the first tightening left: `PITCH_Y - CARD_HEIGHT` is 64px, so 44/16 put
+only 4px between two stacked zones' borders and bb-3-4's Application and Build
+here boxes read as one merged container. 40/12 leaves 12px, and the label band
+still clears the first card by 8px.
+
+Since §11.5 made each tier its own column, **a tier zone is a vertical band
+wrapping one column** - Client over the browser, Edge over its three stacked
+stages, Application over its three, Data over its databases - not a horizontal
+band wrapping a row. Its
+`rows` is the number of nodes stacked in that tier. Every node of a tier merges
+into that one zone rather than one box per node: a zone marks a tier boundary,
+not an individual card. Two zones must never carry
+the same label in one chapter - if two bands want the same name, they are one
+tier and belong in one zone.
 
 **Zone vs. comment**: a zone names a tier or trust boundary that already has
 at least one component in it, or is the gap zone. A comment carries one short,

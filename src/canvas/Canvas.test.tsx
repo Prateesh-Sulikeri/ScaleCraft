@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { createRef } from "react";
 import { Canvas, type CanvasHandle } from "./Canvas";
 import { renderWithCanvasStore, stubResizeObserver } from "./canvas-test-utils";
@@ -147,7 +147,11 @@ describe("Canvas", () => {
       api.getState().loadCanvasState([clientNode, appServerNode], edges);
       api.getState().setSelectedEdgeId("e1");
     });
-    fireEvent.click(screen.getByText("Client"));
+    // Scoped to the node itself: with an edge selected, EdgeInspector's own
+    // source -> target header (Step 3, D14) also renders the text "Client",
+    // so an unscoped screen.getByText would now match twice.
+    const nodeEl = document.querySelector('.react-flow__node[data-id="n1"]') as HTMLElement;
+    fireEvent.click(within(nodeEl).getByText("Client"));
     expect(api.getState().selectedNodeId).toBe("n1");
     expect(api.getState().selectedEdgeId).toBeNull();
   });

@@ -1,0 +1,241 @@
+3.14 moved the answer one hop from the code that needs it. The code is in
+Virginia. A third of your users are not.
+
+That product page returns in 40 ms near your servers and takes most of a second
+in Sydney, on the same servers, at the same hit ratio. A Sydney-to-Virginia
+round trip runs about 200 ms, and a fresh connection spends two of them on the
+TCP and TLS handshakes before your first byte moves. The work took 40 ms;
+distance took the rest. Most of what crossed it did not need to - the bulk of a
+page's bytes are images, stylesheets and script bundles that are identical for
+every visitor and change only when you deploy.
+
+> [!NOTE]
+> Think first: same page, same servers, same 95% hit ratio - 40 ms in Virginia,
+> 600 ms in Sydney. Every lever so far (more instances, a replica, a cache) is a
+> way of doing work faster or doing it less often. Which of them removes the
+> other 560 ms? Commit to an answer before reading on.
+
+## The same bet, about place
+
+3.14's cache bet that an answer would be wanted again before it stopped being
+true. A CDN bets it will be wanted by someone else near this user. It is a
+network of edge nodes - servers in a few hundred cities, each running a cache in
+front of your origin - and which one a user talks to is decided before their
+request is sent. Some CDNs steer with anycast instead, announcing one address
+from every location and letting the network deliver to the nearest; DNS is the
+mechanism this system already has, and the one an interviewer will ask about.
+
+<Walkthrough
+  title="One file, two regions, first request and every request after"
+  description="Switch between pull and push to see how a copy gets to an edge node."
+  algorithms={[
+    { id: "pull", label: "Pull (fetched on first miss)" },
+    { id: "push", label: "Push (uploaded on deploy)" },
+  ]}
+  nodes={[
+    { id: "user", kind: "component", componentId: "browser", label: "Browser (Sydney)" },
+    { id: "dns", kind: "component", componentId: "dns", label: "DNS" },
+    { id: "edge-syd", kind: "component", componentId: "cdn", label: "Edge node (Sydney)" },
+    { id: "edge-fra", kind: "component", componentId: "cdn", label: "Edge node (Frankfurt)" },
+    { id: "origin", kind: "component", componentId: "app-server", label: "Origin (Virginia)" },
+  ]}
+  edges={[
+    { id: "lookup", source: "user", target: "dns", kind: "request-flow" },
+    { id: "steer-syd", source: "dns", target: "edge-syd", kind: "request-flow" },
+    { id: "steer-fra", source: "dns", target: "edge-fra", kind: "request-flow" },
+    { id: "miss-syd", source: "edge-syd", target: "origin", kind: "request-flow" },
+    { id: "miss-fra", source: "edge-fra", target: "origin", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "The Browser in Sydney resolves your hostname first. Resolution is the earliest routing decision in the system: the same name returns a different address depending on where it was asked from.",
+      focus: "lookup",
+    },
+    {
+      caption: "DNS hands this user the Sydney edge node, roughly 5 ms away, instead of the origin in Virginia, roughly 200 ms away. Nothing has been requested yet and the request is already going somewhere closer.",
+      focus: "steer-syd",
+    },
+    {
+      caption: "The Sydney edge node has never been asked for this file, so it forwards the request to the origin in Virginia. One user pays the full crossing, plus the edge hop.",
+      focus: "miss-syd",
+      variants: {
+        push: {
+          caption: "With push, the file was uploaded to every edge node at deploy time. The Sydney edge node already holds it, so nothing reaches the origin and no user pays a first-request penalty.",
+          highlightNodeIds: ["edge-syd", "edge-fra"],
+          highlightEdgeIds: [],
+        },
+      },
+    },
+    {
+      caption: "The Sydney edge node stores the response and answers. Every later request for that file from the region is served from Sydney, and the origin never sees one of them.",
+      highlightNodeIds: ["user", "edge-syd"],
+      highlightEdgeIds: ["steer-syd"],
+      variants: {
+        push: {
+          caption: "The Sydney edge node answers from the copy it was given. Every request for that file from the region is served from Sydney, and the origin never sees one of them.",
+          highlightNodeIds: ["user", "edge-syd"],
+          highlightEdgeIds: ["steer-syd"],
+        },
+      },
+    },
+    {
+      caption: "A user in Europe resolves the same name to the Frankfurt edge node, which has its own copy and its own first miss. A CDN is one cache per location, not one shared store.",
+      focus: ["steer-fra", "miss-fra"],
+      variants: {
+        push: {
+          caption: "Frankfurt was filled by the same push, so it has no first miss either. The cost is that every location stores every object, whether anyone in that region ever asks for it.",
+          focus: "steer-fra",
+        },
+      },
+    },
+  ]}
+/>
+
+
+Note: the origin is reached once per file per location, and only under pull.
+Every other line in that sequence ends inside the user's own region.
+
+## The two things the edge decides
+
+- **`cacheTtlSeconds`** (default 3600) - how long an edge node may serve its copy
+  before checking with the origin again. The same staleness contract 3.14 wrote
+  as a number, one layer out and usually far longer: what sits here changes on
+  deploy, not on write.
+- **`cacheDynamicContent`** (default off) - whether responses computed per
+  request may be cached at all. Off is the right default, for the reason in the
+  next section.
+
+## What belongs at the edge
+
+Two properties, both required: the response is **identical for many users**, and
+it **tolerates being up to its TTL out of date**. One without the other is not a
+candidate.
+
+| Response | At the edge | Why |
+|---|---|---|
+| `app.9f3c1.js`, a fingerprinted bundle | Yes | Same bytes for everyone, and the URL changes whenever the content does, so the copy can never be stale. |
+| Product images, video segments | Yes | Identical per viewer, and the largest thing you ship. This is where the money is. |
+| A listing page, same for every signed-out visitor | Yes, short TTL | Identical per visitor; the TTL is how far behind you are willing to be. |
+| A signed-in user's account page | No | Identical for nobody. One copy served twice is one user reading another's data. |
+| `POST /checkout` | No | Not a read. There is nothing to copy, and it has to change state at the origin. |
+
+Pull is the default provisioning model: the edge fetches on its first miss, so
+one user per location pays for it. Push uploads ahead of time - nobody pays a
+first miss, but every location stores every object whether anyone there asks or
+not. Pull for a long-tail catalog, push for a small set you know everyone is
+about to want.
+
+## Trade-offs
+
+| Decision | What it buys | What it costs |
+|---|---|---|
+| Long edge TTL (hours to days) | Highest hit ratio, least origin traffic | A wrong file stays wrong at the edge for that long unless you purge it |
+| Short edge TTL (seconds to minutes) | Publishing without a purge step | More origin traffic, and every miss crosses the ocean |
+| Fingerprinted filenames plus a long TTL | Both: instant publish and a year-long TTL | The build has to fingerprint every asset and rewrite every reference to it |
+| Caching HTML for signed-out visitors | Takes the origin off the path for most page views | You have to be certain no per-user data can ever reach that response |
+
+## What breaks
+
+- **The wrong person's page.** A response carrying one user's data is cached at
+  the edge and handed to the next visitor. The cause is a cache key that ignores
+  what the response actually varied on. This is the only failure here with
+  consequences past latency.
+- **The file you can't take back.** You shipped a broken bundle at a 24-hour
+  TTL. A purge crosses every location, takes minutes rather than instants, and
+  does nothing about the copies already sitting in browsers.
+- **The origin herd after a purge.** Invalidate everything at once and every
+  location misses at once: 3.14's stampede at a wider radius, with fixes of the
+  same shape - staggered expiry, or a shield tier that collapses many edge misses
+  into one origin fetch.
+- **A dependency you don't operate.** A bad edge configuration takes your site
+  down while your origin sits healthy, and the rollback is on someone else's
+  control plane.
+
+## What changes at scale
+
+At 10x nothing structural changes: the edge absorbs it, and what you tune is
+what's cacheable, not capacity. At 100x the catalog matters more than the
+traffic - a long tail leaves most objects cold in most locations, so
+per-location hit ratio falls and origin fetches grow with catalog size rather
+than with users, which is what makes a shield tier worth its own hop. At 1000x
+the cost centre is bytes, and the move is to stop treating the CDN as a cache in
+front of one origin: the largest video services ship cache appliances into ISP
+networks so the last hop happens inside the user's own provider.
+
+## In production
+
+Wikipedia serves most of its anonymous page views out of caching data centres
+placed around the world rather than from the servers that render the pages, and
+signed-in readers bypass those caches by design. That split is this chapter's
+rule in operational form: the anonymous view of an article is identical for
+millions of people and tolerates being slightly behind, and the signed-in view of
+the same article is neither.
+
+## Common mistakes
+
+- **Putting everything behind it and turning on dynamic caching.** The rule is
+  two properties, not one, and "it's a GET" is not the second.
+- **Using TTL as the publishing mechanism.** Short TTLs pay origin traffic on
+  every asset, forever, to solve a problem fingerprinted filenames solve
+  permanently and for free.
+- **Believing a purge reaches users.** It reaches edge nodes. Browsers keep
+  honoring the `Cache-Control` they were already given.
+- **Judging it by hit ratio alone.** A 99% hit ratio with your worst region at
+  800 ms means the misses are landing on exactly the people the CDN was bought
+  for.
+
+## In an interview
+
+High relevance for anything media-heavy or global. It lands at step 4 (a system
+with users on more than one continent has an edge tier in its first
+architecture) and step 7 (the trade-off you are expected to name is which
+responses you are willing to serve from a copy).
+
+What that sounds like at a senior level: *"Most of the bytes here are identical
+for every user, so I'd put a CDN in front, DNS-steered so the routing decision
+happens at resolution. Fingerprinted filenames with a long TTL, so publishing
+never depends on a purge. Signed-out listing pages can take a short TTL, and
+anything per-user stays off the edge entirely - the failure I care about there
+isn't staleness, it's serving one user's page to another."*
+
+## Connections
+
+This is 3.14's bet with the axis rotated: a cache removes work, a CDN removes
+distance, and the two stay independent - the cache is still what keeps the origin
+from recomputing whatever the edge misses on. It also closes 3.2's loop, which
+ended on changing what a name resolves to being how you route traffic; steering
+a user to a nearby edge is that mechanism's most common job, and it is why the
+CDN is chosen at resolution rather than by anything downstream of it. And it is
+3.3's reverse proxy in a few hundred places at once, operated by someone else.
+
+Coming in 3.16: a read that no amount of copying helps, because your database
+cannot answer it well at any distance.
+
+## Recap
+
+- A cache bets an answer will be wanted again; a CDN bets it will be wanted
+  nearby. Distance is not work, so none of the earlier levers touch it.
+- A response belongs at the edge only if it is identical for many users and
+  tolerates being up to its TTL out of date. Both, or neither.
+- Fingerprinted filenames plus a long TTL beat a short TTL: a URL that changes
+  with its content can never serve a stale copy.
+- Pull makes one user per location pay a first miss; push makes every location
+  store everything.
+- The failure that matters is a per-user response cached at the edge, not a stale
+  one.
+
+## Your turn
+
+The starter graph is the system as 3.14 left it: cache wired, everything
+correct. Validate will say so, because nothing here is wired wrong. What is
+wrong is that a byte which never changes still travels the full distance to your
+origin on every single request, and the only decision in this system capable of
+sending a user somewhere closer is made at the very front of the path.
+
+## Next
+
+3.14 and 3.15 both removed reads by keeping a copy of the answer somewhere
+cheaper. 3.16 Search Systems is the read with no copy to keep: "every product
+whose description mentions waterproof" is a question your database answers by
+reading every row, and a cache in front of it helps nothing when every search is
+a different question.

@@ -1,8 +1,7 @@
-3.2 ended on a tease: "3.3 Reverse Proxy takes the request DNS just pointed
-you to and asks what should happen the instant it actually arrives - one
-address for everything hiding behind it." 2.1 already drew this stop doing
-two jobs, terminating TLS and forwarding inward, and 2.3 named Group A's
-pressure as resolved, admitted, routed. Routed is this chapter.
+3.2 got the request an address to aim at. This chapter is about what happens
+the instant it arrives there. 2.1 already drew this stop doing two jobs,
+terminating TLS and forwarding inward, and 2.3 named Group A's pressure as
+resolved, admitted, routed. Routed is this chapter.
 
 Replace today's one app server with three, running a rewrite in a different
 language, on different machines. If nothing sits between the outside world
@@ -10,9 +9,9 @@ and it, every client needs to learn the new addresses. If something does,
 none of them ever notice.
 
 > [!NOTE]
-> Think first: before reading on, if you doubled the number of app servers
-> behind today's one public address, what would a client outside your
-> network need to change? Commit to an answer before reading on.
+> Think first: if you doubled the number of app servers behind today's one
+> public address, what would a client outside your network need to change?
+> Commit to an answer before reading on.
 
 ## One address, many things behind it
 
@@ -23,7 +22,7 @@ or what's running on them, actually answer.
 
 ```mermaid
 flowchart LR
-  Br["Browser"] -->|"request-flow"| D["DNS"]
+  Br["Browser"] -->|"lookup"| D["DNS"]
   D -->|"request-flow"| F["Firewall"]
   F -->|"request-flow"| R["Reverse Proxy<br/>terminatesTls"]
   R -->|"request-flow"| A["App Server"]
@@ -32,7 +31,9 @@ flowchart LR
 
 Note: everything left of the proxy decides whether and where a request
 arrives; everything right of it is free to change shape without any of that
-machinery noticing.
+machinery noticing. DNS is drawn inline again so the canvas can validate the
+chain - as in 3.2, the lookup is still a separate exchange beside the request
+path, not a hop the request itself travels through.
 
 ## What happens when a request arrives
 
@@ -146,8 +147,7 @@ check fires until you do isn't previewed here.
 ## Next
 
 3.4 Load Balancer picks up the moment one proxy instance stops being
-enough - the same front door, now needing to be more than one machine.
-(3.5 API Gateway, two chapters out, is where reverse proxy, load balancer
-and API gateway - all three - finally get told apart in one place; this
-chapter already drew the first line: routing lives here, authentication and
-rate limiting don't.)
+enough - the same front door, now needing to be more than one machine. This
+chapter drew the first line between the three front-door components: routing
+lives here, authentication and rate limiting don't. 3.5 finishes that
+separation.

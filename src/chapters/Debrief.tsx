@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { MarkdownRenderer } from "@/canvas/docs-panel/markdown/MarkdownRenderer";
-import { ReadOnlyGraphSummary } from "./ReadOnlyGraphSummary";
+import { ReferenceGraphCanvas } from "./ReferenceGraphCanvas";
 import type { Blueprint } from "@/content/chapters/types";
 
 type DebriefProps = {
@@ -63,7 +63,7 @@ function BlueprintCard({ blueprint, matched }: { blueprint: Blueprint; matched: 
       </div>
       {blueprint.referenceGraph && (
         <div className="mt-2">
-          <ReadOnlyGraphSummary graph={blueprint.referenceGraph} />
+          <ReferenceGraphCanvas graph={blueprint.referenceGraph} />
         </div>
       )}
     </div>

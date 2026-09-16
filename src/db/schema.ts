@@ -152,6 +152,21 @@ export const bugReports = pgTable("bug_reports", {
    * plain UPDATE raises the reporter's notification badge with no extra
    * bookkeeping column to remember to touch. */
   seenStatus: text("seen_status").notNull().default("open"),
+  /** When the report entered a terminal status (`resolved` or `closed`) - the
+   * start of the 15-day retention clock in src/bugs/retention.ts. Null while
+   * the report is still moving, and cleared again if it is reopened.
+   *
+   * Not `updatedAt`: writing closing notes on day 14 would reset that one, and
+   * `seen` deliberately never bumps it at all, so it is the wrong clock in
+   * both directions. Stamped by app code (the close route, or the sweep the
+   * next morning for a report closed by hand SQL) rather than a trigger. */
+  closedAt: timestamp("closed_at"),
+  /** When the sweep actually dropped this report's attachment. Exists only so
+   * the details view can tell "never had a screenshot" from "the screenshot
+   * was deleted on close" - once `imageRef` is null those are otherwise
+   * identical, and a reporter whose evidence vanished silently is owed the
+   * difference. */
+  imageDeletedAt: timestamp("image_deleted_at"),
   /** Where the reporter was and which build they were on. Captured by the
    * client at submit time - a report without these costs a round-trip of
    * "which page? which version?" to be actionable. */
