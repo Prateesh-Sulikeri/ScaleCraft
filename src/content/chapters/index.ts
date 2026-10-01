@@ -12,9 +12,9 @@ import type { ChapterDefinition } from "./types";
  *   curriculum content, authored against CURRICULUM.md §5/§6 with a
  *   chapter spec in `specs/` beside each.
  * - `bb-dummy-1` was replaced by real content, `bb-3-4-load-balancer`
- *   (pulled forward from Wave 3, see pending-content.md/pending-chapters.md).
- *   `rwe-dummy-1` is still a throwaway shell fixture (`placeholder: true`),
- *   standing in for RWE Tier 1 Bitly - replace it, don't extend it.
+ *   (pulled forward from Wave 3, see pending-content.md/pending-chapters.md),
+ *   and `rwe-dummy-1` by `rwe-t1-bitly-url-shortener`. No placeholder
+ *   fixtures remain; every entry here is authored curriculum.
  *
  * Every real chapter carries a sibling spec in `specs/<id>.spec.md`: the
  * §5 blueprint filled in, plus its declared omissions, component-budget
@@ -13064,29 +13064,506 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
   },
   {
-    id: "rwe-dummy-1",
+    id: "rwe-t1-bitly-url-shortener",
     mode: "real-world-extraction",
-    title: "Placeholder Project",
-    placeholder: true,
+    title: "Bitly (URL Shortener)",
+    // The curriculum's first real Real World Extraction project, replacing
+    // the `rwe-dummy-1` shell fixture. Spec:
+    // specs/rwe-t1-bitly-url-shortener.spec.md. Lesson body:
+    // public/content/chapters/rwe-t1-bitly-url-shortener.mdx.
+    //
+    // CURRICULUM.md §15.1 defines an RWE project as Phase A (guided core) +
+    // Phase B (open build) + optional Stretch + Debrief, but
+    // `ChapterDefinition` holds exactly one starter graph, one blueprint set
+    // and one Submit - there is no phase mechanism, and inventing a field is
+    // forbidden by §20.5. Both phases are therefore authored as one exercise:
+    // the starter graph is Phase A's seed, the brief carries both phases as
+    // named parts, and Phase B's "more than one architecture passes" is
+    // carried by the two blueprints below plus RWE mode's own full-registry
+    // validation. Recorded as an open decision in pending-chapters.md.
     problemStatement:
-      "This is placeholder content for Real World Extraction Tier 1's Bitly project " +
-      "(per CURRICULUM.md §15.2) - real content lands in a later step. For now, this " +
-      "exists only to prove the chapter shell works in this mode too.",
-    learningObjectives: ["Placeholder objective - real objectives arrive with real content."],
-    availableComponentIds: ["client", "load-balancer", "app-server", "sql-database", "cache"],
-    requiredComponentIds: ["client", "app-server", "sql-database"],
-    // Moot either way — real-world-extraction chapters always run the full
-    // rule registry regardless of this field (see chapter-outcome.ts).
+      "A link shortener, four months old: one application server and one relational database, " +
+      "and it works. The figures below are next quarter's, not today's, and the rebuild is being " +
+      "scoped now.\n\n" +
+      "- A seven-character key resolves to its destination in single-digit milliseconds, 15,000 " +
+      "times a second at peak, without that work reaching the store that owns the links on most " +
+      "requests.\n" +
+      "- Creating a link runs about 15 times a second and may stay simple. It must not be made " +
+      "complicated to match the other path.\n" +
+      "- 2.4 billion links over five years live in something whose query is a single key lookup.\n" +
+      "- Losing the machine that runs application code drops no requests.\n" +
+      "- One public hostname, reached from a browser, resolves to whatever fronts the request " +
+      "tier.\n" +
+      "- A link opened one second after it was created must not return a 404.",
+    exerciseGoal:
+      "Rebuild the shortener for next quarter's figures rather than this quarter's. A thousand " +
+      "redirects follow every link created, and today every one of them reaches the store that " +
+      "owns the links.",
+    successCriteria: [
+      "A repeat lookup of a popular key comes back in single-digit milliseconds, and the store that owns the links does no work to answer it.",
+      "2.4 billion links live in a store whose query is a single key lookup, and a link opened one second after it was created still resolves.",
+      "Losing the machine that runs application code drops no requests, and one public hostname still reaches whatever fronts that tier.",
+      "Validate reports zero errors and Submit passes.",
+    ],
+    // Five objectives, one per §5.2 category. Two of them (2 and 3) are this
+    // project's declared new concepts per §15.2: short-key generation and
+    // 301-vs-302 redirect semantics. The rest are composition over Groups
+    // A-D, which is what a Tier 1 project is for.
+    learningObjectives: [
+      "State a shortener's read-to-write ratio from its stated volumes, and name which of the two paths each component on the canvas is serving.",
+      "Choose between hashing the long URL and counting when generating a short key, naming the specific failure each choice accepts.",
+      "Answer \"why not a 301?\" by naming what a permanent redirect deletes along with the traffic, in under a minute.",
+      "Build a redirect path that answers a repeated lookup without the store that owns the links doing any work, and pass Submit.",
+      "Defend a store choice by naming the query shape it serves and the cost it accepts, rather than by naming the technology.",
+    ],
+    // The full palette through Group D, identical to R1's - RWE Tier 1
+    // unlocks at R1 (manifest.ts's `prerequisiteSlugs`), so Groups A-D is
+    // exactly what a learner arriving here has been taught, and §15.3 says
+    // Tier 1 briefs need nothing beyond it. Nothing appears before its home
+    // chapter, so no §16 exception is needed.
+    //
+    // `requiredComponentIds` is the five both blueprints share. The store is
+    // deliberately absent from it: the two honest answers disagree about
+    // which store this is, so requiring either would foreclose the decision
+    // that is the point of the exercise. A graph with no store at all still
+    // fails Submit, because both blueprints require one.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+    ],
+    requiredComponentIds: ["browser", "dns", "load-balancer", "app-server", "cache"],
+    // Moot: real-world-extraction chapters always run the full rule registry
+    // regardless of this field (chapter-outcome.ts's `runChapterValidation`),
+    // which is §18.1's "anti-pattern + warnings" posture for RWE. Left empty
+    // rather than populated with a curated list that would read as if it
+    // governed something. The rules that actually bite on this canvas are
+    // listed in the spec's §7.
     validationRuleIds: [],
-    blueprints: [],
-    hints: [],
+    // Two blueprints, and unlike R1's pair they are not the same system.
+    // They disagree about where 2.4 billion single-key lookups belong, which
+    // is 3.11's question asked on a brief that genuinely admits both answers.
+    // The cost each accepts is different and named in its own commentary.
+    blueprints: [
+      {
+        id: "rwe-t1-bitly-blueprint-keyvalue",
+        label: "Key-value store, with the redirect path absorbed in front of it",
+        require: {
+          id: "rwe-t1-bitly-blueprint-keyvalue",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "cache", componentId: "cache" },
+            // key-value is the shape the brief describes; wide-column is the
+            // other honest answer for 2.4 billion rows keyed one at a time,
+            // so the predicate accepts both rather than grading a preference.
+            {
+              alias: "store",
+              componentId: "nosql-database",
+              config: [{ field: "model", op: "in", value: ["key-value", "wide-column"] }],
+            },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "store", kind: "request-flow" },
+            { from: "app", to: "store", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t1-bitly-ref-kv-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t1-bitly-ref-kv-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t1-bitly-ref-kv-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+            { id: "rwe-t1-bitly-ref-kv-app", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 4 } },
+            { id: "rwe-t1-bitly-ref-kv-cache", componentId: "cache", position: { x: 60, y: 195 }, config: { evictionPolicy: "lru", ttlSeconds: 600 } },
+            { id: "rwe-t1-bitly-ref-kv-store", componentId: "nosql-database", position: { x: 320, y: 195 }, config: { model: "key-value" } },
+          ],
+          edges: [
+            { id: "rwe-t1-bitly-ref-kv-e1", source: "rwe-t1-bitly-ref-kv-browser", target: "rwe-t1-bitly-ref-kv-dns", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-kv-e2", source: "rwe-t1-bitly-ref-kv-dns", target: "rwe-t1-bitly-ref-kv-lb", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-kv-e3", source: "rwe-t1-bitly-ref-kv-lb", target: "rwe-t1-bitly-ref-kv-app", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-kv-e4", source: "rwe-t1-bitly-ref-kv-app", target: "rwe-t1-bitly-ref-kv-cache", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-kv-e5", source: "rwe-t1-bitly-ref-kv-cache", target: "rwe-t1-bitly-ref-kv-store", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-kv-e6", source: "rwe-t1-bitly-ref-kv-app", target: "rwe-t1-bitly-ref-kv-store", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t1-bitly-ref-kv-browser"],
+        },
+        commentary:
+          "Six components, and the two on the bottom row are the entire design. The store is a " +
+          "key-value store because the query is `get(key)` and never becomes anything else - 3.11's " +
+          "test, applied to the cleanest case it will ever get. The Cache in front of it is 3.14 " +
+          "used for its actual purpose rather than as a latency garnish: the hot set is a few " +
+          "megabytes, so hit ratio, not store latency, is what sets the shape of the read path. " +
+          "Above them, the tier 3.4, 3.6 and 3.8 built, carried over unchanged and sized by one " +
+          "number. Notice what the write edge from the Application Server does not pass through. " +
+          "A new link is cold by definition, and warming it on create would fill memory with links " +
+          "nobody has clicked. What this design gives up is everything relational: counting clicks " +
+          "per link per day is now a separate job against a separate store, not a `GROUP BY`.",
+      },
+      {
+        id: "rwe-t1-bitly-blueprint-relational",
+        label: "Relational primary with a replica, keeping the reporting path open",
+        require: {
+          id: "rwe-t1-bitly-blueprint-relational",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "cache", componentId: "cache" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "replica", componentId: "read-replica" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t1-bitly-ref-sql-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t1-bitly-ref-sql-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t1-bitly-ref-sql-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+            { id: "rwe-t1-bitly-ref-sql-app", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 4 } },
+            { id: "rwe-t1-bitly-ref-sql-cache", componentId: "cache", position: { x: 60, y: 195 }, config: { evictionPolicy: "lru", ttlSeconds: 600 } },
+            { id: "rwe-t1-bitly-ref-sql-db", componentId: "sql-database", position: { x: 320, y: 195 }, config: { engine: "postgres" } },
+            { id: "rwe-t1-bitly-ref-sql-replica", componentId: "read-replica", position: { x: 580, y: 195 }, config: { replicationLagBudgetMs: 500 } },
+          ],
+          edges: [
+            { id: "rwe-t1-bitly-ref-sql-e1", source: "rwe-t1-bitly-ref-sql-browser", target: "rwe-t1-bitly-ref-sql-dns", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e2", source: "rwe-t1-bitly-ref-sql-dns", target: "rwe-t1-bitly-ref-sql-lb", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e3", source: "rwe-t1-bitly-ref-sql-lb", target: "rwe-t1-bitly-ref-sql-app", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e4", source: "rwe-t1-bitly-ref-sql-app", target: "rwe-t1-bitly-ref-sql-cache", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e5", source: "rwe-t1-bitly-ref-sql-cache", target: "rwe-t1-bitly-ref-sql-db", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e6", source: "rwe-t1-bitly-ref-sql-app", target: "rwe-t1-bitly-ref-sql-db", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e7", source: "rwe-t1-bitly-ref-sql-db", target: "rwe-t1-bitly-ref-sql-replica", kind: "replication" },
+            { id: "rwe-t1-bitly-ref-sql-e8", source: "rwe-t1-bitly-ref-sql-replica", target: "rwe-t1-bitly-ref-sql-app", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t1-bitly-ref-sql-browser"],
+        },
+        commentary:
+          "This passes, and an interviewer who dismisses it is wrong. 2.4 billion rows fetched by " +
+          "primary key is not a hard query for a relational engine, the replica absorbs whatever " +
+          "share of reads the fast tier misses, and you keep the thing the other answer throws " +
+          "away: click aggregation stays a query rather than a pipeline. What you bought it with " +
+          "is the one requirement in the brief that names a second: a link opened one second after " +
+          "it was created must not 404. Reads that land on the replica can be behind the primary " +
+          "by exactly `replicationLagBudgetMs`, and a brand new key is the single most likely thing " +
+          "to be missing from it - 3.12's lag, arriving as a user-visible bug rather than as stale " +
+          "data. Designs that hold up here read recently created keys from the primary, or write " +
+          "the key to the fast tier as part of the create so the first read never asks a store at " +
+          "all. If your graph does neither, the design is one product decision short, not wrong.",
+      },
+    ],
+    // Orienting to directional, never the answer (§11.3). Hint 3 is R1's
+    // mitigation for open decision 11 carried forward: two of this chapter's
+    // blueprint predicates are on config fields, so "Submit says a component
+    // is missing while it is on the canvas" is reachable here too.
+    hints: [
+      {
+        id: "rwe-t1-bitly-hint-1",
+        body:
+          "Before placing anything, write down the two rates in the brief and decide, for each thing " +
+          "you are about to add, which of the two it serves. One rate is a thousand times the other. " +
+          "Anything that only helps the smaller one is effort spent on the wrong path.",
+      },
+      {
+        id: "rwe-t1-bitly-hint-2",
+        body:
+          "\"Resolve a key\" is hiding three different questions: what answers it on the hundredth " +
+          "identical request, what answers it on the first, and what still owns the answer when " +
+          "everything faster is empty. They are allowed to be three different things, and on these " +
+          "figures they are.",
+      },
+      {
+        id: "rwe-t1-bitly-hint-3",
+        body:
+          "If Submit reports something missing while you are looking straight at it on the canvas, " +
+          "the component is there but one of its settings is not what the brief's figures ask for. " +
+          "Open it and read its fields against the requirement it is meant to answer.",
+      },
+      {
+        id: "rwe-t1-bitly-hint-4",
+        body:
+          "The requirement that a one-second-old link must not 404 is only a problem for one of the " +
+          "two stores you might have chosen, and the answer to it is a routing decision, not another " +
+          "box on the canvas.",
+      },
+    ],
     readingLinks: [],
-    // Same reasoning as bb-dummy-1's starterGraph above.
+    // Phase A's seed: the system as it exists today, which the lesson's cold
+    // open describes. Three nodes, one row, 260px pitch (§11.5). It cannot
+    // pass - `dns`, `load-balancer` and `cache` are all required and all
+    // absent - and it deliberately starts on the relational store, because
+    // whether that store is the right home for 2.4 billion key lookups is the
+    // decision the exercise is about. Keeping it is a real answer, so the
+    // starting position is not a spoiler in either direction.
     starterGraph: {
-      nodes: [{ id: "rwe-dummy-1-starter-client", componentId: "client", position: { x: 60, y: 0 }, config: {} }],
-      edges: [],
-      entryPointIds: [],
+      nodes: [
+        { id: "rwe-t1-bitly-starter-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "rwe-t1-bitly-starter-app", componentId: "app-server", position: { x: 320, y: 0 }, config: { instances: 1 } },
+        { id: "rwe-t1-bitly-starter-db", componentId: "sql-database", position: { x: 580, y: 0 }, config: { engine: "postgres" } },
+      ],
+      edges: [
+        { id: "rwe-t1-bitly-starter-e1", source: "rwe-t1-bitly-starter-browser", target: "rwe-t1-bitly-starter-app", kind: "request-flow" },
+        { id: "rwe-t1-bitly-starter-e2", source: "rwe-t1-bitly-starter-app", target: "rwe-t1-bitly-starter-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["rwe-t1-bitly-starter-browser"],
     },
+    // Tier zones only, no "Build here" gap zone. §11.6 allows one where the
+    // fix is a missing node in identifiable empty space; here the missing
+    // nodes span three different tiers and choosing which gaps to draw would
+    // hand over the shape of the answer. An open brief is the one exercise
+    // type where marking the slots defeats the exercise.
+    starterDecorators: [
+      { kind: "zone", id: "rwe-t1-bitly-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "rwe-t1-bitly-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t1-bitly-zone-data", label: "Data", position: { x: 552, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "rwe-t1-bitly-comment-today",
+        text: "Today: about 15 creates a second and 200 redirects a second. The brief's figures are 100x the redirects and the same creates.",
+        position: { x: 32, y: 168 },
+        width: 436,
+        height: 80,
+        color: "#64748b",
+      },
+    ],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    // No `curriculumContext`: Real World Extraction chapters do not carry one
+    // (see CurriculumContext's own doc comment in ./types.ts) - by RWE every
+    // concept the brief needs has already been taught, so there is no stage
+    // for Deep Check to scope against.
+    //
+    // Retrospective quiz, §16 of QUIZ_FRAMEWORK.md (4-6 questions per
+    // project). Q1 and Q3 are the bank's own Bitly entries (Q1, Q2) rewritten
+    // to this chapter's figures; the other three are new and keyed to the
+    // decisions this brief actually forces.
+    quiz: [
+      {
+        id: "rwe-t1-bitly-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Your shortener creates about 15 links a second and serves about 15,000 redirects a second. " +
+          "A teammate opens the design review by proposing you shard the links table by key range. " +
+          "What is wrong with starting there?",
+        options: [
+          {
+            id: "rwe-t1-bitly-q1-a",
+            label: "Nothing - sharding early is always cheaper than sharding later.",
+            correct: false,
+            explanationMd:
+              "True as a general principle about migration cost, and irrelevant here. Sharding buys write throughput and capacity; this system needs neither at 15 writes a second and 1.2 TB.",
+          },
+          {
+            id: "rwe-t1-bitly-q1-b",
+            label: "It optimizes the path carrying a thousandth of the traffic, and does nothing for the one carrying the rest.",
+            correct: true,
+            explanationMd:
+              "The 1,000:1 ratio is the first thing the figures tell you. Writes are already trivial; every hour spent on them is an hour not spent on the read path, which is the entire system.",
+          },
+          {
+            id: "rwe-t1-bitly-q1-c",
+            label: "Key-range sharding is the wrong partition strategy for short keys.",
+            correct: false,
+            explanationMd:
+              "A real objection to that particular scheme (base62 keys distribute unevenly by prefix), but it argues about how to shard. The prior question is whether to shard at all, and the answer is no.",
+          },
+          {
+            id: "rwe-t1-bitly-q1-d",
+            label: "2.4 billion rows is too few to justify more than one machine.",
+            correct: false,
+            explanationMd:
+              "The row count is a reason not to shard yet, but it is the weaker one. Even at ten times the rows, the write rate would still make the write path the wrong place to start.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-bitly-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "You generate keys by base62-encoding a monotonic counter, handing each application server a " +
+          "block of 10,000 ids at a time. Your links are used for password resets and private " +
+          "document shares. What did the blocking scheme fail to fix?",
+        options: [
+          {
+            id: "rwe-t1-bitly-q2-a",
+            label: "Collisions, which blocks make more likely rather than less.",
+            correct: false,
+            explanationMd:
+              "Blocks partition one sequence, so two servers can never be handed the same id. A counter is collision-free with or without blocking - that is its whole advantage over hashing.",
+          },
+          {
+            id: "rwe-t1-bitly-q2-b",
+            label: "The coordination cost, which is still paid on every single write.",
+            correct: false,
+            explanationMd:
+              "This is exactly what blocking fixes: the shared counter is touched once per 10,000 writes instead of once per write. The remaining problem is not about throughput at all.",
+          },
+          {
+            id: "rwe-t1-bitly-q2-c",
+            label: "Keys stay sequential, so anyone can walk the namespace and read links that were never meant to be found.",
+            correct: true,
+            explanationMd:
+              "Blocking is a throughput fix, not a secrecy one. Given one key you can guess its neighbours, and for password resets and private shares an enumerable namespace is a data breach, not an inconvenience.",
+          },
+          {
+            id: "rwe-t1-bitly-q2-d",
+            label: "Ids are wasted whenever a server dies holding an unfinished block.",
+            correct: false,
+            explanationMd:
+              "It does waste them, and it does not matter: seven base62 characters is 3.5 trillion addresses against 2.4 billion links. Burning 10,000 per crash is noise.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-bitly-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A new engineer proposes switching every redirect from 302 to 301, pointing out that browsers " +
+          "will cache the permanent one and your redirect traffic will largely stop arriving. The " +
+          "measurement is correct. Why is the change still usually refused at a shortener?",
+        options: [
+          {
+            id: "rwe-t1-bitly-q3-a",
+            label: "It deletes click analytics and the ability to repoint a link, which are what customers buy.",
+            correct: true,
+            explanationMd:
+              "A click that never reaches you cannot be counted or re-routed. For a shortener whose product is the analytics dashboard and the editable link, the traffic reduction is the cost, not the benefit.",
+          },
+          {
+            id: "rwe-t1-bitly-q3-b",
+            label: "301 responses are slower to generate than 302 responses.",
+            correct: false,
+            explanationMd:
+              "They are the same response with a different status code. Nothing about generating one costs more than the other; the entire difference is what caches downstream are permitted to do with it.",
+          },
+          {
+            id: "rwe-t1-bitly-q3-c",
+            label: "Browsers ignore 301s on redirect endpoints, so the traffic would not actually drop.",
+            correct: false,
+            explanationMd:
+              "They honor them, which is precisely the problem. If they ignored 301s the change would be harmless and pointless instead of harmful and effective.",
+          },
+          {
+            id: "rwe-t1-bitly-q3-d",
+            label: "A 301 cannot be served from an edge location, so global latency would get worse.",
+            correct: false,
+            explanationMd:
+              "Backwards. A 301 is the one that edge caches well, and a 302 is the one that has to keep coming back to you. The edge argument favors 301 - it just loses to the product argument.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-bitly-q4",
+        kind: "matching",
+        difficulty: 3,
+        prompt:
+          "Every design choice in this project buys something with something. Match each choice to the " +
+          "cost it accepts.",
+        options: [
+          {
+            id: "rwe-t1-bitly-q4-lag",
+            label: "A window where a link exists but reads report that it does not",
+            correct: true,
+            explanationMd:
+              "Replication lag, meeting the one requirement that names a second. A key written to the primary has not reached the replica yet, and the read that lands there returns a 404 for a link that is real.",
+          },
+          {
+            id: "rwe-t1-bitly-q4-extraread",
+            label: "An extra read of the store on every write",
+            correct: true,
+            explanationMd:
+              "The collision check a hash scheme needs. At 2.4 billion keys in a 3.5 trillion space collisions are expected, not hypothetical, so every write reads first and re-hashes with a salt if the key is taken.",
+          },
+          {
+            id: "rwe-t1-bitly-q4-enumerable",
+            label: "A namespace anyone can walk from end to end",
+            correct: true,
+            explanationMd:
+              "The counter's cost. Sequential keys are guessable by construction, which is free if links are public and a breach if they are not.",
+          },
+          {
+            id: "rwe-t1-bitly-q4-analytics",
+            label: "No click counts, and a destination that can never be changed",
+            correct: true,
+            explanationMd:
+              "The 301's cost. The traffic stops arriving, and everything you could only do while it arrived stops with it.",
+          },
+        ],
+        pairs: [
+          ["Hashing the long URL to produce the key", "rwe-t1-bitly-q4-extraread"],
+          ["Counting and base62-encoding the counter", "rwe-t1-bitly-q4-enumerable"],
+          ["Serving 301 instead of 302", "rwe-t1-bitly-q4-analytics"],
+          ["Serving redirects from a replica of the primary", "rwe-t1-bitly-q4-lag"],
+        ],
+      },
+      {
+        id: "rwe-t1-bitly-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "One link in your system is being shared by a television ad and is taking a large share of all " +
+          "redirects on its own. Your store is partitioned by key. You are paged because that store is " +
+          "saturating. Which move actually helps?",
+        options: [
+          {
+            id: "rwe-t1-bitly-q5-a",
+            label: "Increase the partition count so the load spreads over more nodes.",
+            correct: false,
+            explanationMd:
+              "Partitioning distributes distinct keys, and this is one key. Every request for it hashes to the same partition no matter how many exist - 3.13's hot-partition problem in its purest form.",
+          },
+          {
+            id: "rwe-t1-bitly-q5-b",
+            label: "Re-partition on a composite of the key and the requesting region.",
+            correct: false,
+            explanationMd:
+              "Clever, and it does spread one key across nodes - but it requires every reader to know the region component, and it solves by rewriting the store's partition scheme what a single memory lookup solves for free.",
+          },
+          {
+            id: "rwe-t1-bitly-q5-c",
+            label: "Add application server instances so more machines share the redirect load.",
+            correct: false,
+            explanationMd:
+              "The application tier is not what is saturating. More instances means more machines asking the same overloaded partition the same question, which makes the page worse, not better.",
+          },
+          {
+            id: "rwe-t1-bitly-q5-d",
+            label: "Make sure that key is served from memory in front of the store, and that it cannot expire under load.",
+            correct: true,
+            explanationMd:
+              "A single hot key is the one shape partitioning cannot help and a cache helps most: one entry absorbs the entire share. The second half matters as much - if it expires at peak, every in-flight request misses at once and the store takes the full rate.",
+          },
+        ],
+      },
+    ],
   },
 ];
 

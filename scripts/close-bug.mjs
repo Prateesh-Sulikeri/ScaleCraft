@@ -1,6 +1,4 @@
-// Closes a bug report: sets its status and closing notes and starts the
-// retention clocks. The screenshot is not deleted here - it has a 7-day grace
-// window, and the nightly sweep drops it when that runs out.
+// Closes a bug report: sets its status and closing notes. Deletes nothing.
 //
 // Run: node scripts/close-bug.mjs <bug-id> [--status closed|resolved] [--notes "..."]
 //

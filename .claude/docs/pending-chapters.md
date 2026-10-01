@@ -54,7 +54,6 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | 3.4 Load Balancer | **Authored (Sonnet draft, no Opus pass yet)** - unaffected by Phase 10, `prerequisiteSlugs` repointed from old `1-9-deep-dive-methodology` to new `1-2-designing-the-system` | 2026-08-11 | `feature/lesson-3-4-load-balancer` |
 | 1.10 Communicating & Defending a Design | **Superseded 2026-08-16** by new 1.3 Defending the Design (Phase 10) - record kept below | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
 | 1.11 Driving a System Design Interview | **Authored (manual chapter-author-style pass, no cold audit yet)** | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
-| RWE T1 Bitly | Placeholder (`rwe-dummy-1`), moved to Wave 2 | - | - |
 | **1.1 Framing the Problem** (Phase 10 condense, replaces old 1.1-1.5) | **Authored, wired into manifest.ts, old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
 | **1.2 Designing the System** (Phase 10 condense, replaces old 1.6/1.7/1.9) | **Authored, wired into manifest.ts, old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
 | **1.3 Defending the Design** (Phase 10 condense, replaces old 1.8/1.10) | **Authored, wired into manifest.ts (incl. 2.1's repoint), old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
@@ -75,6 +74,8 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | **3.12 Replication** (third Group C chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, introduces `read-replica` + edge kind `replication` (both already fully wired in the engine, no gap), starter graph's one overdetermined wrong edge trips `orphan-read-replica` and `component-relations` at once, new open decision 18 (QUIZ_FRAMEWORK §10 Q5's own diagram JSON draws the replica read edge backwards - corrected in this chapter's own quiz, not the bank), third of open decision 15's Group C rows checked, pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
 | **3.13 Sharding** (fourth and final Group C chapter - Group C now complete) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, no Editor exercise at all (`hasEditorExercise: false`) since no component has a shard-key config field despite CURRICULUM §14 AND §11.1 both promising one (new open decision 19, a stronger-than-17 confirmed gap), six-question quiz adapting all four of QUIZ_FRAMEWORK §10's bank questions reserved for this chapter, closes out open decision 15's Group C row entirely, pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
 | **3.14 Caching** (first Group D chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `null`, introduces `cache` + `distributed-cache` (both already fully wired in the engine, no gap), first chapter whose `requiredComponentIds` deliberately omits an available component, first Editor exercise in Part 3 whose graded fault is **error**-severity (`missing-input-connection`) so Validate genuinely fails on the starter (evidence for open decision 11), TTL config beat deliberately left ungated to avoid a misleading "Missing: Cache" drift message (new argument under decision 11), opens open decision 15's Group D row, spends all five of QUIZ_FRAMEWORK §11's bank questions reserved for this chapter, pipeline not run (content-only pass) | 2026-08-26 | uncommitted, working tree (`feat/content-audit`) |
+
+| **RWE Tier 1: Bitly (URL Shortener)** (the curriculum's first Real World Extraction project, closing `pending-content.md`'s Wave 2) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `rwe-dummy-1`, which is deleted along with its lesson file; first chapter in `mode: "real-world-extraction"`, so first to run the full rule registry unscoped and first with no `curriculumContext`; CURRICULUM §15.1's Phase A/Phase B split collapsed into one exercise because the shell has no phase mechanism (new open decision 20); first pair of blueprints that are genuinely different systems rather than one system drawn two ways; two tests break on the dummy's removal and are flagged, not fixed (this skill does not write tests); pipeline not run (content-only pass) | 2026-09-19 | uncommitted, working tree (`staging/v7.3.0-content-release`) |
 
 Everything else in the 72 rows is unauthored (`chapterDefinitionId: null`).
 
@@ -5602,6 +5603,133 @@ rather than done silently, since this skill does not write tests.
   and decision 15's Group E row is now checked and closed.
 
 ---
+
+## RWE Tier 1 - Bitly (URL Shortener)
+
+- **Authored 2026-09-19** - one-shot `chapter-author` pass (Opus), no cold
+  second read yet - uncommitted, working tree
+  (`staging/v7.3.0-content-release`, cut from
+  `release/v7.3.0-content-release`)
+- Definition id `rwe-t1-bitly-url-shortener` - manifest slug
+  `rwe-t1-bitly-url-shortener` - spec
+  `src/content/chapters/specs/rwe-t1-bitly-url-shortener.spec.md` - lesson
+  `public/content/chapters/rwe-t1-bitly-url-shortener.mdx`
+- Type: **RWE Project** (CURRICULUM §4, §15.2 Tier 1) - intermediate - 75 min -
+  assumes Checkpoint R1, authored 2026-09-07.
+- **The curriculum's first Real World Extraction project.** The other 31 inherit
+  whatever ships here, so the precedent-setting calls are listed below rather
+  than left in the spec.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `specs/rwe-t1-bitly-url-shortener.spec.md` (12 sections, incl. §2 on the Phase A/B collapse) |
+| 2 | Lesson markdown | `public/content/chapters/rwe-t1-bitly-url-shortener.mdx` (~2,000 words of prose plus one `<Walkthrough>`; all ten §6 RWE-mandatory sections, three of four optional ones) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts`, replacing `rwe-dummy-1` |
+| 4 | Validation rules | None new, and none curated - RWE runs the full registry regardless of the field |
+| 5 | Quiz | 5 retrospective questions (QUIZ_FRAMEWORK §16's 4-6 range), 4 single + 1 matching |
+| 6 | Playtest pass | Spec §11 (12-row move-to-chapter table, plus the two moves deliberately not sourced from a prior chapter) |
+
+Also wired: `manifest.ts`'s Bitly row (`chapterDefinitionId` `rwe-dummy-1` ->
+the id above) and the deletion of `public/content/chapters/rwe-dummy-1.md`. The
+index.ts header comment is updated: no `placeholder: true` fixtures remain in
+the registry.
+
+**Judgment calls made:**
+
+- **CURRICULUM §15.1's Phase A + Phase B structure ships as one exercise,
+  because `ChapterDefinition` has no phase mechanism.** One `starterGraph`, one
+  `blueprints` array, one Validate, one Submit. Phase A is realized as the
+  three-node starter graph plus the lesson's reading; Phase B as the
+  14-component palette, the two blueprints, and RWE mode's full-registry
+  validation (which already delivers §15.1's "trade-off notes as warning
+  severity that never block"). The brief names both phases so the intended
+  order is visible and says plainly that one Submit judges both. Raised as
+  **new open decision 20** rather than absorbed silently - §20.5 forbids
+  inventing a metadata field, and 31 more projects will copy this.
+- **`rwe-dummy-1` deleted rather than kept alongside.** Its own doc comment
+  said "replace it, don't extend it". Consequence: two tests fail until
+  updated, both flagged rather than fixed (see below).
+- **Two blueprints that are genuinely different systems**, which is a first -
+  R1's pair were one system with redundancy drawn two ways. Here they disagree
+  about where 2.4 billion single-key lookups belong: a key-value store with the
+  read path absorbed in front of it, or the existing relational primary plus a
+  read replica. Both are defensible, and each commentary names the cost it
+  accepts (no relational aggregation; replication lag surfacing as a 404 on a
+  one-second-old link). This is what §15.1's "multiple valid solutions" and the
+  RWE course subtitle ("More than one architecture passes") were promising.
+- **No store is in `requiredComponentIds`.** Requiring either would foreclose
+  the decision the exercise exists to force. A storeless graph passes Validate
+  and fails Submit, since both blueprints require one - which is the RWE
+  posture split working as designed, not a hole.
+- **`requiredComponentIds` is five against R1's twelve, deliberately.** §15.2's
+  Tier 1 instruction is "tiny surfaces, one crisp new problem each". The
+  perimeter, the TLS termination point and the gateway that R1 required are all
+  available here and unmotivated by this brief; the lesson's trade-off table
+  argues one of them (an edge tier cannot help a 302) rather than leaving the
+  absence silent.
+- **The `model` predicate accepts `key-value` OR `wide-column`.** Both are
+  honest answers for 2.4 billion rows fetched one key at a time; grading a
+  preference between them would be scoring taste. Uses `op: "in"`, the first
+  chapter to use that operator in a blueprint.
+- **No "Build here" gap zone, and this should be the RWE default.** §11.6
+  permits one where the fix is a missing node in identifiable empty space; here
+  the missing nodes span three tiers, and choosing which gaps to draw would
+  hand over the shape of the answer. An open brief is the one exercise type
+  where marking the slots defeats the exercise.
+- **The starter graph deliberately starts on the relational store.** Keeping
+  that store *is* blueprint 2, so the starting position does not resolve the
+  chapter's central decision in either direction. It does mean a learner who
+  only adds the read path lands on a passing design - the honest consequence of
+  "this store is defensible", not a shortcut.
+- **The primary diagram is a `<Walkthrough>` with two algorithms rather than
+  two static diagrams.** The topology is five nodes; the content is that a write
+  and a read diverge one hop after the application tier at a 1,000:1 ratio,
+  which is invisible in a static drawing. DNS is excluded from the diagram (it
+  resolves once and is cached) while still being required on the canvas, and the
+  diagram's own description says so.
+- **The two new concepts are assessed entirely by quiz.** Neither short-key
+  generation nor the 301/302 choice has any canvas representation, so the build
+  cannot test either. A learner who misreads them still passes the exercise and
+  is corrected by Q2, Q3 and Q4. First chapter where a declared new concept is
+  not exercised by the build at all; flagged in spec §12.
+- **Open decision 11 gained a fifth instance, partly mitigated.** Two blueprint
+  predicates are on config fields. `instances >= 2` reuses R1's full mitigation
+  (the only failing value is the one `single-instance-load-balancer` already
+  warned about in prose during Validate, plus hint 3 naming the failure shape).
+  The `model` predicate has **no** prose warning ahead of it, so a NoSQL store
+  left at its `document` default produces the confusing "missing component"
+  drift report with only hint 3 to catch it. Worse than R1's position, not
+  better.
+- **A factual error was caught and fixed in self-check, worth recording because
+  the shape recurs.** The draft said a hash scheme at 2.4 billion keys in a 3.5
+  trillion space expects "several hundred" collisions. The birthday arithmetic
+  gives ~818,000 - three orders of magnitude out, and in the direction that
+  would have made the collision check look optional. Any chapter quoting a
+  birthday-problem figure should have it recomputed, not trusted.
+- **Interview-loop step numbering checked against §10.1, not memory.** The draft
+  credited establishing the read/write ratio to step 2 (Requirements); it is
+  step 3 (Estimate). Corrected in both the lesson and the spec.
+
+**Flagged, not fixed (this skill does not write tests):**
+
+- `src/content/chapters/index.test.ts` asserts the RWE registry holds exactly
+  one chapter whose id is `rwe-dummy-1`. Both assertions now fail.
+- `src/content/content-service.test.ts` searches for the title "placeholder
+  project" and expects a hit on `rwe-dummy-1`. Now fails.
+- The two `real-world-extraction/[chapterSlug]` page tests also mention
+  `rwe-dummy-1`, but they mock `@/curriculum` and `chapterRegistry` outright, so
+  the string is an opaque fixture there and nothing breaks.
+
+**New open decision raised: 20** (Phase A/B, below). Decision 11 gained a fifth
+instance, partly mitigated and partly worse than R1's. Decision 5's
+"Interview lens names which RWE projects exercise this material" is now
+*answerable* for the first time - one RWE project exists - but no back-pass was
+made over 2.1-3.19 to name it; that is a cross-cutting edit, not this chapter's
+business.
+
+---
 ## Cross-cutting revisions (post-authoring)
 
 Entries here touch many already-authored chapters at once for a mechanical or
@@ -6359,6 +6487,41 @@ doc edit or a build decision.
     to stop describing an exercise no component in the registry can support -
     either way, a decision for outside this skill, and one that should
     probably be made jointly with decision 17 rather than twice.
+
+20. **`ChapterDefinition` has no Phase A / Phase B mechanism, so CURRICULUM
+    §15.1's defining RWE structure cannot be built as specified, raised
+    authoring RWE Tier 1 Bitly (2026-09-19).** §15.1 defines every RWE project
+    as Phase A (guided core, starter graph, required components) then Phase B
+    (open build, large palette, multiple valid solutions), plus an optional
+    Stretch and a Debrief - and §4's own chapter-type table repeats it
+    ("Phase A guided + Phase B open + optional Stretch"). The shell holds one
+    `starterGraph`, one `blueprints` array, one Validate and one Submit. There
+    is no way to gate Phase B on passing Phase A, and §20.5 forbids inventing a
+    metadata field to add one. Same class of gap as the Stages UI
+    `pending-content.md` already names, and it is larger: stages affect Part 1,
+    this affects all 32 RWE projects.
+    **Not hacked around** - Bitly ships both phases as one exercise, with the
+    phases named inside the brief and an explicit sentence saying one Validate
+    and one Submit judge both. Everything §15.1 asks for *except* the gate is
+    genuinely present (see that chapter's spec §2 for the line-by-line
+    mapping): the starter graph is Phase A's seed, the wide palette and two
+    blueprints are Phase B, warning-severity trade-off notes already never
+    block, the Stretch is ungraded prose, and the Debrief is the two
+    blueprints' commentary. §15.1's "Phase A begins with requirements +
+    estimation stages, not with the canvas" is met only in prose, for the same
+    missing-Stages-UI reason.
+    **Blocks:** nothing today - Bitly shipped. It will compound: Tier 3-5
+    projects are 90-150 minutes with much larger builds, where a single
+    terminal Submit is a far worse feedback loop than it is on a 75-minute
+    Tier 1 brief, and that is the same mid-build-feedback gap R1's spec §12
+    already flagged at 45 minutes.
+    **Needs one of two decisions, made once for the whole track**: add phases
+    to `ChapterDefinition` and the workspace (real engineering - a `phases`
+    array with its own starter graph, required components, blueprints and
+    progress row per phase), or amend CURRICULUM §15.1 and §4 to describe the
+    single-exercise shape the product actually has. Either way it should be
+    settled before Tier 2 is authored, not after five more projects have copied
+    Bitly's workaround.
 
 ---
 
