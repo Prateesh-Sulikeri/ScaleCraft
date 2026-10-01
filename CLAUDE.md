@@ -109,6 +109,11 @@ directory misses which ones are live vs. retired:
   best row per chapter with an attempt count. Read before touching
   `src/persistence/`, `useAutosave`, or anything exam-scoring. Its "Before this
   merges" list names the Postgres migration that still has to be run.
+- `.claude/docs/pending-content-fixes.md` - actionable follow-ups from
+  authoring Groups F/G and R2/R3: browser checks and a cold review before
+  merging `feature/content-groups-f-g`, then the engine and doc gaps the
+  content works around. Read before touching drift reporting, component
+  relations, or component docs.
 - `.claude/docs/pending-simulation-engine.md` - early brainstorm for a second,
   post-Validate simulation stage. Not scoped into a release yet.
 - `.claude/docs/pending-polish.md` - retired items consolidated out of other
