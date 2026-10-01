@@ -621,3 +621,38 @@ describe("0.1 Welcome to ScaleCraft", () => {
     expect(chapter?.availableComponentIds).toEqual(["client", "app-server", "sql-database"]);
   });
 });
+
+describe("R3 Open System Design", () => {
+  const chapter = chapterRegistry.find((c) => c.id === "bb-r3-open-system-design")!;
+
+  function design(withCoordinator: boolean): ArchitectureGraph {
+    const nodes = [
+      { id: "browser", componentId: "browser", position: { x: 0, y: 0 }, config: {} },
+      { id: "app", componentId: "app-server", position: { x: 260, y: 0 }, config: { instances: 2 } },
+      { id: "l1", componentId: "leader", position: { x: 520, y: 0 }, config: {} },
+      { id: "l2", componentId: "leader", position: { x: 520, y: 160 }, config: {} },
+    ];
+    const edges: ArchitectureGraph["edges"] = [
+      { id: "e1", source: "browser", target: "app", kind: "request-flow" },
+      { id: "e2", source: "app", target: "l1", kind: "request-flow" },
+      { id: "e3", source: "app", target: "l2", kind: "request-flow" },
+    ];
+    if (withCoordinator) {
+      nodes.push({ id: "coord", componentId: "coordinator", position: { x: 260, y: 160 }, config: {} });
+      edges.push({ id: "e4", source: "app", target: "coord", kind: "control" });
+    }
+    return { nodes, edges, entryPointIds: ["browser"] };
+  }
+
+  it("fails a warning-only anti-pattern at Submit and names it", () => {
+    const outcome = evaluateChapter(design(false), chapter);
+    expect(outcome.errorCount).toBe(0);
+    expect(outcome.passed).toBe(false);
+    expect(outcome.driftReport?.forbiddenPatterns.join(" ")).toMatch(/split brain/);
+    expect(outcome.driftReport?.extraComponentIds).toEqual([]);
+  });
+
+  it("passes the same design once the anti-pattern is gone", () => {
+    expect(evaluateChapter(design(true), chapter).passed).toBe(true);
+  });
+});

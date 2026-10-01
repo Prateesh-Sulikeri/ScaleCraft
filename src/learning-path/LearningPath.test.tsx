@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { useAuth } from "@clerk/nextjs";
 import { LearningPath } from "./LearningPath";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
@@ -63,6 +63,10 @@ describe("LearningPath", () => {
       "href",
       "/building-blocks/3-4-load-balancer/lesson",
     );
+    // Every Building Blocks row is authored as of R3, so the unauthored half
+    // is checked against Real World Extraction.
+    cleanup();
+    render(<LearningPath courseId="real-world-extraction" />);
     expect(screen.getAllByText("Coming soon").length).toBeGreaterThan(0);
   });
 

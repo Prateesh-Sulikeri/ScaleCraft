@@ -48,6 +48,10 @@ export type GraphPattern = {
    * callers (a PatternRule's `forbid`, a Blueprint's `require`) should set
    * this to their own rule/blueprint id. */
   id?: string;
+  /** Learner-facing name. Only read when this pattern is a blueprint's
+   * `forbid`: blueprint-drift.ts reports a matched forbid by this label, so
+   * Submit names the anti-pattern instead of a generic mismatch. */
+  label?: string;
   nodes: PatternNode[];
   edges?: PatternEdge[];
   /** Negative constraints — if any sub-pattern matches given the current

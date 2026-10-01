@@ -54,6 +54,7 @@ function makeDrift(overrides: Partial<BlueprintDriftReport> = {}): BlueprintDrif
     missingComponents: [],
     extraComponentIds: [],
     mismatchedConnections: [],
+    forbiddenPatterns: [],
     ...overrides,
   };
 }

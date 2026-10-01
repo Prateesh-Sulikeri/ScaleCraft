@@ -75,6 +75,15 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | **3.12 Replication** (third Group C chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, introduces `read-replica` + edge kind `replication` (both already fully wired in the engine, no gap), starter graph's one overdetermined wrong edge trips `orphan-read-replica` and `component-relations` at once, new open decision 18 (QUIZ_FRAMEWORK §10 Q5's own diagram JSON draws the replica read edge backwards - corrected in this chapter's own quiz, not the bank), third of open decision 15's Group C rows checked, pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
 | **3.13 Sharding** (fourth and final Group C chapter - Group C now complete) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, no Editor exercise at all (`hasEditorExercise: false`) since no component has a shard-key config field despite CURRICULUM §14 AND §11.1 both promising one (new open decision 19, a stronger-than-17 confirmed gap), six-question quiz adapting all four of QUIZ_FRAMEWORK §10's bank questions reserved for this chapter, closes out open decision 15's Group C row entirely, pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
 | **3.14 Caching** (first Group D chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `null`, introduces `cache` + `distributed-cache` (both already fully wired in the engine, no gap), first chapter whose `requiredComponentIds` deliberately omits an available component, first Editor exercise in Part 3 whose graded fault is **error**-severity (`missing-input-connection`) so Validate genuinely fails on the starter (evidence for open decision 11), TTL config beat deliberately left ungated to avoid a misleading "Missing: Cache" drift message (new argument under decision 11), opens open decision 15's Group D row, spends all five of QUIZ_FRAMEWORK §11's bank questions reserved for this chapter, pipeline not run (content-only pass) | 2026-08-26 | uncommitted, working tree (`feat/content-audit`) |
+| **3.20 Object Storage** (first Group F chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `null`, prerequisite is R1 so no Group E components in the palette, clean starter with its own argument, new open decision 20 (object storage accepts compute inputs only, so presigned upload and CDN-origin shapes are not drawable) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.21 File Storage** (second Group F chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `null`, Concept with no Editor exercise (no block/file component; §14 only asked for a trade-off, shipped as a matching question) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.22 Distributed Storage Concepts** (third Group F chapter - Group F complete) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `null`, introduces `coordinator`, first learner-built `control` edge that validates, closes decision 15's Group F row, new open decisions 21 (§14 row cites 3.17 outside the prereq chain) and 22 (`coordinator.md` describes a saga orchestrator) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.23 Reliability Patterns** (first Group G chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - introduces `lock-service`; build is the lock around 3.19's overlapping sweep, retry-storm half taught not built (new open decision 23: no timeout/retry/idempotency config fields) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.24 Rate Limiting** (second Group G chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - Concept, config exercise on the gateway's `rateLimitPerMinute` (decision 11's fifth config-predicate instance, mitigated in Your turn and hint 3) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.25 Observability** (third Group G chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - Concept with no Editor exercise (§14's exercise is a diagnosis scenario, shipped as quiz Q5) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.26 Fault Tolerance** (fourth Group G chapter - Group G and Part 3 complete) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - introduces `leader`, `follower`; first chapter to curate `split-brain-risk`; closes decision 15's last row | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **Checkpoint R2 - Building a Complete Backend** | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - blank canvas, all 27 components available, 17 required, two blueprints (R1's redundancy precedent) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **Checkpoint R3 - Open System Design** (Building Blocks complete) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - anti-pattern posture via one minimal blueprint plus four labeled `forbid` patterns (first authored `forbid`; drift made forbid-aware in the same pass, so Submit names the anti-pattern); open decision 24 raised and resolved | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
 
 Everything else in the 72 rows is unauthored (`chapterDefinitionId: null`).
 
@@ -5601,6 +5610,337 @@ rather than done silently, since this skill does not write tests.
   well as listed), decision 14 was **not** hit for the first time in Group E,
   and decision 15's Group E row is now checked and closed.
 
+## 3.20 Object Storage
+
+- **Authored 2026-10-01** - one-shot `chapter-author` pass (Opus 5.5), no cold
+  second read yet - uncommitted on `release/v7.3.0-content-release`
+- Definition `bb-3-20-object-storage` - slug `3-20-object-storage` - spec
+  `src/content/chapters/specs/bb-3-20-object-storage.spec.md` - lesson
+  `public/content/chapters/bb-3-20-object-storage.mdx`
+- Building Block, intermediate, 25 min, **prerequisite Checkpoint R1** (§17:
+  Groups E and F parallel after R1).
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-20-object-storage.spec.md` |
+| 2 | Lesson | `bb-3-20-object-storage.mdx` (~1,890 prose words excluding walkthrough, Mermaid, tables) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new - R1's set |
+| 5 | Quiz | 5 `single`, ramp 1/1/2/2/3, letters c,a,d,b,a |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **No Group E in the palette or prose.** 3.19's Next previews 3.20, but 3.20's
+  prerequisite is R1, so a learner may arrive without queues, workers, cron or
+  serverless. The cold open keeps 3.19's thread (logos inside listing documents)
+  while standing alone for the R1 path; Group E processing is listed as
+  not-yet-introduced.
+- **Starter = R1's solved system + 3.11's document store, validates clean.** Its
+  own argument: the fault is what a row *contains* (a bytes column), which the
+  canvas does not draw. Brief and hint 1 say Validate will be silent.
+- **The two production shapes are taught, not built** - see open decision 20.
+  The walkthrough draws only registry-legal edges (its step 5 says the board's
+  CDN origin path runs through the App Server), the presigned upload is a Mermaid
+  sequence, and the lesson, Your turn and hint 3 disclose the constraint.
+- **Production examples: Pinterest and Discord.** Dropbox was already spent by
+  1.3 on build vs buy, so it appears only as a back-reference in the 1000x step.
+  Discord's expiring signed attachment URLs make expiry-as-access-control concrete.
+- **Bank §13 Q1/Q2 spent**, joke distractors replaced.
+- **Density pass** cut a duplicate "Coming in 3.21" paragraph from Connections
+  (Next already carries the tease) and tightened the presigned section.
+
+**Cross-reference checks:** decision 15's Group F row - first of three checked,
+matches ("blobs outgrowing rows" is the cold open). `object-storage.md`'s
+generation artifacts (split words, an em dash) flagged under decision 22, not
+edited.
+
+## 3.21 File Storage
+
+- **Authored 2026-10-01** - same pass, same branch.
+- Definition `bb-3-21-file-storage` - spec `specs/bb-3-21-file-storage.spec.md`
+  - lesson `bb-3-21-file-storage.mdx`. Concept, intermediate, 20 min, assumes
+  3.20.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-21-file-storage.spec.md` |
+| 2 | Lesson | `bb-3-21-file-storage.mdx` (~1,730 prose words) |
+| 3 | ChapterDefinition | `index.ts`, `hasEditorExercise: false` |
+| 4 | Validation rules | None (no exercise) |
+| 5 | Quiz | 5 questions (4 `single` + 1 `matching`), ramp 1/2/2/2/3, single letters b,d,a,c |
+| 6 | Playtest pass | Spec §11 (quiz scope only) |
+
+**Judgment calls:**
+
+- **No Editor exercise, and not a new open decision.** Unlike 3.10/3.13 (decisions
+  17/19), §14's row never promised a build - only "trade-off ×3 workloads", which
+  ships as the matching Q3. No block/file component exists and adding one to draw
+  the rejected shape would have no §16 home.
+- **Cold open reuses the job board's own past** (`/var/uploads` on NFS) so 3.20's
+  Next ("the old version wrote to a mounted disk") pays off directly.
+- **Scaling folded into "Why just mount a disk stops working"** (§6 marks it
+  optional for Concept).
+- **Production: Facebook Haystack and GitLab Gitaly**, both first uses.
+- **Bank §13 Q3/Q4 spent.**
+
+**Cross-reference checks:** decision 15's Group F row - second of three, still
+matches (rules out the other place blobs used to go).
+
+## 3.22 Distributed Storage Concepts
+
+- **Authored 2026-10-01** - same pass, same branch. **Completes Group F.**
+- Definition `bb-3-22-distributed-storage-concepts` - spec and lesson beside it.
+  Concept with a small build, intermediate, 30 min, assumes 3.21, introduces
+  `coordinator`.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-22-distributed-storage-concepts.spec.md` |
+| 2 | Lesson | `bb-3-22-distributed-storage-concepts.mdx` (~1,910 prose words) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new |
+| 5 | Quiz | 6 questions (5 `single` + 1 `matching`), ramp 1/1/2/2/3/3, single letters d,b,a,c,b |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **Build = coordinator for 3.13's shards, on the control path.** Starter: browser,
+  LB, app pool, three wired NoSQL nodes and a fourth with no edges. app ->
+  coordinator validates only as `control` (`coordinator.relations.inputs`), so a
+  default request-flow draw fails `component-relations` with an explanation - the
+  control-plane point enforced by the engine. **First learner-built control edge
+  that validates**; recorded under decision 8 as a positive data point.
+- **The starter is not clean** (one orphan warning on node 4), ending the
+  3.19/3.20 clean run. The warning is the symptom; wiring node 4 alone clears
+  Validate and fails Submit with an accurate "Missing: Coordinator".
+- **Storage-node heartbeats are not drawable** (decision 8, fourth instance) -
+  carried by the Mermaid sequence and the blueprint commentary.
+- **No `<Walkthrough>`**: the placement story needs coordinator <-> storage edges
+  the registry disallows, and the walkthrough skill forbids illegal edges. Three
+  Mermaid diagrams instead.
+- **Lesson's per-data-class table uses different examples from quiz Q5** (booking,
+  view counter, username, search index vs ledger, feed, cart, presence) so the
+  matching question tests transfer, not recall.
+- **"leader", "failover" and "lock service" kept out** of prose (3.26/3.23 homes);
+  the coordinator group is described as agreeing by majority.
+- **All six bank §13 questions tagged 3.22 spent - §13 is fully consumed** across
+  3.20-3.22.
+- **Production: Amazon Dynamo and Google Spanner**, both first uses; lens 9 is a
+  single Postgres primary postponing the choice.
+
+**Cross-reference checks:** decision 15's Group F row - third of three, **Group F
+closes** (the fifth group, after A-E). 3.21's Next and 3.13's unanswered "who
+holds the map" both paid off. Next names 3.23 and says it also needs Group E.
+
+## 3.23 Reliability Patterns
+
+- **Authored 2026-10-01** - one-shot `chapter-author` pass (Opus 5.5), no cold
+  second read yet - uncommitted on `release/v7.3.0-content-release`
+- Definition `bb-3-23-reliability-patterns` - spec and lesson beside it.
+  Building Block, advanced, 30 min, prerequisites 3.19 **and** 3.22, introduces
+  `lock-service`.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-23-reliability-patterns.spec.md` |
+| 2 | Lesson | `bb-3-23-reliability-patterns.mdx` (~2,250 prose words; `<Walkthrough>` + 3 Mermaid) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new |
+| 5 | Quiz | 6 (5 `single` + 1 `matching`), ramp 1/1/2/2/3/3, single letters a,c,d,b,a |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **The build is the lock; the retry storm is taught, not built.** No component
+  has timeout/retry/backoff/idempotency fields - new **open decision 23**, same
+  class as 17/19. The storm carries the cold open, the walkthrough and three quiz
+  questions.
+- **The sweep moved onto a separate jobs `app-server` the Cron Job calls.**
+  `cron-job` cannot output to `distributed-systems`, `worker` has no such output
+  either, and a 70-minute job exceeds `serverless-function`'s ceiling - so only an
+  app server can ask a Lock Service. Disclosed in `simplifications` (3.19 drew one
+  cron card as scheduler and job); the lesson makes it the point ("the scheduler
+  only fires"), and the separate pool doubles as the bulkhead the commentary names.
+- **jobs -> lock accepts `control` or `request-flow`** in the blueprint, so drift
+  never becomes the feedback for an edge-kind nuance.
+- **`lockTtlSeconds` taught, not gated** (decision 11). Lease, renewal and fencing
+  token are the lesson's lock section and quiz Q6.
+- **Clean starter**, justified fresh: the fault is temporal.
+- **Production: Amazon (single-layer retries), Netflix (Hystrix), Google
+  Chubby**, all first uses.
+- Bank §14 Q1-Q3 spent.
+
+**Cross-reference checks:** decision 15's Group G row - first of four, matches.
+2.2's "Group G's entire subject (3.23)" pointer (retry budgets, idempotency,
+circuit breakers) and 3.19's and 3.22's Next sections all paid off.
+
+## 3.24 Rate Limiting
+
+- **Authored 2026-10-01** - same pass, same branch.
+- Definition `bb-3-24-rate-limiting`. Concept (config-weighted), advanced, 25
+  min, assumes 3.23, no new component.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-24-rate-limiting.spec.md` |
+| 2 | Lesson | `bb-3-24-rate-limiting.mdx` (~1,800 prose words) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new (no rule can see a rate-limit value) |
+| 5 | Quiz | 5 `single`, ramp 1/2/2/2/3, letters c,a,d,b,c |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **Config exercise only, placement taught.** A "route the bypass through the
+  gateway" build needs the learner to delete an edge, which only `forbid`/`absent`
+  can grade, and drift is blind to both. One honest config exercise instead.
+- **Predicate band `gte 240`, `lt 1200`** from numbers the brief states; the
+  registry default (600) sits inside it on purpose.
+- **Decision 11, fifth config-predicate instance, mitigated**: wide band, Your
+  turn states the "missing while visible" drift shape, hint 3 repeats it. No
+  warning rule exists to explain it during Validate, unlike R1.
+- **Shared counter store not drawn** - `api-gateway` cannot connect to a cache.
+- **Production: Stripe (four layered limiters), Shopify (cost-based leaky
+  bucket).** Stripe was used in 3.6/3.17 for different decisions.
+- Bank §14 Q4-Q5 spent.
+
+**Cross-reference checks:** decision 15 - second of four, matches. 3.5's "too low
+throttles everything" paid off in reverse.
+
+## 3.25 Observability
+
+- **Authored 2026-10-01** - same pass, same branch.
+- Definition `bb-3-25-observability`. Concept, advanced, 20 min, assumes 3.24,
+  `hasEditorExercise: false`.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-25-observability.spec.md` |
+| 2 | Lesson | `bb-3-25-observability.mdx` (~1,750 prose words; Mermaid gantt trace + flowchart) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None (no exercise) |
+| 5 | Quiz | 5 `single`, ramp 1/2/2/2/3, letters b,d,a,c,b |
+| 6 | Playtest pass | Spec §11 (quiz scope) |
+
+**Judgment calls:**
+
+- **No Editor exercise, not a new open decision**: §14's exercise is a diagnosis
+  scenario, never a build, and telemetry has no component. Shipped as Q5 (three
+  dashboards, a different incident from the lesson's worked one).
+- **Primary diagram is a Mermaid gantt** of one trace across three search shards;
+  needs one browser check of the `dateFormat x` axis.
+- **Production: Google (error budgets gate launches), Uber (Jaeger).**
+- Bank §14 Q6-Q7 spent.
+
+**Cross-reference checks:** decision 15 - third of four, matches. 3.24's Next
+(the 09:20 ticket) paid off.
+
+## 3.26 Fault Tolerance
+
+- **Authored 2026-10-01** - same pass, same branch. **Completes Group G and every
+  Part 3 chapter.**
+- Definition `bb-3-26-fault-tolerance`. Building Block, advanced, 35 min, assumes
+  3.25, introduces `leader` and `follower`.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-26-fault-tolerance.spec.md` |
+| 2 | Lesson | `bb-3-26-fault-tolerance.mdx` (~2,100 prose words; `<Walkthrough>` + 1 Mermaid) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new; `split-brain-risk` curated for the first time |
+| 5 | Quiz | 6 (5 `single` + 1 `diagram`), ramp 1/2/2/2/3/3, letters d,a,c,b,a,c |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **Build-first starter**: browser, LB, app, and an empty 2x2 data tier; the cold
+  open's primary/replica pair is gone and the comment tells the story.
+- **Blueprint cannot require exactly one Leader** (two Leaders plus a Coordinator
+  clear the rule and still match) - `absent` would be drift-blind. Taught, and
+  named in the commentary and `simplifications`.
+- **Walkthrough uses custom Node A/B/C cards**: a card cannot change role, and
+  post-failover follower -> follower replication is registry-illegal. Captions
+  carry the roles; the lesson makes "cards are machines, the role is a fact" the
+  point.
+- **Kill-the-leader predict-then-check** is the Your turn prompt, the walkthrough
+  and Q6 (no simulator).
+- **Production: Amazon Aurora (4-of-6 across 3 zones), Kubernetes/etcd.** GitHub
+  2018 back-referenced from 2.2, not retold.
+- Bank §14 Q8-Q11 spent; **§14 bank fully consumed across 3.23-3.26.**
+
+**Cross-reference checks:** decision 15's Group G row - fourth of four, **all
+seven rows of 2.3's table now closed**. §18.2 rule 3's "leaders from replica
+ambiguity" is the cold open.
+
+## Checkpoint R2 - Building a Complete Backend
+
+- **Authored 2026-10-01** - same pass, same branch.
+- Definition `bb-r2-building-a-complete-backend`. Checkpoint, advanced, 60 min,
+  assumes 3.26.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-r2-building-a-complete-backend.spec.md` |
+| 2 | Lesson | `bb-r2-building-a-complete-backend.mdx` (~800 words, R1's four sections) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new; all ten curated |
+| 5 | Quiz | None (§22) |
+| 6 | Playtest pass | Spec §11 (12-row move table) |
+
+**Judgment calls:**
+
+- **R1's precedent inherited unchanged** (requirement list in
+  `problemStatement`, two blueprints on the redundancy axis, hint 3 for drift).
+- **All 27 available, including `client`** for the first time since Part 1, per
+  §14 - which makes `no-direct-client-database` live again.
+- **Three two-answer slots expressed as `componentId` arrays** (catalog sql/nosql,
+  email sender worker/serverless, report runner worker/separate app server)
+  rather than more blueprints.
+- **Orders on a leader group, catalog on a plain store**: the brief states two
+  data classes with different failure needs; the cache can only front a `data`
+  store, which also forces it.
+- **Report reads from a follower, 25 minutes** (rules out serverless by 3.19's
+  ceiling). Read replica, event bus, Kafka, lock service available and unmotivated.
+- Warning-severity anti-patterns still pass, as in R1 (an `allow-all` firewall).
+
+## Checkpoint R3 - Open System Design
+
+- **Authored 2026-10-01** - same pass, same branch. **Completes Building Blocks.**
+- Definition `bb-r3-open-system-design`. Checkpoint, advanced, 60 min, assumes R2.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-r3-open-system-design.spec.md` |
+| 2 | Lesson | `bb-r3-open-system-design.mdx` (~650 words) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new; all ten curated, four warnings made to fail via `forbid` |
+| 5 | Quiz | None (§22) |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **Anti-pattern posture built from existing machinery**: one minimal blueprint
+  (networking -> compute -> any backing category, by path) plus four `forbid`
+  patterns transcribing `split-brain-risk`, `queue-without-dead-letter-queue`,
+  `single-instance-load-balancer` and `permissive-firewall`. `orphan-component`
+  stays a non-failing note.
+- **First authored `forbid`, with the drift fix decision 11 asked for.** Raised
+  to the user, who chose the engine fix: `GraphPattern.label`, a
+  `forbiddenPatterns` field on the drift report, and Submit's entry now reads
+  "Contains something this chapter rules out: <label>". Each R3 forbid's label
+  names the mistake and its home chapter. Tests: `blueprint-drift.test.ts`,
+  `chapter-outcome-violations.test.ts`, and an R3 pass/fail pair in
+  `authoring-invariants.test.ts`. The blueprint's category lists cover all six
+  categories, so drift never lists the learner's components as "not part of this
+  approach".
+- **`requiredComponentIds` empty**; a three-node design passes - the posture as
+  specified. User confirmed keeping it, 2026-10-01.
+- **Brief tells the learner how it is judged**, a departure from R1/R2's "what you
+  are not told", because the posture is the lesson.
+- **Open decision 24** (QUIZ_FRAMEWORK §15 Q5 treated R3 warnings as passing
+  trade-offs) raised and resolved: Q5 rewritten to match the build.
+
 ---
 ## Cross-cutting revisions (post-authoring)
 
@@ -5890,6 +6230,12 @@ doc edit or a build decision.
    `curriculumContext.simplifications`. Full reasoning in 3.9's spec §6.
    Three independent chapters now point at the same underlying fix; still no
    engineering work scheduled.
+   **Fourth instance, and a first positive data point, 2026-10-01 (3.22).**
+   Storage nodes' heartbeats to a Coordinator are a control edge with no legal
+   drawing (`nosql-database` declares no control output; the coordinator's
+   outputs reach only `distributed-systems`), handled the same way. But 3.22's
+   own app -> coordinator `control` edge *is* legal and is the graded fix -
+   the first learner-built control edge in the curriculum that validates.
 
 9. **3.4 Load Balancer authored standalone, ahead of its real prerequisite
    (2026-08-11).** CURRICULUM §14's 3.4 row reads "Assumes: 3.3", but Group A
@@ -6046,6 +6392,21 @@ doc edit or a build decision.
     without naming the component or the field. The underlying question is still
     open; this is evidence that a chapter can design around it when the cost of
     hitting it is high, not that it no longer needs answering.
+    **Fifth config-predicate instance and the first `forbid`, 2026-10-01 (3.24,
+    R3).** 3.24 gates `rateLimitPerMinute` in a 240-1199 band and discloses the
+    drift shape in Your turn and hint 3 (no warning rule exists to pre-explain it,
+    unlike R1). R3 uses four `forbid` patterns to make warning-severity
+    anti-patterns fail Submit - the use this decision said needed the
+    forbid-blind drift fixed first. Mitigated rather than waited on (see R3's
+    ledger entry and spec §7); the engine fix would remove the generic "overall
+    shape doesn't match" message R3's forbid failures currently produce. 3.26
+    also declined an `absent` block (exactly one Leader) for the same reason.
+    **Forbid-blind drift fixed, same day.** `GraphPattern` gained an optional
+    `label`; `blueprint-drift.ts` reports matched forbids as `forbiddenPatterns`
+    (and counts them when picking the nearest blueprint); the display reads
+    "Contains something this chapter rules out: <label>". R3's forbids are
+    labeled. `absent` inside a `require` pattern is still drift-blind, and the
+    config-predicate "Missing: X" shape is still open.
 
 12. **2.1's stop table pre-commits a one-line job description for five
    unwritten chapters (2026-08-18).** 2.1 From Browser to Backend is Part 2's
@@ -6244,6 +6605,17 @@ doc edit or a build decision.
    no request caused at all. Recorded here rather than only in the chapters'
    own entries because this decision's text otherwise still read "Groups E-G
    remain open". Groups F and G remain open.
+   **Group F checked and closed across all three chapters, 2026-10-01 - the fifth
+   of seven groups to resolve its row.** Row: "blobs outgrowing rows |
+   3.20-3.22." 3.20 is the sentence literally (2.2 of 2.4 TB is PDF bytes); 3.21
+   rules out the other place blobs used to go (a shared disk); 3.22 is storage
+   once it has outgrown one machine of any kind. Only Group G remains open.
+   **Group G checked and closed across all four chapters, 2026-10-01 - all seven
+   rows of 2.3's table are now resolved.** Row: "enough boxes that something is
+   always broken | 3.23-3.26." 3.23: one bad disk among healthy machines takes the
+   site down; 3.24: one client bug among thousands of phones; 3.25: something is
+   broken and nobody knows; 3.26: the broken box is the one taking writes. This
+   decision has no open rows left.
 
 16. **CURRICULUM.md §6's own "engineered-cliffhanger" example doesn't parse
     under current chapter numbering, raised authoring 3.8 (2026-08-23).**
@@ -6359,6 +6731,59 @@ doc edit or a build decision.
     to stop describing an exercise no component in the registry can support -
     either way, a decision for outside this skill, and one that should
     probably be made jointly with decision 17 rather than twice.
+
+20. **Object storage accepts connections from compute only, so the two shapes
+    3.20 teaches as standard are not drawable, raised authoring 3.20
+    (2026-10-01).** `object-storage.relations.inputs` is
+    `{ allowedCategories: ["compute"], allowedKinds: ["request-flow"] }`, so a
+    browser uploading on a presigned URL (browser -> bucket) and a CDN using the
+    bucket as its origin (cdn -> bucket) both fail `component-relations` - the
+    engine tells a learner who applies the lesson that the production shape is
+    wrong. **Not hacked around**: 3.20 grades app -> bucket, draws only legal
+    edges in its walkthrough, puts the presigned path in a Mermaid sequence, and
+    discloses the constraint in the lesson, Your turn and hint 3. **Blocks:**
+    nothing today; **bites RWE Instagram, YouTube and Google Drive**, whose Phase
+    B answers should be allowed the direct shapes. Same class as decision 8.
+    Likely fix: add `networking` to that `allowedCategories` (CDN and Browser are
+    both networking), plus a `cdn.relations.outputs` that admits `data` for the
+    origin case.
+
+21. **CURRICULUM §14's 3.22 row cites "3.17 eventual processing", which is
+    outside 3.22's prerequisite chain, raised 2026-10-01.** §17 makes Groups E
+    and F parallel after R1, so a learner can reach 3.22 without 3.17. 3.22 uses
+    3.12, 3.14 and 3.15 only. **Needs a one-line doc edit** to the row (drop 3.17
+    or mark it "if taken"); doc-only commit.
+
+22. **`public/content/components/coordinator.md` describes a different
+    component, raised 2026-10-01.** It documents a saga/workflow orchestrator
+    (state machines, compensation, message queues), while the registry's own
+    `docs` string and 3.22 teach a consensus-backed placement/membership role.
+    A learner opening the component's docs from the palette reads the wrong
+    thing. `object-storage.md` has smaller generation artifacts (split words, an
+    em dash). **Needs a rewrite of `coordinator.md`** - global component content,
+    deliberately not edited inside a chapter pass.
+    **Two more found, 2026-10-01 (3.23, 3.26).** `lock-service.md` has a
+    generation artifact ("state state-changing"); `leader.md` is titled "Leader
+    Election Component" and documents the election mechanism rather than the
+    role card the registry and 3.26 teach. Same fix: a pass over component docs.
+
+23. **CURRICULUM §14's 3.23 row promises a config exercise the registry has no
+    fields for, raised 2026-10-01.** "Fix (retry storm described; add backoff +
+    idempotency config)": no component has a call timeout, retry count, backoff
+    or idempotency field (`serverless-function.timeoutSeconds` is an execution
+    ceiling, not a call timeout). Same class as decisions 17 and 19. **Not hacked
+    around**: 3.23 builds the row's other half (the lock) and teaches the storm in
+    the walkthrough, prose and quiz. **Resolved 2026-10-01 by doc edit**: §14's
+    3.23 row now describes the exercise as shipped. Adding per-call reliability
+    fields to `app-server` remains possible later, jointly with 17 and 19.
+
+24. **QUIZ_FRAMEWORK §15 Q5 contradicts R3 as built, raised 2026-10-01.** Q5
+    says a passing R3 design "still gets two warning-severity notes" and treats
+    warnings as named trade-offs. Every warning rule in the registry except
+    `orphan-component` is a taught anti-pattern, and R3 makes all four fail
+    Submit (per §14's "anything embodying a taught anti-pattern fails"). Q6 in
+    the same bank matches the build. **Resolved 2026-10-01**: Q5 rewritten
+    (a single DLQ warning failing R3, and why).
 
 ---
 

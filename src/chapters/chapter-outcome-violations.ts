@@ -16,6 +16,9 @@ export type ViolationSource = {
 
 function driftExplanation(drift: BlueprintDriftReport): string {
   const parts: string[] = [];
+  if (drift.forbiddenPatterns.length > 0) {
+    parts.push(`Contains something this chapter rules out: ${drift.forbiddenPatterns.join("; ")}.`);
+  }
   if (drift.missingComponents.length > 0) {
     parts.push(`Missing: ${drift.missingComponents.join(", ")}.`);
   }

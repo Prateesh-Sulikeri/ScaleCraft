@@ -21,6 +21,7 @@ function makeDrift(overrides: Partial<BlueprintDriftReport> = {}): BlueprintDrif
     missingComponents: [],
     extraComponentIds: [],
     mismatchedConnections: [],
+    forbiddenPatterns: [],
     ...overrides,
   };
 }
@@ -83,6 +84,13 @@ describe("chapterDisplayViolations", () => {
     expect(result[0].explanation).toMatch(/Missing: Cache/);
     expect(result[0].explanation).toMatch(/Client -> Load Balancer/);
     expect(result[0].explanation).toMatch(/Message Queue/);
+  });
+
+  it("names a tripped forbid pattern in the blueprint-drift entry", () => {
+    const drift = makeDrift({ forbiddenPatterns: ["two Leaders with nothing deciding between them"] });
+    const result = chapterDisplayViolations(makeOutcome({ driftReport: drift }), []);
+
+    expect(result[0].explanation).toMatch(/rules out: two Leaders with nothing deciding between them/);
   });
 
   it("omits the blueprint-drift entry when driftReport is null", () => {

@@ -113,6 +113,52 @@ describe("nearestBlueprintDrift", () => {
     expect(drift.extraComponentIds).toEqual([]);
   });
 
+  it("reports a matched forbid pattern by its label when require is satisfied", () => {
+    const graph: ArchitectureGraph = { nodes: [node("n1", "leader"), node("n2", "leader")], edges: [], entryPointIds: [] };
+    const bp = blueprint({
+      require: { nodes: [{ alias: "l", componentId: "leader" }] },
+      forbid: [
+        {
+          id: "split-brain",
+          label: "two Leaders with nothing deciding between them",
+          nodes: [
+            { alias: "l1", componentId: "leader" },
+            { alias: "l2", componentId: "leader" },
+          ],
+          absent: [{ nodes: [{ alias: "c", componentId: "coordinator" }] }],
+        },
+      ],
+    });
+
+    const drift = nearestBlueprintDrift(buildGraphIndex(graph), [bp]);
+
+    expect(drift.missingComponents).toEqual([]);
+    expect(drift.forbiddenPatterns).toEqual(["two Leaders with nothing deciding between them"]);
+  });
+
+  it("does not report a forbid pattern the graph avoids", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("n1", "leader"), node("n2", "leader"), node("n3", "coordinator")],
+      edges: [],
+      entryPointIds: [],
+    };
+    const bp = blueprint({
+      require: { nodes: [{ alias: "l", componentId: "leader" }] },
+      forbid: [
+        {
+          id: "split-brain",
+          nodes: [
+            { alias: "l1", componentId: "leader" },
+            { alias: "l2", componentId: "leader" },
+          ],
+          absent: [{ nodes: [{ alias: "c", componentId: "coordinator" }] }],
+        },
+      ],
+    });
+
+    expect(nearestBlueprintDrift(buildGraphIndex(graph), [bp]).forbiddenPatterns).toEqual([]);
+  });
+
   it("picks the blueprint with the fewest outstanding issues as nearest", () => {
     const graph: ArchitectureGraph = { nodes: [node("n1", "client")], edges: [], entryPointIds: [] };
     const closeBp = blueprint({

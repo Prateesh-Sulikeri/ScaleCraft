@@ -1350,15 +1350,19 @@ Why: checkpoint-level mastery is the reasoning pattern, not a memorized
 component (1.7 + §9 lens 5, at composition scale).
 
 **Q5 · single · 3** *(pre-R3)* - R3 validates anti-patterns only: many designs
-pass. A passing design still gets two warning-severity notes. The right
-reading:
-- A. Warnings are errors you can ignore at your peril - fix them all
-- B. ✓ Warnings are named trade-offs: the design is legitimate, and these are
-  its costs - be able to defend or revise, either is engineering
-- C. The validator is broken
-- D. Passing with warnings is failing
+pass. Yours fails Submit, and Validate shows a single warning: a message queue
+with no dead letter queue. The right reading:
+- A. A warning cannot fail Submit, so the validator is broken
+- B. ✓ In R3 a taught anti-pattern fails even at warning severity: the design
+  is otherwise legitimate, and this one named mistake is what stands between it
+  and a pass - fix it, or be able to say why the queue may drop messages
+- C. Every warning must be cleared, including an unconnected card left on the
+  canvas
+- D. The design needs more components to pass
 Why: the posture shift IS the lesson - from "build the shape" to "own your
-choices" (R3, curriculum §18.1).
+choices, and know which ones the course already ruled out" (R3, curriculum
+§18.1). Revised 2026-10-01: the earlier version treated warnings as passing
+trade-offs, which R3 as built does not (ledger decision 24).
 
 **Q6 · multi · 3** *(pre-R3)* - Select ALL that are taught anti-patterns (would
 fail R3) rather than judgment calls (warnings):

@@ -1,6 +1,6 @@
 import type { Blueprint } from "@/content/chapters/types";
 import type { PatternEdge, PatternNode } from "./pattern";
-import { nodeMatchesPredicates, patternNodeCandidates } from "./pattern";
+import { nodeMatchesPredicates, patternMatches, patternNodeCandidates } from "./pattern";
 import { getComponent } from "@/content/components/registry";
 import type { GraphIndex } from "./graph-index";
 
@@ -26,6 +26,10 @@ export type BlueprintDriftReport = {
   /** Human-readable required connections that don't hold given the
    * best-effort binding above (wrong source/target or wrong edge kind). */
   mismatchedConnections: string[];
+  /** Labels of this blueprint's `forbid` patterns the graph matches. Without
+   * this, a design that contains `require` but trips a forbid got a report
+   * naming nothing at all. */
+  forbiddenPatterns: string[];
 };
 
 function patternNodeLabel(n: PatternNode): string {
@@ -86,25 +90,27 @@ function driftForBlueprint(index: GraphIndex, blueprint: Blueprint): BlueprintDr
     ),
   ];
 
+  const forbiddenPatterns = (blueprint.forbid ?? [])
+    .filter((p) => patternMatches(index, p))
+    .map((p) => p.label ?? p.id ?? "a shape this chapter rules out");
+
   return {
     blueprintId: blueprint.id,
     blueprintLabel: blueprint.label,
     missingComponents,
     extraComponentIds,
     mismatchedConnections,
+    forbiddenPatterns,
   };
 }
 
 /** Picks the blueprint with the fewest outstanding issues (missing +
- * mismatched) as "nearest" — ties keep declaration order. Assumes
+ * mismatched + forbidden) as "nearest" — ties keep declaration order. Assumes
  * `blueprints` is non-empty (callers only reach here once
  * `chapter.blueprints.length > 0`). */
 export function nearestBlueprintDrift(index: GraphIndex, blueprints: Blueprint[]): BlueprintDriftReport {
   const reports = blueprints.map((b) => driftForBlueprint(index, b));
-  return reports.reduce((best, r) =>
-    r.missingComponents.length + r.mismatchedConnections.length <
-    best.missingComponents.length + best.mismatchedConnections.length
-      ? r
-      : best,
-  );
+  const issues = (r: BlueprintDriftReport) =>
+    r.missingComponents.length + r.mismatchedConnections.length + r.forbiddenPatterns.length;
+  return reports.reduce((best, r) => (issues(r) < issues(best) ? r : best));
 }

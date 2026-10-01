@@ -36,6 +36,15 @@ describe("getChaptersForMode", () => {
       "bb-3-17-message-queues",
       "bb-3-18-event-driven-architecture",
       "bb-3-19-background-jobs-and-scheduling",
+      "bb-3-20-object-storage",
+      "bb-3-21-file-storage",
+      "bb-3-22-distributed-storage-concepts",
+      "bb-3-23-reliability-patterns",
+      "bb-3-24-rate-limiting",
+      "bb-3-25-observability",
+      "bb-3-26-fault-tolerance",
+      "bb-r2-building-a-complete-backend",
+      "bb-r3-open-system-design",
     ]);
   });
 

@@ -1082,8 +1082,9 @@ system.
   idempotency, circuit breakers, bulkheads; distributed locks for mutual
   exclusion (resolving 3.19's cron-overlap cliffhanger - spaced by a full group,
   textbook spacing). **New: `lock-service`.** Interview: High: step 6 depth.
-  Exercise: fix (retry storm described; add backoff + idempotency config) +
-  build (lock around the overlapping job). Est: 30.
+  Exercise: build (lock around the overlapping job); the retry storm is taught
+  in a walkthrough and the quiz, since no component carries timeout, retry or
+  idempotency config (ledger decision 23). Est: 30.
 - **3.24 Rate Limiting** - Purpose: protecting systems from clients (and
   themselves); algorithms (token bucket, sliding window) at concept level;
   placement (edge vs. service). Type: Concept, config-weighted (rate limiting is
