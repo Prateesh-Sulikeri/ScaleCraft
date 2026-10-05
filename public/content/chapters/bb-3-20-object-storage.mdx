@@ -2,9 +2,11 @@ The job board shipped résumé uploads in the spring. Each PDF went into a
 `resume_pdf` bytes column on the applications table, and company logos went
 inline into each listing document beside its title and salary band. Five months
 later the primary SQL database is 2.4 TB, of which 2.2 TB is PDF bytes. The
-nightly backup takes eleven hours and now runs into the morning peak, and every
+nightly backup takes eleven hours and now runs into the morning peak. Every
 time a career fair's worth of résumés lands, replica lag jumps to forty seconds
-and the recruiters' reports show applications that seem to have vanished.
+and the recruiters' reports show applications that seem to have vanished. And
+listing pages have slowed, because every catalogue read hauls a logo inside the
+document it came for.
 
 Every query still returns the right answer. The database is doing a job it was
 never the right shape for.
@@ -30,8 +32,9 @@ against that list and it uses none of it.
 
 That table answers the Think-first prompt. Faster disks shave the backup
 somewhat and leave the other two alone: the lag is the replication stream
-carrying 2.2 TB of bytes, and the slow pages are hot index pages evicted by PDFs.
-None of it is a capacity problem. It is a placement problem.
+carrying each burst of PDF bytes ahead of the rows queued behind it, and the slow
+pages come from logo bytes in a different database the bigger instance never
+touches. None of it is a capacity problem. It is a placement problem.
 
 **Object storage** is the store shaped for bytes. A flat namespace maps keys
 (`resumes/2026/88123.pdf`) to opaque blobs, read and written whole over HTTP with
@@ -252,10 +255,10 @@ database's buffer cache.
 
 ## Your turn
 
-The starter graph is the system you rebuilt in Checkpoint R1, with the listing
-document store from 3.11 beside the SQL database. Validate has nothing to report,
-because the fault is in what the rows contain, and the canvas does not draw the
-inside of a row.
+The starter graph is the system you rebuilt in Checkpoint D, with the listing
+document store from 3.11 beside the SQL database. Validate has nothing to
+report, because the fault is in what the rows contain, and the canvas does not
+draw the inside of a row.
 
 Résumé PDFs are bloating the SQL database's backup and replication, and logos
 are riding along inside every listing document the catalogue reads. Give the

@@ -1,7 +1,7 @@
 On Monday, version 4.2's retry loop started at 09:03. The first person at the job
 board to know was a support agent reading a ticket at 09:20, from a recruiter
-whose dashboard would not load. By then the search engine had been at 40 times
-its normal traffic for seventeen minutes.
+whose dashboard would not load. By then the search engine had been taking
+hundreds of times its normal traffic for seventeen minutes.
 
 Every component involved had the information at 09:04. The gateway was counting
 requests per caller, the app servers were timing search calls, the search engine
@@ -24,7 +24,7 @@ You cannot operate what you cannot see, and "see" means three different things:
 | **Logs** | *What* happened, in one event | One structured record per event, with whatever fields you chose to write | Grows with traffic; expensive to keep and search at volume |
 | **Traces** | *Where* in the request path the time went | One tree of timed spans per request, across every service it touched | Grows with traffic; almost always sampled |
 
-They are used in that order. A metric tells you search latency tripled at 14:10.
+They are used in that order. A metric tells you search p99 jumped at 14:10.
 A trace of one slow search tells you 2.2 of its 2.3 seconds went to one shard of
 three. The logs from that span tell you what the shard was doing - here, retrying
 reads from a failing disk.

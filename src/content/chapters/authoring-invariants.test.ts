@@ -622,7 +622,7 @@ describe("0.1 Welcome to ScaleCraft", () => {
   });
 });
 
-describe("R3 Open System Design", () => {
+describe("Final Checkpoint: Open System Design", () => {
   const chapter = chapterRegistry.find((c) => c.id === "bb-r3-open-system-design")!;
 
   function design(withCoordinator: boolean): ArchitectureGraph {

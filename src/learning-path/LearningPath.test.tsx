@@ -37,7 +37,7 @@ beforeEach(async () => {
 });
 
 describe("LearningPath", () => {
-  it("renders Building Blocks' 10 sections and all 40 chapter rows", () => {
+  it("renders Building Blocks' 10 sections and all 45 chapter rows", () => {
     render(<LearningPath courseId="building-blocks" />);
     expect(screen.getByRole("heading", { level: 1, name: "Building Blocks" })).toBeInTheDocument();
 
@@ -46,8 +46,9 @@ describe("LearningPath", () => {
 
     // Every section defaults expanded (D5) — every chapter's status icon is
     // present, one per curriculum entry (40 for BB, after Release 6.1.0-alpha
-    // Phase 10 condensed Part 1 from 11 chapters to 4: 47 - 11 + 4 = 40).
-    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(40);
+    // Phase 10 condensed Part 1 from 11 chapters to 4: 47 - 11 + 4 = 40; 45
+    // since the five group checkpoints, pending-checkpoints.md).
+    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(45);
   });
 
   it("renders Real World Extraction's 5 sections and all 32 chapter rows", () => {
@@ -153,7 +154,7 @@ describe("LearningPath", () => {
     expect(screen.getByText(/no chapters match/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Not started" }));
-    expect(screen.getAllByRole("img", { name: /not started/i })).toHaveLength(40);
+    expect(screen.getAllByRole("img", { name: /not started/i })).toHaveLength(45);
 
     fireEvent.change(screen.getByRole("textbox", { name: /search chapters/i }), {
       target: { value: "load balancer" },

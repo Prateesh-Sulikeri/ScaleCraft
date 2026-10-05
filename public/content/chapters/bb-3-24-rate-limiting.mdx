@@ -3,7 +3,7 @@ fails, it retries immediately, every 50 ms, forever. At 09:03 one search shard
 had a two-second blip. Every phone that saw a failure started looping at 1,200
 searches a minute, the extra load made more searches fail, and more phones
 joined. By 09:06, 4,000 phones were sending 4.8 million searches a minute at a
-system sized for 9,000.
+system sized for 9,000 a minute.
 
 The API Gateway enforces a per-caller limit, exactly as 3.5 built it. It is set to
 100,000 requests a minute - chosen at launch "so nobody is ever blocked by

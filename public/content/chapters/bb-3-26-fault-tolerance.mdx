@@ -213,9 +213,9 @@ primary across the country after 43 seconds of network trouble.
 **Amazon Aurora** stores six copies of every piece of data across three
 availability zones and acknowledges a write once four of the six have it, so it
 keeps accepting writes after losing an entire zone, and loses no data even if one
-more copy fails on top of that. The cost
-is that each write fans out to six copies, which Aurora offsets by sending only
-the log record instead of whole pages.
+more copy fails on top of that. The cost is that each write fans out to six
+copies, which Aurora offsets by sending only the log record instead of whole
+pages.
 
 **Kubernetes** keeps the state of an entire cluster in etcd, a Raft group, and
 its operators are told to run three or five members, never two or four, for
@@ -289,7 +289,7 @@ currently accepting writes - then check that your drawing says the same.
 
 ## Next
 
-Checkpoint R2, Building a Complete Backend. Every group in Part 3 has now
-answered one question about a system. R2 hands you a product with all of those
-questions in it at once - including the ones nobody mentions until 02:14 - and
-an empty canvas.
+Checkpoint G, Building a Complete Backend. Every group in Part 3 has now
+answered one question about a system. Checkpoint G hands you a product with all
+of those questions in it at once - including the ones nobody mentions until
+02:14 - and an empty canvas.

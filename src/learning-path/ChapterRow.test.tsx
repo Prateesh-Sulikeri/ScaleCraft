@@ -105,16 +105,16 @@ describe("ChapterRow", () => {
     });
   });
 
-  it("renders a checkpoint's R-number in a bordered chip and its title in bold, unlike a regular chapter", () => {
+  it("renders a checkpoint's letter in a bordered chip and its title in bold, unlike a regular chapter", () => {
     render(
       <ChapterRow
-        entry={entry({ slug: "checkpoint-r1-a-site-that-stays-up", number: "R1", title: "Checkpoint · A Site That Stays Up", kind: "checkpoint" })}
+        entry={entry({ slug: "checkpoint-r1-a-site-that-stays-up", number: "D", title: "Checkpoint · A Site That Stays Up", kind: "checkpoint" })}
         courseId="building-blocks"
         status="NOT_STARTED"
         completedByValidation={false}
       />,
     );
-    expect(screen.getByText("R1")).toBeInTheDocument();
+    expect(screen.getByText("D")).toBeInTheDocument();
     expect(screen.getByText("Checkpoint · A Site That Stays Up")).toHaveClass("font-semibold");
   });
 

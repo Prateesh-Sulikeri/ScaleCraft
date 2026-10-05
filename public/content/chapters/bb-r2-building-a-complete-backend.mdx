@@ -1,9 +1,10 @@
-R1 asked for a site that stays up: one request path, from a browser to the data
-behind it, with every stop answering a requirement. Everything since has been
-about what that path cannot do on its own - work that should happen later, bytes
+Checkpoint D asked for a site that stays up: one request path, from a browser to
+the data behind it, with every stop answering a requirement. Everything since
+has been about what that path cannot do on its own - work that should happen later, bytes
 that are not rows, data that spans machines, and machines that fail.
 
-This checkpoint asks for all of it at once, on an empty canvas. Nothing new is
+Checkpoints E and F each tested one of those groups inside a system that was
+already standing. This one asks for all of it at once, on an empty canvas. Nothing new is
 taught, and nothing in the brief needs anything you have not built. What is new
 is the sorting: ten requirements, three kinds of path - the request someone waits
 on, the work that happens after they leave, and the work nobody asked for - and
@@ -13,12 +14,12 @@ Building Blocks, and the closest thing in it to what an interviewer means by
 
 ## Connections
 
-R1 covered Groups A-D. Three more groups since, each asking a question R1's
-design could not answer:
+Checkpoint D covered Groups A-D. Three more groups since, each asking a
+question Checkpoint D's design could not answer:
 
 | Group | The question it answered |
 |---|---|
-| A-D (3.1-3.16, R1) | How does a request reach an answer quickly, past the perimeter, on machines that can be replaced? |
+| A-D (3.1-3.16, Checkpoint D) | How does a request reach an answer quickly, past the perimeter, on machines that can be replaced? |
 | E, Asynchronous Systems (3.17-3.19) | Which work should not happen while the user waits, and what starts the work nobody asked for? |
 | F, Storage (3.20-3.22) | Where do bytes that are not rows live, and what does "written" mean once data spans machines? |
 | G, Reliability (3.23-3.26) | What happens when a call is slow, a caller misbehaves, nobody is watching, or the machine taking writes dies? |
@@ -71,7 +72,7 @@ taught warnings; it does not report a requirement with nothing answering it.
 
 ## Next
 
-Checkpoint R3, Open System Design. Everything you have built so far had one
-right shape, or two. R3 hands you a deliberately vague product, many designs
-pass, and the only thing that fails is a mistake this course has already taught
-you to recognize.
+The Final Checkpoint, Open System Design. Everything you have built so far had
+an expected shape, with a few accepted variations. The Final Checkpoint hands
+you a deliberately vague product, many designs pass, and the only thing that
+fails is a mistake this course has already taught you to recognize.

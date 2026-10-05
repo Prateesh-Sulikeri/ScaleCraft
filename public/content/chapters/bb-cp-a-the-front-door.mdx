@@ -1,0 +1,66 @@
+Five chapters, five boxes, each one slotted into a chain somebody else had
+already drawn. Every exercise in Group A handed you the system minus one
+piece, with the lesson that named the piece directly above it.
+
+This one hands you an empty canvas and a product.
+
+Nothing here is new. What is new is that no chapter tells you which
+requirement is which, or what order the boxes go in, and the order is half the
+answer. A front door built from memory is also the first thing an interviewer
+asks you to draw, before any of the interesting parts of a design, so it is
+worth finding out now whether you can do it without the chapter open.
+
+## Connections
+
+Each Group A chapter answered one question about a request on its way in.
+Every line of the brief below is one of these questions asked in a product's
+language:
+
+| Chapter | The question it answered |
+|---|---|
+| 3.1 Networking Fundamentals | What is allowed in at all, and what does the perimeter do with everything it was not told about? |
+| 3.2 DNS | How does a name a person types become an address a packet can go to? |
+| 3.3 Reverse Proxy | Where is the one public address, and where does encryption end? |
+| 3.4 Load Balancer | How does one address spread work over machines that can stand in for each other? |
+| 3.5 API Gateway | Where is the caller checked and limited, once, for every service behind it? |
+
+Two habits from those chapters matter most here. A box that is present but set
+to do nothing earns nothing: 3.1's firewall at `allow-all` is fully drawn and
+filters no traffic at all. And 3.5 drew a line that is easy to lose under
+pressure: a load balancer spreads requests across identical copies of one
+program, while a gateway routes requests to different programs. A brief with
+two services in it is asking you to use both, in the right places.
+
+## Your turn
+
+**The product.** A project-tracking product for small teams, about to open its
+API to customers. Two services sit behind it: the projects API, which carries
+nearly all the traffic, and billing, a small service the finance team deploys
+on its own schedule.
+
+What it has to do:
+
+- Customers reach it at one domain name, from a browser.
+- Nothing reaches either service unless the perimeter let it through first, and
+  the perimeter refuses anything it has not been told to allow.
+- The certificate lives in one place at the edge. Neither service handles TLS.
+- Every API call is authenticated and held to a per-customer request limit
+  once, before it reaches either service, not separately inside each one.
+- At peak the projects API needs more than one machine, and losing one of them
+  must not drop requests.
+- Billing takes a handful of requests a minute and ships on its own schedule.
+  Customers still reach it through the same domain name.
+- Both services keep their data in one relational database, and nothing but a
+  service ever talks to it.
+
+**What you are not told**: which requirement each component answers, what
+order they go in, or how many of anything you need. Validate reports
+connections the components themselves refuse; it does not report a requirement
+that nothing on the canvas answers.
+
+## Next
+
+3.6 Stateless Services. Every copy behind the load balancer you just drew was
+treated as interchangeable, and so was every copy in Group A, without anyone
+saying why that has to be true. 3.6 names the assumption: what a copy is not
+allowed to remember, and what breaks the first time one does.

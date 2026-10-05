@@ -1,0 +1,65 @@
+Group F's exercises each changed one store in a system that already had the
+others: give the bytes a bucket, then give a sharded store an owner for its
+map. This checkpoint gives you a front door and an application tier, and
+nothing behind them.
+
+The brief describes three kinds of data - bytes, documents and money - plus a
+requirement about distance. Storage decisions go wrong in a predictable way: one
+store chosen for its convenience and asked to hold everything. Every line of
+this brief is there to make that impossible, and the skill is noticing which
+line rules out which shortcut.
+
+## Connections
+
+| Chapter | The question it answered |
+|---|---|
+| 3.20 Object Storage | Where do bytes that nobody queries live, and why does who reads them decide how many homes they get? |
+| 3.21 File Storage | Why are uploads objects rather than files on a shared disk? |
+| 3.22 Distributed Storage Concepts | Once data spans machines, who decides which machine holds what, and how is that question drawn? |
+
+Two earlier chapters do real work here. 3.11 decides the two databases: data
+that has to commit together goes in one kind of store, documents read whole by
+their key in another. And 3.15 is the reason a guest in Sydney is in the brief
+at all: the photos are identical for every guest, and the fastest byte is one
+that never crosses an ocean.
+
+One canvas limit to know before you start. Object storage accepts connections
+from the application tier only, so neither the browser nor the edge can be
+wired to a bucket directly. In production the CDN would pull photos straight
+from their bucket and hosts would upload to it on a presigned URL; on this
+canvas both go through the application tier.
+
+## Your turn
+
+**The product.** A holiday-rental marketplace. Hosts list homes and upload
+photos; guests on four continents browse and book. The front door and the
+application tier on the canvas are done; nothing behind them is.
+
+What it has to do:
+
+- Every listing page shows twenty to forty photos, identical for every guest,
+  and guests are spread across four continents.
+- Hosts upload those photos at up to 8 MB each: 30 TB so far, and growing. No
+  photo byte may live in a database; the databases record only which photos
+  belong to which listing.
+- Hosts also upload a scan of their ID for verification. Only the verification
+  team may ever see one, and an ID scan must never sit anywhere a guest's photo
+  request could reach.
+- A booking blocks the dates, takes the payment and creates the reservation
+  together: all three, or none.
+- Listing records are documents spread across three storage nodes by listing
+  ID, and a fourth node arrives next month. Which node owns which listing is
+  decided in one place that every application instance asks, so adding a node
+  is never a redeploy.
+
+**What you are not told**: how many stores there are, which data shares one, or
+where the requirement about distance belongs in the path. Validate reports
+connections the components refuse and anything left disconnected; it does not
+report a requirement that nothing on the canvas answers.
+
+## Next
+
+3.23 Reliability Patterns, once Group E is also done. Every connection you
+just drew was assumed to either answer or fail. Across a network there is a
+third outcome - you waited and heard nothing - and whether you retry, and how
+often, decides whether one slow node becomes an outage.

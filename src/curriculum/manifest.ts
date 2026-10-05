@@ -269,6 +269,19 @@ export const courses: Record<CourseId, Course> = {
             prerequisiteSlugs: ["3-4-load-balancer"],
             domain: null,
           },
+          {
+            slug: "checkpoint-a-the-front-door",
+            number: "A",
+            title: "Checkpoint · The Front Door",
+            kind: "checkpoint",
+            // Group checkpoint authored 2026-10-05 (pending-checkpoints.md).
+            // Numbered by its group's letter, like every checkpoint.
+            chapterDefinitionId: "bb-cp-a-the-front-door",
+            estimatedMinutes: 25,
+            difficulty: "foundational",
+            prerequisiteSlugs: ["3-5-api-gateway"],
+            domain: null,
+          },
         ],
       },
       {
@@ -289,7 +302,7 @@ export const courses: Record<CourseId, Course> = {
             chapterDefinitionId: "bb-3-6-stateless-services",
             estimatedMinutes: 20,
             difficulty: "foundational",
-            prerequisiteSlugs: ["3-5-api-gateway"],
+            prerequisiteSlugs: ["checkpoint-a-the-front-door"],
             domain: null,
           },
           {
@@ -331,6 +344,19 @@ export const courses: Record<CourseId, Course> = {
             prerequisiteSlugs: ["3-8-horizontal-scaling"],
             domain: null,
           },
+          {
+            slug: "checkpoint-b-inherited-fleet",
+            number: "B",
+            title: "Checkpoint · Inherited Fleet",
+            kind: "checkpoint",
+            // Group checkpoint authored 2026-10-05 (pending-checkpoints.md).
+            // Numbered by its group's letter, like every checkpoint.
+            chapterDefinitionId: "bb-cp-b-inherited-fleet",
+            estimatedMinutes: 25,
+            difficulty: "foundational",
+            prerequisiteSlugs: ["3-9-service-discovery"],
+            domain: null,
+          },
         ],
       },
       {
@@ -351,7 +377,7 @@ export const courses: Record<CourseId, Course> = {
             chapterDefinitionId: "bb-3-10-databases",
             estimatedMinutes: 25,
             difficulty: "intermediate",
-            prerequisiteSlugs: ["3-9-service-discovery"],
+            prerequisiteSlugs: ["checkpoint-b-inherited-fleet"],
             domain: null,
           },
           {
@@ -393,6 +419,19 @@ export const courses: Record<CourseId, Course> = {
             prerequisiteSlugs: ["3-12-replication"],
             domain: null,
           },
+          {
+            slug: "checkpoint-c-the-data-tier",
+            number: "C",
+            title: "Checkpoint · The Data Tier",
+            kind: "checkpoint",
+            // Group checkpoint authored 2026-10-05 (pending-checkpoints.md).
+            // Numbered by its group's letter, like every checkpoint.
+            chapterDefinitionId: "bb-cp-c-the-data-tier",
+            estimatedMinutes: 30,
+            difficulty: "intermediate",
+            prerequisiteSlugs: ["3-13-sharding"],
+            domain: null,
+          },
         ],
       },
       {
@@ -413,7 +452,7 @@ export const courses: Record<CourseId, Course> = {
             chapterDefinitionId: "bb-3-14-caching",
             estimatedMinutes: 35,
             difficulty: "intermediate",
-            prerequisiteSlugs: ["3-13-sharding"],
+            prerequisiteSlugs: ["checkpoint-c-the-data-tier"],
             domain: null,
           },
           {
@@ -444,7 +483,7 @@ export const courses: Record<CourseId, Course> = {
           },
           {
             slug: "checkpoint-r1-a-site-that-stays-up",
-            number: "R1",
+            number: "D",
             title: "Checkpoint · A Site That Stays Up",
             kind: "checkpoint",
             // Real content authored 2026-09-07 (the curriculum's first
@@ -508,6 +547,19 @@ export const courses: Record<CourseId, Course> = {
             prerequisiteSlugs: ["3-18-event-driven-architecture"],
             domain: null,
           },
+          {
+            slug: "checkpoint-e-off-the-request-path",
+            number: "E",
+            title: "Checkpoint · Off the Request Path",
+            kind: "checkpoint",
+            // Group checkpoint authored 2026-10-05 (pending-checkpoints.md).
+            // Numbered by its group's letter, like every checkpoint.
+            chapterDefinitionId: "bb-cp-e-off-the-request-path",
+            estimatedMinutes: 35,
+            difficulty: "intermediate",
+            prerequisiteSlugs: ["3-19-background-jobs-and-scheduling"],
+            domain: null,
+          },
         ],
       },
       {
@@ -552,6 +604,19 @@ export const courses: Record<CourseId, Course> = {
             prerequisiteSlugs: ["3-21-file-storage"],
             domain: null,
           },
+          {
+            slug: "checkpoint-f-where-the-bytes-live",
+            number: "F",
+            title: "Checkpoint · Where the Bytes Live",
+            kind: "checkpoint",
+            // Group checkpoint authored 2026-10-05 (pending-checkpoints.md).
+            // Numbered by its group's letter, like every checkpoint.
+            chapterDefinitionId: "bb-cp-f-where-the-bytes-live",
+            estimatedMinutes: 30,
+            difficulty: "intermediate",
+            prerequisiteSlugs: ["3-22-distributed-storage-concepts"],
+            domain: null,
+          },
         ],
       },
       {
@@ -570,10 +635,11 @@ export const courses: Record<CourseId, Course> = {
             chapterDefinitionId: "bb-3-23-reliability-patterns",
             estimatedMinutes: 30,
             difficulty: "advanced",
-            // §17: Group G needs both Group E and Group F complete.
+            // §17: Group G needs both Group E and Group F complete - now
+            // gated on each group's checkpoint.
             prerequisiteSlugs: [
-              "3-19-background-jobs-and-scheduling",
-              "3-22-distributed-storage-concepts",
+              "checkpoint-e-off-the-request-path",
+              "checkpoint-f-where-the-bytes-live",
             ],
             domain: null,
           },
@@ -612,7 +678,7 @@ export const courses: Record<CourseId, Course> = {
           },
           {
             slug: "checkpoint-r2-building-a-complete-backend",
-            number: "R2",
+            number: "G",
             title: "Checkpoint · Building a Complete Backend",
             kind: "checkpoint",
             chapterDefinitionId: "bb-r2-building-a-complete-backend",
@@ -623,7 +689,7 @@ export const courses: Record<CourseId, Course> = {
           },
           {
             slug: "checkpoint-r3-open-system-design",
-            number: "R3",
+            number: "Final",
             title: "Checkpoint · Open System Design",
             kind: "checkpoint",
             chapterDefinitionId: "bb-r3-open-system-design",

@@ -257,7 +257,7 @@ control path. Callers ask it for permission and never send it data.
 - **Retrying a write without a key.** The duplicate application, the double charge.
 - **A breaker with no fallback.** Fast failure is still a failure page.
 - **A lease shorter than the job, never renewed.** The 30-second lock on a
-  70-minute sweep overlaps from second 31.
+  70-minute sweep stops protecting anything at second 31.
 - **A lock with no TTL.** One crash holds it forever.
 - **A lock on the request path.** Every request pays a consensus round trip, and
   the lock service becomes the bottleneck it was never sized for. Locks are for

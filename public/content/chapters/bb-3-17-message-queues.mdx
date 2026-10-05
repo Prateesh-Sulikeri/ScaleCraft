@@ -1,10 +1,11 @@
-The job board from R1 is live, and publishing a listing takes 4.2 seconds at
-p95. The insert is 40 ms of that. The rest is the publish handler doing four
-more things before it answers: emailing the 900 seekers whose saved search
-matches, generating three thumbnail sizes of the company logo, updating the
-search index, and appending a row to the analytics table. The recruiter waits
-for all of it. Last Tuesday the mail provider was down for twenty minutes and
-every publish returned a 500 - for listings that were already in the database.
+The job board from Checkpoint D is live, and publishing a listing takes 4.2
+seconds at p95. The insert is 40 ms of that. The rest is the publish handler
+doing four more things before it answers: emailing the 900 seekers whose saved
+search matches, generating three thumbnail sizes of the company logo, updating
+the search index, and appending a row to the analytics table. The recruiter
+waits for all of it. Last Tuesday the mail provider was down for twenty minutes
+and every publish returned a 500 - for listings that were already in the
+database.
 
 > [!NOTE]
 > Think first: of those four jobs, how many does the recruiter need finished
@@ -294,12 +295,12 @@ that the same thing happened.
 
 ## Your turn
 
-The starter graph is the system R1 left you, and Validate is clean. What it
-cannot see is the publish handler: a recruiter waits 4.2 seconds for a listing
-whose own database write took 40 ms, because the same request also mails 900
-subscribers, builds thumbnails and updates the index before it answers. When the
-mail provider went down last Tuesday, publishes returned 500 for listings that
-had already been saved.
+The starter graph is the system Checkpoint D left you, and Validate is clean.
+What it cannot see is the publish handler: a recruiter waits 4.2 seconds for a
+listing whose own database write took 40 ms, because the same request also mails
+900 subscribers, builds thumbnails and updates the index before it answers. When
+the mail provider went down last Tuesday, publishes returned 500 for listings
+that had already been saved.
 
 Get the recruiter their answer as soon as their own work is durable, and give
 the rest of that work somewhere to live where a slow or broken dependency delays

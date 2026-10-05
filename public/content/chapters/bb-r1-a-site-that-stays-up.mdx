@@ -1,16 +1,17 @@
-Every build since 3.1 started from a starter graph: the system as the previous
-chapter left it, one piece missing or one field wrong, and a lesson directly
-above it naming the piece. Fourteen times, the hard part was already done.
+Checkpoints A, B and C each tested one group: a front door built from nothing,
+a fleet audited for faults, a data tier dropped into a system that was already
+standing. Each was one tier of a system, small enough to hold in your head at
+once.
 
-This one hands you an empty canvas and a product.
+This one hands you an empty canvas and a product that needs all four groups.
 
 Nothing new is taught here, and nothing the brief asks for needs anything you
-have not built at least once. What changes is that nobody tells you which
-requirement is which. Producing a whole system from a description is a different
-skill from adding one component to a system that already exists, and it is the
-skill an interviewer actually watches. It is also the first one that falls apart
-once the scaffolding is gone, which is worth finding out here rather than in
-your first Real World Extraction project.
+have not built at least once. What changes is the size. Producing a whole
+system from a description is a different skill from producing one tier of it,
+because the tiers now have to agree with each other, and it is the skill an
+interviewer actually watches. It is also where gaps show up first, which is
+worth finding out here rather than in your first Real World Extraction
+project.
 
 ## Connections
 
@@ -67,10 +68,11 @@ on the canvas answering it. Nothing here starts broken, because nothing starts.
 
 ## Next
 
-R1 opens two paths at once - Group E, asynchronous systems, and Group F,
-storage - plus the first Real World Extraction projects. 3.17 Message Queues is
-next in order, and it starts from what everything you just built has in common:
-a request arrives, something answers it, and the user waits for all of it. 3.16
-already left one arrow undrawn for that reason, the write that has to reach the
-search index after the response has gone out, with no edge kind in the palette
-meaning "later". That kind, and what it takes to make later survivable, is 3.17.
+This checkpoint opens two paths at once - Group E, asynchronous systems, and
+Group F, storage - plus the first Real World Extraction projects. 3.17 Message
+Queues is next in order, and it starts from what everything you just built has
+in common: a request arrives, something answers it, and the user waits for all
+of it. 3.16 already left one arrow undrawn for that reason, the write that has
+to reach the search index after the response has gone out, with no edge kind in
+the palette meaning "later". That kind, and what it takes to make later
+survivable, is 3.17.
