@@ -85,7 +85,12 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | **Checkpoint R2 - Building a Complete Backend** | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - blank canvas, all 27 components available, 17 required, two blueprints (R1's redundancy precedent) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
 | **Checkpoint R3 - Open System Design** (Building Blocks complete) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - anti-pattern posture via one minimal blueprint plus four labeled `forbid` patterns (first authored `forbid`; drift made forbid-aware in the same pass, so Submit names the anti-pattern); open decision 24 raised and resolved | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
 
-Everything else in the 72 rows is unauthored (`chapterDefinitionId: null`).
+| **Checkpoint A - The Front Door** (after 3.5) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - Build flavor, blank canvas, 8 components, two blueprints | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
+| **Checkpoint B - Inherited Fleet** (after 3.9) | **Authored (one-shot pass)** - Review flavor, four planted faults, three blueprints plus a shared `forbid` | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
+| **Checkpoint C - The Data Tier** (after 3.13) | **Authored (one-shot pass)** - Extend flavor, empty data zone, one blueprint | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
+| **Checkpoint E - Off the Request Path** (after 3.19) | **Authored (one-shot pass)** - Extend flavor, empty async zone, one blueprint with componentId alternatives | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
+| **Checkpoint F - Where the Bytes Live** (after 3.22) | **Authored (one-shot pass)** - Extend flavor, empty storage zone, CDN removed from the edge | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
+Everything else in the 77 rows is unauthored (`chapterDefinitionId: null`).
 
 **Wave 1 progress: 4 of 4 authored, all four through an Opus pass, merged into
 `develop`/`main` (verified 2026-08-08 via PR #87/#88).** Wave 2 (Part 1)
@@ -5014,6 +5019,11 @@ later one.
 
 ## Checkpoint R1 - A Site That Stays Up
 
+- **Revised 2026-10-05** (group checkpoints): cold open no longer claims every
+  earlier build had a starter graph - Checkpoints A-C precede it now; it is the
+  first checkpoint spanning several groups. Debrief commentary now cites the
+  chapter behind each requirement. `curriculumContext` gains a line for A-C.
+
 - **Authored 2026-09-07** - one-shot `chapter-author` pass (Opus), no cold
   second read yet - uncommitted, working tree (`feat/content-audit`)
 - Definition id `bb-r1-a-site-that-stays-up` - manifest slug
@@ -5875,6 +5885,11 @@ ambiguity" is the cold open.
 
 ## Checkpoint R2 - Building a Complete Backend
 
+- **Revised 2026-10-05**: checked against the new checkpoint contract and kept;
+  debrief commentary now cites the chapter behind each part. Next section's
+  "one right shape, or two" widened to "an expected shape, with a few accepted
+  variations" (Checkpoints B and E have more).
+
 - **Authored 2026-10-01** - same pass, same branch.
 - Definition `bb-r2-building-a-complete-backend`. Checkpoint, advanced, 60 min,
   assumes 3.26.
@@ -5905,6 +5920,11 @@ ambiguity" is the cold open.
 - Warning-severity anti-patterns still pass, as in R1 (an `allow-all` firewall).
 
 ## Checkpoint R3 - Open System Design
+
+- **Revised 2026-10-05**: checked against the contract and kept (it is the Open
+  flavor). Comparison table column is now "Every earlier checkpoint", its fail
+  row includes misconfiguration, and the opening drops "one right shape, or
+  two". Debrief commentary cites chapters.
 
 - **Authored 2026-10-01** - same pass, same branch. **Completes Building Blocks.**
 - Definition `bb-r3-open-system-design`. Checkpoint, advanced, 60 min, assumes R2.
@@ -5942,6 +5962,69 @@ ambiguity" is the cold open.
   trade-offs) raised and resolved: Q5 rewritten to match the build.
 
 ---
+## Checkpoints A, B, C, E, F - group checkpoints
+
+- **Authored 2026-10-05**, one pass, uncommitted on `feature/content-groups-f-g`.
+  Scoped in `.claude/docs/pending-checkpoints.md` (the contract, flavors and
+  roster); the user approved the roster and asked for authoring without
+  answering the doc's five open questions, so the defaults below were taken.
+- Definitions `bb-cp-a-the-front-door`, `bb-cp-b-inherited-fleet`,
+  `bb-cp-c-the-data-tier`, `bb-cp-e-off-the-request-path`,
+  `bb-cp-f-where-the-bytes-live`. Manifest rows numbered `A`, `B`, `C`, `E`,
+  `F`, each after its group's last chapter.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Specs | `specs/bb-cp-{a,b,c,e,f}-*.spec.md` |
+| 2 | Lessons | `bb-cp-*.mdx`, R1's four sections, ~500-650 words each |
+| 3 | ChapterDefinitions | `index.ts`, each beside its group |
+| 4 | Validation rules | None new |
+| 5 | Quiz | None (§22) |
+| 6 | Playtest pass | Each spec §11 |
+
+**Judgment calls:**
+
+- **Defaults taken for the open questions.** Naming: R1-R3 keep their numbers
+  (persistence keys, and lessons cite them by name); group checkpoints use the
+  group's letter. Gating: moot - `prerequisiteSlugs` is not enforced anywhere
+  (`src/curriculum/types.ts`), so existing learners are never locked out; the
+  next chapter in each group now lists its checkpoint as prerequisite for when
+  it is. Review flavor: shipped (B), with the config-drift workaround in hint 3
+  and the lesson. Follow-up twist: deferred, needs multi-stage engine support.
+- **Flavor per group.** A Build (blank); B Review, because Group B adds no
+  components and a Build would re-test Group A; C, E, F Extend (rest of the
+  system as `starterGraph`, one empty zone), so effort lands on the group.
+- **First checkpoints with a `starterGraph`** (B, C, E, F) and so
+  `starterDecorators`. B has tier zones only (nothing missing, §11.6); C, E, F
+  have a "Build here" zone sized by the room invariant.
+- **Interleaving pull per checkpoint** (contract rule 2): A - 1.2's
+  compute-only database; B - 3.1's `allow-all` firewall; C - 3.8's N+1 on the
+  provided fleet; E - 3.16's search index updated off the path; F - 3.15's CDN
+  as a rewire of the starter's DNS-to-firewall edge.
+- **B's three blueprints plus one `forbid`**: a pattern cannot sum instances
+  across cards, so each honest split (1 card >= 4; 2 + 2; 3 + any) is its own
+  blueprint, and all carry a `forbid` on an app server behind the load balancer
+  with no edge to the database. Without it, containment passes a design that
+  raised one card and kept the unwired one.
+- **A's billing as a third app server behind the gateway**, never the load
+  balancer: the copies-vs-services line 3.5 drew. Moving billing behind the
+  load balancer fails.
+- **E accepts alternatives inside one blueprint** (Event Bus or Kafka; Worker
+  or Serverless consumers; nightly job and burst handler reach the database by
+  path), so `event-bus`, `kafka` and `worker` are not in `requiredComponentIds`
+  (required is enforced at Submit, `chapter-outcome.ts`).
+- **F requires two object stores** for photos and ID scans: 3.20's "one bucket,
+  two audiences" mistake. A one-bucket design fails.
+- **C rules sharding out in the brief** ("fits on one machine for two years"),
+  so 3.13 is tested as judgment rather than as a build.
+- Verified with a throwaway script (no test file): every starter fails, every
+  reference graph passes its blueprint, and the named wrong variants fail.
+
+**Knock-on edits:** 3.5, 3.9, 3.13, 3.19 and 3.22's Next sections now preview
+their checkpoint; 3.6, 3.10, 3.14 and 3.23's prerequisites point at it;
+`manifest.test.ts`'s Building Blocks count is 45; CURRICULUM §3, §4, §12, §14
+Part 4, §17, §21.3 and the outline updated.
+
 ## Cross-cutting revisions (post-authoring)
 
 Entries here touch many already-authored chapters at once for a mechanical or
@@ -6019,6 +6102,50 @@ all touched chapters rather than duplicating a row per chapter above.
     DNS TTL).
 
 ---
+
+- **2026-10-05, branch `feature/content-groups-f-g`: audit pass over all
+  Building Blocks chapters.** Mechanical scans across every lesson (next-chapter
+  previews vs. manifest, stale chapter numbers, diagram captions, doc-name
+  leaks, em dashes) plus a cold read of 3.20-3.26, R2 and R3 and every
+  chapter's editor brief. Fixes:
+  - **Stale Part 1 numbering** (left over from the 11-to-4 chapter
+    consolidation): 0.4's step table and "further out" line pointed at 1.5-1.11;
+    3.4's cold open and Next cited 1.6/1.7. Remapped to 1.1/1.2/1.3. Specs keep
+    their "old 1.6" history on purpose.
+  - **0.3/0.4 `problemStatement`**: 0.3 said both registers are judged "by the
+    same rubric" yet reward different things; 0.4 said every Part 1 chapter
+    drills one step.
+  - **`exerciseGoal` for 3.1-3.8** was written as the symptom only, under a
+    sidebar heading that says "Goal". Rewritten goal-first, symptom second;
+    no newly named palette components (spoiler rule unchanged).
+  - **3.20**: Think-first named "slow listing pages", which the cold open never
+    mentioned, and its answer blamed SQL buffer eviction for pages served from
+    the listing document store. Cold open and answer now agree.
+  - **3.21**: removed "The exercise CURRICULUM asks for" from learner text.
+  - **3.24/3.25**: 3.25 said search ran at "40 times" normal traffic; 3.24's
+    numbers make it 500x+. Now "hundreds of times" in lesson and brief. 3.25's
+    "latency tripled" example contradicted its own trace (40 ms to 2.3 s).
+  - Smaller wording: 1.2 deep-dive flowchart got a caption; 3.22 Next, 3.23
+    lease line, 3.24 capacity unit, 3.26 paragraph reflow.
+  - **Component docs (all 27)**: 53 split-word generation artifacts ("the a
+    application"), 35 em dashes, and hard-wrapped config-table rows that
+    rendered as broken extra rows. Coordinator/leader/lock-service rewritten;
+    object-storage's consistency claim corrected (S3 is read-after-write since
+    2020).
+  - **Not changed, flagged:** 3.1, 3.2, 3.3, 3.5 and 3.6's final hint names the
+    exact fix ("Add a Firewall node... wire it between"), which §11.3 says a
+    hint never does. Left as-is pending a decision, since it changes the
+    difficulty of the earliest builds.
+
+- **2026-10-05: checkpoints renamed to one scheme.** Badges were A, B, C, R1, E,
+  F, R2, R3; now every checkpoint is lettered by the group it closes: **D** (was
+  R1), **G** (was R2), and **Final** (was R3). Changed: manifest `number`, every
+  learner-facing mention in lessons (3.16, 3.17, 3.20, 3.26, and the three
+  checkpoints themselves) and `index.ts` strings (3.17's `problemStatement`,
+  3.20's success criterion, positions and contexts), CURRICULUM.md (Mermaid node
+  ids kept), `ChapterRow.test.tsx`'s fixture. Not changed: slugs, definition ids,
+  spec filenames, code comments and release notes - persistence keys or history.
+  Ledger headings below still say R1-R3; read them as D, G, Final.
 
 ## Open decisions blocking or shaping later chapters
 
@@ -6752,7 +6879,8 @@ doc edit or a build decision.
     outside 3.22's prerequisite chain, raised 2026-10-01.** §17 makes Groups E
     and F parallel after R1, so a learner can reach 3.22 without 3.17. 3.22 uses
     3.12, 3.14 and 3.15 only. **Needs a one-line doc edit** to the row (drop 3.17
-    or mark it "if taken"); doc-only commit.
+    or mark it "if taken"); doc-only commit. **Resolved 2026-10-05**: row now
+    cites 3.15 CDN TTLs instead of 3.17, matching what the lesson uses.
 
 22. **`public/content/components/coordinator.md` describes a different
     component, raised 2026-10-01.** It documents a saga/workflow orchestrator
@@ -6766,6 +6894,9 @@ doc edit or a build decision.
     generation artifact ("state state-changing"); `leader.md` is titled "Leader
     Election Component" and documents the election mechanism rather than the
     role card the registry and 3.26 teach. Same fix: a pass over component docs.
+    **Resolved 2026-10-05**: `coordinator.md`, `leader.md` and `lock-service.md`
+    rewritten against the registry fields and 3.22/3.23/3.26; artifacts fixed
+    across all 27 docs (see Cross-cutting revisions, 2026-10-05).
 
 23. **CURRICULUM §14's 3.23 row promises a config exercise the registry has no
     fields for, raised 2026-10-01.** "Fix (retry storm described; add backoff +

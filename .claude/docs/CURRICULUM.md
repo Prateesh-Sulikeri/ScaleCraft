@@ -142,7 +142,7 @@ Every structural decision in this document traces to at least one of these:
   model - you cannot reason about failover before replication, or about lock
   contention before background jobs.
 - **Composition gates (checkpoints) before open-ended work.** The first "no
-  prescribed shape" moment happens inside Building Blocks (R3), where the palette is
+  prescribed shape" moment happens inside Building Blocks (the Final Checkpoint), where the palette is
   familiar, so RWE's open-endedness is a change of scenery, not a cliff.
 
 ### 1.5 Interview design vs. production engineering
@@ -182,9 +182,9 @@ always at exactly one frontier stage but continuously exercises all earlier ones
 | 2. Components | Explains what each block does, its internals, its limits | Part 3 chapters | Chapter builds + quizzes |
 | 3. Interactions | Traces how blocks compose; predicts request paths and data flow | Part 2, Part 3 exercises, simulator traces | Trace/predict exercises |
 | 4. Trade-offs | Chooses between defensible options and names the cost | Trade-off exercises everywhere; §9 lenses | Trade-off scenarios + quiz |
-| 5. Design | Assembles a whole system from an ambiguous brief | Part 1 process + checkpoints + RWE Phase B | Checkpoints R1-R3, RWE passes |
+| 5. Design | Assembles a whole system from an ambiguous brief | Part 1 process + checkpoints + RWE Phase B | Checkpoints D, G and Final, RWE passes |
 | 6. Defend | Justifies decisions under follow-up pressure; drives the conversation | Part 1.3-1.4, Interview lens sections, retrospective quizzes | RWE debrief quizzes ([[QUIZ_FRAMEWORK]]) |
-| 7. Critique | Reviews an existing design; finds what breaks first and what to change | Fix-the-Architecture at scale, RWE stretch scenarios, debrief comparisons | Tier 4-5 RWE, R3 |
+| 7. Critique | Reviews an existing design; finds what breaks first and what to change | Fix-the-Architecture at scale, RWE stretch scenarios, debrief comparisons | Tier 4-5 RWE, Final |
 
 Authoring rule: every chapter states (in its metadata, §5.1) which stages it trains.
 No chapter may target a stage more than one step past the learner's frontier at that
@@ -195,7 +195,10 @@ like they skipped five chapters" (§18).
 
 ## 3. Curriculum structure overview
 
-**Building Blocks** (the taught track): 5 parts, 37 chapters, 3 checkpoints.
+**Building Blocks** (the taught track): 5 parts, 37 chapters, 8 checkpoints (5 group
+checkpoints A-G plus Final, lettered by group; five added and three renamed
+(from R1, R2, R3) 2026-10-05, see
+`pending-checkpoints.md`).
 **Real World Extraction** (the applied track): 32 projects in 5 difficulty tiers.
 **Sandbox**: always unlocked, no curriculum role beyond free practice. Nothing ever
 locks Sandbox.
@@ -206,15 +209,17 @@ BUILDING BLOCKS
   Part 1  Engineering Design Process     (4 chapters)   the interview loop, taught first
   Part 2  Journey of a Request           (3 chapters)   the spatial map
   Part 3  Building Blocks                (26 chapters, 7 groups)
-            Core Infrastructure . Compute . Data . Performance   -> Checkpoint R1
-            Asynchronous Systems . Storage . Reliability          -> Checkpoint R2
-  Part 4  Checkpoints                    R1, R2, R3 (R3 = gateway to open design)
+            Core Infrastructure -> A . Compute -> B . Data -> C
+            Performance                                            -> Checkpoint D
+            Asynchronous Systems -> E . Storage -> F . Reliability -> Checkpoint G
+  Part 4  Checkpoints                    A, B, C, E, F (one per group),
+                                         D, G, Final (Final = gateway to open design)
 
 REAL WORLD EXTRACTION
-  Tier 1  Foundational systems   (4)   -> unlock after Checkpoint R1
-  Tier 2  Applied systems        (5)   -> unlock after Checkpoint R2
-  Tier 3  Composite systems      (9)   -> unlock after Checkpoint R3
-  Tier 4  Flagship systems       (9)   -> unlock after R3 + 2 Tier-3 projects
+  Tier 1  Foundational systems   (4)   -> unlock after Checkpoint D
+  Tier 2  Applied systems        (5)   -> unlock after Checkpoint G
+  Tier 3  Composite systems      (9)   -> unlock after the Final Checkpoint
+  Tier 4  Flagship systems       (9)   -> unlock after Final + 2 Tier-3 projects
   Tier 5  Frontier systems       (5)   -> unlock after 2 Tier-4 projects
 ```
 
@@ -236,7 +241,7 @@ sections are mandatory (§6) and which exercise mix applies (§11).
 | **Concept** | Teaches an idea with no (or minimal) new topology | 0.2, 3.13 | Small: config, trade-off pick, or trace |
 | **Building Block** | Introduces 1-3 registry components | 3.4 Load Balancer | Full: build/completion/fix, the default |
 | **Process** | Teaches a step of the design workflow | 1.4 Estimating Scale | Staged: gated in-chapter stages |
-| **Checkpoint** | Blank-canvas re-demonstration, no new material | R1-R3 | The chapter IS the exercise |
+| **Checkpoint** | Re-demonstration, no new material: Build (blank canvas), Extend (one empty tier in a provided system), Review (find planted faults), or Open | A-G, Final | The chapter IS the exercise |
 | **RWE Project** | Multi-phase open design brief | Every RWE entry | Phase A guided + Phase B open + optional Stretch |
 
 Depth allocation is intentional and per-type: forcing a big build onto a concept with
@@ -406,7 +411,7 @@ these, that diagram is mandatory, not optional:
 | Leader election / failover states | Role transitions | 3.26 |
 | Failure scenario (before/during/after) | Any failure-modes section | Reliability group, RWE stretch |
 | Scaling evolution (v1 -> v2 -> v3) | The 10x/100x/1000x story | 2.3, scaling sections |
-| Layer diagram | Vertical slices (edge/app/data) | Part 2, R1 |
+| Layer diagram | Vertical slices (edge/app/data) | Part 2, Checkpoint D |
 | State transition | Lifecycle of a message/job/session | 3.17, 3.19 |
 | Consistency model spectrum | Strong <-> eventual placement | 3.22 |
 | Storage layout | How bytes are organized | 3.20-3.22 |
@@ -781,7 +786,7 @@ Recurring, named devices. Each has a fixed placement so learners build rhythm.
 | **Knowledge check** | The chapter quiz | Beat 15 (spec in [[QUIZ_FRAMEWORK]]) |
 | **Mini challenge** | Optional harder variant of the exercise | End of Act 5, marked optional |
 | **Connections** | Explicit back-links + one forward tease | Beat 14 |
-| **Checkpoint** | Blank-canvas composition rebuild | R1-R3 (§14, Part 4) |
+| **Checkpoint** | Composition rebuild of a whole system or one tier of it | A-G, Final (§14, Part 4) |
 | **Quick recap on return** | 2-line "previously" summary when a learner resumes | Reader affordance, authored per chapter |
 
 Spacing structure (not nag-based): checkpoints at fixed points; every RWE project's
@@ -919,8 +924,8 @@ form of forward reference (§19).
 ### Part 3 - Building Blocks  *(Building Block type unless noted; stages 2-4)*
 
 Seven groups, 26 chapters. Groups are ordered by motivational dependency (§1.4);
-chapters within a group are strictly sequential. Checkpoint R1 gates after
-Performance; R2 after Reliability (see Part 4). Running example: one product (a
+chapters within a group are strictly sequential. Checkpoint D gates after
+Performance; G after Reliability (see Part 4). Running example: one product (a
 growing content-sharing app) recurs across groups so each block extends a familiar
 system.
 
@@ -1027,7 +1032,7 @@ system.
   `search-engine`.** Interview: Medium-High. Exercise: build (search fed from the
   primary DB; the awkward sync edge is the lesson). Est: 30.
 
-**Checkpoint R1 gates here** - see Part 4.
+**Checkpoint D gates here** - see Part 4.
 
 **Group E - Asynchronous Systems** *(intermediate)*
 
@@ -1071,7 +1076,7 @@ system.
   concept level; who places data (the coordinator role). **New: `coordinator`.**
   Type: Concept with a small build. This is the curriculum's consistency home -
   it names the trade-off the learner has now hit repeatedly (3.12 lag, 3.14
-  staleness, 3.17 eventual processing). Interview: High: senior follow-ups live
+  staleness, 3.15 CDN TTLs). Interview: High: senior follow-ups live
   here. Exercise: trade-off scenarios ×4 (ledger, feed, cart, presence: pick
   CP-ish or AP-ish posture, read the reasoning) + build (coordinator managing
   placement for 3.13's shards). Est: 30.
@@ -1106,32 +1111,66 @@ system.
   Interview: High: steps 6, 8. Exercise: build (leader-follower cluster) +
   predict-then-check (kill the leader). Est: 35.
 
-**Checkpoint R2 gates here** - see Part 4.
+**Checkpoint G gates here** - see Part 4.
 
 ### Part 4 - Checkpoints  *(Checkpoint type)*
 
-Blank-canvas re-demonstrations. No new concepts, no starter graph, no quiz - the
-build is the retrieval. Mastery: build success only.
+Re-demonstrations. No new concepts, no quiz - the build is the retrieval.
+Mastery: build success only. Every checkpoint follows the contract in
+`pending-checkpoints.md`: a product brief rather than a parts list, at least one
+requirement answered by a move two or more groups back, and a debrief that traces
+each requirement to the chapter that taught it.
 
-- **R1 - A Site That Stays Up** *(after 3.16; gates Groups E-G? No - see note)*
+**Naming.** Every checkpoint is lettered by the group it closes (A-G); the open
+design checkpoint after G is "Final". D, G and Final were R1, R2 and R3 until
+2026-10-05; their slugs and definition ids keep the r1/r2/r3 names because those
+are persistence keys.
+
+**Group checkpoints** (added 2026-10-05) - A, B, C, E and F, one after every
+group, so no group ends without a composition event. D and G (below) double as
+their groups' checkpoints and integrate everything before them. Flavors:
+*Build* (blank canvas), *Extend* (the rest of the system provided as a starter
+graph, one tier left empty), *Review* (an inherited system with a stated count of
+planted faults). Numbered by the group's letter.
+
+- **A - The Front Door** *(after 3.5, Build)* Palette: Group A. A two-service
+  SaaS: perimeter, TLS once, auth and limits once, a load-balanced API and a
+  separately routed billing service. Tests copies vs. services. Est: 25.
+- **B - Inherited Fleet** *(after 3.9, Review)* Palette: Group A. A running
+  clinic-booking system with four faults: an `allow-all` firewall, a fleet card
+  that cannot reach the session store, no N+1 headroom, a TTL longer than the
+  cutover window. Validate sees one. Est: 25.
+- **C - The Data Tier** *(after 3.13, Extend)* Palette: Groups A-C. A
+  marketplace's orders, listings and read-heavy history placed by guarantee and
+  shape, plus N+1 sizing; the brief rules sharding out. Est: 30.
+- **E - Off the Request Path** *(after 3.19, Extend)* Palette: through Group E.
+  A reservations platform: a queue with a DLQ, a fan-out to three teams (one
+  updating search), a schedule and a burst handler. Est: 35.
+- **F - Where the Bytes Live** *(after 3.22, Extend)* Palette: through Group D
+  plus Group F. Two buckets by audience, a transactional store, a sharded
+  document store under one coordinator, and the CDN restored. Est: 30.
+
+**Integration checkpoints** - blank canvas (D, G) or open (Final):
+
+- **D - A Site That Stays Up** *(after 3.16; gates Groups E-G? No - see note)*
   Palette: everything through Group D. Brief: a described mid-size web product;
   build the full stack (edge -> LB -> stateless tier -> cache -> DB + replicas +
   CDN + search). Prescriptive validation. First spaced-retrieval event: proves
   assembly from memory of what was mostly completed-from-scaffolds. Est: 45.
-  *Gating note:* R1 gates Groups E/F/G and RWE Tier 1. Groups E and F are
-  parallel-eligible after R1 (neither depends on the other; G needs both) - the
+  *Gating note:* D gates Groups E/F/G and RWE Tier 1. Groups E and F are
+  parallel-eligible after D (neither depends on the other; G needs both) - the
   one sanctioned branch in Part 3.
-- **R2 - Building a Complete Backend** *(after 3.26)* Palette: all 27. Brief: a
+- **G - Building a Complete Backend** *(after 3.26)* Palette: all 27. Brief: a
   described e-commerce product (browse, search, order, notify, nightly reports,
   survive an instance failure). Requires ≥1 component from every group.
   Prescriptive validation. The largest interleaving event before Tier 3 unlocks.
   Est: 60.
-- **R3 - Open System Design** *(after R2)* Full palette, deliberately
+- **Final - Open System Design** *(after G)* Full palette, deliberately
   underspecified brief, and - critically - **anti-pattern validation only** (the
   RWE posture): many graphs pass; anything embodying a taught anti-pattern fails
   with the taught explanation. The posture shift happens here, inside Building
   Blocks, where the palette is familiar - so RWE's open-endedness is a change of
-  scenery, not a cliff. Completing R3 completes Building Blocks and unlocks RWE
+  scenery, not a cliff. Completing the Final Checkpoint completes Building Blocks and unlocks RWE
   Tiers 3+. Est: 60.
 
 ---
@@ -1175,7 +1214,7 @@ booking, maps, matching, developer platforms) recur across tiers so learners can
 follow a domain thread vertically if they prefer - the Learning Path renders tiers
 as sections; domain is a chip on each row.
 
-**Tier 1 - Foundational systems** *(unlock: Checkpoint R1; est 60-75 min each)*
+**Tier 1 - Foundational systems** *(unlock: Checkpoint D; est 60-75 min each)*
 First contact with open briefs while Part 3 is still in progress. Tiny surfaces,
 one crisp new problem each.
 
@@ -1186,7 +1225,7 @@ one crisp new problem each.
 | Distributed Cache (design one) | Infrastructure | 3.14 internals, 3.13 partitioning, 3.9 discovery | consistent hashing (concept); eviction policies as design choices |
 | Metrics Monitoring | Infrastructure | 3.16 derived data, 3.19 scheduling, 3.10 write-heavy stores | time-series write patterns; downsampling/retention; pull-vs-push collection |
 
-**Tier 2 - Applied systems** *(unlock: Checkpoint R2; est 75-90 min each)*
+**Tier 2 - Applied systems** *(unlock: Checkpoint G; est 75-90 min each)*
 First multi-subsystem projects: every piece is familiar, composition is the lesson.
 
 | Project | Domain | Reinforces | New concepts |
@@ -1197,7 +1236,7 @@ First multi-subsystem projects: every piece is familiar, composition is the less
 | Price Tracking Service | Marketplaces | 3.19 cron, 3.17, 3.16 | polite crawling/polling cadence; change detection & alerting |
 | Online Chess | Gaming | 3.7 sessions, 3.9, 3.22 postures | real-time move relay (long-lived connection concept, seeded for WhatsApp); matchmaking state |
 
-**Tier 3 - Composite systems** *(unlock: Checkpoint R3; est 90-120 min each)*
+**Tier 3 - Composite systems** *(unlock: the Final Checkpoint; est 90-120 min each)*
 Full products with two or more interacting subsystems and real consistency stakes.
 
 | Project | Domain | Reinforces | New concepts |
@@ -1212,7 +1251,7 @@ Full products with two or more interacting subsystems and real consistency stake
 | Online Auction | Marketplaces | 3.22, 3.23 locks, 3.18 | bid ordering & contention; auction-close correctness |
 | IRCTC (train booking) | Booking | 3.13, 3.23, 3.24 | inventory contention at extreme burst; queue-based admission (virtual waiting room) |
 
-**Tier 4 - Flagship systems** *(unlock: R3 + any 2 Tier-3 projects; est 120-150)*
+**Tier 4 - Flagship systems** *(unlock: Final + any 2 Tier-3 projects; est 120-150)*
 The interview canon's centerpieces. Each inverts or stresses a foundational
 assumption.
 
@@ -1250,7 +1289,7 @@ is the completionist path, not the requirement.
   Monitoring (Tier 1) and Ad Click Aggregator (Tier 3). Migration notes in §21.4.
 - Google Docs appears twice by design (Tier 3: the product; Tier 5: the
   collaboration problem) - the Tier 5 entry assumes the Tier 3 one.
-- Tier 1 unlocking at R1 (not R3) is deliberate: early open-brief contact while
+- Tier 1 unlocking at D (not Final) is deliberate: early open-brief contact while
   Part 3 is still in progress converts Building Blocks fatigue into motivation, and
   Tier 1 briefs only need Groups A-D material. Tier 1 projects may pull learners
   toward not-yet-taken chapters via stretch goals flagged "needs Group E" - pull,
@@ -1304,16 +1343,21 @@ graph TD
   P0[Part 0 Foundations] --> P1[Part 1 Design Process]
   P1 --> P2[Part 2 Journey of a Request]
   P2 --> GA[3.A Core Infrastructure]
-  GA --> GB[3.B Compute]
-  GB --> GC[3.C Data]
-  GC --> GD[3.D Performance]
-  GD --> R1{{Checkpoint R1}}
+  GA --> CA{{Checkpoint A}}
+  CA --> GB[3.B Compute]
+  GB --> CB{{Checkpoint B}}
+  CB --> GC[3.C Data]
+  GC --> CC{{Checkpoint C}}
+  CC --> GD[3.D Performance]
+  GD --> R1{{Checkpoint D}}
   R1 --> GE[3.E Async Systems]
   R1 --> GF[3.F Storage]
-  GE --> GG[3.G Reliability]
-  GF --> GG
-  GG --> R2{{Checkpoint R2}}
-  R2 --> R3{{Checkpoint R3}}
+  GE --> CE{{Checkpoint E}}
+  GF --> CF{{Checkpoint F}}
+  CE --> GG[3.G Reliability]
+  CF --> GG
+  GG --> R2{{Checkpoint G}}
+  R2 --> R3{{Final Checkpoint}}
   R1 --> T1[RWE Tier 1]
   R2 --> T2[RWE Tier 2]
   R3 --> T3[RWE Tier 3]
@@ -1337,7 +1381,7 @@ the map itself, which also tells the learner *why* the order exists.
 | Groups A-B | 4 -> 10 | Completion-heavy | Prescriptive | ≤2/chapter |
 | Groups C-D | 11 -> 16 | Mixed build/fix | Prescriptive, more config | ≤2/chapter |
 | Groups E-G | 17 -> 27 | Build-first, blank-canvas default | Prescriptive | ≤3 (3.17 only) |
-| R3 | 27 | None | **Anti-pattern (the shift)** | 0 |
+| Final | 27 | None | **Anti-pattern (the shift)** | 0 |
 | RWE T1-T5 | Large -> full | Phase A shrinking -> none | Anti-pattern + warnings | ≤3 concepts/project |
 
 ### 18.2 Sequencing rules (binding on all authors)
@@ -1559,7 +1603,7 @@ section quietly padded to look present.
 
 ### 21.3 Estimated totals (for planning, not promises)
 
-44 BB chapters (~16 hours of learner time) + 3 checkpoints (~3h) + 32 RWE projects
+44 BB chapters (~16 hours of learner time) + 8 checkpoints (~5.5h) + 32 RWE projects
 (~55h) ≈ 74 hours of curriculum - a self-paced multi-month course, consistent with
 the daily-time-investment pace the product assumes.
 
@@ -1622,28 +1666,33 @@ BUILDING BLOCKS
   Part 3 · Building Blocks
     Core Infrastructure: 3.1 Networking Fundamentals · 3.2 DNS ·
       3.3 Reverse Proxy · 3.4 Load Balancer · 3.5 API Gateway
+      ✦ Checkpoint A · The Front Door
     Compute: 3.6 Stateless Services · 3.7 Sessions & State ·
       3.8 Horizontal Scaling · 3.9 Service Discovery
+      ✦ Checkpoint B · Inherited Fleet
     Data: 3.10 Databases · 3.11 SQL vs. NoSQL · 3.12 Replication · 3.13 Sharding
+      ✦ Checkpoint C · The Data Tier
     Performance: 3.14 Caching · 3.15 CDN · 3.16 Search Systems
-      ✦ Checkpoint R1 · A Site That Stays Up
+      ✦ Checkpoint D · A Site That Stays Up
     Asynchronous Systems: 3.17 Message Queues · 3.18 Event-Driven Architecture ·
       3.19 Background Jobs & Scheduling      (E and F may be taken in either order)
+      ✦ Checkpoint E · Off the Request Path
     Storage: 3.20 Object Storage · 3.21 File Storage ·
       3.22 Distributed Storage Concepts
+      ✦ Checkpoint F · Where the Bytes Live
     Reliability: 3.23 Reliability Patterns · 3.24 Rate Limiting ·
       3.25 Observability · 3.26 Fault Tolerance
-      ✦ Checkpoint R2 · Building a Complete Backend
-      ✦ Checkpoint R3 · Open System Design
+      ✦ Checkpoint G · Building a Complete Backend
+      ✦ Final Checkpoint · Open System Design
 
 REAL WORLD EXTRACTION
-  Tier 1 (after R1)  Bitly · Rate Limiter · Distributed Cache · Metrics Monitoring
-  Tier 2 (after R2)  Notification System · Job Scheduler · LeetCode ·
+  Tier 1 (after D)  Bitly · Rate Limiter · Distributed Cache · Metrics Monitoring
+  Tier 2 (after G)  Notification System · Job Scheduler · LeetCode ·
                      Price Tracking · Online Chess
-  Tier 3 (after R3)  Google Drive · Google Docs · Ad Click Aggregator ·
+  Tier 3 (after Final)  Google Drive · Google Docs · Ad Click Aggregator ·
                      News Aggregator · FB Post Search · Yelp · Payment System ·
                      Online Auction · IRCTC
-  Tier 4 (R3 + 2×T3) WhatsApp · Instagram · InShorts Feed · YouTube · Uber ·
+  Tier 4 (Final + 2×T3) WhatsApp · Instagram · InShorts Feed · YouTube · Uber ·
                      DoorDash/Zomato · Tinder · Robinhood · Google Maps
   Tier 5 (2×T4)      Google Docs RT Collab · FB Live Comments · YouTube Top K ·
                      Strava · Web Crawler

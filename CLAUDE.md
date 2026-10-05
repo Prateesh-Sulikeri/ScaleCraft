@@ -114,6 +114,10 @@ directory misses which ones are live vs. retired:
   merging `feature/content-groups-f-g`, then the engine and doc gaps the
   content works around. Read before touching drift reporting, component
   relations, or component docs.
+- `.claude/docs/pending-checkpoints.md` - the Building Blocks checkpoint
+  contract (product brief, interleaving, traceable debrief), the Build/Extend/
+  Review/Open flavors, and the 8-checkpoint roster. Group checkpoints A, B, C,
+  E, F authored 2026-10-05; read before touching any checkpoint.
 - `.claude/docs/pending-simulation-engine.md` - early brainstorm for a second,
   post-Validate simulation stage. Not scoped into a release yet.
 - `.claude/docs/pending-polish.md` - retired items consolidated out of other

@@ -14,8 +14,8 @@ actionable list.
 - [ ] **R2 and R3 click-through** - R2's blueprint is the largest in the
       curriculum (21-22 nodes, 25-26 edges): check Submit speed and drift
       messages. Confirm an R3 forbid failure reads well end to end.
-- [ ] **Cold review of 3.20-3.26, R2, R3** - all one-shot passes, no second
-      reader. A fresh session on the diff or `/code-review`.
+- [x] **Cold review of 3.20-3.26, R2, R3** - done 2026-10-05 (lessons and
+      briefs; quizzes not re-read). Fixes logged in `pending-chapters.md`.
 - [ ] **Confirm two judgment calls** - R3 passes any anti-pattern-free design,
       however small; 3.26 cannot require exactly one Leader (two Leaders plus a
       Coordinator still match).
@@ -40,8 +40,8 @@ actionable list.
 
 ## Docs (doc-only commits)
 
-- [ ] **Component docs (22)** - rewrite `coordinator.md` (describes a saga
+- [x] **Component docs (22)** - done 2026-10-05. - rewrite `coordinator.md` (describes a saga
       orchestrator); fix `lock-service.md` ("state state-changing"), `leader.md`
       (election mechanism, not the role), `object-storage.md` artifacts.
-- [ ] **CURRICULUM §14 3.22 row (21)** - cites 3.17, outside 3.22's
+- [x] **CURRICULUM §14 3.22 row (21)** - done 2026-10-05. - cites 3.17, outside 3.22's
       prerequisite chain.
