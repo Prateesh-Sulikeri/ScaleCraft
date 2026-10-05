@@ -21,6 +21,7 @@ export default [
     summary: "Fast in-memory store for frequently read data",
     docs: "An in-memory store sitting in front of a slower system of record, absorbing repeat reads so they don't hit it every time. `evictionPolicy` decides what gets dropped when it fills up; `ttlSeconds` bounds how long a stale entry can survive.",
     docsFile: "/content/components/cache.md",
+    docsVersion: 2,
     // Miss->origin points at the backing data store directly (read-through
     // cache-aside) — NOT back through compute; there's no realistic
     // pattern where a cache calls back to the app server on a miss (the app
@@ -64,6 +65,7 @@ export default [
     summary: "A cache sharded and replicated across nodes",
     docs: "A cache whose data is partitioned and replicated across multiple nodes instead of living on one machine - survives a single node failing, at the cost of the same consistency-vs-latency tradeoff every distributed store faces.",
     docsFile: "/content/components/distributed-cache.md",
+    docsVersion: 2,
     relations: {
       inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
       outputs: { allowedCategories: ["data"], allowedKinds: ["request-flow"] },

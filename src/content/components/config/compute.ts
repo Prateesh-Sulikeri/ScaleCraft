@@ -14,6 +14,7 @@ export default [
     summary: "Runs business logic and enforces access control",
     docs: "Runs application logic: authentication, authorization, and business rules. Should mediate all access to the database - clients should never reach it directly.",
     docsFile: "/content/components/app-server.md",
+    docsVersion: 2,
     // inputs include "data" (a Read Replica's "Read query" output targets
     // compute) and "distributed-systems" (a Follower's "Reads" output does
     // too) — both are pre-existing component ports that would otherwise be
@@ -44,6 +45,7 @@ export default [
     summary: "Processes jobs asynchronously, off the request path",
     docs: "Pulls jobs off a queue and processes them outside the synchronous request/response cycle - the pattern that keeps slow work (sending email, resizing images, generating reports) from blocking a client's request.",
     docsFile: "/content/components/worker.md",
+    docsVersion: 2,
     // Primarily fed by a queue (async), but a direct compute->worker
     // invocation is also legitimate (request-flow), hence both kinds.
     // inputs also include "data"/"distributed-systems" for the same reason
@@ -77,6 +79,7 @@ export default [
     summary: "Runs on a fixed schedule, not on request",
     docs: "Triggers work on a fixed schedule rather than in response to an incoming request - nightly batch jobs, periodic cleanup, scheduled reports. Has no inbound edge for the same reason: nothing in the architecture calls it, a scheduler does.",
     docsFile: "/content/components/cron-job.md",
+    docsVersion: 2,
     // No `inputs` relations — no input port at all, by design (see docs).
     relations: {
       outputs: { allowedCategories: ["compute", "messaging", "data"], allowedKinds: ["request-flow", "async"] },
@@ -112,6 +115,7 @@ export default [
     summary: "Event-triggered compute that scales to zero",
     docs: "Short-lived compute that runs only in response to a triggering event and scales down to zero when idle - no capacity to provision or pay for between invocations, at the cost of cold-start latency and a hard `timeoutSeconds`.",
     docsFile: "/content/components/serverless-function.md",
+    docsVersion: 2,
     // Event-triggered by design — an API Gateway request (request-flow) or
     // a queue/event-bus message (async) are both legitimate triggers.
     // Never a direct target of raw networking (Client/Browser/LB) — see

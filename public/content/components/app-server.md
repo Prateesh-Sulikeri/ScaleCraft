@@ -29,8 +29,8 @@ traffic patterns.
 
 The request flow typically starts with an external client initiating a 
 connection to the system's perimeter component, usually a Load Balancer. 
-The Load Balancer distributes incoming requests across a pool of A
-Application Server instances based on defined algorithms (e.g., ro
+The Load Balancer distributes incoming requests across a pool of
+Application Server instances based on defined algorithms (e.g.,
 round-robin or least connections). 
 1. An App Server instance receives a request and validates parameters.
 2. It executes the required business logic, often requiring interaction 
@@ -55,14 +55,10 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| `replica_count` | Defines the minimum number of running instances 
-required for high availability. |
-| `resource_requests` | Specifies the CPU and memory resources the 
-container must reserve to run. |
-| `health_check_path` | The endpoint (e.g., `/actuator/health`) used by 
-load balancers to check instance readiness. |
-| `max_connections` | Limits the number of concurrent external connections 
-the application layer can maintain. |
+| `replica_count` | Defines the minimum number of running instances required for high availability. |
+| `resource_requests` | Specifies the CPU and memory resources the container must reserve to run. |
+| `health_check_path` | The endpoint (e.g., `/actuator/health`) used by load balancers to check instance readiness. |
+| `max_connections` | Limits the number of concurrent external connections the application layer can maintain. |
 
 ## Where is it used?
 

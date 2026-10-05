@@ -30,7 +30,7 @@ reliance on the transactional capabilities of the core persistence layer.
 The data flow begins when an application service requests a resource 
 identifier (key). The request first routes to the Cache cluster. The cache 
 system attempts to locate the key within its in-memory storage. If the key 
-exists (a "cache hit"), the value is immediately returned to the a
+exists (a "cache hit"), the value is immediately returned to the
 application, completing the transaction quickly. If the key does not exist 
 (a "cache miss"), the cache layer propagates the request downstream to the 
 persistent database component.
@@ -58,18 +58,11 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Time-To-Live (TTL)** | Defines the maximum duration an item remains in 
-the cache before automatic invalidation. Essential for preventing stale 
-data. |
-| **Eviction Policy** | Determines which item is removed when the memory 
-capacity threshold is reached (e.g., LRU, LFU). |
-| **Maximum Memory Size** | Sets the hard limit on the total dedicated RAM 
-allocated to the cache cluster nodes. |
-| **Replication Factor** | Specifies the number of synchronous replicas 
-across different availability zones for data durability and high a
-availability. |
-| **Consistency Mode** | Configures how write operations propagate (e.g., 
-eventual, strong) between the primary database and the cache layer. |
+| **Time-To-Live (TTL)** | Defines the maximum duration an item remains in the cache before automatic invalidation. Essential for preventing stale data. |
+| **Eviction Policy** | Determines which item is removed when the memory capacity threshold is reached (e.g., LRU, LFU). |
+| **Maximum Memory Size** | Sets the hard limit on the total dedicated RAM allocated to the cache cluster nodes. |
+| **Replication Factor** | Specifies the number of synchronous replicas across different availability zones for data durability and high availability. |
+| **Consistency Mode** | Configures how write operations propagate (e.g., eventual, strong) between the primary database and the cache layer. |
 
 ## Where is it used?
 

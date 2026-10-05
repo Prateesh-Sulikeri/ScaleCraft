@@ -60,17 +60,11 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Replication Factor** | The number of copies maintained for every data 
-shard to ensure availability upon node failure. |
-| **Write Concern** | Defines the level of acknowledgment required (e.g., 
-majority, all nodes) before a write operation is considered successful. |
-| **Consistency Model** | Specifies the trade-off between eventual 
-consistency and strong consistency across replicas (e.g., CAP theorem 
-choice). |
-| **Sharding Key** | The specific field or attribute used by the database 
-to determine data partitioning across multiple physical nodes. |
-| **TTL (Time To Live)** | Defines a lifecycle policy automatically 
-deleting records after they exceed a set time duration. |
+| **Replication Factor** | The number of copies maintained for every data shard to ensure availability upon node failure. |
+| **Write Concern** | Defines the level of acknowledgment required (e.g., majority, all nodes) before a write operation is considered successful. |
+| **Consistency Model** | Specifies the trade-off between eventual consistency and strong consistency across replicas (e.g., CAP theorem choice). |
+| **Sharding Key** | The specific field or attribute used by the database to determine data partitioning across multiple physical nodes. |
+| **TTL (Time To Live)** | Defines a lifecycle policy automatically deleting records after they exceed a set time duration. |
 
 ## Where is it used?
 

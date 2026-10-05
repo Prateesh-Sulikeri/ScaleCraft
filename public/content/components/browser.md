@@ -15,7 +15,7 @@ received from backend resource servers.
 
 ## Why do we need it?
 
-The browser solves the problem of universal accessibility and stan
+The browser solves the problem of universal accessibility and
 standardization for web services. Without a standardized client, every 
 consumer would require a custom native SDK or application, drastically 
 increasing development overhead. It provides an environment where service 
@@ -53,14 +53,10 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| `User-Agent` Header | Identifies the browser type, version, and 
-operating system to the backend service. |
-| Cache Control Headers | Directives instructing the browser on how long 
-resources should be stored locally (e.g., `max-age`). |
-| Content Negotiation | The ability to specify preferred data formats 
-(e.g., `Accept: application/json`) for server responses. |
-| TLS Version Enforcement | Controls the minimum secure communication 
-protocol used during the handshake phase. |
+| `User-Agent` Header | Identifies the browser type, version, and operating system to the backend service. |
+| Cache Control Headers | Directives instructing the browser on how long resources should be stored locally (e.g., `max-age`). |
+| Content Negotiation | The ability to specify preferred data formats (e.g., `Accept: application/json`) for server responses. |
+| TLS Version Enforcement | Controls the minimum secure communication protocol used during the handshake phase. |
 
 ## Where is it used?
 
@@ -68,7 +64,7 @@ protocol used during the handshake phase. |
 fonts) and serving cached HTML to minimize latency from geographically 
 distant origins.
 *   **Web Applications:** Providing the primary interface for Single Page 
-Applications (SPAs) where JavaScript manages client-side state tra
+Applications (SPAs) where JavaScript manages client-side state
 transitions.
 *   **API Consumption:** Making direct HTTP calls to public 
 API endpoints when the service is consumed via embedded widgets or if a 
@@ -80,7 +76,7 @@ fully native client is not feasible.
 status codes.
 *   Rendering complexity requires continuous parsing of HTML, CSS, and 
 JavaScript specifications.
-*   Client-side rendering increases bandwidth usage but enhances i
+*   Client-side rendering increases bandwidth usage but enhances
 interactivity.
 *   Browser security mechanisms implement policies like CORS to prevent 
 unauthorized data access between domains.

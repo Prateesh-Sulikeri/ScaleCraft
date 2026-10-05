@@ -11,7 +11,7 @@ cluster of brokers. Producers write records (messages) to specific topics,
 which are internally segmented into ordered partitions. Consumers read 
 these streams by assigning themselves groups and consuming messages 
 sequentially from the offset recorded in each partition. This architecture 
-treats data not merely as transient messages, but as persistent, r
+treats data not merely as transient messages, but as persistent,
 replayable streams of events, making it foundational for event-driven 
 architectures.
 
@@ -22,8 +22,8 @@ persistence required for complex state management. Kafka solves the
 problem of service coupling and backpressure by decoupling producers from 
 consumers asynchronously. It handles extreme throughput requirements by 
 distributing data across partitions. When a system requires multiple, 
-disparate services to reliably react to streams of events—such as tracking 
-user activity or processing financial transactions—Kafka provides the 
+disparate services to reliably react to streams of events - such as tracking 
+user activity or processing financial transactions - Kafka provides the 
 necessary backbone for resilience and scalability.
 
 ## How does it work?
@@ -31,7 +31,7 @@ necessary backbone for resilience and scalability.
 The workflow involves three main roles: Producers, Brokers, and Consumers.
 1. **Production:** A producer client connects to a broker and writes 
 records to a specific topic partition. The broker assigns an offset number 
-sequentially to the record, ensuring ordered storage within that p
+sequentially to the record, ensuring ordered storage within that
 partition.
 2. **Replication:** Each partition has multiple replicas across 
 different brokers for fault tolerance. When a broker receives a write, it 
@@ -56,16 +56,11 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| `replication.factor` | Specifies the number of copies of the partition 
-data stored across brokers for redundancy. |
-| `min.insync.replicas` | Defines the minimum number of replicas that must 
-acknowledge a write before the leader accepts it, ensuring durability. |
-| `retention.period` | Sets the maximum time data remains stored in Kafka 
-before automatic expiration based on retention policy. |
-| `acks` | Determines the acknowledgement level required from brokers 
-(e.g., 'all' requires all ISRs to confirm write). |
-| `batch.size` | Controls the maximum size of a batch that producers will 
-send to improve network efficiency and throughput. |
+| `replication.factor` | Specifies the number of copies of the partition data stored across brokers for redundancy. |
+| `min.insync.replicas` | Defines the minimum number of replicas that must acknowledge a write before the leader accepts it, ensuring durability. |
+| `retention.period` | Sets the maximum time data remains stored in Kafka before automatic expiration based on retention policy. |
+| `acks` | Determines the acknowledgement level required from brokers (e.g., 'all' requires all ISRs to confirm write). |
+| `batch.size` | Controls the maximum size of a batch that producers will send to improve network efficiency and throughput. |
 
 ## Where is it used?
 

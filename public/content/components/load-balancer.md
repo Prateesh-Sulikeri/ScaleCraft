@@ -8,11 +8,11 @@ utilization.
 
 A load balancer acts as a highly available entry point that sits between 
 clients and a group of application servers. Its primary function is to 
-distribute client requests evenly among the configured backends, p
+distribute client requests evenly among the configured backends,
 preventing any server from becoming a bottleneck (hot spot). Load 
 balancers operate at various layers of the OSI model (L4 or L7) and 
-utilize sophisticated algorithms—such as round-robin or least conn
-connections—to decide which backend receives the next request. They are 
+utilize sophisticated algorithms - such as round-robin or least
+connections - to decide which backend receives the next request. They are 
 critical components in scaling applications horizontally across multiple 
 instances.
 
@@ -55,16 +55,11 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Algorithm: Round Robin** | Distributes traffic sequentially to each 
-backend in a rotating fashion. |
-| **Algorithm: Least Connections** | Directs traffic to the server 
-currently handling the fewest active connections. |
-| **Health Checks** | Periodic probes (HTTP/TCP) to verify the operational 
-status of backend endpoints. |
-| **Session Stickiness** | Ensures subsequent requests from a client are 
-routed back to the same original backend server. |
-| **Load Balancing Layer 4** | Operates at the Transport layer (TCP/UDP), 
-distributing based on IP and port without inspecting payloads. |
+| **Algorithm: Round Robin** | Distributes traffic sequentially to each backend in a rotating fashion. |
+| **Algorithm: Least Connections** | Directs traffic to the server currently handling the fewest active connections. |
+| **Health Checks** | Periodic probes (HTTP/TCP) to verify the operational status of backend endpoints. |
+| **Session Stickiness** | Ensures subsequent requests from a client are routed back to the same original backend server. |
+| **Load Balancing Layer 4** | Operates at the Transport layer (TCP/UDP), distributing based on IP and port without inspecting payloads. |
 
 ## Where is it used?
 

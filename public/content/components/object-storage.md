@@ -6,8 +6,8 @@ defined APIs and managed through hierarchical key structures.
 ## What is it?
 
 Object storage provides a highly scalable mechanism for storing massive 
-amounts of diverse data—including media, archives, backups, and da
-datasets—as discrete objects. Unlike file systems which impose directory 
+amounts of diverse data - including media, archives, backups, and
+datasets - as discrete objects. Unlike file systems which impose directory 
 hierarchies and block stores optimized for structured volume attachment, 
 object storage treats every unit of data as an opaque blob identified by a 
 unique key (or path). It exposes mechanisms for metadata management and 
@@ -25,7 +25,7 @@ Implementing global file system consistency at planetary scale introduces
 significant latency and complexity bottlenecks. Object storage solves this 
 by adopting a shared-nothing architecture that inherently supports massive 
 horizontal scaling and provides built-in mechanisms for geographical 
-replication. It decouples the data payload from the processing env
+replication. It decouples the data payload from the processing
 environment, making it ideal for data lakes and content backends requiring 
 extreme durability and high availability without rigid schema enforcement.
 
@@ -45,9 +45,9 @@ creation date).
 nodes within the cluster for durability.
 3.  For retrieval, a client sends an HTTP GET request with the object's 
 full key path. The service routes the request to the nearest available 
-replica node and returns the binary data stream. Write operations often 
-operate under eventual consistency models, guaranteeing eventual p
-propagation of changes across all regions.
+replica node and returns the binary data stream. Within one region, major
+providers now give read-after-write consistency; copies replicated to other
+regions arrive eventually.
 
 ## Architecture Diagram
 
@@ -63,17 +63,11 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Storage Class** | Defines the retrieval frequency and required 
-durability (e.g., Hot, Cold, Archive). Impacts cost structure. |
-| **Bucket Replication Policy** | Specifies how many geographical regions 
-must receive a copy of the object to ensure high availability. |
-| **Access Control List (ACL)** | Granular rules defining which users or 
-service identities can perform actions (Read/Write) on specific objects or 
-containers. |
-| **Lifecycle Rules** | Automates data movement and deletion over time 
-(e.g., transition objects older than 90 days from Hot to Cold storage). |
-| **Versioning** | Maintains multiple historical copies of an object, 
-allowing recovery from accidental overwrites or deletions. |
+| **Storage Class** | Defines the retrieval frequency and required durability (e.g., Hot, Cold, Archive). Impacts cost structure. |
+| **Bucket Replication Policy** | Specifies how many geographical regions must receive a copy of the object to ensure high availability. |
+| **Access Control List (ACL)** | Granular rules defining which users or service identities can perform actions (Read/Write) on specific objects or containers. |
+| **Lifecycle Rules** | Automates data movement and deletion over time (e.g., transition objects older than 90 days from Hot to Cold storage). |
+| **Versioning** | Maintains multiple historical copies of an object, allowing recovery from accidental overwrites or deletions. |
 
 ## Where is it used?
 
@@ -90,14 +84,14 @@ database backups due to low operational cost per GB stored.
 
 *   Data is addressed by opaque keys, eliminating the need for complex 
 file paths or directory structures.
-*   The architecture naturally supports global distribution and mu
+*   The architecture naturally supports global distribution and
 multi-region replication.
 *   Immutability is frequently managed through versioning capabilities at 
 the bucket level.
 *   Operations are fundamentally exposed as API calls (PUT/GET) over HTTP 
 protocols.
-*   Consistency models can range from eventual consistency to immediate 
-consistency, depending on configuration needs.
+*   Within a region, a read after a write sees it (S3 since 2020);
+cross-region replicas lag.
 
 ## Related Components
 

@@ -8,8 +8,8 @@ A cron job executes specific commands or scripts at pre-defined intervals
 determined by a cron expression. It functions as an automated scheduler 
 within an operating system or orchestration layer, allowing engineers to 
 decouple recurring maintenance or batch processing from the primary 
-application workflow. This component manages execution metadata—such as 
-the schedule and payload—ensuring tasks run reliably without continuous 
+application workflow. This component manages execution metadata - such as 
+the schedule and payload - ensuring tasks run reliably without continuous 
 human intervention. It is essential for maintaining data hygiene, running 
 periodic reports, and triggering scheduled state transitions across 
 distributed services.
@@ -18,8 +18,8 @@ distributed services.
 
 Cron jobs solve the problem of executing stateless operations that must 
 occur deterministically at fixed times or intervals. Without them, 
-critical background processes—like nightly database cleanups, metric 
-aggregation, or cache invalidations—require manual intervention or complex 
+critical background processes - like nightly database cleanups, metric 
+aggregation, or cache invalidations - require manual intervention or complex 
 real-time triggering logic within an active service endpoint. They provide 
 a reliable mechanism for scheduled workload management, ensuring necessary 
 maintenance tasks execute even when the primary application is idle or 
@@ -51,16 +51,11 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| `CRON_EXPRESSION` | Defines the execution frequency using standard cron 
-format. |
-| `MAX_RETRIES` | Specifies the maximum number of times a failed job will 
-automatically rerun. |
-| `TIMEZONE` | Sets the timezone used to evaluate scheduled execution 
-time. |
-| `JOB_TIMEOUT_SECONDS` | Limits the maximum allowable runtime for any 
-single job execution instance. |
-| `SECRET_ARN` | Provides credentials or temporary access keys required by 
-the job payload. |
+| `CRON_EXPRESSION` | Defines the execution frequency using standard cron format. |
+| `MAX_RETRIES` | Specifies the maximum number of times a failed job will automatically rerun. |
+| `TIMEZONE` | Sets the timezone used to evaluate scheduled execution time. |
+| `JOB_TIMEOUT_SECONDS` | Limits the maximum allowable runtime for any single job execution instance. |
+| `SECRET_ARN` | Provides credentials or temporary access keys required by the job payload. |
 
 ## Where is it used?
 
