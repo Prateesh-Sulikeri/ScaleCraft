@@ -1,0 +1,318 @@
+R1 handed you a product and an empty canvas, and every requirement in it named
+its own answer once you read it carefully. A brief is not usually that tidy.
+
+Here is one that is not. A link shortener: paste a long URL, get back
+`scr.at/7Qb4mK9`, and anyone who opens that lands on the original. Two
+endpoints. One table's worth of data. It is the smallest real system in this
+curriculum and it is the one interviewers open with, because almost every
+decision in it is a trade-off with no default.
+
+> [!NOTE]
+> Think first: 40 million links are created a month, and each one is opened
+> about a thousand times before it goes quiet. Which half of this system do you
+> size, and what does that make the other half? Commit to an answer before
+> reading on.
+
+## The numbers pick the shape
+
+| Measured | Figure | What it forces |
+|---|---|---|
+| New links | 40 M/month, ~15/second | The write path can be one boring machine |
+| Redirects | ~15,000/second at peak | 1,000:1. Every design decision is a read decision |
+| Retention | 5 years, ~2.4 billion rows at ~500 bytes | ~1.2 TB. One machine still holds it |
+| Concentration | ~70% of a day's redirects land on under 10,000 links | The hot set is a few megabytes |
+
+Read the last two rows together, because they are the whole design. The data is
+too big to be interesting and the working set is small enough to be free. You
+are not building a storage system. You are building a lookup that has to be
+cheap 15,000 times a second, sitting on top of a store that is barely working.
+
+The access pattern has exactly one shape: given a seven-character key, return
+one URL. No joins, no ranges, no filters, no sorting. 3.11 gave you the question
+to ask of any store - what does the query actually look like - and this is the
+cleanest answer that question has ever had.
+
+## Two paths, one of them a thousand times
+
+<Walkthrough
+  title="Shorten once, redirect a thousand times"
+  description="Switch paths to compare what a write and a read each cost. DNS is left out: it resolves once and gets cached."
+  algorithms={[
+    { id: "redirect", label: "Redirect (1,000 of these)" },
+    { id: "shorten", label: "Shorten (1 of these)" },
+  ]}
+  nodes={[
+    { id: "browser", kind: "component", componentId: "browser", label: "Browser" },
+    { id: "lb", kind: "component", componentId: "load-balancer", label: "Load Balancer" },
+    { id: "app", kind: "component", componentId: "app-server", label: "App Server" },
+    { id: "cache", kind: "component", componentId: "cache", label: "Cache" },
+    { id: "store", kind: "component", componentId: "nosql-database", label: "Key-value store" },
+  ]}
+  edges={[
+    { id: "arrive", source: "browser", target: "lb", kind: "request-flow" },
+    { id: "distribute", source: "lb", target: "app", kind: "request-flow" },
+    { id: "lookup", source: "app", target: "cache", kind: "request-flow" },
+    { id: "miss", source: "cache", target: "store", kind: "request-flow" },
+    { id: "write", source: "app", target: "store", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "A request arrives at the Load Balancer. Both paths start here and diverge one hop later.",
+      focus: "arrive",
+      variants: {
+        redirect: {
+          caption: "Someone clicks scr.at/7Qb4mK9 and the request reaches the Load Balancer. This is the request that happens 15,000 times a second.",
+          focus: "arrive",
+        },
+        shorten: {
+          caption: "Someone posts a long URL to be shortened. The same Load Balancer, about 15 times a second - a thousandth of the traffic the other path carries.",
+          focus: "arrive",
+        },
+      },
+    },
+    {
+      caption: "The Load Balancer picks an App Server. Any instance will do: nothing about a link is held on the machine that answers for it, which is why 3.6's stateless tier is the default here.",
+      focus: "distribute",
+    },
+    {
+      caption: "The App Server resolves the key.",
+      focus: "lookup",
+      variants: {
+        redirect: {
+          caption: "The App Server asks the Cache for key 7Qb4mK9. On a hot link the request ends here, in about a millisecond, and the store is never touched at all.",
+          focus: "lookup",
+        },
+        shorten: {
+          caption: "A write has nothing to look up. The App Server generates a short key and goes straight to the store - the Cache is not on this path.",
+          focus: "write",
+        },
+      },
+    },
+    {
+      caption: "The slower branch runs.",
+      focus: "miss",
+      variants: {
+        redirect: {
+          caption: "On a miss the Cache falls through to the store, and the App Server keeps the answer under that key. The next click on this link stops one hop earlier.",
+          focus: "miss",
+        },
+        shorten: {
+          caption: "Before the key is kept, the store is read once to confirm nothing already owns it. A read on the write path costs nothing at 15 writes a second.",
+          focus: "write",
+        },
+      },
+    },
+    {
+      caption: "Only one of these two paths runs a thousand times per link. Everything between the App Server and the store is there for that one.",
+    },
+  ]}
+/>
+
+Note: the write path never touches the Cache. A newly created link is cold by
+definition, and populating it on write would fill memory with links nobody has
+clicked yet.
+
+## Making a short key
+
+Seven base62 characters is 3.5 trillion addresses for 2.4 billion links. Two
+ways to pick one, and they fail differently.
+
+**Hash the URL.** Take a digest of the long URL, keep the first seven base62
+characters. The same URL always produces the same key, so duplicates collapse
+for free. The catch is the birthday problem: at 2.4 billion keys in a 3.5
+trillion space you expect on the order of 800,000 collisions, not a handful. A
+key space being 1,400 times larger than the thing you are storing does not make
+collisions rare, it makes them routine. So every write reads the store first to
+check whether that key is taken, and re-hashes with a salt if it is. At 15
+writes a second, an extra read is free.
+
+**Count.** Keep a monotonic integer, base62-encode it. Collisions are
+impossible by construction and no read is needed. Two costs. The counter is
+shared state that every writer touches, which is the coordination point 3.6
+spent a chapter teaching you to avoid - so each App Server claims a block of
+10,000 ids at a time and the counter is touched once per block instead of once
+per write. And sequential keys are enumerable: anyone can walk `aaaaaab`,
+`aaaaaac` and read every link in your system, which for a product whose links
+are often semi-private is a real leak, not a theoretical one.
+
+> **Engineering lens.** Neither option is wrong. The hash pays per write to buy
+> unguessable keys; the counter pays in coordination and privacy to buy
+> certainty. What decides it is whether your links are meant to be secret,
+> which is a product question the architecture cannot answer for you.
+
+## 301 or 302
+
+The redirect's HTTP status code is the highest-leverage decision in this system
+and it is one character wide.
+
+A **301** means permanent. The browser caches it, intermediaries cache it, and
+after the first click that link's traffic never reaches you again. Your read
+path gets cheaper than any cache you could build.
+
+A **302** means temporary. Every single click comes back to you.
+
+| | 301 Permanent | 302 Found |
+|---|---|---|
+| Buys | Redirect traffic disappears at the client | Every click is yours to count |
+| Costs | No click counts, and the link can never be repointed | You carry all 15,000/second yourself |
+
+Which is why Bitly serves 302s. Click analytics is the product being sold, and a
+link that can be repointed after it has been printed on something is the feature
+enterprise customers pay for. Both require the click to arrive. A shortener
+whose links are disposable and uncounted would be right to choose 301 and
+delete most of this architecture.
+
+## Trade-offs
+
+| Decision | What it buys | What it costs |
+|---|---|---|
+| Key-value store | The query is literally `get(key)`, and it cannot get slower as the table grows | Nothing relational later: click aggregation becomes a separate job |
+| SQL primary plus a replica | One engine you already operate, and reporting queries stay possible | Replication lag: a link created a second ago can 404 if its read lands on a replica |
+| Longer TTL on hot keys | Higher hit ratio, fewer reads reaching the store | A repointed link keeps sending people to the old destination until it expires |
+| Edge-caching the redirect | The response never crosses an ocean | Only works for 301s, so it costs you the analytics again |
+
+The last row is the one people miss. A CDN cannot help a 302, because a 302 is
+by definition not cacheable at the edge for long. The read path and the business
+model are the same decision.
+
+## What breaks
+
+- **A link goes viral and its key expires.** Every in-flight request misses at
+  the same instant and the store takes the full rate for one key. 3.14's
+  stampede, arriving on the one system where a single key can carry a
+  meaningful share of all traffic.
+- **The 404 on a link that exists.** A user shortens a URL and clicks it
+  immediately; the read lands on a replica that has not received the row yet.
+  The link is real, the store says no, and the user concludes the product is
+  broken. Serve reads for recently created links from the primary, or write the
+  key to the fast tier as part of the create.
+- **The cold cache after a restart.** The store has been sized for post-cache
+  traffic for eighteen months. The fast tier restarts empty and 15,000 requests
+  a second arrive at a machine that has not seen 200 in a year.
+- **The hottest key ignores your partitioning.** 3.13 splits load by key, and
+  the single most-clicked link in the system is one key. Partitioning cannot
+  help it. Only the memory in front of it can.
+
+## What changes at scale
+
+At **10x**, nothing structural moves. Hit ratio is the only number worth
+tuning, and the store is still mostly idle.
+
+At **100x** the hot set outgrows one machine's memory, and that machine is now
+a single point of failure in front of the entire read path - which is the exact
+condition 3.14 named for replacing it with a partitioned, replicated tier.
+
+At **1000x** the constraint stops being throughput and becomes geography. A 302
+served from one region is 200 ms of dead time for half the planet, and the fix
+is a copy of the hot set near the user. That reopens the 301 question with real
+money attached.
+
+## In production
+
+Bitly's redirects are 302s, which is a deliberate purchase: serving every click
+yourself is the cost of selling click analytics and of letting a customer
+repoint a link after it has shipped. Twitter's `t.co` makes the opposite bet
+about scope - every link in every tweet is wrapped, so the shortener is on the
+critical path of the timeline itself, and it is sized so that the redirect is
+never the slow part of opening a link. Same component, two different reasons
+for it to exist.
+
+## Common mistakes
+
+- **Designing the write path first.** It runs at 15 requests a second. Time
+  spent sharding it is time not spent on the path carrying a thousand times more
+  traffic.
+- **Choosing 301 for the latency win** without pricing what it deletes. It is
+  the fastest possible answer and it silently ends the analytics product.
+- **Generating keys randomly with no collision check.** Random and
+  collision-free are not the same property, and the collision shows up as one
+  user's link quietly pointing at another user's destination.
+- **Calling the store "fast enough" and skipping the fast tier.** It is fast
+  enough. It is also answering 1.3 billion lookups a day that nobody needed it
+  to answer.
+
+## In an interview
+
+High relevance, and it is graded on step 3 more than step 4: the interviewer is
+watching whether you estimate the read/write ratio before you draw anything, and
+a candidate who opens with boxes has already lost the point. The deep dive
+(step 5) is almost always key generation, and the trade-off they wait for
+(step 7) is the redirect code.
+
+What that sounds like at a senior level: *"Reads beat writes about a thousand to
+one, so I'm sizing the redirect path and leaving the create path deliberately
+boring. The lookup is a single key fetch, so a key-value store with a shared
+cache tier in front of it, hit ratio being the number that matters rather than
+store latency. For keys I'd hash and check for a collision rather than counting,
+because sequential keys are enumerable and these links are often semi-private. And
+I'd serve 302s, knowing that means carrying every click - if we weren't selling
+analytics I'd argue for 301 and most of this tier would disappear."*
+
+## Connections
+
+This is 3.11's question with the cleanest possible answer: one key in, one value
+out, which is what a key-value store is for, and which is also why choosing a
+relational primary here is defensible rather than wrong - you would be buying
+reporting flexibility with replication lag. 3.14 supplies the entire read path,
+and the hit ratio is not a tuning detail here but the design itself. 3.4, 3.6
+and 3.8 supply the tier that carries it, unchanged from the shape you have drawn
+since Group B. What is new is that none of them were named for you.
+
+## Recap
+
+- 1,000:1 reads to writes means every real decision is a read decision. The
+  create path is allowed to be dull.
+- The access pattern is `get(key)`. That is the whole argument for a key-value
+  store, and the whole cost of not using one.
+- Hash keys need a collision check; counter keys need coordination and leak an
+  enumerable namespace. Product secrecy decides it, not performance.
+- 301 deletes your traffic and your analytics together. 302 keeps both and makes
+  you pay for them.
+- The hot set is megabytes. Whatever holds it is the most load-bearing thing on
+  the canvas.
+
+## Your turn
+
+**The product.** A link shortener, four months old, currently one application
+server talking to one relational database. It works. The numbers above are next
+quarter's, not today's, and the rebuild is being scoped now.
+
+What it has to do:
+
+- A seven-character key resolves to its destination in single-digit
+  milliseconds, 15,000 times a second at peak, without that work reaching the
+  store that owns the links on most requests.
+- Creating a link runs about 15 times a second and may stay simple. It must not
+  be made complicated to match the other path.
+- 2.4 billion links over five years live in something whose query is a single
+  key lookup.
+- Losing the machine that runs application code drops no requests.
+- One public hostname, reached from a browser, resolving to whatever fronts the
+  request tier.
+- A link opened one second after it was created must not 404.
+
+**Phase A - the core.** Get one redirect served correctly and cheaply: the path
+from the browser to whatever owns the link, with repeat reads absorbed before
+they reach it.
+
+**Phase B - the full brief.** Commit to a store and own its consequences. More
+than one architecture passes here, and the two that do disagree about something
+real. Validate runs every rule in the registry against your graph, not a curated
+subset, so anti-patterns from any chapter will speak up.
+
+**Stretch, optional and not graded.** Nothing here throttles the create
+endpoint, and nothing here answers what a second continent would change. Both
+are the next two Tier 1 projects.
+
+**What you are not told**: which store, how many of anything, or where the
+repeat reads should be absorbed. The brief above is symptoms and rates. Both
+phases are judged together by one Validate and one Submit.
+
+## Next
+
+This system has an open endpoint that writes to your store, and nothing you just
+built stops one script from creating four million links tonight. That is the
+Rate Limiter project, and it is one of Tier 1's three remaining briefs - all
+unordered, each taking one problem this design raised and left alone: throttling
+an open write path, designing the fast tier instead of placing one, and
+measuring any of it in production.

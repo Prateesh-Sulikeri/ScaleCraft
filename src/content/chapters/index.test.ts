@@ -56,7 +56,7 @@ describe("getChaptersForMode", () => {
   it("returns only real-world-extraction chapters for that mode", () => {
     const chapters = getChaptersForMode("real-world-extraction");
     expect(chapters).toHaveLength(1);
-    expect(chapters[0].id).toBe("rwe-dummy-1");
+    expect(chapters[0].id).toBe("rwe-t1-bitly-url-shortener");
   });
 
   it("every registered chapter's mode is reachable through the filter", () => {

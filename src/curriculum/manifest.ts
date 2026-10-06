@@ -721,7 +721,8 @@ export const courses: Record<CourseId, Course> = {
             title: "Bitly (URL Shortener)",
             kind: "chapter",
             // Re-homed from v1's RWE-1 bit.ly per §21.4 - same project.
-            chapterDefinitionId: "rwe-dummy-1",
+            // Authored 2026-09-19, replacing the `rwe-dummy-1` placeholder.
+            chapterDefinitionId: "rwe-t1-bitly-url-shortener",
             estimatedMinutes: 75,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r1-a-site-that-stays-up"],
