@@ -4817,11 +4817,10 @@ export const chapterRegistry: ChapterDefinition[] = [
           "authoritative) for one name. Real resolvers also handle multiple records per name, negative " +
           "caching, and query redundant servers at each level - none of that changes the TTL trade-off " +
           "or the failure reasoning this chapter teaches.",
-        "The buildable exercise wires DNS inline (browser -> dns -> firewall) so the canvas can " +
-          "validate it. The `dns` component's registry contract only accepts request-flow edges today, " +
-          "not the control edge 2.1 taught for this exact lookup - conceptually the resolution and the " +
-          "request stay two separate exchanges, as the lesson's diagram caption states, but that " +
-          "distinction isn't enforced on canvas yet.",
+        "The buildable exercise wires DNS inline (browser -> dns -> firewall). The browser -> dns " +
+          "lookup can also be drawn as the control edge 2.1 taught, but the exercise does not grade " +
+          "that distinction - conceptually the resolution and the request stay two separate exchanges, " +
+          "as the lesson's diagram caption states.",
         "DNS-based routing is presented as TTL-bounded name changes only - real systems combine it " +
           "with health checks, weighted/latency-based records, and anycast, out of scope at this stage.",
       ],
@@ -5587,7 +5586,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       simplifications: [
         "Exactly two app-server instances are ever in scope. Choosing how many is 3.8's job; this chapter only teaches that more than one needs something routing between them.",
-        "Health checks (`control` edges) are taught and shown in the lesson diagram but not exercised on canvas - the registry's load-balancer/app-server relations contracts don't yet accept a control-kind edge between them (both declare allowedKinds: [\"request-flow\"] only). Flagged as an engine gap in the spec and pending-chapters.md, not worked around.",
+        "Health checks (`control` edges, load balancer -> app server) are drawable but not graded - the exercise checks the request-flow path only.",
         "Algorithm choice (round-robin vs. least-connections) is a config decision discussed in the lesson and quiz, not enforced by a validation rule - both are legitimate for different workloads, so there is no single correct config to check for.",
       ],
     },
@@ -6439,9 +6438,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       {
         id: "bb-cp-a-hint-3",
         body:
-          "If Submit says a component is missing while it is on the canvas, it is reading a setting on that " +
-          "component. Three cards have a setting the brief describes: what the perimeter does by default, " +
-          "where TLS ends, and whether callers are checked.",
+          "Three cards have a setting the brief describes: what the perimeter does by default, where TLS " +
+          "ends, and whether callers are checked. Submit names any setting that does not match.",
       },
     ],
     readingLinks: [],
@@ -7363,10 +7361,8 @@ export const chapterRegistry: ChapterDefinition[] = [
         "Everything past Group B - data, caching, async systems, storage, and reliability.",
       ],
       simplifications: [
-        "`control`-kind edges (health checks) are described in prose and diagrams only - no registry " +
-          "component accepts one on canvas today (checked directly against `load-balancer`'s and " +
-          "`app-server`'s own `relations` fields). Stated honestly in the lesson's own \"Why " +
-          "duplicating is a number, not a project\" section, not left implicit in this list alone.",
+        "`control`-kind health-check edges (load balancer -> app server) are drawable but not graded; " +
+          "the exercise checks the request-flow path only.",
         "The 300 requests/second peak and 150-per-instance figures are an illustrative worked example, " +
           "not a claim about any real system's measured load - used to make the N+1 headroom " +
           "reasoning concrete without asking the learner to invent an estimate from scratch.",
@@ -7443,7 +7439,7 @@ export const chapterRegistry: ChapterDefinition[] = [
             id: "c",
             label: "A new `control`-kind edge, drawn by hand from the load balancer to each instance.",
             correct: false,
-            explanationMd: "No registry component accepts a `control` edge on canvas today - health checking is real, but it isn't a wire you draw.",
+            explanationMd: "A `control` edge documents a health check, but the load balancer already health-checks every backend it routes to. Adding an instance needs no new edge.",
           },
           {
             id: "d",
@@ -7773,9 +7769,8 @@ export const chapterRegistry: ChapterDefinition[] = [
         "Everything past Group B - data, caching, async systems, storage, and reliability.",
       ],
       simplifications: [
-        "`control`-kind edges (health signals feeding a registry's membership decision) are described in prose and diagrams only - " +
-          "no registry component accepts one on canvas today (checked directly against every registered component's own " +
-          "`relations` field), the same disclosed gap 3.4 and 3.8 already named.",
+        "`control`-kind health signals (load balancer -> app server) are drawable but not graded; the registry's " +
+          "membership decision is taught in prose and diagrams.",
         "DNS's ttlSeconds is used as the on-canvas vehicle for the general freshness/cost trade-off, not as a claim that this " +
           "graph's DNS node discovers app-server instances - in this topology DNS resolves the stack's public entry point; " +
           "the load balancer already does real service discovery for the app tier (3.4). Stated directly in the lesson's own " +
@@ -8376,8 +8371,7 @@ export const chapterRegistry: ChapterDefinition[] = [
         id: "bb-cp-b-hint-3",
         body:
           "The fleet is drawn as two cards that are not doing the same job. Compare everything each one is " +
-          "connected to. If Submit then says a component is missing while it is on the canvas, it is reading a " +
-          "setting on that component.",
+          "connected to, and each card's settings.",
       },
     ],
     readingLinks: [],
@@ -10205,9 +10199,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       {
         id: "bb-cp-c-hint-3",
         body:
-          "One line of the brief is about the application tier, not the data. If Submit says a component is " +
-          "missing while it is on the canvas, it is reading a setting on that component - including any store " +
-          "whose model you chose.",
+          "One line of the brief is about the application tier, not the data. Check settings too, including " +
+          "any store whose model you chose.",
       },
     ],
     readingLinks: [],
@@ -12000,6 +11993,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       "single-instance-load-balancer",
       "permissive-firewall",
     ],
+    ruleSeverity: {
+      "permissive-firewall": "error",
+      "single-instance-load-balancer": "error",
+    },
     // Two blueprints, and they are the same system: the redundancy requirement
     // has two honest expressions on this canvas. 3.8 taught the first (one
     // stateless node, instance count raised), and the canvas permits the
@@ -12187,9 +12184,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       {
         id: "bb-r1-hint-3",
         body:
-          "If Submit says a component is missing while you are looking straight at it on the canvas, it " +
-          "is reading a value on that component rather than hunting for a second copy. One requirement " +
-          "in this brief is answered by a number instead of another box.",
+          "One requirement in this brief is answered by a number on a component instead of another box.",
       },
     ],
     readingLinks: [],
@@ -14400,11 +14395,9 @@ export const chapterRegistry: ChapterDefinition[] = [
       "search-engine",
       "object-storage",
     ],
-    // R1's set. component-relations does real work here: it rejects the two
-    // production shapes the lesson teaches (browser -> bucket via a presigned
-    // URL, CDN -> bucket as origin), because object-storage accepts compute
-    // inputs only. The lesson and the brief both disclose that - see spec §6
-    // and open decision 20.
+    // Checkpoint D's set. Browser -> bucket (presigned) and CDN -> bucket
+    // (origin) are legal since 2026-10-07 (open decision 20) and pass beside
+    // the graded app -> bucket path.
     validationRuleIds: [
       "no-direct-client-database",
       "component-relations",
@@ -14493,10 +14486,10 @@ export const chapterRegistry: ChapterDefinition[] = [
           "The applications row now carries a key, a size and a content type; the bytes behind that key " +
           "live in a store priced for bytes, which no backup, replication stream or buffer cache has to " +
           "carry again. The CDN did not move: after the first miss it serves each logo from the edge, so " +
-          "the new store hears about a popular logo once. What this canvas cannot draw is the step most " +
-          "production systems take next - the browser uploading straight to the bucket on a presigned " +
-          "URL, and the CDN using the bucket as its origin - so the application tier still sits on the " +
-          "byte path here. The split itself is the part that carries over unchanged.",
+          "the new store hears about a popular logo once. The step most production systems take next - the " +
+          "browser uploading straight to the bucket on a presigned URL, and the CDN using the bucket as its " +
+          "origin - can be drawn beside this path and takes the application tier off the byte path. The " +
+          "split itself is the part that carries over unchanged.",
       },
     ],
     hasEditorExercise: true,
@@ -14518,9 +14511,9 @@ export const chapterRegistry: ChapterDefinition[] = [
       {
         id: "bb-3-20-hint-3",
         body:
-          "Ask which tier receives uploads today, and start the new path there. On this canvas the " +
-          "browser and the edge cannot reach the new store directly, so a connection from either one " +
-          "will be rejected with an explanation.",
+          "Ask which tier receives uploads today, and start the new path there. A presigned upload " +
+          "from the browser can sit beside it, but the application tier's path is the one this exercise " +
+          "checks.",
       },
     ],
     readingLinks: [],
@@ -14552,10 +14545,9 @@ export const chapterRegistry: ChapterDefinition[] = [
           "this depth.",
       ],
       simplifications: [
-        "Object storage accepts connections from compute only on this canvas, so the presigned-upload " +
-          "path (browser to bucket) and the CDN-origin path (CDN to bucket) are taught in prose and a " +
-          "sequence diagram but not drawable. The exercise draws the byte path from the application tier, " +
-          "and the lesson's own Your turn section says so.",
+        "The exercise checks the application tier's write path to the bucket. The presigned-upload path " +
+          "(browser to bucket) and the CDN-origin path (CDN to bucket) are drawable and pass beside it, but " +
+          "are not required.",
         "storageClass is taught (lifecycle moves old résumés to colder classes) and not gated - there is " +
           "no single correct class for a bucket holding both new and old files.",
         "Public logos and private résumés are discussed as two buckets with opposite policies; the canvas " +
@@ -15243,9 +15235,8 @@ export const chapterRegistry: ChapterDefinition[] = [
           "and send every read and write straight to the owning node, so the Coordinator never carries a " +
           "byte of applications data. Adding the fourth node is now a new map version rather than a " +
           "redeploy, and a stale instance is refused by the node it guessed wrong instead of quietly " +
-          "writing to it. What the canvas cannot draw is the other half of membership: each storage node's " +
-          "heartbeat to the Coordinator. That is a real control edge with no legal drawing yet, so the " +
-          "lesson's sequence diagram carries it.",
+          "writing to it. The other half of membership is each storage node's heartbeat to the " +
+          "Coordinator, a control edge you can draw but this exercise does not grade.",
       },
     ],
     hasEditorExercise: true,
@@ -15296,10 +15287,8 @@ export const chapterRegistry: ChapterDefinition[] = [
           "versus merging by meaning.",
       ],
       simplifications: [
-        "Storage nodes' heartbeats to the coordinator are a control edge the canvas cannot draw " +
-          "(nosql-database declares no control output, and the coordinator's outputs reach only " +
-          "distributed-systems components). Membership is taught in a sequence diagram and stated in the " +
-          "blueprint commentary rather than built.",
+        "Storage nodes' heartbeats to the coordinator are drawable as control edges but not graded. " +
+          "Membership is taught in a sequence diagram and stated in the blueprint commentary.",
         "Each NoSQL node stands for one shard; replication within a shard, where quorums actually apply, " +
           "is taught in prose and diagrams but not drawn on the canvas.",
         "consensusProtocol is taught as naming the algorithm and not gated - the choice does not change " +
@@ -15809,9 +15798,9 @@ export const chapterRegistry: ChapterDefinition[] = [
         "Locks, leaders and failover (Group G).",
       ],
       simplifications: [
-        "The canvas cannot draw a CDN or a browser connecting to a bucket (object storage accepts compute " +
-          "only), so photos reach the CDN through the application tier and uploads go through it too. The " +
-          "debrief names the production shape: the bucket as the CDN's origin, and presigned uploads.",
+        "Photos reach the CDN through the application tier and uploads go through it too; that is what " +
+          "the blueprint checks. The production shape (the bucket as the CDN's origin, presigned uploads) " +
+          "is drawable and passes beside it; the debrief names it.",
         "Three document nodes stand for the shards; the fourth arriving next month is described, not drawn.",
         "Bucket policy is not on the canvas. Two buckets stand for two policies.",
       ],
@@ -16476,8 +16465,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       {
         id: "bb-3-24-hint-3",
         body:
-          "If Submit says a component is missing while you can see it on the board, the component is there " +
-          "but configured outside what the brief allows. Open it and check the number against both rates.",
+          "The limit is a number on a component you already have. Open it and check the number against both " +
+          "rates.",
       },
     ],
     readingLinks: [],
@@ -16504,8 +16493,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       simplifications: [
         "rateLimitPerMinute is treated as a per-caller limit, as 3.5 taught it; the canvas has no separate " +
           "global limit or burst capacity field, so those are taught in prose and tables.",
-        "The gateway is one card standing for several machines. The shared counter store is not drawn - an " +
-          "API Gateway cannot connect to a cache on this canvas - and is taught in prose.",
+        "The gateway is one card standing for several machines. The shared counter store (API Gateway -> " +
+          "distributed cache) is drawable but not graded; the exercise checks the limit itself.",
         "Simulated burst traffic is replaced by the lesson's token-bucket trace table and a quiz question.",
         "Placement across edge, gateway, service and dependency is taught in a diagram and a quiz question, " +
           "not built.",
@@ -17125,6 +17114,16 @@ export const chapterRegistry: ChapterDefinition[] = [
             { from: "app", to: "coord", kind: "control" },
           ],
         },
+        forbid: [
+          {
+            id: "bb-3-26-forbid-second-leader",
+            label: "a second Leader card (one group has one leader at a time)",
+            nodes: [
+              { alias: "l1", componentId: "leader" },
+              { alias: "l2", componentId: "leader" },
+            ],
+          },
+        ],
         referenceGraph: {
           nodes: [
             { id: "bb-3-26-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
@@ -17156,8 +17155,8 @@ export const chapterRegistry: ChapterDefinition[] = [
           "within seconds, and the term number it carries makes the old leader's return harmless. The app " +
           "asks the Coordinator who leads rather than carrying an address, which is the line Tuesday was " +
           "missing. The read edge from one Follower is optional and is graceful degradation in a single " +
-          "arrow: listings keep loading during a failover. What the canvas cannot enforce is \"exactly one " +
-          "Leader card\" - that rule lives in the Coordinator, and in your drawing.",
+          "arrow: listings keep loading during a failover. A second Leader card fails Submit even with the " +
+          "Coordinator present: one group has one leader at a time, and the Coordinator decides which machine it is.",
       },
     ],
     hasEditorExercise: true,
@@ -17207,8 +17206,6 @@ export const chapterRegistry: ChapterDefinition[] = [
         "Leader and Follower are role cards standing for database machines. A real failover changes which " +
           "machine holds which role; the canvas cannot change a card's role, so the lesson's walkthrough uses " +
           "plain Node A/B/C cards with roles in the captions.",
-        "The blueprint cannot require exactly one Leader card - a second Leader with a Coordinator clears " +
-          "split-brain-risk and still matches. Taught in the lesson and named in the debrief commentary.",
         "Kill-the-leader is a prediction prompt, a walkthrough and a quiz question, not a simulation.",
         "electionTimeoutMs and readOnly are taught as trade-offs and not gated.",
         "The Coordinator is one card standing for a three- or five-member consensus group, as in 3.22.",
@@ -17597,8 +17594,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       "coordinator",
     ],
     // The full registry - a composition gate over all seven groups should be
-    // able to fail anything Part 3 taught. Five are warnings and cannot fail
-    // Submit on their own (spec §7); the blueprint enforces what they warn about.
+    // able to fail anything Part 3 taught. Four warnings are escalated to
+    // errors by ruleSeverity below; orphan-component stays a warning.
     validationRuleIds: [
       "no-direct-client-database",
       "single-instance-load-balancer",
@@ -17611,6 +17608,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       "missing-input-connection",
       "component-relations",
     ],
+    ruleSeverity: {
+      "permissive-firewall": "error",
+      "single-instance-load-balancer": "error",
+      "split-brain-risk": "error",
+      "queue-without-dead-letter-queue": "error",
+    },
     // Two blueprints, the same system, differing only in how the shopper
     // tier's redundancy is drawn - R1's precedent, carried for the same
     // reason (open decision 11's config-predicate drift; spec §8).
@@ -17874,9 +17877,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       {
         id: "bb-r2-hint-3",
         body:
-          "If Submit says a component is missing while you are looking straight at it, it is there but " +
-          "configured outside what the brief needs, or connected in a way that answers a different " +
-          "requirement. Check its configuration and which path it sits on.",
+          "A component can be present and still miss a requirement: configured outside what the brief needs, " +
+          "or on a path that answers a different requirement. Check its configuration and which path it sits on.",
       },
     ],
     readingLinks: [],
@@ -17907,7 +17909,7 @@ export const chapterRegistry: ChapterDefinition[] = [
         "Timeouts, retries, idempotency keys, rate-limit values and alerting are taught but not drawable or " +
           "not gated here; the brief's \"held to a per-caller limit\" is satisfied by the API Gateway's presence.",
         "The CDN serves the storefront bundle from the origin path; photos are served through the application " +
-          "tier, since the canvas cannot connect a CDN or a browser to object storage (open decision 20).",
+          "tier, which is what the blueprint checks. CDN -> bucket and presigned uploads are drawable and pass beside it.",
       ],
     },
     // No quiz - §22: checkpoints have none, the build is the assessment. No
@@ -18204,15 +18206,10 @@ export const chapterRegistry: ChapterDefinition[] = [
     // specs/rwe-t1-bitly-url-shortener.spec.md. Lesson body:
     // public/content/chapters/rwe-t1-bitly-url-shortener.mdx.
     //
-    // CURRICULUM.md §15.1 defines an RWE project as Phase A (guided core) +
-    // Phase B (open build) + optional Stretch + Debrief, but
-    // `ChapterDefinition` holds exactly one starter graph, one blueprint set
-    // and one Submit - there is no phase mechanism, and inventing a field is
-    // forbidden by §20.5. Both phases are therefore authored as one exercise:
-    // the starter graph is Phase A's seed, the brief carries both phases as
-    // named parts, and Phase B's "more than one architecture passes" is
-    // carried by the two blueprints below plus RWE mode's own full-registry
-    // validation. Recorded as an open decision in pending-chapters.md.
+    // One exercise per RWE project (CURRICULUM.md §15.1, decided 2026-10-07):
+    // the lesson teaches, the starter graph seeds the build, and "more than
+    // one architecture passes" is the two blueprints below plus RWE mode's
+    // full-registry validation.
     problemStatement:
       "A link shortener, four months old: one application server and one relational database, " +
       "and it works. The figures below are next quarter's, not today's, and the rebuild is being " +
@@ -18409,10 +18406,8 @@ export const chapterRegistry: ChapterDefinition[] = [
           "all. If your graph does neither, the design is one product decision short, not wrong.",
       },
     ],
-    // Orienting to directional, never the answer (§11.3). Hint 3 is R1's
-    // mitigation for open decision 11 carried forward: two of this chapter's
-    // blueprint predicates are on config fields, so "Submit says a component
-    // is missing while it is on the canvas" is reachable here too.
+    // Orienting to directional, never the answer (§11.3). Two blueprint
+    // predicates are config fields; Submit names a mismatched setting.
     hints: [
       {
         id: "rwe-t1-bitly-hint-1",
@@ -18432,9 +18427,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       {
         id: "rwe-t1-bitly-hint-3",
         body:
-          "If Submit reports something missing while you are looking straight at it on the canvas, " +
-          "the component is there but one of its settings is not what the brief's figures ask for. " +
-          "Open it and read its fields against the requirement it is meant to answer.",
+          "Some requirements are answered by a setting, not a box. Open each component and read its " +
+          "fields against the requirement it is meant to answer.",
       },
       {
         id: "rwe-t1-bitly-hint-4",

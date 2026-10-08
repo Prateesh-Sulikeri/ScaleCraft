@@ -40,11 +40,11 @@ histories of the same data cannot be merged safely after the fact.
   title="Losing the leader without losing the database"
   description="Three database nodes, a coordinator group and the app tier, through one failover."
   nodes={[
-    { id: "app", kind: "component", componentId: "app-server", label: "App Server" },
-    { id: "coord", kind: "component", componentId: "coordinator", label: "Coordinator group" },
-    { id: "a", kind: "custom", icon: "database", label: "Node A", category: "distributed-systems" },
-    { id: "b", kind: "custom", icon: "database", label: "Node B", category: "distributed-systems" },
-    { id: "c", kind: "custom", icon: "database", label: "Node C", category: "distributed-systems" },
+    { id: "app", kind: "component", componentId: "app-server", label: "App Server", column: 0 },
+    { id: "coord", kind: "component", componentId: "coordinator", label: "Coordinator group", column: 0 },
+    { id: "a", kind: "custom", icon: "database", label: "Node A", category: "distributed-systems", column: 1 },
+    { id: "b", kind: "custom", icon: "database", label: "Node B", category: "distributed-systems", column: 2 },
+    { id: "c", kind: "custom", icon: "database", label: "Node C", category: "distributed-systems", column: 2 },
   ]}
   edges={[
     { id: "ask", source: "app", target: "coord", kind: "control" },
@@ -69,14 +69,18 @@ histories of the same data cannot be merged safely after the fact.
     {
       caption: "Node A holds its role on a lease the Coordinator group renews every second. At 02:14 Node A stops renewing: dead or unreachable, nobody can tell yet.",
       focus: "lease-a",
+      faultNodeIds: ["a"],
+      faultEdgeIds: ["lease-a"],
     },
     {
       caption: "After the election timeout, the Coordinator group picks the follower with the most recent data, Node B, and records it as leader for term 8. Node C agrees, so a majority stands behind it.",
       focus: ["lease-b", "lease-c"],
+      faultNodeIds: ["a"],
     },
     {
       caption: "The App Server's next request to the Coordinator group returns Node B, term 8. Writes go to Node B, which replicates to Node C. About three seconds have passed.",
       focus: ["ask", "write-b", "b-c"],
+      faultNodeIds: ["a"],
     },
     {
       caption: "Node A comes back still believing it leads term 7. It cannot renew its lease, and Node B and Node C refuse anything stamped with term 7. Node A rejoins as a follower.",

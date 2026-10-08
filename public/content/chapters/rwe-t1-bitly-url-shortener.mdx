@@ -291,22 +291,19 @@ What it has to do:
   request tier.
 - A link opened one second after it was created must not 404.
 
-**Phase A - the core.** Get one redirect served correctly and cheaply: the path
-from the browser to whatever owns the link, with repeat reads absorbed before
-they reach it.
-
-**Phase B - the full brief.** Commit to a store and own its consequences. More
-than one architecture passes here, and the two that do disagree about something
-real. Validate runs every rule in the registry against your graph, not a curated
-subset, so anti-patterns from any chapter will speak up.
+**The exercise.** Get one redirect served correctly and cheaply: the path from
+the browser to whatever owns the link, with repeat reads absorbed before they
+reach it. Then commit to a store and own its consequences. More than one
+architecture passes, and the two that do disagree about something real. Validate
+runs every rule in the registry against your graph, not a curated subset, so
+anti-patterns from any chapter will speak up.
 
 **Stretch, optional and not graded.** Nothing here throttles the create
 endpoint, and nothing here answers what a second continent would change. Both
 are the next two Tier 1 projects.
 
 **What you are not told**: which store, how many of anything, or where the
-repeat reads should be absorbed. The brief above is symptoms and rates. Both
-phases are judged together by one Validate and one Submit.
+repeat reads should be absorbed. The brief above is symptoms and rates.
 
 ## Next
 

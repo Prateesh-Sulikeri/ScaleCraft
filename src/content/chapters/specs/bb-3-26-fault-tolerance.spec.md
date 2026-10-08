@@ -116,10 +116,10 @@ learner who adds two leaders and no coordinator sees its explanation. Also
 `component-relations` (refuses e.g. leader -> app, follower -> leader),
 `orphan-component`, `missing-input-connection`, `no-direct-client-database`.
 
-Known gap: two leaders **with** a coordinator clear the rule, and the blueprint
-(containment) still matches if one leader has two followers. Grading "exactly one
-leader" would need `absent`, which drift cannot report (decision 11). The lesson
-teaches one leader per group; the debrief commentary says so.
+Two leaders **with** a coordinator clear the rule, so the blueprint carries a
+`forbid` on a second Leader card (added 2026-10-07). Forbids are reported by
+label, so Submit names it ("a second Leader card ..."); `absent` would have been
+drift-blind (decision 11).
 
 ## 8. Blueprint and starter graph
 

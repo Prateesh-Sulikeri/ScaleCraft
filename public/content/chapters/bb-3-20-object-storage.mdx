@@ -100,11 +100,10 @@ reads from the store that owns the listing.
 
 ## Getting the bytes off your servers entirely
 
-The walkthrough still routes upload bytes through the App Server, and on this
-canvas that is the only legal drawing: Object Storage accepts connections from
-compute only, so neither a browser nor a CDN can be wired to it directly. In
-production you usually go one step further, because an App Server streaming
-2 MB uploads is a pool sized for bandwidth rather than for requests.
+The walkthrough still routes upload bytes through the App Server, which is the
+first step and the one this chapter's exercise checks. In production you usually
+go one step further, because an App Server streaming 2 MB uploads is a pool sized
+for bandwidth rather than for requests.
 
 A **presigned URL** is the fix: a URL the App Server signs with its own
 credentials, scoped to one key, one verb and a few minutes. The App Server
@@ -263,9 +262,9 @@ draw the inside of a row.
 Résumé PDFs are bloating the SQL database's backup and replication, and logos
 are riding along inside every listing document the catalogue reads. Give the
 bytes a home of their own, reachable from the tier that already handles uploads,
-and leave both databases holding only the facts about each file. On this canvas
-the new store takes connections from compute only, so the bytes path is drawn
-from the application tier, not from the browser or the CDN.
+and leave both databases holding only the facts about each file. The exercise
+checks the path from the application tier; a presigned upload from the browser or
+the CDN pulling from the bucket may be drawn beside it.
 
 ## Next
 

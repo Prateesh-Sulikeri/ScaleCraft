@@ -39,7 +39,7 @@ everything else.
   nodes={[
     { id: "browser", kind: "component", componentId: "browser", label: "Browser" },
     { id: "gateway", kind: "component", componentId: "api-gateway", label: "API Gateway" },
-    { id: "app", kind: "component", componentId: "app-server", label: "App Server pool" },
+    { id: "app", kind: "component", componentId: "app-server", label: "App Servers" },
     { id: "search", kind: "component", componentId: "search-engine", label: "Search Engine" },
     { id: "db", kind: "component", componentId: "sql-database", label: "SQL Database" },
   ]}
@@ -61,14 +61,18 @@ everything else.
     {
       caption: "11:02. One shard slows to 4 seconds. Each search call from the App Server pool now holds its slot a hundred times longer, and the client has no timeout.",
       focus: "query",
+      faultNodeIds: ["search"],
     },
     {
       caption: "The App Server pool retries search three times; the API Gateway retries the whole request twice. One click can become twelve calls to the shard that is already too slow.",
       focus: ["route", "query"],
+      faultNodeIds: ["search"],
     },
     {
-      caption: "11:04. All 600 slots are waiting on search. The job-detail request reaches the App Server pool and finds no slot free - the lit path stops there, short of the SQL Database.",
+      caption: "11:04. All 600 slots are waiting on search. The job-detail request reaches the App Server pool, finds no slot free, and never reaches the SQL Database.",
       focus: ["enter", "route"],
+      faultNodeIds: ["app"],
+      faultEdgeIds: ["read"],
     },
     {
       caption: "With a 300 ms timeout and a 50-slot pool reserved for search, slow searches fill those 50 and fail fast. The other 550 slots keep serving job-detail reads from the SQL Database.",
@@ -156,6 +160,7 @@ recent failures, and stops making it when they cross a threshold.
 
 ```mermaid
 stateDiagram-v2
+    state "Half-open" as HalfOpen
     [*] --> Closed
     Closed --> Open: over 50% of calls failed in the last 10 s
     Open --> HalfOpen: 30 s later

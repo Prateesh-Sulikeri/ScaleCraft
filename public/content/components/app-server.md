@@ -60,6 +60,8 @@ graph LR
 | `health_check_path` | The endpoint (e.g., `/actuator/health`) used by load balancers to check instance readiness. |
 | `max_connections` | Limits the number of concurrent external connections the application layer can maintain. |
 
+On the canvas: `callTimeoutMs`, `retries`, `retryBackoff` and `idempotencyKeys` describe how it calls its dependencies. A Load Balancer may also send it a `control` edge for health checks.
+
 ## Where is it used?
 
 *   E-commerce platforms handling checkout and inventory logic.

@@ -49,10 +49,9 @@ What makes this safe operationally, not just structurally, is the load
 balancer's own health checking, the same mechanism 3.4 named. It's the
 reason a dead instance stops receiving traffic without anyone paging in a
 fix by hand - though it isn't instant: the load balancer notices on its next
-check, not the moment the instance actually dies. `control`-kind edges
-depict health checking in diagrams throughout the curriculum, but it isn't a
-wire you can draw on canvas yet - real and load-bearing here, just not
-something the palette exposes.
+check, not the moment the instance actually dies. A `control`-kind edge
+from the load balancer to an instance draws that health check; it documents the
+mechanism, and the exercise doesn't require it.
 
 ## How many is enough
 

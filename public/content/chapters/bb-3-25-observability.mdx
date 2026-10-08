@@ -33,7 +33,8 @@ reads from a failing disk.
 gantt
     title Trace 7f3a - GET /search?q=remote+python, 2,310 ms total
     dateFormat x
-    axisFormat %S.%L s
+    axisFormat %-S.%L s
+    tickInterval 500millisecond
     section API Gateway
     receive and route            :0, 2310
     section App Server

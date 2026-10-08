@@ -20,13 +20,12 @@ authored and in the tree, so no §18.2 sequencing rule is violated.
 
 **This is the curriculum's first Real World Extraction project.** The other 31
 will inherit whatever ships here, so the precedent-setting decisions are in §2
-and §4 below rather than buried. The largest of them - that the shell has no
-Phase A/Phase B mechanism - is §2.
+and §4 below rather than buried. The largest - one exercise, no phases - is §2.
 
 ## 0. Type classification
 
-**RWE Project**, per §4 ("Multi-phase open design brief", exercise "Phase A
-guided + Phase B open + optional Stretch"). Consequences that differ from every
+**RWE Project**, per §4 ("A real system taught, then built": lesson + one editor
+exercise + optional prose Stretch). Consequences that differ from every
 Building Blocks chapter authored so far:
 
 - §6's RWE column marks Visual explanation, Trade-offs, Failure modes, Scaling,
@@ -35,8 +34,8 @@ Building Blocks chapter authored so far:
   Core/internal mechanics and Preview of next are optional. Nothing is
   prohibited. All ten mandatory sections are present; three of the four
   optional ones are used (§4).
-- §5.3's compressed variant for RWE: "Acts 1 and 5 per phase with a debrief
-  after".
+- §5.3's compressed variant for RWE: "Acts 1 and 5 around one exercise, with a
+  debrief after".
 - **No `curriculumContext`.** `CurriculumContext`'s own doc comment says RWE
   chapters do not carry one: by RWE, every concept the brief needs is taught,
   so there is no learner stage for Deep Check to scope against. This is the
@@ -67,35 +66,23 @@ Building Blocks chapter authored so far:
 | Production relevance | The read/write asymmetry and the hot-key problem are the two properties that most often decide a real read-heavy service's shape, and both are visible here at the smallest scale they ever occur at. |
 | Interview-canon note (§15.1) | Trains the "tiny surface, all trade-offs" archetype: a system a candidate can draw in four minutes and then be questioned on for thirty. |
 
-## 2. The Phase A / Phase B decision (precedent-setting)
+## 2. One exercise, no phases (precedent-setting)
 
-§15.1 defines an RWE project as **Phase A** (guided core, required components,
-starter graph) followed by **Phase B** (open build from a large palette,
-multiple valid solutions, anti-pattern validation), plus an optional Stretch and
-a Debrief. `ChapterDefinition` has no phase mechanism: one `starterGraph`, one
-`blueprints` array, one Validate, one Submit. Two sequential gated exercises in
-one chapter is engineering work of the same class as the Stages UI that
-`pending-content.md` already names as missing, and §20.5 forbids inventing a
-metadata field to paper over it.
-
-**Both phases ship as one exercise**, decomposed like this:
+Authored against an earlier §15.1 that split every project into a guided Phase A
+and an open Phase B. `ChapterDefinition` has one `starterGraph`, one `blueprints`
+array, one Validate and one Submit, so Bitly shipped both as one exercise and
+raised the gap as open decision 25. **Resolved 2026-10-07:** §15.1 now defines
+every RWE project as a lesson that teaches plus one editor exercise, which is the
+shape Bitly already has. The brief no longer names phases.
 
 | §15.1 calls for | Realized as |
 |---|---|
-| Phase A - guided core, starter graph, required components | The three-node `starterGraph` (the system as it exists today) plus `requiredComponentIds`, and the lesson's own reading, which teaches both new concepts before the brief |
-| Phase B - open build, large palette, multiple valid solutions | The 14-component palette, the two blueprints, and RWE mode's full-registry validation |
-| Phase B - "trade-off notes as warning-severity violations that never block" | Already true: `runChapterValidation` gates `passed` on `errorCount`, so `orphan-component`, `single-instance-load-balancer` and `permissive-firewall` inform without blocking |
-| Stretch - optional scenario twist, never required | Prose only, in the transition brief, pointing at the two Tier 1 projects that own those problems. Not graded, and nothing in the definition references it |
-| Debrief - ≥2 reference solutions with trade-off commentary | The two blueprints, each with a `referenceGraph` and commentary that maps its parts back to the chapters that taught them (§13's RWE rule) |
+| Lesson that teaches before the canvas | The lesson's reading teaches both new concepts, the Think-first prompt and the figures table walk requirements and estimation |
+| One exercise, multiple valid solutions | The three-node `starterGraph`, `requiredComponentIds`, the 14-component palette, two blueprints, and RWE mode's full-registry validation |
+| Trade-off notes that never block | `orphan-component`, `single-instance-load-balancer` and `permissive-firewall` are warnings and inform without blocking |
+| Stretch - prose, never graded | The transition brief points at the two Tier 1 projects that own those problems |
+| Debrief - ≥2 reference solutions with commentary | The two blueprints, each with a `referenceGraph` and commentary mapping its parts to the chapters that taught them (§13's RWE rule) |
 | Retrospective quiz | The five-question `quiz` (§10) |
-| "Phase A begins with requirements + estimation stages, not with the canvas" | **Partially.** Those stages are prose - the Think-first prompt and the figures table - read before the Editor opens, not gated steps the learner answers. Gated stages are the same missing Stages UI `pending-content.md` already names |
-
-What is genuinely lost: the learner cannot pass Phase A, see it acknowledged,
-and *then* open Phase B. The brief names both phases so the intended order is
-visible, and says plainly that one Validate and one Submit judge both. This is
-raised as an open decision in `pending-chapters.md` rather than treated as
-solved - it is the single biggest thing a reviewer should weigh before 31 more
-projects copy it.
 
 ## 3. Learning objectives (§5.2)
 
@@ -136,7 +123,7 @@ answer they did not pick was also correct.
 | 13 Interview lens (mandatory) | "In an interview" | Ends with the "what a senior answer sounds like" paragraph §10.3 requires, built only from this chapter's own vocabulary. |
 | 14 Connections (mandatory) | "Connections" | Four explicit back-references (3.11, 3.14, 3.4/3.6/3.8), past §19's ≥2 floor, plus exactly one forward tease - to Tier 1's Rate Limiter, which is a peer project rather than a later chapter. |
 | 15 Recap + debrief (mandatory) | "Recap" | Five retrieval anchors. The debrief half is the two blueprints' commentary, which only renders after a pass (§8.4). |
-| 16 Transition brief (mandatory, "per phase") | "Your turn" | One section, phases named inside it. See §2. |
+| 16 Transition brief (mandatory) | "Your turn" | One section, one exercise. See §2. |
 | Preview of next (optional, used) | "Next" | Tier 1's three remaining projects, framed as unordered and as problems this system raised without solving. |
 
 ## 5. Diagrams (§7)
@@ -356,7 +343,7 @@ real positions" taken literally.
 
 Two moves are **not** sourced from a prior chapter, by design: generating a
 short key and choosing a redirect status code. Both are this project's declared
-new concepts (§15.1's "bounded novelty lives here, taught in Phase A's reading"),
+new concepts (§15.1: taught in the lesson before the canvas opens),
 and both are taught in the lesson before the brief. Neither is graded by the
 build - the canvas has no field for either - so a learner who misreads them
 still passes, and is corrected by the quiz. That split is worth naming: this
@@ -377,10 +364,9 @@ attention only because the lesson argues against it.
 
 ## 12. Items flagged for a second pass
 
-- **This chapter sets the RWE precedent, and the Phase A/B collapse (§2) is the
-  part of it that should not harden silently.** Thirty-one projects will copy
-  whatever ships here. Either the shell grows a phase mechanism or §15.1 should
-  be amended to describe what the product actually does.
+- **This chapter sets the RWE precedent.** ~~The Phase A/B collapse (§2) should
+  not harden silently.~~ Resolved 2026-10-07: §15.1 now defines one exercise per
+  project, matching what ships here.
 - **`src/content/chapters/index.test.ts` and
   `src/content/content-service.test.ts` both fail until updated.** The first
   asserts the RWE registry holds exactly one chapter with id `rwe-dummy-1`; the

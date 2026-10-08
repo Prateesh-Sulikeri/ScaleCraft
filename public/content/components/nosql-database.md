@@ -66,6 +66,8 @@ graph LR
 | **Sharding Key** | The specific field or attribute used by the database to determine data partitioning across multiple physical nodes. |
 | **TTL (Time To Live)** | Defines a lifecycle policy automatically deleting records after they exceed a set time duration. |
 
+On the canvas: `partitioning` (none, hash or range) and `shardKey`, the field that decides which node owns a record.
+
 ## Where is it used?
 
 *   High-traffic session management and user profile storage (Key-Value).

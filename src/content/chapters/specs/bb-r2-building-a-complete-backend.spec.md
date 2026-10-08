@@ -113,6 +113,11 @@ All ten registry rules. New relative to R1: `split-brain-risk`,
 the blueprint's coordinator and DLQ). `no-direct-client-database` is **live for
 the first time since Part 1**, because `client` is in the palette.
 
+**Updated 2026-10-07:** `ruleSeverity` escalates `permissive-firewall`,
+`single-instance-load-balancer`, `split-brain-risk` and
+`queue-without-dead-letter-queue` to errors here; an `allow-all` firewall now fails
+Submit. Original note:
+
 Warnings cannot fail Submit (R1 spec §12). `permissive-firewall` remains
 unenforced exactly as in R1 - a design with an `allow-all` firewall passes - and
 this is the same flagged severity question (decision 11). `rateLimitPerMinute` is
@@ -181,5 +186,5 @@ No move unsourced.
   `simplifications`; RWE projects will hit it harder.
 - **The largest blueprint in the curriculum** (21-22 nodes, 25-26 edges). If
   matching performance is ever a concern, this is the chapter to measure.
-- Warning-severity anti-patterns pass R2 as they passed R1; R3 is where that
-  changes (see R3 spec §7).
+- ~~Warning-severity anti-patterns pass R2 as they passed R1.~~ Escalated by
+  `ruleSeverity` since 2026-10-07.

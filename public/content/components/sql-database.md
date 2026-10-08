@@ -66,6 +66,8 @@ graph LR
 | **Indexing Depth/Type** | Specifies metadata structures used by the engine to accelerate query lookup times on specific columns or groups of columns. |
 | **Backup Retention Policy** | Determines how long historical snapshots of the dataset are maintained for recovery and point-in-time restoration. |
 
+On the canvas: `indexing` (whether the hot queries hit an index), `partitioning` (none, hash or range) and `shardKey`.
+
 ## Where is it used?
 
 *   Financial transaction processing (ledger accounting, debit/credit 

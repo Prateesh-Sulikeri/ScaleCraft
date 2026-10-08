@@ -94,10 +94,9 @@ Step through it:
   ]}
 />
 
-Health-check edges are conceptual in this chapter. The canvas does not yet
-accept a `control` edge between a load balancer and an app server, so the
-graph you build later uses `request-flow` edges only. The health checking is
-real in production; drawing it on canvas is not part of this chapter.
+Health checks can be drawn as a `control` edge from the load balancer to each
+app server. The exercise later in this chapter grades the `request-flow` edges
+only, so drawing them is optional.
 
 ## Picking an instance, and knowing who's alive
 

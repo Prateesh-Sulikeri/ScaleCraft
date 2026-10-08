@@ -69,6 +69,8 @@ graph LR
 | **Lifecycle Rules** | Automates data movement and deletion over time (e.g., transition objects older than 90 days from Hot to Cold storage). |
 | **Versioning** | Maintains multiple historical copies of an object, allowing recovery from accidental overwrites or deletions. |
 
+On the canvas: besides an application tier, a Browser (presigned upload) and a CDN (the bucket as origin) may connect to it directly.
+
 ## Where is it used?
 
 *   **Media Hosting:** Storing user-generated content, videos, and images 
