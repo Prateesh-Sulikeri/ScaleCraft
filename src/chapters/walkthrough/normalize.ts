@@ -23,6 +23,8 @@ export type WalkthroughIssue = {
     | "highlight-node-missing"
     | "highlight-edge-missing"
     | "focus-edge-missing"
+    | "fault-node-missing"
+    | "fault-edge-missing"
     | "variant-unknown-algorithm"
     | "node-overlap"
     | "node-outside-viewbox"
@@ -41,12 +43,16 @@ export type ResolvedWalkthroughStepVariant = {
   caption: string;
   highlightNodeIds: string[];
   highlightEdgeIds: string[];
+  faultNodeIds: string[];
+  faultEdgeIds: string[];
 };
 
 export type ResolvedWalkthroughStep = {
   caption: string;
   highlightNodeIds: string[];
   highlightEdgeIds: string[];
+  faultNodeIds: string[];
+  faultEdgeIds: string[];
   variants?: Record<string, ResolvedWalkthroughStepVariant>;
 };
 
@@ -123,12 +129,18 @@ function detectRequestFlowCycle(nodes: { id: string }[], edges: WalkthroughEdge[
  * endpoints, merged with any explicit arrays - then validates every id in
  * the result resolves. Shared by steps and their variants. */
 function expandHighlights(
-  input: { focus?: string | string[]; highlightNodeIds?: string[]; highlightEdgeIds?: string[] },
+  input: {
+    focus?: string | string[];
+    highlightNodeIds?: string[];
+    highlightEdgeIds?: string[];
+    faultNodeIds?: string[];
+    faultEdgeIds?: string[];
+  },
   edgeById: Map<string, WalkthroughEdge>,
   declaredNodeIds: Set<string>,
   issues: WalkthroughIssue[],
   location: string,
-): { highlightNodeIds: string[]; highlightEdgeIds: string[] } {
+): { highlightNodeIds: string[]; highlightEdgeIds: string[]; faultNodeIds: string[]; faultEdgeIds: string[] } {
   const focusIds = input.focus === undefined ? [] : Array.isArray(input.focus) ? input.focus : [input.focus];
   const edgeIds = new Set(input.highlightEdgeIds ?? []);
   const nodeIds = new Set(input.highlightNodeIds ?? []);
@@ -155,7 +167,20 @@ function expandHighlights(
     }
   }
 
-  return { highlightNodeIds: [...nodeIds], highlightEdgeIds: [...edgeIds] };
+  const faultNodeIds = input.faultNodeIds ?? [];
+  const faultEdgeIds = input.faultEdgeIds ?? [];
+  for (const id of faultEdgeIds) {
+    if (!edgeById.has(id)) {
+      issues.push({ code: "fault-edge-missing", message: `${location}: faulted edge id "${id}" is not declared` });
+    }
+  }
+  for (const id of faultNodeIds) {
+    if (!declaredNodeIds.has(id)) {
+      issues.push({ code: "fault-node-missing", message: `${location}: faulted node id "${id}" is not declared` });
+    }
+  }
+
+  return { highlightNodeIds: [...nodeIds], highlightEdgeIds: [...edgeIds], faultNodeIds, faultEdgeIds };
 }
 
 function resolveStep(

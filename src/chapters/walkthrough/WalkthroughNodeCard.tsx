@@ -6,6 +6,8 @@ import { HIGHLIGHT_GOLD_RING } from "@/canvas/selection-style";
 import { NODE_HEIGHT, NODE_WIDTH } from "./geometry";
 import type { ResolvedWalkthroughNode } from "./normalize";
 
+const FAULT_RING = "0 0 0 2px var(--state-error)";
+
 /**
  * A read-only, non-interactive rendering of one WalkthroughNode - a
  * simplified sibling of canvas/ComponentNode.tsx's card anatomy (icon badge
@@ -28,6 +30,7 @@ export function WalkthroughNodeCard({
   left,
   top,
   highlighted,
+  faulted = false,
   dimmed,
   viewBoxWidth,
   viewBoxHeight,
@@ -36,6 +39,7 @@ export function WalkthroughNodeCard({
   left: number;
   top: number;
   highlighted: boolean;
+  faulted?: boolean;
   dimmed: boolean;
   viewBoxWidth: number;
   viewBoxHeight: number;
@@ -55,24 +59,24 @@ export function WalkthroughNodeCard({
 
   return (
     <div
-      className="absolute flex items-center gap-2 overflow-hidden rounded-xl border border-border bg-panel px-2.5 shadow-sm transition-[box-shadow,opacity] duration-200 ease-out motion-reduce:transition-none"
+      className="@container absolute flex items-center gap-1.5 overflow-hidden rounded-xl border border-border bg-panel px-2 shadow-sm @max-[8rem]:gap-1 @max-[8rem]:px-1.5 transition-[box-shadow,opacity] duration-200 ease-out motion-reduce:transition-none"
       style={{
         left: `${left}%`,
         top: `${top}%`,
         width: `${(NODE_WIDTH / viewBoxWidth) * 100}%`,
         height: `${(NODE_HEIGHT / viewBoxHeight) * 100}%`,
         transform: "translate(-50%, -50%)",
-        boxShadow: highlighted ? HIGHLIGHT_GOLD_RING : undefined,
+        boxShadow: faulted ? FAULT_RING : highlighted ? HIGHLIGHT_GOLD_RING : undefined,
         opacity: dimmed ? 0.4 : 1,
       }}
     >
       <div
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg @max-[8rem]:h-6 @max-[8rem]:w-6"
         style={{ backgroundColor: `color-mix(in srgb, ${categoryColor} 20%, transparent)` }}
       >
         <Icon size={15} style={{ color: categoryColor }} />
       </div>
-      <div className="truncate text-xs font-semibold leading-tight text-foreground">{resolved.label}</div>
+      <div className="line-clamp-2 min-w-0 text-xs font-semibold leading-tight break-words text-foreground @max-[8rem]:text-[10px]">{resolved.label}</div>
     </div>
   );
 }

@@ -12,9 +12,9 @@ import type { ChapterDefinition } from "./types";
  *   curriculum content, authored against CURRICULUM.md §5/§6 with a
  *   chapter spec in `specs/` beside each.
  * - `bb-dummy-1` was replaced by real content, `bb-3-4-load-balancer`
- *   (pulled forward from Wave 3, see pending-content.md/pending-chapters.md).
- *   `rwe-dummy-1` is still a throwaway shell fixture (`placeholder: true`),
- *   standing in for RWE Tier 1 Bitly - replace it, don't extend it.
+ *   (pulled forward from Wave 3, see pending-content.md/pending-chapters.md),
+ *   and `rwe-dummy-1` by `rwe-t1-bitly-url-shortener`. No placeholder
+ *   fixtures remain; every entry here is authored curriculum.
  *
  * Every real chapter carries a sibling spec in `specs/<id>.spec.md`: the
  * §5 blueprint filled in, plus its declared omissions, component-budget
@@ -699,8 +699,8 @@ export const chapterRegistry: ChapterDefinition[] = [
     // Lesson body:
     // public/content/chapters/bb-0-3-interview-design-vs-production-engineering.md.
     problemStatement:
-      "Interview design and production engineering get judged by the same rubric, but they " +
-      "reward different things under different pressure. This chapter names the two registers " +
+      "Interview design and production engineering look like the same skill, but they reward " +
+      "different things under different pressure. This chapter names the two registers " +
       "explicitly so a later Interview lens or Production note never reads as the wrong one. No " +
       "build: the knowledge check applies the distinction to five new scenarios.",
     // Four objectives - Practical omitted per CURRICULUM.md §5.2's carve-out
@@ -998,8 +998,8 @@ export const chapterRegistry: ChapterDefinition[] = [
     // specs/bb-0-4-the-system-design-lifecycle.spec.md. Lesson body:
     // public/content/chapters/bb-0-4-the-system-design-lifecycle.md.
     problemStatement:
-      "The Interview Loop is the eight-step sequence every later Part 1 chapter drills one at a " +
-      "time: clarify, requirements, estimate, high-level design, deep dive, bottlenecks and " +
+      "The Interview Loop is the eight-step sequence the rest of Part 1 drills, a few steps per " +
+      "chapter: clarify, requirements, estimate, high-level design, deep dive, bottlenecks and " +
       "failure, trade-offs, evolve and defend. This chapter previews the whole map before you " +
       "live any single step. No build: the knowledge check asks you to place the eight steps in " +
       "order yourself.",
@@ -1053,7 +1053,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // memo" (read as a comparison), pronoun number on "requirements", and
     // three loose demonstratives. Glossed QPS at first use (§18.2 rule 1)
     // and dropped a banned "just". See spec §11 and pending-chapters.md.
-    lessonVersion: 2,
+    lessonVersion: 3,
     lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 0: Foundations - Chapter 0.4 of 37.",
@@ -1989,7 +1989,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
     readingLinks: [],
-    lessonVersion: 1,
+    lessonVersion: 2,
     lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Part 1: Engineering Design Process - Chapter 1.2 of 37.",
@@ -4329,8 +4329,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       "between the client and the app server yet. Run Validate to see what's missing and why an " +
       "unfiltered gap there is a problem.",
     exerciseGoal:
-      "Requests reach the app tier straight from the client, with nothing checking them at the " +
-      "door first.",
+      "Make sure no request reaches the app tier without being checked at the door first - " +
+      "today the client reaches it directly.",
     successCriteria: [
       "Something now sits between the client and the app server, actively filtering rather than " +
         "passing everything through.",
@@ -4691,8 +4691,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       "other - nothing feeds into the firewall yet. Run Validate to see what's missing before you " +
       "fix it.",
     exerciseGoal:
-      "Nothing sits in front of the firewall - there's no entry point, and no way to turn a " +
-      "human-readable address into something the network can route to.",
+      "Give the system an entry point: a request that starts from a human-readable address " +
+      "and reaches the firewall. Today nothing feeds it at all.",
     successCriteria: [
       "Something now feeds a request into the firewall from outside the system.",
       "The address lookup happens before the request reaches the app tier, not after.",
@@ -4817,11 +4817,10 @@ export const chapterRegistry: ChapterDefinition[] = [
           "authoritative) for one name. Real resolvers also handle multiple records per name, negative " +
           "caching, and query redundant servers at each level - none of that changes the TTL trade-off " +
           "or the failure reasoning this chapter teaches.",
-        "The buildable exercise wires DNS inline (browser -> dns -> firewall) so the canvas can " +
-          "validate it. The `dns` component's registry contract only accepts request-flow edges today, " +
-          "not the control edge 2.1 taught for this exact lookup - conceptually the resolution and the " +
-          "request stay two separate exchanges, as the lesson's diagram caption states, but that " +
-          "distinction isn't enforced on canvas yet.",
+        "The buildable exercise wires DNS inline (browser -> dns -> firewall). The browser -> dns " +
+          "lookup can also be drawn as the control edge 2.1 taught, but the exercise does not grade " +
+          "that distinction - conceptually the resolution and the request stay two separate exchanges, " +
+          "as the lesson's diagram caption states.",
         "DNS-based routing is presented as TTL-bounded name changes only - real systems combine it " +
           "with health checks, weighted/latency-based records, and anycast, out of scope at this stage.",
       ],
@@ -5072,7 +5071,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       "The starter graph carries 3.2's own chain - browser, DNS, firewall - plus the app server and " +
       "database, already wired to each other. Nothing connects the firewall's output to the app tier " +
       "yet. Run Validate to see what's missing.",
-    exerciseGoal: "The firewall has nowhere to send a request once it's let one through - the path to the app tier is broken.",
+    exerciseGoal: "Close the gap between the firewall and the app tier, so a request the firewall lets through actually reaches the app server.",
     successCriteria: [
       "Something now sits between the firewall and the app tier, carrying the request the rest of the way.",
       "Validate reports zero issues, and Submit passes.",
@@ -5442,7 +5441,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       "The starter graph has one load balancer routing to a single app-server instance - a load " +
       "balancer over one backend balances nothing. Run Validate, read what it reports, and use that " +
       "to decide what's missing.",
-    exerciseGoal: "A load balancer with only one instance behind it isn't balancing anything - it's just an extra hop.",
+    exerciseGoal: "Make the load balancer earn its hop: today it has one instance behind it, so it balances nothing.",
     successCriteria: [
       "The load balancer now distributes traffic across more than one real destination.",
       "Validate reports zero issues, and Submit passes.",
@@ -5562,7 +5561,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // round-robin/least-connections algorithm toggle with per-step variants.
     // v5: wrapped round-robin's first mention in a <Ref> glossary reference
     // (Release 5.0.0-alpha glossary pilot).
-    lessonVersion: 5,
+    lessonVersion: 6,
     // Migrated to MDX (Release 5.0.0-alpha step 2 of the build order, see
     // pending.md) - first chapter to move off the legacy react-markdown
     // path. Lesson body: public/content/chapters/bb-3-4-load-balancer.mdx.
@@ -5587,7 +5586,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       ],
       simplifications: [
         "Exactly two app-server instances are ever in scope. Choosing how many is 3.8's job; this chapter only teaches that more than one needs something routing between them.",
-        "Health checks (`control` edges) are taught and shown in the lesson diagram but not exercised on canvas - the registry's load-balancer/app-server relations contracts don't yet accept a control-kind edge between them (both declare allowedKinds: [\"request-flow\"] only). Flagged as an engine gap in the spec and pending-chapters.md, not worked around.",
+        "Health checks (`control` edges, load balancer -> app server) are drawable but not graded - the exercise checks the request-flow path only.",
         "Algorithm choice (round-robin vs. least-connections) is a config decision discussed in the lesson and quiz, not enforced by a validation rule - both are legitimate for different workloads, so there is no single correct config to check for.",
       ],
     },
@@ -5835,8 +5834,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       "wired to each other, plus an app server wired to a database. Nothing connects the reverse " +
       "proxy's output to the app tier yet. Run Validate to see what's missing.",
     exerciseGoal:
-      "The reverse proxy has nowhere to send a request once it accepts one - the path to the app " +
-      "tier is broken, and there's no single place left to apply policy across services.",
+      "Close the gap between the reverse proxy and the app tier, and give the system one place " +
+      "to apply policy across every service behind it.",
     successCriteria: [
       "Something now sits between the reverse proxy and the app tier, carrying the request the rest of the way.",
       "Validate reports zero issues, and Submit passes.",
@@ -5945,7 +5944,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
     readingLinks: [],
-    lessonVersion: 1,
+    lessonVersion: 2,
     lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Group A: Core Infrastructure - Chapter 3.5 of 37 (final chapter in Group A).",
@@ -6203,6 +6202,277 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
   },
   {
+    id: "bb-cp-a-the-front-door",
+    mode: "building-blocks",
+    title: "Checkpoint · The Front Door",
+    // Group A's checkpoint, Build flavor (.claude/docs/pending-checkpoints.md).
+    // Spec: specs/bb-cp-a-the-front-door.spec.md. Lesson body:
+    // public/content/chapters/bb-cp-a-the-front-door.mdx. R1's checkpoint
+    // precedent: blank canvas (no starterGraph, so no starterDecorators), no
+    // quiz, requirement list in problemStatement.
+    problemStatement:
+      "A project-tracking product for small teams, about to open its API to customers. Two services sit " +
+      "behind it: the projects API, which carries nearly all the traffic, and billing, a small service the " +
+      "finance team deploys on its own schedule. What it has to do:\n\n" +
+      "- Customers reach it at one domain name, from a browser.\n" +
+      "- Nothing reaches either service unless the perimeter let it through first, and the perimeter refuses " +
+      "anything it has not been told to allow.\n" +
+      "- The certificate lives in one place at the edge. Neither service handles TLS.\n" +
+      "- Every API call is authenticated and held to a per-customer request limit once, before it reaches " +
+      "either service, not separately inside each one.\n" +
+      "- At peak the projects API needs more than one machine, and losing one of them must not drop requests.\n" +
+      "- Billing takes a handful of requests a minute and ships on its own schedule. Customers still reach it " +
+      "through the same domain name.\n" +
+      "- Both services keep their data in one relational database, and nothing but a service ever talks to it.",
+    exerciseGoal:
+      "Build the whole front door on an empty canvas, from the browser to the database. Every requirement " +
+      "above is answered by something you built between 3.1 and 3.5, and the order things go in is part of " +
+      "the answer.",
+    successCriteria: [
+      "A request from the browser is filtered at the perimeter, has its TLS ended once, and is authenticated and rate-limited before either service sees it.",
+      "The projects API keeps answering when one of its machines dies, and billing is reached as a service of its own rather than as another copy of the projects API.",
+      "Only the services reach the database.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Five objectives, one per §5.2 category. A checkpoint teaches nothing new
+    // (§4), so every objective is composition or retrieval over Group A.
+    learningObjectives: [
+      "Name, for each requirement in the brief, the Group A component that answers it and the chapter that taught it.",
+      "Order the edge from browser to service so that each stop only receives traffic the stop before it has already handled.",
+      "Assemble the full Group A front door on an empty canvas, with two distinct services behind it, and pass Submit.",
+      "Explain the difference between a load balancer's identical copies and a gateway's distinct services, using your own design.",
+      "Walk one request through your design in a single pass, naming what each stop does to it before handing it on.",
+    ],
+    // 3.5's palette plus the load balancer (3.4), i.e. everything Group A
+    // introduced plus 1.2's app server and database. `client` is left out,
+    // matching R1: the brief says "from a browser", and 3.2 replaced the
+    // generic client with the browser for every chapter after it.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+    ],
+    // Every rule Group A and 1.2 taught. `single-instance-load-balancer` and
+    // `permissive-firewall` are warnings, so the blueprint carries the matching
+    // config predicates as well; a design that draws either warning cannot
+    // match. `no-direct-client-database` keys on `client` and cannot fire here;
+    // kept for continuity with R1 (see R1's spec §12).
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "request-flow-cycle",
+      "single-instance-load-balancer",
+      "permissive-firewall",
+    ],
+    // Two blueprints, one system: 3.4 taught redundancy as a second box, and
+    // the instances field is on the card for anyone who finds it early (3.6
+    // teaches it). Billing is a third app-server reached from the gateway,
+    // never from the load balancer - the identical-copies vs. distinct-services
+    // line 3.5 drew, and the main thing this checkpoint tests.
+    blueprints: [
+      {
+        id: "bb-cp-a-blueprint-two-nodes",
+        label: "The projects API as two identical machines, billing as its own service",
+        require: {
+          id: "bb-cp-a-blueprint-two-nodes",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "fw", componentId: "firewall", config: [{ field: "defaultPolicy", op: "eq", value: "allow-listed" }] },
+            { alias: "proxy", componentId: "reverse-proxy", config: [{ field: "terminatesTls", op: "eq", value: true }] },
+            { alias: "gateway", componentId: "api-gateway", config: [{ field: "requiresAuth", op: "eq", value: true }] },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "projects1", componentId: "app-server" },
+            { alias: "projects2", componentId: "app-server" },
+            { alias: "billing", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "projects1", kind: "request-flow" },
+            { from: "lb", to: "projects2", kind: "request-flow" },
+            { from: "gateway", to: "billing", kind: "request-flow" },
+            { from: "projects1", to: "db", kind: "request-flow" },
+            { from: "projects2", to: "db", kind: "request-flow" },
+            { from: "billing", to: "db", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-cp-a-ref-two-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-cp-a-ref-two-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-cp-a-ref-two-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-cp-a-ref-two-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: { terminatesTls: true } },
+            { id: "bb-cp-a-ref-two-gateway", componentId: "api-gateway", position: { x: 1100, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 600 } },
+            { id: "bb-cp-a-ref-two-lb", componentId: "load-balancer", position: { x: 1360, y: 0 }, config: {} },
+            { id: "bb-cp-a-ref-two-billing", componentId: "app-server", position: { x: 1360, y: 160 }, config: { instances: 1 } },
+            { id: "bb-cp-a-ref-two-p1", componentId: "app-server", position: { x: 1620, y: 0 }, config: { instances: 1 } },
+            { id: "bb-cp-a-ref-two-p2", componentId: "app-server", position: { x: 1620, y: 160 }, config: { instances: 1 } },
+            { id: "bb-cp-a-ref-two-db", componentId: "sql-database", position: { x: 1880, y: 0 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-cp-a-ref-two-e1", source: "bb-cp-a-ref-two-browser", target: "bb-cp-a-ref-two-dns", kind: "request-flow" },
+            { id: "bb-cp-a-ref-two-e2", source: "bb-cp-a-ref-two-dns", target: "bb-cp-a-ref-two-fw", kind: "request-flow" },
+            { id: "bb-cp-a-ref-two-e3", source: "bb-cp-a-ref-two-fw", target: "bb-cp-a-ref-two-proxy", kind: "request-flow" },
+            { id: "bb-cp-a-ref-two-e4", source: "bb-cp-a-ref-two-proxy", target: "bb-cp-a-ref-two-gateway", kind: "request-flow" },
+            { id: "bb-cp-a-ref-two-e5", source: "bb-cp-a-ref-two-gateway", target: "bb-cp-a-ref-two-lb", kind: "request-flow" },
+            { id: "bb-cp-a-ref-two-e6", source: "bb-cp-a-ref-two-gateway", target: "bb-cp-a-ref-two-billing", kind: "request-flow" },
+            { id: "bb-cp-a-ref-two-e7", source: "bb-cp-a-ref-two-lb", target: "bb-cp-a-ref-two-p1", kind: "request-flow" },
+            { id: "bb-cp-a-ref-two-e8", source: "bb-cp-a-ref-two-lb", target: "bb-cp-a-ref-two-p2", kind: "request-flow" },
+            { id: "bb-cp-a-ref-two-e9", source: "bb-cp-a-ref-two-p1", target: "bb-cp-a-ref-two-db", kind: "request-flow" },
+            { id: "bb-cp-a-ref-two-e10", source: "bb-cp-a-ref-two-p2", target: "bb-cp-a-ref-two-db", kind: "request-flow" },
+            { id: "bb-cp-a-ref-two-e11", source: "bb-cp-a-ref-two-billing", target: "bb-cp-a-ref-two-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-cp-a-ref-two-browser"],
+        },
+        commentary:
+          "Read it back one requirement at a time. One domain name in a browser: Browser and DNS (3.2). " +
+          "A perimeter that refuses by default: the Firewall at `allow-listed`, never `allow-all` (3.1). One " +
+          "place for the certificate: the Reverse Proxy, which is also the one public address (3.3). " +
+          "Authentication and the per-customer limit, once: the API Gateway (3.5). A projects API that " +
+          "survives losing a machine: the Load Balancer over two identical copies (3.4). Billing: a different " +
+          "program the gateway routes to, not a third copy behind the load balancer - the line 3.5 drew " +
+          "between identical copies and distinct services. And a database only the services reach (1.2). " +
+          "The order is the part that is easy to get wrong: the gateway sits behind the proxy, because it has " +
+          "to read the request it is authenticating, and it can only do that after TLS has ended.",
+      },
+      {
+        id: "bb-cp-a-blueprint-instances",
+        label: "The same front door, the projects API drawn as one node with more than one instance",
+        require: {
+          id: "bb-cp-a-blueprint-instances",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "fw", componentId: "firewall", config: [{ field: "defaultPolicy", op: "eq", value: "allow-listed" }] },
+            { alias: "proxy", componentId: "reverse-proxy", config: [{ field: "terminatesTls", op: "eq", value: true }] },
+            { alias: "gateway", componentId: "api-gateway", config: [{ field: "requiresAuth", op: "eq", value: true }] },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "projects", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "billing", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "projects", kind: "request-flow" },
+            { from: "gateway", to: "billing", kind: "request-flow" },
+            { from: "projects", to: "db", kind: "request-flow" },
+            { from: "billing", to: "db", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-cp-a-ref-inst-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-cp-a-ref-inst-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-cp-a-ref-inst-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-cp-a-ref-inst-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: { terminatesTls: true } },
+            { id: "bb-cp-a-ref-inst-gateway", componentId: "api-gateway", position: { x: 1100, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 600 } },
+            { id: "bb-cp-a-ref-inst-lb", componentId: "load-balancer", position: { x: 1360, y: 0 }, config: {} },
+            { id: "bb-cp-a-ref-inst-billing", componentId: "app-server", position: { x: 1360, y: 160 }, config: { instances: 1 } },
+            { id: "bb-cp-a-ref-inst-projects", componentId: "app-server", position: { x: 1620, y: 0 }, config: { instances: 2 } },
+            { id: "bb-cp-a-ref-inst-db", componentId: "sql-database", position: { x: 1880, y: 0 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-cp-a-ref-inst-e1", source: "bb-cp-a-ref-inst-browser", target: "bb-cp-a-ref-inst-dns", kind: "request-flow" },
+            { id: "bb-cp-a-ref-inst-e2", source: "bb-cp-a-ref-inst-dns", target: "bb-cp-a-ref-inst-fw", kind: "request-flow" },
+            { id: "bb-cp-a-ref-inst-e3", source: "bb-cp-a-ref-inst-fw", target: "bb-cp-a-ref-inst-proxy", kind: "request-flow" },
+            { id: "bb-cp-a-ref-inst-e4", source: "bb-cp-a-ref-inst-proxy", target: "bb-cp-a-ref-inst-gateway", kind: "request-flow" },
+            { id: "bb-cp-a-ref-inst-e5", source: "bb-cp-a-ref-inst-gateway", target: "bb-cp-a-ref-inst-lb", kind: "request-flow" },
+            { id: "bb-cp-a-ref-inst-e6", source: "bb-cp-a-ref-inst-gateway", target: "bb-cp-a-ref-inst-billing", kind: "request-flow" },
+            { id: "bb-cp-a-ref-inst-e7", source: "bb-cp-a-ref-inst-lb", target: "bb-cp-a-ref-inst-projects", kind: "request-flow" },
+            { id: "bb-cp-a-ref-inst-e8", source: "bb-cp-a-ref-inst-projects", target: "bb-cp-a-ref-inst-db", kind: "request-flow" },
+            { id: "bb-cp-a-ref-inst-e9", source: "bb-cp-a-ref-inst-billing", target: "bb-cp-a-ref-inst-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-cp-a-ref-inst-browser"],
+        },
+        commentary:
+          "The same front door, with the projects API drawn as one card running two instances instead of two " +
+          "cards. It passes for the same reason the two-card version does: the load balancer has more than one " +
+          "machine to send a request to. 3.6 makes this the default way to draw a fleet, and spends the " +
+          "chapter on what has to be true of the machines for it to be honest. Everything else is unchanged: " +
+          "perimeter (3.1), one end for TLS (3.3), one place for authentication and limits (3.5), and billing " +
+          "as its own service behind the gateway rather than behind the load balancer.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-cp-a-hint-1",
+        body:
+          "Follow one request in from the browser before placing any service: where its name becomes an " +
+          "address, where it is filtered, where encryption ends, and where the caller is checked. Four lines " +
+          "of the brief are about that path and say nothing about either service.",
+      },
+      {
+        id: "bb-cp-a-hint-2",
+        body:
+          "Two services are not the same thing as two copies. One line of the brief needs machines that can " +
+          "stand in for each other; another describes a different program with its own deploys. They are " +
+          "reached in different ways.",
+      },
+      {
+        id: "bb-cp-a-hint-3",
+        body:
+          "Three cards have a setting the brief describes: what the perimeter does by default, where TLS " +
+          "ends, and whether callers are checked. Submit names any setting that does not match.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position:
+        "Building Blocks, Group A: Core Infrastructure - Checkpoint A, immediately after 3.5 (the group's last chapter). Gates Group B.",
+      masteredConcepts: [
+        "Every Group A chapter: the perimeter and its default policy (3.1), name resolution (3.2), one " +
+          "public address that terminates TLS (3.3), a load balancer over interchangeable copies (3.4), and " +
+          "one place for authentication and per-caller limits across services (3.5).",
+        "1.2's rule that only compute reaches the database, and 2.1's order of a request's stops.",
+        "3.4's way of drawing redundancy: a second app-server card behind the load balancer.",
+      ],
+      notYetIntroducedConcepts: [
+        "Instance counts as the default way to draw a fleet, and what makes copies interchangeable " +
+          "(3.6-3.8). The instances field is on the card and the instances blueprint accepts it, but nothing " +
+          "here teaches it.",
+        "Service discovery (3.9), and everything in Groups C onward: replicas, caches, CDNs, queues.",
+      ],
+      simplifications: [
+        "Two services share one database. Real teams often split them; nothing in the brief asks for it.",
+        "The gateway routes to billing by path; the canvas cannot show the route, only that the gateway is " +
+          "billing's way in.",
+        "The canvas cannot express that two app-server cards are identical. The two-node blueprint takes it " +
+          "on trust, the same simplification Checkpoint D records.",
+      ],
+    },
+    // No `quiz` - checkpoints have none (CURRICULUM §22). deriveStatus
+    // completes a chapter with an editor exercise and no quiz on Submit alone.
+  },
+  {
     id: "bb-3-6-stateless-services",
     mode: "building-blocks",
     title: "Stateless Services",
@@ -6218,8 +6488,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       "missing. Something in the app server's own configuration undermines the load balancer " +
       "sitting in front of it.",
     exerciseGoal:
-      "The load balancer in front of the app server isn't actually balancing anything - a single " +
-      "number in the app server's own configuration is the reason.",
+      "Give the load balancer something to balance. It has one destination today, and the reason " +
+      "is a single number in the app server's own configuration.",
     successCriteria: [
       "The load balancer now has more than one real destination to route to.",
       "Validate reports zero issues, and Submit passes.",
@@ -6592,8 +6862,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       "canvas but disconnected - no edges in or out. Run Validate to see what that costs the " +
       "system.",
     exerciseGoal:
-      "Two load-balanced app-server instances lost track of where a user's session lives, and the " +
-      "database already on this canvas is sitting idle.",
+      "Let either app-server instance serve any user's next request. Today neither can find a " +
+      "session the other created, and the database already on this canvas sits idle.",
     successCriteria: [
       "The database is no longer disconnected - the app server can reach it.",
       "Every instance behind the load balancer can serve any request, regardless of which one handled the user last.",
@@ -6960,8 +7230,8 @@ export const chapterRegistry: ChapterDefinition[] = [
       "clean. This service peaks at 300 requests/second, and each Application Server instance is " +
       "tested to handle 150.",
     exerciseGoal:
-      "Right now the fleet has exactly enough capacity for peak load and not one request more - " +
-      "losing a single instance would drop below what peak requires.",
+      "Leave the fleet enough headroom that losing one instance at peak drops no traffic. Today " +
+      "it has exactly enough capacity and not one request more.",
     successCriteria: [
       "The Application Server's instance count leaves enough spare capacity that losing any one instance still covers peak load.",
       "Validate reports zero issues, and Submit passes.",
@@ -7091,10 +7361,8 @@ export const chapterRegistry: ChapterDefinition[] = [
         "Everything past Group B - data, caching, async systems, storage, and reliability.",
       ],
       simplifications: [
-        "`control`-kind edges (health checks) are described in prose and diagrams only - no registry " +
-          "component accepts one on canvas today (checked directly against `load-balancer`'s and " +
-          "`app-server`'s own `relations` fields). Stated honestly in the lesson's own \"Why " +
-          "duplicating is a number, not a project\" section, not left implicit in this list alone.",
+        "`control`-kind health-check edges (load balancer -> app server) are drawable but not graded; " +
+          "the exercise checks the request-flow path only.",
         "The 300 requests/second peak and 150-per-instance figures are an illustrative worked example, " +
           "not a claim about any real system's measured load - used to make the N+1 headroom " +
           "reasoning concrete without asking the learner to invent an estimate from scratch.",
@@ -7171,7 +7439,7 @@ export const chapterRegistry: ChapterDefinition[] = [
             id: "c",
             label: "A new `control`-kind edge, drawn by hand from the load balancer to each instance.",
             correct: false,
-            explanationMd: "No registry component accepts a `control` edge on canvas today - health checking is real, but it isn't a wire you draw.",
+            explanationMd: "A `control` edge documents a health check, but the load balancer already health-checks every backend it routes to. Adding an instance needs no new edge.",
           },
           {
             id: "d",
@@ -7483,7 +7751,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
     readingLinks: [],
-    lessonVersion: 1,
+    lessonVersion: 2,
     lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Group B: Compute - Chapter 3.9 of 37 (fourth and final chapter in Group B).",
@@ -7501,9 +7769,8 @@ export const chapterRegistry: ChapterDefinition[] = [
         "Everything past Group B - data, caching, async systems, storage, and reliability.",
       ],
       simplifications: [
-        "`control`-kind edges (health signals feeding a registry's membership decision) are described in prose and diagrams only - " +
-          "no registry component accepts one on canvas today (checked directly against every registered component's own " +
-          "`relations` field), the same disclosed gap 3.4 and 3.8 already named.",
+        "`control`-kind health signals (load balancer -> app server) are drawable but not graded; the registry's " +
+          "membership decision is taught in prose and diagrams.",
         "DNS's ttlSeconds is used as the on-canvas vehicle for the general freshness/cost trade-off, not as a claim that this " +
           "graph's DNS node discovers app-server instances - in this topology DNS resolves the stack's public entry point; " +
           "the load balancer already does real service discovery for the app tier (3.4). Stated directly in the lesson's own " +
@@ -7757,6 +8024,433 @@ export const chapterRegistry: ChapterDefinition[] = [
         // had anything to say about.
         position: { x: 32, y: 160 },
         width: 240,
+        height: 100,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-cp-b-inherited-fleet",
+    mode: "building-blocks",
+    title: "Checkpoint · Inherited Fleet",
+    // Group B's checkpoint, Review flavor (.claude/docs/pending-checkpoints.md):
+    // an inherited system with a stated number of planted faults and no
+    // per-fault hint. Spec: specs/bb-cp-b-inherited-fleet.spec.md. Lesson body:
+    // public/content/chapters/bb-cp-b-inherited-fleet.mdx. The first checkpoint
+    // with a starterGraph, so it also carries starterDecorators (§11.6).
+    problemStatement:
+      "Last week you joined the team that runs a clinic appointment-booking service. The diagram on the " +
+      "canvas is the system as it runs today. It works, mostly, and four things in it are wrong. What it is " +
+      "supposed to do:\n\n" +
+      "- Patients reach it at one domain name, and the perimeter refuses anything it has not been told to " +
+      "allow.\n" +
+      "- A patient who logs in stays logged in on their next request, whichever machine serves it.\n" +
+      "- Peak is 450 requests a second, Monday at 08:00. One application instance handles 150, measured. " +
+      "Losing any one instance at peak must not drop requests.\n" +
+      "- On Tuesday the whole stack moves to new infrastructure, with a 30-second cutover window. No patient " +
+      "may still be sent to the old address once the window has closed.",
+    exerciseGoal:
+      "Audit the system against what it is supposed to do, and fix the four places where it falls short " +
+      "without rebuilding the parts that already work.",
+    successCriteria: [
+      "The perimeter refuses traffic it was not told to allow, and patients still get in.",
+      "Every machine serving patients can see a login another machine created.",
+      "Losing any one application instance at peak still leaves capacity for 450 requests a second.",
+      "No patient is still sent to the old address 30 seconds after the cutover.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    learningObjectives: [
+      "Name the Group B invariant each fault breaks - stateless copies, shared session state, N+1 capacity, a cache lifetime under the change window - and the chapter that taught it.",
+      "Compute the instance count a stated peak and per-instance capacity require once one instance is lost.",
+      "Find and fix every planted fault in an inherited system without being told where each one is, and pass Submit.",
+      "Answer \"is this system ready for Monday?\" by checking a design against its requirements one line at a time, rather than by looking for broken wiring.",
+      "Report each fault in one sentence a teammate could act on: what the drawing says, what the requirement says, and the change.",
+    ],
+    // Group B adds no components (§16: 3.6-3.9 are all config and
+    // invariants), so the palette is Group A's - identical to 3.9's.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+    ],
+    // Validate finds one fault on its own (permissive-firewall, a warning).
+    // The other three are invisible to every rule by design: an app-server
+    // with no outgoing edge, an instance count and a TTL are all legal. That
+    // is the Review flavor's point - the audit is against the brief, not the
+    // rule set - and why the blueprints carry the checks.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "request-flow-cycle",
+      "single-instance-load-balancer",
+      "permissive-firewall",
+    ],
+    // Three blueprints, one fixed system: the capacity requirement (4
+    // instances, since 3 carry peak and one may be lost) can be met on one
+    // card or split over two, and a pattern cannot sum instances across
+    // cards, so each honest split is its own blueprint. Every blueprint
+    // forbids an instance behind the load balancer that cannot reach the
+    // database - containment alone would pass a design that raised the
+    // other card's count and left the unwired one in place.
+    blueprints: [
+      {
+        id: "bb-cp-b-blueprint-one-node",
+        label: "One fleet card, sized for peak plus one",
+        require: {
+          id: "bb-cp-b-blueprint-one-node",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns", config: [{ field: "ttlSeconds", op: "lte", value: 30 }] },
+            { alias: "fw", componentId: "firewall", config: [{ field: "defaultPolicy", op: "eq", value: "allow-listed" }] },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 4 }] },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+          ],
+        },
+        forbid: [
+          {
+            id: "bb-cp-b-forbid-unwired-instance",
+            label: "an application instance behind the load balancer that cannot reach the shared session store (3.7)",
+            nodes: [
+              { alias: "lb", componentId: "load-balancer" },
+              { alias: "orphan", componentId: "app-server" },
+            ],
+            edges: [{ from: "lb", to: "orphan", kind: "request-flow" }],
+            absent: [
+              {
+                nodes: [
+                  { alias: "orphan", componentId: "app-server" },
+                  { alias: "store", componentId: "sql-database" },
+                ],
+                edges: [{ from: "orphan", to: "store" }],
+              },
+            ],
+          },
+        ],
+        referenceGraph: {
+          nodes: [
+            { id: "bb-cp-b-ref-one-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-one-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { ttlSeconds: 30 } },
+            { id: "bb-cp-b-ref-one-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-cp-b-ref-one-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-one-gateway", componentId: "api-gateway", position: { x: 1100, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-one-lb", componentId: "load-balancer", position: { x: 1360, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-one-app", componentId: "app-server", position: { x: 1620, y: 0 }, config: { instances: 4 } },
+            { id: "bb-cp-b-ref-one-db", componentId: "sql-database", position: { x: 1880, y: 0 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-cp-b-ref-one-e1", source: "bb-cp-b-ref-one-browser", target: "bb-cp-b-ref-one-dns", kind: "request-flow" },
+            { id: "bb-cp-b-ref-one-e2", source: "bb-cp-b-ref-one-dns", target: "bb-cp-b-ref-one-fw", kind: "request-flow" },
+            { id: "bb-cp-b-ref-one-e3", source: "bb-cp-b-ref-one-fw", target: "bb-cp-b-ref-one-proxy", kind: "request-flow" },
+            { id: "bb-cp-b-ref-one-e4", source: "bb-cp-b-ref-one-proxy", target: "bb-cp-b-ref-one-gateway", kind: "request-flow" },
+            { id: "bb-cp-b-ref-one-e5", source: "bb-cp-b-ref-one-gateway", target: "bb-cp-b-ref-one-lb", kind: "request-flow" },
+            { id: "bb-cp-b-ref-one-e6", source: "bb-cp-b-ref-one-lb", target: "bb-cp-b-ref-one-app", kind: "request-flow" },
+            { id: "bb-cp-b-ref-one-e7", source: "bb-cp-b-ref-one-app", target: "bb-cp-b-ref-one-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-cp-b-ref-one-browser"],
+        },
+        commentary:
+          "Four faults, four chapters. The firewall was left at `allow-all` after a debugging session: present, " +
+          "drawn, filtering nothing (3.1) - the one fault Validate could see. The second instance card had no " +
+          "line to the database, so a patient's login lived in that machine's memory and vanished whenever the " +
+          "load balancer sent them elsewhere (3.6, 3.7). Three instances carry exactly 450 requests a second, " +
+          "which means losing one at 08:00 on Monday drops a third of them; peak plus one is four (3.8). And a " +
+          "300-second TTL keeps patients on the old address for five minutes after a 30-second cutover (3.9). " +
+          "Folding the fleet into one card with four instances fixes two of those at once: a fleet drawn as " +
+          "one card cannot have one copy wired differently from another.",
+      },
+      {
+        id: "bb-cp-b-blueprint-two-even",
+        label: "Two fleet cards, both reaching the database, two instances each",
+        require: {
+          id: "bb-cp-b-blueprint-two-even",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns", config: [{ field: "ttlSeconds", op: "lte", value: 30 }] },
+            { alias: "fw", componentId: "firewall", config: [{ field: "defaultPolicy", op: "eq", value: "allow-listed" }] },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app1", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "app2", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app1", kind: "request-flow" },
+            { from: "lb", to: "app2", kind: "request-flow" },
+            { from: "app1", to: "db", kind: "request-flow" },
+            { from: "app2", to: "db", kind: "request-flow" },
+          ],
+        },
+        forbid: [
+          {
+            id: "bb-cp-b-forbid-unwired-instance",
+            label: "an application instance behind the load balancer that cannot reach the shared session store (3.7)",
+            nodes: [
+              { alias: "lb", componentId: "load-balancer" },
+              { alias: "orphan", componentId: "app-server" },
+            ],
+            edges: [{ from: "lb", to: "orphan", kind: "request-flow" }],
+            absent: [
+              {
+                nodes: [
+                  { alias: "orphan", componentId: "app-server" },
+                  { alias: "store", componentId: "sql-database" },
+                ],
+                edges: [{ from: "orphan", to: "store" }],
+              },
+            ],
+          },
+        ],
+        referenceGraph: {
+          nodes: [
+            { id: "bb-cp-b-ref-even-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-even-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { ttlSeconds: 30 } },
+            { id: "bb-cp-b-ref-even-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-cp-b-ref-even-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-even-gateway", componentId: "api-gateway", position: { x: 1100, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-even-lb", componentId: "load-balancer", position: { x: 1360, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-even-app1", componentId: "app-server", position: { x: 1620, y: 0 }, config: { instances: 2 } },
+            { id: "bb-cp-b-ref-even-app2", componentId: "app-server", position: { x: 1620, y: 160 }, config: { instances: 2 } },
+            { id: "bb-cp-b-ref-even-db", componentId: "sql-database", position: { x: 1880, y: 0 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-cp-b-ref-even-e1", source: "bb-cp-b-ref-even-browser", target: "bb-cp-b-ref-even-dns", kind: "request-flow" },
+            { id: "bb-cp-b-ref-even-e2", source: "bb-cp-b-ref-even-dns", target: "bb-cp-b-ref-even-fw", kind: "request-flow" },
+            { id: "bb-cp-b-ref-even-e3", source: "bb-cp-b-ref-even-fw", target: "bb-cp-b-ref-even-proxy", kind: "request-flow" },
+            { id: "bb-cp-b-ref-even-e4", source: "bb-cp-b-ref-even-proxy", target: "bb-cp-b-ref-even-gateway", kind: "request-flow" },
+            { id: "bb-cp-b-ref-even-e5", source: "bb-cp-b-ref-even-gateway", target: "bb-cp-b-ref-even-lb", kind: "request-flow" },
+            { id: "bb-cp-b-ref-even-e6", source: "bb-cp-b-ref-even-lb", target: "bb-cp-b-ref-even-app1", kind: "request-flow" },
+            { id: "bb-cp-b-ref-even-e7", source: "bb-cp-b-ref-even-lb", target: "bb-cp-b-ref-even-app2", kind: "request-flow" },
+            { id: "bb-cp-b-ref-even-e8", source: "bb-cp-b-ref-even-app1", target: "bb-cp-b-ref-even-db", kind: "request-flow" },
+            { id: "bb-cp-b-ref-even-e9", source: "bb-cp-b-ref-even-app2", target: "bb-cp-b-ref-even-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-cp-b-ref-even-browser"],
+        },
+        commentary:
+          "You kept both fleet cards, wired the second one to the database so a login survives whichever " +
+          "machine serves the next request (3.6, 3.7), and gave them four instances between them, so losing " +
+          "any one at peak still leaves 450 requests a second of capacity (3.8). Add the firewall back at " +
+          "`allow-listed` (3.1) and a TTL no longer than the cutover window (3.9) and all four are fixed. " +
+          "This passes, but notice what the second card still costs: two cards are two places to keep " +
+          "identical, and the fault you just fixed is what happens when someone forgets one. One card with " +
+          "four instances cannot drift that way.",
+      },
+      {
+        id: "bb-cp-b-blueprint-two-uneven",
+        label: "Two fleet cards, both reaching the database, four instances between them",
+        require: {
+          id: "bb-cp-b-blueprint-two-uneven",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns", config: [{ field: "ttlSeconds", op: "lte", value: 30 }] },
+            { alias: "fw", componentId: "firewall", config: [{ field: "defaultPolicy", op: "eq", value: "allow-listed" }] },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "big", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 3 }] },
+            { alias: "small", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "big", kind: "request-flow" },
+            { from: "lb", to: "small", kind: "request-flow" },
+            { from: "big", to: "db", kind: "request-flow" },
+            { from: "small", to: "db", kind: "request-flow" },
+          ],
+        },
+        forbid: [
+          {
+            id: "bb-cp-b-forbid-unwired-instance",
+            label: "an application instance behind the load balancer that cannot reach the shared session store (3.7)",
+            nodes: [
+              { alias: "lb", componentId: "load-balancer" },
+              { alias: "orphan", componentId: "app-server" },
+            ],
+            edges: [{ from: "lb", to: "orphan", kind: "request-flow" }],
+            absent: [
+              {
+                nodes: [
+                  { alias: "orphan", componentId: "app-server" },
+                  { alias: "store", componentId: "sql-database" },
+                ],
+                edges: [{ from: "orphan", to: "store" }],
+              },
+            ],
+          },
+        ],
+        referenceGraph: {
+          nodes: [
+            { id: "bb-cp-b-ref-uneven-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-uneven-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { ttlSeconds: 30 } },
+            { id: "bb-cp-b-ref-uneven-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-cp-b-ref-uneven-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-uneven-gateway", componentId: "api-gateway", position: { x: 1100, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-uneven-lb", componentId: "load-balancer", position: { x: 1360, y: 0 }, config: {} },
+            { id: "bb-cp-b-ref-uneven-big", componentId: "app-server", position: { x: 1620, y: 0 }, config: { instances: 3 } },
+            { id: "bb-cp-b-ref-uneven-small", componentId: "app-server", position: { x: 1620, y: 160 }, config: { instances: 1 } },
+            { id: "bb-cp-b-ref-uneven-db", componentId: "sql-database", position: { x: 1880, y: 0 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-cp-b-ref-uneven-e1", source: "bb-cp-b-ref-uneven-browser", target: "bb-cp-b-ref-uneven-dns", kind: "request-flow" },
+            { id: "bb-cp-b-ref-uneven-e2", source: "bb-cp-b-ref-uneven-dns", target: "bb-cp-b-ref-uneven-fw", kind: "request-flow" },
+            { id: "bb-cp-b-ref-uneven-e3", source: "bb-cp-b-ref-uneven-fw", target: "bb-cp-b-ref-uneven-proxy", kind: "request-flow" },
+            { id: "bb-cp-b-ref-uneven-e4", source: "bb-cp-b-ref-uneven-proxy", target: "bb-cp-b-ref-uneven-gateway", kind: "request-flow" },
+            { id: "bb-cp-b-ref-uneven-e5", source: "bb-cp-b-ref-uneven-gateway", target: "bb-cp-b-ref-uneven-lb", kind: "request-flow" },
+            { id: "bb-cp-b-ref-uneven-e6", source: "bb-cp-b-ref-uneven-lb", target: "bb-cp-b-ref-uneven-big", kind: "request-flow" },
+            { id: "bb-cp-b-ref-uneven-e7", source: "bb-cp-b-ref-uneven-lb", target: "bb-cp-b-ref-uneven-small", kind: "request-flow" },
+            { id: "bb-cp-b-ref-uneven-e8", source: "bb-cp-b-ref-uneven-big", target: "bb-cp-b-ref-uneven-db", kind: "request-flow" },
+            { id: "bb-cp-b-ref-uneven-e9", source: "bb-cp-b-ref-uneven-small", target: "bb-cp-b-ref-uneven-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-cp-b-ref-uneven-browser"],
+        },
+        commentary:
+          "Two fleet cards, both now reaching the database (3.6, 3.7), with the first raised to three " +
+          "instances: four in total, so any one can fail at peak and 450 requests a second still fit (3.8). " +
+          "With the firewall at `allow-listed` (3.1) and the TTL inside the cutover window (3.9), all four " +
+          "faults are fixed. It passes. It is also the shape most likely to drift again: two cards holding the " +
+          "same program at different sizes is two configurations to keep in step, which is how the second " +
+          "card lost its database line in the first place.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-cp-b-hint-1",
+        body:
+          "Validate finds one of the four for you. The other three are not wiring a rule can see: each is the " +
+          "drawing disagreeing with one line of the brief. Take the brief a line at a time and find the card " +
+          "that line is about.",
+      },
+      {
+        id: "bb-cp-b-hint-2",
+        body:
+          "Two of the faults are numbers, and the brief gives you everything needed to work both out: what one " +
+          "instance carries against what peak needs with one lost, and how long a looked-up address is reused " +
+          "against how long the cutover takes.",
+      },
+      {
+        id: "bb-cp-b-hint-3",
+        body:
+          "The fleet is drawn as two cards that are not doing the same job. Compare everything each one is " +
+          "connected to, and each card's settings.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position:
+        "Building Blocks, Group B: Compute - Checkpoint B, immediately after 3.9 (the group's last chapter). Gates Group C.",
+      masteredConcepts: [
+        "Every Group B chapter: stateless copies (3.6), session state in a shared store rather than one " +
+          "instance's memory (3.7), N+1 capacity from a stated peak and per-instance throughput (3.8), and a " +
+          "cached address that must not outlive a change window (3.9).",
+        "Group A's front door, and 3.1's point that a firewall at allow-all is present but inert.",
+      ],
+      notYetIntroducedConcepts: [
+        "Anything about the data tier beyond one relational database: guarantees, NoSQL, replicas, sharding " +
+          "(Group C, next).",
+        "Caching, CDNs, queues and every later group.",
+      ],
+      simplifications: [
+        "Session state in the database stands for any shared session store; Group D's distributed cache is " +
+          "the more common production answer and is not yet in the palette.",
+        "Capacity is checked as a straight instance count. Real headroom also leaves room for deploys and " +
+          "uneven load, which the brief does not ask for.",
+        "The cutover is modelled by the DNS TTL alone. Connection draining and client-side caching that ignores " +
+          "TTLs are real and out of scope.",
+      ],
+    },
+    // Fault inventory (spec §8): firewall allow-all (3.1, visible to
+    // Validate), second fleet card with no database edge (3.6/3.7), three
+    // instances for a peak that needs four with one lost (3.8), TTL 300 s
+    // against a 30 s window (3.9). Three instances total keeps
+    // single-instance-load-balancer silent, so only the firewall is visible.
+    starterGraph: {
+      nodes: [
+        { id: "bb-cp-b-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-cp-b-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { ttlSeconds: 300 } },
+        { id: "bb-cp-b-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-all" } },
+        { id: "bb-cp-b-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-cp-b-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-cp-b-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-cp-b-app1", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 2 } },
+        { id: "bb-cp-b-app2", componentId: "app-server", position: { x: 840, y: 160 }, config: { instances: 1 } },
+        { id: "bb-cp-b-db", componentId: "sql-database", position: { x: 1100, y: 0 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-cp-b-e1", source: "bb-cp-b-browser", target: "bb-cp-b-dns", kind: "request-flow" },
+        { id: "bb-cp-b-e2", source: "bb-cp-b-dns", target: "bb-cp-b-fw", kind: "request-flow" },
+        { id: "bb-cp-b-e3", source: "bb-cp-b-fw", target: "bb-cp-b-proxy", kind: "request-flow" },
+        { id: "bb-cp-b-e4", source: "bb-cp-b-proxy", target: "bb-cp-b-gateway", kind: "request-flow" },
+        { id: "bb-cp-b-e5", source: "bb-cp-b-gateway", target: "bb-cp-b-lb", kind: "request-flow" },
+        { id: "bb-cp-b-e6", source: "bb-cp-b-lb", target: "bb-cp-b-app1", kind: "request-flow" },
+        { id: "bb-cp-b-e7", source: "bb-cp-b-lb", target: "bb-cp-b-app2", kind: "request-flow" },
+        { id: "bb-cp-b-e8", source: "bb-cp-b-app1", target: "bb-cp-b-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-cp-b-browser"],
+    },
+    // Tier zones only. No "Build here" gap zone: nothing is missing, and a
+    // gap zone would wrongly imply a component to add (§11.6).
+    starterDecorators: [
+      { kind: "zone", id: "bb-cp-b-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-cp-b-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-cp-b-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 436, height: 308, color: "#a855f7" },
+      { kind: "zone", id: "bb-cp-b-zone-data", label: "Data", position: { x: 1072, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-cp-b-comment-handover",
+        text: "Handover note from the previous owner: \"It works. We grew it in a hurry during last winter's flu season and never went back over it.\"",
+        position: { x: 1332, y: -40 },
+        width: 260,
+        height: 160,
+        color: "#64748b",
+      },
+      {
+        kind: "comment",
+        id: "bb-cp-b-comment-count",
+        text: "Four things on this board are wrong. Validate will point at one of them.",
+        position: { x: 1332, y: 160 },
+        width: 260,
         height: 100,
         color: "#64748b",
       },
@@ -9069,7 +9763,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
     readingLinks: [],
-    lessonVersion: 1,
+    lessonVersion: 2,
     lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Group C: Data - Chapter 3.13 of 37 (fourth and final chapter in Group C).",
@@ -9331,6 +10025,256 @@ export const chapterRegistry: ChapterDefinition[] = [
             explanationMd: "Silently returning a wrong answer isn't a cost mitigation - it's a correctness bug dressed up as an optimization.",
           },
         ],
+      },
+    ],
+  },
+  {
+    id: "bb-cp-c-the-data-tier",
+    mode: "building-blocks",
+    title: "Checkpoint · The Data Tier",
+    // Group C's checkpoint, Extend flavor (.claude/docs/pending-checkpoints.md):
+    // the front door and application tier are provided, the data tier is an
+    // empty zone. Spec: specs/bb-cp-c-the-data-tier.spec.md. Lesson body:
+    // public/content/chapters/bb-cp-c-the-data-tier.mdx.
+    problemStatement:
+      "A marketplace for secondhand furniture, rebuilding its data tier before the spring rush. The front " +
+      "door and the application tier on the canvas are done; the data tier is empty. What it has to do:\n\n" +
+      "- Placing an order reserves the item, records the payment and creates the order together: all three " +
+      "happen, or none do.\n" +
+      "- Listings differ by category. A sofa has a seat count and a fabric, a lamp has a bulb fitting and a " +
+      "wattage, and new categories arrive every month. A listing page always reads one whole listing by its " +
+      "ID.\n" +
+      "- Sellers' sales dashboards and buyers' order history are read twenty times for every order written, " +
+      "and the dashboards' heavy aggregates must not slow down checkout.\n" +
+      "- A buyer who has just placed an order sees it in their order history straight away.\n" +
+      "- Peak this spring is 1,200 requests a second, and one application instance handles 300. Losing one " +
+      "instance at peak must not drop requests.\n" +
+      "- Every store fits on one machine for at least the next two years.",
+    exerciseGoal:
+      "Give the marketplace's data somewhere to live - each kind in a store whose guarantees and shape fit " +
+      "it - and size the application tier for this spring's peak.",
+    successCriteria: [
+      "An order, its payment and the item's reservation commit together or not at all.",
+      "A listing page reads one whole listing, whatever its category's attributes, in a single lookup by ID.",
+      "Dashboards and order history are served without adding read load to the store taking orders, and a buyer still sees an order the moment they place it.",
+      "Losing one application instance at peak still leaves capacity for 1,200 requests a second.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    learningObjectives: [
+      "Name the store each kind of data in the brief belongs in, and the chapter that taught why: transactions (3.10), varying shape (3.11), read-heavy history (3.12).",
+      "Decide which reads may tolerate replication lag and which must go to the primary, from the requirement each read serves.",
+      "Build a data tier inside an existing system - two stores, a replica fed by replication, the fleet resized - and pass Submit.",
+      "Answer \"why didn't you shard?\" by pointing at the requirement that would have motivated it and showing the brief rules it out.",
+      "Explain your data tier as one sentence per store: what lives there, and the guarantee that put it there.",
+    ],
+    // 3.13's palette exactly: Groups A-C. Sharding (3.13) has no card; the
+    // brief's last line rules it out on purpose (spec §6).
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+    ],
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+      "request-flow-cycle",
+      "single-instance-load-balancer",
+      "permissive-firewall",
+    ],
+    // One blueprint. The data tier has one honest shape for this brief: orders
+    // relational for the transaction, listings in a document store, the
+    // replica hanging off the relational primary because that is where the
+    // read-heavy history lives. Five instances is 3.8's N+1 on the brief's
+    // numbers (1,200 / 300 = 4, plus one).
+    blueprints: [
+      {
+        id: "bb-cp-c-blueprint",
+        label: "Orders relational, listings as documents, history read from a replica",
+        require: {
+          id: "bb-cp-c-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 5 }] },
+            { alias: "orders", componentId: "sql-database" },
+            { alias: "listings", componentId: "nosql-database", config: [{ field: "model", op: "eq", value: "document" }] },
+            { alias: "replica", componentId: "read-replica" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "orders", kind: "request-flow" },
+            { from: "app", to: "listings", kind: "request-flow" },
+            { from: "orders", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-cp-c-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-cp-c-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-cp-c-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-cp-c-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-cp-c-ref-gateway", componentId: "api-gateway", position: { x: 1100, y: 0 }, config: {} },
+            { id: "bb-cp-c-ref-lb", componentId: "load-balancer", position: { x: 1360, y: 0 }, config: {} },
+            { id: "bb-cp-c-ref-app", componentId: "app-server", position: { x: 1620, y: 0 }, config: { instances: 5 } },
+            { id: "bb-cp-c-ref-orders", componentId: "sql-database", position: { x: 1880, y: 0 }, config: {} },
+            { id: "bb-cp-c-ref-listings", componentId: "nosql-database", position: { x: 1880, y: 160 }, config: { model: "document" } },
+            { id: "bb-cp-c-ref-replica", componentId: "read-replica", position: { x: 2140, y: 0 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-cp-c-ref-e1", source: "bb-cp-c-ref-browser", target: "bb-cp-c-ref-dns", kind: "request-flow" },
+            { id: "bb-cp-c-ref-e2", source: "bb-cp-c-ref-dns", target: "bb-cp-c-ref-fw", kind: "request-flow" },
+            { id: "bb-cp-c-ref-e3", source: "bb-cp-c-ref-fw", target: "bb-cp-c-ref-proxy", kind: "request-flow" },
+            { id: "bb-cp-c-ref-e4", source: "bb-cp-c-ref-proxy", target: "bb-cp-c-ref-gateway", kind: "request-flow" },
+            { id: "bb-cp-c-ref-e5", source: "bb-cp-c-ref-gateway", target: "bb-cp-c-ref-lb", kind: "request-flow" },
+            { id: "bb-cp-c-ref-e6", source: "bb-cp-c-ref-lb", target: "bb-cp-c-ref-app", kind: "request-flow" },
+            { id: "bb-cp-c-ref-e7", source: "bb-cp-c-ref-app", target: "bb-cp-c-ref-orders", kind: "request-flow" },
+            { id: "bb-cp-c-ref-e8", source: "bb-cp-c-ref-app", target: "bb-cp-c-ref-listings", kind: "request-flow" },
+            { id: "bb-cp-c-ref-e9", source: "bb-cp-c-ref-orders", target: "bb-cp-c-ref-replica", kind: "replication" },
+            { id: "bb-cp-c-ref-e10", source: "bb-cp-c-ref-replica", target: "bb-cp-c-ref-app", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-cp-c-ref-browser"],
+        },
+        commentary:
+          "One store per kind of data, each placed by a guarantee. Orders, payments and reservations are " +
+          "relational because they have to commit together: that is ACID, and it is the one thing a single " +
+          "relational primary gives you for free (3.10). Listings are documents because their shape changes " +
+          "by category and they are always read whole by ID - the access pattern 3.11 matched to a document " +
+          "model. The replica hangs off the relational primary, because that is where the read-heavy history " +
+          "lives: dashboards and order history read from it, and the primary keeps its capacity for checkout " +
+          "(3.12). A buyer's own just-placed order is the exception, read from the primary, which is " +
+          "read-your-writes - the replica may be a second behind. Five instances is 3.8 on this brief's " +
+          "numbers: four carry 1,200 requests a second, the fifth is the one you can lose. And nothing is " +
+          "sharded, because the brief says everything fits on one machine: 3.13's last lever is the one you " +
+          "leave unpulled until a write load forces it.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-cp-c-hint-1",
+        body:
+          "Sort the brief's data before placing anything: what has to change together, what varies in shape " +
+          "from one record to the next, and what is read far more often than it is written. Those are three " +
+          "different questions with three different answers.",
+      },
+      {
+        id: "bb-cp-c-hint-2",
+        body:
+          "The heavy reads must not land on the store taking orders, yet a buyer's own new order has to show " +
+          "up at once. One of those reads can go somewhere that lags a little behind; the other cannot. Watch " +
+          "which direction data flows into anything that only serves reads.",
+      },
+      {
+        id: "bb-cp-c-hint-3",
+        body:
+          "One line of the brief is about the application tier, not the data. Check settings too, including " +
+          "any store whose model you chose.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position:
+        "Building Blocks, Group C: Data - Checkpoint C, immediately after 3.13 (the group's last chapter). Gates Group D.",
+      masteredConcepts: [
+        "Every Group C chapter: what a relational database guarantees and what an index costs (3.10), matching " +
+          "a store to data shape and access pattern (3.11), replicas fed by replication and the read-your-writes " +
+          "problem (3.12), and sharding as the last lever for writes (3.13).",
+        "Groups A and B: the front door, stateless copies with shared state, and 3.8's N+1 sizing.",
+      ],
+      notYetIntroducedConcepts: [
+        "Caching (3.14), the next chapter. A learner may feel the dashboards' reads want one; nothing in the " +
+          "palette offers it yet.",
+        "CDNs, search, queues and every later group.",
+      ],
+      simplifications: [
+        "Read-your-writes is carried by the application reading a buyer's own recent orders from the primary. " +
+          "The canvas draws the app-to-primary edge for every write anyway, so the blueprint cannot tell the " +
+          "two reads apart; the debrief names the distinction instead.",
+        "One replica stands for however many the dashboards need.",
+        "Sessions and carts are not in the brief. The application tier is treated as already stateless, as " +
+          "Checkpoint B left it.",
+      ],
+    },
+    // Provided: Groups A-B as the learner left them in Checkpoint B, with the
+    // fleet at last year's size (two instances - enough to keep
+    // single-instance-load-balancer quiet, too few for this year's peak).
+    // The data column is the empty zone.
+    starterGraph: {
+      nodes: [
+        { id: "bb-cp-c-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-cp-c-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-cp-c-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-cp-c-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-cp-c-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-cp-c-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-cp-c-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 2 } },
+      ],
+      edges: [
+        { id: "bb-cp-c-e1", source: "bb-cp-c-browser", target: "bb-cp-c-dns", kind: "request-flow" },
+        { id: "bb-cp-c-e2", source: "bb-cp-c-dns", target: "bb-cp-c-fw", kind: "request-flow" },
+        { id: "bb-cp-c-e3", source: "bb-cp-c-fw", target: "bb-cp-c-proxy", kind: "request-flow" },
+        { id: "bb-cp-c-e4", source: "bb-cp-c-proxy", target: "bb-cp-c-gateway", kind: "request-flow" },
+        { id: "bb-cp-c-e5", source: "bb-cp-c-gateway", target: "bb-cp-c-lb", kind: "request-flow" },
+        { id: "bb-cp-c-e6", source: "bb-cp-c-lb", target: "bb-cp-c-app", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-cp-c-browser"],
+    },
+    starterDecorators: [
+      { kind: "zone", id: "bb-cp-c-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-cp-c-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-cp-c-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-cp-c-zone-gap", label: "Build here", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#ff3483" },
+      {
+        kind: "comment",
+        id: "bb-cp-c-comment-fleet",
+        text: "The application tier was sized last spring, for last spring's peak.",
+        position: { x: 1072, y: -40 },
+        width: 260,
+        height: 100,
+        color: "#64748b",
+      },
+      {
+        kind: "comment",
+        id: "bb-cp-c-comment-growth",
+        text: "Projected data volume: every store fits on one machine for at least two years.",
+        position: { x: 1072, y: 120 },
+        width: 260,
+        height: 100,
+        color: "#64748b",
       },
     ],
   },
@@ -10587,10 +11531,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
     readingLinks: [],
-    lessonVersion: 1,
+    lessonVersion: 2,
     lessonFormat: "mdx",
     curriculumContext: {
-      position: "Building Blocks, Group D: Performance - Chapter 3.16 of 37 (third and last chapter in Group D, immediately before Checkpoint R1).",
+      position: "Building Blocks, Group D: Performance - Chapter 3.16 of 37 (third and last chapter in Group D, immediately before Checkpoint D).",
       masteredConcepts: [
         "3.14's cache-aside path and 3.15's edge tier, both wired and passing. This chapter's opening " +
           "argument is that neither of them helps here, so both have to be understood well enough to be " +
@@ -10610,7 +11554,7 @@ export const chapterRegistry: ChapterDefinition[] = [
           "change stream\" as the sync path most products use; the components that implement it arrive later.",
         "Background jobs and scheduling (3.19), which is what a nightly rebuild actually runs on.",
         "Object storage (3.20). Documents here are rows in the primary, not blobs.",
-        "Everything past Group D, and Checkpoint R1 itself.",
+        "Everything past Group D, and Checkpoint D itself.",
       ],
       simplifications: [
         "One search-engine node stands for a cluster. The component exposes a shards field (index " +
@@ -11049,6 +11993,10 @@ export const chapterRegistry: ChapterDefinition[] = [
       "single-instance-load-balancer",
       "permissive-firewall",
     ],
+    ruleSeverity: {
+      "permissive-firewall": "error",
+      "single-instance-load-balancer": "error",
+    },
     // Two blueprints, and they are the same system: the redundancy requirement
     // has two honest expressions on this canvas. 3.8 taught the first (one
     // stateless node, instance count raised), and the canvas permits the
@@ -11125,12 +12073,12 @@ export const chapterRegistry: ChapterDefinition[] = [
         },
         commentary:
           "Twelve components, and every one of them is on the canvas because a line in the brief asked " +
-          "for it. Worth reading your own graph back in that order: the perimeter, the one place TLS " +
-          "ends, the one place callers are authenticated and limited, then the tier that can lose a " +
-          "machine without losing the site. Behind it, three different answers to three different reads " +
-          "- the same listing asked for repeatedly, the recruiters' reports that must not touch the " +
-          "store taking writes, and a query the primary cannot answer at all - plus the bytes that never " +
-          "needed to reach you. The only thing you changed that was not a box or a line is the instance " +
+          "for it. Worth reading your own graph back in that order: the perimeter (3.1), the one place TLS " +
+          "ends (3.3), the one place callers are authenticated and limited (3.5), then the tier that can lose " +
+          "a machine without losing the site (3.4, 3.8). Behind it, three different answers to three different " +
+          "reads - the same listing asked for repeatedly (3.14), the recruiters' reports that must not touch " +
+          "the store taking writes (3.12), and a query the primary cannot answer at all (3.16) - plus the " +
+          "bytes that never needed to reach you (3.15). The only thing you changed that was not a box or a line is the instance " +
           "count, which is 3.8's whole point: once a tier is stateless and load-balanced, surviving a " +
           "failure is a number, not a redesign.",
       },
@@ -11236,27 +12184,27 @@ export const chapterRegistry: ChapterDefinition[] = [
       {
         id: "bb-r1-hint-3",
         body:
-          "If Submit says a component is missing while you are looking straight at it on the canvas, it " +
-          "is reading a value on that component rather than hunting for a second copy. One requirement " +
-          "in this brief is answered by a number instead of another box.",
+          "One requirement in this brief is answered by a number on a component instead of another box.",
       },
     ],
     readingLinks: [],
-    lessonVersion: 1,
+    lessonVersion: 2,
     lessonFormat: "mdx",
     curriculumContext: {
       position:
-        "Building Blocks, Part 4: Checkpoints - Checkpoint R1, immediately after chapter 3.16 of 37. Gates Group E, Group F and Real World Extraction Tier 1.",
+        "Building Blocks, Part 4: Checkpoints - Checkpoint D, immediately after chapter 3.16 of 37. Gates Group E, Group F and Real World Extraction Tier 1.",
       masteredConcepts: [
         "Everything in Groups A-D, which is the whole point of the exercise: the request path (3.1-3.5), " +
           "the stateless multi-instance app tier (3.6-3.9), the data tier with its replicas and " +
           "partitions (3.10-3.13), and the performance layer of cache, CDN and search index (3.14-3.16).",
         "The exact system built and passed across 3.14, 3.15 and 3.16 - browser through DNS and the CDN " +
           "to the edge tier, the load balancer, the app tier, its cache, the primary, a read replica and " +
-          "a search index. R1's answer is that system re-derived from a product description instead of " +
+          "a search index. Checkpoint D's answer is that system re-derived from a product description instead of " +
           "handed over as a starter graph.",
         "3.8's N+1 reasoning: once a tier is stateless and load-balanced, capacity for a failure is an " +
           "instance count, not new architecture.",
+        "Checkpoints A, B and C: the front door built blank, a fleet audited against its brief, and a data " +
+          "tier placed inside an existing system. Checkpoint D is the first checkpoint spanning more than one group.",
         "That a component present but inert is a design fault, not a neutral extra (3.1's allow-all " +
           "firewall, 3.14's unasked cache), and that an unmotivated component is worse than none.",
       ],
@@ -11300,7 +12248,7 @@ export const chapterRegistry: ChapterDefinition[] = [
     // prerequisite (R1) is already shipped here - manifest.ts's
     // prerequisiteSlugs already points at "checkpoint-r1-a-site-that-stays-up".
     problemStatement:
-      "R1's job board is live, and publishing a listing takes 4.2 seconds at p95 - 40 ms of which is " +
+      "Checkpoint D's job board is live, and publishing a listing takes 4.2 seconds at p95 - 40 ms of which is " +
       "the listing's own database write. The same request also mails 900 subscribers, builds three " +
       "thumbnail sizes and updates the search index before it answers. When the mail provider was down " +
       "last Tuesday, publishes returned 500 for listings that had already been saved.",
@@ -11505,12 +12453,12 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
     readingLinks: [],
-    lessonVersion: 1,
+    lessonVersion: 2,
     lessonFormat: "mdx",
     curriculumContext: {
-      position: "Building Blocks, Group E: Asynchronous Systems - Chapter 3.17 of 37 (first chapter in Group E, immediately after Checkpoint R1).",
+      position: "Building Blocks, Group E: Asynchronous Systems - Chapter 3.17 of 37 (first chapter in Group E, immediately after Checkpoint D).",
       masteredConcepts: [
-        "Everything R1 asked the learner to rebuild from a blank canvas: the edge tier, the load-balanced " +
+        "Everything Checkpoint D asked the learner to rebuild from a blank canvas: the edge tier, the load-balanced " +
           "stateless app tier, the primary with its replica, the cache, the CDN and the search index. " +
           "This chapter's starter graph is that system, and every request path in it is synchronous.",
         "3.16's closing argument: one edge into the search index carries both the query (honestly " +
@@ -12732,7 +13680,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
     readingLinks: [],
-    lessonVersion: 1,
+    lessonVersion: 2,
     lessonFormat: "mdx",
     curriculumContext: {
       position: "Building Blocks, Group E: Asynchronous Systems - Chapter 3.19 of 37 (third and final chapter in Group E, directly after 3.18).",
@@ -13064,29 +14012,4684 @@ export const chapterRegistry: ChapterDefinition[] = [
     ],
   },
   {
-    id: "rwe-dummy-1",
-    mode: "real-world-extraction",
-    title: "Placeholder Project",
-    placeholder: true,
+    id: "bb-cp-e-off-the-request-path",
+    mode: "building-blocks",
+    title: "Checkpoint · Off the Request Path",
+    // Group E's checkpoint, Extend flavor (.claude/docs/pending-checkpoints.md):
+    // the synchronous system is provided, the asynchronous half is an empty
+    // zone. Spec: specs/bb-cp-e-off-the-request-path.spec.md. Lesson body:
+    // public/content/chapters/bb-cp-e-off-the-request-path.mdx.
     problemStatement:
-      "This is placeholder content for Real World Extraction Tier 1's Bitly project " +
-      "(per CURRICULUM.md §15.2) - real content lands in a later step. For now, this " +
-      "exists only to prove the chapter shell works in this mode too.",
-    learningObjectives: ["Placeholder objective - real objectives arrive with real content."],
-    availableComponentIds: ["client", "load-balancer", "app-server", "sql-database", "cache"],
-    requiredComponentIds: ["client", "app-server", "sql-database"],
-    // Moot either way — real-world-extraction chapters always run the full
-    // rule registry regardless of this field (see chapter-outcome.ts).
+      "A restaurant-reservations platform. Diners search restaurants and book tables; restaurants manage " +
+      "their tables from a till system and a tablet. Everything on the canvas answers a diner while they " +
+      "wait, and right now everything else is crammed into that same path. What it has to do:\n\n" +
+      "- Booking a table answers in under 300 ms. The confirmation text goes through an SMS provider that " +
+      "takes 2 to 5 seconds and sometimes fails for an hour. It must not slow the booking down, and no " +
+      "confirmation may be silently lost.\n" +
+      "- Every confirmed booking matters to three teams: the restaurant's tablet shows it, the loyalty " +
+      "programme awards points for it, and search's \"tables free tonight\" count has to drop by one. Each " +
+      "needs every booking. A fourth team, analytics, starts next quarter, and the booking code must not " +
+      "change when it does.\n" +
+      "- At 03:00 every night, no-shows are counted and restaurants are billed for them. It runs exactly once " +
+      "a night, however many application instances are running.\n" +
+      "- When dinner service opens, restaurants' till systems push table-status updates in a burst: 40% of " +
+      "a day's writes in fifteen minutes. That burst must not decide how big the diner-facing pool is, and " +
+      "handling it should cost nothing the rest of the day.",
+    exerciseGoal:
+      "Keep the diner's path exactly as fast as it is, and give every piece of work the diner is not waiting " +
+      "for a home of its own: work that follows a booking, work nobody asked for, and a burst that arrives " +
+      "at the front door.",
+    successCriteria: [
+      "A booking answers without waiting for the text message, and a text that keeps failing ends up somewhere a person can inspect it.",
+      "Every booking reaches all three teams' services, the free-tables count in search included, and a fourth service could start listening without the booking code changing.",
+      "The nightly no-show billing starts with no request behind it and runs once however large the pool is.",
+      "The opening-time burst from restaurants' tills is handled outside the diner-facing pool.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    learningObjectives: [
+      "Sort a brief's work by who is waiting for it, and name the Group E shape each piece needs: a queue (3.17), a broadcast (3.18), a schedule or an on-demand function (3.19).",
+      "Decide whether a message is a task for one consumer or a fact for every subscriber, from how many teams need it.",
+      "Build the asynchronous half of an existing system - a queue with a dead letter path, a fan-out, a schedule and a burst handler - and pass Submit.",
+      "Answer \"what happens when the SMS provider is down for an hour?\" against your own design, naming where the messages wait and where the ones that never succeed go.",
+      "Explain each new path in one sentence: what starts it, what carries it, and why the diner never waits for it.",
+    ],
+    // 3.19's palette exactly: everything through Group E, without Group F
+    // (E and F are parallel after R1, §14 Part 4).
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "kafka",
+      "cron-job",
+      "serverless-function",
+    ],
+    // Only what every passing design must contain. `event-bus` and `kafka`
+    // are both honest fan-out answers (3.18 taught both), and a consumer can
+    // be a worker or a serverless function, so neither the bus nor `worker`
+    // is required here; the blueprint accepts either and carries the check.
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "search-engine",
+      "message-queue",
+      "dead-letter-queue",
+      "cron-job",
+      "serverless-function",
+    ],
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+      "request-flow-cycle",
+      "single-instance-load-balancer",
+      "permissive-firewall",
+      "queue-without-dead-letter-queue",
+    ],
+    // One blueprint with alternatives inside it rather than a blueprint per
+    // combination: componentId arrays let the broadcast be an Event Bus or
+    // Kafka and each consumer a Worker or a Serverless Function. The nightly
+    // job and the burst handler are matched by reachability (`via: "path"`)
+    // to the database, so a job that writes through its own worker passes as
+    // well as one wired straight in (3.19 and 3.23 drew both).
+    blueprints: [
+      {
+        id: "bb-cp-e-blueprint",
+        label: "A queue for the text, a broadcast for the booking, a schedule and a function off the pool",
+        require: {
+          id: "bb-cp-e-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "search", componentId: "search-engine" },
+            {
+              alias: "queue",
+              componentId: "message-queue",
+              config: [{ field: "deliveryGuarantee", op: "neq", value: "at-most-once" }],
+            },
+            { alias: "texter", componentId: ["worker", "serverless-function"] },
+            { alias: "dlq", componentId: "dead-letter-queue" },
+            { alias: "broadcast", componentId: ["event-bus", "kafka"] },
+            { alias: "tablet", componentId: ["worker", "serverless-function"] },
+            { alias: "loyalty", componentId: ["worker", "serverless-function"] },
+            { alias: "indexer", componentId: ["worker", "serverless-function"] },
+            { alias: "nightly", componentId: "cron-job" },
+            { alias: "tills", componentId: "serverless-function" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+            { from: "app", to: "queue", kind: "async" },
+            { from: "queue", to: "texter", kind: "async" },
+            { from: "queue", to: "dlq", kind: "async" },
+            { from: "app", to: "broadcast", kind: "async" },
+            { from: "broadcast", to: "tablet", kind: "async" },
+            { from: "broadcast", to: "loyalty", kind: "async" },
+            { from: "broadcast", to: "indexer", kind: "async" },
+            { from: "indexer", to: "search", kind: "request-flow" },
+            { from: "nightly", to: "db", via: "path" },
+            { from: "gateway", to: "tills", kind: "request-flow" },
+            { from: "tills", to: "db", via: "path" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-cp-e-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-cp-e-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-cp-e-ref-fw", componentId: "firewall", position: { x: 580, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-cp-e-ref-proxy", componentId: "reverse-proxy", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-cp-e-ref-gateway", componentId: "api-gateway", position: { x: 1100, y: 0 }, config: {} },
+            { id: "bb-cp-e-ref-lb", componentId: "load-balancer", position: { x: 1360, y: 0 }, config: {} },
+            { id: "bb-cp-e-ref-tills", componentId: "serverless-function", position: { x: 1360, y: 160 }, config: { maxConcurrency: 500, timeoutSeconds: 30 } },
+            { id: "bb-cp-e-ref-app", componentId: "app-server", position: { x: 1620, y: 0 }, config: { instances: 3 } },
+            { id: "bb-cp-e-ref-db", componentId: "sql-database", position: { x: 1880, y: 0 }, config: {} },
+            { id: "bb-cp-e-ref-search", componentId: "search-engine", position: { x: 1880, y: 160 }, config: { shards: 1 } },
+            { id: "bb-cp-e-ref-queue", componentId: "message-queue", position: { x: 1880, y: 320 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "bb-cp-e-ref-bus", componentId: "event-bus", position: { x: 1880, y: 480 }, config: { deliveryMode: "fan-out" } },
+            { id: "bb-cp-e-ref-texter", componentId: "worker", position: { x: 2140, y: 320 }, config: { concurrency: 4 } },
+            { id: "bb-cp-e-ref-dlq", componentId: "dead-letter-queue", position: { x: 2140, y: 160 }, config: { maxRetries: 5 } },
+            { id: "bb-cp-e-ref-tablet", componentId: "worker", position: { x: 2140, y: 480 }, config: { concurrency: 4 } },
+            { id: "bb-cp-e-ref-loyalty", componentId: "worker", position: { x: 2140, y: 640 }, config: { concurrency: 4 } },
+            { id: "bb-cp-e-ref-indexer", componentId: "worker", position: { x: 2140, y: 800 }, config: { concurrency: 4 } },
+            { id: "bb-cp-e-ref-nightly", componentId: "cron-job", position: { x: 1620, y: 320 }, config: { scheduleIntervalMinutes: 1440 } },
+          ],
+          edges: [
+            { id: "bb-cp-e-ref-e1", source: "bb-cp-e-ref-browser", target: "bb-cp-e-ref-dns", kind: "request-flow" },
+            { id: "bb-cp-e-ref-e2", source: "bb-cp-e-ref-dns", target: "bb-cp-e-ref-fw", kind: "request-flow" },
+            { id: "bb-cp-e-ref-e3", source: "bb-cp-e-ref-fw", target: "bb-cp-e-ref-proxy", kind: "request-flow" },
+            { id: "bb-cp-e-ref-e4", source: "bb-cp-e-ref-proxy", target: "bb-cp-e-ref-gateway", kind: "request-flow" },
+            { id: "bb-cp-e-ref-e5", source: "bb-cp-e-ref-gateway", target: "bb-cp-e-ref-lb", kind: "request-flow" },
+            { id: "bb-cp-e-ref-e6", source: "bb-cp-e-ref-gateway", target: "bb-cp-e-ref-tills", kind: "request-flow" },
+            { id: "bb-cp-e-ref-e7", source: "bb-cp-e-ref-lb", target: "bb-cp-e-ref-app", kind: "request-flow" },
+            { id: "bb-cp-e-ref-e8", source: "bb-cp-e-ref-app", target: "bb-cp-e-ref-db", kind: "request-flow" },
+            { id: "bb-cp-e-ref-e9", source: "bb-cp-e-ref-app", target: "bb-cp-e-ref-search", kind: "request-flow" },
+            { id: "bb-cp-e-ref-e10", source: "bb-cp-e-ref-app", target: "bb-cp-e-ref-queue", kind: "async" },
+            { id: "bb-cp-e-ref-e11", source: "bb-cp-e-ref-queue", target: "bb-cp-e-ref-texter", kind: "async" },
+            { id: "bb-cp-e-ref-e12", source: "bb-cp-e-ref-queue", target: "bb-cp-e-ref-dlq", kind: "async" },
+            { id: "bb-cp-e-ref-e13", source: "bb-cp-e-ref-app", target: "bb-cp-e-ref-bus", kind: "async" },
+            { id: "bb-cp-e-ref-e14", source: "bb-cp-e-ref-bus", target: "bb-cp-e-ref-tablet", kind: "async" },
+            { id: "bb-cp-e-ref-e15", source: "bb-cp-e-ref-bus", target: "bb-cp-e-ref-loyalty", kind: "async" },
+            { id: "bb-cp-e-ref-e16", source: "bb-cp-e-ref-bus", target: "bb-cp-e-ref-indexer", kind: "async" },
+            { id: "bb-cp-e-ref-e17", source: "bb-cp-e-ref-indexer", target: "bb-cp-e-ref-search", kind: "request-flow" },
+            { id: "bb-cp-e-ref-e18", source: "bb-cp-e-ref-nightly", target: "bb-cp-e-ref-db", kind: "request-flow" },
+            { id: "bb-cp-e-ref-e19", source: "bb-cp-e-ref-tills", target: "bb-cp-e-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-cp-e-ref-browser", "bb-cp-e-ref-nightly"],
+        },
+        commentary:
+          "Four paths now, and only one of them has a diner waiting on it. The text message is a task for one " +
+          "consumer: the booking drops it on a queue and answers, the sender works through it at the provider's " +
+          "pace, and after its retries a text that never sends lands in the dead letter queue instead of " +
+          "vanishing or blocking the ones behind it (3.17). The booking itself is a fact three teams need all " +
+          "of, so it goes out once on a broadcast and each team subscribes - the fourth team next quarter adds " +
+          "a subscriber and the booking code never hears about it (3.18). One of those subscribers keeps " +
+          "search's free-tables count current, which is 3.16's index updated after the response instead of " +
+          "inside it. The no-show billing has no caller at all, so it starts from a schedule outside the pool " +
+          "and runs once however many instances exist; the tills' opening burst comes through the same front " +
+          "door but goes to a function that scales with the burst and costs nothing at 4 pm (3.19). Kafka in " +
+          "place of the bus, or functions in place of workers, pass just as well.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-cp-e-hint-1",
+        body:
+          "Sort the brief by who is waiting. The diner waits for the booking and for nothing else on this list. " +
+          "Everything else needs a home that outlives the request, or a starting point that is not a request at " +
+          "all.",
+      },
+      {
+        id: "bb-cp-e-hint-2",
+        body:
+          "Two lines describe work that follows a booking, and they are different shapes: one is a job that one " +
+          "thing should do once, the other is news that several teams each need all of. The team arriving next " +
+          "quarter is the tell.",
+      },
+      {
+        id: "bb-cp-e-hint-3",
+        body:
+          "One line has no caller at all, and one has a caller that arrives in a burst at the front door. " +
+          "Neither belongs in the diner-facing pool. Watch the line styles as you draw: the dashed kind is only " +
+          "allowed where a hand-off is one-way.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position:
+        "Building Blocks, Group E: Asynchronous Systems - Checkpoint E, immediately after 3.19 (the group's last chapter). With Checkpoint F, gates Group G.",
+      masteredConcepts: [
+        "Every Group E chapter: queues, workers, at-least-once delivery and dead letter queues (3.17); tasks " +
+          "versus facts, buses and logs (3.18); schedules that run once and functions that scale with a burst " +
+          "(3.19).",
+        "Everything through Checkpoint D, including 3.16's search index as a derived copy that must be kept up to date.",
+      ],
+      notYetIntroducedConcepts: [
+        "Object storage and distributed storage (Group F), which may not have been taken yet - E and F are " +
+          "parallel after Checkpoint D.",
+        "Timeouts, retries with budgets, idempotency keys, locks and failover (Group G).",
+      ],
+      simplifications: [
+        "Each team's service is one consumer card; real teams run their own fleets behind a subscription.",
+        "The nightly job is drawn writing straight to the database or through its own worker; both pass. " +
+          "Making it safe to run twice is Group G's problem.",
+        "Idempotent consumers are assumed, not drawn: at-least-once delivery means every consumer here can " +
+          "see a booking twice.",
+      ],
+    },
+    // Provided: the synchronous system a diner uses - front door, a
+    // three-instance pool, the bookings database and the restaurant search
+    // index. The asynchronous half is the empty zone to the right.
+    starterGraph: {
+      nodes: [
+        { id: "bb-cp-e-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-cp-e-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-cp-e-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-cp-e-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-cp-e-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-cp-e-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-cp-e-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-cp-e-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-cp-e-search", componentId: "search-engine", position: { x: 840, y: 160 }, config: { shards: 1 } },
+      ],
+      edges: [
+        { id: "bb-cp-e-e1", source: "bb-cp-e-browser", target: "bb-cp-e-dns", kind: "request-flow" },
+        { id: "bb-cp-e-e2", source: "bb-cp-e-dns", target: "bb-cp-e-fw", kind: "request-flow" },
+        { id: "bb-cp-e-e3", source: "bb-cp-e-fw", target: "bb-cp-e-proxy", kind: "request-flow" },
+        { id: "bb-cp-e-e4", source: "bb-cp-e-proxy", target: "bb-cp-e-gateway", kind: "request-flow" },
+        { id: "bb-cp-e-e5", source: "bb-cp-e-gateway", target: "bb-cp-e-lb", kind: "request-flow" },
+        { id: "bb-cp-e-e6", source: "bb-cp-e-lb", target: "bb-cp-e-app", kind: "request-flow" },
+        { id: "bb-cp-e-e7", source: "bb-cp-e-app", target: "bb-cp-e-db", kind: "request-flow" },
+        { id: "bb-cp-e-e8", source: "bb-cp-e-app", target: "bb-cp-e-search", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-cp-e-browser"],
+    },
+    starterDecorators: [
+      { kind: "zone", id: "bb-cp-e-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-cp-e-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-cp-e-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-cp-e-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 308, color: "#10b981" },
+      { kind: "zone", id: "bb-cp-e-zone-gap", label: "Build here", position: { x: 1072, y: -40 }, width: 696, height: 468, color: "#ff3483" },
+      {
+        kind: "comment",
+        id: "bb-cp-e-comment-latency",
+        text: "Booking p95 today: 3.4 s. The booking's own database write is 25 ms of it; the rest is the text message and three teams' updates, done inline.",
+        position: { x: 1852, y: -40 },
+        width: 260,
+        height: 160,
+        color: "#64748b",
+      },
+      {
+        kind: "comment",
+        id: "bb-cp-e-comment-pool",
+        text: "The diner-facing pool is sized for 17:00-17:15, when the tills push their updates. It sits mostly idle the rest of the day.",
+        position: { x: 1852, y: 160 },
+        width: 260,
+        height: 130,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-20-object-storage",
+    mode: "building-blocks",
+    title: "Object Storage",
+    // Real authored content (first Group F chapter). Spec:
+    // specs/bb-3-20-object-storage.spec.md. Lesson body:
+    // public/content/chapters/bb-3-20-object-storage.mdx. Prerequisite is
+    // Checkpoint R1, not 3.19 - CURRICULUM §17 makes Groups E and F
+    // parallel-eligible after R1, so nothing here assumes Group E.
+    problemStatement:
+      "The job board stores every résumé PDF in a bytes column on the applications table, and every " +
+      "company logo inline in its listing document. The primary SQL database is 2.4 TB, 2.2 TB of it " +
+      "PDF bytes. The nightly backup takes eleven hours, and replica lag jumps to forty seconds " +
+      "whenever a batch of résumés lands.",
+    exerciseGoal:
+      "Get the file bytes out of both databases so backups, replication and listing pages stop paying for them, while each database still records which file belongs to which application or listing.",
+    successCriteria: [
+      "The SQL database's backup and replication stop carrying file bytes; each application row records only what the résumé is and where it lives.",
+      "Listing documents no longer carry image bytes, so a catalogue page reads none from the store that owns listings.",
+      "File bytes have one home of their own, reached from the tier that already handles uploads.",
+      "Everything Checkpoint D left in place still works, and logos still reach seekers through the CDN.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7), all five categories - Building Block
+    // type per §4/§16 (introduces object-storage).
+    learningObjectives: [
+      "Explain which database capabilities a stored file pays for without using - backup, replication, buffer cache - and why that makes blobs a placement problem rather than a capacity one.",
+      "Split a file-bearing record into metadata in the database and bytes in object storage joined by a key, and choose the write order that makes a crash leave an orphan rather than a dangling row.",
+      "Describe how a presigned URL lets the application tier authorize an upload or a private download without carrying the bytes.",
+      "Add object storage to an existing architecture from the tier that handles uploads, without disturbing the request path, and pass Submit.",
+      "Answer \"where do the photos live?\" with the metadata/bytes split, the upload path and the read path, and a size estimate that justifies it.",
+      "Justify keeping small blobs in the database aloud, naming the threshold at which the bytes column stops being the cheaper choice.",
+    ],
+    // R1's palette plus this chapter's one new component. CURRICULUM §16's
+    // own row: "3.20 | object-storage". Group E's components are absent on
+    // purpose: they are not in this chapter's prerequisite chain (§17).
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "object-storage",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+      "object-storage",
+    ],
+    // Checkpoint D's set. Browser -> bucket (presigned) and CDN -> bucket
+    // (origin) are legal since 2026-10-07 (open decision 20) and pass beside
+    // the graded app -> bucket path.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-20-blueprint",
+        label: "Bytes in their own store, facts about them in the databases",
+        require: {
+          id: "bb-3-20-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "nosql", componentId: "nosql-database" },
+            { alias: "replica", componentId: "read-replica" },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+            { alias: "bucket", componentId: "object-storage" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "app", to: "nosql", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+            { from: "app", to: "bucket", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-20-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-20-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-20-ref-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+            { id: "bb-3-20-ref-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-3-20-ref-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+            { id: "bb-3-20-ref-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+            { id: "bb-3-20-ref-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+            { id: "bb-3-20-ref-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+            { id: "bb-3-20-ref-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-3-20-ref-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+            { id: "bb-3-20-ref-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+            { id: "bb-3-20-ref-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+            { id: "bb-3-20-ref-bucket", componentId: "object-storage", position: { x: 1100, y: 160 }, config: { storageClass: "standard" } },
+            { id: "bb-3-20-ref-search", componentId: "search-engine", position: { x: 1100, y: 320 }, config: { shards: 1 } },
+          ],
+          edges: [
+            { id: "bb-3-20-ref-e1", source: "bb-3-20-ref-browser", target: "bb-3-20-ref-dns", kind: "request-flow" },
+            { id: "bb-3-20-ref-e2", source: "bb-3-20-ref-dns", target: "bb-3-20-ref-cdn", kind: "request-flow" },
+            { id: "bb-3-20-ref-e3", source: "bb-3-20-ref-cdn", target: "bb-3-20-ref-fw", kind: "request-flow" },
+            { id: "bb-3-20-ref-e4", source: "bb-3-20-ref-fw", target: "bb-3-20-ref-proxy", kind: "request-flow" },
+            { id: "bb-3-20-ref-e5", source: "bb-3-20-ref-proxy", target: "bb-3-20-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-20-ref-e6", source: "bb-3-20-ref-gateway", target: "bb-3-20-ref-lb", kind: "request-flow" },
+            { id: "bb-3-20-ref-e7", source: "bb-3-20-ref-lb", target: "bb-3-20-ref-app", kind: "request-flow" },
+            { id: "bb-3-20-ref-e8", source: "bb-3-20-ref-app", target: "bb-3-20-ref-db", kind: "request-flow" },
+            { id: "bb-3-20-ref-e9", source: "bb-3-20-ref-app", target: "bb-3-20-ref-nosql", kind: "request-flow" },
+            { id: "bb-3-20-ref-e10", source: "bb-3-20-ref-db", target: "bb-3-20-ref-replica", kind: "replication" },
+            { id: "bb-3-20-ref-e11", source: "bb-3-20-ref-replica", target: "bb-3-20-ref-app", kind: "request-flow" },
+            { id: "bb-3-20-ref-e12", source: "bb-3-20-ref-app", target: "bb-3-20-ref-cache", kind: "request-flow" },
+            { id: "bb-3-20-ref-e13", source: "bb-3-20-ref-cache", target: "bb-3-20-ref-db", kind: "request-flow" },
+            { id: "bb-3-20-ref-e14", source: "bb-3-20-ref-app", target: "bb-3-20-ref-search", kind: "request-flow" },
+            { id: "bb-3-20-ref-e15", source: "bb-3-20-ref-app", target: "bb-3-20-ref-bucket", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-20-ref-browser"],
+        },
+        commentary:
+          "One card and one arrow, and the two databases shrink by everything they never needed to hold. " +
+          "The applications row now carries a key, a size and a content type; the bytes behind that key " +
+          "live in a store priced for bytes, which no backup, replication stream or buffer cache has to " +
+          "carry again. The CDN did not move: after the first miss it serves each logo from the edge, so " +
+          "the new store hears about a popular logo once. The step most production systems take next - the " +
+          "browser uploading straight to the bucket on a presigned URL, and the CDN using the bucket as its " +
+          "origin - can be drawn beside this path and takes the application tier off the byte path. The " +
+          "split itself is the part that carries over unchanged.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-20-hint-1",
+        body:
+          "Validate has nothing to say, and that is correct - nothing is miswired. The fault is in what " +
+          "two of the stores are holding. For each store on the board, ask whether the data it holds " +
+          "uses the things that store is good at.",
+      },
+      {
+        id: "bb-3-20-hint-2",
+        body:
+          "Both databases should keep describing every file - who uploaded it, how big it is, where it " +
+          "lives - and stop holding it. That needs somewhere whose whole job is keeping bytes under a " +
+          "name, with no queries and no transactions to pay for.",
+      },
+      {
+        id: "bb-3-20-hint-3",
+        body:
+          "Ask which tier receives uploads today, and start the new path there. A presigned upload " +
+          "from the browser can sit beside it, but the application tier's path is the one this exercise " +
+          "checks.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 2,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group F: Storage - Chapter 3.20 of 37 (first chapter in Group F, directly after Checkpoint D; parallel-eligible with Group E).",
+      masteredConcepts: [
+        "Checkpoint D's whole stack, rebuilt from a blank canvas: edge, gateway, load-balanced pool, " +
+          "primary database with a read replica, cache-aside cache, search. This chapter's starter graph is " +
+          "that system plus 3.11's document store.",
+        "3.10's account of what a database is for - indexes, transactions, durable rows - which is the " +
+          "list a stored file pays for without using.",
+        "3.12's replication and its lag. The cold open's forty-second lag is the replication stream " +
+          "carrying PDF bytes.",
+        "3.14's caches and 3.15's CDN, including TTL staleness and why an object rewritten under the same " +
+          "name keeps being served old until its TTL runs out.",
+        "3.5's gateway as the place callers are authenticated - the decision a presigned URL hands to the " +
+          "client as a scoped, expiring credential.",
+      ],
+      notYetIntroducedConcepts: [
+        "File and block storage, POSIX semantics and shared filesystems (3.21) - this chapter's marked " +
+          "preview. The lesson names object storage's semantics; the contrast with files is next chapter's.",
+        "Consistency models, quorums and CAP (3.22). Object storage's own replication is stated as a " +
+          "durability property, not analysed as a consistency one.",
+        "Asynchronous processing of uploads - resize, scan, transcode - via queues and workers (Group E). " +
+          "Not in this chapter's prerequisite chain, so nothing here depends on it.",
+        "Erasure coding, multi-region bucket replication and storage-engine internals. Out of scope at " +
+          "this depth.",
+      ],
+      simplifications: [
+        "The exercise checks the application tier's write path to the bucket. The presigned-upload path " +
+          "(browser to bucket) and the CDN-origin path (CDN to bucket) are drawable and pass beside it, but " +
+          "are not required.",
+        "storageClass is taught (lifecycle moves old résumés to colder classes) and not gated - there is " +
+          "no single correct class for a bucket holding both new and old files.",
+        "Public logos and private résumés are discussed as two buckets with opposite policies; the canvas " +
+          "has one Object Storage node and no access-policy field.",
+        "The migration of 2.2 TB of existing bytes out of the database is not part of the exercise; the " +
+          "chapter teaches the target shape.",
+      ],
+    },
+    // Five questions, ramp 1/1/2/2/3. Bank Q1 and Q2 (QUIZ_FRAMEWORK §13,
+    // tagged 3.20) are spent as Q1 and Q2, with their joke distractors
+    // replaced. Correct options sit at c, a, d, b, a - all four positions,
+    // no letter twice in a row; opens on c, against 3.19's d and R1's
+    // (quizless) neighbour 3.16's a.
+    quiz: [
+      {
+        id: "bb-3-20-object-storage-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Résumé PDFs live in a bytes column on the applications table. A teammate says that is fine: the database stores them durably and returns them correctly. What is the strongest reason to move them out anyway?",
+        options: [
+          {
+            id: "a",
+            label: "Relational databases cannot store binary data reliably past a few megabytes per row.",
+            correct: false,
+            explanationMd:
+              "They can, and do - the bytes column has been returning the right PDFs for five months. Capability is not the problem; what the bytes cost the rest of the database is.",
+          },
+          {
+            id: "b",
+            label: "Object storage serves files faster than a database does, so the résumé download gets quicker.",
+            correct: false,
+            explanationMd:
+              "First-byte latency from object storage is usually slower than a database buffer-cache hit. The move is about what the bytes cost everything else, not about the download.",
+          },
+          {
+            id: "c",
+            label: "The bytes use none of the database's powers - queries, transactions - but still ride every backup, every replication stream and the buffer cache.",
+            correct: true,
+            explanationMd:
+              "Correct. The database charges for indexes, transactions, replication and backup whether a row needs them or not. A PDF needs none of them, so it belongs in a store priced for bytes, with the row keeping its key and metadata.",
+          },
+          {
+            id: "d",
+            label: "Files are unstructured, and a relational schema should only ever hold structured data.",
+            correct: false,
+            explanationMd:
+              "A rule of taste, not a reason. Small unstructured values in a row are often the cheaper choice; what decides it is whether blobs dominate the database's size, backup and replication.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-20-object-storage-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "The upload endpoint now writes each résumé to object storage, but the application pool's network usage climbs with every career fair. A teammate proposes presigned upload URLs. What do they change?",
+        options: [
+          {
+            id: "a",
+            label: "The browser uploads straight to the bucket with a credential scoped to one key and a few minutes; the app tier authorizes the upload but never carries the bytes.",
+            correct: true,
+            explanationMd:
+              "Correct. Authorization stays where it was, as a decision; the data path moves off the pool. The pool goes back to being sized for requests rather than for bandwidth.",
+          },
+          {
+            id: "b",
+            label: "The upload is encrypted end to end, so the app tier can no longer read the résumé's contents.",
+            correct: false,
+            explanationMd:
+              "Transport encryption is already there with or without a presigned URL. What changes is who sends the bytes where, not whether they are encrypted.",
+          },
+          {
+            id: "c",
+            label: "Uploads are cached at the CDN, so a résumé uploaded twice is only stored once.",
+            correct: false,
+            explanationMd:
+              "A CDN caches reads, not writes, and a résumé is private data that should never be public-cached anyway.",
+          },
+          {
+            id: "d",
+            label: "The bucket can accept uploads without any authentication, which removes a round trip to the app tier.",
+            correct: false,
+            explanationMd:
+              "The opposite: the URL is the authentication, signed by the app tier and valid for one key, one verb and a short window. An open bucket is a leak, not an optimization.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-20-object-storage-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "An upload handler writes two things: the application row in SQL and the résumé bytes in the bucket. There is no transaction across them, and the process can crash between the two writes. Which order should it use?",
+        options: [
+          {
+            id: "a",
+            label: "Row first, so the application is recorded even if the upload fails, and the recruiter can ask for the file again.",
+            correct: false,
+            explanationMd:
+              "A crash then leaves a row pointing at nothing - a recruiter opens an application and gets a broken link. That failure is visible to users; the other order's failure is not.",
+          },
+          {
+            id: "b",
+            label: "Either order, as long as the handler retries the second write until it succeeds.",
+            correct: false,
+            explanationMd:
+              "Retries do not help a process that has crashed. The question is which half-finished state you can live with, and the two are not equally bad.",
+          },
+          {
+            id: "c",
+            label: "Both at once in parallel, to halve the latency of the upload request.",
+            correct: false,
+            explanationMd:
+              "Parallel writes make both half-finished states possible instead of one. Latency is not the constraint here; the failure shape is.",
+          },
+          {
+            id: "d",
+            label: "Bytes first, row second. A crash leaves an object nobody points at, which costs storage until a sweep deletes it.",
+            correct: true,
+            explanationMd:
+              "Correct. An orphaned object is only a cost, and a lifecycle rule or reconciliation job removes it. A dangling row is a broken page. Order the writes so the failure you get is the cheap one.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-20-object-storage-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A company replaces its logo. The upload succeeds and the bucket holds the new image under `logos/8812.png`, the same key as before, yet seekers keep seeing the old logo for about an hour. What happened?",
+        options: [
+          {
+            id: "a",
+            label: "Object storage replicates new versions slowly, so some of its replicas are still returning the old bytes.",
+            correct: false,
+            explanationMd:
+              "Possible for a moment on some stores, but not for an hour, and not consistently. The hour matches something you configured.",
+          },
+          {
+            id: "b",
+            label: "The CDN cached the old logo under that URL and keeps serving it until its TTL expires. A new key per version would have been a new URL.",
+            correct: true,
+            explanationMd:
+              "Correct. The CDN keys its cache on the URL, and the URL did not change. Objects are immutable by convention for exactly this reason: write `8812-v2.png`, update the row, and the old cache entry simply stops being asked for.",
+          },
+          {
+            id: "c",
+            label: "The browser cached the old image and will only refetch when the seeker clears their cache.",
+            correct: false,
+            explanationMd:
+              "Browser caching adds to it, but new visitors with empty caches see the old logo too. Something shared between them is holding it.",
+          },
+          {
+            id: "d",
+            label: "The listing row still points at the old key, so the page keeps rendering the old image's URL.",
+            correct: false,
+            explanationMd:
+              "The key never changed - that is the problem. The row and the bucket are both correct; the cache in front of them is not.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-20-object-storage-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Recruiters need to open applicants' résumés. A teammate proposes putting the résumé bucket behind the CDN with public read access, arguing that the keys are random UUIDs nobody can guess. What is the strongest response?",
+        options: [
+          {
+            id: "a",
+            label: "Keep the bucket private. The app tier checks that this recruiter may see this application, then returns a signed GET URL that expires in minutes, never cached publicly.",
+            correct: true,
+            explanationMd:
+              "Correct. An unguessable key is not access control: URLs get forwarded, logged and pasted. Authorization belongs to a decision made per request, and expiry is what limits the damage of a forwarded link.",
+          },
+          {
+            id: "b",
+            label: "Fine, as long as the CDN's TTL is short, so a leaked URL stops working soon.",
+            correct: false,
+            explanationMd:
+              "The TTL controls how long the CDN keeps a copy, not who may fetch it. With a public bucket a leaked URL keeps working forever, cached or not.",
+          },
+          {
+            id: "c",
+            label: "Proxy every résumé download through the app tier, so the check happens on every byte.",
+            correct: false,
+            explanationMd:
+              "Secure, and the shape this chapter moved away from: the pool carries every byte again. A signed URL keeps the per-request check without the data path.",
+          },
+          {
+            id: "d",
+            label: "Store résumés back in the database, since only the database can enforce row-level access.",
+            correct: false,
+            explanationMd:
+              "This reintroduces every cost the chapter removed. Access is enforced by the app tier deciding whether to sign, not by where the bytes sit.",
+          },
+        ],
+      },
+    ],
+    // R1's solved system plus 3.11's document store, laid out in the vertical
+    // tier columns every chapter since 3.15 uses. Validates clean on purpose:
+    // the fault is in what rows and documents contain (a bytes column, inline
+    // images), which the canvas does not draw - see spec §8 for why this clean
+    // starter's argument is its own.
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-20-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-20-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-20-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+        { id: "bb-3-20-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-3-20-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+        { id: "bb-3-20-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-20-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-3-20-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+        { id: "bb-3-20-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+        { id: "bb-3-20-nosql", componentId: "nosql-database", position: { x: 840, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-20-replica", componentId: "read-replica", position: { x: 840, y: 320 }, config: {} },
+        { id: "bb-3-20-cache", componentId: "cache", position: { x: 840, y: 480 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+        { id: "bb-3-20-search", componentId: "search-engine", position: { x: 1100, y: 320 }, config: { shards: 1 } },
+      ],
+      edges: [
+        { id: "bb-3-20-e1", source: "bb-3-20-browser", target: "bb-3-20-dns", kind: "request-flow" },
+        { id: "bb-3-20-e2", source: "bb-3-20-dns", target: "bb-3-20-cdn", kind: "request-flow" },
+        { id: "bb-3-20-e3", source: "bb-3-20-cdn", target: "bb-3-20-fw", kind: "request-flow" },
+        { id: "bb-3-20-e4", source: "bb-3-20-fw", target: "bb-3-20-proxy", kind: "request-flow" },
+        { id: "bb-3-20-e5", source: "bb-3-20-proxy", target: "bb-3-20-gateway", kind: "request-flow" },
+        { id: "bb-3-20-e6", source: "bb-3-20-gateway", target: "bb-3-20-lb", kind: "request-flow" },
+        { id: "bb-3-20-e7", source: "bb-3-20-lb", target: "bb-3-20-app", kind: "request-flow" },
+        { id: "bb-3-20-e8", source: "bb-3-20-app", target: "bb-3-20-db", kind: "request-flow" },
+        { id: "bb-3-20-e9", source: "bb-3-20-app", target: "bb-3-20-nosql", kind: "request-flow" },
+        { id: "bb-3-20-e10", source: "bb-3-20-db", target: "bb-3-20-replica", kind: "replication" },
+        { id: "bb-3-20-e11", source: "bb-3-20-replica", target: "bb-3-20-app", kind: "request-flow" },
+        { id: "bb-3-20-e12", source: "bb-3-20-app", target: "bb-3-20-cache", kind: "request-flow" },
+        { id: "bb-3-20-e13", source: "bb-3-20-cache", target: "bb-3-20-db", kind: "request-flow" },
+        { id: "bb-3-20-e14", source: "bb-3-20-app", target: "bb-3-20-search", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-20-browser"],
+    },
+    // 3.16's zones, with search now in its own "Derived data" band and a
+    // one-slot gap directly above it in the same column - the column right of
+    // Data, since the new store is a data-tier peer the pool writes to and
+    // the Data column already holds four rows (§11.5's three-row target is
+    // exceeded there by the carried-forward cache tier, as in 3.16).
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-20-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-20-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 628, color: "#3b82f6" },
+      { kind: "zone", id: "bb-3-20-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-20-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 468, color: "#10b981" },
+      { kind: "zone", id: "bb-3-20-zone-cache", label: "Cache tier", position: { x: 812, y: 440 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "bb-3-20-zone-gap", label: "Build here", position: { x: 1072, y: 120 }, width: 176, height: 148, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-20-zone-derived", label: "Derived data", position: { x: 1072, y: 280 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-20-comment-sizes",
+        text: "Primary SQL database: 2.4 TB, of which 2.2 TB is résumé PDF bytes. Nightly backup: 11 hours. Replica lag during a career-fair upload burst: 40 seconds. Average listing document: 6 KB of fields plus a 340 KB inline logo.",
+        position: { x: 32, y: 640 },
+        width: 620,
+        height: 160,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-21-file-storage",
+    mode: "building-blocks",
+    title: "File Storage",
+    // Real authored content (second Group F chapter). Spec:
+    // specs/bb-3-21-file-storage.spec.md. Lesson body:
+    // public/content/chapters/bb-3-21-file-storage.mdx. Concept type per
+    // CURRICULUM §14 ("New: none"), no Editor exercise - see below.
+    problemStatement:
+      "Before object storage, the job board wrote uploads to a directory mounted from one network file " +
+      "server on every app instance. It worked at three instances until two of them wrote the same file " +
+      "at once, and until the file server's reboot froze the whole pool. No build: the knowledge check is " +
+      "whether you can place a workload on block, file or object storage and name what a shared mount " +
+      "costs.",
+    // Five objectives (§5.2 allows 3-7). Practical omitted per §5.2's own
+    // carve-out for pure Concept chapters, matching 3.10's and 3.13's
+    // precedent - see spec §0.
+    learningObjectives: [
+      "Distinguish block, file and object storage by the unit addressed and the operations promised on it, not by where the bytes sit.",
+      "Explain why keeping POSIX promises across many machines makes a shared file server both a bottleneck and a dependency of every client.",
+      "Choose block, file or object storage for a stated workload and name the property that decides it.",
+      "Answer \"design Google Drive\" with file semantics implemented as metadata rows over immutable objects, so a folder rename moves no bytes.",
+      "Justify a shared file system aloud for path-bound tooling, naming the instance count or write contention at which that stops holding.",
+    ],
+    // Cumulative palette through 3.20, unchanged - CURRICULUM §16 lists 3.21
+    // among the intentional no-component Concept chapters.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "object-storage",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "search-engine",
+      "object-storage",
+    ],
+    // No Editor exercise (see hasEditorExercise below) - no rules to curate.
     validationRuleIds: [],
     blueprints: [],
-    hints: [],
+    // False: no construction-family exercise. CURRICULUM §14's own row names
+    // only a trade-off exercise ("object vs. file vs. block x3 workloads"),
+    // and the registry has no block or file storage component to draw one
+    // with. §16 confirms the chapter introduces none. Adding one only to draw
+    // the shape the chapter argues against would be a component with no home
+    // chapter. The trade-off ships as the lesson's workload table plus quiz Q3
+    // (a three-pair matching question) - pending-content.md's named
+    // degradation path, the same one 3.18 and 3.19 used for their own
+    // trade-off rows.
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-3-21-hint-1",
+        body:
+          "For any workload, ask what it does to its data after writing it: reads it whole, edits it in " +
+          "place, or appends to it - and how many machines do that at once.",
+      },
+      {
+        id: "bb-3-21-hint-2",
+        body:
+          "When a shared mount misbehaves, ask whether a better server would have prevented it, or whether " +
+          "the problem is that more than one machine is changing the same thing.",
+      },
+    ],
     readingLinks: [],
-    // Same reasoning as bb-dummy-1's starterGraph above.
-    starterGraph: {
-      nodes: [{ id: "rwe-dummy-1-starter-client", componentId: "client", position: { x: 60, y: 0 }, config: {} }],
-      edges: [],
-      entryPointIds: [],
+    lessonVersion: 2,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group F: Storage - Chapter 3.21 of 37 (second chapter in Group F, directly after 3.20).",
+      masteredConcepts: [
+        "3.20's metadata/bytes split and object semantics: whole, immutable objects addressed by key over " +
+          "HTTP. This chapter is the contrast that explains why that is the default for uploads.",
+        "3.6's statelessness and 3.8's horizontal scaling - that instances must be interchangeable and are " +
+          "added and removed freely. A mounted disk pins state to one; a shared one reintroduces it.",
+        "3.10's database as the system of record, which this chapter places on block storage.",
+      ],
+      notYetIntroducedConcepts: [
+        "Consistency models, quorums and the placement of data across machines (3.22) - this chapter's " +
+          "marked preview. Close-to-open visibility is described as an NFS behaviour, not placed on a " +
+          "consistency spectrum.",
+        "Distributed locks (Group G). Network file locks are described as fragile; the component that " +
+          "provides a dependable lock is not introduced here.",
+        "Distributed file systems (HDFS, CephFS, Lustre) and their internals. Out of scope at this depth.",
+      ],
+      simplifications: [
+        "Block, file and object storage have no canvas components, so the chapter has no Editor exercise; " +
+          "the lesson's Your turn section says so.",
+        "NFS stands in for network file systems generally, and close-to-open is presented as the common " +
+          "guarantee. Real NFS versions and mount options vary.",
+        "Haystack is described at the level of its published design decision - many photos packed per " +
+          "file with an in-memory index - not its full architecture.",
+      ],
     },
+    // Five questions, ramp 1/2/2/2/3. Bank Q3 and Q4 (QUIZ_FRAMEWORK §13,
+    // tagged 3.21) are spent as Q1 and Q2 with their joke distractors
+    // replaced; Q3 is §14's own trade-off row as a matching question; Q4 and
+    // Q5 are original. Single-choice correct options sit at b, d, a, c - opens
+    // on b against 3.20's c and 3.19's d.
+    quiz: [
+      {
+        id: "bb-3-21-file-storage-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A teammate says object storage and file storage are the same thing with different APIs - both hold files, both are on the network. What is the real line between them?",
+        options: [
+          {
+            id: "a",
+            label: "Size: object storage is for large files, file storage for small ones.",
+            correct: false,
+            explanationMd:
+              "Both hold files of any size. Choosing by size gets the small-avatar case right by accident and the large-dataset-read-by-path case wrong.",
+          },
+          {
+            id: "b",
+            label: "The operations promised: files can be edited in place, appended to, renamed and locked; objects are written and read whole by key.",
+            correct: true,
+            explanationMd:
+              "Correct. Partial writes, appends and atomic renames are file semantics, and they are what make a shared file system expensive to run across machines. Objects give them up, which is why they distribute easily.",
+          },
+          {
+            id: "c",
+            label: "Location: file storage is on-premise hardware, object storage is a cloud service.",
+            correct: false,
+            explanationMd:
+              "Every cloud sells managed file storage, and object stores run on-premise. Where it runs says nothing about what you can do to the data.",
+          },
+          {
+            id: "d",
+            label: "Durability: object storage replicates data and file storage keeps a single copy.",
+            correct: false,
+            explanationMd:
+              "Managed file systems replicate too. Durability is bought separately from semantics, and confusing the two leads to choosing a store for the wrong reason.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-21-file-storage-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A shared file system is mounted on 40 app servers, and files that several servers write concurrently are coming out corrupted. The file server's CPU and disks are mostly idle. What is the architectural reading?",
+        options: [
+          {
+            id: "a",
+            label: "The file server is undersized for 40 clients; move it to a larger machine with faster disks.",
+            correct: false,
+            explanationMd:
+              "The server is idle, so capacity is not the issue - and a faster server interleaves concurrent writes just as faithfully.",
+          },
+          {
+            id: "b",
+            label: "Each server should mount the share with caching disabled, so every write reaches the server immediately.",
+            correct: false,
+            explanationMd:
+              "That narrows the window and makes every file operation slower, but two writers to one file still interleave. The problem is concurrent mutation, not delay.",
+          },
+          {
+            id: "c",
+            label: "Add a lock file that each server creates before writing and deletes afterwards.",
+            correct: false,
+            explanationMd:
+              "A lock file on a network share is a lock with no guarantees: a crashed holder leaves it behind and a disconnected one can believe it still holds it.",
+          },
+          {
+            id: "d",
+            label: "Shared mutable state with POSIX semantics does not distribute. Change the data's shape - whole objects plus metadata, or a service that owns the data - rather than the disk.",
+            correct: true,
+            explanationMd:
+              "Correct. The corruption is the design working as specified for many writers. Removing the shared mutation is the fix; tuning the share only moves where it shows up.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-21-file-storage-q3",
+        kind: "matching",
+        difficulty: 2,
+        prompt: "Match each workload to the storage shape that fits it.",
+        // Option order deliberately does not mirror pairs' order below - a
+        // full derangement (pair 0 -> options[2], 1 -> [0], 2 -> [1]).
+        options: [
+          {
+            id: "file",
+            label: "File storage",
+            correct: true,
+            explanationMd:
+              "Many machines reading the same large files through tooling that expects paths. Reads share well; it is contended writes that do not.",
+          },
+          {
+            id: "object",
+            label: "Object storage",
+            correct: true,
+            explanationMd:
+              "Written once, read whole, shared by everyone over HTTP and fronted by a CDN. No workload here edits a photo in place.",
+          },
+          {
+            id: "block",
+            label: "Block storage",
+            correct: true,
+            explanationMd:
+              "One owner overwriting pages in place and needing to know when a write is durable - exactly the block contract a database is built on.",
+          },
+        ],
+        pairs: [
+          ["The data directory of the primary SQL database", "block"],
+          ["A training dataset read by eight GPU machines through a framework that opens files by path", "file"],
+          ["Profile photos uploaded once and viewed by millions", "object"],
+        ],
+      },
+      {
+        id: "bb-3-21-file-storage-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "The file server behind a shared mount reboots for a patch. For six minutes every app instance stops answering - including the health-check endpoint, which never reads a file. Why?",
+        options: [
+          {
+            id: "a",
+            label: "Request threads blocked on file I/O to the hard-mounted share until the server returned, and the pool ran out of threads for everything else.",
+            correct: true,
+            explanationMd:
+              "Correct. A shared file server sits in every client's critical path, so its outage is the pool's outage, felt even by requests that never touch it. Failover shortens the freeze but keeps the dependency.",
+          },
+          {
+            id: "b",
+            label: "The load balancer marked every instance unhealthy because the file server was down.",
+            correct: false,
+            explanationMd:
+              "The load balancer knows nothing about the file server. It reacted to instances that stopped answering, which is the effect to explain, not the cause.",
+          },
+          {
+            id: "c",
+            label: "The operating system unmounts a network share when its server disappears, which crashes the application.",
+            correct: false,
+            explanationMd:
+              "A hard mount does the opposite: it waits, indefinitely by default, which is exactly why processes hang instead of failing.",
+          },
+          {
+            id: "d",
+            label: "The app instances cache file contents in memory and flushed them all at once when the server returned, overloading it.",
+            correct: false,
+            explanationMd:
+              "A thundering return can happen, but it would follow the outage. The six minutes of silence happened while the server was gone.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-21-file-storage-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "In a \"design Google Drive\" interview, you are asked what happens when a user renames a folder holding 10,000 files. Which design gives the strongest answer?",
+        options: [
+          {
+            id: "a",
+            label: "Store files on a shared POSIX file system, where a directory rename is a single atomic operation.",
+            correct: false,
+            explanationMd:
+              "The rename is cheap, and you have now put every user's files on a shared mutable namespace that has to stay coherent across the whole fleet - the shape this chapter argues against at scale.",
+          },
+          {
+            id: "b",
+            label: "Store each file as an object whose key is its full path, and copy every object to its new key on rename.",
+            correct: false,
+            explanationMd:
+              "Objects have no rename, so this is 10,000 copies and 10,000 deletes for a click - and a half-finished rename if anything fails partway.",
+          },
+          {
+            id: "c",
+            label: "Keep the folder tree and names as metadata rows and contents as objects keyed by ID; the rename is one row update and no bytes move.",
+            correct: true,
+            explanationMd:
+              "Correct. File semantics are implemented in the metadata layer, on top of 3.20's split. Paths are data about files, not the address of their bytes, so moving or renaming never touches storage.",
+          },
+          {
+            id: "d",
+            label: "Give each user a block volume formatted with a filesystem, so their folders behave exactly like a local disk.",
+            correct: false,
+            explanationMd:
+              "A block volume attaches to one machine at a time, so every request for that user must land on that machine - 3.6's sticky state at the scale of a whole product.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-3-22-distributed-storage-concepts",
+    mode: "building-blocks",
+    title: "Distributed Storage Concepts",
+    // Real authored content (third and final Group F chapter). Spec:
+    // specs/bb-3-22-distributed-storage-concepts.spec.md. Lesson body:
+    // public/content/chapters/bb-3-22-distributed-storage-concepts.mdx.
+    // Concept with a small build, per CURRICULUM §14 (introduces
+    // coordinator).
+    problemStatement:
+      "The applications store is split across NoSQL nodes by seeker ID, and the table of which IDs live " +
+      "where is compiled into every app instance. Adding a fourth node last night meant a forty-minute " +
+      "redeploy, during which different instances sent the same seeker's writes to different nodes. The " +
+      "new node still receives nothing.",
+    exerciseGoal:
+      "Give the decision of which node owns which seekers a single home that every app instance consults, so adding a node is never a redeploy again, and get the new node taking its share.",
+    successCriteria: [
+      "Which node owns which seekers is decided in exactly one place, and every app instance asks that place rather than carrying its own copy.",
+      "The question an app instance asks about placement is not a request for data, and the drawing says so.",
+      "All four storage nodes take reads and writes directly from the application tier.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7), all five categories - a Concept
+    // chapter with a small build, so Practical is present.
+    learningObjectives: [
+      "Explain the coordinator's three jobs - placement, membership, reassignment - and why it sits on the control path rather than the data path.",
+      "Place strong, read-your-writes and eventual consistency on one spectrum, and locate the replica lag, cache TTL and CDN staleness already met on it.",
+      "Predict what a quorum setting over N copies guarantees, using W + R > N, and what it costs in latency and availability.",
+      "Add a coordinator to a sharded store with a control edge from the application tier and bring an idle node into service, passing Submit.",
+      "Answer \"what happens during a partition?\" with a CP-ish or AP-ish posture per data class, and PACELC's everyday latency cost.",
+      "Justify a per-data-class consistency choice aloud, naming what a wrong answer costs against what a slow or refused one costs.",
+    ],
+    // 3.21's palette plus this chapter's one new component. CURRICULUM §16's
+    // own row: "3.22 | coordinator".
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "object-storage",
+      "coordinator",
+    ],
+    requiredComponentIds: ["browser", "load-balancer", "app-server", "nosql-database", "coordinator"],
+    // component-relations is the rule doing real work: a request-flow edge
+    // into the Coordinator fails it (control only), which is the chapter's
+    // control-plane point enforced by the engine. orphan-component is the
+    // starter's one visible symptom (the idle fourth node).
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-22-blueprint",
+        label: "One owner of the map, consulted on the control path",
+        require: {
+          id: "bb-3-22-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "s1", componentId: "nosql-database" },
+            { alias: "s2", componentId: "nosql-database" },
+            { alias: "s3", componentId: "nosql-database" },
+            { alias: "s4", componentId: "nosql-database" },
+            { alias: "coord", componentId: "coordinator" },
+          ],
+          edges: [
+            { from: "browser", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "s1", kind: "request-flow" },
+            { from: "app", to: "s2", kind: "request-flow" },
+            { from: "app", to: "s3", kind: "request-flow" },
+            { from: "app", to: "s4", kind: "request-flow" },
+            { from: "app", to: "coord", kind: "control" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-22-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-22-ref-lb", componentId: "load-balancer", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-22-ref-app", componentId: "app-server", position: { x: 320, y: 160 }, config: { instances: 3 } },
+            { id: "bb-3-22-ref-coord", componentId: "coordinator", position: { x: 320, y: 320 }, config: { consensusProtocol: "raft" } },
+            { id: "bb-3-22-ref-s1", componentId: "nosql-database", position: { x: 580, y: 0 }, config: { model: "document" } },
+            { id: "bb-3-22-ref-s2", componentId: "nosql-database", position: { x: 580, y: 160 }, config: { model: "document" } },
+            { id: "bb-3-22-ref-s3", componentId: "nosql-database", position: { x: 580, y: 320 }, config: { model: "document" } },
+            { id: "bb-3-22-ref-s4", componentId: "nosql-database", position: { x: 580, y: 480 }, config: { model: "document" } },
+          ],
+          edges: [
+            { id: "bb-3-22-ref-e1", source: "bb-3-22-ref-browser", target: "bb-3-22-ref-lb", kind: "request-flow" },
+            { id: "bb-3-22-ref-e2", source: "bb-3-22-ref-lb", target: "bb-3-22-ref-app", kind: "request-flow" },
+            { id: "bb-3-22-ref-e3", source: "bb-3-22-ref-app", target: "bb-3-22-ref-s1", kind: "request-flow" },
+            { id: "bb-3-22-ref-e4", source: "bb-3-22-ref-app", target: "bb-3-22-ref-s2", kind: "request-flow" },
+            { id: "bb-3-22-ref-e5", source: "bb-3-22-ref-app", target: "bb-3-22-ref-s3", kind: "request-flow" },
+            { id: "bb-3-22-ref-e6", source: "bb-3-22-ref-app", target: "bb-3-22-ref-s4", kind: "request-flow" },
+            { id: "bb-3-22-ref-e7", source: "bb-3-22-ref-app", target: "bb-3-22-ref-coord", kind: "control" },
+          ],
+          entryPointIds: ["bb-3-22-ref-browser"],
+        },
+        commentary:
+          "The edge that matters is the only one that is not request-flow. The app instances ask the " +
+          "Coordinator one question - which node owns this slot, at which map version - cache the answer, " +
+          "and send every read and write straight to the owning node, so the Coordinator never carries a " +
+          "byte of applications data. Adding the fourth node is now a new map version rather than a " +
+          "redeploy, and a stale instance is refused by the node it guessed wrong instead of quietly " +
+          "writing to it. The other half of membership is each storage node's heartbeat to the " +
+          "Coordinator, a control edge you can draw but this exercise does not grade.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-22-hint-1",
+        body:
+          "Validate's warning about the idle node is a symptom. Wiring that node in by hand is what the " +
+          "forty-minute redeploy did. Ask where the answer to \"which node owns this seeker\" lives today, " +
+          "and how many copies of it there are.",
+      },
+      {
+        id: "bb-3-22-hint-2",
+        body:
+          "You need one place that owns that answer and that every app instance can ask - something whose " +
+          "whole job is deciding where data lives, never holding the data itself.",
+      },
+      {
+        id: "bb-3-22-hint-3",
+        body:
+          "If the new connection is rejected, read the explanation and look at the edge's kind. Asking " +
+          "where data lives is a signal about the system, not a request that carries data.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 2,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group F: Storage - Chapter 3.22 of 37 (third and final chapter in Group F, directly after 3.21).",
+      masteredConcepts: [
+        "3.13's sharding: data split by a shard key, the same key always resolving to the same shard, " +
+          "and the cost of moving data when shards are added. This chapter's starter graph is that split, " +
+          "drawn as separate NoSQL nodes.",
+        "3.12's replication lag and read-your-writes, 3.14's cache TTL staleness and 3.15's CDN TTL - the " +
+          "three consistency trade-offs the learner has already accepted and that this chapter names.",
+        "3.4's control edge kind as a signal about the system rather than a request carrying data. This " +
+          "chapter is the first where the learner draws one that validates.",
+        "3.20's object storage replicating for durability, used here to separate durability from " +
+          "consistency.",
+      ],
+      notYetIntroducedConcepts: [
+        "Timeouts, retries and the unknown outcome of a remote call (3.23) - this chapter's marked " +
+          "preview, which also needs Group E complete.",
+        "Leader election and failover between replicas (3.26 homes leader and follower). The lesson " +
+          "describes the coordinator group agreeing by majority without naming roles inside it.",
+        "Consensus protocol internals (Raft, Paxos, ZAB). Named as the coordinator's config field only.",
+        "Vector clocks, CRDTs and hinted handoff as named mechanisms. Merging is described as last-write-wins " +
+          "versus merging by meaning.",
+      ],
+      simplifications: [
+        "Storage nodes' heartbeats to the coordinator are drawable as control edges but not graded. " +
+          "Membership is taught in a sequence diagram and stated in the blueprint commentary.",
+        "Each NoSQL node stands for one shard; replication within a shard, where quorums actually apply, " +
+          "is taught in prose and diagrams but not drawn on the canvas.",
+        "consensusProtocol is taught as naming the algorithm and not gated - the choice does not change " +
+          "anything this chapter's exercise depends on.",
+        "The coordinator is one card standing for a replicated group of three or five members.",
+      ],
+    },
+    // Six questions, ramp 1/1/2/2/3/3. All six of QUIZ_FRAMEWORK §13's bank
+    // questions tagged 3.22 (Q5-Q10) are spent: Q8 -> Q1, Q10 -> Q2, Q5 -> Q3,
+    // Q7 -> Q4, Q6 -> Q5 (matching), Q9 -> Q6, joke distractors replaced. With
+    // this chapter §13's bank is fully consumed across 3.20-3.22. Single-choice
+    // correct options sit at d, b, a, c, b - opens on d against 3.21's b and
+    // 3.20's c.
+    quiz: [
+      {
+        id: "bb-3-22-distributed-storage-concepts-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A distributed store has a coordinator, and a teammate assumes it is a fast front end that every read and write passes through. What is its job?",
+        options: [
+          {
+            id: "a",
+            label: "Serving hot keys from memory so the storage nodes see less traffic.",
+            correct: false,
+            explanationMd:
+              "That is a cache's job (3.14). A coordinator holds no data at all, which is why its outage does not stop reads and writes immediately.",
+          },
+          {
+            id: "b",
+            label: "Accepting every write and forwarding it to the right storage node.",
+            correct: false,
+            explanationMd:
+              "That would put one group of machines on every request's path, a bottleneck with no reason to exist. Clients cache the map and go straight to the owning node.",
+          },
+          {
+            id: "c",
+            label: "Replicating each key to several storage nodes so the data survives a disk failure.",
+            correct: false,
+            explanationMd:
+              "Replication is done by the storage nodes themselves. The coordinator decides which nodes those are, but never moves the bytes.",
+          },
+          {
+            id: "d",
+            label: "Holding the map: which node owns which keys, which nodes are alive, and moving ownership when nodes join or die.",
+            correct: true,
+            explanationMd:
+              "Correct. Placement, membership and reassignment, published as versioned maps. It is control plane, never data path.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-22-distributed-storage-concepts-q2",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Someone describes a storage system as \"reliable\" because every object is kept on three disks in different racks. During last month's network incident, it returned errors for twenty minutes. Which statement is accurate?",
+        options: [
+          {
+            id: "a",
+            label: "The system was unreliable both ways: three copies should have kept it available too.",
+            correct: false,
+            explanationMd:
+              "Copies keep data from being lost; they do not guarantee anyone can reach it. Treating the two as one property is exactly the confusion to avoid.",
+          },
+          {
+            id: "b",
+            label: "It was durable but not available: no data was lost, yet it could not serve. The two fail independently and are bought with different machinery.",
+            correct: true,
+            explanationMd:
+              "Correct. Durability is about data surviving; availability is about requests being answered. A system can be down but durable, or up but one disk from loss.",
+          },
+          {
+            id: "c",
+            label: "Durability and availability are the same property, measured over different time windows.",
+            correct: false,
+            explanationMd:
+              "They are measured differently because they are different: one counts lost data, the other unanswered requests.",
+          },
+          {
+            id: "d",
+            label: "A system with three copies is always consistent, so errors were the right behaviour during the incident.",
+            correct: false,
+            explanationMd:
+              "Copies are what make consistency a question at all. Whether refusing was right depends on the data's posture, not on the number of copies.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-22-distributed-storage-concepts-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A candidate says: \"CAP means you pick two of consistency, availability and partition tolerance, and we picked consistency and availability.\" What is the accurate version?",
+        options: [
+          {
+            id: "a",
+            label: "Partitions happen whether or not you choose them. When one does, a cut-off node either refuses requests to stay consistent or answers and risks stale or divergent data.",
+            correct: true,
+            explanationMd:
+              "Correct. Partition tolerance is not a feature you can decline; a system that \"picks CA\" just fails in an unplanned way when the network splits. The real choice is made during a partition, per data class.",
+          },
+          {
+            id: "b",
+            label: "The candidate is right for a single datacenter, where partitions do not occur.",
+            correct: false,
+            explanationMd:
+              "Switches fail, links flap and machines pause inside one datacenter too. Rarer is not never.",
+          },
+          {
+            id: "c",
+            label: "CAP only applies to systems spread across regions; within a region you get all three.",
+            correct: false,
+            explanationMd:
+              "Any two machines that can lose contact face the choice. Region boundaries make partitions longer and more likely, not possible for the first time.",
+          },
+          {
+            id: "d",
+            label: "Modern databases have solved CAP with faster networks, so the choice no longer applies.",
+            correct: false,
+            explanationMd:
+              "Faster networks shrink latency, not the possibility of a split. PACELC adds that even without one, consistency still costs latency on every request.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-22-distributed-storage-concepts-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Each key is stored on N=3 copies. Writes are acknowledged after W=2 copies confirm, and reads ask R=2 copies and take the newest answer. What does that buy, and what does it cost?",
+        options: [
+          {
+            id: "a",
+            label: "Nothing beyond W=1, R=1, since all three copies eventually receive every write anyway.",
+            correct: false,
+            explanationMd:
+              "\"Eventually\" is the gap. With W=1, R=1 a read can land on the one copy the write has not reached yet; the overlap is what closes it.",
+          },
+          {
+            id: "b",
+            label: "Availability under any failure, because two copies are always enough.",
+            correct: false,
+            explanationMd:
+              "Lose two of the three and neither writes nor reads can reach their quorum. W=2, R=2 tolerates one failure, not any.",
+          },
+          {
+            id: "c",
+            label: "Every read overlaps the last acknowledged write in at least one copy, since W + R > N, so reads are current - at the price of waiting on the second-fastest copy every time.",
+            correct: true,
+            explanationMd:
+              "Correct. 2 + 2 > 3 means the sets must share a copy. The cost is latency coupled to slower replicas on every request, and failure when fewer than two copies answer.",
+          },
+          {
+            id: "d",
+            label: "Automatic sharding, since writes are spread across two different nodes.",
+            correct: false,
+            explanationMd:
+              "All three copies hold the same key. Quorums decide how many copies agree, not which node owns which keys - that is placement.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-22-distributed-storage-concepts-q5",
+        kind: "matching",
+        difficulty: 3,
+        prompt: "Match each kind of data to the posture that fits it during a network partition.",
+        // Option order deliberately does not mirror pairs' order below - a
+        // full derangement (pair 0 -> options[2], 1 -> [3], 2 -> [0], 3 -> [1]).
+        options: [
+          {
+            id: "ap-merge",
+            label: "AP-ish, merging diverged versions when read",
+            correct: true,
+            explanationMd:
+              "A cart must always accept an add. Two sides of a split each keep their version and the union is taken later, at the cost of a deleted item sometimes reappearing.",
+          },
+          {
+            id: "ap-approx",
+            label: "AP-ish, where an approximation is the product",
+            correct: true,
+            explanationMd:
+              "Presence is a guess about the last few seconds anyway. Showing someone online for a little too long costs nothing; refusing to show anything breaks the feature.",
+          },
+          {
+            id: "cp",
+            label: "CP-ish, refusing rather than risking a wrong answer",
+            correct: true,
+            explanationMd:
+              "A balance stated wrongly cannot be taken back after money moves. \"Try again in a minute\" is the cheaper failure.",
+          },
+          {
+            id: "ap-stale",
+            label: "AP-ish, serving slightly stale data rather than none",
+            correct: true,
+            explanationMd:
+              "A feed a few seconds behind is invisible to its reader; a feed that refuses to load is not.",
+          },
+        ],
+        pairs: [
+          ["A bank account's ledger balance", "cp"],
+          ["A social feed", "ap-stale"],
+          ["A shopping cart", "ap-merge"],
+          ["An online/offline presence indicator", "ap-approx"],
+        ],
+      },
+      {
+        id: "bb-3-22-distributed-storage-concepts-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Interviewer: \"Your product runs in two regions. A network partition splits them in the middle of the day. Walk me through what happens.\" Which structure gives the strongest answer?",
+        options: [
+          {
+            id: "a",
+            label: "Choose CP for everything: both regions stop accepting writes until the partition heals, so nothing can ever disagree.",
+            correct: false,
+            explanationMd:
+              "Safe, and it takes likes, views and the feed offline to protect data that never needed protecting. Whole-system absolutism is the common mistake in one direction.",
+          },
+          {
+            id: "b",
+            label: "Name a posture per data class: payments and bookings refuse on the side that cannot confirm; likes and feeds keep accepting and reconcile after the partition heals.",
+            correct: true,
+            explanationMd:
+              "Correct. One system, different answers per requirement, each with its cost named. Adding that even without a partition consistency costs latency (PACELC) is what makes it a senior answer.",
+          },
+          {
+            id: "c",
+            label: "Choose AP for everything: both regions keep accepting writes and the newest timestamp wins when they reconnect.",
+            correct: false,
+            explanationMd:
+              "The same mistake the other way, plus a merge that silently drops the losing write - including payments. Last-write-wins is a choice with a cost, not a default.",
+          },
+          {
+            id: "d",
+            label: "Explain that a dedicated link between the regions means they cannot be partitioned.",
+            correct: false,
+            explanationMd:
+              "Dedicated links fail too, and the question assumes one did. Denying the premise is the answer interviewers mark down fastest.",
+          },
+        ],
+      },
+    ],
+    // The sharded applications store from the cold open: three NoSQL nodes
+    // wired and a fourth, added last night, with no edge at all. That orphan
+    // is the starter's one visible symptom (an orphan-component warning), not
+    // the fix - see spec §8. Ends a run of clean starters (3.19, 3.20).
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-22-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-22-lb", componentId: "load-balancer", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-22-app", componentId: "app-server", position: { x: 320, y: 160 }, config: { instances: 3 } },
+        { id: "bb-3-22-s1", componentId: "nosql-database", position: { x: 580, y: 0 }, config: { model: "document" } },
+        { id: "bb-3-22-s2", componentId: "nosql-database", position: { x: 580, y: 160 }, config: { model: "document" } },
+        { id: "bb-3-22-s3", componentId: "nosql-database", position: { x: 580, y: 320 }, config: { model: "document" } },
+        { id: "bb-3-22-s4", componentId: "nosql-database", position: { x: 580, y: 480 }, config: { model: "document" } },
+      ],
+      edges: [
+        { id: "bb-3-22-e1", source: "bb-3-22-browser", target: "bb-3-22-lb", kind: "request-flow" },
+        { id: "bb-3-22-e2", source: "bb-3-22-lb", target: "bb-3-22-app", kind: "request-flow" },
+        { id: "bb-3-22-e3", source: "bb-3-22-app", target: "bb-3-22-s1", kind: "request-flow" },
+        { id: "bb-3-22-e4", source: "bb-3-22-app", target: "bb-3-22-s2", kind: "request-flow" },
+        { id: "bb-3-22-e5", source: "bb-3-22-app", target: "bb-3-22-s3", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-22-browser"],
+    },
+    // Client, Application and a Shards band, plus a one-slot gap directly
+    // under the app server in the Application column (§11.6) - the missing
+    // piece is consulted by the app tier, not stacked with the data. Zone
+    // and comment text avoid the new component's label (spoiler gate).
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-22-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-22-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 308, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-22-zone-gap", label: "Build here", position: { x: 292, y: 280 }, width: 176, height: 148, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-22-zone-shards", label: "Shards", position: { x: 552, y: -40 }, width: 176, height: 628, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-22-comment-rollout",
+        text: "Node 4 joined at 02:10. The app rollout carrying the new key-to-node table finished at 02:50. In between, 1,240 applications were written to a node that no longer owned them, or read from one that did not yet.",
+        position: { x: 32, y: 640 },
+        width: 620,
+        height: 160,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-cp-f-where-the-bytes-live",
+    mode: "building-blocks",
+    title: "Checkpoint · Where the Bytes Live",
+    // Group F's checkpoint, Extend flavor (.claude/docs/pending-checkpoints.md):
+    // the front door and application tier are provided, the storage tier is
+    // an empty zone. Spec: specs/bb-cp-f-where-the-bytes-live.spec.md. Lesson
+    // body: public/content/chapters/bb-cp-f-where-the-bytes-live.mdx.
+    problemStatement:
+      "A holiday-rental marketplace. Hosts list homes and upload photos; guests on four continents browse and " +
+      "book. The front door and the application tier on the canvas are done; nothing behind them is. What it " +
+      "has to do:\n\n" +
+      "- Every listing page shows twenty to forty photos, identical for every guest, and guests are spread " +
+      "across four continents.\n" +
+      "- Hosts upload those photos at up to 8 MB each: 30 TB so far, and growing. No photo byte may live in a " +
+      "database; the databases record only which photos belong to which listing.\n" +
+      "- Hosts also upload a scan of their ID for verification. Only the verification team may ever see one, " +
+      "and an ID scan must never sit anywhere a guest's photo request could reach.\n" +
+      "- A booking blocks the dates, takes the payment and creates the reservation together: all three, or " +
+      "none.\n" +
+      "- Listing records are documents spread across three storage nodes by listing ID, and a fourth node " +
+      "arrives next month. Which node owns which listing is decided in one place that every application " +
+      "instance asks, so adding a node is never a redeploy.",
+    exerciseGoal:
+      "Give each kind of data a home that fits it - bytes, documents and money - with the photos served close " +
+      "to the guests looking at them and the ID scans kept apart from everything public.",
+    successCriteria: [
+      "Photos and ID scans live outside every database, and photos and ID scans never share a home.",
+      "A guest on another continent gets the photos from somewhere near them, not from the origin.",
+      "A booking's dates, payment and reservation commit together or not at all.",
+      "Every application instance asks one place which node owns a listing, and the question carries no listing data.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    learningObjectives: [
+      "Place each kind of data in the brief and name the chapter that put it there: bytes (3.20), documents and transactions (3.11), placement (3.22), distance (3.15).",
+      "Decide when one kind of bytes needs two homes, from who is allowed to read each.",
+      "Build the storage tier of an existing system - two object stores, a transactional store, a sharded document store with one placement owner - and put the CDN back in the request path, then pass Submit.",
+      "Answer \"where do the photos live, and how does a guest in Sydney get them?\" against your own design, in two sentences.",
+      "Explain why the placement question is drawn as a control signal rather than a request, in terms of what crosses that line.",
+    ],
+    // 3.22's palette exactly: everything through Group D plus Group F's
+    // object-storage and coordinator, without Group E (parallel after R1).
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "object-storage",
+      "coordinator",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "object-storage",
+      "coordinator",
+    ],
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "orphan-read-replica",
+      "request-flow-cycle",
+      "single-instance-load-balancer",
+      "permissive-firewall",
+    ],
+    // One blueprint. Two object stores is the point of the ID-scan line (3.20:
+    // "one bucket, one policy, two audiences" is a named mistake). Three
+    // document nodes plus a coordinator reached by `control` is 3.22's build.
+    // The CDN sits in the request path between DNS and the firewall, where
+    // 3.15 and R1 put it; the starter graph has DNS wired straight to the
+    // firewall, so placing it is a rewire.
+    blueprints: [
+      {
+        id: "bb-cp-f-blueprint",
+        label: "Two buckets by audience, bookings relational, listings sharded under one placement owner",
+        require: {
+          id: "bb-cp-f-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "bookings", componentId: "sql-database" },
+            { alias: "listings1", componentId: "nosql-database" },
+            { alias: "listings2", componentId: "nosql-database" },
+            { alias: "listings3", componentId: "nosql-database" },
+            { alias: "placement", componentId: "coordinator" },
+            { alias: "photos", componentId: "object-storage" },
+            { alias: "idScans", componentId: "object-storage" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "bookings", kind: "request-flow" },
+            { from: "app", to: "listings1", kind: "request-flow" },
+            { from: "app", to: "listings2", kind: "request-flow" },
+            { from: "app", to: "listings3", kind: "request-flow" },
+            { from: "app", to: "placement", kind: "control" },
+            { from: "app", to: "photos", kind: "request-flow" },
+            { from: "app", to: "idScans", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-cp-f-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-cp-f-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-cp-f-ref-cdn", componentId: "cdn", position: { x: 580, y: 0 }, config: { cacheTtlSeconds: 86400, cacheDynamicContent: false } },
+            { id: "bb-cp-f-ref-fw", componentId: "firewall", position: { x: 840, y: 0 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-cp-f-ref-proxy", componentId: "reverse-proxy", position: { x: 1100, y: 0 }, config: {} },
+            { id: "bb-cp-f-ref-gateway", componentId: "api-gateway", position: { x: 1360, y: 0 }, config: {} },
+            { id: "bb-cp-f-ref-lb", componentId: "load-balancer", position: { x: 1620, y: 0 }, config: {} },
+            { id: "bb-cp-f-ref-app", componentId: "app-server", position: { x: 1880, y: 0 }, config: { instances: 3 } },
+            { id: "bb-cp-f-ref-bookings", componentId: "sql-database", position: { x: 2140, y: 0 }, config: {} },
+            { id: "bb-cp-f-ref-listings1", componentId: "nosql-database", position: { x: 2140, y: 160 }, config: { model: "document" } },
+            { id: "bb-cp-f-ref-listings2", componentId: "nosql-database", position: { x: 2140, y: 320 }, config: { model: "document" } },
+            { id: "bb-cp-f-ref-listings3", componentId: "nosql-database", position: { x: 2140, y: 480 }, config: { model: "document" } },
+            { id: "bb-cp-f-ref-placement", componentId: "coordinator", position: { x: 2140, y: 640 }, config: { consensusProtocol: "raft" } },
+            { id: "bb-cp-f-ref-photos", componentId: "object-storage", position: { x: 2400, y: 0 }, config: { storageClass: "standard" } },
+            { id: "bb-cp-f-ref-ids", componentId: "object-storage", position: { x: 2400, y: 160 }, config: { storageClass: "standard" } },
+          ],
+          edges: [
+            { id: "bb-cp-f-ref-e1", source: "bb-cp-f-ref-browser", target: "bb-cp-f-ref-dns", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e2", source: "bb-cp-f-ref-dns", target: "bb-cp-f-ref-cdn", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e3", source: "bb-cp-f-ref-cdn", target: "bb-cp-f-ref-fw", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e4", source: "bb-cp-f-ref-fw", target: "bb-cp-f-ref-proxy", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e5", source: "bb-cp-f-ref-proxy", target: "bb-cp-f-ref-gateway", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e6", source: "bb-cp-f-ref-gateway", target: "bb-cp-f-ref-lb", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e7", source: "bb-cp-f-ref-lb", target: "bb-cp-f-ref-app", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e8", source: "bb-cp-f-ref-app", target: "bb-cp-f-ref-bookings", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e9", source: "bb-cp-f-ref-app", target: "bb-cp-f-ref-listings1", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e10", source: "bb-cp-f-ref-app", target: "bb-cp-f-ref-listings2", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e11", source: "bb-cp-f-ref-app", target: "bb-cp-f-ref-listings3", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e12", source: "bb-cp-f-ref-app", target: "bb-cp-f-ref-placement", kind: "control" },
+            { id: "bb-cp-f-ref-e13", source: "bb-cp-f-ref-app", target: "bb-cp-f-ref-photos", kind: "request-flow" },
+            { id: "bb-cp-f-ref-e14", source: "bb-cp-f-ref-app", target: "bb-cp-f-ref-ids", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-cp-f-ref-browser"],
+        },
+        commentary:
+          "Three kinds of data, each in the store that fits it. Photos are bytes nobody queries, so they live " +
+          "in object storage and the listing record keeps only their keys (3.20). ID scans are bytes too, but " +
+          "with the opposite audience, so they get a bucket of their own: one bucket with one policy for two " +
+          "audiences is the leak 3.20 named, and keeping them apart means no public setting on the photos can " +
+          "ever expose a passport. Bookings are relational because dates, payment and reservation commit " +
+          "together (3.10, 3.11). Listings are documents split across nodes, and the coordinator owns the map " +
+          "of which node holds which listing: the app asks it over a control line and then talks to the node " +
+          "directly, so the coordinator never carries a listing (3.22). And the CDN went back between DNS and " +
+          "the perimeter, so a guest in Sydney gets the photos from nearby after the first request (3.15). On " +
+          "this canvas the CDN reaches the photos through the application tier; in production its origin " +
+          "would be the photo bucket itself, and uploads would go straight to it on a presigned URL.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-cp-f-hint-1",
+        body:
+          "Sort the brief by what kind of data each line is about: bytes, documents and money. Each wants a " +
+          "different home, and one kind of bytes wants a home of its own because of who may read it.",
+      },
+      {
+        id: "bb-cp-f-hint-2",
+        body:
+          "The listing documents already span machines. The brief's question about them is not where they live " +
+          "but who decides where they live - and asking that is not a request for data. Look at the line style " +
+          "when you draw it.",
+      },
+      {
+        id: "bb-cp-f-hint-3",
+        body:
+          "One requirement is about distance, not storage, and it belongs at the front of the request path, not " +
+          "the back. If a connection you draw is refused, read why: some stores accept connections only from the " +
+          "application tier.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position:
+        "Building Blocks, Group F: Storage - Checkpoint F, immediately after 3.22 (the group's last chapter). With Checkpoint E, gates Group G.",
+      masteredConcepts: [
+        "Every Group F chapter: metadata in a database and bytes in object storage, with separate buckets by " +
+          "audience (3.20); block, file and object shapes (3.21); a coordinator that owns placement, reached " +
+          "over control, and consistency postures per data class (3.22).",
+        "Everything through Checkpoint D, in particular 3.15's CDN at the front of the path and 3.11's store choice by " +
+          "shape and transaction need.",
+      ],
+      notYetIntroducedConcepts: [
+        "Queues, buses and schedules (Group E), which may not have been taken yet - E and F are parallel " +
+          "after Checkpoint D.",
+        "Locks, leaders and failover (Group G).",
+      ],
+      simplifications: [
+        "Photos reach the CDN through the application tier and uploads go through it too; that is what " +
+          "the blueprint checks. The production shape (the bucket as the CDN's origin, presigned uploads) " +
+          "is drawable and passes beside it; the debrief names it.",
+        "Three document nodes stand for the shards; the fourth arriving next month is described, not drawn.",
+        "Bucket policy is not on the canvas. Two buckets stand for two policies.",
+      ],
+    },
+    // Provided: front door and a three-instance application tier. Everything
+    // behind the application tier is the empty zone, and the CDN is absent
+    // from the edge column on purpose - DNS goes straight to the firewall,
+    // as it did before 3.15.
+    starterGraph: {
+      nodes: [
+        { id: "bb-cp-f-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-cp-f-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-cp-f-fw", componentId: "firewall", position: { x: 320, y: 160 }, config: { defaultPolicy: "allow-listed" } },
+        { id: "bb-cp-f-proxy", componentId: "reverse-proxy", position: { x: 320, y: 320 }, config: {} },
+        { id: "bb-cp-f-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-cp-f-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+        { id: "bb-cp-f-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 3 } },
+      ],
+      edges: [
+        { id: "bb-cp-f-e1", source: "bb-cp-f-browser", target: "bb-cp-f-dns", kind: "request-flow" },
+        { id: "bb-cp-f-e2", source: "bb-cp-f-dns", target: "bb-cp-f-fw", kind: "request-flow" },
+        { id: "bb-cp-f-e3", source: "bb-cp-f-fw", target: "bb-cp-f-proxy", kind: "request-flow" },
+        { id: "bb-cp-f-e4", source: "bb-cp-f-proxy", target: "bb-cp-f-gateway", kind: "request-flow" },
+        { id: "bb-cp-f-e5", source: "bb-cp-f-gateway", target: "bb-cp-f-lb", kind: "request-flow" },
+        { id: "bb-cp-f-e6", source: "bb-cp-f-lb", target: "bb-cp-f-app", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-cp-f-browser"],
+    },
+    starterDecorators: [
+      { kind: "zone", id: "bb-cp-f-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-cp-f-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 468, color: "#3b82f6" },
+      { kind: "zone", id: "bb-cp-f-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 468, color: "#a855f7" },
+      { kind: "zone", id: "bb-cp-f-zone-gap", label: "Build here", position: { x: 812, y: -40 }, width: 696, height: 468, color: "#ff3483" },
+      {
+        kind: "comment",
+        id: "bb-cp-f-comment-latency",
+        text: "Listing page, first load from Sydney today: 4.1 s, almost all of it photo bytes crossing an ocean from the origin.",
+        position: { x: 1592, y: -40 },
+        width: 260,
+        height: 130,
+        color: "#64748b",
+      },
+      {
+        kind: "comment",
+        id: "bb-cp-f-comment-nodes",
+        text: "Listing records: three storage nodes today, a fourth next month. Last time a node was added, every application instance had to be redeployed.",
+        position: { x: 1592, y: 140 },
+        width: 260,
+        height: 160,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-23-reliability-patterns",
+    mode: "building-blocks",
+    title: "Reliability Patterns",
+    // Real authored content (first Group G chapter). Spec:
+    // specs/bb-3-23-reliability-patterns.spec.md. Lesson body:
+    // public/content/chapters/bb-3-23-reliability-patterns.mdx. Building
+    // Block per CURRICULUM §14/§16 (introduces lock-service).
+    problemStatement:
+      "The hourly expiry sweep runs on a separate jobs service that the scheduler calls on the hour. It " +
+      "used to take 20 minutes; this month it takes up to 70, so the 03:00 run starts while the 02:00 run " +
+      "is still closing the same listings. Last night 412 listings were closed twice and their recruiters " +
+      "were invoiced twice.",
+    exerciseGoal:
+      "Make it impossible for two runs of the hourly sweep to work on the same rows at the same time, however long one run takes, without a run that crashes blocking every run after it.",
+    successCriteria: [
+      "Only one run of the sweep can be working at any moment, even when a run takes 70 minutes on an hourly schedule.",
+      "A run that dies mid-sweep stops blocking the next one on its own, with no person involved.",
+      "Permission to run is asked for by the part of the system that does the sweep, and is held somewhere outside both runs.",
+      "The seekers' request path is unchanged.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives (§5.2 allows 3-7), all five categories - Building Block.
+    learningObjectives: [
+      "Explain why a slow dependency holds more of a shared pool than a dead one, using request rate times latency.",
+      "Set a call timeout from a dependency's healthy p99, and keep every inner timeout shorter than the one waiting on it.",
+      "Decide which single layer should retry a failed call, and show how retries at every layer multiply into a storm.",
+      "Add mutual exclusion to an overlapping scheduled job, asked for by the service that does the work, and pass Submit.",
+      "Answer \"what happens when this dependency gets slow?\" with a timeout, a bulkhead and a circuit breaker, each named for what it limits.",
+      "Justify an idempotency key or a fencing token aloud by naming the exact failure each one closes.",
+    ],
+    // First palette holding both Group E (3.17-3.19) and Group F (3.20,
+    // 3.22's coordinator), plus this chapter's lock-service. CURRICULUM §16:
+    // "3.23 | lock-service".
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "kafka",
+      "cron-job",
+      "serverless-function",
+      "object-storage",
+      "coordinator",
+      "lock-service",
+    ],
+    requiredComponentIds: ["browser", "load-balancer", "app-server", "sql-database", "cron-job", "lock-service"],
+    // component-relations does the teaching: a Cron Job declares no
+    // distributed-systems output, so wiring the scheduler straight to the
+    // new component is refused with an explanation - "the scheduler only
+    // fires" enforced by the engine. orphan-component catches the new card
+    // dropped and left unwired.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-23-blueprint",
+        label: "One run at a time, granted outside both runs",
+        require: {
+          id: "bb-3-23-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "web", componentId: "app-server" },
+            { alias: "jobs", componentId: "app-server" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "cron", componentId: "cron-job" },
+            { alias: "lock", componentId: "lock-service" },
+          ],
+          edges: [
+            { from: "browser", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "web", kind: "request-flow" },
+            { from: "web", to: "db", kind: "request-flow" },
+            { from: "cron", to: "jobs", kind: "request-flow" },
+            { from: "jobs", to: "db", kind: "request-flow" },
+            // Either kind validates against lock-service's inputs; the lesson
+            // calls an acquire a control-path request, and rejecting the
+            // default draw would make drift the feedback surface for an
+            // edge-kind nuance this chapter is not about (spec §6).
+            { from: "jobs", to: "lock", kind: ["control", "request-flow"] },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-23-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-23-ref-cron", componentId: "cron-job", position: { x: 60, y: 160 }, config: { scheduleIntervalMinutes: 60 } },
+            { id: "bb-3-23-ref-lb", componentId: "load-balancer", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-23-ref-web", componentId: "app-server", position: { x: 580, y: 0 }, config: { instances: 3 } },
+            { id: "bb-3-23-ref-jobs", componentId: "app-server", position: { x: 580, y: 160 }, config: { instances: 2 } },
+            { id: "bb-3-23-ref-lock", componentId: "lock-service", position: { x: 580, y: 320 }, config: { lockTtlSeconds: 30 } },
+            { id: "bb-3-23-ref-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-23-ref-e1", source: "bb-3-23-ref-browser", target: "bb-3-23-ref-lb", kind: "request-flow" },
+            { id: "bb-3-23-ref-e2", source: "bb-3-23-ref-lb", target: "bb-3-23-ref-web", kind: "request-flow" },
+            { id: "bb-3-23-ref-e3", source: "bb-3-23-ref-web", target: "bb-3-23-ref-db", kind: "request-flow" },
+            { id: "bb-3-23-ref-e4", source: "bb-3-23-ref-cron", target: "bb-3-23-ref-jobs", kind: "request-flow" },
+            { id: "bb-3-23-ref-e5", source: "bb-3-23-ref-jobs", target: "bb-3-23-ref-db", kind: "request-flow" },
+            { id: "bb-3-23-ref-e6", source: "bb-3-23-ref-jobs", target: "bb-3-23-ref-lock", kind: "control" },
+          ],
+          entryPointIds: ["bb-3-23-ref-browser", "bb-3-23-ref-cron"],
+        },
+        commentary:
+          "The new edge leaves the jobs service, not the scheduler. The Cron Job only fires; each run it " +
+          "starts asks the Lock Service for the expiry-sweep lock before touching a row, and a run that " +
+          "finds it held exits instead of overlapping. What the drawing cannot show is what makes it safe: " +
+          "the lock is a 30-second lease the running sweep renews every few seconds, so a crashed run frees " +
+          "it on its own, and each grant carries a fencing token the SQL Database checks, so a run that " +
+          "paused past its lease cannot keep writing. The jobs service being its own pool, apart from the " +
+          "one serving seekers, is a bulkhead you already had: the sweep can be slow without costing a " +
+          "single seeker request.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-23-hint-1",
+        body:
+          "Validate has nothing to report because nothing is miswired - the fault is in time. Ask what both " +
+          "runs would have to consult before touching a row, and whether that could live inside either of them.",
+      },
+      {
+        id: "bb-3-23-hint-2",
+        body:
+          "A single jobs instance, a longer interval, or a flag in one process each fail in a way 3.19 already " +
+          "described. You need something outside both runs that only one can hold at a time, and that frees " +
+          "itself if its holder dies.",
+      },
+      {
+        id: "bb-3-23-hint-3",
+        body:
+          "If the connection you draw is refused, read the explanation: the scheduler only fires. The card " +
+          "that actually does the sweep is the one that has to ask.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 2,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group G: Reliability - Chapter 3.23 of 37 (first chapter in Group G, after both 3.19 and 3.22).",
+      masteredConcepts: [
+        "3.17's backoff with jitter, at-least-once delivery and idempotent consumers. This chapter moves the " +
+          "same ideas onto the synchronous path and adds what changes there: retries multiply across layers.",
+        "3.19's cron job and its overlap hazard - two runs of one job on the same rows. This chapter's build " +
+          "is that cliffhanger resolved.",
+        "3.22's consensus group agreeing by majority and the control edge from the application tier. The lock " +
+          "service is that group doing a second job, asked on the control path.",
+        "2.2's framing of a timeout as an unknown rather than a failure, and 1.1's p99 latency.",
+        "3.14's cache as a fallback source and 3.13's point that a fan-out waits for its slowest member.",
+      ],
+      notYetIntroducedConcepts: [
+        "Rate limiting and load shedding at the edge (3.24) - this chapter's marked preview. The retry storm " +
+          "from the client side is named as the next chapter's problem only.",
+        "Metrics, alerting and SLOs (3.25). A breaker's state change is described without saying how anyone " +
+          "is told about it.",
+        "Leader election and failover (3.26). The lock service is described as deciding who runs a job, not " +
+          "which replica accepts writes.",
+        "Hedged requests, adaptive concurrency limits and service meshes as named mechanisms. Mentioned at " +
+          "most as \"limits that adapt to measured latency\".",
+      ],
+      simplifications: [
+        "No component has timeout, retry, backoff or idempotency fields, so the retry storm half of the " +
+          "chapter is taught in the walkthrough, prose and quiz rather than configured on the canvas.",
+        "The sweep is drawn as a separate jobs service (its own Application Server) that the Cron Job calls, " +
+          "where 3.19 drew one cron card as both scheduler and job. The registry lets only compute ask a Lock " +
+          "Service, and the split is also the bulkhead the commentary points out.",
+        "lockTtlSeconds is taught (a lease bounds how long a dead holder blocks, not how long the job runs) " +
+          "and not gated.",
+        "Fencing tokens are taught in a sequence diagram; nothing on the canvas carries a token from the Lock " +
+          "Service to the SQL Database.",
+        "The Lock Service is one card standing for a replicated consensus group.",
+      ],
+    },
+    // Six questions, ramp 1/1/2/2/3/3. QUIZ_FRAMEWORK §14 bank Q1 -> Q1, Q2 ->
+    // Q4, Q3 -> Q5, joke distractors replaced. Q2 is a matching question,
+    // full derangement (pair 0 -> options[1], 1 -> [0], 2 -> [3], 3 -> [2]).
+    // Single-choice correct options sit at a, c, d, b, a - opens on a against
+    // 3.22's d.
+    quiz: [
+      {
+        id: "bb-3-23-reliability-patterns-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "After the search incident, your team adds a timeout to every network call the application makes. What did that actually buy?",
+        options: [
+          {
+            id: "a",
+            label: "Bounded waiting: a call that would have hung becomes a failure the caller can handle, and the slot it held is freed.",
+            correct: true,
+            explanationMd:
+              "Correct. A timeout turns \"still waiting\" into a known outcome. Everything else in this chapter - retries, breakers, fallbacks - needs that known outcome to act on.",
+          },
+          {
+            id: "b",
+            label: "Faster responses, since slow calls are cut short.",
+            correct: false,
+            explanationMd:
+              "Healthy calls finish well inside any sensible timeout and are not affected. What gets faster is the failure, not the success.",
+          },
+          {
+            id: "c",
+            label: "Fewer failures, since hung calls no longer pile up.",
+            correct: false,
+            explanationMd:
+              "The error count can go up: calls that would have hung now fail. What drops is how much capacity those calls hold while failing.",
+          },
+          {
+            id: "d",
+            label: "Safe retries, since a call that timed out never took effect.",
+            correct: false,
+            explanationMd:
+              "A timed-out write may well have been applied - only the response was lost. Making a retry safe takes an idempotency key, not a timeout.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-23-reliability-patterns-q2",
+        kind: "matching",
+        difficulty: 1,
+        prompt: "Match each pattern to what it limits.",
+        // Full derangement: pair 0 -> options[1], 1 -> [0], 2 -> [3], 3 -> [2].
+        options: [
+          {
+            id: "extra",
+            label: "How much additional load failures may generate",
+            correct: true,
+            explanationMd:
+              "A retry budget lets a rare blip be retried and stops retries once failures are common, which is exactly when they would add load to a struggling dependency.",
+          },
+          {
+            id: "wait",
+            label: "How long one call may hold a slot",
+            correct: true,
+            explanationMd:
+              "A timeout bounds a single wait. It does nothing about how many of those waits are happening at once.",
+          },
+          {
+            id: "calls",
+            label: "Whether calls are made at all to a dependency known to be failing",
+            correct: true,
+            explanationMd:
+              "An open breaker answers without touching the network, so neither side spends anything on a call that was going to fail.",
+          },
+          {
+            id: "share",
+            label: "How much shared capacity one dependency may occupy",
+            correct: true,
+            explanationMd:
+              "A bulkhead reserves a fixed share per dependency, so a slow one fills its own share and nothing else.",
+          },
+        ],
+        pairs: [
+          ["Timeout", "wait"],
+          ["Retry budget", "extra"],
+          ["Circuit breaker", "calls"],
+          ["Bulkhead", "share"],
+        ],
+      },
+      {
+        id: "bb-3-23-reliability-patterns-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "The API Gateway makes up to 3 attempts at a failed request, and the application makes up to 4 attempts at a failed search call. One search shard slows down. How many calls can one click send to that shard, and what is the right change?",
+        options: [
+          {
+            id: "a",
+            label: "4 - each layer retries independently, so the counts do not combine.",
+            correct: false,
+            explanationMd:
+              "They combine. Every gateway attempt reaches the application, which runs its own full set of attempts: 3 x 4.",
+          },
+          {
+            id: "b",
+            label: "12, which is fine as long as every retry backs off with jitter.",
+            correct: false,
+            explanationMd:
+              "Backoff and jitter spread the attempts out in time; they do not reduce how many arrive. Twelve times the load still lands on the shard that is already slow.",
+          },
+          {
+            id: "c",
+            label: "Up to 12. Retry at one layer only, usually the one closest to the shard, and cap it with a retry budget.",
+            correct: true,
+            explanationMd:
+              "Correct. Retries multiply across layers, so they belong at one. A budget keeps the benefit for rare blips and removes the extra load when failures are common.",
+          },
+          {
+            id: "d",
+            label: "Up to 12. Remove retries everywhere, so failures are visible immediately.",
+            correct: false,
+            explanationMd:
+              "That fixes the storm by giving up the thing retries are good at: absorbing a transient blip the user never needed to see. One layer, with a budget, keeps both.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-23-reliability-patterns-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A seeker taps Apply. The application inserts the application row, but the response is lost when the gateway times out, and the client retries. Which design makes that retry safe?",
+        options: [
+          {
+            id: "a",
+            label: "Never retry writes automatically; show an error and let the seeker tap Apply again.",
+            correct: false,
+            explanationMd:
+              "The seeker tapping again is the same retry, done by hand, with the same chance of a duplicate - and an error message for something that actually succeeded.",
+          },
+          {
+            id: "b",
+            label: "Retry only after waiting long enough that the first attempt must have finished.",
+            correct: false,
+            explanationMd:
+              "Waiting tells you nothing about whether the first attempt applied. The retry is just as blind, only slower.",
+          },
+          {
+            id: "c",
+            label: "Have the server generate a unique key for each request when it arrives, and store it with the row.",
+            correct: false,
+            explanationMd:
+              "Each attempt arrives as a new request and gets a new key, so the repeat looks new. The key has to come from the client, once per action.",
+          },
+          {
+            id: "d",
+            label: "The client sends one unique key with every attempt; the server stores it with the row in the same transaction and answers a repeated key with the stored result.",
+            correct: true,
+            explanationMd:
+              "Correct. The key identifies the action rather than the attempt, and committing it with the effect means there is no moment where one exists without the other.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-23-reliability-patterns-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Search's circuit breaker opens when half its calls fail within ten seconds. A teammate objects: \"Search is already struggling. Failing even faster just hides the problem.\" What is the breaker actually for?",
+        options: [
+          {
+            id: "a",
+            label: "Paging the on-call engineer sooner than timeouts alone would.",
+            correct: false,
+            explanationMd:
+              "Telling a person is a separate job. A breaker changes what the system does with traffic, whether or not anyone is told.",
+          },
+          {
+            id: "b",
+            label: "Protecting both sides: callers stop spending slots on calls that will fail and get a fallback at once, search gets quiet to recover in, and trial calls decide when to resume.",
+            correct: true,
+            explanationMd:
+              "Correct. The breaker is not hiding the failure - the fallback says results are limited. It stops the caller and the dependency from making each other worse.",
+          },
+          {
+            id: "c",
+            label: "Sending search calls to a healthier shard while the slow one recovers.",
+            correct: false,
+            explanationMd:
+              "Routing around a bad replica is a different mechanism. An open breaker stops calls to the dependency; it does not pick another target.",
+          },
+          {
+            id: "d",
+            label: "Restarting the struggling shard so it comes back healthy.",
+            correct: false,
+            explanationMd:
+              "A breaker lives in the caller and has no control over the dependency. What it gives search is the absence of traffic, not a restart.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-23-reliability-patterns-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "The hourly sweep holds a lock with a 30-second lease, renewed every 10 seconds. Run A freezes in a 45-second garbage-collection pause; the lease expires and run B acquires the lock and starts. A then wakes up and keeps writing. What stops A from corrupting the rows?",
+        options: [
+          {
+            id: "a",
+            label: "A fencing token: each grant carries a higher number, and the database refuses A's writes because it has already seen B's newer one.",
+            correct: true,
+            explanationMd:
+              "Correct. A does not know it lost the lease, so the check has to happen where the damage would be done - at the data store, against a number only the lock service hands out.",
+          },
+          {
+            id: "b",
+            label: "Nothing needs to. The lock service revoked A's lease, so A can no longer write.",
+            correct: false,
+            explanationMd:
+              "The lock service only answers questions about the lock. It has no hold over A's open connection to the database, and A never asked again.",
+          },
+          {
+            id: "c",
+            label: "A two-hour lease instead, so the lock can never expire in the middle of a run.",
+            correct: false,
+            explanationMd:
+              "Then a run that crashes blocks the sweep for two hours, and a pause longer than that still overlaps. A lease bounds how long a dead holder blocks; renewal handles a long job.",
+          },
+          {
+            id: "d",
+            label: "Running the jobs service as a single instance.",
+            correct: false,
+            explanationMd:
+              "One process can run two overlapping invocations just as well, and A's pause happens either way.",
+          },
+        ],
+      },
+    ],
+    // The expiry sweep's slice: the seekers' path for context, and the
+    // scheduler calling a separate jobs service that sweeps the SQL Database.
+    // Validates clean on purpose - the fault is temporal (spec §8).
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-23-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-23-cron", componentId: "cron-job", position: { x: 60, y: 160 }, config: { scheduleIntervalMinutes: 60 } },
+        { id: "bb-3-23-lb", componentId: "load-balancer", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-23-web", componentId: "app-server", position: { x: 580, y: 0 }, config: { instances: 3 } },
+        { id: "bb-3-23-jobs", componentId: "app-server", position: { x: 580, y: 160 }, config: { instances: 2 } },
+        { id: "bb-3-23-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-23-e1", source: "bb-3-23-browser", target: "bb-3-23-lb", kind: "request-flow" },
+        { id: "bb-3-23-e2", source: "bb-3-23-lb", target: "bb-3-23-web", kind: "request-flow" },
+        { id: "bb-3-23-e3", source: "bb-3-23-web", target: "bb-3-23-db", kind: "request-flow" },
+        { id: "bb-3-23-e4", source: "bb-3-23-cron", target: "bb-3-23-jobs", kind: "request-flow" },
+        { id: "bb-3-23-e5", source: "bb-3-23-jobs", target: "bb-3-23-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-23-browser", "bb-3-23-cron"],
+    },
+    // Client and Schedule share the first column; Application spans the
+    // load balancer and both pools; one gap slot under the jobs service,
+    // which is what asks. No zone or comment names the new component.
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-23-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-23-zone-schedule", label: "Schedule", position: { x: 32, y: 120 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-23-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 436, height: 308, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-23-zone-gap", label: "Build here", position: { x: 552, y: 280 }, width: 176, height: 148, color: "#ff3483" },
+      { kind: "zone", id: "bb-3-23-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-23-comment-durations",
+        text: "Sweep durations this week: 22, 31, 48, 70 and 66 minutes, on an hourly schedule. On Thursday the 02:00 run was still writing at 03:10.",
+        position: { x: 32, y: 460 },
+        width: 620,
+        height: 130,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-24-rate-limiting",
+    mode: "building-blocks",
+    title: "Rate Limiting",
+    // Real authored content (second Group G chapter). Spec:
+    // specs/bb-3-24-rate-limiting.spec.md. Lesson body:
+    // public/content/chapters/bb-3-24-rate-limiting.mdx. Concept,
+    // config-weighted, per CURRICULUM §14 (no new component, §16).
+    problemStatement:
+      "Version 4.2 of the Android app retries a failed search every 50 ms, forever. On Monday 4,000 phones " +
+      "looped at 1,200 searches a minute each, against a system sized for 9,000 a minute in total. The API " +
+      "Gateway enforces a per-caller limit, set at launch to 100,000 a minute.",
+    exerciseGoal:
+      "Configure the API Gateway's per-caller limit so a phone stuck in version 4.2's retry loop is refused at the front door, and no legitimate caller ever is.",
+    successCriteria: [
+      "A single caller sending 1,200 requests a minute is refused at the gateway, before it reaches the application pool.",
+      "The heaviest legitimate caller, at 240 requests a minute, is never refused.",
+      "Nothing about the request path changes.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives, all five categories - Practical present because the
+    // chapter has a config exercise.
+    learningObjectives: [
+      "Distinguish a per-caller limit (fairness) from a global one (survival), and name what each cannot stop.",
+      "Predict a token bucket's admissions from its capacity and refill rate, and choose an algorithm by the burst behavior a workload needs.",
+      "Place a limit at the first stop that knows enough to decide, and explain why per-caller limits live at the gateway.",
+      "Configure the gateway's per-caller limit between the heaviest legitimate caller and a misbehaving client, and pass Submit.",
+      "Answer \"how do you rate limit across many gateway machines?\" with shared versus synced counters and what each costs.",
+      "Justify load shedding by priority aloud, naming which flow survives overload and why.",
+    ],
+    // 3.23's palette unchanged - CURRICULUM §16 lists 3.24 among the
+    // no-component Concept chapters.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "kafka",
+      "cron-job",
+      "serverless-function",
+      "object-storage",
+      "coordinator",
+      "lock-service",
+    ],
+    requiredComponentIds: ["browser", "api-gateway", "load-balancer", "app-server", "search-engine", "sql-database"],
+    // No rule can see a rate-limit value; the blueprint's config predicate is
+    // the gate (spec §7, §8).
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-24-blueprint",
+        label: "A per-caller limit that refuses the loop and never the customer",
+        require: {
+          id: "bb-3-24-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            {
+              alias: "gateway",
+              componentId: "api-gateway",
+              // The band the brief states: at or above the heaviest real
+              // caller, below a phone retrying every 50 ms. The registry
+              // default (600) sits inside it, deliberately (spec §8).
+              config: [
+                { field: "rateLimitPerMinute", op: "gte", value: 240 },
+                { field: "rateLimitPerMinute", op: "lt", value: 1200 },
+              ],
+            },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "search", componentId: "search-engine" },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-24-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-24-ref-gateway", componentId: "api-gateway", position: { x: 320, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 600 } },
+            { id: "bb-3-24-ref-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: {} },
+            { id: "bb-3-24-ref-app", componentId: "app-server", position: { x: 580, y: 160 }, config: { instances: 3 } },
+            { id: "bb-3-24-ref-search", componentId: "search-engine", position: { x: 840, y: 0 }, config: { shards: 3 } },
+            { id: "bb-3-24-ref-db", componentId: "sql-database", position: { x: 840, y: 160 }, config: {} },
+          ],
+          edges: [
+            { id: "bb-3-24-ref-e1", source: "bb-3-24-ref-browser", target: "bb-3-24-ref-gateway", kind: "request-flow" },
+            { id: "bb-3-24-ref-e2", source: "bb-3-24-ref-gateway", target: "bb-3-24-ref-lb", kind: "request-flow" },
+            { id: "bb-3-24-ref-e3", source: "bb-3-24-ref-lb", target: "bb-3-24-ref-app", kind: "request-flow" },
+            { id: "bb-3-24-ref-e4", source: "bb-3-24-ref-app", target: "bb-3-24-ref-search", kind: "request-flow" },
+            { id: "bb-3-24-ref-e5", source: "bb-3-24-ref-app", target: "bb-3-24-ref-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-24-ref-browser"],
+        },
+        commentary:
+          "Nothing moved; one number did. Anywhere from 240 up to just under 1,200 answers the brief, and " +
+          "600 - the registry's default - is a reasonable pick: two and a half times the heaviest real " +
+          "caller, half of what one looping phone sends. What the number cannot do is the other half of " +
+          "the chapter. Every looping phone is now refused, but 40,000 legitimate callers each under 600 " +
+          "would still overwhelm search together, and only a global budget with load shedding in the " +
+          "service stops that. The drawing also hides that the gateway runs on several machines, each " +
+          "needing to agree on one caller's count.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-24-hint-1",
+        body:
+          "Validate is silent because nothing is miswired. The gateway is already counting every caller; " +
+          "the question is what it is counting up to.",
+      },
+      {
+        id: "bb-3-24-hint-2",
+        body:
+          "The brief gives two rates: what the heaviest legitimate caller needs, and what one broken phone " +
+          "sends. A per-caller limit that does its job has to sit between them.",
+      },
+      {
+        id: "bb-3-24-hint-3",
+        body:
+          "The limit is a number on a component you already have. Open it and check the number against both " +
+          "rates.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 2,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group G: Reliability - Chapter 3.24 of 37 (second chapter in Group G, directly after 3.23).",
+      masteredConcepts: [
+        "3.5's API Gateway as the one place callers are authenticated and limited, and its rateLimitPerMinute " +
+          "field, including 3.5's warning that a value set too low throttles every service at once.",
+        "3.23's retry storm, retry budgets and bulkheads. The cold open is a retry storm whose source is a " +
+          "client release, and the bulkhead is the last stop in the placement diagram.",
+        "3.14's distributed cache, reused here as a shared counter store.",
+        "3.22's trade-off between exactness and a coordination cost, which the many-gateways section applies " +
+          "to counters.",
+      ],
+      notYetIntroducedConcepts: [
+        "Metrics, alerting and SLOs (3.25) - this chapter's marked preview. Nothing here says how anyone " +
+          "would learn the limit is being hit.",
+        "DDoS mitigation and web application firewalls as products. The edge's per-IP role is described, " +
+          "not built.",
+        "Adaptive concurrency limits and queueing theory beyond the concept of load shedding by priority.",
+      ],
+      simplifications: [
+        "rateLimitPerMinute is treated as a per-caller limit, as 3.5 taught it; the canvas has no separate " +
+          "global limit or burst capacity field, so those are taught in prose and tables.",
+        "The gateway is one card standing for several machines. The shared counter store (API Gateway -> " +
+          "distributed cache) is drawable but not graded; the exercise checks the limit itself.",
+        "Simulated burst traffic is replaced by the lesson's token-bucket trace table and a quiz question.",
+        "Placement across edge, gateway, service and dependency is taught in a diagram and a quiz question, " +
+          "not built.",
+      ],
+    },
+    // Five questions, ramp 1/2/2/2/3. QUIZ_FRAMEWORK §14 bank Q4 -> Q2 and
+    // Q5 -> Q3, joke distractors replaced. Single-choice correct options sit
+    // at c, a, d, b, c - opens on c against 3.23's a.
+    quiz: [
+      {
+        id: "bb-3-24-rate-limiting-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Every API key is limited to 600 requests a minute, and the limit is working. During a sale, 40,000 legitimate users each stay well under their limit, and search falls over anyway. Why did the limit not help?",
+        options: [
+          {
+            id: "a",
+            label: "600 is too high; a lower per-key limit would have prevented it.",
+            correct: false,
+            explanationMd:
+              "Lowering it starts refusing legitimate users while doing little about the total: 40,000 callers at a lower limit can still add up to more than search can serve.",
+          },
+          {
+            id: "b",
+            label: "Rate limits only work against attackers, not real users.",
+            correct: false,
+            explanationMd:
+              "A limit does not know intent. A global budget limits real users perfectly well; it just was not configured.",
+          },
+          {
+            id: "c",
+            label: "A per-caller limit enforces fairness between callers, not a ceiling on the total. Surviving a legitimate spike needs a global budget as well.",
+            correct: true,
+            explanationMd:
+              "Correct. Fairness and survival are two jobs. Per-key limits stop one caller taking everyone's share; only a global budget, ideally shedding low-priority traffic first, caps the sum.",
+          },
+          {
+            id: "d",
+            label: "The limit was enforced in the wrong place; it should have been in the search service.",
+            correct: false,
+            explanationMd:
+              "Moving a per-caller limit does not change what it counts. A global budget belongs in the service, but as a second limit, not a relocated first one.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-24-rate-limiting-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A token bucket has a capacity of 10 and refills at 1 token per second. A client idle for a minute sends 15 requests at once. What happens?",
+        options: [
+          {
+            id: "a",
+            label: "About 10 are admitted immediately from the saved-up burst; the rest are refused or wait for tokens at 1 per second.",
+            correct: true,
+            explanationMd:
+              "Correct. A full bucket is a forgiven burst - which is why the token bucket is chosen over a fixed window when real clients load a page with a cluster of calls.",
+          },
+          {
+            id: "b",
+            label: "All 15 are admitted, because the client was idle long enough to earn 60 tokens.",
+            correct: false,
+            explanationMd:
+              "Tokens stop accumulating at capacity. Idle time beyond 10 seconds earns nothing; the cap is what bounds the burst.",
+          },
+          {
+            id: "c",
+            label: "All 15 are refused, because 15 is more than the bucket holds.",
+            correct: false,
+            explanationMd:
+              "Each request spends one token independently. The first 10 find tokens; only the rest are refused.",
+          },
+          {
+            id: "d",
+            label: "One per second is admitted from the start, since the refill rate is the limit.",
+            correct: false,
+            explanationMd:
+              "That describes a limiter with no burst allowance. The bucket's capacity exists precisely so a quiet client's burst is not throttled to the sustained rate.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-24-rate-limiting-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt: "A teammate proposes enforcing all rate limits inside each service, \"closest to the work, where we know the most\". What is the stronger design?",
+        options: [
+          {
+            id: "a",
+            label: "Agree - services know request costs, so the gateway's limit is redundant.",
+            correct: false,
+            explanationMd:
+              "By the time a service refuses, the request has already cost the gateway, the load balancer and an application slot. Under a flood, that is the load.",
+          },
+          {
+            id: "b",
+            label: "Enforce everything at the gateway and nothing in services, so policy lives in one place.",
+            correct: false,
+            explanationMd:
+              "The gateway cannot see what a request will cost or how loaded a service is. Global and cost-aware limits need the service's knowledge.",
+          },
+          {
+            id: "c",
+            label: "Skip rate limits and autoscale the services to absorb whatever arrives.",
+            correct: false,
+            explanationMd:
+              "Autoscaling takes minutes and costs money per request; a looping client or a flood outruns it, and the database behind it does not autoscale at all.",
+          },
+          {
+            id: "d",
+            label: "Reject at the first stop that knows enough: per-caller limits at the gateway, before any work; cost-aware and global limits in the service, which alone knows what a request costs.",
+            correct: true,
+            explanationMd:
+              "Correct. Placement follows knowledge. Each limit sits as early as possible given what it needs to decide, so the cheap refusals happen first.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-24-rate-limiting-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "The API Gateway runs on six machines behind DNS. Each machine counts requests per API key in its own memory, with a limit of 600 a minute. What does a determined caller actually get, and what is the usual fix?",
+        options: [
+          {
+            id: "a",
+            label: "600 a minute - the limit is configured once, so every machine enforces the same total.",
+            correct: false,
+            explanationMd:
+              "Each machine enforces 600 against the requests it happens to see. A caller spread across all six is counted six separate times.",
+          },
+          {
+            id: "b",
+            label: "Up to 3,600. Share the count - a counter store every machine updates, or local counts synced every second or so - accepting a brief overshoot if you avoid the extra hop.",
+            correct: true,
+            explanationMd:
+              "Correct. Exact sharing costs a network hop per request; periodic sync costs a second of approximation. Most limiters take the approximation, because a limit is a protection, not a ledger.",
+          },
+          {
+            id: "c",
+            label: "100 a minute, because each machine sees a sixth of the traffic and divides the limit.",
+            correct: false,
+            explanationMd:
+              "Nothing divides the limit automatically. Splitting it by machine count is one sync strategy, and it breaks the moment traffic is uneven or a machine dies.",
+          },
+          {
+            id: "d",
+            label: "Up to 3,600, and the only fix is to run a single gateway machine.",
+            correct: false,
+            explanationMd:
+              "That makes the count exact by making the gateway a single point of failure - the front door for every service, with nothing behind it when it dies.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-24-rate-limiting-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Interviewer: \"Every per-key limit is respected, and the system is still at 140% of capacity. What do you refuse?\" Which answer is strongest?",
+        options: [
+          {
+            id: "a",
+            label: "Refuse requests at random until load drops, so no caller is treated unfairly.",
+            correct: false,
+            explanationMd:
+              "Random shedding treats a checkout and a recommendation as equally expendable, so the essential flow fails at the same rate as the optional ones.",
+          },
+          {
+            id: "b",
+            label: "Refuse the newest requests and finish the oldest, so work in progress completes.",
+            correct: false,
+            explanationMd:
+              "Order of arrival says nothing about importance. It also favors requests whose callers may already have given up waiting.",
+          },
+          {
+            id: "c",
+            label: "Shed by priority: refuse the optional flows - search suggestions, recommendations - first, and the essential one, applying for a job, last, so the core product survives the overload.",
+            correct: true,
+            explanationMd:
+              "Correct. Load shedding by priority decides in advance which part of the product may disappear, so the part that matters keeps its capacity. That decision is a requirements question, not a tuning one.",
+          },
+          {
+            id: "d",
+            label: "Lower every caller's per-key limit until the total fits.",
+            correct: false,
+            explanationMd:
+              "That refuses everyone's essential and optional requests alike, and by the time new limits roll out to every gateway machine the spike may be over.",
+          },
+        ],
+      },
+    ],
+    // The job board's request path with the gateway where 3.5 put it, its
+    // limit set at launch to 100,000. Validates clean: a config fault is
+    // invisible to every rule (spec §8).
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-24-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-24-gateway", componentId: "api-gateway", position: { x: 320, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 100000 } },
+        { id: "bb-3-24-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: {} },
+        { id: "bb-3-24-app", componentId: "app-server", position: { x: 580, y: 160 }, config: { instances: 3 } },
+        { id: "bb-3-24-search", componentId: "search-engine", position: { x: 840, y: 0 }, config: { shards: 3 } },
+        { id: "bb-3-24-db", componentId: "sql-database", position: { x: 840, y: 160 }, config: {} },
+      ],
+      edges: [
+        { id: "bb-3-24-e1", source: "bb-3-24-browser", target: "bb-3-24-gateway", kind: "request-flow" },
+        { id: "bb-3-24-e2", source: "bb-3-24-gateway", target: "bb-3-24-lb", kind: "request-flow" },
+        { id: "bb-3-24-e3", source: "bb-3-24-lb", target: "bb-3-24-app", kind: "request-flow" },
+        { id: "bb-3-24-e4", source: "bb-3-24-app", target: "bb-3-24-search", kind: "request-flow" },
+        { id: "bb-3-24-e5", source: "bb-3-24-app", target: "bb-3-24-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-24-browser"],
+    },
+    // Config fix on a node already present, so no gap zone (§11.6).
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-24-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-24-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 436, height: 308, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-24-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 308, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "bb-3-24-comment-rates",
+        text: "Heaviest legitimate caller: a recruiter dashboard, 240 requests a minute at peak. One phone on version 4.2 after a failed search: 1,200 a minute, until someone stops it.",
+        position: { x: 32, y: 300 },
+        width: 620,
+        height: 130,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-3-25-observability",
+    mode: "building-blocks",
+    title: "Observability",
+    // Real authored content (third Group G chapter). Spec:
+    // specs/bb-3-25-observability.spec.md. Lesson body:
+    // public/content/chapters/bb-3-25-observability.mdx. Concept per
+    // CURRICULUM §14, no new component (§16), no Editor exercise - see below.
+    problemStatement:
+      "On Monday a client bug sent hundreds of times the normal search traffic for seventeen minutes before a support " +
+      "ticket told anyone. Every component already had the numbers. No build: the knowledge check hands you " +
+      "symptoms and dashboards and asks you to localize the fault or choose the alert.",
+    // Five objectives. Practical omitted per §5.2's carve-out for pure
+    // Concept chapters (3.10, 3.13, 3.21 precedent) - see spec §0.
+    learningObjectives: [
+      "Name which of metrics, logs and traces answers \"that\", \"what\" and \"where\", and use them in that order during an incident.",
+      "Choose labels for a metric that narrow an incident without exploding its cardinality.",
+      "Derive an error budget from an SLO and decide what spending it should change.",
+      "Answer \"how would you know it's broken?\" with a symptom SLO, burn-rate paging and trace propagation.",
+      "Justify paging on a user-facing symptom instead of a resource cause, naming what the cause alert would miss.",
+    ],
+    // 3.24's palette unchanged - §16 lists 3.25 among the no-component
+    // Concept chapters. Informational only, since there is no exercise.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "kafka",
+      "cron-job",
+      "serverless-function",
+      "object-storage",
+      "coordinator",
+      "lock-service",
+    ],
+    requiredComponentIds: [],
+    validationRuleIds: [],
+    blueprints: [],
+    // False: §14's exercise is a diagnosis scenario, not construction, and
+    // telemetry has no registry component to place. Ships as quiz Q5 (three
+    // dashboards, localize the fault) plus the lesson's worked narrowing.
+    hasEditorExercise: false,
+    hints: [
+      {
+        id: "bb-3-25-hint-1",
+        body:
+          "For any scenario, decide first which question it is asking: that something is wrong, where in the " +
+          "request path, or what exactly happened. Each has a signal built to answer it.",
+      },
+      {
+        id: "bb-3-25-hint-2",
+        body:
+          "Before blaming the biggest number on a dashboard, slice the symptom: which endpoint, which instance, " +
+          "which shard, which change. The fault is usually where one value stands out from its neighbours.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 2,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group G: Reliability - Chapter 3.25 of 37 (third chapter in Group G, directly after 3.24).",
+      masteredConcepts: [
+        "1.1's latency percentiles and why an average hides the requests that hurt.",
+        "2.2's warning against monitoring only the stops you own, and its Facebook outage where the tools to " +
+          "fix the problem shared its failure.",
+        "3.13's point that a fan-out waits for its slowest member, which the lesson's trace shows directly.",
+        "3.17's queue depth, 3.19's silent scheduled job, 3.23's breakers and retries and 3.24's refused " +
+          "requests - each named here as a signal to record.",
+      ],
+      notYetIntroducedConcepts: [
+        "Failover and leader election (3.26) - this chapter's marked preview. The alert fires; who takes " +
+          "over is the next chapter.",
+        "Specific observability products and query languages, beyond naming Jaeger as Uber's decision.",
+        "Anomaly detection and statistical alerting beyond burn-rate paging.",
+      ],
+      simplifications: [
+        "Telemetry has no canvas component, so the chapter has no Editor exercise; the lesson's Your turn " +
+          "section says so.",
+        "RED and USE are presented as checklists, not as full methodologies.",
+        "Burn-rate alerting is described by its principle (page on fast budget spend, ticket on slow) without " +
+          "multi-window thresholds.",
+      ],
+    },
+    // Five questions, ramp 1/2/2/2/3. QUIZ_FRAMEWORK §14 bank Q6 -> Q1 and Q7
+    // -> Q2, joke distractors replaced. Q5 is §14's own exercise as a question.
+    // Single-choice correct options sit at b, d, a, c, b - opens on b against
+    // 3.24's c.
+    quiz: [
+      {
+        id: "bb-3-25-observability-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A teammate says metrics, logs and traces are three names for the same data at different prices, so you only need the cheapest. What is the accurate division?",
+        options: [
+          {
+            id: "a",
+            label: "They overlap completely; metrics are enough, because every log line can be turned into a counter.",
+            correct: false,
+            explanationMd:
+              "Turning logs into counters keeps the count and throws away the event. Metrics can say errors tripled; they cannot say which request or why.",
+          },
+          {
+            id: "b",
+            label: "Metrics say that something is wrong and how much; traces say where in the request path the time went; logs say what happened in one event.",
+            correct: true,
+            explanationMd:
+              "Correct. Three questions, three signals, used in that order: the metric pages you, the trace finds the hop, the logs explain it.",
+          },
+          {
+            id: "c",
+            label: "Logs are the older approach; traces replace them, since a trace contains every log line.",
+            correct: false,
+            explanationMd:
+              "A trace records timed spans, not what each service wrote about the work. Most systems attach the trace id to log lines precisely because both are needed.",
+          },
+          {
+            id: "d",
+            label: "Metrics are for dashboards and capacity planning; logs and traces are for debugging, so alerts should come from logs.",
+            correct: false,
+            explanationMd:
+              "Alerting from logs means counting by searching text at incident time, which fails exactly when traffic spikes. Alerts come from metrics, which are already aggregated.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-25-observability-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Search's p50 latency is flat at 40 ms. Its p99 tripled to 1.8 s this morning. Average latency moved from 52 ms to 61 ms, which the team considers noise. What is the right reading?",
+        options: [
+          {
+            id: "a",
+            label: "Noise: 99% of requests are unaffected, so the user experience has not changed.",
+            correct: false,
+            explanationMd:
+              "One search in a hundred now takes nearly two seconds, and an active user runs dozens a session - most of them will hit it.",
+          },
+          {
+            id: "b",
+            label: "The average is the right number to watch, since it includes the slow requests.",
+            correct: false,
+            explanationMd:
+              "It includes them and hides them: a 45x slowdown for 1% moved the average by 9 ms. That is why durations are read as percentiles.",
+          },
+          {
+            id: "c",
+            label: "A measurement artifact: percentiles are unstable, so wait for the p50 to confirm.",
+            correct: false,
+            explanationMd:
+              "p99 is noisier over a few requests, not over a morning of traffic. Waiting for the median to move waits for half of all users to be affected.",
+          },
+          {
+            id: "d",
+            label: "A real problem: the tail hits the heaviest users, a page that fans out to several calls feels the slowest one, and the average arithmetically hides it.",
+            correct: true,
+            explanationMd:
+              "Correct. 1.1's reason for percentiles and 3.13's fan-out point together: the tail is where users feel latency, and averages are built to smooth it away.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-25-observability-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "You are allowed one paging alert for the search journey. Which one?",
+        options: [
+          {
+            id: "a",
+            label: "Fewer than 99.9% of searches succeeding in under 300 ms, burning the month's error budget fast enough that it will run out within days.",
+            correct: true,
+            explanationMd:
+              "Correct. It measures what users feel, so it fires for causes nobody predicted, and burn rate keeps one bad minute from waking anyone.",
+          },
+          {
+            id: "b",
+            label: "Search engine CPU above 90% for five minutes.",
+            correct: false,
+            explanationMd:
+              "It fires on a harmless 03:00 reindex and stays silent when search fails fast at low CPU. A cause belongs on the dashboard you open after the page.",
+          },
+          {
+            id: "c",
+            label: "Any search error at all, so nothing is ever missed.",
+            correct: false,
+            explanationMd:
+              "Some errors are normal at any volume. Paging on each one trains the on-call to ignore pages, which is how the real one gets missed.",
+          },
+          {
+            id: "d",
+            label: "The search engine's queue depth above a fixed threshold.",
+            correct: false,
+            explanationMd:
+              "A useful cause metric, and a guess about one way search can fail. A deep queue that drains fast hurts nobody; a shallow one in front of a dead shard does.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-25-observability-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Applying for a job has an SLO of 99.9% of applications succeeding over 30 days. In the first week, one bad deploy made applications fail for 40 minutes. What does the error budget say?",
+        options: [
+          {
+            id: "a",
+            label: "Nothing yet - the SLO is measured over 30 days, so there are three weeks to recover the average.",
+            correct: false,
+            explanationMd:
+              "The budget is a fixed allowance, not an average that recovers. Whatever is spent in week one is gone for the rest of the window.",
+          },
+          {
+            id: "b",
+            label: "The SLO was set too tight and should be lowered to 99.5% so the team is back within it.",
+            correct: false,
+            explanationMd:
+              "Moving the target after missing it makes the number meaningless. SLOs change deliberately, from what users need, not from what the last incident cost.",
+          },
+          {
+            id: "c",
+            label: "About 43 minutes is the whole month's budget, and 40 are spent: slow down risky deploys to that journey and spend the time on what caused the failure.",
+            correct: true,
+            explanationMd:
+              "Correct. 0.1% of 30 days is about 43 minutes. The budget turns \"should we ship?\" into arithmetic, and with three minutes left, the answer is to make the deploy process safer first.",
+          },
+          {
+            id: "d",
+            label: "Page the on-call for the remainder of the month on every application error.",
+            correct: false,
+            explanationMd:
+              "Paging harder does not restore the budget, and burns out the people who would fix the cause. Spending decides priorities, not alert thresholds.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-25-observability-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Since 14:10, the job-detail page's p99 has gone from 180 ms to 2.4 s. Dashboard A: application CPU flat at 35%, instance count unchanged. Dashboard B: search p99 flat at 45 ms. Dashboard C: SQL primary - one query, listings by recruiter, went from 6 ms to 2.2 s at 14:05; every other query is flat. Where is the fault, and what do you open next?",
+        options: [
+          {
+            id: "a",
+            label: "The application tier is saturated; add instances, then check whether latency recovers.",
+            correct: false,
+            explanationMd:
+              "CPU is flat at 35% and nothing about the instances changed. Adding capacity to a tier that is not the bottleneck costs money and moves nothing.",
+          },
+          {
+            id: "b",
+            label: "The one query that changed at 14:05 - most likely shipped or altered by a deploy then. Open a trace of a slow job-detail request to confirm it spends its time there, then that query's logs.",
+            correct: true,
+            explanationMd:
+              "Correct. One value stood out from its neighbours on one dashboard, at a time that predates the symptom. The trace confirms where; the query's logs and the deploy diff explain why.",
+          },
+          {
+            id: "c",
+            label: "The SQL primary is overloaded and needs a bigger machine.",
+            correct: false,
+            explanationMd:
+              "Every other query on the same primary is flat, which rules out a machine-wide problem. One query got slow, not the database.",
+          },
+          {
+            id: "d",
+            label: "Search, since the job-detail page shows related jobs from it; restart the search engine.",
+            correct: false,
+            explanationMd:
+              "Search's p99 is flat. Restarting a healthy dependency because it is on the page is guessing, and costs a real outage of search to test the guess.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "bb-3-26-fault-tolerance",
+    mode: "building-blocks",
+    title: "Fault Tolerance",
+    // Real authored content (fourth and final Group G chapter). Spec:
+    // specs/bb-3-26-fault-tolerance.spec.md. Lesson body:
+    // public/content/chapters/bb-3-26-fault-tolerance.mdx. Building Block per
+    // CURRICULUM §14/§16 (introduces leader and follower).
+    problemStatement:
+      "On Tuesday at 02:14 the applications database's primary lost power. Promoting its replica by hand " +
+      "took forty minutes, and at 02:38 the old primary rebooted and accepted writes from two app instances " +
+      "still pointed at it. 31 applications ended up on a machine that was no longer the database. The " +
+      "data tier has been removed from the board; rebuild it so Tuesday cannot happen.",
+    exerciseGoal:
+      "Build a data tier where losing any one database machine means writes resume within seconds with nobody involved, and two machines can never accept writes at the same time.",
+    successCriteria: [
+      "Exactly one machine accepts writes at any moment, and every write is copied to at least two others.",
+      "When the machine accepting writes dies, another takes over without a person, chosen by something that is not one of the machines involved.",
+      "The application tier always learns which machine to write to now, instead of carrying an address that can go stale.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Six objectives, all five categories - Building Block.
+    learningObjectives: [
+      "Explain leader and follower as roles held on a lease, and what a term number fences when an old leader returns.",
+      "Size a consensus group by majority arithmetic, explain why an even member adds nothing, and place members across failure domains.",
+      "Predict what a failover loses under asynchronous versus majority-acknowledged replication.",
+      "Build a leader with two followers under a coordinator, with the application tier learning the leader from it, and pass Submit.",
+      "Answer \"kill the leader - what happens?\" step by step: detection, election, fencing and client redirect.",
+      "Justify graceful degradation aloud, naming which flows keep working during a failover and why.",
+    ],
+    // 3.25's palette plus this chapter's two new components - every registry
+    // component except `client`. CURRICULUM §16: "3.26 | leader, follower".
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "kafka",
+      "cron-job",
+      "serverless-function",
+      "object-storage",
+      "coordinator",
+      "lock-service",
+      "leader",
+      "follower",
+    ],
+    requiredComponentIds: ["browser", "load-balancer", "app-server", "leader", "follower", "coordinator"],
+    // split-brain-risk is curated for the first time and is the chapter's
+    // teaching instrument (§14): two Leader cards with nothing deciding
+    // between them draw its explanation. component-relations refuses the
+    // wrong-direction edges (leader -> app, follower -> leader).
+    validationRuleIds: [
+      "no-direct-client-database",
+      "component-relations",
+      "orphan-component",
+      "missing-input-connection",
+      "split-brain-risk",
+    ],
+    blueprints: [
+      {
+        id: "bb-3-26-blueprint",
+        label: "One leader, two followers, and a majority that decides",
+        require: {
+          id: "bb-3-26-blueprint",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "leader", componentId: "leader" },
+            { alias: "f1", componentId: "follower" },
+            { alias: "f2", componentId: "follower" },
+            { alias: "coord", componentId: "coordinator" },
+          ],
+          edges: [
+            { from: "browser", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "leader", kind: "request-flow" },
+            { from: "leader", to: "f1", kind: "replication" },
+            { from: "leader", to: "f2", kind: "replication" },
+            { from: "coord", to: "leader", kind: "control" },
+            { from: "coord", to: "f1", kind: "control" },
+            { from: "coord", to: "f2", kind: "control" },
+            { from: "app", to: "coord", kind: "control" },
+          ],
+        },
+        forbid: [
+          {
+            id: "bb-3-26-forbid-second-leader",
+            label: "a second Leader card (one group has one leader at a time)",
+            nodes: [
+              { alias: "l1", componentId: "leader" },
+              { alias: "l2", componentId: "leader" },
+            ],
+          },
+        ],
+        referenceGraph: {
+          nodes: [
+            { id: "bb-3-26-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-3-26-ref-lb", componentId: "load-balancer", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-3-26-ref-app", componentId: "app-server", position: { x: 320, y: 160 }, config: { instances: 3 } },
+            { id: "bb-3-26-ref-coord", componentId: "coordinator", position: { x: 320, y: 320 }, config: { consensusProtocol: "raft" } },
+            { id: "bb-3-26-ref-leader", componentId: "leader", position: { x: 580, y: 0 }, config: { electionTimeoutMs: 1000 } },
+            { id: "bb-3-26-ref-f1", componentId: "follower", position: { x: 580, y: 160 }, config: { readOnly: true } },
+            { id: "bb-3-26-ref-f2", componentId: "follower", position: { x: 580, y: 320 }, config: { readOnly: true } },
+          ],
+          edges: [
+            { id: "bb-3-26-ref-e1", source: "bb-3-26-ref-browser", target: "bb-3-26-ref-lb", kind: "request-flow" },
+            { id: "bb-3-26-ref-e2", source: "bb-3-26-ref-lb", target: "bb-3-26-ref-app", kind: "request-flow" },
+            { id: "bb-3-26-ref-e3", source: "bb-3-26-ref-app", target: "bb-3-26-ref-leader", kind: "request-flow" },
+            { id: "bb-3-26-ref-e4", source: "bb-3-26-ref-leader", target: "bb-3-26-ref-f1", kind: "replication" },
+            { id: "bb-3-26-ref-e5", source: "bb-3-26-ref-leader", target: "bb-3-26-ref-f2", kind: "replication" },
+            { id: "bb-3-26-ref-e6", source: "bb-3-26-ref-app", target: "bb-3-26-ref-coord", kind: "control" },
+            { id: "bb-3-26-ref-e7", source: "bb-3-26-ref-coord", target: "bb-3-26-ref-leader", kind: "control" },
+            { id: "bb-3-26-ref-e8", source: "bb-3-26-ref-coord", target: "bb-3-26-ref-f1", kind: "control" },
+            { id: "bb-3-26-ref-e9", source: "bb-3-26-ref-coord", target: "bb-3-26-ref-f2", kind: "control" },
+            { id: "bb-3-26-ref-e10", source: "bb-3-26-ref-f1", target: "bb-3-26-ref-app", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-3-26-ref-browser"],
+        },
+        commentary:
+          "Three database machines, and the cards name the roles they hold today. Writes go to the Leader, " +
+          "which replicates to both Followers and acknowledges once a majority has the write. The " +
+          "Coordinator holds the leader's lease, so when the Leader dies a Follower is elected by a majority " +
+          "within seconds, and the term number it carries makes the old leader's return harmless. The app " +
+          "asks the Coordinator who leads rather than carrying an address, which is the line Tuesday was " +
+          "missing. The read edge from one Follower is optional and is graceful degradation in a single " +
+          "arrow: listings keep loading during a failover. A second Leader card fails Submit even with the " +
+          "Coordinator present: one group has one leader at a time, and the Coordinator decides which machine it is.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-3-26-hint-1",
+        body:
+          "The goal has three requirements, and each is its own question: which machine may accept writes, " +
+          "what decides when that changes, and how the application finds out. Answer them one at a time.",
+      },
+      {
+        id: "bb-3-26-hint-2",
+        body:
+          "The right to accept writes has to be able to move between machines. The decision about where it " +
+          "moves cannot be made by those machines themselves, or one network blip lets two of them decide at once.",
+      },
+      {
+        id: "bb-3-26-hint-3",
+        body:
+          "If Validate warns about split brain, count how many cards can accept writes and ask what, on your " +
+          "board, stops two of them doing it at the same time.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 2,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Group G: Reliability - Chapter 3.26 of 37 (fourth and final chapter in Group G, directly after 3.25; the last chapter before Checkpoint G).",
+      masteredConcepts: [
+        "3.12's replication as a mechanism, including synchronous vs asynchronous and the loss window. This " +
+          "chapter teaches the same copies as coordination: which one may accept writes.",
+        "3.22's coordinator, consensus by majority and the control edge from the application tier.",
+        "3.23's lease (a lock that expires unless renewed) and fencing token. Leadership is held on a lease " +
+          "and fenced by a term number.",
+        "3.25's symptom alerting - the cold open's alert fired in a minute; this chapter is what recovers " +
+          "before a person arrives.",
+        "3.22's per-data-class posture and 3.24's priority shedding, reused as graceful degradation.",
+      ],
+      notYetIntroducedConcepts: [
+        "Raft and Paxos internals (log matching, vote rules). The election is described at the level of " +
+          "majority, most-recent data and terms.",
+        "Multi-region active-active databases and conflict resolution across regions, beyond noting that " +
+          "region failover is a separate decision.",
+        "Chaos engineering as a named practice; scheduled failover testing is mentioned in the scale ladder only.",
+      ],
+      simplifications: [
+        "Leader and Follower are role cards standing for database machines. A real failover changes which " +
+          "machine holds which role; the canvas cannot change a card's role, so the lesson's walkthrough uses " +
+          "plain Node A/B/C cards with roles in the captions.",
+        "Kill-the-leader is a prediction prompt, a walkthrough and a quiz question, not a simulation.",
+        "electionTimeoutMs and readOnly are taught as trade-offs and not gated.",
+        "The Coordinator is one card standing for a three- or five-member consensus group, as in 3.22.",
+      ],
+    },
+    // Six questions, ramp 1/2/2/2/3/3. QUIZ_FRAMEWORK §14 bank Q9 -> Q1, Q8 ->
+    // Q2 (diagram, the bank's graph re-laid at the 260 pitch), Q10 -> Q3, Q11
+    // folded into Q6; joke distractors replaced. Single-choice correct options
+    // sit at d, a, c, b, a, c - opens on d against 3.25's b.
+    quiz: [
+      {
+        id: "bb-3-26-fault-tolerance-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "A teammate proposes growing the orders store's consensus group from three members to four, \"so it survives more failures\". What does the fourth member actually change?",
+        options: [
+          {
+            id: "a",
+            label: "It survives two failures instead of one, since there is one more copy.",
+            correct: false,
+            explanationMd:
+              "Four members need three for a majority, so losing two leaves two - not a majority. Copies count for durability; majorities count for whether writes continue.",
+          },
+          {
+            id: "b",
+            label: "It makes writes faster, since there are more members to acknowledge them.",
+            correct: false,
+            explanationMd:
+              "A majority of four is three, so each write waits for one more acknowledgement than with three members. It gets slightly slower, not faster.",
+          },
+          {
+            id: "c",
+            label: "It prevents split brain, which three members cannot.",
+            correct: false,
+            explanationMd:
+              "Three members already prevent it: only a side with two can act. Four adds the possibility of a two-and-two split where neither side can.",
+          },
+          {
+            id: "d",
+            label: "Nothing useful: a majority of four is three, so it still survives only one failure, with one more machine to fail and the risk of an even split.",
+            correct: true,
+            explanationMd:
+              "Correct. Tolerance comes from majority arithmetic: three and four both survive one failure; five survives two. That is why groups run odd.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-26-fault-tolerance-q2",
+        kind: "diagram",
+        difficulty: 2,
+        prompt:
+          "After a network incident, the board looks like this: two Leader cards, each replicating to one Follower, and nothing else. Validate warns about it. What is the failure being warned about?",
+        graph: {
+          nodes: [
+            { id: "l1", componentId: "leader", position: { x: 60, y: 0 }, config: {} },
+            { id: "f1", componentId: "follower", position: { x: 320, y: 0 }, config: {} },
+            { id: "l2", componentId: "leader", position: { x: 60, y: 160 }, config: {} },
+            { id: "f2", componentId: "follower", position: { x: 320, y: 160 }, config: {} },
+          ],
+          edges: [
+            { id: "e1", source: "l1", target: "f1", kind: "replication" },
+            { id: "e2", source: "l2", target: "f2", kind: "replication" },
+          ],
+          entryPointIds: ["l1", "l2"],
+        },
+        options: [
+          {
+            id: "a",
+            label: "Split brain: two machines each accepting writes for the same data build two histories that cannot be merged safely. Something must ensure exactly one writer, agreed by a majority.",
+            correct: true,
+            explanationMd:
+              "Correct. The catastrophe is divergence, not downtime - Tuesday's 31 applications. A coordinator deciding by majority is what makes a second leader impossible rather than unlikely.",
+          },
+          {
+            id: "b",
+            label: "Too few followers: each leader needs at least two for a majority.",
+            correct: false,
+            explanationMd:
+              "Adding followers to each leader makes two bigger groups that still disagree. The count that matters is leaders, and it should be one.",
+          },
+          {
+            id: "c",
+            label: "The replication edges point the wrong way; followers should replicate to leaders.",
+            correct: false,
+            explanationMd:
+              "Leader to follower is the correct direction - the leader's writes are what get copied. The edges are fine; there are two sources of truth.",
+          },
+          {
+            id: "d",
+            label: "Two separate clusters are fine, as long as the application writes to only one of them.",
+            correct: false,
+            explanationMd:
+              "That is a promise about every client, every config and every deploy, kept by nobody. Tuesday's two app instances pointed at the old primary broke exactly that promise.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-26-fault-tolerance-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "The leader dies. Failover promotes a follower that was 500 ms behind on asynchronous replication, and the system is back in three seconds. What is the honest consequence?",
+        options: [
+          {
+            id: "a",
+            label: "Nothing - the new leader has everything that mattered, since failover completed in seconds.",
+            correct: false,
+            explanationMd:
+              "Speed of failover says nothing about completeness. Whatever the follower had not received is not on the new leader.",
+          },
+          {
+            id: "b",
+            label: "The old leader's disk is merged back in when it rejoins, restoring the missing writes.",
+            correct: false,
+            explanationMd:
+              "When it rejoins it is fenced by the new term and becomes a follower; its unreplicated writes are discarded, not merged. Merging would reintroduce split-brain histories.",
+          },
+          {
+            id: "c",
+            label: "Up to 500 ms of acknowledged writes are gone. Asynchronous replication bought fast writes and fast failover; majority-acknowledged writes would have closed the gap at a round trip per write.",
+            correct: true,
+            explanationMd:
+              "Correct. 3.12's sync-or-async choice arriving at its consequence: the loss window is the price of not waiting for a follower on every write.",
+          },
+          {
+            id: "d",
+            label: "Clients notice the failure and resend their last half-second of writes automatically.",
+            correct: false,
+            explanationMd:
+              "Those writes were acknowledged - the clients were told they succeeded and have no reason to resend.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-26-fault-tolerance-q4",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "The leader's election timeout is set to 200 ms to make failover nearly instant. Since then the cluster holds an election several times a day, each one refusing writes briefly, though no machine has failed. What is going on?",
+        options: [
+          {
+            id: "a",
+            label: "The coordinator group is undersized and needs five members.",
+            correct: false,
+            explanationMd:
+              "More members do not change how quickly a busy leader is declared dead. The trigger is the timeout, not the group size.",
+          },
+          {
+            id: "b",
+            label: "A 200 ms timeout mistakes a garbage-collection pause or a network blip for a dead leader. Raise it until normal pauses fit, accepting slightly slower failover on real failures.",
+            correct: true,
+            explanationMd:
+              "Correct. Detection is a trade-off between false failovers and a longer outage on a real one. Each needless election is itself a brief write outage.",
+          },
+          {
+            id: "c",
+            label: "Replication is too slow; switch to asynchronous so the leader answers heartbeats faster.",
+            correct: false,
+            explanationMd:
+              "Replication mode decides what a failover can lose, not whether one is triggered. It would add a loss window to fix nothing.",
+          },
+          {
+            id: "d",
+            label: "This is expected behaviour that guarantees the fastest possible recovery.",
+            correct: false,
+            explanationMd:
+              "Elections with no failure are not recovery; they are outages the timeout created. Fast failover is only worth it if it fires on real failures.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-26-fault-tolerance-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A partition cuts Node A, the leader for term 7, off from Nodes B and C. B is elected for term 8. Ten seconds later the partition heals and Node A, never told, tries to keep accepting writes. What makes that harmless?",
+        options: [
+          {
+            id: "a",
+            label: "Node A could not renew its lease while cut off, so it stopped accepting writes when the lease ran out; and anything it sends stamped with term 7 is refused by nodes that have seen term 8.",
+            correct: true,
+            explanationMd:
+              "Correct. Lease and term together: the lease stops a cut-off leader acting on its own, and the term fences anything it tries afterwards - 3.23's lock lease and fencing token, applied to leadership.",
+          },
+          {
+            id: "b",
+            label: "Node B detects Node A's writes and deletes them.",
+            correct: false,
+            explanationMd:
+              "Nothing deletes after the fact. The design works by making Node A unable to get writes accepted in the first place.",
+          },
+          {
+            id: "c",
+            label: "The application tier stops sending to Node A as soon as the partition starts.",
+            correct: false,
+            explanationMd:
+              "Clients learn the new leader on their next lookup or refusal - some may still try Node A. Safety cannot depend on every client updating in time.",
+          },
+          {
+            id: "d",
+            label: "Nothing - this is unavoidable, and the two histories are reconciled afterwards.",
+            correct: false,
+            explanationMd:
+              "That is the hand-promotion design from the cold open. The point of leases and terms is that there is never a second history to reconcile.",
+          },
+        ],
+      },
+      {
+        id: "bb-3-26-fault-tolerance-q6",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Interviewer: \"Your job board's applications store loses its leader at peak. Walk me through the next ten seconds, from the user's side.\" Which answer is strongest?",
+        options: [
+          {
+            id: "a",
+            label: "\"The site shows a maintenance page until the database is back, so nobody sees inconsistent data.\"",
+            correct: false,
+            explanationMd:
+              "Safe and needlessly total: browsing never needed the leader. Binary up-or-down throws away everything the followers could still serve.",
+          },
+          {
+            id: "b",
+            label: "\"Failover is automatic, so users don't notice anything.\"",
+            correct: false,
+            explanationMd:
+              "Failover takes seconds, and writes in that window are refused or waiting. Claiming no effect skips the part the question is about.",
+          },
+          {
+            id: "c",
+            label: "\"The lease lapses within a couple of seconds and a majority elects the most up-to-date follower; meanwhile listings keep loading from followers, Apply retries with its idempotency key, and recommendations go static. Nothing acknowledged is lost because writes need a majority.\"",
+            correct: true,
+            explanationMd:
+              "Correct. Detection, election and fencing, plus a decision made in advance about which flows degrade - and the data-loss claim backed by the replication mode, not assumed.",
+          },
+          {
+            id: "d",
+            label: "\"An engineer is paged immediately and promotes the best replica.\"",
+            correct: false,
+            explanationMd:
+              "That is Tuesday: forty minutes and an old primary that came back. Paging is for knowing; recovery that needs a person is measured in minutes, not seconds.",
+          },
+        ],
+      },
+    ],
+    // The applications service with its data tier removed. Build-first
+    // (§18.1); the empty tier is the visible gap, so the starter validates
+    // clean (spec §8).
+    starterGraph: {
+      nodes: [
+        { id: "bb-3-26-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "bb-3-26-lb", componentId: "load-balancer", position: { x: 320, y: 0 }, config: {} },
+        { id: "bb-3-26-app", componentId: "app-server", position: { x: 320, y: 160 }, config: { instances: 3 } },
+      ],
+      edges: [
+        { id: "bb-3-26-e1", source: "bb-3-26-browser", target: "bb-3-26-lb", kind: "request-flow" },
+        { id: "bb-3-26-e2", source: "bb-3-26-lb", target: "bb-3-26-app", kind: "request-flow" },
+      ],
+      entryPointIds: ["bb-3-26-browser"],
+    },
+    // A 2x2 gap for the data tier and whatever decides who leads it. No zone
+    // or comment names a component to add.
+    starterDecorators: [
+      { kind: "zone", id: "bb-3-26-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "bb-3-26-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 308, color: "#a855f7" },
+      { kind: "zone", id: "bb-3-26-zone-gap", label: "Build here", position: { x: 552, y: -40 }, width: 436, height: 308, color: "#ff3483" },
+      {
+        kind: "comment",
+        id: "bb-3-26-comment-tuesday",
+        text: "Tuesday: 02:14 the primary loses power. 02:38 it reboots and takes writes from two app instances. 02:54 a copy is promoted by hand. 31 applications exist only on the old machine.",
+        position: { x: 32, y: 300 },
+        width: 620,
+        height: 130,
+        color: "#64748b",
+      },
+    ],
+  },
+  {
+    id: "bb-r2-building-a-complete-backend",
+    mode: "building-blocks",
+    title: "Checkpoint · Building a Complete Backend",
+    // Real authored content - the curriculum's second Checkpoint (CURRICULUM
+    // §4/§14 Part 4). Spec: specs/bb-r2-building-a-complete-backend.spec.md.
+    // Lesson body: public/content/chapters/bb-r2-building-a-complete-backend.mdx.
+    // Same checkpoint shape R1 set: no quiz (§22), no starterGraph (blank
+    // canvas), four-section lesson, requirement list in problemStatement.
+    problemStatement:
+      "An outdoor-gear retailer selling online. 800,000 products from 2,000 sellers, 300,000 shoppers on a " +
+      "normal day, ten times that on the two sale days a year. What it has to do:\n\n" +
+      "- Shoppers arrive at one public domain name in a browser. A third of them are on another continent, " +
+      "and every visitor downloads the same storefront bundle before the first page renders.\n" +
+      "- Nothing reaches application code that was not filtered at the perimeter first, and the default is " +
+      "closed. The certificate is terminated in one place. API callers are authenticated and held to a " +
+      "per-caller request limit in one place.\n" +
+      "- Sale-day peak is far more than one machine can carry, and one machine dying mid-sale must not drop " +
+      "requests.\n" +
+      "- Shoppers search the catalog in free text, and the cost of answering does not grow with its 800,000 " +
+      "products.\n" +
+      "- The 5,000 most popular product pages are read hundreds of times for every change to them.\n" +
+      "- The catalog - names, prices, stock - is owned by exactly one store.\n" +
+      "- Sellers upload product photos: 40 TB and growing. They must not live in the store that holds the " +
+      "catalog rows.\n" +
+      "- Placing an order answers in under a second. The confirmation email takes 2 to 6 seconds through the " +
+      "email provider, which sometimes fails for an hour; it must not slow the order down, and no " +
+      "confirmation may be silently lost.\n" +
+      "- Orders are the data that must not go wrong. If the machine accepting orders dies, orders are " +
+      "accepted again within seconds with no person involved; no order a shopper was told succeeded is ever " +
+      "lost; and two machines never accept orders at the same time.\n" +
+      "- Every night at 01:00 a sales report aggregates the day's orders. It takes about 25 minutes, starts " +
+      "on its own, runs once, and must not touch either the machine accepting orders or the pool serving " +
+      "shoppers.",
+    exerciseGoal:
+      "Build the whole backend on an empty canvas. Every requirement above is answered by something you " +
+      "have built at least once between 3.1 and 3.26, and nothing here needs anything you have not been taught.",
+    successCriteria: [
+      "Every request a shopper waits on is filtered, terminated once, authenticated and limited before it reaches application code, which survives losing a machine.",
+      "Search, popular product pages and photos are each served by something whose cost does not track the size of the catalog or the number of repeat reads.",
+      "Work that should not hold up an order - the email, the nightly report - happens off the shopper's path, and a failing email lands somewhere a person can find it.",
+      "Orders keep being accepted after the machine taking them dies, with no person involved and never two machines taking them at once.",
+      "Validate reports zero issues, and Submit passes.",
+    ],
+    // Five objectives, one per §5.2 category, all composition or retrieval
+    // objectives over Groups A-G (§4: a checkpoint teaches nothing new).
+    learningObjectives: [
+      "Sort a product brief's requirements into the request path, the deferred path and the scheduled path, and name the taught component each needs.",
+      "Choose a different store for each data class the brief describes, justifying each by the consistency and failure behavior it needs.",
+      "Assemble a backend touching every Part 3 group on an empty canvas, with no starter graph and no per-requirement prompt, and pass Submit.",
+      "Answer \"what happens when the order database dies?\" against your own design, naming detection, election, fencing and what shoppers see meanwhile.",
+      "Walk an interviewer through the design as three paths - the one a shopper waits on, the one after they leave, the one nobody asked for - rather than as a list of boxes.",
+    ],
+    // All 27 registry components - CURRICULUM §14 Part 4: "Palette: all 27".
+    // `client` returns for the first time since Part 1, which also makes
+    // no-direct-client-database reachable again (spec §7).
+    availableComponentIds: [
+      "client",
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "kafka",
+      "cron-job",
+      "serverless-function",
+      "object-storage",
+      "coordinator",
+      "lock-service",
+      "leader",
+      "follower",
+    ],
+    // 17 required, each mapped to a brief line in spec §6. The catalog store
+    // (sql or nosql), the email sender (worker or serverless function) and
+    // the report runner (worker or a separate app server) each have two
+    // honest answers, so they are enforced by the blueprint rather than
+    // listed here.
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "cache",
+      "search-engine",
+      "object-storage",
+      "message-queue",
+      "dead-letter-queue",
+      "cron-job",
+      "leader",
+      "follower",
+      "coordinator",
+    ],
+    // The full registry - a composition gate over all seven groups should be
+    // able to fail anything Part 3 taught. Four warnings are escalated to
+    // errors by ruleSeverity below; orphan-component stays a warning.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "single-instance-load-balancer",
+      "permissive-firewall",
+      "split-brain-risk",
+      "queue-without-dead-letter-queue",
+      "orphan-read-replica",
+      "orphan-component",
+      "request-flow-cycle",
+      "missing-input-connection",
+      "component-relations",
+    ],
+    ruleSeverity: {
+      "permissive-firewall": "error",
+      "single-instance-load-balancer": "error",
+      "split-brain-risk": "error",
+      "queue-without-dead-letter-queue": "error",
+    },
+    // Two blueprints, the same system, differing only in how the shopper
+    // tier's redundancy is drawn - R1's precedent, carried for the same
+    // reason (open decision 11's config-predicate drift; spec §8).
+    blueprints: [
+      {
+        id: "bb-r2-blueprint-instances",
+        label: "Three paths, one shopper tier sized to survive losing an instance",
+        require: {
+          id: "bb-r2-blueprint-instances",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "catalog", componentId: ["sql-database", "nosql-database"] },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+            { alias: "photos", componentId: "object-storage" },
+            { alias: "queue", componentId: "message-queue" },
+            { alias: "notifier", componentId: ["worker", "serverless-function"] },
+            { alias: "dlq", componentId: "dead-letter-queue" },
+            { alias: "leader", componentId: "leader" },
+            { alias: "f1", componentId: "follower" },
+            { alias: "f2", componentId: "follower" },
+            { alias: "coord", componentId: "coordinator" },
+            { alias: "cron", componentId: "cron-job" },
+            { alias: "reporter", componentId: ["worker", "app-server"] },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "catalog", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "catalog", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+            { from: "app", to: "photos", kind: "request-flow" },
+            { from: "app", to: "queue", kind: "async" },
+            { from: "queue", to: "notifier", kind: "async" },
+            { from: "queue", to: "dlq", kind: "async" },
+            { from: "app", to: "leader", kind: "request-flow" },
+            { from: "leader", to: "f1", kind: "replication" },
+            { from: "leader", to: "f2", kind: "replication" },
+            { from: "coord", to: "leader", kind: "control" },
+            { from: "coord", to: "f1", kind: "control" },
+            { from: "coord", to: "f2", kind: "control" },
+            { from: "app", to: "coord", kind: "control" },
+            { from: "cron", to: "reporter", kind: "request-flow" },
+            { from: "f1", to: "reporter", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-r2-ref-inst-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-r2-ref-inst-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-r2-ref-inst-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+            { id: "bb-r2-ref-inst-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-r2-ref-inst-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+            { id: "bb-r2-ref-inst-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 600 } },
+            { id: "bb-r2-ref-inst-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+            { id: "bb-r2-ref-inst-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 4 } },
+            { id: "bb-r2-ref-inst-cron", componentId: "cron-job", position: { x: 580, y: 640 }, config: { scheduleIntervalMinutes: 1440 } },
+            { id: "bb-r2-ref-inst-catalog", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-r2-ref-inst-cache", componentId: "cache", position: { x: 840, y: 160 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+            { id: "bb-r2-ref-inst-search", componentId: "search-engine", position: { x: 840, y: 320 }, config: { shards: 3 } },
+            { id: "bb-r2-ref-inst-photos", componentId: "object-storage", position: { x: 840, y: 480 }, config: {} },
+            { id: "bb-r2-ref-inst-leader", componentId: "leader", position: { x: 840, y: 640 }, config: { electionTimeoutMs: 1000 } },
+            { id: "bb-r2-ref-inst-f1", componentId: "follower", position: { x: 1100, y: 560 }, config: { readOnly: true } },
+            { id: "bb-r2-ref-inst-f2", componentId: "follower", position: { x: 1100, y: 720 }, config: { readOnly: true } },
+            { id: "bb-r2-ref-inst-coord", componentId: "coordinator", position: { x: 1100, y: 880 }, config: { consensusProtocol: "raft" } },
+            { id: "bb-r2-ref-inst-reporter", componentId: "worker", position: { x: 1360, y: 560 }, config: {} },
+            { id: "bb-r2-ref-inst-queue", componentId: "message-queue", position: { x: 1100, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "bb-r2-ref-inst-notifier", componentId: "worker", position: { x: 1360, y: 0 }, config: {} },
+            { id: "bb-r2-ref-inst-dlq", componentId: "dead-letter-queue", position: { x: 1360, y: 160 }, config: { maxRetries: 5 } },
+          ],
+          edges: [
+            { id: "bb-r2-ref-inst-e1", source: "bb-r2-ref-inst-browser", target: "bb-r2-ref-inst-dns", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e2", source: "bb-r2-ref-inst-dns", target: "bb-r2-ref-inst-cdn", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e3", source: "bb-r2-ref-inst-cdn", target: "bb-r2-ref-inst-fw", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e4", source: "bb-r2-ref-inst-fw", target: "bb-r2-ref-inst-proxy", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e5", source: "bb-r2-ref-inst-proxy", target: "bb-r2-ref-inst-gateway", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e6", source: "bb-r2-ref-inst-gateway", target: "bb-r2-ref-inst-lb", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e7", source: "bb-r2-ref-inst-lb", target: "bb-r2-ref-inst-app", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e8", source: "bb-r2-ref-inst-app", target: "bb-r2-ref-inst-catalog", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e9", source: "bb-r2-ref-inst-app", target: "bb-r2-ref-inst-cache", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e10", source: "bb-r2-ref-inst-cache", target: "bb-r2-ref-inst-catalog", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e11", source: "bb-r2-ref-inst-app", target: "bb-r2-ref-inst-search", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e12", source: "bb-r2-ref-inst-app", target: "bb-r2-ref-inst-photos", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e13", source: "bb-r2-ref-inst-app", target: "bb-r2-ref-inst-queue", kind: "async" },
+            { id: "bb-r2-ref-inst-e14", source: "bb-r2-ref-inst-queue", target: "bb-r2-ref-inst-notifier", kind: "async" },
+            { id: "bb-r2-ref-inst-e15", source: "bb-r2-ref-inst-queue", target: "bb-r2-ref-inst-dlq", kind: "async" },
+            { id: "bb-r2-ref-inst-e16", source: "bb-r2-ref-inst-app", target: "bb-r2-ref-inst-leader", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e17", source: "bb-r2-ref-inst-leader", target: "bb-r2-ref-inst-f1", kind: "replication" },
+            { id: "bb-r2-ref-inst-e18", source: "bb-r2-ref-inst-leader", target: "bb-r2-ref-inst-f2", kind: "replication" },
+            { id: "bb-r2-ref-inst-e19", source: "bb-r2-ref-inst-coord", target: "bb-r2-ref-inst-leader", kind: "control" },
+            { id: "bb-r2-ref-inst-e20", source: "bb-r2-ref-inst-coord", target: "bb-r2-ref-inst-f1", kind: "control" },
+            { id: "bb-r2-ref-inst-e21", source: "bb-r2-ref-inst-coord", target: "bb-r2-ref-inst-f2", kind: "control" },
+            { id: "bb-r2-ref-inst-e22", source: "bb-r2-ref-inst-app", target: "bb-r2-ref-inst-coord", kind: "control" },
+            { id: "bb-r2-ref-inst-e23", source: "bb-r2-ref-inst-cron", target: "bb-r2-ref-inst-reporter", kind: "request-flow" },
+            { id: "bb-r2-ref-inst-e24", source: "bb-r2-ref-inst-f1", target: "bb-r2-ref-inst-reporter", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-r2-ref-inst-browser", "bb-r2-ref-inst-cron"],
+        },
+        commentary:
+          "Read it as three paths. The one a shopper waits on runs from the browser through the CDN (3.15), the " +
+          "perimeter (3.1), TLS (3.3), the gateway (3.5) and the load balancer (3.4) to a shopper tier that can " +
+          "lose a machine (3.8), and from there to four different answers for four different reads: the catalog " +
+          "store (3.10), the cache in front of it (3.14), the search index (3.16), and the bucket holding 40 TB " +
+          "of photos (3.20). The path after the shopper leaves is the queue: the order is accepted in under a " +
+          "second and the email is somebody else's problem, with a dead letter queue for the hour the provider " +
+          "is down (3.17). The path nobody asked for starts at the Cron Job (3.19), runs on its own compute, and " +
+          "reads from a Follower - so the nightly report touches neither the Leader nor the shopper pool. Orders " +
+          "live apart from the catalog because they want a different answer to 3.22's question: one writer, " +
+          "elected by a majority, nothing acknowledged ever lost (3.26).",
+      },
+      {
+        id: "bb-r2-blueprint-two-nodes",
+        label: "The same system, redundancy drawn as a second shopper node",
+        require: {
+          id: "bb-r2-blueprint-two-nodes",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "cdn", componentId: "cdn" },
+            { alias: "fw", componentId: "firewall" },
+            { alias: "proxy", componentId: "reverse-proxy" },
+            { alias: "gateway", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server" },
+            { alias: "app2", componentId: "app-server" },
+            { alias: "catalog", componentId: ["sql-database", "nosql-database"] },
+            { alias: "cache", componentId: "cache" },
+            { alias: "search", componentId: "search-engine" },
+            { alias: "photos", componentId: "object-storage" },
+            { alias: "queue", componentId: "message-queue" },
+            { alias: "notifier", componentId: ["worker", "serverless-function"] },
+            { alias: "dlq", componentId: "dead-letter-queue" },
+            { alias: "leader", componentId: "leader" },
+            { alias: "f1", componentId: "follower" },
+            { alias: "f2", componentId: "follower" },
+            { alias: "coord", componentId: "coordinator" },
+            { alias: "cron", componentId: "cron-job" },
+            { alias: "reporter", componentId: ["worker", "app-server"] },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "cdn", kind: "request-flow" },
+            { from: "cdn", to: "fw", kind: "request-flow" },
+            { from: "fw", to: "proxy", kind: "request-flow" },
+            { from: "proxy", to: "gateway", kind: "request-flow" },
+            { from: "gateway", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "lb", to: "app2", kind: "request-flow" },
+            { from: "app", to: "catalog", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "catalog", kind: "request-flow" },
+            { from: "app", to: "search", kind: "request-flow" },
+            { from: "app", to: "photos", kind: "request-flow" },
+            { from: "app", to: "queue", kind: "async" },
+            { from: "queue", to: "notifier", kind: "async" },
+            { from: "queue", to: "dlq", kind: "async" },
+            { from: "app", to: "leader", kind: "request-flow" },
+            { from: "leader", to: "f1", kind: "replication" },
+            { from: "leader", to: "f2", kind: "replication" },
+            { from: "coord", to: "leader", kind: "control" },
+            { from: "coord", to: "f1", kind: "control" },
+            { from: "coord", to: "f2", kind: "control" },
+            { from: "app", to: "coord", kind: "control" },
+            { from: "cron", to: "reporter", kind: "request-flow" },
+            { from: "f1", to: "reporter", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "bb-r2-ref-two-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-r2-ref-two-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-r2-ref-two-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+            { id: "bb-r2-ref-two-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-r2-ref-two-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+            { id: "bb-r2-ref-two-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 600 } },
+            { id: "bb-r2-ref-two-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: {} },
+            { id: "bb-r2-ref-two-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 1 } },
+            { id: "bb-r2-ref-two-app2", componentId: "app-server", position: { x: 580, y: 480 }, config: { instances: 1 } },
+            { id: "bb-r2-ref-two-cron", componentId: "cron-job", position: { x: 580, y: 640 }, config: { scheduleIntervalMinutes: 1440 } },
+            { id: "bb-r2-ref-two-catalog", componentId: "sql-database", position: { x: 840, y: 0 }, config: {} },
+            { id: "bb-r2-ref-two-cache", componentId: "cache", position: { x: 840, y: 160 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+            { id: "bb-r2-ref-two-search", componentId: "search-engine", position: { x: 840, y: 320 }, config: { shards: 3 } },
+            { id: "bb-r2-ref-two-photos", componentId: "object-storage", position: { x: 840, y: 480 }, config: {} },
+            { id: "bb-r2-ref-two-leader", componentId: "leader", position: { x: 840, y: 640 }, config: { electionTimeoutMs: 1000 } },
+            { id: "bb-r2-ref-two-f1", componentId: "follower", position: { x: 1100, y: 560 }, config: { readOnly: true } },
+            { id: "bb-r2-ref-two-f2", componentId: "follower", position: { x: 1100, y: 720 }, config: { readOnly: true } },
+            { id: "bb-r2-ref-two-coord", componentId: "coordinator", position: { x: 1100, y: 880 }, config: { consensusProtocol: "raft" } },
+            { id: "bb-r2-ref-two-reporter", componentId: "worker", position: { x: 1360, y: 560 }, config: {} },
+            { id: "bb-r2-ref-two-queue", componentId: "message-queue", position: { x: 1100, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "bb-r2-ref-two-notifier", componentId: "worker", position: { x: 1360, y: 0 }, config: {} },
+            { id: "bb-r2-ref-two-dlq", componentId: "dead-letter-queue", position: { x: 1360, y: 160 }, config: { maxRetries: 5 } },
+          ],
+          edges: [
+            { id: "bb-r2-ref-two-e1", source: "bb-r2-ref-two-browser", target: "bb-r2-ref-two-dns", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e2", source: "bb-r2-ref-two-dns", target: "bb-r2-ref-two-cdn", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e3", source: "bb-r2-ref-two-cdn", target: "bb-r2-ref-two-fw", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e4", source: "bb-r2-ref-two-fw", target: "bb-r2-ref-two-proxy", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e5", source: "bb-r2-ref-two-proxy", target: "bb-r2-ref-two-gateway", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e6", source: "bb-r2-ref-two-gateway", target: "bb-r2-ref-two-lb", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e7", source: "bb-r2-ref-two-lb", target: "bb-r2-ref-two-app", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e8", source: "bb-r2-ref-two-lb", target: "bb-r2-ref-two-app2", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e9", source: "bb-r2-ref-two-app", target: "bb-r2-ref-two-catalog", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e10", source: "bb-r2-ref-two-app", target: "bb-r2-ref-two-cache", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e11", source: "bb-r2-ref-two-cache", target: "bb-r2-ref-two-catalog", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e12", source: "bb-r2-ref-two-app", target: "bb-r2-ref-two-search", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e13", source: "bb-r2-ref-two-app", target: "bb-r2-ref-two-photos", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e14", source: "bb-r2-ref-two-app", target: "bb-r2-ref-two-queue", kind: "async" },
+            { id: "bb-r2-ref-two-e15", source: "bb-r2-ref-two-queue", target: "bb-r2-ref-two-notifier", kind: "async" },
+            { id: "bb-r2-ref-two-e16", source: "bb-r2-ref-two-queue", target: "bb-r2-ref-two-dlq", kind: "async" },
+            { id: "bb-r2-ref-two-e17", source: "bb-r2-ref-two-app", target: "bb-r2-ref-two-leader", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e18", source: "bb-r2-ref-two-leader", target: "bb-r2-ref-two-f1", kind: "replication" },
+            { id: "bb-r2-ref-two-e19", source: "bb-r2-ref-two-leader", target: "bb-r2-ref-two-f2", kind: "replication" },
+            { id: "bb-r2-ref-two-e20", source: "bb-r2-ref-two-coord", target: "bb-r2-ref-two-leader", kind: "control" },
+            { id: "bb-r2-ref-two-e21", source: "bb-r2-ref-two-coord", target: "bb-r2-ref-two-f1", kind: "control" },
+            { id: "bb-r2-ref-two-e22", source: "bb-r2-ref-two-coord", target: "bb-r2-ref-two-f2", kind: "control" },
+            { id: "bb-r2-ref-two-e23", source: "bb-r2-ref-two-app", target: "bb-r2-ref-two-coord", kind: "control" },
+            { id: "bb-r2-ref-two-e24", source: "bb-r2-ref-two-cron", target: "bb-r2-ref-two-reporter", kind: "request-flow" },
+            { id: "bb-r2-ref-two-e25", source: "bb-r2-ref-two-f1", target: "bb-r2-ref-two-reporter", kind: "request-flow" },
+          ],
+          entryPointIds: ["bb-r2-ref-two-browser", "bb-r2-ref-two-cron"],
+        },
+        commentary:
+          "The same three paths as the other accepted design, with the shopper tier's redundancy drawn as two " +
+          "Application Server nodes behind the load balancer instead of one node with several instances. Both " +
+          "answer \"one machine dying mid-sale must not drop requests\". What the drawing cannot say is that " +
+          "the two nodes are identical and stateless - 3.6's precondition for either shape to work - so that " +
+          "part is yours to state in an interview. Everything else is as in the first design: four answers to " +
+          "four reads, a queue for the email, a scheduled report off a Follower, and orders on a group with " +
+          "one elected writer.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-r2-hint-1",
+        body:
+          "Before placing anything, sort the ten requirements by when the work happens: while a shopper waits, " +
+          "after they have left, or with nobody asking at all. Each group becomes a path, and only the first " +
+          "is the one Checkpoint D built.",
+      },
+      {
+        id: "bb-r2-hint-2",
+        body:
+          "The brief describes several kinds of data - catalog rows, photos, orders, a searchable copy of the " +
+          "catalog - and each wants a different home. The orders line asks for something none of the others " +
+          "do: a store that keeps working when the machine taking writes dies.",
+      },
+      {
+        id: "bb-r2-hint-3",
+        body:
+          "A component can be present and still miss a requirement: configured outside what the brief needs, " +
+          "or on a path that answers a different requirement. Check its configuration and which path it sits on.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 2,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Part 4: Checkpoints - Checkpoint G (after 3.26; the seventh of eight checkpoints, and the last prescriptive one).",
+      masteredConcepts: [
+        "Groups A-D as assembled in Checkpoint D: the request path from browser to replicated data, with CDN, cache and " +
+          "search each answering a different read.",
+        "Group E: queues with dead letter queues for work that must not hold up a request (3.17), event fan-out " +
+          "(3.18), and scheduled work on its own trigger (3.19).",
+        "Group F: object storage for bytes that are not rows (3.20), and per-data-class consistency postures " +
+          "with a coordinator (3.22).",
+        "Group G: timeouts, retries, idempotency and bulkheads (3.23), rate limits (3.24), symptom alerting " +
+          "(3.25), and a leader with followers under a coordinator (3.26).",
+      ],
+      notYetIntroducedConcepts: [
+        "Anything outside the 27 registry components - payment providers, email providers and admin tools are " +
+          "outside the board, as in every chapter.",
+        "Multi-region deployment. The brief is one region with an international audience served by the CDN.",
+      ],
+      simplifications: [
+        "Read replicas, sharding, a distributed cache, an event bus, Kafka, a lock service and serverless " +
+          "compute are available and not required: nothing in the brief motivates them at this scale.",
+        "The catalog store may be SQL or NoSQL, the email sender a Worker or a Serverless Function, and the " +
+          "report runner a Worker or a separate Application Server - each pair answers the brief.",
+        "Timeouts, retries, idempotency keys, rate-limit values and alerting are taught but not drawable or " +
+          "not gated here; the brief's \"held to a per-caller limit\" is satisfied by the API Gateway's presence.",
+        "The CDN serves the storefront bundle from the origin path; photos are served through the application " +
+          "tier, which is what the blueprint checks. CDN -> bucket and presigned uploads are drawable and pass beside it.",
+      ],
+    },
+    // No quiz - §22: checkpoints have none, the build is the assessment. No
+    // starterGraph - §14: blank canvas, so no starterDecorators either.
+  },
+  {
+    id: "bb-r3-open-system-design",
+    mode: "building-blocks",
+    title: "Checkpoint · Open System Design",
+    // Real authored content - the curriculum's third and final Checkpoint
+    // (CURRICULUM §4/§14 Part 4). Spec: specs/bb-r3-open-system-design.spec.md.
+    // Lesson body: public/content/chapters/bb-r3-open-system-design.mdx. The
+    // posture shift (§18.1): anti-pattern validation only. One deliberately
+    // loose blueprint plus four `forbid` patterns that make the taught
+    // warning-severity anti-patterns fail Submit (spec §7, §8).
+    problemStatement:
+      "A ticketing service for concerts and sports. Venues publish events with seat maps; fans browse, search " +
+      "and buy tickets. Most of the year it is quiet. When a major tour goes on sale, two million fans arrive in " +
+      "the first ten minutes for 60,000 seats. What you know:\n\n" +
+      "- A seat can never be sold to two people.\n" +
+      "- Fans receive their tickets by email.\n" +
+      "- Venues need sales reports.\n" +
+      "- When a big sale opens, the system must stay up for the fans who are buying, even if it cannot serve " +
+      "everyone who arrived.\n\n" +
+      "That is all. Everything else - how many venues, how fresh search must be, how long a seat is held at " +
+      "checkout, what a fan who does not get in sees - is yours to decide and state.",
+    exerciseGoal:
+      "Design the ticketing service on an empty canvas, starting with a comment that states what you assumed. Any design passes that contains none of the anti-patterns this course has taught.",
+    successCriteria: [
+      "Your assumptions about the brief's missing details are written on the canvas.",
+      "No seat can be sold twice, and your design makes clear where that guarantee lives.",
+      "When a big sale opens, the fans who are buying keep being served, even if everyone else has to wait.",
+      "Validate shows no taught anti-pattern, and Submit passes.",
+    ],
+    // Five objectives, one per §5.2 category. A checkpoint teaches nothing
+    // new (§4); these are about the posture, not new material.
+    learningObjectives: [
+      "Recognize each taught anti-pattern on a graph - split brain, a queue with no dead letter queue, a load balancer in front of one instance, an open perimeter, a client wired to a database - and name the chapter that taught why it is wrong.",
+      "Turn an incomplete brief into written assumptions, and derive each design choice from one of them.",
+      "Design a system on an empty canvas with no prescribed shape, free of taught anti-patterns, and pass Submit.",
+      "Answer an underspecified prompt by stating assumptions first and naming the trade-off behind each major choice.",
+      "Defend a passing design aloud as one of several acceptable answers, naming what a different design would have traded.",
+    ],
+    // All 27 (§14: "Full palette").
+    availableComponentIds: [
+      "client",
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+      "event-bus",
+      "kafka",
+      "cron-job",
+      "serverless-function",
+      "object-storage",
+      "coordinator",
+      "lock-service",
+      "leader",
+      "follower",
+    ],
+    // Nothing is required: anti-pattern posture (§14, §18.1). Requiring a
+    // component would make this prescriptive again (spec §6).
+    requiredComponentIds: [],
+    // The full registry. The five errors fail Validate and Submit directly;
+    // four of the five warnings are made to fail Submit by the blueprint's
+    // forbid patterns below. orphan-component alone stays a note.
+    validationRuleIds: [
+      "no-direct-client-database",
+      "single-instance-load-balancer",
+      "permissive-firewall",
+      "split-brain-risk",
+      "queue-without-dead-letter-queue",
+      "orphan-read-replica",
+      "orphan-component",
+      "request-flow-cycle",
+      "missing-input-connection",
+      "component-relations",
+    ],
+    blueprints: [
+      {
+        id: "bb-r3-blueprint-open",
+        label: "Any design with no taught anti-pattern",
+        // Deliberately minimal: traffic enters through networking, reaches
+        // compute, and compute reaches something that keeps or hands off data.
+        // The three category lists together cover every registry category, so
+        // the drift report's "not part of this approach" list stays empty for
+        // any design - in an open checkpoint nothing a learner places is
+        // extraneous by definition (spec §8).
+        require: {
+          id: "bb-r3-blueprint-open",
+          nodes: [
+            { alias: "entry", category: "networking" },
+            { alias: "compute", category: "compute" },
+            { alias: "backing", category: ["data", "distributed-systems", "caching", "messaging"] },
+          ],
+          edges: [
+            { from: "entry", to: "compute", via: "path" },
+            { from: "compute", to: "backing", via: "path" },
+          ],
+        },
+        // Each forbid mirrors one warning-severity rule's own condition, so a
+        // design that draws that rule's warning fails Submit and the warning's
+        // explanation is the teaching text (spec §7).
+        forbid: [
+          {
+            id: "bb-r3-forbid-split-brain",
+            label: "two Leaders with nothing deciding between them (split brain, 3.26)",
+            nodes: [
+              { alias: "l1", componentId: "leader" },
+              { alias: "l2", componentId: "leader" },
+            ],
+            absent: [{ nodes: [{ alias: "coord", componentId: "coordinator" }] }],
+          },
+          {
+            id: "bb-r3-forbid-queue-without-dlq",
+            label: "a Message Queue with no Dead Letter Queue for messages that keep failing (3.17)",
+            nodes: [
+              {
+                alias: "queue",
+                componentId: "message-queue",
+                config: [{ field: "deliveryGuarantee", op: "neq", value: "at-most-once" }],
+              },
+            ],
+            absent: [
+              {
+                nodes: [
+                  { alias: "queue", componentId: "message-queue" },
+                  { alias: "dlq", componentId: "dead-letter-queue" },
+                ],
+                edges: [{ from: "queue", to: "dlq" }],
+              },
+            ],
+          },
+          {
+            id: "bb-r3-forbid-single-instance-lb",
+            label: "a Load Balancer in front of a single instance (3.4, 3.8)",
+            nodes: [
+              { alias: "lb", componentId: "load-balancer" },
+              { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "lte", value: 1 }] },
+            ],
+            edges: [{ from: "lb", to: "app", kind: "request-flow" }],
+            absent: [
+              {
+                nodes: [
+                  { alias: "lb", componentId: "load-balancer" },
+                  { alias: "other", category: "compute" },
+                ],
+                edges: [{ from: "lb", to: "other", kind: "request-flow" }],
+              },
+            ],
+          },
+          {
+            id: "bb-r3-forbid-permissive-firewall",
+            label: "a Firewall set to allow everything (3.1)",
+            nodes: [
+              { alias: "fw", componentId: "firewall", config: [{ field: "defaultPolicy", op: "eq", value: "allow-all" }] },
+            ],
+          },
+        ],
+        referenceGraph: {
+          nodes: [
+            { id: "bb-r3-ref-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "bb-r3-ref-dns", componentId: "dns", position: { x: 320, y: 0 }, config: {} },
+            { id: "bb-r3-ref-cdn", componentId: "cdn", position: { x: 320, y: 160 }, config: { cacheTtlSeconds: 3600, cacheDynamicContent: false } },
+            { id: "bb-r3-ref-fw", componentId: "firewall", position: { x: 320, y: 320 }, config: { defaultPolicy: "allow-listed" } },
+            { id: "bb-r3-ref-proxy", componentId: "reverse-proxy", position: { x: 320, y: 480 }, config: {} },
+            { id: "bb-r3-ref-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 120 } },
+            { id: "bb-r3-ref-lb", componentId: "load-balancer", position: { x: 580, y: 160 }, config: { algorithm: "least-connections" } },
+            { id: "bb-r3-ref-app", componentId: "app-server", position: { x: 580, y: 320 }, config: { instances: 8 } },
+            { id: "bb-r3-ref-cache", componentId: "cache", position: { x: 840, y: 0 }, config: { evictionPolicy: "lru", ttlSeconds: 30 } },
+            { id: "bb-r3-ref-catalog", componentId: "sql-database", position: { x: 840, y: 160 }, config: {} },
+            { id: "bb-r3-ref-search", componentId: "search-engine", position: { x: 840, y: 320 }, config: { shards: 2 } },
+            { id: "bb-r3-ref-queue", componentId: "message-queue", position: { x: 840, y: 480 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "bb-r3-ref-leader", componentId: "leader", position: { x: 1100, y: 0 }, config: { electionTimeoutMs: 1000 } },
+            { id: "bb-r3-ref-f1", componentId: "follower", position: { x: 1100, y: 160 }, config: { readOnly: true } },
+            { id: "bb-r3-ref-f2", componentId: "follower", position: { x: 1100, y: 320 }, config: { readOnly: true } },
+            { id: "bb-r3-ref-coord", componentId: "coordinator", position: { x: 1100, y: 480 }, config: { consensusProtocol: "raft" } },
+            { id: "bb-r3-ref-mailer", componentId: "worker", position: { x: 1100, y: 640 }, config: { concurrency: 8 } },
+            { id: "bb-r3-ref-dlq", componentId: "dead-letter-queue", position: { x: 1100, y: 800 }, config: { maxRetries: 5 } },
+          ],
+          edges: [
+            { id: "bb-r3-ref-e1", source: "bb-r3-ref-browser", target: "bb-r3-ref-dns", kind: "request-flow" },
+            { id: "bb-r3-ref-e2", source: "bb-r3-ref-dns", target: "bb-r3-ref-cdn", kind: "request-flow" },
+            { id: "bb-r3-ref-e3", source: "bb-r3-ref-cdn", target: "bb-r3-ref-fw", kind: "request-flow" },
+            { id: "bb-r3-ref-e4", source: "bb-r3-ref-fw", target: "bb-r3-ref-proxy", kind: "request-flow" },
+            { id: "bb-r3-ref-e5", source: "bb-r3-ref-proxy", target: "bb-r3-ref-gateway", kind: "request-flow" },
+            { id: "bb-r3-ref-e6", source: "bb-r3-ref-gateway", target: "bb-r3-ref-lb", kind: "request-flow" },
+            { id: "bb-r3-ref-e7", source: "bb-r3-ref-lb", target: "bb-r3-ref-app", kind: "request-flow" },
+            { id: "bb-r3-ref-e8", source: "bb-r3-ref-app", target: "bb-r3-ref-cache", kind: "request-flow" },
+            { id: "bb-r3-ref-e9", source: "bb-r3-ref-cache", target: "bb-r3-ref-catalog", kind: "request-flow" },
+            { id: "bb-r3-ref-e10", source: "bb-r3-ref-app", target: "bb-r3-ref-catalog", kind: "request-flow" },
+            { id: "bb-r3-ref-e11", source: "bb-r3-ref-app", target: "bb-r3-ref-search", kind: "request-flow" },
+            { id: "bb-r3-ref-e12", source: "bb-r3-ref-app", target: "bb-r3-ref-leader", kind: "request-flow" },
+            { id: "bb-r3-ref-e13", source: "bb-r3-ref-leader", target: "bb-r3-ref-f1", kind: "replication" },
+            { id: "bb-r3-ref-e14", source: "bb-r3-ref-leader", target: "bb-r3-ref-f2", kind: "replication" },
+            { id: "bb-r3-ref-e15", source: "bb-r3-ref-app", target: "bb-r3-ref-coord", kind: "control" },
+            { id: "bb-r3-ref-e16", source: "bb-r3-ref-coord", target: "bb-r3-ref-leader", kind: "control" },
+            { id: "bb-r3-ref-e17", source: "bb-r3-ref-coord", target: "bb-r3-ref-f1", kind: "control" },
+            { id: "bb-r3-ref-e18", source: "bb-r3-ref-coord", target: "bb-r3-ref-f2", kind: "control" },
+            { id: "bb-r3-ref-e19", source: "bb-r3-ref-f1", target: "bb-r3-ref-app", kind: "request-flow" },
+            { id: "bb-r3-ref-e20", source: "bb-r3-ref-app", target: "bb-r3-ref-queue", kind: "async" },
+            { id: "bb-r3-ref-e21", source: "bb-r3-ref-queue", target: "bb-r3-ref-mailer", kind: "async" },
+            { id: "bb-r3-ref-e22", source: "bb-r3-ref-queue", target: "bb-r3-ref-dlq", kind: "async" },
+          ],
+          entryPointIds: ["bb-r3-ref-browser"],
+        },
+        commentary:
+          "One design among many, built on these assumptions: a seat is held for eight minutes at checkout, " +
+          "search may be thirty seconds stale, and a fan who does not get in sees their place in line rather " +
+          "than an error (1.1: state what you assumed). Seats and orders live on one elected writer with two " +
+          "followers, because \"never sold twice\" is the CP-ish line in the brief (3.22) and one writer is the " +
+          "simplest way to keep it (3.26) - a seat hold is a conditional write on the leader, not a lock-service " +
+          "call per request (3.23). The on-sale spike is handled before it reaches that writer: the gateway's " +
+          "per-caller limit stops scripts, and admission into checkout is paced to what the leader can take " +
+          "(3.24), which in production is a waiting room in the application tier. Event pages and seat maps " +
+          "come from the CDN and the cache (3.15, 3.14); tickets go out through a queue with a dead letter queue " +
+          "(3.17); venue reports read from a follower. A design that sharded seats by event, used a lock per " +
+          "seat, or put tickets on Kafka could pass just as well - the question is whether you can say what " +
+          "each choice cost.",
+      },
+    ],
+    hasEditorExercise: true,
+    hints: [
+      {
+        id: "bb-r3-hint-1",
+        body:
+          "Start with a comment listing what you assumed: how long a seat is held, what a fan who does not get " +
+          "in sees, how fresh search must be. Every later choice should trace back to one of those lines.",
+      },
+      {
+        id: "bb-r3-hint-2",
+        body:
+          "The brief has one line about correctness and one about load, and they want different things: a " +
+          "single place that decides who gets a seat, and a way to admit fans no faster than that place can " +
+          "serve them.",
+      },
+      {
+        id: "bb-r3-hint-3",
+        body:
+          "In this checkpoint a taught anti-pattern fails Submit even when Validate shows it as a warning, and " +
+          "Submit names which one. Only a stray, unconnected card is left as a note.",
+      },
+    ],
+    readingLinks: [],
+    lessonVersion: 2,
+    lessonFormat: "mdx",
+    curriculumContext: {
+      position: "Building Blocks, Part 4: Checkpoints - the Final Checkpoint (after Checkpoint G; the last of eight checkpoints, and the end of Building Blocks).",
+      masteredConcepts: [
+        "Every Part 3 chapter and all seven earlier checkpoints. The Final Checkpoint assumes the full 27-component palette and every " +
+          "rule's explanation as already taught.",
+        "1.1's habit of clarifying an underspecified prompt and stating assumptions before designing.",
+        "3.22's per-data-class consistency posture, 3.24's admission control and 3.26's single elected " +
+          "writer - the three ideas the brief's two concrete constraints point at.",
+      ],
+      notYetIntroducedConcepts: [
+        "Nothing new is introduced. Ticketing-specific mechanisms (virtual waiting rooms, seat-hold expiry " +
+          "workflows) are described only as design choices the learner may make, not as components.",
+      ],
+      simplifications: [
+        "Validation is anti-pattern only: a design that ignores part of the brief but contains no taught " +
+          "anti-pattern passes. Judging fit to the brief is the learner's own assumptions comment, the " +
+          "Debrief's reference design and Deep Check, not Submit.",
+        "Four warning-severity rules (split-brain-risk, queue-without-dead-letter-queue, " +
+          "single-instance-load-balancer, permissive-firewall) are made to fail Submit through the blueprint's " +
+          "forbid patterns; Submit names the tripped anti-pattern and the rule's own warning carries the full " +
+          "explanation.",
+        "orphan-component is left as a non-failing note: an unconnected card is clutter, not a taught design " +
+          "mistake.",
+        "The reference design's waiting room and seat-hold expiry are described in its commentary, not drawn.",
+      ],
+    },
+    // No quiz - §22. No starterGraph - §14: blank canvas.
+  },
+  {
+    id: "rwe-t1-bitly-url-shortener",
+    mode: "real-world-extraction",
+    title: "Bitly (URL Shortener)",
+    // The curriculum's first real Real World Extraction project, replacing
+    // the `rwe-dummy-1` shell fixture. Spec:
+    // specs/rwe-t1-bitly-url-shortener.spec.md. Lesson body:
+    // public/content/chapters/rwe-t1-bitly-url-shortener.mdx.
+    //
+    // One exercise per RWE project (CURRICULUM.md §15.1, decided 2026-10-07):
+    // the lesson teaches, the starter graph seeds the build, and "more than
+    // one architecture passes" is the two blueprints below plus RWE mode's
+    // full-registry validation.
+    problemStatement:
+      "A link shortener, four months old: one application server and one relational database, " +
+      "and it works. The figures below are next quarter's, not today's, and the rebuild is being " +
+      "scoped now.\n\n" +
+      "- A seven-character key resolves to its destination in single-digit milliseconds, 15,000 " +
+      "times a second at peak, without that work reaching the store that owns the links on most " +
+      "requests.\n" +
+      "- Creating a link runs about 15 times a second and may stay simple. It must not be made " +
+      "complicated to match the other path.\n" +
+      "- 2.4 billion links over five years live in something whose query is a single key lookup.\n" +
+      "- Losing the machine that runs application code drops no requests.\n" +
+      "- One public hostname, reached from a browser, resolves to whatever fronts the request " +
+      "tier.\n" +
+      "- A link opened one second after it was created must not return a 404.",
+    exerciseGoal:
+      "Rebuild the shortener for next quarter's figures rather than this quarter's. A thousand " +
+      "redirects follow every link created, and today every one of them reaches the store that " +
+      "owns the links.",
+    successCriteria: [
+      "A repeat lookup of a popular key comes back in single-digit milliseconds, and the store that owns the links does no work to answer it.",
+      "2.4 billion links live in a store whose query is a single key lookup, and a link opened one second after it was created still resolves.",
+      "Losing the machine that runs application code drops no requests, and one public hostname still reaches whatever fronts that tier.",
+      "Validate reports zero errors and Submit passes.",
+    ],
+    // Five objectives, one per §5.2 category. Two of them (2 and 3) are this
+    // project's declared new concepts per §15.2: short-key generation and
+    // 301-vs-302 redirect semantics. The rest are composition over Groups
+    // A-D, which is what a Tier 1 project is for.
+    learningObjectives: [
+      "State a shortener's read-to-write ratio from its stated volumes, and name which of the two paths each component on the canvas is serving.",
+      "Choose between hashing the long URL and counting when generating a short key, naming the specific failure each choice accepts.",
+      "Answer \"why not a 301?\" by naming what a permanent redirect deletes along with the traffic, in under a minute.",
+      "Build a redirect path that answers a repeated lookup without the store that owns the links doing any work, and pass Submit.",
+      "Defend a store choice by naming the query shape it serves and the cost it accepts, rather than by naming the technology.",
+    ],
+    // The full palette through Group D, identical to R1's - RWE Tier 1
+    // unlocks at R1 (manifest.ts's `prerequisiteSlugs`), so Groups A-D is
+    // exactly what a learner arriving here has been taught, and §15.3 says
+    // Tier 1 briefs need nothing beyond it. Nothing appears before its home
+    // chapter, so no §16 exception is needed.
+    //
+    // `requiredComponentIds` is the five both blueprints share. The store is
+    // deliberately absent from it: the two honest answers disagree about
+    // which store this is, so requiring either would foreclose the decision
+    // that is the point of the exercise. A graph with no store at all still
+    // fails Submit, because both blueprints require one.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+    ],
+    requiredComponentIds: ["browser", "dns", "load-balancer", "app-server", "cache"],
+    // Moot: real-world-extraction chapters always run the full rule registry
+    // regardless of this field (chapter-outcome.ts's `runChapterValidation`),
+    // which is §18.1's "anti-pattern + warnings" posture for RWE. Left empty
+    // rather than populated with a curated list that would read as if it
+    // governed something. The rules that actually bite on this canvas are
+    // listed in the spec's §7.
+    validationRuleIds: [],
+    // Two blueprints, and unlike R1's pair they are not the same system.
+    // They disagree about where 2.4 billion single-key lookups belong, which
+    // is 3.11's question asked on a brief that genuinely admits both answers.
+    // The cost each accepts is different and named in its own commentary.
+    blueprints: [
+      {
+        id: "rwe-t1-bitly-blueprint-keyvalue",
+        label: "Key-value store, with the redirect path absorbed in front of it",
+        require: {
+          id: "rwe-t1-bitly-blueprint-keyvalue",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "cache", componentId: "cache" },
+            // key-value is the shape the brief describes; wide-column is the
+            // other honest answer for 2.4 billion rows keyed one at a time,
+            // so the predicate accepts both rather than grading a preference.
+            {
+              alias: "store",
+              componentId: "nosql-database",
+              config: [{ field: "model", op: "in", value: ["key-value", "wide-column"] }],
+            },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "store", kind: "request-flow" },
+            { from: "app", to: "store", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t1-bitly-ref-kv-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t1-bitly-ref-kv-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t1-bitly-ref-kv-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+            { id: "rwe-t1-bitly-ref-kv-app", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 4 } },
+            { id: "rwe-t1-bitly-ref-kv-cache", componentId: "cache", position: { x: 60, y: 195 }, config: { evictionPolicy: "lru", ttlSeconds: 600 } },
+            { id: "rwe-t1-bitly-ref-kv-store", componentId: "nosql-database", position: { x: 320, y: 195 }, config: { model: "key-value" } },
+          ],
+          edges: [
+            { id: "rwe-t1-bitly-ref-kv-e1", source: "rwe-t1-bitly-ref-kv-browser", target: "rwe-t1-bitly-ref-kv-dns", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-kv-e2", source: "rwe-t1-bitly-ref-kv-dns", target: "rwe-t1-bitly-ref-kv-lb", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-kv-e3", source: "rwe-t1-bitly-ref-kv-lb", target: "rwe-t1-bitly-ref-kv-app", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-kv-e4", source: "rwe-t1-bitly-ref-kv-app", target: "rwe-t1-bitly-ref-kv-cache", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-kv-e5", source: "rwe-t1-bitly-ref-kv-cache", target: "rwe-t1-bitly-ref-kv-store", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-kv-e6", source: "rwe-t1-bitly-ref-kv-app", target: "rwe-t1-bitly-ref-kv-store", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t1-bitly-ref-kv-browser"],
+        },
+        commentary:
+          "Six components, and the two on the bottom row are the entire design. The store is a " +
+          "key-value store because the query is `get(key)` and never becomes anything else - 3.11's " +
+          "test, applied to the cleanest case it will ever get. The Cache in front of it is 3.14 " +
+          "used for its actual purpose rather than as a latency garnish: the hot set is a few " +
+          "megabytes, so hit ratio, not store latency, is what sets the shape of the read path. " +
+          "Above them, the tier 3.4, 3.6 and 3.8 built, carried over unchanged and sized by one " +
+          "number. Notice what the write edge from the Application Server does not pass through. " +
+          "A new link is cold by definition, and warming it on create would fill memory with links " +
+          "nobody has clicked. What this design gives up is everything relational: counting clicks " +
+          "per link per day is now a separate job against a separate store, not a `GROUP BY`.",
+      },
+      {
+        id: "rwe-t1-bitly-blueprint-relational",
+        label: "Relational primary with a replica, keeping the reporting path open",
+        require: {
+          id: "rwe-t1-bitly-blueprint-relational",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "cache", componentId: "cache" },
+            { alias: "db", componentId: "sql-database" },
+            { alias: "replica", componentId: "read-replica" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "cache", kind: "request-flow" },
+            { from: "cache", to: "db", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+            { from: "db", to: "replica", kind: "replication" },
+            { from: "replica", to: "app", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t1-bitly-ref-sql-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t1-bitly-ref-sql-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t1-bitly-ref-sql-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+            { id: "rwe-t1-bitly-ref-sql-app", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 4 } },
+            { id: "rwe-t1-bitly-ref-sql-cache", componentId: "cache", position: { x: 60, y: 195 }, config: { evictionPolicy: "lru", ttlSeconds: 600 } },
+            { id: "rwe-t1-bitly-ref-sql-db", componentId: "sql-database", position: { x: 320, y: 195 }, config: { engine: "postgres" } },
+            { id: "rwe-t1-bitly-ref-sql-replica", componentId: "read-replica", position: { x: 580, y: 195 }, config: { replicationLagBudgetMs: 500 } },
+          ],
+          edges: [
+            { id: "rwe-t1-bitly-ref-sql-e1", source: "rwe-t1-bitly-ref-sql-browser", target: "rwe-t1-bitly-ref-sql-dns", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e2", source: "rwe-t1-bitly-ref-sql-dns", target: "rwe-t1-bitly-ref-sql-lb", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e3", source: "rwe-t1-bitly-ref-sql-lb", target: "rwe-t1-bitly-ref-sql-app", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e4", source: "rwe-t1-bitly-ref-sql-app", target: "rwe-t1-bitly-ref-sql-cache", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e5", source: "rwe-t1-bitly-ref-sql-cache", target: "rwe-t1-bitly-ref-sql-db", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e6", source: "rwe-t1-bitly-ref-sql-app", target: "rwe-t1-bitly-ref-sql-db", kind: "request-flow" },
+            { id: "rwe-t1-bitly-ref-sql-e7", source: "rwe-t1-bitly-ref-sql-db", target: "rwe-t1-bitly-ref-sql-replica", kind: "replication" },
+            { id: "rwe-t1-bitly-ref-sql-e8", source: "rwe-t1-bitly-ref-sql-replica", target: "rwe-t1-bitly-ref-sql-app", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t1-bitly-ref-sql-browser"],
+        },
+        commentary:
+          "This passes, and an interviewer who dismisses it is wrong. 2.4 billion rows fetched by " +
+          "primary key is not a hard query for a relational engine, the replica absorbs whatever " +
+          "share of reads the fast tier misses, and you keep the thing the other answer throws " +
+          "away: click aggregation stays a query rather than a pipeline. What you bought it with " +
+          "is the one requirement in the brief that names a second: a link opened one second after " +
+          "it was created must not 404. Reads that land on the replica can be behind the primary " +
+          "by exactly `replicationLagBudgetMs`, and a brand new key is the single most likely thing " +
+          "to be missing from it - 3.12's lag, arriving as a user-visible bug rather than as stale " +
+          "data. Designs that hold up here read recently created keys from the primary, or write " +
+          "the key to the fast tier as part of the create so the first read never asks a store at " +
+          "all. If your graph does neither, the design is one product decision short, not wrong.",
+      },
+    ],
+    // Orienting to directional, never the answer (§11.3). Two blueprint
+    // predicates are config fields; Submit names a mismatched setting.
+    hints: [
+      {
+        id: "rwe-t1-bitly-hint-1",
+        body:
+          "Before placing anything, write down the two rates in the brief and decide, for each thing " +
+          "you are about to add, which of the two it serves. One rate is a thousand times the other. " +
+          "Anything that only helps the smaller one is effort spent on the wrong path.",
+      },
+      {
+        id: "rwe-t1-bitly-hint-2",
+        body:
+          "\"Resolve a key\" is hiding three different questions: what answers it on the hundredth " +
+          "identical request, what answers it on the first, and what still owns the answer when " +
+          "everything faster is empty. They are allowed to be three different things, and on these " +
+          "figures they are.",
+      },
+      {
+        id: "rwe-t1-bitly-hint-3",
+        body:
+          "Some requirements are answered by a setting, not a box. Open each component and read its " +
+          "fields against the requirement it is meant to answer.",
+      },
+      {
+        id: "rwe-t1-bitly-hint-4",
+        body:
+          "The requirement that a one-second-old link must not 404 is only a problem for one of the " +
+          "two stores you might have chosen, and the answer to it is a routing decision, not another " +
+          "box on the canvas.",
+      },
+    ],
+    readingLinks: [],
+    // Phase A's seed: the system as it exists today, which the lesson's cold
+    // open describes. Three nodes, one row, 260px pitch (§11.5). It cannot
+    // pass - `dns`, `load-balancer` and `cache` are all required and all
+    // absent - and it deliberately starts on the relational store, because
+    // whether that store is the right home for 2.4 billion key lookups is the
+    // decision the exercise is about. Keeping it is a real answer, so the
+    // starting position is not a spoiler in either direction.
+    starterGraph: {
+      nodes: [
+        { id: "rwe-t1-bitly-starter-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "rwe-t1-bitly-starter-app", componentId: "app-server", position: { x: 320, y: 0 }, config: { instances: 1 } },
+        { id: "rwe-t1-bitly-starter-db", componentId: "sql-database", position: { x: 580, y: 0 }, config: { engine: "postgres" } },
+      ],
+      edges: [
+        { id: "rwe-t1-bitly-starter-e1", source: "rwe-t1-bitly-starter-browser", target: "rwe-t1-bitly-starter-app", kind: "request-flow" },
+        { id: "rwe-t1-bitly-starter-e2", source: "rwe-t1-bitly-starter-app", target: "rwe-t1-bitly-starter-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["rwe-t1-bitly-starter-browser"],
+    },
+    // Tier zones only, no "Build here" gap zone. §11.6 allows one where the
+    // fix is a missing node in identifiable empty space; here the missing
+    // nodes span three different tiers and choosing which gaps to draw would
+    // hand over the shape of the answer. An open brief is the one exercise
+    // type where marking the slots defeats the exercise.
+    starterDecorators: [
+      { kind: "zone", id: "rwe-t1-bitly-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "rwe-t1-bitly-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t1-bitly-zone-data", label: "Data", position: { x: 552, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "rwe-t1-bitly-comment-today",
+        text: "Today: about 15 creates a second and 200 redirects a second. The brief's figures are 100x the redirects and the same creates.",
+        position: { x: 32, y: 168 },
+        width: 436,
+        height: 80,
+        color: "#64748b",
+      },
+    ],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    // No `curriculumContext`: Real World Extraction chapters do not carry one
+    // (see CurriculumContext's own doc comment in ./types.ts) - by RWE every
+    // concept the brief needs has already been taught, so there is no stage
+    // for Deep Check to scope against.
+    //
+    // Retrospective quiz, §16 of QUIZ_FRAMEWORK.md (4-6 questions per
+    // project). Q1 and Q3 are the bank's own Bitly entries (Q1, Q2) rewritten
+    // to this chapter's figures; the other three are new and keyed to the
+    // decisions this brief actually forces.
+    quiz: [
+      {
+        id: "rwe-t1-bitly-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Your shortener creates about 15 links a second and serves about 15,000 redirects a second. " +
+          "A teammate opens the design review by proposing you shard the links table by key range. " +
+          "What is wrong with starting there?",
+        options: [
+          {
+            id: "rwe-t1-bitly-q1-a",
+            label: "Nothing - sharding early is always cheaper than sharding later.",
+            correct: false,
+            explanationMd:
+              "True as a general principle about migration cost, and irrelevant here. Sharding buys write throughput and capacity; this system needs neither at 15 writes a second and 1.2 TB.",
+          },
+          {
+            id: "rwe-t1-bitly-q1-b",
+            label: "It optimizes the path carrying a thousandth of the traffic, and does nothing for the one carrying the rest.",
+            correct: true,
+            explanationMd:
+              "The 1,000:1 ratio is the first thing the figures tell you. Writes are already trivial; every hour spent on them is an hour not spent on the read path, which is the entire system.",
+          },
+          {
+            id: "rwe-t1-bitly-q1-c",
+            label: "Key-range sharding is the wrong partition strategy for short keys.",
+            correct: false,
+            explanationMd:
+              "A real objection to that particular scheme (base62 keys distribute unevenly by prefix), but it argues about how to shard. The prior question is whether to shard at all, and the answer is no.",
+          },
+          {
+            id: "rwe-t1-bitly-q1-d",
+            label: "2.4 billion rows is too few to justify more than one machine.",
+            correct: false,
+            explanationMd:
+              "The row count is a reason not to shard yet, but it is the weaker one. Even at ten times the rows, the write rate would still make the write path the wrong place to start.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-bitly-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "You generate keys by base62-encoding a monotonic counter, handing each application server a " +
+          "block of 10,000 ids at a time. Your links are used for password resets and private " +
+          "document shares. What did the blocking scheme fail to fix?",
+        options: [
+          {
+            id: "rwe-t1-bitly-q2-a",
+            label: "Collisions, which blocks make more likely rather than less.",
+            correct: false,
+            explanationMd:
+              "Blocks partition one sequence, so two servers can never be handed the same id. A counter is collision-free with or without blocking - that is its whole advantage over hashing.",
+          },
+          {
+            id: "rwe-t1-bitly-q2-b",
+            label: "The coordination cost, which is still paid on every single write.",
+            correct: false,
+            explanationMd:
+              "This is exactly what blocking fixes: the shared counter is touched once per 10,000 writes instead of once per write. The remaining problem is not about throughput at all.",
+          },
+          {
+            id: "rwe-t1-bitly-q2-c",
+            label: "Keys stay sequential, so anyone can walk the namespace and read links that were never meant to be found.",
+            correct: true,
+            explanationMd:
+              "Blocking is a throughput fix, not a secrecy one. Given one key you can guess its neighbours, and for password resets and private shares an enumerable namespace is a data breach, not an inconvenience.",
+          },
+          {
+            id: "rwe-t1-bitly-q2-d",
+            label: "Ids are wasted whenever a server dies holding an unfinished block.",
+            correct: false,
+            explanationMd:
+              "It does waste them, and it does not matter: seven base62 characters is 3.5 trillion addresses against 2.4 billion links. Burning 10,000 per crash is noise.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-bitly-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A new engineer proposes switching every redirect from 302 to 301, pointing out that browsers " +
+          "will cache the permanent one and your redirect traffic will largely stop arriving. The " +
+          "measurement is correct. Why is the change still usually refused at a shortener?",
+        options: [
+          {
+            id: "rwe-t1-bitly-q3-a",
+            label: "It deletes click analytics and the ability to repoint a link, which are what customers buy.",
+            correct: true,
+            explanationMd:
+              "A click that never reaches you cannot be counted or re-routed. For a shortener whose product is the analytics dashboard and the editable link, the traffic reduction is the cost, not the benefit.",
+          },
+          {
+            id: "rwe-t1-bitly-q3-b",
+            label: "301 responses are slower to generate than 302 responses.",
+            correct: false,
+            explanationMd:
+              "They are the same response with a different status code. Nothing about generating one costs more than the other; the entire difference is what caches downstream are permitted to do with it.",
+          },
+          {
+            id: "rwe-t1-bitly-q3-c",
+            label: "Browsers ignore 301s on redirect endpoints, so the traffic would not actually drop.",
+            correct: false,
+            explanationMd:
+              "They honor them, which is precisely the problem. If they ignored 301s the change would be harmless and pointless instead of harmful and effective.",
+          },
+          {
+            id: "rwe-t1-bitly-q3-d",
+            label: "A 301 cannot be served from an edge location, so global latency would get worse.",
+            correct: false,
+            explanationMd:
+              "Backwards. A 301 is the one that edge caches well, and a 302 is the one that has to keep coming back to you. The edge argument favors 301 - it just loses to the product argument.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-bitly-q4",
+        kind: "matching",
+        difficulty: 3,
+        prompt:
+          "Every design choice in this project buys something with something. Match each choice to the " +
+          "cost it accepts.",
+        options: [
+          {
+            id: "rwe-t1-bitly-q4-lag",
+            label: "A window where a link exists but reads report that it does not",
+            correct: true,
+            explanationMd:
+              "Replication lag, meeting the one requirement that names a second. A key written to the primary has not reached the replica yet, and the read that lands there returns a 404 for a link that is real.",
+          },
+          {
+            id: "rwe-t1-bitly-q4-extraread",
+            label: "An extra read of the store on every write",
+            correct: true,
+            explanationMd:
+              "The collision check a hash scheme needs. At 2.4 billion keys in a 3.5 trillion space collisions are expected, not hypothetical, so every write reads first and re-hashes with a salt if the key is taken.",
+          },
+          {
+            id: "rwe-t1-bitly-q4-enumerable",
+            label: "A namespace anyone can walk from end to end",
+            correct: true,
+            explanationMd:
+              "The counter's cost. Sequential keys are guessable by construction, which is free if links are public and a breach if they are not.",
+          },
+          {
+            id: "rwe-t1-bitly-q4-analytics",
+            label: "No click counts, and a destination that can never be changed",
+            correct: true,
+            explanationMd:
+              "The 301's cost. The traffic stops arriving, and everything you could only do while it arrived stops with it.",
+          },
+        ],
+        pairs: [
+          ["Hashing the long URL to produce the key", "rwe-t1-bitly-q4-extraread"],
+          ["Counting and base62-encoding the counter", "rwe-t1-bitly-q4-enumerable"],
+          ["Serving 301 instead of 302", "rwe-t1-bitly-q4-analytics"],
+          ["Serving redirects from a replica of the primary", "rwe-t1-bitly-q4-lag"],
+        ],
+      },
+      {
+        id: "rwe-t1-bitly-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "One link in your system is being shared by a television ad and is taking a large share of all " +
+          "redirects on its own. Your store is partitioned by key. You are paged because that store is " +
+          "saturating. Which move actually helps?",
+        options: [
+          {
+            id: "rwe-t1-bitly-q5-a",
+            label: "Increase the partition count so the load spreads over more nodes.",
+            correct: false,
+            explanationMd:
+              "Partitioning distributes distinct keys, and this is one key. Every request for it hashes to the same partition no matter how many exist - 3.13's hot-partition problem in its purest form.",
+          },
+          {
+            id: "rwe-t1-bitly-q5-b",
+            label: "Re-partition on a composite of the key and the requesting region.",
+            correct: false,
+            explanationMd:
+              "Clever, and it does spread one key across nodes - but it requires every reader to know the region component, and it solves by rewriting the store's partition scheme what a single memory lookup solves for free.",
+          },
+          {
+            id: "rwe-t1-bitly-q5-c",
+            label: "Add application server instances so more machines share the redirect load.",
+            correct: false,
+            explanationMd:
+              "The application tier is not what is saturating. More instances means more machines asking the same overloaded partition the same question, which makes the page worse, not better.",
+          },
+          {
+            id: "rwe-t1-bitly-q5-d",
+            label: "Make sure that key is served from memory in front of the store, and that it cannot expire under load.",
+            correct: true,
+            explanationMd:
+              "A single hot key is the one shape partitioning cannot help and a cache helps most: one entry absorbs the entire share. The second half matters as much - if it expires at peak, every in-flight request misses at once and the store takes the full rate.",
+          },
+        ],
+      },
+    ],
   },
 ];
 

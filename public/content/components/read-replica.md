@@ -31,7 +31,7 @@ transaction log mechanism (e.g., Write-Ahead Logs).
 1. The application performs a write operation on the Primary Database, 
 committing the transaction and recording the changes in its persistent 
 transaction log.
-2. A dedicated replication service reads these committed logs asyn
+2. A dedicated replication service reads these committed logs
 asynchronously from the Primary.
 3. The replication service parses the change records and applies them 
 sequentially to the Read Replica instance.
@@ -51,18 +51,10 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Asynchronous Replication** | The replica reads changes after they are 
-committed to the primary, providing eventual consistency. Lowest latency 
-overhead. |
-| **Semi-Synchronous Replication** | The write must be logged by at least 
-one replica before acknowledging commit to the client, balancing safety 
-and performance. |
-| **Master-to-Multiple Read Replicas** | A single primary replicates data 
-simultaneously to several read replicas for maximum horizontal scaling of 
-reads. |
-| **Cross-Region Replication** | Establishing a read replica in a 
-geographically distinct region to serve local traffic with low latency and 
-disaster recovery capability. |
+| **Asynchronous Replication** | The replica reads changes after they are committed to the primary, providing eventual consistency. Lowest latency overhead. |
+| **Semi-Synchronous Replication** | The write must be logged by at least one replica before acknowledging commit to the client, balancing safety and performance. |
+| **Master-to-Multiple Read Replicas** | A single primary replicates data simultaneously to several read replicas for maximum horizontal scaling of reads. |
+| **Cross-Region Replication** | Establishing a read replica in a geographically distinct region to serve local traffic with low latency and disaster recovery capability. |
 
 ## Where is it used?
 

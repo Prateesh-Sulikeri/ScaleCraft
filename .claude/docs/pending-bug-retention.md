@@ -1,5 +1,7 @@
 # Bug report retention / automatic cleanup
 
+**Shipped (migration 0008 and the code verified on `origin/main`, 2026-10-07).** The status below is historical. Not confirmed from here: migration 0008 on the production Neon branch and `CRON_SECRET` in Vercel ("Before this merges" items 1-2).
+
 Status: **On `fix/db-auto-clean-up`, pushed 2026-08-26. Not merged.** Migration
 `0008_mature_sir_ram` is **applied to the Neon `development` branch**; still
 outstanding on production - see "Before this merges" at the bottom.

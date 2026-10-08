@@ -1,5 +1,7 @@
 # Pending: Design Editor exercise audit + POA
 
+**Done 2026-08-23 and shipped (see CLAUDE.md).** The status below is historical.
+
 **Status:** Audited 2026-08-23 on branch `fix/streak-counter`. No code or content
 changed yet. Everything below is evidence + a phased plan; pick it up next session.
 

@@ -57,16 +57,10 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Heartbeat Interval** | The time interval (milliseconds) the leader 
-uses to send empty heartbeat messages, confirming its presence. |
-| **Election Timeout Range** | A range of milliseconds defining how long a 
-follower waits without receiving communication before transitioning to a 
-Candidate state. |
-| **Quorum Size** | The minimum number of nodes (N/2 + 1) required for an 
-operation to be considered committed and successful. |
-| **Write Consistency Level** | Defines the required acknowledgment level 
-(e.g., acknowledging only the leader, or requiring confirmation from the 
-quorum). |
+| **Heartbeat Interval** | The time interval (milliseconds) the leader uses to send empty heartbeat messages, confirming its presence. |
+| **Election Timeout Range** | A range of milliseconds defining how long a follower waits without receiving communication before transitioning to a Candidate state. |
+| **Quorum Size** | The minimum number of nodes (N/2 + 1) required for an operation to be considered committed and successful. |
+| **Write Consistency Level** | Defines the required acknowledgment level (e.g., acknowledging only the leader, or requiring confirmation from the quorum). |
 
 ## Where is it used?
 

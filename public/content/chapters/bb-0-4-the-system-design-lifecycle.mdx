@@ -39,13 +39,13 @@ back into an earlier step, not forward into a new one.
 | Step | Produces | You'll live it in |
 |---|---|---|
 | 1. Clarify | Scope: who uses this, what matters, what's out | 1.1 |
-| 2. Requirements | Promises: functional (what it does) and non-functional (how well) - 0.2's five forces, once you can put a number on them | 1.2-1.3 |
-| 3. Estimate | Orders of magnitude: users to QPS (queries per second) to storage to bandwidth | 1.4-1.5 |
-| 4. High-level design | A first architecture: entry point, compute, data | 1.6 |
-| 5. Deep dive | One level down on the one or two subsystems the requirements stress | 1.9 |
-| 6. Bottlenecks & failure | What breaks first, and where the single points of failure are | 1.7 |
-| 7. Trade-offs | The roads not taken, and their cost | 1.8 |
-| 8. Evolve & defend | Answers to follow-ups, without abandoning the design | 1.10-1.11 |
+| 2. Requirements | Promises: functional (what it does) and non-functional (how well) - 0.2's five forces, once you can put a number on them | 1.1 |
+| 3. Estimate | Orders of magnitude: users to QPS (queries per second) to storage to bandwidth | 1.1 |
+| 4. High-level design | A first architecture: entry point, compute, data | 1.2 |
+| 5. Deep dive | One level down on the one or two subsystems the requirements stress | 1.2 |
+| 6. Bottlenecks & failure | What breaks first, and where the single points of failure are | 1.2 |
+| 7. Trade-offs | The roads not taken, and their cost | 1.3 |
+| 8. Evolve & defend | Answers to follow-ups, without abandoning the design | 1.3 |
 
 Each row needs the one above it. You can't set a latency budget (2) for a
 scope you haven't fixed (1). You can't pick an entry point or a data store
@@ -128,5 +128,5 @@ questions that don't change anything about the design. 1.1 is about the
 four questions that would.
 
 Further out, step 4 - high-level design - is where the loop stops being a
-conversation and becomes a diagram you actually draw: 1.6 is your first
+conversation and becomes a diagram you actually draw: 1.2 is your first
 real build on the canvas.

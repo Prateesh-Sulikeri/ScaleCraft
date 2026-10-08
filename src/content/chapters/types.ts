@@ -1,3 +1,4 @@
+import type { Severity } from "@/validation-engine/types";
 import type { ArchitectureGraph } from "@/lib/graph";
 import type { GraphPattern } from "@/validation-engine/pattern";
 import type { StarterDecorator } from "./starter-decorators";
@@ -56,7 +57,7 @@ export type QuizQuestion = {
  * Matching is containment, not equivalence: the learner passes if their
  * graph *contains* `require`'s shape (and none of `forbid`'s), extra
  * components are fine. A chapter may declare several, which is how "this
- * problem has more than one right answer" (RWE Phase B, Checkpoint R3) is
+ * problem has more than one right answer" (RWE projects, the Final checkpoint) is
  * expressed — see evaluateChapter in validation-engine/chapter-outcome.ts.
  */
 export type Blueprint = {
@@ -137,6 +138,10 @@ export type ChapterDefinition = {
    * here. See the comment on that branch in validation-engine/chapter-outcome.ts
    * for why. Only building-blocks chapters actually curate a subset. */
   validationRuleIds: string[];
+  /** Per-chapter severity for a rule, e.g. making `permissive-firewall` an
+   * error where the brief says "default closed". Only escalates what the
+   * chapter already teaches; a warning can never fail Submit otherwise. */
+  ruleSeverity?: Record<string, Severity>;
   /** At least one must match for the chapter to pass, unless the array is
    * empty — in which case rules alone decide (§8.3 point 4). See
    * evaluateChapter in validation-engine/chapter-outcome.ts. */

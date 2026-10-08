@@ -8,7 +8,7 @@ A firewall serves as a critical network security boundary that inspects
 data packets traversing a defined perimeter. It examines headers (like 
 source/destination IP addresses and ports) and payload content to 
 determine if traffic adheres to established rulesets. Functionally, it 
-enforces separation between trust zones—for example, separating an 
+enforces separation between trust zones - for example, separating an 
 internal private network from the public internet or isolating different 
 service tiers within a cloud environment. Modern firewalls often maintain 
 connection state information, allowing them to distinguish legitimate 
@@ -58,16 +58,11 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| Source IP Address Range | Defines the originating network segment 
-allowed to communicate. |
-| Destination Port/Protocol | Restricts traffic based on specific services 
-(e.g., TCP 443, UDP 53). |
-| Connection State Tracking | Maintains a table of active sessions to 
-filter return packets automatically. |
-| Action Policy | Determines the behavior upon rule mismatch (`ALLOW`, 
-`DENY`, or `DROP`). |
-| Wildcard Matching | Applies rules that cover broad ranges (e.g., IP CIDR 
-blocks, ports 1-65535). |
+| Source IP Address Range | Defines the originating network segment allowed to communicate. |
+| Destination Port/Protocol | Restricts traffic based on specific services (e.g., TCP 443, UDP 53). |
+| Connection State Tracking | Maintains a table of active sessions to filter return packets automatically. |
+| Action Policy | Determines the behavior upon rule mismatch (`ALLOW`, `DENY`, or `DROP`). |
+| Wildcard Matching | Applies rules that cover broad ranges (e.g., IP CIDR blocks, ports 1-65535). |
 
 ## Where is it used?
 *   **Edge Networking:** Protecting entire enterprise networks from the 
@@ -90,7 +85,7 @@ traffic verification are required.
 for protocols, ports, and hosts.
 *   Firewall placement should enforce architectural boundaries between 
 differing trust levels.
-*   The firewall mitigates lateral movement by enforcing network s
+*   The firewall mitigates lateral movement by enforcing network
 segmentation policies within the cluster.
 
 ## Related Components

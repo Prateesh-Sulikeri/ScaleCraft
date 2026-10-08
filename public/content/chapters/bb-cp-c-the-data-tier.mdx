@@ -1,0 +1,64 @@
+Group C's two builds each changed one store: wire in a document database, then
+feed a replica from the primary. Every time, the other stores were already on
+the canvas, already correct, and the chapter above said which one to touch.
+
+This checkpoint gives you a working front door and application tier, and an
+empty column where the data should be. The brief describes the data. Deciding
+how many stores, of what kind, holding what, is yours.
+
+That decision is the one a data tier is judged on in practice. A store is
+almost never wrong in the abstract; it is wrong for the data put in it. An
+interviewer who asks "where does this live?" is asking which guarantee each
+piece of data needs, and whether you can name the store that gives it.
+
+## Connections
+
+Each Group C chapter answered one question about a piece of data:
+
+| Chapter | The question it answered |
+|---|---|
+| 3.10 Databases | What does a relational database guarantee when several writes have to happen together? |
+| 3.11 SQL vs. NoSQL | Which store fits data whose shape varies from one record to the next, read whole by its key? |
+| 3.12 Replication | How do reads scale past one machine, and which reads cannot tolerate a copy that lags? |
+| 3.13 Sharding | When does the data itself have to split across machines - and when does it not? |
+
+The last row is load-bearing here. Sharding is the most expensive lever in the
+data tier, and the brief tells you whether it is needed. Reaching for it anyway
+is the same mistake as 3.1's inert firewall from the other direction: a
+component no requirement asked for.
+
+One line of the brief is not about data at all. It is about the application
+tier, and it is 3.8's arithmetic on this year's numbers.
+
+## Your turn
+
+**The product.** A marketplace for secondhand furniture, rebuilding its data
+tier before the spring rush. The front door and the application tier on the
+canvas are done; the data tier is empty.
+
+What it has to do:
+
+- Placing an order reserves the item, records the payment and creates the
+  order together: all three happen, or none do.
+- Listings differ by category. A sofa has a seat count and a fabric, a lamp
+  has a bulb fitting and a wattage, and new categories arrive every month. A
+  listing page always reads one whole listing by its ID.
+- Sellers' sales dashboards and buyers' order history are read twenty times for
+  every order written, and the dashboards' heavy aggregates must not slow down
+  checkout.
+- A buyer who has just placed an order sees it in their order history straight
+  away.
+- Peak this spring is 1,200 requests a second, and one application instance
+  handles 300. Losing one instance at peak must not drop requests.
+- Every store fits on one machine for at least the next two years.
+
+**What you are not told**: how many stores there are, which data shares one, or
+which reads go where. Validate reports connections the components refuse and
+anything left disconnected; it does not report a requirement that nothing on
+the canvas answers.
+
+## Next
+
+3.14 Caching. The dashboards in this brief re-read the same aggregates all day,
+and the replica you gave them still computes each one from scratch. Group D
+starts from the reads you can avoid doing at all.

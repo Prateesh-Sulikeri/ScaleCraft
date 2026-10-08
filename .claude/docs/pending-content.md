@@ -121,17 +121,17 @@ wave's chapters are merged (the user merges; you never do).
   Architecture - first build + first fix, introduces the 3 primitive
   components) + 3.4 Load Balancer (replaces dummy `bb-dummy-1`; the flagship
   Building Block chapter, pulled forward as originally planned) + RWE Tier 1:
-  Bitly (replaces dummy `rwe-dummy-1`; Phase A + Phase B + debrief +
+  Bitly (replaces dummy `rwe-dummy-1`; lesson + one exercise + debrief +
   retrospective quiz - the full RWE template proven once). Triggers: stages
   UI. This wave defines the interview-first identity; budget the most
   revision time here.
 - **Wave 3.** Part 2 (2.1-2.3) + Group A Core Infrastructure (3.1-3.3, 3.5;
   3.4 exists from Wave 2).
 - **Wave 4.** Group B Compute (3.6-3.9) + Group C Data (3.10-3.13).
-- **Wave 5.** Group D Performance (3.14-3.16) + Checkpoint R1 + RWE Tier 1
+- **Wave 5.** Group D Performance (3.14-3.16) + Checkpoint D + RWE Tier 1
   remainder (Rate Limiter, Distributed Cache, Metrics Monitoring).
 - **Wave 6.** Group E Async (3.17-3.19) + Group F Storage (3.20-3.22).
-- **Wave 7.** Group G Reliability (3.23-3.26) + Checkpoints R2, R3 + RWE
+- **Wave 7.** Group G Reliability (3.23-3.26) + Checkpoints G, Final + RWE
   Tier 2 (all 5).
 - **Wave 8.** RWE Tier 3 (all 9).
 - **Wave 9.** RWE Tier 4 (all 9).

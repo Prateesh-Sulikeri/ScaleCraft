@@ -1,4 +1,4 @@
-1.6 left you with one app-server instance and a warning: at 100x traffic it
+1.2 left you with one app-server instance and a warning: at 100x traffic it
 runs out of headroom, and adding a second instance doesn't solve anything by
 itself. You now have that traffic. You add a second server. Nothing routes
 between them - clients still address the first one, the second sits idle,
@@ -6,7 +6,7 @@ and the first is exactly as overloaded as before.
 
 Two identical servers are not a scaling win until something distributes
 requests across them and stops sending traffic to one that's stopped
-answering. That something is a load balancer - the piece 1.6 named and
+answering. That something is a load balancer - the piece 1.2 named and
 deferred.
 
 > [!NOTE]
@@ -94,10 +94,9 @@ Step through it:
   ]}
 />
 
-Health-check edges are conceptual in this chapter. The canvas does not yet
-accept a `control` edge between a load balancer and an app server, so the
-graph you build later uses `request-flow` edges only. The health checking is
-real in production; drawing it on canvas is not part of this chapter.
+Health checks can be drawn as a `control` edge from the load balancer to each
+app server. The exercise later in this chapter grades the `request-flow` edges
+only, so drawing them is optional.
 
 ## Picking an instance, and knowing who's alive
 
@@ -211,9 +210,9 @@ the first one is wired. Get a clean Validate, then Submit.
 
 ## Next
 
-1.6 named this component and deferred it to this chapter; 1.7's "what breaks
-first" methodology now applies to a real multi-instance system for the first
-time, rather than the single point of failure 1.6 left you with.
+1.2 named this component and deferred it to this chapter; its "what breaks
+first" method now applies to a real multi-instance system for the first time,
+rather than the single point of failure 1.2 left you with.
 
 Two instances behind a load balancer is a scaling win once - it stops being
 one the moment you're adding instances by hand for every traffic spike. 3.8

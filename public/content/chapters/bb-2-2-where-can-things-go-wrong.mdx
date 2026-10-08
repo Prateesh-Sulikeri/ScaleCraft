@@ -46,26 +46,30 @@ own Part 3 chapter.
     {
       caption: "DNS is down, so the name never becomes an address. Nothing is sent, your servers see no traffic at all, and every dashboard you own stays green.",
       focus: "e-dns",
+      faultNodeIds: ["dns"],
     },
     {
       caption: "The address resolved, but the connection never opens: a network fault on the way to the edge. The Browser waits out its own timeout, then reports a failure it cannot explain.",
       highlightNodeIds: ["browser"],
-      highlightEdgeIds: ["e-edge"],
+      faultEdgeIds: ["e-edge"],
     },
     {
       caption: "The Reverse Proxy is reached and has nothing healthy behind it. This is the first break with a real HTTP status: a fast 502, from a machine that is itself fine.",
       highlightNodeIds: ["browser", "proxy"],
       highlightEdgeIds: ["e-edge"],
+      faultEdgeIds: ["e-app"],
     },
     {
       caption: "The Application Server is reached and throws. Your logs have the stack trace, your error rate spikes, and the user gets an error page in well under a second.",
-      highlightNodeIds: ["browser", "proxy", "app"],
+      highlightNodeIds: ["browser", "proxy"],
       highlightEdgeIds: ["e-edge", "e-app"],
+      faultNodeIds: ["app"],
     },
     {
       caption: "The SQL Database is slow rather than dead. The Application Server waits, holding its connection, and so does every hop in front of it. The user sees nothing at all.",
-      highlightNodeIds: ["browser", "proxy", "app", "db"],
+      highlightNodeIds: ["browser", "proxy", "app"],
       highlightEdgeIds: ["e-edge", "e-app", "e-db"],
+      faultNodeIds: ["db"],
     },
     {
       caption: "The query committed and the response was lost on the way home. The Application Server and SQL Database did the work; the Browser was told nothing, and nothing on this path can tell those two outcomes apart.",
@@ -75,9 +79,9 @@ own Part 3 chapter.
   ]}
 />
 
-Note: the lit segment on each step is how far the request actually got. Every
-stop past it never learns a request was coming, which is why those stops report
-nothing wrong.
+Note: the lit segment on each step is how far the request actually got, and red
+marks where it broke. Every stop past it never learns a request was coming, which
+is why those stops report nothing wrong.
 
 ## Errors, hangs, and disagreements
 

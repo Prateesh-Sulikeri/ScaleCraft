@@ -1,5 +1,7 @@
 # Responsive site + Design-Editor-only size gate
 
+**Shipped in 7.1.0-alpha (verified on `origin/main`, 2026-10-07).**
+
 Release **7.1.0-alpha**. Branch **`feat/size-changes`**, cut from
 `staging/v7.1.0-progress-reset`.
 

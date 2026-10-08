@@ -1,5 +1,8 @@
 # Authored Chapters - Completion Ledger
 
+Checkpoint names: entries before 2026-10-05 say R1, R2, R3; those are now
+Checkpoints D, G and Final (slugs and ids keep r1/r2/r3).
+
 The running record of which curriculum chapters are actually authored, by whom,
 on which branch, and what was left open. Started 2026-08-05.
 
@@ -54,7 +57,6 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | 3.4 Load Balancer | **Authored (Sonnet draft, no Opus pass yet)** - unaffected by Phase 10, `prerequisiteSlugs` repointed from old `1-9-deep-dive-methodology` to new `1-2-designing-the-system` | 2026-08-11 | `feature/lesson-3-4-load-balancer` |
 | 1.10 Communicating & Defending a Design | **Superseded 2026-08-16** by new 1.3 Defending the Design (Phase 10) - record kept below | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
 | 1.11 Driving a System Design Interview | **Authored (manual chapter-author-style pass, no cold audit yet)** | 2026-08-11 | `feature/content-1-10-communicating-and-defending-a-design` |
-| RWE T1 Bitly | Placeholder (`rwe-dummy-1`), moved to Wave 2 | - | - |
 | **1.1 Framing the Problem** (Phase 10 condense, replaces old 1.1-1.5) | **Authored, wired into manifest.ts, old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
 | **1.2 Designing the System** (Phase 10 condense, replaces old 1.6/1.7/1.9) | **Authored, wired into manifest.ts, old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
 | **1.3 Defending the Design** (Phase 10 condense, replaces old 1.8/1.10) | **Authored, wired into manifest.ts (incl. 2.1's repoint), old sources removed, full CI green - no Opus pass yet** | 2026-08-16 | `feature/cloud-sync-reconciliation` |
@@ -75,8 +77,23 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | **3.12 Replication** (third Group C chapter) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, introduces `read-replica` + edge kind `replication` (both already fully wired in the engine, no gap), starter graph's one overdetermined wrong edge trips `orphan-read-replica` and `component-relations` at once, new open decision 18 (QUIZ_FRAMEWORK §10 Q5's own diagram JSON draws the replica read edge backwards - corrected in this chapter's own quiz, not the bank), third of open decision 15's Group C rows checked, pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
 | **3.13 Sharding** (fourth and final Group C chapter - Group C now complete) | **Authored (Sonnet draft, no Opus pass yet)** - manifest row repointed off `null`, no Editor exercise at all (`hasEditorExercise: false`) since no component has a shard-key config field despite CURRICULUM §14 AND §11.1 both promising one (new open decision 19, a stronger-than-17 confirmed gap), six-question quiz adapting all four of QUIZ_FRAMEWORK §10's bank questions reserved for this chapter, closes out open decision 15's Group C row entirely, pipeline not run (content-only pass) | 2026-08-23 | uncommitted, working tree (`fix/streak-counter`) |
 | **3.14 Caching** (first Group D chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `null`, introduces `cache` + `distributed-cache` (both already fully wired in the engine, no gap), first chapter whose `requiredComponentIds` deliberately omits an available component, first Editor exercise in Part 3 whose graded fault is **error**-severity (`missing-input-connection`) so Validate genuinely fails on the starter (evidence for open decision 11), TTL config beat deliberately left ungated to avoid a misleading "Missing: Cache" drift message (new argument under decision 11), opens open decision 15's Group D row, spends all five of QUIZ_FRAMEWORK §11's bank questions reserved for this chapter, pipeline not run (content-only pass) | 2026-08-26 | uncommitted, working tree (`feat/content-audit`) |
+| **3.20 Object Storage** (first Group F chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `null`, prerequisite is R1 so no Group E components in the palette, clean starter with its own argument, new open decision 20 (object storage accepts compute inputs only, so presigned upload and CDN-origin shapes are not drawable) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.21 File Storage** (second Group F chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `null`, Concept with no Editor exercise (no block/file component; §14 only asked for a trade-off, shipped as a matching question) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.22 Distributed Storage Concepts** (third Group F chapter - Group F complete) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `null`, introduces `coordinator`, first learner-built `control` edge that validates, closes decision 15's Group F row, new open decisions 21 (§14 row cites 3.17 outside the prereq chain) and 22 (`coordinator.md` describes a saga orchestrator) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.23 Reliability Patterns** (first Group G chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - introduces `lock-service`; build is the lock around 3.19's overlapping sweep, retry-storm half taught not built (new open decision 23: no timeout/retry/idempotency config fields) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.24 Rate Limiting** (second Group G chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - Concept, config exercise on the gateway's `rateLimitPerMinute` (decision 11's fifth config-predicate instance, mitigated in Your turn and hint 3) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.25 Observability** (third Group G chapter) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - Concept with no Editor exercise (§14's exercise is a diagnosis scenario, shipped as quiz Q5) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **3.26 Fault Tolerance** (fourth Group G chapter - Group G and Part 3 complete) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - introduces `leader`, `follower`; first chapter to curate `split-brain-risk`; closes decision 15's last row | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **Checkpoint R2 - Building a Complete Backend** | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - blank canvas, all 27 components available, 17 required, two blueprints (R1's redundancy precedent) | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
+| **Checkpoint R3 - Open System Design** (Building Blocks complete) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - anti-pattern posture via one minimal blueprint plus four labeled `forbid` patterns (first authored `forbid`; drift made forbid-aware in the same pass, so Submit names the anti-pattern); open decision 24 raised and resolved | 2026-10-01 | uncommitted, working tree (`release/v7.3.0-content-release`) |
 
-Everything else in the 72 rows is unauthored (`chapterDefinitionId: null`).
+| **Checkpoint A - The Front Door** (after 3.5) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - Build flavor, blank canvas, 8 components, two blueprints | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
+| **Checkpoint B - Inherited Fleet** (after 3.9) | **Authored (one-shot pass)** - Review flavor, four planted faults, three blueprints plus a shared `forbid` | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
+| **Checkpoint C - The Data Tier** (after 3.13) | **Authored (one-shot pass)** - Extend flavor, empty data zone, one blueprint | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
+| **Checkpoint E - Off the Request Path** (after 3.19) | **Authored (one-shot pass)** - Extend flavor, empty async zone, one blueprint with componentId alternatives | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
+| **Checkpoint F - Where the Bytes Live** (after 3.22) | **Authored (one-shot pass)** - Extend flavor, empty storage zone, CDN removed from the edge | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
+| **RWE Tier 1: Bitly (URL Shortener)** (the curriculum's first Real World Extraction project, closing `pending-content.md`'s Wave 2) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `rwe-dummy-1`, which is deleted along with its lesson file; first chapter in `mode: "real-world-extraction"`, so first to run the full rule registry unscoped and first with no `curriculumContext`; CURRICULUM §15.1's Phase A/Phase B split collapsed into one exercise because the shell has no phase mechanism (new open decision 25); first pair of blueprints that are genuinely different systems rather than one system drawn two ways; two tests break on the dummy's removal and are flagged, not fixed (this skill does not write tests); pipeline not run (content-only pass) | 2026-09-19 | uncommitted, working tree (`staging/v7.3.0-content-release`) |
+Everything else in the 77 rows is unauthored (`chapterDefinitionId: null`).
 
 **Wave 1 progress: 4 of 4 authored, all four through an Opus pass, merged into
 `develop`/`main` (verified 2026-08-08 via PR #87/#88).** Wave 2 (Part 1)
@@ -5005,6 +5022,11 @@ later one.
 
 ## Checkpoint R1 - A Site That Stays Up
 
+- **Revised 2026-10-05** (group checkpoints): cold open no longer claims every
+  earlier build had a starter graph - Checkpoints A-C precede it now; it is the
+  first checkpoint spanning several groups. Debrief commentary now cites the
+  chapter behind each requirement. `curriculumContext` gains a line for A-C.
+
 - **Authored 2026-09-07** - one-shot `chapter-author` pass (Opus), no cold
   second read yet - uncommitted, working tree (`feat/content-audit`)
 - Definition id `bb-r1-a-site-that-stays-up` - manifest slug
@@ -5601,6 +5623,538 @@ rather than done silently, since this skill does not write tests.
   well as listed), decision 14 was **not** hit for the first time in Group E,
   and decision 15's Group E row is now checked and closed.
 
+## 3.20 Object Storage
+
+- **Authored 2026-10-01** - one-shot `chapter-author` pass (Opus 5.5), no cold
+  second read yet - uncommitted on `release/v7.3.0-content-release`
+- Definition `bb-3-20-object-storage` - slug `3-20-object-storage` - spec
+  `src/content/chapters/specs/bb-3-20-object-storage.spec.md` - lesson
+  `public/content/chapters/bb-3-20-object-storage.mdx`
+- Building Block, intermediate, 25 min, **prerequisite Checkpoint R1** (§17:
+  Groups E and F parallel after R1).
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-20-object-storage.spec.md` |
+| 2 | Lesson | `bb-3-20-object-storage.mdx` (~1,890 prose words excluding walkthrough, Mermaid, tables) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new - R1's set |
+| 5 | Quiz | 5 `single`, ramp 1/1/2/2/3, letters c,a,d,b,a |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **No Group E in the palette or prose.** 3.19's Next previews 3.20, but 3.20's
+  prerequisite is R1, so a learner may arrive without queues, workers, cron or
+  serverless. The cold open keeps 3.19's thread (logos inside listing documents)
+  while standing alone for the R1 path; Group E processing is listed as
+  not-yet-introduced.
+- **Starter = R1's solved system + 3.11's document store, validates clean.** Its
+  own argument: the fault is what a row *contains* (a bytes column), which the
+  canvas does not draw. Brief and hint 1 say Validate will be silent.
+- **The two production shapes are taught, not built** - see open decision 20.
+  The walkthrough draws only registry-legal edges (its step 5 says the board's
+  CDN origin path runs through the App Server), the presigned upload is a Mermaid
+  sequence, and the lesson, Your turn and hint 3 disclose the constraint.
+- **Production examples: Pinterest and Discord.** Dropbox was already spent by
+  1.3 on build vs buy, so it appears only as a back-reference in the 1000x step.
+  Discord's expiring signed attachment URLs make expiry-as-access-control concrete.
+- **Bank §13 Q1/Q2 spent**, joke distractors replaced.
+- **Density pass** cut a duplicate "Coming in 3.21" paragraph from Connections
+  (Next already carries the tease) and tightened the presigned section.
+
+**Cross-reference checks:** decision 15's Group F row - first of three checked,
+matches ("blobs outgrowing rows" is the cold open). `object-storage.md`'s
+generation artifacts (split words, an em dash) flagged under decision 22, not
+edited.
+
+## 3.21 File Storage
+
+- **Authored 2026-10-01** - same pass, same branch.
+- Definition `bb-3-21-file-storage` - spec `specs/bb-3-21-file-storage.spec.md`
+  - lesson `bb-3-21-file-storage.mdx`. Concept, intermediate, 20 min, assumes
+  3.20.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-21-file-storage.spec.md` |
+| 2 | Lesson | `bb-3-21-file-storage.mdx` (~1,730 prose words) |
+| 3 | ChapterDefinition | `index.ts`, `hasEditorExercise: false` |
+| 4 | Validation rules | None (no exercise) |
+| 5 | Quiz | 5 questions (4 `single` + 1 `matching`), ramp 1/2/2/2/3, single letters b,d,a,c |
+| 6 | Playtest pass | Spec §11 (quiz scope only) |
+
+**Judgment calls:**
+
+- **No Editor exercise, and not a new open decision.** Unlike 3.10/3.13 (decisions
+  17/19), §14's row never promised a build - only "trade-off ×3 workloads", which
+  ships as the matching Q3. No block/file component exists and adding one to draw
+  the rejected shape would have no §16 home.
+- **Cold open reuses the job board's own past** (`/var/uploads` on NFS) so 3.20's
+  Next ("the old version wrote to a mounted disk") pays off directly.
+- **Scaling folded into "Why just mount a disk stops working"** (§6 marks it
+  optional for Concept).
+- **Production: Facebook Haystack and GitLab Gitaly**, both first uses.
+- **Bank §13 Q3/Q4 spent.**
+
+**Cross-reference checks:** decision 15's Group F row - second of three, still
+matches (rules out the other place blobs used to go).
+
+## 3.22 Distributed Storage Concepts
+
+- **Authored 2026-10-01** - same pass, same branch. **Completes Group F.**
+- Definition `bb-3-22-distributed-storage-concepts` - spec and lesson beside it.
+  Concept with a small build, intermediate, 30 min, assumes 3.21, introduces
+  `coordinator`.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-22-distributed-storage-concepts.spec.md` |
+| 2 | Lesson | `bb-3-22-distributed-storage-concepts.mdx` (~1,910 prose words) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new |
+| 5 | Quiz | 6 questions (5 `single` + 1 `matching`), ramp 1/1/2/2/3/3, single letters d,b,a,c,b |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **Build = coordinator for 3.13's shards, on the control path.** Starter: browser,
+  LB, app pool, three wired NoSQL nodes and a fourth with no edges. app ->
+  coordinator validates only as `control` (`coordinator.relations.inputs`), so a
+  default request-flow draw fails `component-relations` with an explanation - the
+  control-plane point enforced by the engine. **First learner-built control edge
+  that validates**; recorded under decision 8 as a positive data point.
+- **The starter is not clean** (one orphan warning on node 4), ending the
+  3.19/3.20 clean run. The warning is the symptom; wiring node 4 alone clears
+  Validate and fails Submit with an accurate "Missing: Coordinator".
+- **Storage-node heartbeats are not drawable** (decision 8, fourth instance) -
+  carried by the Mermaid sequence and the blueprint commentary.
+- **No `<Walkthrough>`**: the placement story needs coordinator <-> storage edges
+  the registry disallows, and the walkthrough skill forbids illegal edges. Three
+  Mermaid diagrams instead.
+- **Lesson's per-data-class table uses different examples from quiz Q5** (booking,
+  view counter, username, search index vs ledger, feed, cart, presence) so the
+  matching question tests transfer, not recall.
+- **"leader", "failover" and "lock service" kept out** of prose (3.26/3.23 homes);
+  the coordinator group is described as agreeing by majority.
+- **All six bank §13 questions tagged 3.22 spent - §13 is fully consumed** across
+  3.20-3.22.
+- **Production: Amazon Dynamo and Google Spanner**, both first uses; lens 9 is a
+  single Postgres primary postponing the choice.
+
+**Cross-reference checks:** decision 15's Group F row - third of three, **Group F
+closes** (the fifth group, after A-E). 3.21's Next and 3.13's unanswered "who
+holds the map" both paid off. Next names 3.23 and says it also needs Group E.
+
+## 3.23 Reliability Patterns
+
+- **Authored 2026-10-01** - one-shot `chapter-author` pass (Opus 5.5), no cold
+  second read yet - uncommitted on `release/v7.3.0-content-release`
+- Definition `bb-3-23-reliability-patterns` - spec and lesson beside it.
+  Building Block, advanced, 30 min, prerequisites 3.19 **and** 3.22, introduces
+  `lock-service`.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-23-reliability-patterns.spec.md` |
+| 2 | Lesson | `bb-3-23-reliability-patterns.mdx` (~2,250 prose words; `<Walkthrough>` + 3 Mermaid) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new |
+| 5 | Quiz | 6 (5 `single` + 1 `matching`), ramp 1/1/2/2/3/3, single letters a,c,d,b,a |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **The build is the lock; the retry storm is taught, not built.** No component
+  has timeout/retry/backoff/idempotency fields - new **open decision 23**, same
+  class as 17/19. The storm carries the cold open, the walkthrough and three quiz
+  questions.
+- **The sweep moved onto a separate jobs `app-server` the Cron Job calls.**
+  `cron-job` cannot output to `distributed-systems`, `worker` has no such output
+  either, and a 70-minute job exceeds `serverless-function`'s ceiling - so only an
+  app server can ask a Lock Service. Disclosed in `simplifications` (3.19 drew one
+  cron card as scheduler and job); the lesson makes it the point ("the scheduler
+  only fires"), and the separate pool doubles as the bulkhead the commentary names.
+- **jobs -> lock accepts `control` or `request-flow`** in the blueprint, so drift
+  never becomes the feedback for an edge-kind nuance.
+- **`lockTtlSeconds` taught, not gated** (decision 11). Lease, renewal and fencing
+  token are the lesson's lock section and quiz Q6.
+- **Clean starter**, justified fresh: the fault is temporal.
+- **Production: Amazon (single-layer retries), Netflix (Hystrix), Google
+  Chubby**, all first uses.
+- Bank §14 Q1-Q3 spent.
+
+**Cross-reference checks:** decision 15's Group G row - first of four, matches.
+2.2's "Group G's entire subject (3.23)" pointer (retry budgets, idempotency,
+circuit breakers) and 3.19's and 3.22's Next sections all paid off.
+
+## 3.24 Rate Limiting
+
+- **Authored 2026-10-01** - same pass, same branch.
+- Definition `bb-3-24-rate-limiting`. Concept (config-weighted), advanced, 25
+  min, assumes 3.23, no new component.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-24-rate-limiting.spec.md` |
+| 2 | Lesson | `bb-3-24-rate-limiting.mdx` (~1,800 prose words) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new (no rule can see a rate-limit value) |
+| 5 | Quiz | 5 `single`, ramp 1/2/2/2/3, letters c,a,d,b,c |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **Config exercise only, placement taught.** A "route the bypass through the
+  gateway" build needs the learner to delete an edge, which only `forbid`/`absent`
+  can grade, and drift is blind to both. One honest config exercise instead.
+- **Predicate band `gte 240`, `lt 1200`** from numbers the brief states; the
+  registry default (600) sits inside it on purpose.
+- **Decision 11, fifth config-predicate instance, mitigated**: wide band, Your
+  turn states the "missing while visible" drift shape, hint 3 repeats it. No
+  warning rule exists to explain it during Validate, unlike R1.
+- **Shared counter store not drawn** - `api-gateway` cannot connect to a cache.
+- **Production: Stripe (four layered limiters), Shopify (cost-based leaky
+  bucket).** Stripe was used in 3.6/3.17 for different decisions.
+- Bank §14 Q4-Q5 spent.
+
+**Cross-reference checks:** decision 15 - second of four, matches. 3.5's "too low
+throttles everything" paid off in reverse.
+
+## 3.25 Observability
+
+- **Authored 2026-10-01** - same pass, same branch.
+- Definition `bb-3-25-observability`. Concept, advanced, 20 min, assumes 3.24,
+  `hasEditorExercise: false`.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-25-observability.spec.md` |
+| 2 | Lesson | `bb-3-25-observability.mdx` (~1,750 prose words; Mermaid gantt trace + flowchart) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None (no exercise) |
+| 5 | Quiz | 5 `single`, ramp 1/2/2/2/3, letters b,d,a,c,b |
+| 6 | Playtest pass | Spec §11 (quiz scope) |
+
+**Judgment calls:**
+
+- **No Editor exercise, not a new open decision**: §14's exercise is a diagnosis
+  scenario, never a build, and telemetry has no component. Shipped as Q5 (three
+  dashboards, a different incident from the lesson's worked one).
+- **Primary diagram is a Mermaid gantt** of one trace across three search shards;
+  needs one browser check of the `dateFormat x` axis.
+- **Production: Google (error budgets gate launches), Uber (Jaeger).**
+- Bank §14 Q6-Q7 spent.
+
+**Cross-reference checks:** decision 15 - third of four, matches. 3.24's Next
+(the 09:20 ticket) paid off.
+
+## 3.26 Fault Tolerance
+
+- **Authored 2026-10-01** - same pass, same branch. **Completes Group G and every
+  Part 3 chapter.**
+- Definition `bb-3-26-fault-tolerance`. Building Block, advanced, 35 min, assumes
+  3.25, introduces `leader` and `follower`.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-3-26-fault-tolerance.spec.md` |
+| 2 | Lesson | `bb-3-26-fault-tolerance.mdx` (~2,100 prose words; `<Walkthrough>` + 1 Mermaid) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new; `split-brain-risk` curated for the first time |
+| 5 | Quiz | 6 (5 `single` + 1 `diagram`), ramp 1/2/2/2/3/3, letters d,a,c,b,a,c |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **Build-first starter**: browser, LB, app, and an empty 2x2 data tier; the cold
+  open's primary/replica pair is gone and the comment tells the story.
+- **Blueprint cannot require exactly one Leader** (two Leaders plus a Coordinator
+  clear the rule and still match) - `absent` would be drift-blind. Taught, and
+  named in the commentary and `simplifications`. **Reversed 2026-10-07:** a
+  labelled `forbid` on a second Leader card now fails Submit by name; the
+  simplification is removed and the commentary says a second Leader fails.
+- **Walkthrough uses custom Node A/B/C cards**: a card cannot change role, and
+  post-failover follower -> follower replication is registry-illegal. Captions
+  carry the roles; the lesson makes "cards are machines, the role is a fact" the
+  point.
+- **Kill-the-leader predict-then-check** is the Your turn prompt, the walkthrough
+  and Q6 (no simulator).
+- **Production: Amazon Aurora (4-of-6 across 3 zones), Kubernetes/etcd.** GitHub
+  2018 back-referenced from 2.2, not retold.
+- Bank §14 Q8-Q11 spent; **§14 bank fully consumed across 3.23-3.26.**
+
+**Cross-reference checks:** decision 15's Group G row - fourth of four, **all
+seven rows of 2.3's table now closed**. §18.2 rule 3's "leaders from replica
+ambiguity" is the cold open.
+
+## Checkpoint R2 - Building a Complete Backend
+
+- **Revised 2026-10-05**: checked against the new checkpoint contract and kept;
+  debrief commentary now cites the chapter behind each part. Next section's
+  "one right shape, or two" widened to "an expected shape, with a few accepted
+  variations" (Checkpoints B and E have more).
+
+- **Authored 2026-10-01** - same pass, same branch.
+- Definition `bb-r2-building-a-complete-backend`. Checkpoint, advanced, 60 min,
+  assumes 3.26.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-r2-building-a-complete-backend.spec.md` |
+| 2 | Lesson | `bb-r2-building-a-complete-backend.mdx` (~800 words, R1's four sections) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new; all ten curated |
+| 5 | Quiz | None (§22) |
+| 6 | Playtest pass | Spec §11 (12-row move table) |
+
+**Judgment calls:**
+
+- **R1's precedent inherited unchanged** (requirement list in
+  `problemStatement`, two blueprints on the redundancy axis, hint 3 for drift).
+- **All 27 available, including `client`** for the first time since Part 1, per
+  §14 - which makes `no-direct-client-database` live again.
+- **Three two-answer slots expressed as `componentId` arrays** (catalog sql/nosql,
+  email sender worker/serverless, report runner worker/separate app server)
+  rather than more blueprints.
+- **Orders on a leader group, catalog on a plain store**: the brief states two
+  data classes with different failure needs; the cache can only front a `data`
+  store, which also forces it.
+- **Report reads from a follower, 25 minutes** (rules out serverless by 3.19's
+  ceiling). Read replica, event bus, Kafka, lock service available and unmotivated.
+- Warning-severity anti-patterns still pass, as in R1 (an `allow-all` firewall).
+
+## Checkpoint R3 - Open System Design
+
+- **Revised 2026-10-05**: checked against the contract and kept (it is the Open
+  flavor). Comparison table column is now "Every earlier checkpoint", its fail
+  row includes misconfiguration, and the opening drops "one right shape, or
+  two". Debrief commentary cites chapters.
+
+- **Authored 2026-10-01** - same pass, same branch. **Completes Building Blocks.**
+- Definition `bb-r3-open-system-design`. Checkpoint, advanced, 60 min, assumes R2.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Spec | `specs/bb-r3-open-system-design.spec.md` |
+| 2 | Lesson | `bb-r3-open-system-design.mdx` (~650 words) |
+| 3 | ChapterDefinition | `index.ts` |
+| 4 | Validation rules | None new; all ten curated, four warnings made to fail via `forbid` |
+| 5 | Quiz | None (§22) |
+| 6 | Playtest pass | Spec §11 |
+
+**Judgment calls:**
+
+- **Anti-pattern posture built from existing machinery**: one minimal blueprint
+  (networking -> compute -> any backing category, by path) plus four `forbid`
+  patterns transcribing `split-brain-risk`, `queue-without-dead-letter-queue`,
+  `single-instance-load-balancer` and `permissive-firewall`. `orphan-component`
+  stays a non-failing note.
+- **First authored `forbid`, with the drift fix decision 11 asked for.** Raised
+  to the user, who chose the engine fix: `GraphPattern.label`, a
+  `forbiddenPatterns` field on the drift report, and Submit's entry now reads
+  "Contains something this chapter rules out: <label>". Each R3 forbid's label
+  names the mistake and its home chapter. Tests: `blueprint-drift.test.ts`,
+  `chapter-outcome-violations.test.ts`, and an R3 pass/fail pair in
+  `authoring-invariants.test.ts`. The blueprint's category lists cover all six
+  categories, so drift never lists the learner's components as "not part of this
+  approach".
+- **`requiredComponentIds` empty**; a three-node design passes - the posture as
+  specified. User confirmed keeping it, 2026-10-01.
+- **Brief tells the learner how it is judged**, a departure from R1/R2's "what you
+  are not told", because the posture is the lesson.
+- **Open decision 24** (QUIZ_FRAMEWORK §15 Q5 treated R3 warnings as passing
+  trade-offs) raised and resolved: Q5 rewritten to match the build.
+
+---
+## Checkpoints A, B, C, E, F - group checkpoints
+
+- **Authored 2026-10-05**, one pass, uncommitted on `feature/content-groups-f-g`.
+  Scoped in `.claude/docs/pending-checkpoints.md` (the contract, flavors and
+  roster); the user approved the roster and asked for authoring without
+  answering the doc's five open questions, so the defaults below were taken.
+- Definitions `bb-cp-a-the-front-door`, `bb-cp-b-inherited-fleet`,
+  `bb-cp-c-the-data-tier`, `bb-cp-e-off-the-request-path`,
+  `bb-cp-f-where-the-bytes-live`. Manifest rows numbered `A`, `B`, `C`, `E`,
+  `F`, each after its group's last chapter.
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Specs | `specs/bb-cp-{a,b,c,e,f}-*.spec.md` |
+| 2 | Lessons | `bb-cp-*.mdx`, R1's four sections, ~500-650 words each |
+| 3 | ChapterDefinitions | `index.ts`, each beside its group |
+| 4 | Validation rules | None new |
+| 5 | Quiz | None (§22) |
+| 6 | Playtest pass | Each spec §11 |
+
+**Judgment calls:**
+
+- **Defaults taken for the open questions.** Naming: R1-R3 keep their numbers
+  (persistence keys, and lessons cite them by name); group checkpoints use the
+  group's letter. Gating: moot - `prerequisiteSlugs` is not enforced anywhere
+  (`src/curriculum/types.ts`), so existing learners are never locked out; the
+  next chapter in each group now lists its checkpoint as prerequisite for when
+  it is. Review flavor: shipped (B), with the config-drift workaround in hint 3
+  and the lesson. Follow-up twist: deferred, needs multi-stage engine support.
+- **Flavor per group.** A Build (blank); B Review, because Group B adds no
+  components and a Build would re-test Group A; C, E, F Extend (rest of the
+  system as `starterGraph`, one empty zone), so effort lands on the group.
+- **First checkpoints with a `starterGraph`** (B, C, E, F) and so
+  `starterDecorators`. B has tier zones only (nothing missing, §11.6); C, E, F
+  have a "Build here" zone sized by the room invariant.
+- **Interleaving pull per checkpoint** (contract rule 2): A - 1.2's
+  compute-only database; B - 3.1's `allow-all` firewall; C - 3.8's N+1 on the
+  provided fleet; E - 3.16's search index updated off the path; F - 3.15's CDN
+  as a rewire of the starter's DNS-to-firewall edge.
+- **B's three blueprints plus one `forbid`**: a pattern cannot sum instances
+  across cards, so each honest split (1 card >= 4; 2 + 2; 3 + any) is its own
+  blueprint, and all carry a `forbid` on an app server behind the load balancer
+  with no edge to the database. Without it, containment passes a design that
+  raised one card and kept the unwired one.
+- **A's billing as a third app server behind the gateway**, never the load
+  balancer: the copies-vs-services line 3.5 drew. Moving billing behind the
+  load balancer fails.
+- **E accepts alternatives inside one blueprint** (Event Bus or Kafka; Worker
+  or Serverless consumers; nightly job and burst handler reach the database by
+  path), so `event-bus`, `kafka` and `worker` are not in `requiredComponentIds`
+  (required is enforced at Submit, `chapter-outcome.ts`).
+- **F requires two object stores** for photos and ID scans: 3.20's "one bucket,
+  two audiences" mistake. A one-bucket design fails.
+- **C rules sharding out in the brief** ("fits on one machine for two years"),
+  so 3.13 is tested as judgment rather than as a build.
+- Verified with a throwaway script (no test file): every starter fails, every
+  reference graph passes its blueprint, and the named wrong variants fail.
+
+**Knock-on edits:** 3.5, 3.9, 3.13, 3.19 and 3.22's Next sections now preview
+their checkpoint; 3.6, 3.10, 3.14 and 3.23's prerequisites point at it;
+`manifest.test.ts`'s Building Blocks count is 45; CURRICULUM §3, §4, §12, §14
+Part 4, §17, §21.3 and the outline updated.
+
+## RWE Tier 1 - Bitly (URL Shortener)
+
+- **Authored 2026-09-19** - one-shot `chapter-author` pass (Opus), no cold
+  second read yet - uncommitted, working tree
+  (`staging/v7.3.0-content-release`, cut from
+  `release/v7.3.0-content-release`)
+- Definition id `rwe-t1-bitly-url-shortener` - manifest slug
+  `rwe-t1-bitly-url-shortener` - spec
+  `src/content/chapters/specs/rwe-t1-bitly-url-shortener.spec.md` - lesson
+  `public/content/chapters/rwe-t1-bitly-url-shortener.mdx`
+- Type: **RWE Project** (CURRICULUM §4, §15.2 Tier 1) - intermediate - 75 min -
+  assumes Checkpoint R1, authored 2026-09-07.
+- **The curriculum's first Real World Extraction project.** The other 31 inherit
+  whatever ships here, so the precedent-setting calls are listed below rather
+  than left in the spec.
+
+**Deliverables (all 6):**
+
+| # | Deliverable | Location |
+|---|---|---|
+| 1 | Chapter spec | `specs/rwe-t1-bitly-url-shortener.spec.md` (12 sections, incl. §2 on the Phase A/B collapse) |
+| 2 | Lesson markdown | `public/content/chapters/rwe-t1-bitly-url-shortener.mdx` (~2,000 words of prose plus one `<Walkthrough>`; all ten §6 RWE-mandatory sections, three of four optional ones) |
+| 3 | ChapterDefinition | `src/content/chapters/index.ts`, replacing `rwe-dummy-1` |
+| 4 | Validation rules | None new, and none curated - RWE runs the full registry regardless of the field |
+| 5 | Quiz | 5 retrospective questions (QUIZ_FRAMEWORK §16's 4-6 range), 4 single + 1 matching |
+| 6 | Playtest pass | Spec §11 (12-row move-to-chapter table, plus the two moves deliberately not sourced from a prior chapter) |
+
+Also wired: `manifest.ts`'s Bitly row (`chapterDefinitionId` `rwe-dummy-1` ->
+the id above) and the deletion of `public/content/chapters/rwe-dummy-1.md`. The
+index.ts header comment is updated: no `placeholder: true` fixtures remain in
+the registry.
+
+**Judgment calls made:**
+
+- **CURRICULUM §15.1's Phase A + Phase B structure ships as one exercise,
+  because `ChapterDefinition` has no phase mechanism.** One `starterGraph`, one
+  `blueprints` array, one Validate, one Submit. Phase A is realized as the
+  three-node starter graph plus the lesson's reading; Phase B as the
+  14-component palette, the two blueprints, and RWE mode's full-registry
+  validation (which already delivers §15.1's "trade-off notes as warning
+  severity that never block"). The brief names both phases so the intended
+  order is visible and says plainly that one Submit judges both. Raised as
+  **new open decision 25** rather than absorbed silently - §20.5 forbids
+  inventing a metadata field, and 31 more projects will copy this.
+- **`rwe-dummy-1` deleted rather than kept alongside.** Its own doc comment
+  said "replace it, don't extend it". Consequence: two tests fail until
+  updated, both flagged rather than fixed (see below).
+- **Two blueprints that are genuinely different systems**, which is a first -
+  R1's pair were one system with redundancy drawn two ways. Here they disagree
+  about where 2.4 billion single-key lookups belong: a key-value store with the
+  read path absorbed in front of it, or the existing relational primary plus a
+  read replica. Both are defensible, and each commentary names the cost it
+  accepts (no relational aggregation; replication lag surfacing as a 404 on a
+  one-second-old link). This is what §15.1's "multiple valid solutions" and the
+  RWE course subtitle ("More than one architecture passes") were promising.
+- **No store is in `requiredComponentIds`.** Requiring either would foreclose
+  the decision the exercise exists to force. A storeless graph passes Validate
+  and fails Submit, since both blueprints require one - which is the RWE
+  posture split working as designed, not a hole.
+- **`requiredComponentIds` is five against R1's twelve, deliberately.** §15.2's
+  Tier 1 instruction is "tiny surfaces, one crisp new problem each". The
+  perimeter, the TLS termination point and the gateway that R1 required are all
+  available here and unmotivated by this brief; the lesson's trade-off table
+  argues one of them (an edge tier cannot help a 302) rather than leaving the
+  absence silent.
+- **The `model` predicate accepts `key-value` OR `wide-column`.** Both are
+  honest answers for 2.4 billion rows fetched one key at a time; grading a
+  preference between them would be scoring taste. Uses `op: "in"`, the first
+  chapter to use that operator in a blueprint.
+- **No "Build here" gap zone, and this should be the RWE default.** §11.6
+  permits one where the fix is a missing node in identifiable empty space; here
+  the missing nodes span three tiers, and choosing which gaps to draw would
+  hand over the shape of the answer. An open brief is the one exercise type
+  where marking the slots defeats the exercise.
+- **The starter graph deliberately starts on the relational store.** Keeping
+  that store *is* blueprint 2, so the starting position does not resolve the
+  chapter's central decision in either direction. It does mean a learner who
+  only adds the read path lands on a passing design - the honest consequence of
+  "this store is defensible", not a shortcut.
+- **The primary diagram is a `<Walkthrough>` with two algorithms rather than
+  two static diagrams.** The topology is five nodes; the content is that a write
+  and a read diverge one hop after the application tier at a 1,000:1 ratio,
+  which is invisible in a static drawing. DNS is excluded from the diagram (it
+  resolves once and is cached) while still being required on the canvas, and the
+  diagram's own description says so.
+- **The two new concepts are assessed entirely by quiz.** Neither short-key
+  generation nor the 301/302 choice has any canvas representation, so the build
+  cannot test either. A learner who misreads them still passes the exercise and
+  is corrected by Q2, Q3 and Q4. First chapter where a declared new concept is
+  not exercised by the build at all; flagged in spec §12.
+- **Open decision 11 gained a fifth instance, partly mitigated.** Two blueprint
+  predicates are on config fields. `instances >= 2` reuses R1's full mitigation
+  (the only failing value is the one `single-instance-load-balancer` already
+  warned about in prose during Validate, plus hint 3 naming the failure shape).
+  The `model` predicate has **no** prose warning ahead of it, so a NoSQL store
+  left at its `document` default produces the confusing "missing component"
+  drift report with only hint 3 to catch it. Worse than R1's position, not
+  better.
+- **A factual error was caught and fixed in self-check, worth recording because
+  the shape recurs.** The draft said a hash scheme at 2.4 billion keys in a 3.5
+  trillion space expects "several hundred" collisions. The birthday arithmetic
+  gives ~818,000 - three orders of magnitude out, and in the direction that
+  would have made the collision check look optional. Any chapter quoting a
+  birthday-problem figure should have it recomputed, not trusted.
+- **Interview-loop step numbering checked against §10.1, not memory.** The draft
+  credited establishing the read/write ratio to step 2 (Requirements); it is
+  step 3 (Estimate). Corrected in both the lesson and the spec.
+
+**Flagged, not fixed (this skill does not write tests):**
+
+- `src/content/chapters/index.test.ts` asserts the RWE registry holds exactly
+  one chapter whose id is `rwe-dummy-1`. Both assertions now fail.
+- `src/content/content-service.test.ts` searches for the title "placeholder
+  project" and expects a hit on `rwe-dummy-1`. Now fails.
+- The two `real-world-extraction/[chapterSlug]` page tests also mention
+  `rwe-dummy-1`, but they mock `@/curriculum` and `chapterRegistry` outright, so
+  the string is an opaque fixture there and nothing breaks.
+
+**New open decision raised: 25** (Phase A/B, below). Decision 11 gained a fifth
+instance, partly mitigated and partly worse than R1's. Decision 5's
+"Interview lens names which RWE projects exercise this material" is now
+*answerable* for the first time - one RWE project exists - but no back-pass was
+made over 2.1-3.19 to name it; that is a cross-cutting edit, not this chapter's
+business.
+
 ---
 ## Cross-cutting revisions (post-authoring)
 
@@ -5680,6 +6234,50 @@ all touched chapters rather than duplicating a row per chapter above.
 
 ---
 
+- **2026-10-05, branch `feature/content-groups-f-g`: audit pass over all
+  Building Blocks chapters.** Mechanical scans across every lesson (next-chapter
+  previews vs. manifest, stale chapter numbers, diagram captions, doc-name
+  leaks, em dashes) plus a cold read of 3.20-3.26, R2 and R3 and every
+  chapter's editor brief. Fixes:
+  - **Stale Part 1 numbering** (left over from the 11-to-4 chapter
+    consolidation): 0.4's step table and "further out" line pointed at 1.5-1.11;
+    3.4's cold open and Next cited 1.6/1.7. Remapped to 1.1/1.2/1.3. Specs keep
+    their "old 1.6" history on purpose.
+  - **0.3/0.4 `problemStatement`**: 0.3 said both registers are judged "by the
+    same rubric" yet reward different things; 0.4 said every Part 1 chapter
+    drills one step.
+  - **`exerciseGoal` for 3.1-3.8** was written as the symptom only, under a
+    sidebar heading that says "Goal". Rewritten goal-first, symptom second;
+    no newly named palette components (spoiler rule unchanged).
+  - **3.20**: Think-first named "slow listing pages", which the cold open never
+    mentioned, and its answer blamed SQL buffer eviction for pages served from
+    the listing document store. Cold open and answer now agree.
+  - **3.21**: removed "The exercise CURRICULUM asks for" from learner text.
+  - **3.24/3.25**: 3.25 said search ran at "40 times" normal traffic; 3.24's
+    numbers make it 500x+. Now "hundreds of times" in lesson and brief. 3.25's
+    "latency tripled" example contradicted its own trace (40 ms to 2.3 s).
+  - Smaller wording: 1.2 deep-dive flowchart got a caption; 3.22 Next, 3.23
+    lease line, 3.24 capacity unit, 3.26 paragraph reflow.
+  - **Component docs (all 27)**: 53 split-word generation artifacts ("the a
+    application"), 35 em dashes, and hard-wrapped config-table rows that
+    rendered as broken extra rows. Coordinator/leader/lock-service rewritten;
+    object-storage's consistency claim corrected (S3 is read-after-write since
+    2020).
+  - **Not changed, flagged:** 3.1, 3.2, 3.3, 3.5 and 3.6's final hint names the
+    exact fix ("Add a Firewall node... wire it between"), which §11.3 says a
+    hint never does. Left as-is pending a decision, since it changes the
+    difficulty of the earliest builds.
+
+- **2026-10-05: checkpoints renamed to one scheme.** Badges were A, B, C, R1, E,
+  F, R2, R3; now every checkpoint is lettered by the group it closes: **D** (was
+  R1), **G** (was R2), and **Final** (was R3). Changed: manifest `number`, every
+  learner-facing mention in lessons (3.16, 3.17, 3.20, 3.26, and the three
+  checkpoints themselves) and `index.ts` strings (3.17's `problemStatement`,
+  3.20's success criterion, positions and contexts), CURRICULUM.md (Mermaid node
+  ids kept), `ChapterRow.test.tsx`'s fixture. Not changed: slugs, definition ids,
+  spec filenames, code comments and release notes - persistence keys or history.
+  Ledger headings below still say R1-R3; read them as D, G, Final.
+
 ## Open decisions blocking or shaping later chapters
 
 Raised during authoring, deliberately not resolved unilaterally. Each needs a
@@ -5692,6 +6290,7 @@ doc edit or a build decision.
    is shipped, tested, and stronger pedagogically); §14's row needs updating in
    its own commit. Detail in the chapter spec's §10.
    **Blocks:** nothing. Cosmetic doc drift, but it misleads the next author.
+   **Resolved 2026-10-07.** §14's 0.1 row now reads "Exercise: fix".
 
 2. **§16 component budget exception at 0.1.** §16 homes `client`,
    `app-server` and `sql-database` at 1.6 and forbids a component appearing in
@@ -5746,6 +6345,7 @@ doc edit or a build decision.
    worth of the same narrow exception, growing evidence this should become
    either a sanctioned Mermaid-topology carve-out or real engineering work for
    a graph-JSON markdown block.
+   **Resolved 2026-10-07.** §7.2 now says lesson topology is a `<Walkthrough>` (failures via `faultNodeIds`/`faultEdgeIds`), with Mermaid for a static preview.
 
 4. **CURRICULUM contradicts itself on what the five forces are.** §14's 0.2 row
    and §5.2 say latency / **throughput** / availability / durability / cost.
@@ -5788,6 +6388,7 @@ doc edit or a build decision.
    short Concept chapters, or schedule one retrofit pass across every
    authored chapter at once. Individual chapters should stop declaring this
    one by one.
+   **Resolved 2026-10-07.** §12 now makes the three nuggets optional; specs stop declaring the omission.
 
 6. **§4's chapter-types table lists 1.3 as a Concept-type example, contradicting
    §14's own Part 1 header ("Process type" for the whole part, 1.1-1.11, no
@@ -5799,6 +6400,7 @@ doc edit or a build decision.
    examples mandatory-vs-optional, Practical objective carve-out) didn't change
    what 1.3 needed either way. Fix in a doc-only commit: drop "1.3" from §4's
    Concept examples list.
+   **Resolved 2026-10-07.** §4's Concept examples no longer list 1.3 (already fixed; confirmed).
 
 7. **§14's 1.6 row promises a simulator trace the chapter doesn't have.** The
    row reads "Exercise: build + fix + simulator trace"; 1.6 as authored ships
@@ -5845,6 +6447,7 @@ doc edit or a build decision.
    decision 11's drift message) - so this row is now the clearest single
    example of a §14 exercise line no part of which the product can deliver as
    written.
+   **Resolved 2026-10-07.** No live simulator. §14 now says "simulator"/"trace" means a `<Walkthrough>` plus a prediction prompt or quiz question; §11's Trace row says the same.
 
 8. **`control`-kind edges aren't buildable on canvas - a real engine gap,
    found authoring 3.4 (2026-08-11).** CURRICULUM §16 assigns 3.4 as
@@ -5890,6 +6493,13 @@ doc edit or a build decision.
    `curriculumContext.simplifications`. Full reasoning in 3.9's spec §6.
    Three independent chapters now point at the same underlying fix; still no
    engineering work scheduled.
+   **Fourth instance, and a first positive data point, 2026-10-01 (3.22).**
+   Storage nodes' heartbeats to a Coordinator are a control edge with no legal
+   drawing (`nosql-database` declares no control output; the coordinator's
+   outputs reach only `distributed-systems`), handled the same way. But 3.22's
+   own app -> coordinator `control` edge *is* legal and is the graded fix -
+   the first learner-built control edge in the curriculum that validates.
+   **Resolved 2026-10-07.** `PortRelationConstraint.exceptions` makes load balancer -> app server/worker and browser/client -> DNS legal as `control`. 3.2, 3.4, 3.8, 3.9 and 3.22 prose and simplifications now say drawable but not graded.
 
 9. **3.4 Load Balancer authored standalone, ahead of its real prerequisite
    (2026-08-11).** CURRICULUM §14's 3.4 row reads "Assumes: 3.3", but Group A
@@ -5939,6 +6549,7 @@ doc edit or a build decision.
     "would a learner ever notice this, and if so, does the lesson say it?"
     in mind. Either that becomes an authoring-checklist line, or the Reader
     grows a real surface for it.
+    **Resolved 2026-10-07.** §20.2 now says a simplification a learner would notice must also be in the prose.
 
 11. **Should a chapter's namesake fault ever be warning-severity? Raised by
     the Opus pass on 3.4 (2026-08-11).** `single-instance-load-balancer` is
@@ -6046,6 +6657,22 @@ doc edit or a build decision.
     without naming the component or the field. The underlying question is still
     open; this is evidence that a chapter can design around it when the cost of
     hitting it is high, not that it no longer needs answering.
+    **Fifth config-predicate instance and the first `forbid`, 2026-10-01 (3.24,
+    R3).** 3.24 gates `rateLimitPerMinute` in a 240-1199 band and discloses the
+    drift shape in Your turn and hint 3 (no warning rule exists to pre-explain it,
+    unlike R1). R3 uses four `forbid` patterns to make warning-severity
+    anti-patterns fail Submit - the use this decision said needed the
+    forbid-blind drift fixed first. Mitigated rather than waited on (see R3's
+    ledger entry and spec §7); the engine fix would remove the generic "overall
+    shape doesn't match" message R3's forbid failures currently produce. 3.26
+    also declined an `absent` block (exactly one Leader) for the same reason.
+    **Forbid-blind drift fixed, same day.** `GraphPattern` gained an optional
+    `label`; `blueprint-drift.ts` reports matched forbids as `forbiddenPatterns`
+    (and counts them when picking the nearest blueprint); the display reads
+    "Contains something this chapter rules out: <label>". R3's forbids are
+    labeled. `absent` inside a `require` pattern is still drift-blind, and the
+    config-predicate "Missing: X" shape is still open.
+    **Resolved 2026-10-07.** All three halves fixed in the engine: `ChapterDefinition.ruleSeverity` (D and G escalate their warnings), config mismatches reported as "Configured differently: <field> should be ... (is ...)", and a fired `absent` block named in the drift report. 3.26 uses a labelled `forbid` for one Leader.
 
 12. **2.1's stop table pre-commits a one-line job description for five
    unwritten chapters (2026-08-18).** 2.1 From Browser to Backend is Part 2's
@@ -6090,6 +6717,7 @@ doc edit or a build decision.
    the chapter's own core-mechanics content verbatim, and "request shaping"
    is realized as path-based routing to a named service. Fourth and final
    of the four rows resolved.
+    **Resolved 2026-10-07.** All four rows were checked (see above); nothing left open.
 
 13. **2.1 uses and teaches the `control` edge kind before 3.4, which §16 says
    owns it. Raised by the Opus pass on 2.1 (2026-08-18).** §16's audit homes
@@ -6109,6 +6737,7 @@ doc edit or a build decision.
    its own commit, not something a chapter author decides silently. Same class
    as decision 12, one level down: 2.1 pre-commits Group A's *vocabulary* as
    well as its framing.
+    **Resolved 2026-10-07.** §16's 3.4 row now notes `control` is first shown in 2.1's DNS lookup.
 
 14. **`<Walkthrough>` has no failure state, so a failure diagram cannot show
    the failure. Raised authoring 2.2 (2026-08-20).** CURRICULUM §7.2 requires
@@ -6137,6 +6766,7 @@ doc edit or a build decision.
    canvas already uses for errors, so a failed stop looks the same everywhere
    ScaleCraft draws one. Same class as decisions 3 and 8: an engine gap found
    by content authoring.
+    **Resolved 2026-10-07.** `WalkthroughStep.faultNodeIds`/`faultEdgeIds` render a red ring and a red dashed edge with no packet. 2.2, 3.23 and 3.26 use them.
 
 15. **2.3's group table pre-commits a motivating pressure for all seven Part 3
    groups (2026-08-22).** CURRICULUM §14's purpose line for 2.3 is "so Part 3's
@@ -6244,6 +6874,18 @@ doc edit or a build decision.
    no request caused at all. Recorded here rather than only in the chapters'
    own entries because this decision's text otherwise still read "Groups E-G
    remain open". Groups F and G remain open.
+   **Group F checked and closed across all three chapters, 2026-10-01 - the fifth
+   of seven groups to resolve its row.** Row: "blobs outgrowing rows |
+   3.20-3.22." 3.20 is the sentence literally (2.2 of 2.4 TB is PDF bytes); 3.21
+   rules out the other place blobs used to go (a shared disk); 3.22 is storage
+   once it has outgrown one machine of any kind. Only Group G remains open.
+   **Group G checked and closed across all four chapters, 2026-10-01 - all seven
+   rows of 2.3's table are now resolved.** Row: "enough boxes that something is
+   always broken | 3.23-3.26." 3.23: one bad disk among healthy machines takes the
+   site down; 3.24: one client bug among thousands of phones; 3.25: something is
+   broken and nobody knows; 3.26: the broken box is the one taking writes. This
+   decision has no open rows left.
+    **Resolved 2026-10-07.** All seven rows were checked (see above); nothing left open.
 
 16. **CURRICULUM.md §6's own "engineered-cliffhanger" example doesn't parse
     under current chapter numbering, raised authoring 3.8 (2026-08-23).**
@@ -6267,6 +6909,7 @@ doc edit or a build decision.
     author *toward* the stale example. Fix: either update §6's parenthetical
     to describe the real 3.6-3.7-3.8 arc, or replace it with a still-valid
     example from an already-shipped chapter.
+    **Resolved 2026-10-07.** §6's example now describes the 3.6-3.7-3.8 arc.
 
 17. **CURRICULUM §14's own 3.10 row names a Config exercise the engine has
     no schema for at all, raised authoring 3.10 (2026-08-23).** §14's own
@@ -6303,6 +6946,7 @@ doc edit or a build decision.
     table to stop describing an exercise this component can't support -
     either way a decision for outside this skill, not something a chapter
     author should resolve unilaterally per chapter.
+    **Resolved 2026-10-07.** `sql-database` gained `indexing` (`primary-key-only`/`covers-hot-queries`). No rule gates it yet; 3.10 can now add a Config exercise.
 
 18. **QUIZ_FRAMEWORK.md §10's own bank Q5 diagram JSON draws the replica read
     edge backwards, raised authoring 3.12 (2026-08-23).** Q5's sample graph
@@ -6323,6 +6967,7 @@ doc edit or a build decision.
     QUIZ_FRAMEWORK.md §10 Q5's `e3` edge to `read-replica -> app-server`, so
     a future author copying the bank JSON verbatim doesn't inherit the
     mistake.
+    **Resolved 2026-10-07.** QUIZ_FRAMEWORK §10 Q5's `e3` now runs `read-replica -> app-server`.
 
 19. **CURRICULUM §14's own 3.13 row AND §11.1's own Config-exercise table
     both promise a shard-key config exercise the engine has no schema for,
@@ -6359,6 +7004,101 @@ doc edit or a build decision.
     to stop describing an exercise no component in the registry can support -
     either way, a decision for outside this skill, and one that should
     probably be made jointly with decision 17 rather than twice.
+    **Resolved 2026-10-07.** `sql-database` and `nosql-database` gained `partitioning` (`none`/`hash`/`range`) and `shardKey`. No rule gates them yet; 3.13 can now add a Config exercise.
+
+20. **Object storage accepts connections from compute only, so the two shapes
+    3.20 teaches as standard are not drawable, raised authoring 3.20
+    (2026-10-01).** `object-storage.relations.inputs` is
+    `{ allowedCategories: ["compute"], allowedKinds: ["request-flow"] }`, so a
+    browser uploading on a presigned URL (browser -> bucket) and a CDN using the
+    bucket as its origin (cdn -> bucket) both fail `component-relations` - the
+    engine tells a learner who applies the lesson that the production shape is
+    wrong. **Not hacked around**: 3.20 grades app -> bucket, draws only legal
+    edges in its walkthrough, puts the presigned path in a Mermaid sequence, and
+    discloses the constraint in the lesson, Your turn and hint 3. **Blocks:**
+    nothing today; **bites RWE Instagram, YouTube and Google Drive**, whose Phase
+    B answers should be allowed the direct shapes. Same class as decision 8.
+    Likely fix: add `networking` to that `allowedCategories` (CDN and Browser are
+    both networking), plus a `cdn.relations.outputs` that admits `data` for the
+    origin case.
+    **Resolved 2026-10-07.** `object-storage` accepts browser and CDN (`request-flow`), `coordinator` accepts SQL/NoSQL heartbeats (`control`), caches accept the API Gateway. 3.20, 3.24, Checkpoint F and G prose updated to drawable but not graded.
+
+21. **CURRICULUM §14's 3.22 row cites "3.17 eventual processing", which is
+    outside 3.22's prerequisite chain, raised 2026-10-01.** §17 makes Groups E
+    and F parallel after R1, so a learner can reach 3.22 without 3.17. 3.22 uses
+    3.12, 3.14 and 3.15 only. **Needs a one-line doc edit** to the row (drop 3.17
+    or mark it "if taken"); doc-only commit. **Resolved 2026-10-05**: row now
+    cites 3.15 CDN TTLs instead of 3.17, matching what the lesson uses.
+
+22. **`public/content/components/coordinator.md` describes a different
+    component, raised 2026-10-01.** It documents a saga/workflow orchestrator
+    (state machines, compensation, message queues), while the registry's own
+    `docs` string and 3.22 teach a consensus-backed placement/membership role.
+    A learner opening the component's docs from the palette reads the wrong
+    thing. `object-storage.md` has smaller generation artifacts (split words, an
+    em dash). **Needs a rewrite of `coordinator.md`** - global component content,
+    deliberately not edited inside a chapter pass.
+    **Two more found, 2026-10-01 (3.23, 3.26).** `lock-service.md` has a
+    generation artifact ("state state-changing"); `leader.md` is titled "Leader
+    Election Component" and documents the election mechanism rather than the
+    role card the registry and 3.26 teach. Same fix: a pass over component docs.
+    **Resolved 2026-10-05**: `coordinator.md`, `leader.md` and `lock-service.md`
+    rewritten against the registry fields and 3.22/3.23/3.26; artifacts fixed
+    across all 27 docs (see Cross-cutting revisions, 2026-10-05).
+
+23. **CURRICULUM §14's 3.23 row promises a config exercise the registry has no
+    fields for, raised 2026-10-01.** "Fix (retry storm described; add backoff +
+    idempotency config)": no component has a call timeout, retry count, backoff
+    or idempotency field (`serverless-function.timeoutSeconds` is an execution
+    ceiling, not a call timeout). Same class as decisions 17 and 19. **Not hacked
+    around**: 3.23 builds the row's other half (the lock) and teaches the storm in
+    the walkthrough, prose and quiz. **Resolved 2026-10-01 by doc edit**: §14's
+    3.23 row now describes the exercise as shipped. Adding per-call reliability
+    fields to `app-server` remains possible later, jointly with 17 and 19.
+    **Resolved 2026-10-07.** `app-server` gained `callTimeoutMs`, `retries`, `retryBackoff` and `idempotencyKeys`.
+
+24. **QUIZ_FRAMEWORK §15 Q5 contradicts R3 as built, raised 2026-10-01.** Q5
+    says a passing R3 design "still gets two warning-severity notes" and treats
+    warnings as named trade-offs. Every warning rule in the registry except
+    `orphan-component` is a taught anti-pattern, and R3 makes all four fail
+    Submit (per §14's "anything embodying a taught anti-pattern fails"). Q6 in
+    the same bank matches the build. **Resolved 2026-10-01**: Q5 rewritten
+    (a single DLQ warning failing R3, and why).
+25. **`ChapterDefinition` has no Phase A / Phase B mechanism, so CURRICULUM
+    §15.1's defining RWE structure cannot be built as specified, raised
+    authoring RWE Tier 1 Bitly (2026-09-19).** §15.1 defines every RWE project
+    as Phase A (guided core, starter graph, required components) then Phase B
+    (open build, large palette, multiple valid solutions), plus an optional
+    Stretch and a Debrief - and §4's own chapter-type table repeats it
+    ("Phase A guided + Phase B open + optional Stretch"). The shell holds one
+    `starterGraph`, one `blueprints` array, one Validate and one Submit. There
+    is no way to gate Phase B on passing Phase A, and §20.5 forbids inventing a
+    metadata field to add one. Same class of gap as the Stages UI
+    `pending-content.md` already names, and it is larger: stages affect Part 1,
+    this affects all 32 RWE projects.
+    **Not hacked around** - Bitly ships both phases as one exercise, with the
+    phases named inside the brief and an explicit sentence saying one Validate
+    and one Submit judge both. Everything §15.1 asks for *except* the gate is
+    genuinely present (see that chapter's spec §2 for the line-by-line
+    mapping): the starter graph is Phase A's seed, the wide palette and two
+    blueprints are Phase B, warning-severity trade-off notes already never
+    block, the Stretch is ungraded prose, and the Debrief is the two
+    blueprints' commentary. §15.1's "Phase A begins with requirements +
+    estimation stages, not with the canvas" is met only in prose, for the same
+    missing-Stages-UI reason.
+    **Blocks:** nothing today - Bitly shipped. It will compound: Tier 3-5
+    projects are 90-150 minutes with much larger builds, where a single
+    terminal Submit is a far worse feedback loop than it is on a 75-minute
+    Tier 1 brief, and that is the same mid-build-feedback gap R1's spec §12
+    already flagged at 45 minutes.
+    **Needs one of two decisions, made once for the whole track**: add phases
+    to `ChapterDefinition` and the workspace (real engineering - a `phases`
+    array with its own starter graph, required components, blueprints and
+    progress row per phase), or amend CURRICULUM §15.1 and §4 to describe the
+    single-exercise shape the product actually has. Either way it should be
+    settled before Tier 2 is authored, not after five more projects have copied
+    Bitly's workaround.
+    **Resolved 2026-10-07.** Decided: no phases. §15.1, §4, §2, §10.1, §11, §18 and §21 now define an RWE project as a lesson that teaches plus one editor exercise. Bitly's brief and spec no longer name phases.
 
 ---
 

@@ -20,7 +20,8 @@ export type CurriculumChapter = {
    *  persistence key (see CurriculumProgress) and a bookmarkable URL. */
   slug: string;
   /** Display number from CURRICULUM.md §14/§23, e.g. "1.2". Checkpoints use
-   *  "R1"/"R2"/"R3" (CURRICULUM.md Part 4) instead of a section number. */
+   *  their group's letter ("A"-"G") or "Final" (CURRICULUM.md Part 4)
+   *  instead of a section number. Slugs keep the older r1/r2/r3 names. */
   number: string | null;
   title: string;
   kind: "chapter" | "checkpoint";

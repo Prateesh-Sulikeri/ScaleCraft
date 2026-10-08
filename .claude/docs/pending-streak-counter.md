@@ -1,5 +1,7 @@
 # Pending - Day streak: real counter (release 7.1.0-alpha)
 
+**Shipped in 7.1.0-alpha (code verified on `origin/main`, 2026-10-07).** The status below is historical.
+
 **Status: built, on `fix/streak-counter` (branched from `feature/report-a-bug`).
 Not merged.** Depends on the streak persistence introduced by
 `feat: add Report a Bug, progress reset, and streak persistence`, so it cannot

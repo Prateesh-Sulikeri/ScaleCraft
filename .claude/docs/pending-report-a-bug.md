@@ -1,5 +1,7 @@
 # Report a Bug (RAB)
 
+**Shipped in 7.1.0-alpha (code and migrations 0005-0006 verified on `origin/main`, 2026-10-07).** The status below is historical.
+
 Status: **Built on `feature/report-a-bug` (cut from
 `release/v7.1.0-progress-reset`), 2026-08-19. Uncommitted.** Migrations
 `0005_rainy_franklin_richards` and `0006_serious_jocasta` (closing notes +

@@ -14,15 +14,15 @@ durability guarantees. They store pre-computed results, session tokens, or
 frequently accessed reference data to minimize the necessity of accessing 
 the underlying persistence layer (e.g., a database). Effective caching 
 significantly reduces operational load on backend services, allowing the 
-application to scale horizontally with predictable performance cha
+application to scale horizontally with predictable performance
 characteristics under heavy traffic.
 
 ## Why do we need it?
 
 Distributed caches solve the problem of latency and resource bottlenecking 
 inherent in persistent storage access. When an application frequently 
-requests the same data—such as user profile details or rate limits
-limits—querying a traditional disk-backed database introduces unacceptable 
+requests the same data - such as user profile details or rate limits
+limits - querying a traditional disk-backed database introduces unacceptable 
 network round trips and processing overhead. Implementing a cache layer 
 intercepts these repetitive read requests, serving data directly from fast 
 memory (RAM). This pattern scales throughput by absorbing read traffic 
@@ -36,7 +36,7 @@ physical nodes, preventing any single machine from becoming a bottleneck.
 When an application needs data, it sends a GET request containing the key 
 to the cache cluster. The caching system determines which node owns that 
 key using a consistent hashing algorithm and routes the query accordingly. 
-If the requested key exists (a cache hit), the value is returned i
+If the requested key exists (a cache hit), the value is returned
 immediately. If the key does not exist (a cache miss), the application 
 service typically fetches the data from the primary database, then writes 
 this newly retrieved result back into the cache before returning it to the 
@@ -67,14 +67,10 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Time-To-Live (TTL)** | Defines the maximum duration a key can persist 
-in the cache before automatic invalidation. |
-| **Eviction Policy** | Algorithm used to select and remove cached items 
-when memory capacity is reached (e.g., LRU, LFU). |
-| **Consistency Model** | Determines how stale data is managed between the 
-primary store and the cache layer. |
-| **Sharding Key/Strategy** | Specifies the mechanism (e.g., consistent 
-hashing) used to partition keys across the cluster nodes. |
+| **Time-To-Live (TTL)** | Defines the maximum duration a key can persist in the cache before automatic invalidation. |
+| **Eviction Policy** | Algorithm used to select and remove cached items when memory capacity is reached (e.g., LRU, LFU). |
+| **Consistency Model** | Determines how stale data is managed between the primary store and the cache layer. |
+| **Sharding Key/Strategy** | Specifies the mechanism (e.g., consistent hashing) used to partition keys across the cluster nodes. |
 
 ## Where is it used?
 

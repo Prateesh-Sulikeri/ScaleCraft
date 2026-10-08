@@ -34,7 +34,7 @@ steps:
 more messages (tasks) from a topic or queue.
 2.  **Deserialization:** The worker deserializes the raw payload into 
 structured data types and validates the input schema.
-3.  **Execution:** The core business logic executes, performing co
+3.  **Execution:** The core business logic executes, performing
 computation, coordinating database writes, or calling external services 
 using the received task context.
 4.  **Acknowledgement/Failure:** If execution completes successfully, the 
@@ -57,17 +57,11 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| `concurrency_limit` | Maximum number of tasks the worker can process 
-simultaneously. |
-| `retry_count` | The maximum number of times a failed task will be 
-re-processed before failing permanently. |
-| `queue_timeout_seconds` | Duration to wait for messages; determines how 
-often polling occurs if no work is available. |
-| `batch_size` | Number of tasks the worker attempts to consume and 
-process in one poll cycle. |
-| `visibility_ttl_seconds` | Time a message remains locked after c
-consumption, protecting it from simultaneous processing by other workers. 
-|
+| `concurrency_limit` | Maximum number of tasks the worker can process simultaneously. |
+| `retry_count` | The maximum number of times a failed task will be re-processed before failing permanently. |
+| `queue_timeout_seconds` | Duration to wait for messages; determines how often polling occurs if no work is available. |
+| `batch_size` | Number of tasks the worker attempts to consume and process in one poll cycle. |
+| `visibility_ttl_seconds` | Time a message remains locked after consumption, protecting it from simultaneous processing by other workers. |
 
 ## Where is it used?
 
@@ -82,7 +76,7 @@ encoding pipelines outside the main request flow.
 
 ## Key Points
 
-*   Workers must ensure processing logic is idempotent to handle g
+*   Workers must ensure processing logic is idempotent to handle
 guaranteed delivery retries safely.
 *   The worker component shields synchronous APIs from time-consuming 
 backend operations.

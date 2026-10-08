@@ -1,5 +1,7 @@
 # Save/sync optimization + best-only exam records
 
+**Shipped in 7.1.0-alpha (code verified on `origin/main`, 2026-10-07).** The status below is historical. Not confirmed from here: whether the Postgres migration in "Before this merges" was run on production.
+
 **Status: built, on `fix/db-fixes`. Not merged, not released, no release-notes
 entry yet.** Typecheck and the full test suite pass locally (241 files, 2347
 tests); `npm run lint` and `npm run build` have not been run yet. The Postgres

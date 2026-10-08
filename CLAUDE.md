@@ -109,6 +109,10 @@ directory misses which ones are live vs. retired:
   best row per chapter with an attempt count. Read before touching
   `src/persistence/`, `useAutosave`, or anything exam-scoring. Its "Before this
   merges" list names the Postgres migration that still has to be run.
+- `.claude/docs/pending-checkpoints.md` - the Building Blocks checkpoint
+  contract (product brief, interleaving, traceable debrief), the Build/Extend/
+  Review/Open flavors, and the 8-checkpoint roster. Group checkpoints A, B, C,
+  E, F authored 2026-10-05; read before touching any checkpoint.
 - `.claude/docs/pending-simulation-engine.md` - early brainstorm for a second,
   post-Validate simulation stage. Not scoped into a release yet.
 - `.claude/docs/pending-polish.md` - retired items consolidated out of other
@@ -117,7 +121,8 @@ directory misses which ones are live vs. retired:
   once its items land here - if you're looking for an older `pending-*.md` this
   session's context references and it's gone, check here first. Retired so far:
   the guided tour, release 5.1.0's diagram pipeline (Phase 5 triggers and its
-  four open questions survive there), and all three release 6.1.0 cloud-sync docs
+  four open questions survive there), `pending-content-fixes.md` (2026-10-07), and
+  all three release 6.1.0 cloud-sync docs
   (POA, build log, persistence audit) - for persistence *design* now read
   `ARCHITECTURE.md` and `DATABASE.md`, which the release updated in place.
 

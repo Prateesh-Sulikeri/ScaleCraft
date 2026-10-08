@@ -14,10 +14,33 @@ export type ViolationSource = {
   driftReport?: BlueprintDriftReport | null;
 };
 
+/** "an API Gateway", "a Cache" - decided by the label's first letter. */
+function withArticle(label: string): string {
+  return `${/^[aeiou]/i.test(label) ? "an" : "a"} ${label}`;
+}
+
+/** Only a forbid tripped: naming the "closest approach" would read as if the
+ * shape were wrong, when the fix is removing the anti-pattern. */
+function forbidOnly(drift: BlueprintDriftReport): boolean {
+  return (
+    drift.forbiddenPatterns.length > 0 &&
+    drift.missingComponents.length === 0 &&
+    drift.misconfiguredComponents.length === 0 &&
+    drift.mismatchedConnections.length === 0
+  );
+}
+
 function driftExplanation(drift: BlueprintDriftReport): string {
+  if (forbidOnly(drift)) return `It contains ${drift.forbiddenPatterns.join("; ")}.`;
   const parts: string[] = [];
+  if (drift.forbiddenPatterns.length > 0) {
+    parts.push(`Contains something this chapter rules out: ${drift.forbiddenPatterns.join("; ")}.`);
+  }
   if (drift.missingComponents.length > 0) {
     parts.push(`Missing: ${drift.missingComponents.join(", ")}.`);
+  }
+  if (drift.misconfiguredComponents.length > 0) {
+    parts.push(`Configured differently: ${drift.misconfiguredComponents.join("; ")}.`);
   }
   if (drift.mismatchedConnections.length > 0) {
     parts.push(`Connections that don't match: ${drift.mismatchedConnections.join("; ")}.`);
@@ -55,7 +78,7 @@ export function chapterDisplayViolations(outcome: ViolationSource, nodes: AnyNod
       ruleId: `missing-required-component:${componentId}`,
       severity: "error",
       message: `${label} is required for this chapter but isn't on the canvas.`,
-      explanation: `This chapter requires a ${label}. Add one to the diagram to continue.`,
+      explanation: `This chapter requires ${withArticle(label)}. Add one to the diagram to continue.`,
       offendingNodeIds: [],
       offendingEdgeIds: [],
     });
@@ -90,7 +113,9 @@ export function chapterDisplayViolations(outcome: ViolationSource, nodes: AnyNod
     synthetic.push({
       ruleId: `blueprint-drift:${drift.blueprintId}`,
       severity: "error",
-      message: `This design doesn't yet match "${drift.blueprintLabel}" - the closest known approach for this chapter.`,
+      message: forbidOnly(drift)
+        ? "This design contains something this chapter rules out."
+        : `This design doesn't yet match "${drift.blueprintLabel}" - the closest known approach for this chapter.`,
       explanation: driftExplanation(drift),
       offendingNodeIds: [],
       offendingEdgeIds: [],

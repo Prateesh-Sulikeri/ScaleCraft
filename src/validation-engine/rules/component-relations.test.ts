@@ -160,3 +160,39 @@ describe("componentRelations — coarse fallback for uncontracted components", (
     expect(() => runValidation(graph, [componentRelations])).not.toThrow();
   });
 });
+
+describe("componentRelations — named exceptions", () => {
+  const node = (id: string, componentId: string) => ({ id, componentId, position: { x: 0, y: 0 }, config: {} });
+  const check = (source: string, target: string, kind: "request-flow" | "control" | "replication") =>
+    runValidation(
+      {
+        nodes: [node("s", source), node("t", target)],
+        edges: [{ id: "e", source: "s", target: "t", kind }],
+        entryPointIds: [],
+      },
+      [componentRelations],
+    );
+
+  it.each([
+    ["browser", "object-storage", "request-flow"],
+    ["cdn", "object-storage", "request-flow"],
+    ["nosql-database", "coordinator", "control"],
+    ["sql-database", "coordinator", "control"],
+    ["api-gateway", "cache", "request-flow"],
+    ["api-gateway", "distributed-cache", "request-flow"],
+    ["load-balancer", "app-server", "control"],
+    ["browser", "dns", "control"],
+  ] as const)("allows %s -> %s (%s)", (source, target, kind) => {
+    expect(check(source, target, kind)).toEqual([]);
+  });
+
+  it.each([
+    ["browser", "sql-database", "request-flow"],
+    ["cdn", "object-storage", "control"],
+    ["sql-database", "read-replica", "control"],
+    ["load-balancer", "cache", "request-flow"],
+    ["browser", "app-server", "control"],
+  ] as const)("still refuses %s -> %s (%s)", (source, target, kind) => {
+    expect(check(source, target, kind)).toHaveLength(1);
+  });
+});

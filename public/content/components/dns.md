@@ -60,19 +60,11 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Resolver Caching TTL** | Defines how long the local resolver holds 
-cached records before requiring re-validation. Optimizes lookup latency vs 
-freshness. |
-| **NS Records** | Specifies which set of name servers are authoritative 
-for a specific domain. Essential for delegation trust. |
-| **Load Balancing (A/CNAME)** | Uses multiple A records or CNAMEs to 
-distribute traffic across several backend IPs, enabling high availability 
-and scale. |
-| **Geo-DNS Mapping** | Associates specific geographic regions with 
-dedicated sets of IP addresses, directing users to the nearest endpoint. |
-| **Primary/Secondary Zone Sync** | Defines the master source (primary) 
-that pushes updates to synchronized replicas (secondary), ensuring data 
-consistency. |
+| **Resolver Caching TTL** | Defines how long the local resolver holds cached records before requiring re-validation. Optimizes lookup latency vs freshness. |
+| **NS Records** | Specifies which set of name servers are authoritative for a specific domain. Essential for delegation trust. |
+| **Load Balancing (A/CNAME)** | Uses multiple A records or CNAMEs to distribute traffic across several backend IPs, enabling high availability and scale. |
+| **Geo-DNS Mapping** | Associates specific geographic regions with dedicated sets of IP addresses, directing users to the nearest endpoint. |
+| **Primary/Secondary Zone Sync** | Defines the master source (primary) that pushes updates to synchronized replicas (secondary), ensuring data consistency. |
 
 ## Where is it used?
 
@@ -90,7 +82,7 @@ nearest edge cache location.
 the root zone.
 *   It relies heavily on Time-To-Live (TTL) values for managing cache 
 validity and staleness across the network.
-*   A single domain name can resolve to multiple IP addresses, fac
+*   A single domain name can resolve to multiple IP addresses,
 facilitating basic load distribution.
 *   The process is inherently distributed; no single point of failure 
 should exist in the resolution path.

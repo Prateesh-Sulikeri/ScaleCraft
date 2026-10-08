@@ -21,14 +21,17 @@ describe("getChaptersForMode", () => {
       "bb-3-3-reverse-proxy",
       "bb-3-4-load-balancer",
       "bb-3-5-api-gateway",
+      "bb-cp-a-the-front-door",
       "bb-3-6-stateless-services",
       "bb-3-7-sessions-and-state-management",
       "bb-3-8-horizontal-scaling",
       "bb-3-9-service-discovery",
+      "bb-cp-b-inherited-fleet",
       "bb-3-10-databases",
       "bb-3-11-sql-vs-nosql",
       "bb-3-12-replication",
       "bb-3-13-sharding",
+      "bb-cp-c-the-data-tier",
       "bb-3-14-caching",
       "bb-3-15-cdn",
       "bb-3-16-search-systems",
@@ -36,13 +39,24 @@ describe("getChaptersForMode", () => {
       "bb-3-17-message-queues",
       "bb-3-18-event-driven-architecture",
       "bb-3-19-background-jobs-and-scheduling",
+      "bb-cp-e-off-the-request-path",
+      "bb-3-20-object-storage",
+      "bb-3-21-file-storage",
+      "bb-3-22-distributed-storage-concepts",
+      "bb-cp-f-where-the-bytes-live",
+      "bb-3-23-reliability-patterns",
+      "bb-3-24-rate-limiting",
+      "bb-3-25-observability",
+      "bb-3-26-fault-tolerance",
+      "bb-r2-building-a-complete-backend",
+      "bb-r3-open-system-design",
     ]);
   });
 
   it("returns only real-world-extraction chapters for that mode", () => {
     const chapters = getChaptersForMode("real-world-extraction");
     expect(chapters).toHaveLength(1);
-    expect(chapters[0].id).toBe("rwe-dummy-1");
+    expect(chapters[0].id).toBe("rwe-t1-bitly-url-shortener");
   });
 
   it("every registered chapter's mode is reachable through the filter", () => {
