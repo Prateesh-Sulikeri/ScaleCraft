@@ -1,5 +1,8 @@
 # Authored Chapters - Completion Ledger
 
+Checkpoint names: entries before 2026-10-05 say R1, R2, R3; those are now
+Checkpoints D, G and Final (slugs and ids keep r1/r2/r3).
+
 The running record of which curriculum chapters are actually authored, by whom,
 on which branch, and what was left open. Started 2026-08-05.
 
@@ -5868,7 +5871,9 @@ throttles everything" paid off in reverse.
   open's primary/replica pair is gone and the comment tells the story.
 - **Blueprint cannot require exactly one Leader** (two Leaders plus a Coordinator
   clear the rule and still match) - `absent` would be drift-blind. Taught, and
-  named in the commentary and `simplifications`.
+  named in the commentary and `simplifications`. **Reversed 2026-10-07:** a
+  labelled `forbid` on a second Leader card now fails Submit by name; the
+  simplification is removed and the commentary says a second Leader fails.
 - **Walkthrough uses custom Node A/B/C cards**: a card cannot change role, and
   post-failover follower -> follower replication is registry-illegal. Captions
   carry the roles; the lesson makes "cards are machines, the role is a fact" the
@@ -6285,6 +6290,7 @@ doc edit or a build decision.
    is shipped, tested, and stronger pedagogically); §14's row needs updating in
    its own commit. Detail in the chapter spec's §10.
    **Blocks:** nothing. Cosmetic doc drift, but it misleads the next author.
+   **Resolved 2026-10-07.** §14's 0.1 row now reads "Exercise: fix".
 
 2. **§16 component budget exception at 0.1.** §16 homes `client`,
    `app-server` and `sql-database` at 1.6 and forbids a component appearing in
@@ -6339,6 +6345,7 @@ doc edit or a build decision.
    worth of the same narrow exception, growing evidence this should become
    either a sanctioned Mermaid-topology carve-out or real engineering work for
    a graph-JSON markdown block.
+   **Resolved 2026-10-07.** §7.2 now says lesson topology is a `<Walkthrough>` (failures via `faultNodeIds`/`faultEdgeIds`), with Mermaid for a static preview.
 
 4. **CURRICULUM contradicts itself on what the five forces are.** §14's 0.2 row
    and §5.2 say latency / **throughput** / availability / durability / cost.
@@ -6381,6 +6388,7 @@ doc edit or a build decision.
    short Concept chapters, or schedule one retrofit pass across every
    authored chapter at once. Individual chapters should stop declaring this
    one by one.
+   **Resolved 2026-10-07.** §12 now makes the three nuggets optional; specs stop declaring the omission.
 
 6. **§4's chapter-types table lists 1.3 as a Concept-type example, contradicting
    §14's own Part 1 header ("Process type" for the whole part, 1.1-1.11, no
@@ -6392,6 +6400,7 @@ doc edit or a build decision.
    examples mandatory-vs-optional, Practical objective carve-out) didn't change
    what 1.3 needed either way. Fix in a doc-only commit: drop "1.3" from §4's
    Concept examples list.
+   **Resolved 2026-10-07.** §4's Concept examples no longer list 1.3 (already fixed; confirmed).
 
 7. **§14's 1.6 row promises a simulator trace the chapter doesn't have.** The
    row reads "Exercise: build + fix + simulator trace"; 1.6 as authored ships
@@ -6438,6 +6447,7 @@ doc edit or a build decision.
    decision 11's drift message) - so this row is now the clearest single
    example of a §14 exercise line no part of which the product can deliver as
    written.
+   **Resolved 2026-10-07.** No live simulator. §14 now says "simulator"/"trace" means a `<Walkthrough>` plus a prediction prompt or quiz question; §11's Trace row says the same.
 
 8. **`control`-kind edges aren't buildable on canvas - a real engine gap,
    found authoring 3.4 (2026-08-11).** CURRICULUM §16 assigns 3.4 as
@@ -6489,6 +6499,7 @@ doc edit or a build decision.
    outputs reach only `distributed-systems`), handled the same way. But 3.22's
    own app -> coordinator `control` edge *is* legal and is the graded fix -
    the first learner-built control edge in the curriculum that validates.
+   **Resolved 2026-10-07.** `PortRelationConstraint.exceptions` makes load balancer -> app server/worker and browser/client -> DNS legal as `control`. 3.2, 3.4, 3.8, 3.9 and 3.22 prose and simplifications now say drawable but not graded.
 
 9. **3.4 Load Balancer authored standalone, ahead of its real prerequisite
    (2026-08-11).** CURRICULUM §14's 3.4 row reads "Assumes: 3.3", but Group A
@@ -6538,6 +6549,7 @@ doc edit or a build decision.
     "would a learner ever notice this, and if so, does the lesson say it?"
     in mind. Either that becomes an authoring-checklist line, or the Reader
     grows a real surface for it.
+    **Resolved 2026-10-07.** §20.2 now says a simplification a learner would notice must also be in the prose.
 
 11. **Should a chapter's namesake fault ever be warning-severity? Raised by
     the Opus pass on 3.4 (2026-08-11).** `single-instance-load-balancer` is
@@ -6660,6 +6672,7 @@ doc edit or a build decision.
     "Contains something this chapter rules out: <label>". R3's forbids are
     labeled. `absent` inside a `require` pattern is still drift-blind, and the
     config-predicate "Missing: X" shape is still open.
+    **Resolved 2026-10-07.** All three halves fixed in the engine: `ChapterDefinition.ruleSeverity` (D and G escalate their warnings), config mismatches reported as "Configured differently: <field> should be ... (is ...)", and a fired `absent` block named in the drift report. 3.26 uses a labelled `forbid` for one Leader.
 
 12. **2.1's stop table pre-commits a one-line job description for five
    unwritten chapters (2026-08-18).** 2.1 From Browser to Backend is Part 2's
@@ -6704,6 +6717,7 @@ doc edit or a build decision.
    the chapter's own core-mechanics content verbatim, and "request shaping"
    is realized as path-based routing to a named service. Fourth and final
    of the four rows resolved.
+    **Resolved 2026-10-07.** All four rows were checked (see above); nothing left open.
 
 13. **2.1 uses and teaches the `control` edge kind before 3.4, which §16 says
    owns it. Raised by the Opus pass on 2.1 (2026-08-18).** §16's audit homes
@@ -6723,6 +6737,7 @@ doc edit or a build decision.
    its own commit, not something a chapter author decides silently. Same class
    as decision 12, one level down: 2.1 pre-commits Group A's *vocabulary* as
    well as its framing.
+    **Resolved 2026-10-07.** §16's 3.4 row now notes `control` is first shown in 2.1's DNS lookup.
 
 14. **`<Walkthrough>` has no failure state, so a failure diagram cannot show
    the failure. Raised authoring 2.2 (2026-08-20).** CURRICULUM §7.2 requires
@@ -6751,6 +6766,7 @@ doc edit or a build decision.
    canvas already uses for errors, so a failed stop looks the same everywhere
    ScaleCraft draws one. Same class as decisions 3 and 8: an engine gap found
    by content authoring.
+    **Resolved 2026-10-07.** `WalkthroughStep.faultNodeIds`/`faultEdgeIds` render a red ring and a red dashed edge with no packet. 2.2, 3.23 and 3.26 use them.
 
 15. **2.3's group table pre-commits a motivating pressure for all seven Part 3
    groups (2026-08-22).** CURRICULUM §14's purpose line for 2.3 is "so Part 3's
@@ -6869,6 +6885,7 @@ doc edit or a build decision.
    site down; 3.24: one client bug among thousands of phones; 3.25: something is
    broken and nobody knows; 3.26: the broken box is the one taking writes. This
    decision has no open rows left.
+    **Resolved 2026-10-07.** All seven rows were checked (see above); nothing left open.
 
 16. **CURRICULUM.md §6's own "engineered-cliffhanger" example doesn't parse
     under current chapter numbering, raised authoring 3.8 (2026-08-23).**
@@ -6892,6 +6909,7 @@ doc edit or a build decision.
     author *toward* the stale example. Fix: either update §6's parenthetical
     to describe the real 3.6-3.7-3.8 arc, or replace it with a still-valid
     example from an already-shipped chapter.
+    **Resolved 2026-10-07.** §6's example now describes the 3.6-3.7-3.8 arc.
 
 17. **CURRICULUM §14's own 3.10 row names a Config exercise the engine has
     no schema for at all, raised authoring 3.10 (2026-08-23).** §14's own
@@ -6928,6 +6946,7 @@ doc edit or a build decision.
     table to stop describing an exercise this component can't support -
     either way a decision for outside this skill, not something a chapter
     author should resolve unilaterally per chapter.
+    **Resolved 2026-10-07.** `sql-database` gained `indexing` (`primary-key-only`/`covers-hot-queries`). No rule gates it yet; 3.10 can now add a Config exercise.
 
 18. **QUIZ_FRAMEWORK.md §10's own bank Q5 diagram JSON draws the replica read
     edge backwards, raised authoring 3.12 (2026-08-23).** Q5's sample graph
@@ -6948,6 +6967,7 @@ doc edit or a build decision.
     QUIZ_FRAMEWORK.md §10 Q5's `e3` edge to `read-replica -> app-server`, so
     a future author copying the bank JSON verbatim doesn't inherit the
     mistake.
+    **Resolved 2026-10-07.** QUIZ_FRAMEWORK §10 Q5's `e3` now runs `read-replica -> app-server`.
 
 19. **CURRICULUM §14's own 3.13 row AND §11.1's own Config-exercise table
     both promise a shard-key config exercise the engine has no schema for,
@@ -6984,6 +7004,7 @@ doc edit or a build decision.
     to stop describing an exercise no component in the registry can support -
     either way, a decision for outside this skill, and one that should
     probably be made jointly with decision 17 rather than twice.
+    **Resolved 2026-10-07.** `sql-database` and `nosql-database` gained `partitioning` (`none`/`hash`/`range`) and `shardKey`. No rule gates them yet; 3.13 can now add a Config exercise.
 
 20. **Object storage accepts connections from compute only, so the two shapes
     3.20 teaches as standard are not drawable, raised authoring 3.20
@@ -7000,6 +7021,7 @@ doc edit or a build decision.
     Likely fix: add `networking` to that `allowedCategories` (CDN and Browser are
     both networking), plus a `cdn.relations.outputs` that admits `data` for the
     origin case.
+    **Resolved 2026-10-07.** `object-storage` accepts browser and CDN (`request-flow`), `coordinator` accepts SQL/NoSQL heartbeats (`control`), caches accept the API Gateway. 3.20, 3.24, Checkpoint F and G prose updated to drawable but not graded.
 
 21. **CURRICULUM §14's 3.22 row cites "3.17 eventual processing", which is
     outside 3.22's prerequisite chain, raised 2026-10-01.** §17 makes Groups E
@@ -7033,6 +7055,7 @@ doc edit or a build decision.
     the walkthrough, prose and quiz. **Resolved 2026-10-01 by doc edit**: §14's
     3.23 row now describes the exercise as shipped. Adding per-call reliability
     fields to `app-server` remains possible later, jointly with 17 and 19.
+    **Resolved 2026-10-07.** `app-server` gained `callTimeoutMs`, `retries`, `retryBackoff` and `idempotencyKeys`.
 
 24. **QUIZ_FRAMEWORK §15 Q5 contradicts R3 as built, raised 2026-10-01.** Q5
     says a passing R3 design "still gets two warning-severity notes" and treats
@@ -7075,6 +7098,7 @@ doc edit or a build decision.
     single-exercise shape the product actually has. Either way it should be
     settled before Tier 2 is authored, not after five more projects have copied
     Bitly's workaround.
+    **Resolved 2026-10-07.** Decided: no phases. §15.1, §4, §2, §10.1, §11, §18 and §21 now define an RWE project as a lesson that teaches plus one editor exercise. Bitly's brief and spec no longer name phases.
 
 ---
 

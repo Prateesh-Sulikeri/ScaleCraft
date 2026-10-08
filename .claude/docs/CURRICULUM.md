@@ -180,9 +180,9 @@ always at exactly one frontier stage but continuously exercises all earlier ones
 |---|---|---|---|
 | 1. Vocabulary | Names the parts and the forces (latency, throughput, availability) | Part 0, Part 2 | Part 0 quizzes |
 | 2. Components | Explains what each block does, its internals, its limits | Part 3 chapters | Chapter builds + quizzes |
-| 3. Interactions | Traces how blocks compose; predicts request paths and data flow | Part 2, Part 3 exercises, simulator traces | Trace/predict exercises |
+| 3. Interactions | Traces how blocks compose; predicts request paths and data flow | Part 2, Part 3 exercises, walkthrough traces | Trace/predict exercises |
 | 4. Trade-offs | Chooses between defensible options and names the cost | Trade-off exercises everywhere; §9 lenses | Trade-off scenarios + quiz |
-| 5. Design | Assembles a whole system from an ambiguous brief | Part 1 process + checkpoints + RWE Phase B | Checkpoints D, G and Final, RWE passes |
+| 5. Design | Assembles a whole system from an ambiguous brief | Part 1 process + checkpoints + RWE exercises | Checkpoints D, G and Final, RWE passes |
 | 6. Defend | Justifies decisions under follow-up pressure; drives the conversation | Part 1.3-1.4, Interview lens sections, retrospective quizzes | RWE debrief quizzes ([[QUIZ_FRAMEWORK]]) |
 | 7. Critique | Reviews an existing design; finds what breaks first and what to change | Fix-the-Architecture at scale, RWE stretch scenarios, debrief comparisons | Tier 4-5 RWE, Final |
 
@@ -242,7 +242,7 @@ sections are mandatory (§6) and which exercise mix applies (§11).
 | **Building Block** | Introduces 1-3 registry components | 3.4 Load Balancer | Full: build/completion/fix, the default |
 | **Process** | Teaches a step of the design workflow | 1.4 Estimating Scale | Staged: gated in-chapter stages |
 | **Checkpoint** | Re-demonstration, no new material: Build (blank canvas), Extend (one empty tier in a provided system), Review (find planted faults), or Open | A-G, Final | The chapter IS the exercise |
-| **RWE Project** | Multi-phase open design brief | Every RWE entry | Phase A guided + Phase B open + optional Stretch |
+| **RWE Project** | A real system taught, then built | Every RWE entry | Lesson + one editor exercise + optional prose Stretch |
 
 Depth allocation is intentional and per-type: forcing a big build onto a concept with
 no topology (e.g. CAP) is busywork and prohibited; skipping the build on a Building
@@ -349,8 +349,8 @@ fixed points instead of sprinkled.
     (§0).
 
 Checkpoints and RWE projects use compressed variants: Checkpoints have only beats
-1, 16 (the brief is the chapter); RWE projects run Acts 1 and 5 per phase with a
-debrief after (§15.2).
+1, 16 (the brief is the chapter); RWE projects run Acts 1 and 5 around one exercise,
+with a debrief after (§15.1).
 
 ---
 
@@ -374,16 +374,16 @@ that type; "o" = optional; "-" = prohibited.
 | Interview lens (13) | M | M | M | - | M |
 | Connections (14) | M | M | M | M | M |
 | Recap + knowledge check (15) | M | M | M | - | M (debrief) |
-| Transition brief (16) | M | M | M | M | M (per phase) |
+| Transition brief (16) | M | M | M | M | M |
 | Preview of next chapter | M | M | M | M | o |
 
 Rules of use:
 - Section order follows §5.3. Authors may merge adjacent sections when short (e.g.
   Failure modes folded into Trade-offs for a small chapter) but may not reorder.
 - "Preview of next chapter" is 2-3 sentences and must create *pull* (an unresolved
-  pressure), not a table of contents. The engineered-cliffhanger pattern (3.8 ends
-  with two servers and nothing routing between them; 3.4 resolves it) is the gold
-  standard.
+  pressure), not a table of contents. The engineered-cliffhanger pattern (3.6 ends
+  with two instances and two open questions, where state lives and how many is
+  enough; 3.7 and 3.8 answer them) is the gold standard.
 - Any mandatory section an author believes is genuinely inapplicable requires a
   written justification in the chapter spec (the way v1 justified 5.3's no-build).
 
@@ -421,11 +421,11 @@ these, that diagram is mandatory, not optional:
 
 ### 7.2 Authoring rules
 
-- **The canvas is the preferred renderer.** Any diagram expressible as an
-  architecture graph is authored as ScaleCraft graph JSON (`ArchitectureGraph`:
-  `nodes[{id, componentId, position, config}]`, `edges[{id, source, target, kind}]`,
-  `entryPointIds`) so it renders in the product's own visual language and can be
-  screenshotted, simulated, or handed to the learner as a starter graph. Edge kinds
+- **Topology renders in the product's own visual language.** In a lesson, a
+  topology is a `<Walkthrough>` (real component cards, real edge kinds; a failure
+  is shown with `faultNodeIds`/`faultEdgeIds`). A static topology preview is
+  Mermaid styled as the topology and captioned for that diagram only. In the
+  Editor, it is an `ArchitectureGraph` (starter graph, reference graph). Edge kinds
   carry meaning: `request-flow` (sync path), `control` (health checks, discovery),
   `replication`, `async` - diagrams must use the correct kind, because learners
   absorb edge semantics from every diagram they see.
@@ -514,8 +514,8 @@ defining feature of the product.
 
 ### 10.1 The ScaleCraft Interview Loop
 
-Eight steps. Part 1 devotes roughly one chapter per step; RWE Phase A/B walk the
-loop end to end on every project.
+Eight steps. Part 1 devotes roughly one chapter per step; every RWE project walks
+the loop end to end (the lesson for steps 1-3, the exercise for the build).
 
 Taught in condensed form as of Release 6.1.0-alpha Phase 10 (2026-08-16): Part
 1 is 3 mandatory chapters + 1 optional capstone, not one chapter per step. Each
@@ -575,8 +575,8 @@ Six types, all expressible with existing `ChapterDefinition` + validation machin
 | **Completion** | Substantial starter graph, add the missing piece | Worked-example fading | Heavy early in Part 3, gone by Reliability |
 | **Fix-the-Architecture** | Deliberately broken starter graph | Productive failure; validation explanations become the primary text | ≥1 per Part 3 group; introduced in 1.2 |
 | **Config** | Correct topology, tune per-node config | "Architecture includes configuration" | 3.4, 3.13, 3.14, 3.17, 3.24 |
-| **Trace / Predict-then-check** | State a prediction, then simulate or validate | Retrieval + immediate feedback | Part 2 throughout; 3.4, 3.14, 3.17, 3.26 |
-| **Trade-off scenario** | 2+ presented graphs/configs, pick per scenario, read reasoning | Judgment under multiple right answers | 3.7, 3.11, 3.19, 3.22, all RWE Phase B |
+| **Trace / Predict-then-check** | State a prediction, then check it against a `<Walkthrough>`, Validate or a quiz question | Retrieval + immediate feedback | Part 2 throughout; 3.4, 3.14, 3.17, 3.26 |
+| **Trade-off scenario** | 2+ presented graphs/configs, pick per scenario, read reasoning | Judgment under multiple right answers | 3.7, 3.11, 3.19, 3.22, all RWE projects |
 
 Design rules: every chapter has ≥1 construction-family exercise (build / completion
 / fix) except justified Concept chapters; fix exercises always ship symptoms in the
@@ -773,7 +773,9 @@ the spoiler gate.
 
 ## 12. Learning reinforcement systems
 
-Recurring, named devices. Each has a fixed placement so learners build rhythm.
+Recurring, named devices. Each has a fixed placement so learners build rhythm. The
+three nuggets are optional: authored chapters carry that content inline, which
+§20.6 density favors, and none is declared missing in a spec (decided 2026-10-07).
 
 | Device | What | Placement |
 |---|---|---|
@@ -820,6 +822,10 @@ Every teaching chapter connects to production systems (beat 11). Rules:
 
 ## 14. Building Blocks curriculum
 
+There is no live simulator. Wherever a row below says "simulator" or "trace", it
+means a `<Walkthrough>` in the lesson plus a prediction prompt or quiz question
+(decided 2026-10-07, open decision 7).
+
 Per-chapter format (compact; field names match what `CurriculumContext` transcribes):
 **Purpose** / **Type** / **New** (components + edge kinds) / **Assumes** /
 **Prepares for** / **Interview** (relevance: loop steps) / **Exercise** / **Est**.
@@ -834,8 +840,8 @@ work.
 
 - **0.1 Welcome to ScaleCraft** - Purpose: know how the product teaches (Reader ->
   Editor loop, validation that explains, hints on request only, mastery gates).
-  New: none (tour of the seed graph, read-only). Prepares for: everything.
-  Interview: Low. Exercise: none (the tour is the chapter). Est: 10.
+  New: none (tour of the seed graph). Prepares for: everything.
+  Interview: Low. Exercise: fix (a deliberately broken seed graph, gated by Submit). Est: 10.
 - **0.2 What is System Design?** - Purpose: define the discipline as reasoning
   under constraints (latency, throughput, availability, durability, cost) and name
   those five forces. Assumes: 0.1. Prepares for: all of Part 1 (the forces become
@@ -1179,30 +1185,35 @@ planted faults). Numbered by the group's letter.
 
 ### 15.1 Structure shared by every project
 
-- **Phase A - Guided core (prescriptive-ish):** the project's essential path, with
-  required components and a starter graph. Bounded novelty lives here (≤2-3 new
-  concepts, taught in Phase A's reading).
-- **Phase B - Open build (anti-pattern validation):** extend to the full brief from
-  a large palette; multiple valid solutions; success = zero error-severity
-  violations + required capabilities present. Trade-off notes appear as
-  `warning`-severity violations that never block success.
-- **Stretch - optional scenario twist** (never required): a scale or failure
-  wrinkle in prose, validated by additional anti-pattern rules.
+Every project is one chapter: a lesson that teaches, then one Design Editor
+exercise. No phases (decided 2026-10-07, open decision 25).
+
+- **Lesson (teaches):** the real system's story, its requirements and estimation
+  worked in prose (interview loop steps 1-3), and the ≤3 new concepts, all before
+  the canvas opens. §6's mandatory sections apply.
+- **Exercise (one build):** one brief, judged by one Validate and one Submit.
+  Starter graph optional and shrinking by tier (T1 seeds the essential path, T5
+  starts blank). Large palette; multiple valid solutions as multiple blueprints.
+  Success = zero error-severity violations + required components present + a
+  blueprint matched. Trade-off notes are warning-severity and never block, unless
+  the brief makes one a requirement (`ruleSeverity`).
+- **Stretch - optional prose twist** after the exercise (never graded): a scale or
+  failure wrinkle to reason about.
 - **Debrief:** on success, ≥2 distinct reference solutions (blueprints + reference
   graphs) revealed with trade-off commentary + a retrospective quiz
   ([[QUIZ_FRAMEWORK]] §12's RWE section) referencing the learner's own choices.
   References appear only *after* success - productive struggle first, worked
   example second.
 
-**Completion per project:** Phase A + Phase B + retrospective quiz; Stretch tracked
-but optional. **Difficulty tiers move three dials:** starter-graph size shrinks,
-the brief gets vaguer, and the share of warning-severity judgment calls grows.
+**Completion per project:** exercise pass + retrospective quiz; Stretch is never
+tracked. **Difficulty tiers move three dials:** starter-graph size shrinks, the
+brief gets vaguer, and the share of warning-severity judgment calls grows.
 
 Every project spec declares: unlock gate, **Reinforces** (which Part 3 chapters -
 each foundational concept must appear in ≥2 projects' lists across the roster),
 **New concepts** (≤3), and its interview-canon note (which interview archetype it
-trains). Full interview loop (§10.1) is run in every project: Phase A begins with
-requirements + estimation stages, not with the canvas.
+trains). Full interview loop (§10.1) is run in every project: the lesson walks
+requirements and estimation before the exercise opens the canvas.
 
 ### 15.2 The roster
 
@@ -1308,7 +1319,7 @@ in any palette before its home chapter.
 | 3.1 | `firewall` |
 | 3.2 | `browser`, `dns` |
 | 3.3 | `reverse-proxy` |
-| 3.4 | `load-balancer` + edge `control` |
+| 3.4 | `load-balancer` + edge `control` (first shown in 2.1's DNS lookup; 3.4 gives it a real job) |
 | 3.5 | `api-gateway` |
 | 3.11 | `nosql-database` |
 | 3.12 | `read-replica` + edge `replication` |
@@ -1382,7 +1393,7 @@ the map itself, which also tells the learner *why* the order exists.
 | Groups C-D | 11 -> 16 | Mixed build/fix | Prescriptive, more config | ≤2/chapter |
 | Groups E-G | 17 -> 27 | Build-first, blank-canvas default | Prescriptive | ≤3 (3.17 only) |
 | Final | 27 | None | **Anti-pattern (the shift)** | 0 |
-| RWE T1-T5 | Large -> full | Phase A shrinking -> none | Anti-pattern + warnings | ≤3 concepts/project |
+| RWE T1-T5 | Large -> full | Starter graph shrinking -> none | Anti-pattern + warnings | ≤3 concepts/project |
 
 ### 18.2 Sequencing rules (binding on all authors)
 
@@ -1453,7 +1464,8 @@ judgment.
 - Simplify when: the detail doesn't change any decision the learner will make at
   this stage. State the simplification honestly ("real TLS termination involves
   more; at this stage, know that the proxy absorbs it") and record it in the
-  chapter's `simplifications` list so Deep Check honors it.
+  chapter's `simplifications` list so Deep Check honors it. The list is not shown to
+  learners, so a simplification a learner would notice must also be in the prose.
 - Defer when: the concept has a home chapter later. Use a marked forward tease
   (§19), never an inline explanation of untaught material.
 - Cross-reference future chapters only as previews (one per chapter); reference
@@ -1567,8 +1579,7 @@ section quietly padded to look present.
   "chapter" | "checkpoint"`). `estimatedMinutes`, `difficulty`,
   `prerequisiteSlugs` transcribe §14/§15 metadata.
 - **Lesson** = `ChapterDefinition` (`src/content/chapters/types.ts`), one per BB
-  chapter; RWE projects are 2-3 chained definitions (Phase A, B, Stretch) sharing
-  a project grouping on the Learning Path.
+  chapter; each RWE project is one definition (lesson + one exercise).
 - **Exercise types are content patterns, not code:** Completion/Fix =
   `starterGraph` variants; Config = rules reading node `config`; multiple right
   answers = multiple `blueprints` (pattern containment, not equivalence);

@@ -1,5 +1,7 @@
 # Starter-graph decorators + Reset to Default
 
+**Shipped (code verified on `origin/main`, 2026-10-07).** The status below is historical.
+
 **Status: all 11 tasks (T0-T10) complete on `feat/starter-decorators-and-reset`
 (off `fix/design-editor-bugs`). Not merged, not pushed - awaiting review.**
 **Plan authored by an Opus planning pass; execution by Sonnet, one task at a time,

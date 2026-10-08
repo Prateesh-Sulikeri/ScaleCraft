@@ -114,10 +114,32 @@ authoring a diagram; this doc's Phase 5 and open questions are all that survive 
 | 1 | Do RWE debrief reference solutions get walkthroughs, or is `ReadOnlyGraphSummary` enough? Swings scope by ~60 diagrams. Content call, user decides. | Before first RWE project is authored |
 | 2 | Does layered LR survive a 12-14 node flagship? | First Tier 4 diagram (feeds P5.2) |
 | 3 | Do `custom`-kind nodes join auto-layout or stay hand-placed? Current spec: they join (neighbor-column rule); revisit on first real use. | First `custom` diagram |
-| 4 | Side-by-side topology comparison for RWE Phase B, or do `algorithms` variants cover it? | First Phase B debrief |
+| 4 | Side-by-side topology comparison in an RWE debrief, or do `algorithms` variants cover it? | Next RWE debrief |
 
 **One decision worth not losing:** walkthrough definitions stay **inline in MDX**,
 next to the prose. Typed TS modules referenced by id were rejected (breaks prose
 co-location; the invariants harness covers the real failure modes). This is the one
 decision worth revisiting if the harness proves too loose - and it gets more
 expensive to reverse as diagrams accumulate.
+
+------------------------------------------------------------------------
+
+## From `pending-content-fixes.md` (Groups F/G, Checkpoints G/Final follow-ups)
+
+Retired 2026-10-07 with every item done: the browser checks (3.25 gantt, 3.23/3.26
+walkthroughs, G and Final click-through, both judgment calls), the cold review,
+the component docs, and all seven engine gaps (config-mismatch drift,
+`ruleSeverity`, `absent` drift, relation `exceptions`, walkthrough fault states,
+the new config fields, the named missing-input headline). Details live in
+`pending-chapters.md` decisions 8, 11, 14, 17, 19, 20, 23 and 25. What is still
+unconfirmed:
+
+- **Drawing the new edges by hand in the Design Editor.** Verified by importing
+  graphs and by unit tests, not by dragging: browser/CDN -> object storage,
+  SQL/NoSQL -> coordinator (should default to `control`), API Gateway -> cache,
+  load balancer -> app server (`control` via the Edge Inspector), browser -> DNS.
+- **Config exercises for 3.10, 3.13 and 3.23.** The fields exist
+  (`indexing`, `partitioning`/`shardKey`, `callTimeoutMs`/`retries`/
+  `retryBackoff`/`idempotencyKeys`) but no rule or blueprint gates them yet.
+  Adding them is chapter authoring, not engineering.
+

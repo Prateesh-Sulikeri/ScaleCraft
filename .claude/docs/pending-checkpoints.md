@@ -2,9 +2,13 @@
 
 **Status: roster authored 2026-10-05** (uncommitted on
 `feature/content-groups-f-g`; ledger entry "Checkpoints A, B, C, E, F" in
-`pending-chapters.md`). Scoping opened the same day. R1-R3 were checked against
-the contract and kept, with small edits. Still open: browser click-through of
-all five, and the follow-up twist (engineering).
+`pending-chapters.md`). Scoping opened the same day. D, G and Final were checked against
+the contract and kept, with small edits. Browser click-through of all five
+done 2026-10-07: every blueprint (8 across A-F) passes Submit in under 300 ms,
+and each untouched starter fails with named reasons. B's starter shows the
+known config-predicate drift ("Missing: DNS, Firewall" with both on canvas),
+which its hint 3 already discloses. Still open: the follow-up twist
+(engineering).
 
 ## The problem
 
@@ -14,13 +18,13 @@ groups:
 | Stretch | Chapters | Composition events |
 |---|---|---|
 | Parts 0-2 | 11 | none (one 3-box build in 1.2) |
-| Groups A-D (3.1-3.16) | 16 | R1 only, at the very end |
-| Groups E-G (3.17-3.26) | 10 | R2 only, at the very end |
-| After G | - | R3 (open design) |
+| Groups A-D (3.1-3.16) | 16 | D only, at the very end |
+| Groups E-G (3.17-3.26) | 10 | G only, at the very end |
+| After G | - | Final (open design) |
 
-Between 3.1 and R1, a learner never assembles anything bigger than a
-one-node fix. R1 then asks for 9 requirements across 4 groups at once, from
-memory. The same cliff repeats at R2 (10 requirements, 3 more groups). And
+Between 3.1 and Checkpoint D, a learner never assembles anything bigger than a
+one-node fix. D then asks for 9 requirements across 4 groups at once, from
+memory. The same cliff repeats at Checkpoint G (10 requirements, 3 more groups). And
 every chapter exercise before a checkpoint is a fix on a mostly built graph,
 so the checkpoint is also the first time the learner places most components
 themselves.
@@ -39,7 +43,7 @@ that looks like a real system: a whole system, or a real slice of one.
 3. **Scoped to the group, situated in a system.** A group checkpoint gives the
    rest of the system as a starter (the *Extend* flavor below), so the effort
    goes into what the group taught, while the learner still sees where it fits.
-   Integration checkpoints (R1, R2) stay blank.
+   Integration checkpoints (D, G) stay blank.
 4. **Every requirement is traceable.** The debrief maps each requirement to
    the part of the reference design that answers it and the chapter that
    taught it, so a learner who passed by luck can see what they missed.
@@ -50,10 +54,10 @@ that looks like a real system: a whole system, or a real slice of one.
 
 | Flavor | Canvas | Tests | Used by |
 |---|---|---|---|
-| **Build** | Blank | Composing a whole system from a brief | R1, R2 |
+| **Build** | Blank | Composing a whole system from a brief | D, G |
 | **Extend** | Rest of the system provided, a zone left empty | Composing one tier inside a real system | Group checkpoints |
 | **Review** | An inherited system with several planted faults, count stated, no per-fault hints | Spotting what a group taught you to distrust, including config | Config-heavy groups (B) |
-| *(Open)* | Blank, anti-pattern validation | Judgment under an incomplete brief | R3 |
+| *(Open)* | Blank, anti-pattern validation | Judgment under an incomplete brief | Final |
 
 Review is new to the curriculum. It mirrors real work (you usually inherit a
 system) and it is the only honest way to checkpoint Group B, whose chapters
@@ -68,11 +72,11 @@ Bold rows are new. Times are first guesses.
 | **1** | 3.5 | The Front Door | Build | 9 | 25 |
 | **2** | 3.9 | Inherited Fleet | Review | 9 | 25 |
 | **3** | 3.13 | The Data Tier | Extend | 11 | 30 |
-| R1 | 3.16 | A Site That Stays Up | Build | 14 | 45 |
+| D | 3.16 | A Site That Stays Up | Build | 14 | 45 |
 | **4** | 3.19 | Off the Request Path | Extend | 21 | 35 |
 | **5** | 3.22 | Where the Bytes Live | Extend | 23 | 30 |
-| R2 | 3.26 | Building a Complete Backend | Build | 27 | 60 |
-| R3 | R2 | Open System Design | Open | 27 | 60 |
+| G | 3.26 | Building a Complete Backend | Build | 27 | 60 |
+| Final | G | Open System Design | Open | 27 | 60 |
 
 Building Blocks goes from 3 checkpoints to 8, adding about 2.5 hours.
 
@@ -104,12 +108,12 @@ Building Blocks goes from 3 checkpoints to 8, adding about 2.5 hours.
   replication edges), plus 3.7 (session state has to live somewhere shared).
 - **Sharding** has no canvas shape (open decision 17); it stays off this build.
 
-### R1 (unchanged position)
+### D (was R1, unchanged position)
 Now the integration of A-D rather than the first composition. With 1-3 before
-it, R1 can stay as written; it stops being a cliff.
+it, D can stay as written; it stops being a cliff.
 
 ### 4. Off the Request Path (after 3.19)
-- **Brief sketch:** R1's job board is provided. Empty async zone. Confirmation
+- **Brief sketch:** D's job board is provided. Empty async zone. Confirmation
   email that must survive an hour-long provider outage; three teams that each
   need every "listing published" event; a 02:00 report that runs once; bursty
   image resizing that should cost nothing when idle.
@@ -124,9 +128,9 @@ it, R1 can stay as written; it stops being a cliff.
 - **Engine risk:** browser-to-bucket presigned uploads cannot be drawn (open
   decisions 8/20). The brief has to stay inside what the canvas can express.
 
-### R2, R3 (unchanged)
-R2 already sits right after Group G and covers it, so no separate G
-checkpoint. R3 stays the open-design gateway.
+### G, Final (were R2, R3, unchanged)
+Checkpoint G sits right after Group G and covers it, so Group G needs no
+extra checkpoint. Final stays the open-design gateway.
 
 ## Considered, not recommended
 
@@ -134,7 +138,7 @@ checkpoint. R3 stays the open-design gateway.
   real skill there (the interview loop) is reasoning the canvas cannot check.
   A checkpoint would be a 3-box build with an essay nobody grades. Better:
   strengthen 1.2's exercise if Part 1 feels thin.
-- **A separate Group G checkpoint.** R2 follows G immediately and already
+- **A separate Group G checkpoint.** Checkpoint G follows Group G immediately and already
   requires failover, locks and limits.
 - **One checkpoint per chapter pair.** Too frequent to feel like composition;
   it becomes a second exercise per chapter.
@@ -177,7 +181,7 @@ Original questions:
 1. **Roster.** All five new checkpoints, or a subset? (Alternative: merge #1
    and #2 into one A+B checkpoint after 3.9.)
 2. **Review flavor.** Worth introducing, given it depends on the drift fix?
-3. **Gating.** Should new checkpoints hard-gate the next group like R1/R2, or
+3. **Gating.** Should new checkpoints hard-gate the next group like D/G, or
    be required for new learners and recommended for those already past them?
 4. **Follow-up stage.** In scope for this rework, or later?
 5. **Naming.** R1-R3 slugs are persistence keys and cannot change. Number the
