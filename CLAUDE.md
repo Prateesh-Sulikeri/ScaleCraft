@@ -53,73 +53,32 @@ don't).
 scoped and built. Check this list before starting engineering work - `ls`-ing the
 directory misses which ones are live vs. retired:
 
-- `.claude/docs/pending.md` - Release 5.0.0-alpha (Content Platform) build log: MDX
-  lesson pipeline, 3.4 Load Balancer migration, walkthrough diagram renderer. Read
-  its Status line first - it names which steps are merged vs. still on a feature
-  branch.
 - `.claude/docs/pending-e2e-quarantine.md` - e2e test quality. The four
   quarantined specs are fixed and un-quarantined; what's live is the systemic
-  problem they were a symptom of - ~106 `if (count > 0) { ...assert... }` guards
-  across six specs that pass having checked nothing. Unscoped, needs its own
-  pass. Also holds the recipe for reproducing CI conditions locally.
-- `.claude/docs/pending-report-a-bug.md` - the site-wide Report a Bug feature
-  (release 7.1.0-alpha): data model, the image-storage seam, API, placements,
-  plus the two app-wide changes it pulled in (CenteredModal portals to body;
-  Escape closes every modal). Read it before touching modals or bug storage.
-- `.claude/docs/pending-streak-counter.md` - the day-streak fix (release
-  7.1.0-alpha): why resetting progress used to *raise* the streak, and the
-  per-day activity log (`db.activeDays` + Clerk `publicMetadata`) that replaced
-  inferring it from overwritable timestamps. Read before touching the streak,
-  `resetCourse`, or anything under `src/persistence/active-days.ts`.
+  problem they were a symptom of - `if (count > 0) { ...assert... }` guards that
+  pass having checked nothing (the ~106 count is stale, needs a recount).
+  Unscoped, needs its own pass. Also holds the recipe for reproducing CI conditions locally.
 - `.claude/docs/pending-responsive.md` - POA for making the site responsive and
-  narrowing the 1024px size gate to the Design Editor only (release
-  7.1.0-alpha, branch `feat/size-changes`). Holds the breakpoint contract, the
+  narrowing the 1024px size gate to the Design Editor only. Rescoped to
+  release 7.4.0 (2026-10-01); the Design Editor also has no touch support, so
+  tablets can read but not practice. Holds the breakpoint contract, the
   gated-vs-open route split, and a surface-by-surface inventory. Read before
   touching `ScreenSizeGate`, `use-large-screen.ts`, `CenteredModal` sizing, or
   any page/layout shell.
-- `.claude/docs/pending-design-editor-exercise.md` - audit + POA for the Design
-  Editor half of every authored chapter: starter graphs laid out at a 200px
-  pitch against a 200px card (zero gap, invisible edges), single-row bounding
-  boxes that force `fitView` down to 0.56, and briefs that read as essays while
-  the learning-objectives block prints the answer above the opt-in hints. Read
-  before touching any `starterGraph`, `problemStatement`, or `QuestionPane`.
-  **Done** - T0-T9 all landed 2026-08-23 (320x160 pitch retrofit,
-  `exerciseGoal`/`successCriteria`, four invariant gates, CURRICULUM §11.5/§11.6).
-  Read it as the historical record of why those standards exist; the standards
-  themselves are being superseded by `pending-design-editor-revamp.md`.
-- `.claude/docs/pending-design-editor-revamp.md` - POA *and* build log for the
-  Design Editor redesign (release 7.2.0-alpha, branch
-  `feat/design-editor-revamp`). **All steps done** (1-5f, 2026-09-12): a 120x96
-  icon-forward component card with no description line; forgiving edge
-  connection (four ports, a 31px hit disc, `connectionRadius` 60, loose
-  `connectionMode`, `connection-rules.ts`, click-to-connect with an armed-click
-  cancel); redesigned `NodeConfigPopover`/`EdgeInspector`; all 14 starter graphs
-  re-authored to the 260x195 pitch behind a Dexie v15 migration; and 13
-  chapters of `referenceGraph` rendered by a new read-only `ReferenceGraphCanvas`
-  in the Debrief. Holds 20 locked decisions (D1-D20) and the derived
-  pitch/zone/short-code constants. Both invariant gates that Step 1 skipped are
-  re-enabled and passing - do not skip them again. Read before touching
-  `ComponentNode`, `card-geometry.ts`, `edge-routing.ts`, handles/connection
-  code, `NodeConfigPopover`, `EdgeInspector`, `ReferenceGraphCanvas`, or any
-  `starterGraph`/`starterDecorators`.
-- `.claude/docs/pending-save-sync.md` - the save/sync optimization + best-only
-  exam records (on `fix/db-fixes`, unmerged): Postgres as a 5-minute
-  checkpoint rather than a write-through mirror, `localRevision`/
-  `cloudRevision`/`graphHash` bookkeeping, and `exam_attempts` collapsed to one
-  best row per chapter with an attempt count. Read before touching
-  `src/persistence/`, `useAutosave`, or anything exam-scoring. Its "Before this
-  merges" list names the Postgres migration that still has to be run.
+- `.claude/docs/pending-bug-retention.md` - automatic bug-report cleanup,
+  **removed 2026-10-01** pending a redesign. Records what was pulled, what
+  stayed (manual close route, 0008 columns), and the original design as input.
 - `.claude/docs/pending-simulation-engine.md` - early brainstorm for a second,
   post-Validate simulation stage. Not scoped into a release yet.
 - `.claude/docs/pending-polish.md` - retired items consolidated out of other
   `pending-*.md` docs once they hit ~90% complete, kept as a checklist of what's
-  still unconfirmed (mostly manual click-through passes). A source doc is deleted
-  once its items land here - if you're looking for an older `pending-*.md` this
-  session's context references and it's gone, check here first. Retired so far:
-  the guided tour, release 5.1.0's diagram pipeline (Phase 5 triggers and its
-  four open questions survive there), and all three release 6.1.0 cloud-sync docs
-  (POA, build log, persistence audit) - for persistence *design* now read
-  `ARCHITECTURE.md` and `DATABASE.md`, which the release updated in place.
+  still open. A source doc is deleted once its items land here - if a code
+  comment cites a `pending-*.md` that no longer exists, check here first: its
+  table gives the commit to read it from git. Retired so far: the guided tour,
+  5.0.0/5.1.0 content platform and diagram pipeline, the 6.1.0 cloud-sync docs,
+  and (2026-10-01) the 7.1.0/7.2.0 docs - streak, save/sync, Report a Bug,
+  starter decorators, and both Design Editor docs. For persistence *design*
+  read `ARCHITECTURE.md` and `DATABASE.md`.
 
 ## Curriculum authoring
 

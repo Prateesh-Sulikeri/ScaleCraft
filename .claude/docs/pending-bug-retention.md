@@ -1,9 +1,22 @@
 # Bug report retention / automatic cleanup
 
-Status: **On `fix/db-auto-clean-up`, pushed 2026-08-26. Not merged.** Migration
-`0008_mature_sir_ram` is **applied to the Neon `development` branch**; still
-outstanding on production - see "Before this merges" at the bottom.
-`npm run typecheck`, `lint`, `test` (2412 passing) and `build` all green.
+Status: **REMOVED 2026-10-01, to be redesigned.** The sweep never ran in prod
+(`CRON_SECRET` setup failed, and migration 0008 had not been applied there).
+The user pulled the whole automatic cleanup rather than debug it.
+
+What was removed: `src/app/api/cron/bug-retention/`, `src/bugs/retention.ts`,
+`deleteBugImage`/`deleteOrphanBugImages` in `image-storage.ts`, the retention
+constants and `deletesAt`/`imageDeletesAt`/`imageRemovedAt` on `BugDetail`,
+the details-view deletion notices, and the `crons` entry in `vercel.json`.
+
+What stays: `POST /api/bugs/[id]/close` + `scripts/close-bug.mjs` (manual
+triage, still guarded by `CRON_SECRET`), and both 0008 columns (`closed_at`,
+`image_deleted_at`) - applied in prod, so dropping them would need another
+migration. Nothing deletes bug reports or images now.
+
+Everything below is the original design, kept as input for the redesign.
+
+---
 
 Two automatic deletions on top of the Report a Bug feature
 (`.claude/docs/pending-report-a-bug.md`, read that first):
@@ -208,10 +221,11 @@ for scanning, and the notice belongs next to the closing notes it explains.
 
 ## Before this merges
 
-1. **Run the migration** against Neon. **Dev branch done** (2026-08-26,
-   `ep-sweet-union-awxmuy08`); the production branch is still outstanding and
-   has to happen before the deploy. Two nullable columns, no backfill, no lock
-   of consequence.
+1. ~~**Run the migration** against Neon.~~ **Done on both branches.** Prod
+   (`main`) was missed at release and found unapplied 2026-10-01 - every
+   `GET /api/bugs/[id]` would have 500'd on the missing `closed_at`, unhit only
+   because prod had 0 reports. Applied the same day; the migrations log now
+   holds 8 rows.
 2. **Set `CRON_SECRET`** in Vercel (Production at minimum) and in `.env.local`.
    Both new routes 503 until it exists, so the cron would run and do nothing -
    silently, since a failing cron is not an alert. `openssl rand -hex 32`.

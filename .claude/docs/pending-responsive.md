@@ -3,6 +3,13 @@
 Release **7.1.0-alpha**. Branch **`feat/size-changes`**, cut from
 `staging/v7.1.0-progress-reset`.
 
+**Rescoped to release 7.4.0 (2026-10-01).** Phase 1 and the screenshot fixes
+shipped; the rest carries over. New input for scoping: the Design Editor has
+**no touch support**, so iPad/tablet users can read every lesson but never
+practice a chapter. Decide in 7.4.0 whether the editor gate stays width-based
+or also blocks on touch-only input (coarse pointer), and whether touch support
+for the canvas is in or out of scope.
+
 Status: **Phase 1 landed** (commit 8f818ae), decisions D1-D3 taken as
 recommended. **A real-browser Playwright screenshot pass then found Phase 1's
 curl-only verification had missed live overlap/overflow bugs across most of

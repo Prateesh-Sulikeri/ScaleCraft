@@ -28,7 +28,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("POST /api/bugs/[id]/close", () => {
-  it("closes the report and starts the retention clocks", async () => {
+  it("closes the report and stamps closedAt", async () => {
     const { POST } = await import("./route");
     const response = await POST(request({ status: "closed", closingNotes: "Fixed in 7.2.0." }), {
       params,
@@ -43,21 +43,13 @@ describe("POST /api/bugs/[id]/close", () => {
 
     const written = set.mock.calls[0]![0];
     expect(written).toMatchObject({ status: "closed", closingNotes: "Fixed in 7.2.0." });
-    // Starting the clock here is what makes the deletion date the reporter is
-    // shown exact rather than "sometime after the next sweep".
     expect(written.closedAt).toBeInstanceOf(Date);
     // Untouched on purpose: seenStatus left behind the new status is what
     // raises the reporter's unread badge.
     expect(written).not.toHaveProperty("seenStatus");
   });
 
-  // The screenshot has a 7-day grace window, so there is nothing to delete in
-  // this request. One code path does the deleting - the nightly sweep - which
-  // has to handle a hand-SQL close correctly anyway.
-  it("deletes nothing itself", async () => {
-    const retention = await import("@/bugs/retention");
-    expect(retention).not.toHaveProperty("deleteReportImage");
-
+  it("deletes nothing", async () => {
     const { POST } = await import("./route");
     const response = await POST(request({ status: "closed" }), { params });
     expect(await response.json()).toEqual({
@@ -82,8 +74,7 @@ describe("POST /api/bugs/[id]/close", () => {
     expect(update).not.toHaveBeenCalled();
   });
 
-  // Only the two terminal statuses: this route exists to finish a report, and
-  // reopening one is a plain UPDATE the sweep's unstamp step picks up.
+  // Only the two terminal statuses: reopening a report is a plain UPDATE.
   it("rejects a non-terminal status", async () => {
     const { POST } = await import("./route");
     for (const status of ["open", "in-progress", "deleted"]) {
