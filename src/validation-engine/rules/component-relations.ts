@@ -2,6 +2,7 @@ import type { ArchitectureGraph } from "@/lib/graph";
 import type { MatchResult, ValidationRule } from "../types";
 import { componentLookup } from "../component-lookup";
 import { legalKindsFor } from "@/canvas/legal-edge-kinds";
+import { portAllows } from "@/content/components/types";
 
 /**
  * Checks every edge against its endpoints' own declared relational
@@ -45,12 +46,8 @@ export const componentRelations: ValidationRule = {
       if (outputContract || inputContract) {
         // At least one endpoint has an opinion — that opinion wins,
         // regardless of what the coarse matrix would've said.
-        const outputCategoryOk =
-          !outputContract?.allowedCategories || outputContract.allowedCategories.includes(targetDef.category);
-        const outputKindOk = !outputContract?.allowedKinds || outputContract.allowedKinds.includes(e.kind);
-        const inputCategoryOk =
-          !inputContract?.allowedCategories || inputContract.allowedCategories.includes(sourceDef.category);
-        const inputKindOk = !inputContract?.allowedKinds || inputContract.allowedKinds.includes(e.kind);
+        const { categoryOk: outputCategoryOk, kindOk: outputKindOk } = portAllows(outputContract, targetDef, e.kind);
+        const { categoryOk: inputCategoryOk, kindOk: inputKindOk } = portAllows(inputContract, sourceDef, e.kind);
 
         if (outputCategoryOk && outputKindOk && inputCategoryOk && inputKindOk) continue;
 

@@ -56,6 +56,8 @@ export type WalkthroughStepVariant = {
   focus?: string | string[];
   highlightNodeIds?: string[];
   highlightEdgeIds?: string[];
+  faultNodeIds?: string[];
+  faultEdgeIds?: string[];
 };
 
 /**
@@ -83,6 +85,10 @@ export type WalkthroughStep = {
   focus?: string | string[];
   highlightNodeIds?: string[];
   highlightEdgeIds?: string[];
+  /** Drawn as failed: red ring on a card, red dashed edge with no packet.
+   * The caption must still name what failed (it is the accessible channel). */
+  faultNodeIds?: string[];
+  faultEdgeIds?: string[];
   /** Keyed by a WalkthroughAlgorithm.id (see WalkthroughProps.algorithms) -
    * when present and that algorithm is selected, replaces this step's
    * caption/highlights entirely. Steps that don't differ per algorithm (most

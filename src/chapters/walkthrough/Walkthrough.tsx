@@ -73,8 +73,11 @@ export function Walkthrough({
   const baseStep = resolved.steps[stepIndex];
   const step = (selectedAlgorithmId && baseStep?.variants?.[selectedAlgorithmId]) || baseStep;
 
-  const highlightNodeIds = new Set(step?.highlightNodeIds ?? []);
-  const highlightEdgeIds = new Set(step?.highlightEdgeIds ?? []);
+  const faultNodeIds = new Set(step?.faultNodeIds ?? []);
+  const faultEdgeIds = new Set(step?.faultEdgeIds ?? []);
+  // A faulted item is in focus too, so it never dims.
+  const highlightNodeIds = new Set([...(step?.highlightNodeIds ?? []), ...faultNodeIds]);
+  const highlightEdgeIds = new Set([...(step?.highlightEdgeIds ?? []), ...faultEdgeIds]);
   const hasHighlight = highlightNodeIds.size > 0 || highlightEdgeIds.size > 0;
 
   const devBanner =
@@ -166,6 +169,7 @@ export function Walkthrough({
             pathById={pathById}
             edges={resolved.edges}
             highlightEdgeIds={highlightEdgeIds}
+            faultEdgeIds={faultEdgeIds}
             dimmed={hasHighlight}
             runId={`${stepIndex}-${selectedAlgorithmId ?? ""}`}
             playing={playing}
@@ -181,6 +185,7 @@ export function Walkthrough({
               left={(node.position.x / resolved.viewBoxWidth) * 100}
               top={(node.position.y / resolved.viewBoxHeight) * 100}
               highlighted={highlightNodeIds.has(node.id)}
+              faulted={faultNodeIds.has(node.id)}
               dimmed={hasHighlight && !highlightNodeIds.has(node.id)}
               viewBoxWidth={resolved.viewBoxWidth}
               viewBoxHeight={resolved.viewBoxHeight}

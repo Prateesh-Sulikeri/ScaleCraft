@@ -50,6 +50,17 @@ describe("normalizeWalkthrough", () => {
     expect(issues.some((i) => i.code === "edge-endpoint-missing" && i.message.includes("ghost"))).toBe(true);
   });
 
+  it("flags fault ids that are not declared", () => {
+    const { issues } = normalizeWalkthrough(
+      baseProps({ steps: [
+        { caption: "One.", faultNodeIds: ["ghost-node"], faultEdgeIds: ["ghost-edge"] },
+        { caption: "Two." },
+      ] }),
+    );
+    expect(issues.some((i) => i.code === "fault-node-missing" && i.message.includes("ghost-node"))).toBe(true);
+    expect(issues.some((i) => i.code === "fault-edge-missing" && i.message.includes("ghost-edge"))).toBe(true);
+  });
+
   it("flags highlight-node-missing", () => {
     const { issues } = normalizeWalkthrough(
       baseProps({ steps: [

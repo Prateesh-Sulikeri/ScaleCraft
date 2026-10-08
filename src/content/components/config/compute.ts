@@ -10,11 +10,16 @@ export default [
     outputs: [{ id: "out", label: "Query" }],
     fields: [
       { kind: "number", name: "instances", label: "Instances", default: 1, min: 1, max: 20, int: true },
+      // Per-call reliability settings (3.23). 0 = no timeout / no retries.
+      { kind: "number", name: "callTimeoutMs", label: "Call timeout (ms)", default: 0, min: 0, max: 60000, int: true },
+      { kind: "number", name: "retries", label: "Retries", default: 0, min: 0, max: 10, int: true },
+      { kind: "enum", name: "retryBackoff", label: "Retry backoff", default: "none", options: ["none", "exponential-jitter"] },
+      { kind: "boolean", name: "idempotencyKeys", label: "Idempotency keys", default: false },
     ],
     summary: "Runs business logic and enforces access control",
     docs: "Runs application logic: authentication, authorization, and business rules. Should mediate all access to the database - clients should never reach it directly.",
     docsFile: "/content/components/app-server.md",
-    docsVersion: 2,
+    docsVersion: 3,
     // inputs include "data" (a Read Replica's "Read query" output targets
     // compute) and "distributed-systems" (a Follower's "Reads" output does
     // too) — both are pre-existing component ports that would otherwise be
@@ -25,6 +30,8 @@ export default [
       inputs: {
         allowedCategories: ["networking", "compute", "data", "distributed-systems"],
         allowedKinds: ["request-flow"],
+        // Health checks from a Load Balancer (3.4, 3.9).
+        exceptions: [{ componentIds: ["load-balancer"], kinds: ["control"] }],
       },
       outputs: {
         allowedCategories: ["compute", "data", "caching", "messaging", "distributed-systems"],
@@ -54,6 +61,8 @@ export default [
       inputs: {
         allowedCategories: ["messaging", "compute", "data", "distributed-systems"],
         allowedKinds: ["async", "request-flow"],
+        // Health checks from a Load Balancer (3.4, 3.9).
+        exceptions: [{ componentIds: ["load-balancer"], kinds: ["control"] }],
       },
       outputs: { allowedCategories: ["data", "caching", "compute", "messaging"], allowedKinds: ["request-flow", "async"] },
     },

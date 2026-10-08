@@ -16,7 +16,8 @@ export default [
     // No `inputs` relations — there's no input port at all, by design (a
     // Client is always an origin, never a destination).
     relations: {
-      outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
+      // The DNS lookup as a control edge (2.1, 3.2).
+      outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"], exceptions: [{ componentIds: ["dns"], kinds: ["control"] }] },
     },
   },
   {
@@ -34,7 +35,8 @@ export default [
     docsFile: "/content/components/browser.md",
     docsVersion: 2,
     relations: {
-      outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
+      // DNS lookup as a control edge (2.1, 3.2); presigned upload to the bucket (3.20).
+      outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"], exceptions: [{ componentIds: ["dns"], kinds: ["control"] }, { componentIds: ["object-storage"], kinds: ["request-flow"] }] },
     },
   },
   {
@@ -59,7 +61,8 @@ export default [
     docsFile: "/content/components/dns.md",
     docsVersion: 2,
     relations: {
-      inputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
+      // Lookups from the caller (2.1, 3.2).
+      inputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"], exceptions: [{ componentIds: ["browser", "client"], kinds: ["control"] }] },
       outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
     },
   },
@@ -88,7 +91,8 @@ export default [
     docsVersion: 2,
     relations: {
       inputs: { allowedCategories: ["networking"], allowedKinds: ["request-flow"] },
-      outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
+      // The bucket as the CDN's origin (3.20).
+      outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"], exceptions: [{ componentIds: ["object-storage"], kinds: ["request-flow"] }] },
     },
   },
   {
@@ -137,7 +141,8 @@ export default [
     // contract system exists to close structurally, not just this once.
     relations: {
       inputs: { allowedCategories: ["networking"], allowedKinds: ["request-flow"] },
-      outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"] },
+      // A shared counter for per-caller rate limits (3.24).
+      outputs: { allowedCategories: ["networking", "compute"], allowedKinds: ["request-flow"], exceptions: [{ componentIds: ["cache", "distributed-cache"], kinds: ["request-flow"] }] },
     },
   },
   {
@@ -167,7 +172,8 @@ export default [
     // contract, with no separate "ordering" rule needed.
     relations: {
       inputs: { allowedCategories: ["networking"], allowedKinds: ["request-flow"] },
-      outputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
+      // Health checks to its backends (3.4, 3.9).
+      outputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"], exceptions: [{ componentIds: ["app-server", "worker"], kinds: ["control"] }] },
     },
   },
   {

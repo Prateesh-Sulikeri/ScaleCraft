@@ -19,6 +19,83 @@ function blueprint(overrides: Partial<Blueprint> = {}): Blueprint {
 }
 
 describe("nearestBlueprintDrift", () => {
+  it("reports a component with the wrong config as misconfigured, not missing", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [{ ...node("fw", "firewall"), config: { defaultPolicy: "allow-all" } }, node("app", "app-server")],
+      edges: [{ id: "e1", source: "fw", target: "app", kind: "request-flow" }],
+      entryPointIds: [],
+    };
+    const bp = blueprint({
+      require: {
+        nodes: [
+          { alias: "fw", componentId: "firewall", config: [{ field: "defaultPolicy", op: "in", value: ["deny-all", "allow-listed"] }] },
+          { alias: "app", componentId: "app-server" },
+        ],
+        edges: [{ from: "fw", to: "app" }],
+      },
+    });
+
+    const drift = nearestBlueprintDrift(buildGraphIndex(graph), [bp]);
+
+    expect(drift.missingComponents).toEqual([]);
+    expect(drift.extraComponentIds).toEqual([]);
+    expect(drift.mismatchedConnections).toEqual([]);
+    expect(drift.misconfiguredComponents).toEqual([
+      "Firewall: default policy should be deny-all or allow-listed (is allow-all)",
+    ]);
+  });
+
+  it("names a fired absent block inside require by its label", () => {
+    const graph: ArchitectureGraph = {
+      nodes: [node("l1", "leader"), node("l2", "leader")],
+      edges: [],
+      entryPointIds: [],
+    };
+    const bp = blueprint({
+      require: {
+        nodes: [{ alias: "leader", componentId: "leader" }],
+        absent: [{ label: "a second Leader", nodes: [{ alias: "other", componentId: "leader" }] }],
+      },
+    });
+
+    const drift = nearestBlueprintDrift(buildGraphIndex(graph), [bp]);
+
+    expect(drift.forbiddenPatterns).toEqual(["a second Leader"]);
+  });
+
+  it("binds duplicate component types to the instances that satisfy their edges", () => {
+    // Two workers: the queue feeds w2, the cron job feeds w1. A first-candidate
+    // binding put both aliases on the wrong worker and reported both edges.
+    const graph: ArchitectureGraph = {
+      nodes: [node("w1", "worker"), node("w2", "worker"), node("q", "message-queue"), node("cron", "cron-job"), node("app", "app-server")],
+      edges: [
+        { id: "e1", source: "q", target: "w2", kind: "async" },
+        { id: "e2", source: "cron", target: "w1", kind: "request-flow" },
+      ],
+      entryPointIds: [],
+    };
+    const bp = blueprint({
+      require: {
+        nodes: [
+          { alias: "consumer", componentId: "worker" },
+          { alias: "report", componentId: "worker" },
+          { alias: "q", componentId: "message-queue" },
+          { alias: "cron", componentId: "cron-job" },
+          { alias: "app", componentId: "app-server" },
+        ],
+        edges: [
+          { from: "q", to: "consumer", kind: "async" },
+          { from: "cron", to: "report", kind: "request-flow" },
+          { from: "app", to: "q", kind: "async" },
+        ],
+      },
+    });
+
+    const drift = nearestBlueprintDrift(buildGraphIndex(graph), [bp]);
+
+    expect(drift.mismatchedConnections).toEqual(["Application Server -> Message Queue (async)"]);
+  });
+
   it("reports a missing component by label when no candidate node exists anywhere on the canvas", () => {
     const graph: ArchitectureGraph = { nodes: [node("n1", "client")], edges: [], entryPointIds: [] };
     const bp = blueprint({

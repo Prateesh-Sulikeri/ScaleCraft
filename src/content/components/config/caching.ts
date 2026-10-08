@@ -33,7 +33,8 @@ export default [
     // by widening compute's inputs to match, since the pairing itself
     // doesn't correspond to a real architecture pattern.
     relations: {
-      inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
+      // The API Gateway's shared rate-limit counter (3.24).
+      inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"], exceptions: [{ componentIds: ["api-gateway"], kinds: ["request-flow"] }] },
       outputs: { allowedCategories: ["data"], allowedKinds: ["request-flow"] },
     },
   },
@@ -67,7 +68,8 @@ export default [
     docsFile: "/content/components/distributed-cache.md",
     docsVersion: 2,
     relations: {
-      inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
+      // The API Gateway's shared rate-limit counter (3.24).
+      inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"], exceptions: [{ componentIds: ["api-gateway"], kinds: ["request-flow"] }] },
       outputs: { allowedCategories: ["data"], allowedKinds: ["request-flow"] },
     },
   },

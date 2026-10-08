@@ -58,8 +58,11 @@ export type GraphPattern = {
    * bindings, the match is killed. Aliases may reference outer nodes: an
    * absent node whose `alias` matches an outer pattern node's `alias` is
    * resolved against that outer binding, not re-searched. */
-  absent?: { nodes: PatternNode[]; edges?: PatternEdge[] }[];
+  absent?: AbsentBlock[];
 };
+
+/** `label` names the unwanted shape in a Submit drift report. */
+export type AbsentBlock = { label?: string; nodes: PatternNode[]; edges?: PatternEdge[] };
 
 export type Binding = Record<string, string>; // alias -> nodeId
 
@@ -158,8 +161,12 @@ export function nodeMatchesPredicates(index: GraphIndex, nodeId: string, pattern
   }
 
   if (patternNode.config) {
+    // Defaults underneath, so a node saved before a field existed reads as
+    // its default rather than as missing.
+    const defaults = index.defById.get(nodeId)?.defaultConfig as Record<string, unknown> | undefined;
+    const config = { ...defaults, ...(node.config as Record<string, unknown> | null | undefined) };
     for (const pred of patternNode.config) {
-      if (!evalConfigPredicate(node.config, pred)) return false;
+      if (!evalConfigPredicate(config, pred)) return false;
     }
   }
 
@@ -307,7 +314,7 @@ function backtrack(
  * every absent block it evaluates, under one MAX_STEPS ceiling. */
 function absentBlockMatches(
   index: GraphIndex,
-  block: { nodes: PatternNode[]; edges?: PatternEdge[] },
+  block: AbsentBlock,
   outerBinding: Binding,
   budget: Budget,
 ): boolean {
@@ -339,4 +346,10 @@ function absentBlockMatches(
   backtrack(index, order, aliasConstraints, structuralCandidates, 0, { ...presetBinding }, used, budget, matches, 1);
 
   return matches.length > 0;
+}
+
+/** Does this absent block fire against one binding. For blueprint-drift.ts,
+ * which names a fired block instead of reporting a generic mismatch. */
+export function absentBlockFires(index: GraphIndex, block: AbsentBlock, binding: Binding): boolean {
+  return absentBlockMatches(index, block, binding, { steps: 0, exhausted: false });
 }

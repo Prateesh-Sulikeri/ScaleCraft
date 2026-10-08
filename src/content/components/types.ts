@@ -35,7 +35,27 @@ export type PortRelationConstraint = {
   /** Legal EdgeKinds for a connection through this side. Omitted =
    * unconstrained by kind (same fallback as above). */
   allowedKinds?: EdgeKind[];
+  /** Named endpoints allowed outside the category/kind rules above, each
+   * with its own kinds - e.g. object storage accepting a browser's
+   * presigned upload without opening its input to all of networking. */
+  exceptions?: { componentIds: string[]; kinds: EdgeKind[] }[];
 };
+
+/** Does a connection of `kind` with `other` at the far end pass this side's
+ * contract. Missing contract = unconstrained. */
+export function portAllows(
+  contract: PortRelationConstraint | undefined,
+  other: { id: string; category: ComponentCategory },
+  kind: EdgeKind,
+): { categoryOk: boolean; kindOk: boolean } {
+  if (contract?.exceptions?.some((x) => x.componentIds.includes(other.id) && x.kinds.includes(kind))) {
+    return { categoryOk: true, kindOk: true };
+  }
+  return {
+    categoryOk: !contract?.allowedCategories || contract.allowedCategories.includes(other.category),
+    kindOk: !contract?.allowedKinds || contract.allowedKinds.includes(kind),
+  };
+}
 
 /**
  * A component's own declared relational contract — "explicitly have valid

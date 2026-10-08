@@ -24,6 +24,9 @@ export function MermaidBlock({ code }: { code: string }) {
         startOnLoad: false,
         theme: resolvedTheme === "light" ? "default" : "dark",
         securityLevel: "strict",
+        // Gantt sizes to its parent, which is detached at render time, so it
+        // falls back to 300px. Pin it to the lesson prose column.
+        gantt: { useWidth: 624, leftPadding: 110 },
       });
       try {
         const { svg: rendered } = await mermaid.render(idRef.current, code);

@@ -31,7 +31,8 @@ export default [
     // Compute (app-server/serverless-function) now declares "control" as a
     // legal output kind specifically so this is satisfiable.
     relations: {
-      inputs: { allowedCategories: ["compute", "distributed-systems"], allowedKinds: ["control"] },
+      // Storage-node heartbeats (3.22).
+      inputs: { allowedCategories: ["compute", "distributed-systems"], allowedKinds: ["control"], exceptions: [{ componentIds: ["sql-database", "nosql-database"], kinds: ["control"] }] },
       outputs: { allowedCategories: ["distributed-systems"], allowedKinds: ["control"] },
     },
   },

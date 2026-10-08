@@ -52,6 +52,7 @@ function makeDrift(overrides: Partial<BlueprintDriftReport> = {}): BlueprintDrif
     blueprintId: "bp-1",
     blueprintLabel: "The taught approach",
     missingComponents: [],
+    misconfiguredComponents: [],
     extraComponentIds: [],
     mismatchedConnections: [],
     forbiddenPatterns: [],
