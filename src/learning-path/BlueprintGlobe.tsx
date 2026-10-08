@@ -147,11 +147,13 @@ export function BlueprintGlobe({ className = "" }: { className?: string }) {
     atLatLon(PATCH_LAT[1], PATCH_LON[1]),
     atLatLon(PATCH_LAT[1], PATCH_LON[0]),
   ];
+  // Rounded once here: every coordinate rendered below must be rounded, or
+  // server and browser trig disagree in the last digits and hydration fails.
   const holeCentre = {
-    x: corners.reduce((sum, c) => sum + c.x, 0) / corners.length,
-    y: corners.reduce((sum, c) => sum + c.y, 0) / corners.length,
+    x: round(corners.reduce((sum, c) => sum + c.x, 0) / corners.length),
+    y: round(corners.reduce((sum, c) => sum + c.y, 0) / corners.length),
   };
-  const liftedCentre = { x: holeCentre.x + LIFT[0], y: holeCentre.y + LIFT[1] };
+  const liftedCentre = { x: round(holeCentre.x + LIFT[0]), y: round(holeCentre.y + LIFT[1]) };
 
   return (
     <svg
@@ -195,7 +197,7 @@ export function BlueprintGlobe({ className = "" }: { className?: string }) {
       />
       <g fill="currentColor" fillOpacity="0.55">
         {corners.map((corner) => (
-          <circle key={`${round(corner.x)}-${round(corner.y)}`} cx={corner.x} cy={corner.y} r="1.4" />
+          <circle key={`${round(corner.x)}-${round(corner.y)}`} cx={round(corner.x)} cy={round(corner.y)} r="1.4" />
         ))}
       </g>
 
