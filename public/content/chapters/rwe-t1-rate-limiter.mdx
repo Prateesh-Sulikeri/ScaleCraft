@@ -1,0 +1,319 @@
+A public geocoding API: send an address, get coordinates back. 30,000 developers
+hold keys, the free plan allows 60 requests a minute, and last month one free key
+was measured at 470 a minute without a single limit reported as broken.
+
+Every one of those requests passed through the API Gateway, which enforced 60 a
+minute exactly as configured - on each of its eight machines, separately. Eight
+times 60 is 480. The setting was correct and the system was not.
+
+> [!NOTE]
+> Think first: a key's requests land on whichever of the eight machines DNS and
+> connection reuse send them to. What has to be true for "60 a minute" to mean 60
+> across all eight, and what does that cost the 40,000 requests a second that are
+> nowhere near their limit? Commit to an answer before reading on.
+
+## The numbers
+
+| Measured | Figure | What it forces |
+|---|---|---|
+| Requests | 40,000/s at peak, all keys | The check runs on every request, so it must cost a small fraction of one |
+| Keys | 30,000 active, ~25,000 on the free plan | 30,000 counters is a few megabytes. Storage is not the problem |
+| Free limit | 60/minute, one a second sustained | An 8x error is not a rounding issue, it is the whole limit |
+| `/batch` endpoint | One call geocodes 25 addresses | Counting calls undercounts the expensive ones 25 times over |
+| Check budget | 2 ms at p99 | One network round trip inside a datacenter. Not two |
+
+The state is tiny and every request touches it. The hard part is not holding
+30,000 integers; it is getting eight machines to agree on each one fast enough to
+answer before the request moves on.
+
+## How a limiter counts, under a burst
+
+The limit is one number. How it is counted decides what a burst gets through. A
+script on a free key has been quiet for a minute, then sends 200 requests in the
+two seconds around 10:01:00:
+
+| Algorithm | State per key | Admitted from the burst | Why |
+|---|---|---|---|
+| Fixed window | One counter, reset on each clock minute | Up to 120 | 60 in the last second of 10:00, a fresh 60 in the first second of 10:01 |
+| Sliding log | A timestamp per admitted request | 60 | Counts the true last 60 seconds, so exact |
+| Sliding window counter | This minute's count and last minute's | About 60 | Weights last minute's count by how much of it still overlaps; assumes it was spread evenly |
+| Token bucket, capacity 10, refill 1/s | Token count and last refill time | 12 | 10 at once, then one a second |
+
+Fixed window is one integer and is wrong by 2x at every boundary. The sliding log
+is exact and pays in memory: a paid key at 3,000 a minute stores 3,000 timestamps.
+The sliding window counter is two integers and close to exact. The token bucket is
+the only one with two dials, sustained rate and forgiven burst, which is why it is
+the default when a legitimate client (a dashboard loading ten panels) fires a burst
+on purpose.
+
+> **Engineering lens.** Ask what the limit protects. If it protects a downstream
+> that falls over at a rate, the burst matters and fixed window's 2x is a real
+> outage. If it is a billing quota, nobody cares when within the hour the calls
+> arrived, and the cheapest counter wins.
+
+## One key, eight machines
+
+<Walkthrough
+  title="Where the count lives"
+  description="Switch between counting on each gateway machine and counting in one shared store. DNS is left out: it decides which machine a request reaches, nothing more."
+  algorithms={[
+    { id: "local", label: "Each machine counts" },
+    { id: "shared", label: "One shared counter" },
+  ]}
+  nodes={[
+    { id: "script", kind: "component", componentId: "client", label: "Script (one key)" },
+    { id: "gw1", kind: "component", componentId: "api-gateway", label: "Gateway machine 1" },
+    { id: "gw2", kind: "component", componentId: "api-gateway", label: "Gateway machine 2" },
+    { id: "counters", kind: "component", componentId: "distributed-cache", label: "Counter store" },
+    { id: "lb", kind: "component", componentId: "load-balancer", label: "Load Balancer" },
+    { id: "app", kind: "component", componentId: "app-server", label: "App Server" },
+  ]}
+  edges={[
+    { id: "to1", source: "script", target: "gw1", kind: "request-flow" },
+    { id: "to2", source: "script", target: "gw2", kind: "request-flow" },
+    { id: "count1", source: "gw1", target: "counters", kind: "request-flow" },
+    { id: "count2", source: "gw2", target: "counters", kind: "request-flow" },
+    { id: "pass1", source: "gw1", target: "lb", kind: "request-flow" },
+    { id: "pass2", source: "gw2", target: "lb", kind: "request-flow" },
+    { id: "serve", source: "lb", target: "app", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "The script's requests spread across Gateway machine 1 and Gateway machine 2. Which machine gets which request is decided by DNS and connection reuse, never by the key.",
+      highlightNodeIds: ["script", "gw1", "gw2"],
+      highlightEdgeIds: ["to1", "to2"],
+    },
+    {
+      caption: "Gateway machine 1 checks the key.",
+      focus: "to1",
+      variants: {
+        local: {
+          caption: "Gateway machine 1 counts this key in its own memory: 60 admitted, then refusals. It cannot see what machine 2 has admitted.",
+          highlightNodeIds: ["gw1", "lb"],
+          highlightEdgeIds: ["pass1"],
+        },
+        shared: {
+          caption: "Gateway machine 1 asks the Counter store to increment the key and gets back 60. The store did the arithmetic, so no two machines can read the same old value.",
+          focus: "count1",
+        },
+      },
+    },
+    {
+      caption: "Gateway machine 2 checks the same key.",
+      focus: "to2",
+      variants: {
+        local: {
+          caption: "Gateway machine 2 has its own counter at zero and admits another 60. Across eight machines that is 480 a minute, and every machine is correct.",
+          highlightNodeIds: ["gw2", "lb"],
+          faultEdgeIds: ["pass2"],
+        },
+        shared: {
+          caption: "Gateway machine 2's increment returns 61, so it refuses with a 429. One round trip, under a millisecond, and the key is held to 60 across the fleet.",
+          focus: "count2",
+        },
+      },
+    },
+    {
+      caption: "Admitted requests continue.",
+      focus: "serve",
+      variants: {
+        local: {
+          caption: "The over-limit requests reach the Load Balancer and the App Server as if nothing were wrong. Nothing downstream can tell an admitted request from one that should have been refused.",
+          highlightNodeIds: ["lb", "app"],
+          faultEdgeIds: ["serve"],
+        },
+        shared: {
+          caption: "Only admitted requests reach the Load Balancer. A refusal cost one counter round trip; the request it stopped would have cost a geocode.",
+          focus: "serve",
+        },
+      },
+    },
+    {
+      caption: "Same machines, same configured limit. Where the count lives decides whether the limit exists at all.",
+    },
+  ]}
+/>
+
+Note: the shared counter is now on the path of every request, including the
+39,000 a second that are nowhere near a limit. The next section is what that costs.
+
+## Shared counters and what they cost
+
+A shared counter fixes the 8x and buys four new problems:
+
+- **The read-then-write race.** If a gateway machine reads the count, decides, then
+  writes count + 1, two machines can both read 59, both admit, and both write 60.
+  The decision has to happen where the counter lives: an atomic increment for a
+  window, or a short script the store runs as one step for a token bucket (refill
+  by elapsed time, take a token, return the result).
+- **A hop on every request.** 40,000 round trips a second at about half a
+  millisecond fits the 2 ms budget, but the counter store is now a dependency of
+  the whole API. It is partitioned by key exactly as 3.13 partitions any store, so
+  30,000 keys spread evenly across its nodes.
+- **The hot key.** A scraper at 20,000 requests a second on one key sends every
+  one of those increments to the single node that owns that key - 3.13's hot
+  partition, caused on purpose by someone you are trying to refuse. The fix is
+  local: once a machine has been told a key is over, it refuses that key from
+  memory until the window ends, and the abusive traffic stops reaching the store
+  at all.
+- **The store goes down.** Fail closed (refuse what you cannot check) and a
+  counter outage becomes a full API outage. Fail open (admit what you cannot
+  check) and you are briefly unprotected. Limiters fail open, ideally falling back
+  to each machine enforcing limit / 8 locally until the store returns.
+
+| Counting scheme | Hop per request | Accuracy |
+|---|---|---|
+| Each machine alone | None | Up to 8x over |
+| Each machine alone, synced every second | None on the request path | Over by up to a second's worth |
+| Shared counter | One | Exact |
+| Shared counter, local refusal once over | One for keys under their limit, none for keys over | Exact, and abuse costs the store nothing |
+
+> **Production lens.** A rate limiter is a protection, not a ledger. Most
+> production limiters accept being slightly wrong for a second in exchange for
+> not making the protection a new way to go down.
+
+## Trade-offs
+
+Where the check runs is the decision the exercise leaves to you:
+
+| Placement | What it buys | What it costs |
+|---|---|---|
+| At the gateway, before anything else | A refused request costs the gateway and one counter hop, nothing more | The gateway sees calls, not their cost: `/batch` counts as one unless the gateway is taught per-endpoint weights |
+| In the application tier | It knows the call's cost (25 for `/batch`), the plan, and anything else the request means | A refused request has already crossed the load balancer and occupied an app slot |
+| Fixed window counter | One integer, one atomic increment | 2x at every boundary |
+| Token bucket | Sustained rate and burst set independently | A script run inside the store, not a single increment |
+| Failing open | A counter outage is not an API outage | Unprotected until the store returns |
+
+Both placements are real. Gateway-first is right when the threat is volume;
+service-side is right when calls vary in cost; large APIs run both, a coarse
+per-key flood limit at the edge and a cost-weighted quota in the service.
+
+## What breaks
+
+- **The boundary double.** A fixed window lets a free key make 120 calls in two
+  seconds. Harmless for billing, an outage for a downstream sized to the limit.
+- **One counter machine.** It restarts and every key's count resets to zero, or,
+  if the limiter fails closed, the API refuses everything until it is back.
+- **Keying by IP.** A university or a mobile carrier puts thousands of people
+  behind one address, and one key's limit throttles all of them.
+- **A refusal with no `Retry-After`.** The client retries immediately, and the
+  429s become the load.
+
+## What changes at scale
+
+At **10x** (400,000 checks a second), the counter store gets more partitions.
+Nothing structural moves.
+
+At **100x** the round trip itself is the cost. Machines claim tokens in batches -
+take 20 from the shared bucket, spend them locally - and the limit becomes
+approximate by the size of a batch.
+
+At **1000x** keys are used from several regions at once, and an exact global count
+needs a cross-region round trip of 100 ms on every request. The budget is split
+per region or synced asynchronously. The limit is now approximate by design.
+
+## In production
+
+**Cloudflare** counts with a sliding window counter - two integers per key - rather
+than a log, because at millions of domains the per-request memory of an exact log
+is the cost that matters. They measured the approximation as wrong on a tiny
+fraction of requests, and accepted that.
+
+**GitHub's REST API** gives each token 5,000 requests an hour and returns the
+remaining budget and reset time on every response. A long window plus a published
+budget lets well-behaved clients pace themselves; the cost is that an hour is a
+long time, and a client can spend its whole budget in one burst.
+
+A two-person startup uses the gateway's built-in per-key limit, one counter store,
+fails open, and does none of the above until a customer proves it needs to.
+
+## Common mistakes
+
+- **Configuring a limit per fleet and enforcing it per machine.** The cold open.
+  Every machine is right and the system is wrong.
+- **Read, decide, write in the gateway.** Two machines admit the same last slot.
+  The counter store must do the arithmetic.
+- **Failing closed.** The protection becomes the outage.
+- **One unit for calls that differ 25x in cost.** `/batch` users get 25 times the
+  service for the same limit.
+
+## In an interview
+
+"Design a rate limiter" is a standalone question, and it is graded on step 1 more
+than candidates expect: limited per what (key, user, IP), hard or soft, and what
+the client should be told. Step 3 is short and decisive - 40,000 checks a second
+against a few megabytes of state means this is a latency problem, not a storage
+one. The deep dive (step 5) is the algorithm and where the counter lives; the
+trade-off they wait for (step 7) is exactness against a hop.
+
+What that sounds like at a senior level: *"Per API key, token bucket, so we can
+forgive a dashboard's burst and still hold the sustained rate. Counters live in a
+partitioned in-memory store, and the decrement runs inside the store so two
+gateway machines can't both take the last token. That's one sub-millisecond hop
+per request; once a key is over, each machine refuses it locally until the window
+resets, so an attacker's traffic never reaches the store. If the store is down we
+fail open and fall back to the limit divided by the machine count. And I'd weight
+`/batch` by its cost, which means that limit lives in the service, not the
+gateway."*
+
+## Connections
+
+3.5 gave the API Gateway `rateLimitPerMinute`, and that number is enforced by
+whichever machine a request reaches; this project is what it takes for it to mean
+the whole fleet. 3.6 is why the count cannot stay on the machine: a counter is
+state, and state that every instance must agree on lives outside every instance.
+3.14's Distributed Cache takes a second job here, holding the only copy of the
+counters rather than a copy of anything - it has no origin behind it, because a
+missing counter just means zero requests so far. 3.13's hot partition reappears
+with an attacker choosing the key.
+
+Coming in Group G, if you have not taken it: 3.24 Rate Limiting covers what this
+project leaves out - limiting each caller versus protecting the whole system, and
+refusing by priority under overload.
+
+## Recap
+
+- A limit counted per machine is multiplied by the machine count. Where the count
+  lives decides whether the limit exists.
+- Algorithms differ in what a burst gets through: fixed window 2x, token bucket
+  exactly the capacity you chose.
+- The store does the arithmetic, never the gateway: read-then-write is a race.
+- Shared counters cost a hop per request; local refusal once over keeps abuse off
+  the store.
+- Fail open. A limiter that fails closed is a second way to take the API down.
+
+## Your turn
+
+**The product.** The geocoding API from the opening: clients call one gateway
+tier (eight machines, drawn as one card), which forwards to one application server
+in front of one relational database. It works, except that limits are enforced per
+machine.
+
+What it has to do:
+
+- A key's limit holds across the whole fleet: a free key gets 60 requests a minute,
+  however its requests are spread.
+- A request over its key's limit never reaches the API's data store, and the check
+  costs at most 2 ms.
+- Losing one machine that holds counters must not switch limiting off for every
+  key.
+- Losing the machine that runs application code drops no requests.
+- One public hostname resolves to whatever fronts the API.
+
+**The exercise.** Make the limit real. Where the check runs is yours to decide, and
+more than one placement passes - each pays for something the other does not.
+Validate runs every rule in the registry against your graph, not a curated subset.
+
+**Stretch, optional and not graded.** Half the free keys are now used from Europe
+and half from the US, each region with its own gateway fleet. What happens to "60
+a minute" when the two regions are 90 ms apart?
+
+**What you are not told**: which store holds the counts, which tier asks it, or how
+many of anything.
+
+## Next
+
+Tier 1's two other open briefs: Distributed Cache, where the store you just used
+as a counter becomes the thing you design - what happens to its keys when one of
+its machines dies - and Metrics Monitoring, which is how anyone would have noticed
+the 470 a minute in the first place.

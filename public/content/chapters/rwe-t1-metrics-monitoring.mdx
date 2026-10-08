@@ -1,0 +1,306 @@
+The company runs 2,000 hosts, and the only way anyone learns that checkout is slow
+is a customer email. A first attempt at monitoring wrote every measurement into a
+relational table indexed by timestamp. Every insert landed at the end of the same
+index, and the dashboard meant to show the next incident timed out during it.
+
+A URL shortener is a lookup read a thousand times for every write. This is the
+same ratio pointed the other way.
+
+> [!NOTE]
+> Think first: 200,000 measurements arrive every second and about 170 queries a
+> second read them back. Which side do you choose the store for, and what does a
+> single "show me the last 90 days" query cost if nothing has been done to the data
+> since it arrived? Commit to an answer before reading on.
+
+## The numbers
+
+| Measured | Figure | What it forces |
+|---|---|---|
+| Series | 2,000 hosts x ~1,000 named measurements = 2 M | The real scale axis. Points per second follow from it |
+| Points | Every series sampled each 10 s = 200,000/s | Write-heavy, sustained, never quiet |
+| Point size | 16 bytes raw (timestamp + value), ~1.4 compressed | 276 GB a day raw, ~24 GB compressed |
+| Reads | ~70 dashboard panels/s + 3,000 alert rules every 30 s | ~170 queries/s. Writes outnumber reads about 1,200 to 1 |
+| Retention | Raw 15 days, 1-minute 90 days, 1-hour 2 years | Old data is kept at a coarser resolution, never at full |
+
+Every point is written once, never updated, and almost never read on its own. It is
+read later as part of a range: one series, a stretch of time. Recent data is read
+constantly by alerts; old data is read rarely and always zoomed out. The store is
+chosen for the writes, and everything done to the data after it lands is for the
+reads.
+
+## The life of a point
+
+<Walkthrough
+  title="Written once, read as a range"
+  description="Switch between a recent graph and a long one to see which data each reads. Drawn push-shaped: the fleet sends."
+  algorithms={[
+    { id: "recent", label: "Last 15 minutes" },
+    { id: "history", label: "Last 90 days" },
+  ]}
+  nodes={[
+    { id: "fleet", kind: "component", componentId: "app-server", label: "Product fleet" },
+    { id: "ingest", kind: "component", componentId: "app-server", label: "Ingest" },
+    { id: "tsdb", kind: "component", componentId: "nosql-database", label: "Time-series store" },
+    { id: "dash", kind: "component", componentId: "browser", label: "Dashboards" },
+    { id: "query", kind: "component", componentId: "app-server", label: "Query" },
+  ]}
+  edges={[
+    { id: "send", source: "fleet", target: "ingest", kind: "request-flow" },
+    { id: "append", source: "ingest", target: "tsdb", kind: "request-flow" },
+    { id: "ask", source: "dash", target: "query", kind: "request-flow" },
+    { id: "read", source: "query", target: "tsdb", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "Every 10 seconds each host in the Product fleet sends Ingest one batch of about 1,000 points. 200,000 points a second arrive in just 200 requests.",
+      focus: "send",
+    },
+    {
+      caption: "Ingest appends each point to its series' current block in the Time-series store. Nothing is ever updated in place.",
+      focus: "append",
+    },
+    {
+      caption: "Ingest also folds each point into open 1-minute and 1-hour buckets in memory. When a bucket closes it writes one rollup row: min, max, sum and count.",
+      focus: "append",
+    },
+    {
+      caption: "An engineer opens a graph in Dashboards.",
+      focus: "ask",
+      variants: {
+        recent: {
+          caption: "An engineer opens the last 15 minutes of one series in Dashboards and Query is asked for 90 points.",
+          focus: "ask",
+        },
+        history: {
+          caption: "An engineer opens the last 90 days of one series in Dashboards. At full resolution that is 777,600 points.",
+          focus: "ask",
+        },
+      },
+    },
+    {
+      caption: "Query reads the Time-series store.",
+      focus: "read",
+      variants: {
+        recent: {
+          caption: "Query reads raw blocks for one series and one time range from the Time-series store: one partition, contiguous on disk.",
+          focus: "read",
+        },
+        history: {
+          caption: "Raw points expired after 15 days, so Query reads 1-hour rollups from the Time-series store: 2,160 points, close to the graph's width in pixels.",
+          focus: "read",
+        },
+      },
+    },
+    {
+      caption: "A firehose of tiny appends, read back rarely and as ranges. The store is chosen for the first; the rollups exist for the second.",
+    },
+  ]}
+/>
+
+Note: the Ingest step turns 200,000 points into 200 requests. A metrics system is
+bound by points and series, not by request count - the batch is why.
+
+## Time-series writes
+
+Four properties of the write path, each with a consequence:
+
+- **Append-only.** No point is ever updated, so the store never needs the
+  machinery for it. 3.10's indexes cost every write an index update; a store keyed
+  by series and time needs one ordering, and it is the order points arrive in.
+- **Keyed by series, then time.** The query is always "this series, this range".
+  That is the shape 3.11 gave the wide-column model: rows keyed by partition, sorted
+  by a range within it. A key-value store fetches one exact key and cannot answer a
+  range; a relational table indexed by timestamp, the cold open, sends every write
+  to the end of one index.
+- **Partitioned by series, never by time.** 3.13 warned that a monotonically
+  increasing key sends every new write to the newest shard. Time is the purest
+  example: partition by day and all 200,000 points a second hit today's partition
+  while 14 others idle. Hash the series identifier and the newest points spread over
+  every machine; a single-series query still lands on one.
+- **Compressed by shape.** Consecutive timestamps differ by almost exactly 10
+  seconds, so storing the difference between differences is usually zero.
+  Consecutive values barely change, so storing what changed between them is a few
+  bits. That is how 16 bytes becomes about 1.4.
+
+The scale axis that surprises people is the number of series, not points. A label
+like `user_id` on a latency measurement turns one series into four million, each
+with its own index entry and its own open buffer, while points per second barely
+move.
+
+## Downsampling and retention
+
+Nobody draws a 2-year graph at 10-second resolution: a graph is about 1,000 pixels
+wide, so any query returning far more points than that is wasted work. Downsampling
+keeps old data at the resolution it will actually be read at:
+
+| Tier | Resolution | Kept | Points per series for its window |
+|---|---|---|---|
+| Raw | 10 s | 15 days | 129,600 |
+| 1-minute rollups | 60 s | 90 days | 129,600 |
+| 1-hour rollups | 1 h | 2 years | 17,520 |
+
+Two rules make rollups honest:
+
+- **Store min, max, sum and count, never only the average.** A CPU pinned at 100%
+  for 40 seconds every few minutes averages into an hour at 35%, and the incident
+  disappears from the graph that was meant to show it. Max keeps it; sum and count
+  still give the exact average.
+- **Expire whole blocks, not rows.** Data is laid out by time within each series,
+  so retention drops a day's block in one operation instead of deleting 17 billion
+  rows one at a time.
+
+Rollups are 3.16's derived data: rebuildable from raw for as long as raw exists.
+After 15 days raw is gone and the rollup is the only copy left, so a bug in the
+rollup code is permanent data loss, not a re-index.
+
+> **Engineering lens.** Retention is a product decision priced in storage. Raw
+> points for two years would be about 17 TB compressed for graphs that nobody will
+> ever draw at that resolution. Ask what question the old data answers before
+> deciding what resolution to keep it at.
+
+## Pull or push
+
+The first arrow on the diagram has a direction, and it is a real decision.
+
+| | Pull: a collector scrapes each host | Push: each host sends to an ingest tier |
+|---|---|---|
+| A host dies silently | The next scrape fails, which is itself the alert | Silence is ambiguous: dead, idle, or a network split |
+| Knowing what to measure | The collector needs a current list of every target (3.9's registry) | Hosts announce themselves; no list needed |
+| Short-lived jobs | Gone before the next scrape | Send before they exit |
+| Who sets the pace | The collector, so a broken host cannot flood it | Each host, so a broken agent can |
+| Network shape | The collector must reach every host | Every host reaches one endpoint |
+
+On the canvas the direction of that edge is the whole difference: whoever opens
+the connection is the source. In the pull shape the collector usually also answers
+queries, so it is fed by the engineers asking for graphs.
+
+## Trade-offs
+
+| Decision | What it buys | What it costs |
+|---|---|---|
+| Pull collection | Liveness for free, and the collector controls load | A target list kept current, and short jobs are missed |
+| Push collection | No target list; short jobs and hosts behind firewalls report | Silence means nothing, and ingest must defend itself from its own agents |
+| Rollups computed at ingest | No second pass over the data; rollups exist the moment a bucket closes | Ingest holds every open bucket for every series in memory |
+| Rollups computed later by a scheduled job | Ingest stays simple | A second full read of raw data, and rollups lag by a run |
+| Partition by series hash | Writes spread evenly | A query across every series ("top 10 hosts by CPU") touches every partition - 3.13's scatter-gather |
+
+## What breaks
+
+- **The cardinality explosion.** One new label with millions of values multiplies
+  the series count, and ingest runs out of memory with the point rate unchanged.
+  Limit series per metric at ingest and refuse what exceeds it.
+- **Shared fate.** The monitoring system runs on the same network, database or
+  region as the product, and the outage it should show takes it down too. Monitoring
+  is the one system that must not depend on what it watches.
+- **A gap that reads as zero.** A collector dies for five minutes and the graph
+  draws a line through zero. Gaps must be drawn as gaps.
+- **The averaged incident.** Rollups that keep only the mean erase the spikes that
+  were the incident.
+
+## What changes at scale
+
+At **10x** (20 M series) the store gets more partitions and ingest more machines.
+Per-metric series limits stop being a nicety.
+
+At **100x** queries across all series become the bottleneck, so frequently asked
+aggregates (requests per second for the whole fleet) are precomputed at ingest like
+rollups, rather than summed across every partition on every refresh.
+
+At **1000x** ingest and recent data stay inside each region, close to the hosts, and
+a global query fans out to every region and merges the answers. A graph of
+"everything" is now a distributed query.
+
+## In production
+
+**Facebook's Gorilla** kept the most recent 26 hours of points in memory because at
+least 85% of queries asked for that window, and compressed points from 16 bytes to
+about 1.37 with exactly the delta and XOR tricks above. They chose memory for the
+data that is read and disk for the data that mostly is not.
+
+**Prometheus** pulls. A failed scrape is recorded as a measurement of its own, so a
+dead host is an alert rather than a silence, and the server sets the load it takes.
+It pays with service discovery for its target list and a separate push gateway for
+batch jobs that finish before anyone scrapes them.
+
+A two-person startup runs one Prometheus server, keeps 15 days, and adds rollups the
+first time someone asks for last year.
+
+## Common mistakes
+
+- **Choosing the store for the queries.** 170 queries a second is easy for anything;
+  200,000 writes a second is not.
+- **Partitioning by time.** All current writes land on one machine.
+- **Averaging into rollups.** The incident vanishes from the long-range graph.
+- **Unbounded labels.** Series count, not point rate, is what falls over.
+
+## In an interview
+
+"Design a metrics or monitoring system" is graded on step 3 first: candidates who
+estimate the write rate and the series count before drawing see that this is a
+write-heavy system with cheap, rare, range-shaped reads, and those who start from
+the dashboard do not. The deep dive (step 5) is the storage layout and retention;
+the trade-off (step 7) is pull versus push.
+
+What that sounds like at a senior level: *"Two million series every 10 seconds is
+200,000 points a second, written once and read as ranges per series, so I want an
+append-only, wide-column layout keyed by series then time, partitioned by a hash of
+the series, never by time. Points compress to under two bytes, so 15 days of raw is
+a few hundred gigabytes; after that I keep min, max, sum and count per minute and
+per hour, because an average hides the spike. Collection I'd pull, because a failed
+scrape is itself the alert, with a push path for short jobs. And I'd cap series per
+metric at ingest, because cardinality is what actually takes these systems down."*
+
+## Connections
+
+The store choice is 3.11's question with the opposite answer to a shortener:
+wide-column, because the workload is "this partition, this range", written at
+volume. 3.13 supplies the partition rule and its most important exception -
+never shard by a key that only grows - and the scatter-gather cost of an all-series
+query. 3.16's derived data is what a rollup is, until raw expires and it becomes the
+record. 3.10's index trade is why the cold open's design fell over: every insert
+paid for an ordering the queries did not need.
+
+Coming in Group G, if you have not taken it: 3.25 Observability is what to measure,
+what to alert on, and how to read it during an incident - the questions this
+system exists to answer.
+
+## Recap
+
+- Writes outnumber reads by three orders of magnitude; the store is chosen for the
+  writes.
+- Key by series then time, partition by a hash of the series, never by time.
+- Series count, not points per second, is the axis that breaks ingest.
+- Downsample to the resolution graphs are drawn at, keeping min, max, sum and count.
+- Pull makes silence an alert; push makes short jobs and firewalls easy.
+
+## Your turn
+
+**The product.** The company's request path - a browser, one public hostname, a load
+balancer, the product fleet drawn as one card, and its database - with nothing
+measuring it.
+
+What it has to do:
+
+- Record 200,000 points a second from the fleet, sustained.
+- No single storage machine takes all of the newest points.
+- The store answers "one series, one time range" without reading anything else.
+- Losing one machine that collects or receives points leaves no gap in any graph.
+- Engineers graph any series from a browser, without going through the product's
+  own servers.
+
+**The exercise.** Build the metrics system beside the product. Collection can run
+in either direction, and both pass: decide whether the fleet sends or is asked, and
+own what that costs. Validate runs every rule in the registry.
+
+**Stretch, optional and not graded.** A batch job runs for 40 seconds every night and
+reports a single number when it finishes. How does each collection model record it?
+
+**What you are not told**: which store, which of its settings matter, or which way
+the first arrow points.
+
+## Next
+
+This is the last of Tier 1's four open briefs, all unordered. The next tier unlocks
+at Checkpoint G, where every design adds the asynchronous machinery Tier 1 had to do
+without - starting with a Notification System that sends one event down three
+channels with three different ways to fail.

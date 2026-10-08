@@ -733,7 +733,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Rate Limiter",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-08.
+            chapterDefinitionId: "rwe-t1-rate-limiter",
             estimatedMinutes: 60,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r1-a-site-that-stays-up"],
@@ -744,7 +745,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Distributed Cache (Design One)",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-08.
+            chapterDefinitionId: "rwe-t1-distributed-cache",
             estimatedMinutes: 70,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r1-a-site-that-stays-up"],
@@ -755,7 +757,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Metrics Monitoring",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-08.
+            chapterDefinitionId: "rwe-t1-metrics-monitoring",
             estimatedMinutes: 65,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r1-a-site-that-stays-up"],

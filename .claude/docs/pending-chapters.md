@@ -93,6 +93,9 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | **Checkpoint E - Off the Request Path** (after 3.19) | **Authored (one-shot pass)** - Extend flavor, empty async zone, one blueprint with componentId alternatives | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
 | **Checkpoint F - Where the Bytes Live** (after 3.22) | **Authored (one-shot pass)** - Extend flavor, empty storage zone, CDN removed from the edge | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
 | **RWE Tier 1: Bitly (URL Shortener)** (the curriculum's first Real World Extraction project, closing `pending-content.md`'s Wave 2) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `rwe-dummy-1`, which is deleted along with its lesson file; first chapter in `mode: "real-world-extraction"`, so first to run the full rule registry unscoped and first with no `curriculumContext`; CURRICULUM §15.1's Phase A/Phase B split collapsed into one exercise because the shell has no phase mechanism (new open decision 25); first pair of blueprints that are genuinely different systems rather than one system drawn two ways; two tests break on the dummy's removal and are flagged, not fixed (this skill does not write tests); pipeline not run (content-only pass) | 2026-09-19 | uncommitted, working tree (`staging/v7.3.0-content-release`) |
+| **RWE Tier 1: Rate Limiter** | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - two placements (gateway vs application tier), counter store forbidden from falling through to a database via labelled `absent` blocks; first RWE palette with `client` | 2026-10-08 | uncommitted on `feature/content-rwe-tier-1` |
+| **RWE Tier 1: Distributed Cache (Design One)** | **Authored (one-shot pass)** - replicated tier vs four plain caches, the count of four derived from the brief's arithmetic; verified a duplicate-count drift report that lists nothing (open decision 27) | 2026-10-08 | uncommitted on `feature/content-rwe-tier-1` |
+| **RWE Tier 1: Metrics Monitoring** (Tier 1 complete) | **Authored (one-shot pass)** - push vs pull as the first edge's direction; store gated on `wide-column` + `partitioning: hash`; two browsers | 2026-10-08 | uncommitted on `feature/content-rwe-tier-1` |
 Everything else in the 77 rows is unauthored (`chapterDefinitionId: null`).
 
 **Wave 1 progress: 4 of 4 authored, all four through an Opus pass, merged into
@@ -6155,6 +6158,86 @@ instance, partly mitigated and partly worse than R1's. Decision 5's
 made over 2.1-3.19 to name it; that is a cross-cutting edit, not this chapter's
 business.
 
+## RWE Tier 1 - Rate Limiter, Distributed Cache, Metrics Monitoring
+
+- **Authored 2026-10-08** - one-shot `chapter-author` pass, all three in one
+  session, no cold second read yet - uncommitted on `feature/content-rwe-tier-1`
+  (cut from `staging/v7.3.0-polish`). Closes `pending-content.md`'s Wave 5 RWE
+  item and Tier 1.
+- Ids = manifest slugs: `rwe-t1-rate-limiter`, `rwe-t1-distributed-cache`,
+  `rwe-t1-metrics-monitoring`. Each has a spec in `specs/`, an `.mdx` lesson, a
+  `ChapterDefinition` appended after Bitly in `index.ts`, and its manifest row
+  flipped off `null`.
+- Bitly's RWE precedents carried unchanged: no `curriculumContext`, inert
+  `validationRuleIds`, one exercise, tier zones with no gap zone, five-question
+  retrospective quiz (4 single + 1 matching), Groups A-D palette.
+
+**Deliverables (each project):**
+
+| # | Deliverable | Rate Limiter | Distributed Cache | Metrics Monitoring |
+|---|---|---|---|---|
+| 1 | Spec | 12 sections | 12 sections | 12 sections |
+| 2 | Lesson | ~2,100 words + 1 walkthrough (local vs shared counter) | ~1,900 + 1 walkthrough (mod N vs ring, with failure) | ~2,000 + 1 walkthrough (15-minute vs 90-day read) |
+| 3 | Definition | 2 blueprints, 4 hints | 2 blueprints, 4 hints | 2 blueprints, 4 hints |
+| 4 | Validation rules | None new | None new | None new |
+| 5 | Quiz | 5 (singles at 2,0,3,1) | 5 (3,1,2,0) | 5 (0,3,1,2) |
+| 6 | Playtest | Spec §10 | Spec §10 | Spec §10 |
+
+Every Tier 1 project now opens its quiz on a different answer letter (Bitly b,
+RL c, DC d, MM a) - the cross-chapter positional check the skill asks for by eye.
+
+**Verified in-session (not just designed):** a throwaway probe (deleted) ran
+`evaluateChapter` on every reference graph and starter, plus four wrong designs.
+All six reference graphs pass Validate with zero errors and match their own
+blueprint; all three starters fail; an app-tier data cache with no limiter fails
+naming "A counter store that falls through to a database"; a NoSQL store left at
+`document` fails with "model should be wide-column (is document)".
+
+**Judgment calls:**
+
+- **Rate Limiter: the counter store is defined by having nothing behind it.**
+  Without that, blueprint 2 (`app -> distributed-cache`) passes any design with an
+  ordinary read cache and no limiter at all. Encoded as two labelled `absent`
+  blocks (one per possible origin) because an absent block cannot re-bind a node
+  the outer pattern already bound (`pattern.ts` seeds `used` with the outer
+  binding). First authored use of `absent` in RWE.
+- **Rate Limiter: `distributed-cache`, not `cache`, is required**, from the brief
+  line "losing one machine that holds counters must not switch limiting off for
+  every key". `client` joins the palette (home 1.2) because the callers are
+  programs; that makes `no-direct-client-database` live in RWE for the first time.
+- **Rate Limiter: `rateLimitPerMinute` is not graded.** One number per gateway card
+  cannot represent per-plan limits, and the project's point is where the count
+  lives, not its value.
+- **Distributed Cache: four `cache` nodes is arithmetic, not taste.** Three hold
+  180 GB but let 46,000 reads/s through when one dies against a 40,000 ceiling;
+  four is the smallest count under it. Shown in the lesson's trade-off section.
+- **Distributed Cache: neither key placement nor eviction is graded.** Placement
+  has no canvas field; `evictionPolicy` exists on `cache` but not
+  `distributed-cache`, so grading it would make the blueprints unequal. Both are
+  quiz-assessed (Q1-Q3), Bitly's split again.
+- **Metrics: push vs pull is the edge's direction.** `fleet -> ingest` vs
+  `collector -> fleet`. The pull collector needs an inbound edge to satisfy
+  `missing-input-connection`, so the engineers' browser feeds it - the Prometheus
+  shape, where the scraper answers queries. Disclosed in the lesson and hint 4.
+- **Metrics: `key-value` is rejected**, unlike Bitly, because 3.11 defines it as
+  "fetched by exact key, nothing else" and every query here is a range.
+- **Metrics: no Group E components**, so the stream between agents and store and
+  the scheduled rollup job are described, not drawn. Rollups are computed in
+  ingest; the fleet pushes straight to ingest because `load-balancer` accepts no
+  compute input.
+- **Forward teases are marked and out-of-chain**: Rate Limiter to 3.24 (Group G),
+  Distributed Cache to 3.22 (Group F), Metrics to 3.25 (Group G), each "if you have
+  not taken it".
+- **Bitly's cold open still said "R1"**, missed by the 2026-10-05 rename. Changed to
+  "Checkpoint D"; `lessonVersion` not bumped for a one-word fix.
+
+**Test edit (outside the skill's no-tests rule, at the user's CI-green
+preference):** `src/content/chapters/index.test.ts` asserted the RWE registry held
+exactly Bitly; now asserts the four Tier 1 ids in order.
+
+**New open decisions: 26** (Tier 1 rows cite out-of-chain chapters) **and 27**
+(duplicate-count drift lists nothing).
+
 ---
 ## Cross-cutting revisions (post-authoring)
 
@@ -7099,6 +7182,25 @@ doc edit or a build decision.
     settled before Tier 2 is authored, not after five more projects have copied
     Bitly's workaround.
     **Resolved 2026-10-07.** Decided: no phases. §15.1, §4, §2, §10.1, §11, §18 and §21 now define an RWE project as a lesson that teaches plus one editor exercise. Bitly's brief and spec no longer name phases.
+
+26. **CURRICULUM §15.2's Tier 1 rows cite chapters outside Tier 1's prerequisite
+    chain, raised 2026-10-08.** Rate Limiter's Reinforces lists 3.24 (Group G)
+    and Metrics Monitoring's lists 3.19 (Group E), but Tier 1 unlocks at
+    Checkpoint D (§17), before both groups. Same class as decision 21. **Not
+    hacked around**: both projects teach their own new concepts standalone and
+    name the out-of-chain chapter only as a marked forward tease. **Needs a doc
+    edit** to the two rows (drop the citations or mark them "if taken"); doc-only
+    commit.
+27. **Blueprint drift does not count duplicates, so a short count reports
+    nothing, raised 2026-10-08 (Distributed Cache, verified).** A blueprint
+    needing four `cache` nodes, matched against a graph with one to three, yields a
+    drift report with every list empty; the learner fails Submit with nothing
+    named. Decision 11 described this shape as a misleading "Missing: X"; it is
+    now silent instead, which is worse. Very likely the same on Metrics Monitoring
+    (two `browser`, two `app-server`) and R1's two-app-server blueprint - not
+    probed. Mitigated by
+    DC hint 4. **Engine fix**: report a short count ("needs 4 Cache, has 2") as its
+    own category in `blueprint-drift.ts`.
 
 ---
 

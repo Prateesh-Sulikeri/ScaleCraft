@@ -18691,6 +18691,1392 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
   },
+  {
+    id: "rwe-t1-rate-limiter",
+    mode: "real-world-extraction",
+    title: "Rate Limiter",
+    // Spec: specs/rwe-t1-rate-limiter.spec.md. Lesson body:
+    // public/content/chapters/rwe-t1-rate-limiter.mdx. Follows Bitly's RWE
+    // precedent: one exercise, no curriculumContext, full-registry validation.
+    problemStatement:
+      "A public geocoding API: clients call one gateway tier (eight machines, drawn as one card) in front of " +
+      "one application server and one relational database. Limits are enforced on each gateway machine " +
+      "separately, and a free key limited to 60 requests a minute has been measured at 470.\n\n" +
+      "- A key's limit holds across the whole fleet: a free key gets 60 requests a minute, however its " +
+      "requests are spread.\n" +
+      "- A request over its key's limit never reaches the API's data store, and the check costs at most 2 ms.\n" +
+      "- Losing one machine that holds counters must not switch limiting off for every key.\n" +
+      "- Losing the machine that runs application code drops no requests.\n" +
+      "- One public hostname resolves to whatever fronts the API.",
+    exerciseGoal:
+      "Make each key's limit hold across the whole gateway fleet rather than on each machine. Today a free " +
+      "key limited to 60 a minute gets eight times that, one allowance per machine.",
+    successCriteria: [
+      "A free key gets 60 requests a minute in total, whichever machines its requests land on.",
+      "Requests over a key's limit are refused before they reach the API's data store.",
+      "Losing one machine that holds counters does not switch limiting off for every key, and losing the machine that runs application code drops no requests.",
+      "Validate reports zero errors and Submit passes.",
+    ],
+    // Two of the five are this project's declared new concepts (§15.2):
+    // limiter algorithms under burst (1) and distributed counter state (2).
+    learningObjectives: [
+      "Predict what a burst gets through under fixed window, sliding log, sliding window counter and token bucket, from each algorithm's state.",
+      "Choose where a shared counter lives and how it is updated, naming the race a read-then-write limiter has and the hot-key cost of a shared store.",
+      "Answer \"what happens when the counter store is down?\" by naming fail open, why, and the local fallback, in under a minute.",
+      "Build a limiter whose count holds across the fleet and whose refusals never reach the data store, and pass Submit.",
+      "Defend checking at the gateway or in the application tier by naming what the other placement buys.",
+    ],
+    // Bitly's Groups A-D palette plus `client` (home 1.2): the callers are
+    // programs, not browsers. Nothing appears before its home chapter.
+    // `requiredComponentIds` is what both blueprints share; the gateway and
+    // the data store's type differ between them.
+    availableComponentIds: [
+      "client",
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+    ],
+    requiredComponentIds: ["client", "dns", "load-balancer", "app-server", "distributed-cache"],
+    // Moot for RWE: the full registry runs (spec §6).
+    validationRuleIds: [],
+    // Two placements of the same check. Both forbid the counter store from
+    // falling through to a database: a store with an origin behind it is a
+    // read cache, not a counter, and without this the second blueprint would
+    // pass a design with no limiter at all. Two absent blocks because an
+    // absent block cannot re-bind the outer `store` alias.
+    blueprints: [
+      {
+        id: "rwe-t1-ratelimiter-blueprint-gateway",
+        label: "Checked at the gateway, counted in a shared store",
+        require: {
+          id: "rwe-t1-ratelimiter-blueprint-gateway",
+          nodes: [
+            { alias: "client", componentId: "client" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "gw", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "counters", componentId: "distributed-cache" },
+            { alias: "store", componentId: ["sql-database", "nosql-database"] },
+          ],
+          edges: [
+            { from: "client", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "gw", kind: "request-flow" },
+            { from: "gw", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "gw", to: "counters", kind: "request-flow" },
+            { from: "app", to: "store", kind: "request-flow" },
+          ],
+          absent: [
+            {
+              label: "A counter store that falls through to a database",
+              nodes: [{ alias: "counters" }, { alias: "store" }],
+              edges: [{ from: "counters", to: "store" }],
+            },
+            {
+              label: "A counter store that falls through to a database",
+              nodes: [{ alias: "counters" }, { alias: "origin", category: "data" }],
+              edges: [{ from: "counters", to: "origin" }],
+            },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t1-rl-ref-gw-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t1-rl-ref-gw-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t1-rl-ref-gw-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 60 } },
+            { id: "rwe-t1-rl-ref-gw-lb", componentId: "load-balancer", position: { x: 840, y: 0 }, config: { algorithm: "least-connections" } },
+            { id: "rwe-t1-rl-ref-gw-app", componentId: "app-server", position: { x: 1100, y: 0 }, config: { instances: 4 } },
+            { id: "rwe-t1-rl-ref-gw-counters", componentId: "distributed-cache", position: { x: 580, y: 195 }, config: { replicationFactor: 2, consistency: "eventual" } },
+            { id: "rwe-t1-rl-ref-gw-db", componentId: "sql-database", position: { x: 1100, y: 195 }, config: { engine: "postgres" } },
+          ],
+          edges: [
+            { id: "rwe-t1-rl-ref-gw-e1", source: "rwe-t1-rl-ref-gw-client", target: "rwe-t1-rl-ref-gw-dns", kind: "request-flow" },
+            { id: "rwe-t1-rl-ref-gw-e2", source: "rwe-t1-rl-ref-gw-dns", target: "rwe-t1-rl-ref-gw-gateway", kind: "request-flow" },
+            { id: "rwe-t1-rl-ref-gw-e3", source: "rwe-t1-rl-ref-gw-gateway", target: "rwe-t1-rl-ref-gw-counters", kind: "request-flow" },
+            { id: "rwe-t1-rl-ref-gw-e4", source: "rwe-t1-rl-ref-gw-gateway", target: "rwe-t1-rl-ref-gw-lb", kind: "request-flow" },
+            { id: "rwe-t1-rl-ref-gw-e5", source: "rwe-t1-rl-ref-gw-lb", target: "rwe-t1-rl-ref-gw-app", kind: "request-flow" },
+            { id: "rwe-t1-rl-ref-gw-e6", source: "rwe-t1-rl-ref-gw-app", target: "rwe-t1-rl-ref-gw-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t1-rl-ref-gw-client"],
+        },
+        commentary:
+          "The limit is decided at the first stop that knows the key: the API Gateway (3.5), which asks a " +
+          "shared counter store before forwarding anything. That store is 3.14's Distributed Cache in a second " +
+          "job - holding the only copy of the counters rather than a copy of data, which is why nothing sits " +
+          "behind it: a missing counter just means zero requests so far. Partitioning spreads 30,000 keys over " +
+          "its machines (3.13) and its replicas keep a lost machine from resetting every key. A refused request " +
+          "costs one counter round trip and never reaches the Load Balancer, the tier 3.4 and 3.8 sized for " +
+          "admitted traffic only. What this placement gives up is cost: the gateway counts calls, so a `/batch` " +
+          "call that geocodes 25 addresses spends one unit of a 60-unit allowance unless the gateway is taught " +
+          "per-endpoint weights.",
+      },
+      {
+        id: "rwe-t1-ratelimiter-blueprint-service",
+        label: "Checked in the application tier, weighted by what each call costs",
+        require: {
+          id: "rwe-t1-ratelimiter-blueprint-service",
+          nodes: [
+            { alias: "client", componentId: "client" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "counters", componentId: "distributed-cache" },
+            { alias: "store", componentId: ["sql-database", "nosql-database"] },
+          ],
+          edges: [
+            { from: "client", to: "dns", kind: "request-flow" },
+            // Any route from the hostname to the load balancer: keeping the
+            // gateway for authentication is allowed, not required.
+            { from: "dns", to: "lb", kind: "request-flow", via: "path" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "counters", kind: "request-flow" },
+            { from: "app", to: "store", kind: "request-flow" },
+          ],
+          absent: [
+            {
+              label: "A counter store that falls through to a database",
+              nodes: [{ alias: "counters" }, { alias: "store" }],
+              edges: [{ from: "counters", to: "store" }],
+            },
+            {
+              label: "A counter store that falls through to a database",
+              nodes: [{ alias: "counters" }, { alias: "origin", category: "data" }],
+              edges: [{ from: "counters", to: "origin" }],
+            },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t1-rl-ref-svc-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t1-rl-ref-svc-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t1-rl-ref-svc-gateway", componentId: "api-gateway", position: { x: 580, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 600 } },
+            { id: "rwe-t1-rl-ref-svc-lb", componentId: "load-balancer", position: { x: 840, y: 0 }, config: { algorithm: "least-connections" } },
+            { id: "rwe-t1-rl-ref-svc-app", componentId: "app-server", position: { x: 1100, y: 0 }, config: { instances: 4 } },
+            { id: "rwe-t1-rl-ref-svc-counters", componentId: "distributed-cache", position: { x: 1360, y: 0 }, config: { replicationFactor: 2, consistency: "eventual" } },
+            { id: "rwe-t1-rl-ref-svc-db", componentId: "sql-database", position: { x: 1360, y: 195 }, config: { engine: "postgres" } },
+          ],
+          edges: [
+            { id: "rwe-t1-rl-ref-svc-e1", source: "rwe-t1-rl-ref-svc-client", target: "rwe-t1-rl-ref-svc-dns", kind: "request-flow" },
+            { id: "rwe-t1-rl-ref-svc-e2", source: "rwe-t1-rl-ref-svc-dns", target: "rwe-t1-rl-ref-svc-gateway", kind: "request-flow" },
+            { id: "rwe-t1-rl-ref-svc-e3", source: "rwe-t1-rl-ref-svc-gateway", target: "rwe-t1-rl-ref-svc-lb", kind: "request-flow" },
+            { id: "rwe-t1-rl-ref-svc-e4", source: "rwe-t1-rl-ref-svc-lb", target: "rwe-t1-rl-ref-svc-app", kind: "request-flow" },
+            { id: "rwe-t1-rl-ref-svc-e5", source: "rwe-t1-rl-ref-svc-app", target: "rwe-t1-rl-ref-svc-counters", kind: "request-flow" },
+            { id: "rwe-t1-rl-ref-svc-e6", source: "rwe-t1-rl-ref-svc-app", target: "rwe-t1-rl-ref-svc-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t1-rl-ref-svc-client"],
+        },
+        commentary:
+          "The application tier asks the counter store, because only it knows what a call costs: `/batch` " +
+          "spends 25 units, a single lookup one, and a paid plan's quota is looked up with the key. The " +
+          "Gateway stays for authentication (3.5) and can keep a loose per-key ceiling against floods, but " +
+          "the real limit lives behind the Load Balancer. The counter store is the same Distributed Cache " +
+          "with nothing behind it (3.14), partitioned by key (3.13) and atomic per increment. What this " +
+          "placement pays is the trip: a refused request has already crossed the Gateway and the Load " +
+          "Balancer (3.4) and held an app slot for the length of one counter round trip, so a scraping wave " +
+          "is absorbed by capacity 3.8 sized for real traffic. Large APIs run both: a coarse flood limit at " +
+          "the edge, the cost-weighted quota here.",
+      },
+    ],
+    hints: [
+      {
+        id: "rwe-t1-ratelimiter-hint-1",
+        body:
+          "Before placing anything, count how many separate places one key's requests are counted in today, " +
+          "and how many there should be.",
+      },
+      {
+        id: "rwe-t1-ratelimiter-hint-2",
+        body:
+          "A number that every machine must agree on is state. Ask where state shared by many instances has " +
+          "lived in every design since Group B, and which tier needs to ask it before deciding.",
+      },
+      {
+        id: "rwe-t1-ratelimiter-hint-3",
+        body:
+          "Some requirements are answered by a setting, not a box. Open each component and read its fields " +
+          "against the requirement it is meant to answer.",
+      },
+      {
+        id: "rwe-t1-ratelimiter-hint-4",
+        body:
+          "Whatever holds the counts is not in front of anything. If you have drawn a path from it onward to " +
+          "a database, that is a different job, and Submit will say so.",
+      },
+    ],
+    readingLinks: [],
+    // Today's system: four nodes, one row, 260px pitch (§11.5). Validates
+    // clean - the gap is absent components, not a broken one - and cannot
+    // pass, since dns, load-balancer and distributed-cache are all required.
+    starterGraph: {
+      nodes: [
+        { id: "rwe-t1-ratelimiter-starter-client", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+        { id: "rwe-t1-ratelimiter-starter-gateway", componentId: "api-gateway", position: { x: 320, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 60 } },
+        { id: "rwe-t1-ratelimiter-starter-app", componentId: "app-server", position: { x: 580, y: 0 }, config: { instances: 1 } },
+        { id: "rwe-t1-ratelimiter-starter-db", componentId: "sql-database", position: { x: 840, y: 0 }, config: { engine: "postgres" } },
+      ],
+      edges: [
+        { id: "rwe-t1-ratelimiter-starter-e1", source: "rwe-t1-ratelimiter-starter-client", target: "rwe-t1-ratelimiter-starter-gateway", kind: "request-flow" },
+        { id: "rwe-t1-ratelimiter-starter-e2", source: "rwe-t1-ratelimiter-starter-gateway", target: "rwe-t1-ratelimiter-starter-app", kind: "request-flow" },
+        { id: "rwe-t1-ratelimiter-starter-e3", source: "rwe-t1-ratelimiter-starter-app", target: "rwe-t1-ratelimiter-starter-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["rwe-t1-ratelimiter-starter-client"],
+    },
+    // Tier zones only (Bitly's RWE default: no gap zone on an open brief).
+    starterDecorators: [
+      { kind: "zone", id: "rwe-t1-ratelimiter-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "rwe-t1-ratelimiter-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 436, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t1-ratelimiter-zone-data", label: "Data", position: { x: 812, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "rwe-t1-ratelimiter-comment-today",
+        text: "The gateway card is eight machines, each counting on its own. Peak is 40,000 requests a second across all keys.",
+        position: { x: 32, y: 168 },
+        width: 436,
+        height: 80,
+        color: "#64748b",
+      },
+    ],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    // No `curriculumContext` (RWE, see Bitly). Retrospective quiz,
+    // QUIZ_FRAMEWORK §16: Q1 re-casts the bank's Rate Limiter entry (§16 Q3);
+    // the rest are new and keyed to this brief.
+    quiz: [
+      {
+        id: "rwe-t1-ratelimiter-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Your limiter keeps its counters in each machine's memory, and the API runs on six machines behind a " +
+          "load balancer. A key is limited to 100 requests a minute. How many can it actually make?",
+        options: [
+          {
+            id: "rwe-t1-ratelimiter-q1-a",
+            label: "100 a minute - the limit is configured once for the whole service.",
+            correct: false,
+            explanationMd:
+              "Configured once, enforced six times. Each machine sees only the requests that reach it and admits up to 100 of them.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q1-b",
+            label: "About 17 a minute, because the load balancer divides each key's allowance six ways.",
+            correct: false,
+            explanationMd:
+              "A load balancer spreads requests, not allowances. Nothing divides the configured number; each machine applies all of it.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q1-c",
+            label: "Up to about 600, if its requests spread across all six machines.",
+            correct: true,
+            explanationMd:
+              "Each machine enforces its own count, so the effective limit is the configured one times the number of machines a key reaches. A limit meant for the fleet needs a count the whole fleet shares.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q1-d",
+            label: "Exactly 100, as long as the load balancer uses sticky sessions.",
+            correct: false,
+            explanationMd:
+              "Sticky routing would keep one key on one machine and make local counting exact - until that machine dies and the key's count dies with it. Nothing in the setup says routing is sticky.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-ratelimiter-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Your free tier is counted with a fixed one-minute window. The geocoder behind it falls over above " +
+          "about two requests a second per key, and a script has learned to send 60 requests at 10:00:59 and 60 " +
+          "more at 10:01:00. Which change stops that without storing a timestamp for every request?",
+        options: [
+          {
+            id: "rwe-t1-ratelimiter-q2-a",
+            label: "A sliding window counter: weight last minute's count by how much of it overlaps the current 60 seconds.",
+            correct: true,
+            explanationMd:
+              "At 10:01:00 nearly all of last minute's 60 still overlaps the window, so the second burst is refused. Two integers per key, close to exact.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q2-b",
+            label: "A sliding log of every admitted request's timestamp.",
+            correct: false,
+            explanationMd:
+              "It stops the double exactly, and it is the option the question rules out: it stores one timestamp per admitted request, per key.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q2-c",
+            label: "A one-second fixed window allowing one request.",
+            correct: false,
+            explanationMd:
+              "It caps the rate, and it also refuses every legitimate burst: a client loading five results at once is now refused four of them. The boundary double still exists, just at two requests instead of 120.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q2-d",
+            label: "A longer fixed window: 3,600 requests an hour instead of 60 a minute.",
+            correct: false,
+            explanationMd:
+              "The same average rate with a far larger burst. A script could now send 3,600 requests in one second and stay within its hour.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-ratelimiter-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Your gateway machines share a counter store. Each one reads a key's count, compares it to the limit, " +
+          "and writes back count + 1. A load test shows busy keys finishing each minute a few percent over their " +
+          "limit. What is happening?",
+        options: [
+          {
+            id: "rwe-t1-ratelimiter-q3-a",
+            label: "The counter store's replicas lag, so some reads return an old count.",
+            correct: false,
+            explanationMd:
+              "Replica lag can do this, but it is not needed to explain it, and reading from the primary would not fix it. The overshoot happens with a single copy of the counter.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q3-b",
+            label: "Clocks differ between machines, so their windows start at different instants.",
+            correct: false,
+            explanationMd:
+              "Skew can blur a window's edges by milliseconds; it does not explain a steady overshoot on the busiest keys, which is where concurrent requests collide.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q3-c",
+            label: "The network hop to the counter store adds latency, so some requests time out and are admitted.",
+            correct: false,
+            explanationMd:
+              "That is failing open, and it would show up as overshoot on every key during slowness, not steadily on busy ones.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q3-d",
+            label: "Two machines read the same count, both decide there is room, and both write the same next value.",
+            correct: true,
+            explanationMd:
+              "Read, decide, write is a race whenever two machines do it at once. The decision has to happen where the counter lives: an atomic increment that returns the new value, or a script the store runs as one step.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-ratelimiter-q4",
+        kind: "matching",
+        difficulty: 3,
+        prompt: "Every way of building this limiter accepts a cost. Match each choice to the one it accepts.",
+        options: [
+          {
+            id: "rwe-t1-ratelimiter-q4-slot",
+            label: "A refused request has already crossed the load balancer and held an app slot",
+            correct: true,
+            explanationMd:
+              "The application-tier placement's cost. It knows what a call costs, and it pays for knowing by letting every request reach it first.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q4-outage",
+            label: "A counter-store outage becomes a full API outage",
+            correct: true,
+            explanationMd:
+              "Failing closed. Refusing everything you cannot check turns the protection into the incident.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q4-multiplied",
+            label: "The effective limit is the configured one times the machine count",
+            correct: true,
+            explanationMd:
+              "Counting on each machine alone. No hop and no shared store, and no fleet-wide limit either.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q4-batch",
+            label: "A call that does 25 lookups spends one unit of the allowance",
+            correct: true,
+            explanationMd:
+              "The gateway placement's cost. It sees calls, not their cost, unless it is taught a weight per endpoint.",
+          },
+        ],
+        pairs: [
+          ["Checking at the gateway", "rwe-t1-ratelimiter-q4-batch"],
+          ["Checking in the application tier", "rwe-t1-ratelimiter-q4-slot"],
+          ["Failing closed when the counter store is down", "rwe-t1-ratelimiter-q4-outage"],
+          ["Each machine counting on its own", "rwe-t1-ratelimiter-q4-multiplied"],
+        ],
+      },
+      {
+        id: "rwe-t1-ratelimiter-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A scraper sends 20,000 requests a second on one free key. It is refused correctly, but one counter-store " +
+          "machine's latency climbs past your 2 ms budget, and every other key it owns gets slower too. Which " +
+          "change helps most?",
+        options: [
+          {
+            id: "rwe-t1-ratelimiter-q5-a",
+            label: "Add machines to the counter store so the load spreads out.",
+            correct: false,
+            explanationMd:
+              "Partitioning spreads distinct keys. This is one key, and every increment for it lands on the one machine that owns it however many exist - 3.13's hot partition.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q5-b",
+            label: "Once a machine learns a key is over, refuse that key from memory until its window ends.",
+            correct: true,
+            explanationMd:
+              "The scraper's requests stop reaching the store at all; the first refusal costs one round trip and the next 19,999 cost none. The count stays exact for every key still under its limit.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q5-c",
+            label: "Raise the counter store's replication factor so more copies can answer.",
+            correct: false,
+            explanationMd:
+              "Increments are writes, and every replica has to apply each one. More copies means more work per request on the hot key, not less.",
+          },
+          {
+            id: "rwe-t1-ratelimiter-q5-d",
+            label: "Fail closed for that key so the counter store is not asked.",
+            correct: false,
+            explanationMd:
+              "It reaches the right outcome for this key by a rule that would refuse every key the moment the store was slow. The useful version is the opposite: refuse locally because the store already said no.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "rwe-t1-distributed-cache",
+    mode: "real-world-extraction",
+    title: "Distributed Cache (Design One)",
+    // Spec: specs/rwe-t1-distributed-cache.spec.md. Lesson body:
+    // public/content/chapters/rwe-t1-distributed-cache.mdx. Bitly's RWE
+    // precedent applies: one exercise, no curriculumContext, full registry.
+    problemStatement:
+      "A product catalog's read path: six application servers behind a load balancer, one caching machine " +
+      "with 64 GB of memory, and the relational database checkout also depends on. The working set has grown " +
+      "to 180 GB, and last week a reboot of the caching machine sent every read to the database.\n\n" +
+      "- Hold the whole 180 GB working set in memory, so about 95% of 120,000 reads a second end there.\n" +
+      "- Losing any one machine in the caching tier keeps the database under 40,000 reads a second.\n" +
+      "- Adding a machine for growth must not do worse than losing one.\n" +
+      "- A product read still completes in single-digit milliseconds.\n" +
+      "- A price change is visible within 60 seconds.",
+    exerciseGoal:
+      "Replace the single caching machine with a tier that holds the whole 180 GB working set and survives " +
+      "losing any one of its machines. Today one reboot sends 120,000 reads a second at a database sized for " +
+      "40,000.",
+    successCriteria: [
+      "The whole working set stays in memory, so about 95% of product reads never reach the database.",
+      "Losing any one machine in the caching tier keeps the database under 40,000 reads a second.",
+      "Product reads still arrive through one public hostname and a tier that survives losing a machine.",
+      "Validate reports zero errors and Submit passes.",
+    ],
+    // Two of the five are this project's declared new concepts (§15.2):
+    // consistent hashing (2) and eviction policies as design choices (1).
+    learningObjectives: [
+      "Choose an eviction policy for a stated access pattern, naming the read pattern that would defeat it.",
+      "Explain why hash mod N moves most keys when N changes and consistent hashing moves about 1/N, including what virtual nodes add.",
+      "Answer \"a cache node dies, what happens?\" by computing what reaches the database, in under a minute.",
+      "Build a caching tier that holds the working set and keeps the database under its ceiling when one machine is lost, and pass Submit.",
+      "Defend partitioning alone or partitioning with replicas by naming what each spends: memory, or a burst the database absorbs.",
+    ],
+    // Bitly's Groups A-D palette. `requiredComponentIds` is the starter's
+    // own components: the two passing tiers are built from different
+    // components, so requiring either would foreclose the decision.
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+    ],
+    requiredComponentIds: ["browser", "dns", "load-balancer", "app-server", "sql-database"],
+    // Moot for RWE: the full registry runs (spec §6).
+    validationRuleIds: [],
+    // Two tiers that disagree about what to spend. Blueprint 2's count of
+    // four comes from the brief's own arithmetic: three machines hold 180 GB
+    // but let 46,000 reads a second through when one dies; four is the
+    // smallest count under 40,000.
+    blueprints: [
+      {
+        id: "rwe-t1-distcache-blueprint-replicated",
+        label: "One partitioned tier with every key held twice",
+        require: {
+          id: "rwe-t1-distcache-blueprint-replicated",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "tier", componentId: "distributed-cache", config: [{ field: "replicationFactor", op: "gte", value: 2 }] },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "tier", kind: "request-flow" },
+            { from: "tier", to: "db", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t1-dc-ref-rep-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t1-dc-ref-rep-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t1-dc-ref-rep-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+            { id: "rwe-t1-dc-ref-rep-app", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 6 } },
+            { id: "rwe-t1-dc-ref-rep-tier", componentId: "distributed-cache", position: { x: 1100, y: 0 }, config: { replicationFactor: 2, consistency: "eventual" } },
+            { id: "rwe-t1-dc-ref-rep-db", componentId: "sql-database", position: { x: 1360, y: 0 }, config: { engine: "postgres" } },
+          ],
+          edges: [
+            { id: "rwe-t1-dc-ref-rep-e1", source: "rwe-t1-dc-ref-rep-browser", target: "rwe-t1-dc-ref-rep-dns", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-rep-e2", source: "rwe-t1-dc-ref-rep-dns", target: "rwe-t1-dc-ref-rep-lb", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-rep-e3", source: "rwe-t1-dc-ref-rep-lb", target: "rwe-t1-dc-ref-rep-app", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-rep-e4", source: "rwe-t1-dc-ref-rep-app", target: "rwe-t1-dc-ref-rep-tier", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-rep-e5", source: "rwe-t1-dc-ref-rep-tier", target: "rwe-t1-dc-ref-rep-db", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-rep-e6", source: "rwe-t1-dc-ref-rep-app", target: "rwe-t1-dc-ref-rep-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t1-dc-ref-rep-browser"],
+        },
+        commentary:
+          "One card, and the design is inside it: 3.14's Distributed Cache, partitioned by a hash ring with " +
+          "virtual nodes so a lost machine's keys scatter across every survivor (3.13's partitioning, minus mod " +
+          "N), and each key held on two machines so the survivor already has it. The Database barely notices a " +
+          "failure: its 6,000 baseline misses do not move. What this spends is memory. 180 GB held twice is 360 " +
+          "GB, six 64 GB machines where partitioning alone needs four, and every fill writes twice. Consistency " +
+          "stays eventual on purpose: a replica can trail a price change by milliseconds, inside the 60 seconds " +
+          "the brief already allows, so strong consistency would make every write wait for a guarantee nobody " +
+          "asked for. The member list every client needs comes from one place, as 3.9 taught.",
+      },
+      {
+        id: "rwe-t1-distcache-blueprint-sharded",
+        label: "Four machines, keys placed by the application servers, nothing held twice",
+        require: {
+          id: "rwe-t1-distcache-blueprint-sharded",
+          nodes: [
+            { alias: "browser", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "app", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "c1", componentId: "cache" },
+            { alias: "c2", componentId: "cache" },
+            { alias: "c3", componentId: "cache" },
+            { alias: "c4", componentId: "cache" },
+            { alias: "db", componentId: "sql-database" },
+          ],
+          edges: [
+            { from: "browser", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "app", kind: "request-flow" },
+            { from: "app", to: "c1", kind: "request-flow" },
+            { from: "app", to: "c2", kind: "request-flow" },
+            { from: "app", to: "c3", kind: "request-flow" },
+            { from: "app", to: "c4", kind: "request-flow" },
+            { from: "c1", to: "db", kind: "request-flow" },
+            { from: "c2", to: "db", kind: "request-flow" },
+            { from: "c3", to: "db", kind: "request-flow" },
+            { from: "c4", to: "db", kind: "request-flow" },
+            { from: "app", to: "db", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t1-dc-ref-shd-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t1-dc-ref-shd-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t1-dc-ref-shd-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+            { id: "rwe-t1-dc-ref-shd-app", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 6 } },
+            { id: "rwe-t1-dc-ref-shd-c1", componentId: "cache", position: { x: 1100, y: 0 }, config: { evictionPolicy: "lfu", ttlSeconds: 60 } },
+            { id: "rwe-t1-dc-ref-shd-c2", componentId: "cache", position: { x: 1100, y: 195 }, config: { evictionPolicy: "lfu", ttlSeconds: 60 } },
+            { id: "rwe-t1-dc-ref-shd-c3", componentId: "cache", position: { x: 1100, y: 390 }, config: { evictionPolicy: "lfu", ttlSeconds: 60 } },
+            { id: "rwe-t1-dc-ref-shd-c4", componentId: "cache", position: { x: 1100, y: 585 }, config: { evictionPolicy: "lfu", ttlSeconds: 60 } },
+            { id: "rwe-t1-dc-ref-shd-db", componentId: "sql-database", position: { x: 1360, y: 0 }, config: { engine: "postgres" } },
+          ],
+          edges: [
+            { id: "rwe-t1-dc-ref-shd-e1", source: "rwe-t1-dc-ref-shd-browser", target: "rwe-t1-dc-ref-shd-dns", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-shd-e2", source: "rwe-t1-dc-ref-shd-dns", target: "rwe-t1-dc-ref-shd-lb", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-shd-e3", source: "rwe-t1-dc-ref-shd-lb", target: "rwe-t1-dc-ref-shd-app", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-shd-e4", source: "rwe-t1-dc-ref-shd-app", target: "rwe-t1-dc-ref-shd-c1", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-shd-e5", source: "rwe-t1-dc-ref-shd-app", target: "rwe-t1-dc-ref-shd-c2", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-shd-e6", source: "rwe-t1-dc-ref-shd-app", target: "rwe-t1-dc-ref-shd-c3", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-shd-e7", source: "rwe-t1-dc-ref-shd-app", target: "rwe-t1-dc-ref-shd-c4", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-shd-e8", source: "rwe-t1-dc-ref-shd-c1", target: "rwe-t1-dc-ref-shd-db", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-shd-e9", source: "rwe-t1-dc-ref-shd-c2", target: "rwe-t1-dc-ref-shd-db", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-shd-e10", source: "rwe-t1-dc-ref-shd-c3", target: "rwe-t1-dc-ref-shd-db", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-shd-e11", source: "rwe-t1-dc-ref-shd-c4", target: "rwe-t1-dc-ref-shd-db", kind: "request-flow" },
+            { id: "rwe-t1-dc-ref-shd-e12", source: "rwe-t1-dc-ref-shd-app", target: "rwe-t1-dc-ref-shd-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t1-dc-ref-shd-browser"],
+        },
+        commentary:
+          "Four of 3.14's plain Caches, and the Application Servers decide which one owns each key - the way " +
+          "Memcached has always worked. Every byte of memory holds a distinct key, so 4 x 64 GB covers 180 GB " +
+          "with no machine spent on copies. The cost is the subtraction the brief asked for: when one machine " +
+          "dies its quarter goes cold, and 30,000 reads a second land on the Database on top of the usual " +
+          "6,000, under the 40,000 ceiling for the minutes it takes the survivor to warm. That only holds if " +
+          "keys are placed with a hash ring; with 3.13's hash mod N the same failure moves three keys in four " +
+          "and the Database takes 96,000. The canvas cannot show which one you chose, so the quiz asks. Two " +
+          "costs the other design does not pay: every Application Server must hold the same member list (3.9), " +
+          "and the eviction policy is now yours to set per machine - LFU here, because a nightly export reads " +
+          "every product once and would flush an LRU.",
+      },
+    ],
+    hints: [
+      {
+        id: "rwe-t1-distcache-hint-1",
+        body:
+          "Before placing anything, write down what the database can absorb and what reaches it when one machine " +
+          "holding cached data disappears. Every design here is judged by that one subtraction.",
+      },
+      {
+        id: "rwe-t1-distcache-hint-2",
+        body:
+          "There are two ways to make losing a machine cheap: make sure its data already exists somewhere else, " +
+          "or make sure it only ever held a small slice. Either can pass, and they cost different things.",
+      },
+      {
+        id: "rwe-t1-distcache-hint-3",
+        body:
+          "Some requirements are answered by a setting, and some by a count. Read each component's fields, and " +
+          "work out how many machines the brief's arithmetic needs before drawing them.",
+      },
+      {
+        id: "rwe-t1-distcache-hint-4",
+        body:
+          "If Submit says your graph does not match but lists nothing missing, it is counting: one of the " +
+          "passing designs needs more than one of something.",
+      },
+    ],
+    readingLinks: [],
+    // The read path from the cold open, six nodes in tier columns (§11.5):
+    // client, edge, application (load balancer over app), cache, data. It
+    // validates clean - the fault is a missing capacity and failure story,
+    // not a broken edge - and cannot pass, since neither tier is present.
+    starterGraph: {
+      nodes: [
+        { id: "rwe-t1-distcache-starter-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "rwe-t1-distcache-starter-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+        { id: "rwe-t1-distcache-starter-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+        { id: "rwe-t1-distcache-starter-app", componentId: "app-server", position: { x: 580, y: 160 }, config: { instances: 6 } },
+        { id: "rwe-t1-distcache-starter-cache", componentId: "cache", position: { x: 840, y: 160 }, config: { evictionPolicy: "lru", ttlSeconds: 60 } },
+        { id: "rwe-t1-distcache-starter-db", componentId: "sql-database", position: { x: 1100, y: 160 }, config: { engine: "postgres" } },
+      ],
+      edges: [
+        { id: "rwe-t1-distcache-starter-e1", source: "rwe-t1-distcache-starter-browser", target: "rwe-t1-distcache-starter-dns", kind: "request-flow" },
+        { id: "rwe-t1-distcache-starter-e2", source: "rwe-t1-distcache-starter-dns", target: "rwe-t1-distcache-starter-lb", kind: "request-flow" },
+        { id: "rwe-t1-distcache-starter-e3", source: "rwe-t1-distcache-starter-lb", target: "rwe-t1-distcache-starter-app", kind: "request-flow" },
+        { id: "rwe-t1-distcache-starter-e4", source: "rwe-t1-distcache-starter-app", target: "rwe-t1-distcache-starter-cache", kind: "request-flow" },
+        { id: "rwe-t1-distcache-starter-e5", source: "rwe-t1-distcache-starter-cache", target: "rwe-t1-distcache-starter-db", kind: "request-flow" },
+        { id: "rwe-t1-distcache-starter-e6", source: "rwe-t1-distcache-starter-app", target: "rwe-t1-distcache-starter-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["rwe-t1-distcache-starter-browser"],
+    },
+    // Tier zones only, no gap zone (RWE default). The comment carries the
+    // brief's measured figures and names no component.
+    starterDecorators: [
+      { kind: "zone", id: "rwe-t1-distcache-zone-client", label: "Client", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "rwe-t1-distcache-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#3b82f6" },
+      { kind: "zone", id: "rwe-t1-distcache-zone-app", label: "Application", position: { x: 552, y: -40 }, width: 176, height: 308, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t1-distcache-zone-cache", label: "Cache tier", position: { x: 812, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "rwe-t1-distcache-zone-data", label: "Data", position: { x: 1072, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "rwe-t1-distcache-comment-today",
+        text: "Today: one 64 GB machine, a 180 GB working set, and a hit ratio that has slid from 95% to 80%.",
+        position: { x: 32, y: 168 },
+        width: 436,
+        height: 80,
+        color: "#64748b",
+      },
+    ],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    // No `curriculumContext` (RWE). Retrospective quiz, QUIZ_FRAMEWORK §16
+    // models; all five are new, since §16 has no Distributed Cache entry.
+    quiz: [
+      {
+        id: "rwe-t1-distcache-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Your cache tier is four machines, and each key goes to the machine numbered hash(key) mod 4. One " +
+          "machine dies and the application servers switch to mod 3. Roughly what share of keys now map to a " +
+          "different machine than before?",
+        options: [
+          {
+            id: "rwe-t1-distcache-q1-a",
+            label: "A quarter - the dead machine's share.",
+            correct: false,
+            explanationMd:
+              "That is what a hash ring gives you. Under mod N the formula itself changes for every key, not just for the dead machine's.",
+          },
+          {
+            id: "rwe-t1-distcache-q1-b",
+            label: "None - the surviving machines keep what they had.",
+            correct: false,
+            explanationMd:
+              "They keep the data, but the application servers stop looking for most of it there. A key is found only where the formula points.",
+          },
+          {
+            id: "rwe-t1-distcache-q1-c",
+            label: "All of them, since every key is rehashed.",
+            correct: false,
+            explanationMd:
+              "Close, and an overestimate. Some keys happen to give the same answer mod 3 as mod 4 - about one in four - and those stay put.",
+          },
+          {
+            id: "rwe-t1-distcache-q1-d",
+            label: "About three quarters.",
+            correct: true,
+            explanationMd:
+              "A key stays only when hash mod 3 equals hash mod 4, which holds for one key in four. Three quarters of reads miss at once, which is why one machine's failure under mod N reaches the database like losing the whole tier.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-distcache-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "You switched to a hash ring with one point per machine. When machine C dies, only C's keys move, as " +
+          "promised - but machine D's load doubles and it starts timing out. What happened, and what fixes it?",
+        options: [
+          {
+            id: "rwe-t1-distcache-q2-a",
+            label: "D was already the busiest machine; add a fifth so the ring rebalances.",
+            correct: false,
+            explanationMd:
+              "A fifth machine takes part of one neighbour's arc, not D's inheritance. D still owns everything C owned until the arcs themselves are smaller.",
+          },
+          {
+            id: "rwe-t1-distcache-q2-b",
+            label: "C's whole arc fell to its one clockwise neighbour; give each machine many small arcs so its keys scatter across all survivors.",
+            correct: true,
+            explanationMd:
+              "With one point per machine, a failure hands an entire share to a single neighbour. Virtual nodes - a hundred or more points per machine - split that share across every survivor.",
+          },
+          {
+            id: "rwe-t1-distcache-q2-c",
+            label: "The ring is not consistent hashing unless keys are replicated.",
+            correct: false,
+            explanationMd:
+              "Replication is a separate choice. A ring without replicas is still consistent hashing; it just has nothing to fall back on but the database.",
+          },
+          {
+            id: "rwe-t1-distcache-q2-d",
+            label: "The application servers disagree about membership, so D receives keys twice.",
+            correct: false,
+            explanationMd:
+              "Split membership puts one key in two places; it does not double one machine's load. The doubling is the arithmetic of one point per machine.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-distcache-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Every night at 02:00 an export job reads all 40 million products through the cache. At 08:00 the hit " +
+          "ratio is 60%, and it recovers to 95% by 10:00. The cache evicts least recently used. Which change " +
+          "addresses the cause?",
+        options: [
+          {
+            id: "rwe-t1-distcache-q3-a",
+            label: "Raise the TTL so hot products survive the night.",
+            correct: false,
+            explanationMd:
+              "They are not expiring, they are being evicted. TTL bounds staleness; it does nothing when memory is full and the policy chooses what to drop.",
+          },
+          {
+            id: "rwe-t1-distcache-q3-b",
+            label: "Add memory until the whole catalog fits.",
+            correct: false,
+            explanationMd:
+              "It works, and it buys enough RAM for 40 million products to protect against one job that reads each of them once. An expensive answer to a policy problem.",
+          },
+          {
+            id: "rwe-t1-distcache-q3-c",
+            label: "Evict by frequency, so a product read once overnight cannot displace one read thousands of times a day.",
+            correct: true,
+            explanationMd:
+              "LRU treats one read at 02:00 as more valuable than ten thousand reads yesterday afternoon. LFU (with decay, so old popularity fades) is scan-resistant. Having the export bypass the cache fixes it too.",
+          },
+          {
+            id: "rwe-t1-distcache-q3-d",
+            label: "Switch to TTL-only eviction so the export's entries expire first.",
+            correct: false,
+            explanationMd:
+              "The export's entries are the newest; TTL-only evicts the oldest written, which is the daytime hot set. Worse than LRU here.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-distcache-q4",
+        kind: "matching",
+        difficulty: 3,
+        prompt: "Each way of building this tier spends something. Match each choice to what it accepts.",
+        options: [
+          {
+            id: "rwe-t1-distcache-q4-memory",
+            label: "Twice the memory for the same working set",
+            correct: true,
+            explanationMd:
+              "Replication factor 2. A lost machine's keys are already on a survivor, and every key is paid for twice.",
+          },
+          {
+            id: "rwe-t1-distcache-q4-burst",
+            label: "A lost machine's share of reads reaches the database until it warms",
+            correct: true,
+            explanationMd:
+              "Partitioning alone. Every byte holds a distinct key, and the database must have headroom for one machine's share.",
+          },
+          {
+            id: "rwe-t1-distcache-q4-remap",
+            label: "Most keys move whenever the machine count changes",
+            correct: true,
+            explanationMd:
+              "Hash mod N. Every failure and every scale-up turns into a near-total cold cache.",
+          },
+          {
+            id: "rwe-t1-distcache-q4-stale",
+            label: "A read just after an update can return the previous value",
+            correct: true,
+            explanationMd:
+              "Eventually consistent replicas. The write does not wait for the copy, so a read that lands there can be behind - inside a TTL that already allows it.",
+          },
+        ],
+        pairs: [
+          ["Partitioning with no replicas", "rwe-t1-distcache-q4-burst"],
+          ["Placing keys by hash mod N", "rwe-t1-distcache-q4-remap"],
+          ["Eventually consistent replicas", "rwe-t1-distcache-q4-stale"],
+          ["Replication factor 2", "rwe-t1-distcache-q4-memory"],
+        ],
+      },
+      {
+        id: "rwe-t1-distcache-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A flash sale sends 30,000 reads a second to one product. The cache machine that owns it saturates its " +
+          "network while the other three idle, and product pages time out. Which change helps?",
+        options: [
+          {
+            id: "rwe-t1-distcache-q5-a",
+            label: "Copy that one key to every machine, or hold it in each application server's memory for a few seconds.",
+            correct: true,
+            explanationMd:
+              "One key is the shape partitioning cannot help. Spreading that single key - or serving it from the application servers' own memory - puts its reads on every machine instead of one.",
+          },
+          {
+            id: "rwe-t1-distcache-q5-b",
+            label: "Add more cache machines so the load spreads.",
+            correct: false,
+            explanationMd:
+              "More machines spread distinct keys. This is one key, and it still hashes to one owner - 3.13's hot partition.",
+          },
+          {
+            id: "rwe-t1-distcache-q5-c",
+            label: "Raise the replication factor to 3 and let replicas answer reads.",
+            correct: false,
+            explanationMd:
+              "It does spread this key's reads over three machines, and it triples the memory for every other key to fix one. A real position, priced badly.",
+          },
+          {
+            id: "rwe-t1-distcache-q5-d",
+            label: "Lower the TTL on that product so it is refreshed more often.",
+            correct: false,
+            explanationMd:
+              "More refreshes do not reduce reads, and each expiry under this load risks a stampede at the database. It moves the problem somewhere worse.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "rwe-t1-metrics-monitoring",
+    mode: "real-world-extraction",
+    title: "Metrics Monitoring",
+    // Spec: specs/rwe-t1-metrics-monitoring.spec.md. Lesson body:
+    // public/content/chapters/rwe-t1-metrics-monitoring.mdx. Bitly's RWE
+    // precedent applies: one exercise, no curriculumContext, full registry.
+    problemStatement:
+      "A product served from 2,000 hosts, drawn as one card behind a load balancer, with nothing measuring " +
+      "it: the team learns about slowness from customer email. Each host exposes about 1,000 measurements, " +
+      "sampled every 10 seconds.\n\n" +
+      "- Record 200,000 points a second from the fleet, sustained.\n" +
+      "- No single storage machine takes all of the newest points.\n" +
+      "- The store answers \"one series, one time range\" without reading anything else.\n" +
+      "- Losing one machine that collects or receives points leaves no gap in any graph.\n" +
+      "- Engineers graph any series from a browser, without going through the product's own servers.",
+    exerciseGoal:
+      "Build the system that records the fleet's 200,000 points a second and lets engineers graph any of " +
+      "them. Today nothing outside the fleet keeps a single number.",
+    successCriteria: [
+      "200,000 points a second are stored without any single storage machine taking all of the newest ones.",
+      "The store answers one series over one time range without reading anything else.",
+      "Losing one machine that collects or receives points leaves no gap in any graph.",
+      "Engineers graph any series from a browser without going through the product's own servers, and Submit passes with zero Validate errors.",
+    ],
+    // Five objectives; 1-3 carry this project's three declared new concepts
+    // (§15.2): time-series write patterns, downsampling/retention, and
+    // pull-vs-push collection.
+    learningObjectives: [
+      "Choose a store layout and partition key for a write-heavy time-series workload, naming why partitioning by time fails.",
+      "Design a downsampling and retention scheme that keeps old data at the resolution it is read at, without hiding spikes.",
+      "Answer \"pull or push?\" by naming what each model knows when a host goes silent, in under a minute.",
+      "Build a metrics system beside a running product that stores 200,000 points a second and serves graphs, and pass Submit.",
+      "Defend the direction of collection by naming the cost the other direction would have avoided.",
+    ],
+    // Bitly's Groups A-D palette. No queue, stream or scheduler: those are
+    // Group E, after this tier's Checkpoint D gate (spec §5).
+    availableComponentIds: [
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "cache",
+      "distributed-cache",
+      "search-engine",
+    ],
+    requiredComponentIds: ["browser", "dns", "load-balancer", "app-server", "nosql-database"],
+    // Moot for RWE: the full registry runs (spec §6).
+    validationRuleIds: [],
+    // Two blueprints, differing on the direction of the first arrow - who
+    // opens the connection. The store is the same in both: wide-column (the
+    // query is a range within a partition, 3.11) and hash-partitioned (time
+    // only grows, 3.13). Both require a second browser for the engineers,
+    // distinct from the product's users.
+    blueprints: [
+      {
+        id: "rwe-t1-metrics-blueprint-push",
+        label: "The fleet pushes to an ingest tier",
+        require: {
+          id: "rwe-t1-metrics-blueprint-push",
+          nodes: [
+            { alias: "users", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "fleet", componentId: "app-server" },
+            { alias: "ingest", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            {
+              alias: "tsdb",
+              componentId: "nosql-database",
+              config: [
+                { field: "model", op: "eq", value: "wide-column" },
+                { field: "partitioning", op: "eq", value: "hash" },
+              ],
+            },
+            { alias: "dash", componentId: "browser" },
+          ],
+          edges: [
+            { from: "users", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "fleet", kind: "request-flow" },
+            { from: "fleet", to: "ingest", kind: "request-flow" },
+            { from: "ingest", to: "tsdb", kind: "request-flow" },
+            // Any read route to the store: a separate query tier or the
+            // ingest tier answering reads both count.
+            { from: "dash", to: "tsdb", kind: "request-flow", via: "path" },
+          ],
+          absent: [
+            {
+              label: "Dashboards reaching the store through the product's own servers",
+              nodes: [{ alias: "dash" }, { alias: "lb" }],
+              edges: [{ from: "dash", to: "lb", via: "path" }],
+            },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t1-mm-ref-push-users", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t1-mm-ref-push-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t1-mm-ref-push-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+            { id: "rwe-t1-mm-ref-push-fleet", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 20 } },
+            { id: "rwe-t1-mm-ref-push-db", componentId: "sql-database", position: { x: 1100, y: 0 }, config: { engine: "postgres" } },
+            { id: "rwe-t1-mm-ref-push-ingest", componentId: "app-server", position: { x: 1100, y: 195 }, config: { instances: 4 } },
+            { id: "rwe-t1-mm-ref-push-tsdb", componentId: "nosql-database", position: { x: 1360, y: 195 }, config: { model: "wide-column", partitioning: "hash", shardKey: "series_id" } },
+            { id: "rwe-t1-mm-ref-push-dash", componentId: "browser", position: { x: 60, y: 390 }, config: {} },
+            { id: "rwe-t1-mm-ref-push-query", componentId: "app-server", position: { x: 1100, y: 390 }, config: { instances: 2 } },
+          ],
+          edges: [
+            { id: "rwe-t1-mm-ref-push-e1", source: "rwe-t1-mm-ref-push-users", target: "rwe-t1-mm-ref-push-dns", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-push-e2", source: "rwe-t1-mm-ref-push-dns", target: "rwe-t1-mm-ref-push-lb", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-push-e3", source: "rwe-t1-mm-ref-push-lb", target: "rwe-t1-mm-ref-push-fleet", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-push-e4", source: "rwe-t1-mm-ref-push-fleet", target: "rwe-t1-mm-ref-push-db", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-push-e5", source: "rwe-t1-mm-ref-push-fleet", target: "rwe-t1-mm-ref-push-ingest", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-push-e6", source: "rwe-t1-mm-ref-push-ingest", target: "rwe-t1-mm-ref-push-tsdb", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-push-e7", source: "rwe-t1-mm-ref-push-dash", target: "rwe-t1-mm-ref-push-query", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-push-e8", source: "rwe-t1-mm-ref-push-query", target: "rwe-t1-mm-ref-push-tsdb", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t1-mm-ref-push-users", "rwe-t1-mm-ref-push-dash"],
+        },
+        commentary:
+          "The fleet opens the connection: every host sends one batch of about 1,000 points every 10 seconds " +
+          "to an ingest tier of several Application Servers, so 200,000 points a second arrive in 200 " +
+          "requests and losing one ingest machine means its senders retry against another (3.8). Ingest " +
+          "appends raw points and writes 1-minute and 1-hour rollups as buckets close - 3.16's derived data, " +
+          "until raw expires and the rollup is the only copy. The store is 3.11's wide-column model because " +
+          "every query is one partition and a range inside it, and it is partitioned by a hash of the series " +
+          "because 3.13's rule says never shard by a key that only grows. Reads come through a separate query " +
+          "tier, so a heavy dashboard never competes with ingestion. What push gives up is liveness: a host " +
+          "that stops sending looks exactly like a host with nothing to say, and every agent can flood ingest " +
+          "if it misbehaves.",
+      },
+      {
+        id: "rwe-t1-metrics-blueprint-pull",
+        label: "A collector pulls from the fleet and answers the dashboards",
+        require: {
+          id: "rwe-t1-metrics-blueprint-pull",
+          nodes: [
+            { alias: "users", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "fleet", componentId: "app-server" },
+            { alias: "collector", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            {
+              alias: "tsdb",
+              componentId: "nosql-database",
+              config: [
+                { field: "model", op: "eq", value: "wide-column" },
+                { field: "partitioning", op: "eq", value: "hash" },
+              ],
+            },
+            { alias: "dash", componentId: "browser" },
+          ],
+          edges: [
+            { from: "users", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "fleet", kind: "request-flow" },
+            { from: "collector", to: "fleet", kind: "request-flow" },
+            { from: "collector", to: "tsdb", kind: "request-flow" },
+            { from: "dash", to: "collector", kind: "request-flow" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t1-mm-ref-pull-users", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t1-mm-ref-pull-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t1-mm-ref-pull-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+            { id: "rwe-t1-mm-ref-pull-fleet", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 20 } },
+            { id: "rwe-t1-mm-ref-pull-db", componentId: "sql-database", position: { x: 1100, y: 0 }, config: { engine: "postgres" } },
+            { id: "rwe-t1-mm-ref-pull-dash", componentId: "browser", position: { x: 60, y: 195 }, config: {} },
+            { id: "rwe-t1-mm-ref-pull-collector", componentId: "app-server", position: { x: 580, y: 195 }, config: { instances: 2 } },
+            { id: "rwe-t1-mm-ref-pull-tsdb", componentId: "nosql-database", position: { x: 1100, y: 195 }, config: { model: "wide-column", partitioning: "hash", shardKey: "series_id" } },
+          ],
+          edges: [
+            { id: "rwe-t1-mm-ref-pull-e1", source: "rwe-t1-mm-ref-pull-users", target: "rwe-t1-mm-ref-pull-dns", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-pull-e2", source: "rwe-t1-mm-ref-pull-dns", target: "rwe-t1-mm-ref-pull-lb", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-pull-e3", source: "rwe-t1-mm-ref-pull-lb", target: "rwe-t1-mm-ref-pull-fleet", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-pull-e4", source: "rwe-t1-mm-ref-pull-fleet", target: "rwe-t1-mm-ref-pull-db", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-pull-e5", source: "rwe-t1-mm-ref-pull-dash", target: "rwe-t1-mm-ref-pull-collector", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-pull-e6", source: "rwe-t1-mm-ref-pull-collector", target: "rwe-t1-mm-ref-pull-fleet", kind: "request-flow" },
+            { id: "rwe-t1-mm-ref-pull-e7", source: "rwe-t1-mm-ref-pull-collector", target: "rwe-t1-mm-ref-pull-tsdb", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t1-mm-ref-pull-users", "rwe-t1-mm-ref-pull-dash"],
+        },
+        commentary:
+          "The arrow points the other way: a collector tier opens a connection to each host every 10 seconds " +
+          "and reads its current values, the Prometheus shape. A scrape that fails is recorded as a point of " +
+          "its own, so a dead host is an alert rather than a silence, and the collector sets the pace, so a " +
+          "broken host cannot flood it. The same machines answer the dashboards, which is why the engineers' " +
+          "browser feeds them. Two collectors scrape the same targets so losing one leaves no gap; the store " +
+          "keeps one copy of each point. The store is identical to the push design's for identical reasons: " +
+          "wide-column for range reads within a series (3.11), hash-partitioned by series because time only " +
+          "grows (3.13). What pull pays: a current list of every host to scrape (3.9's registry), and short " +
+          "jobs that finish between scrapes are never seen without a separate push path.",
+      },
+    ],
+    hints: [
+      {
+        id: "rwe-t1-metrics-hint-1",
+        body:
+          "Write down the two rates: points arriving and queries reading them. Decide which one the store is " +
+          "chosen for, and what shape the other one asks of it.",
+      },
+      {
+        id: "rwe-t1-metrics-hint-2",
+        body:
+          "Two questions decide the first arrow: who keeps the list of things to measure, and who notices when " +
+          "one of them goes quiet. Either direction can pass; the edge's direction is the choice.",
+      },
+      {
+        id: "rwe-t1-metrics-hint-3",
+        body:
+          "Some requirements are answered by a setting, not a box. Open each component you add and read its " +
+          "fields against the requirement it answers - on one of them, more than one field matters.",
+      },
+      {
+        id: "rwe-t1-metrics-hint-4",
+        body:
+          "On this canvas a component that starts work on its own still needs an arrow in. If one of yours is " +
+          "flagged for having none, ask who else talks to it.",
+      },
+    ],
+    readingLinks: [],
+    // The product as it runs today, five nodes in tier columns (§11.5):
+    // client, edge, application (load balancer over the fleet), data. The
+    // metrics system is built beside it. Validates clean and cannot pass:
+    // no NoSQL store, no second browser, no second application tier.
+    starterGraph: {
+      nodes: [
+        { id: "rwe-t1-metrics-starter-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "rwe-t1-metrics-starter-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+        { id: "rwe-t1-metrics-starter-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+        { id: "rwe-t1-metrics-starter-fleet", componentId: "app-server", position: { x: 580, y: 160 }, config: { instances: 20 } },
+        { id: "rwe-t1-metrics-starter-db", componentId: "sql-database", position: { x: 840, y: 160 }, config: { engine: "postgres" } },
+      ],
+      edges: [
+        { id: "rwe-t1-metrics-starter-e1", source: "rwe-t1-metrics-starter-browser", target: "rwe-t1-metrics-starter-dns", kind: "request-flow" },
+        { id: "rwe-t1-metrics-starter-e2", source: "rwe-t1-metrics-starter-dns", target: "rwe-t1-metrics-starter-lb", kind: "request-flow" },
+        { id: "rwe-t1-metrics-starter-e3", source: "rwe-t1-metrics-starter-lb", target: "rwe-t1-metrics-starter-fleet", kind: "request-flow" },
+        { id: "rwe-t1-metrics-starter-e4", source: "rwe-t1-metrics-starter-fleet", target: "rwe-t1-metrics-starter-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["rwe-t1-metrics-starter-browser"],
+    },
+    // Tier zones only, no gap zone (RWE default). The application zone names
+    // the fleet as the thing being measured, so the learner knows which card
+    // the brief's 2,000 hosts are.
+    starterDecorators: [
+      { kind: "zone", id: "rwe-t1-metrics-zone-client", label: "Users", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "rwe-t1-metrics-zone-edge", label: "Edge", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#3b82f6" },
+      { kind: "zone", id: "rwe-t1-metrics-zone-app", label: "Product fleet (being measured)", position: { x: 552, y: -40 }, width: 176, height: 308, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t1-metrics-zone-data", label: "Product data", position: { x: 812, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "rwe-t1-metrics-comment-fleet",
+        text: "The fleet card stands for 2,000 hosts. Each exposes about 1,000 measurements, sampled every 10 seconds.",
+        position: { x: 32, y: 168 },
+        width: 436,
+        height: 80,
+        color: "#64748b",
+      },
+    ],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    // No `curriculumContext` (RWE). Retrospective quiz, QUIZ_FRAMEWORK §16
+    // models; §16 has no Metrics entry, so all five are new.
+    quiz: [
+      {
+        id: "rwe-t1-metrics-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "2,000 hosts each send one batch of about 1,000 points every 10 seconds. A teammate sizes the ingest " +
+          "tier for 200,000 requests a second. How many requests a second does it actually receive?",
+        options: [
+          {
+            id: "rwe-t1-metrics-q1-a",
+            label: "About 200 - one batch per host every 10 seconds.",
+            correct: true,
+            explanationMd:
+              "2,000 hosts / 10 seconds = 200 batches a second, carrying 200,000 points between them. Ingest is bound by points and series held in memory, not by request count - which is why the batch exists.",
+          },
+          {
+            id: "rwe-t1-metrics-q1-b",
+            label: "About 2,000 - one per host.",
+            correct: false,
+            explanationMd:
+              "One per host per 10 seconds, not per second. The rate divides by the interval.",
+          },
+          {
+            id: "rwe-t1-metrics-q1-c",
+            label: "200,000 - one per point.",
+            correct: false,
+            explanationMd:
+              "That would be true if every point were sent on its own. The teammate's sizing is off by a factor of a thousand in requests, though right about points.",
+          },
+          {
+            id: "rwe-t1-metrics-q1-d",
+            label: "About 20 - batches are sent once a minute.",
+            correct: false,
+            explanationMd:
+              "The interval in the setup is 10 seconds. Batching less often would reduce requests further and delay every alert by the same amount.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-metrics-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "To make retention easy, you partition the time-series store by day: one partition holds everything " +
+          "written that day, and expiring old data drops whole partitions. What happens under 200,000 points a " +
+          "second?",
+        options: [
+          {
+            id: "rwe-t1-metrics-q2-a",
+            label: "Nothing bad - retention gets cheaper and writes are unaffected.",
+            correct: false,
+            explanationMd:
+              "Retention does get cheaper. Writes are the problem: they all share one property, the current time.",
+          },
+          {
+            id: "rwe-t1-metrics-q2-b",
+            label: "Queries over a long range get slower because they touch many partitions.",
+            correct: false,
+            explanationMd:
+              "True and minor: a 90-day query reads from rollups, not raw days. It is not what fails first.",
+          },
+          {
+            id: "rwe-t1-metrics-q2-c",
+            label: "Rollups stop working because each bucket spans two partitions.",
+            correct: false,
+            explanationMd:
+              "Buckets of a minute or an hour sit inside a day. Partitioning by day does not split them.",
+          },
+          {
+            id: "rwe-t1-metrics-q2-d",
+            label: "Every write lands on today's partition while the other 14 idle; partition by a hash of the series instead.",
+            correct: true,
+            explanationMd:
+              "Time only grows, so a time-keyed partition is a permanently moving hot spot - 3.13's monotonic-key warning in its purest form. Hash the series to spread writes, and expire old data by dropping time blocks inside each partition.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-metrics-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A service's CPU pins at 100% for 40 seconds every few minutes, and requests time out each time. On the " +
+          "90-day graph, drawn from 1-hour rollups, CPU sits at a steady 35%. What should the rollup have kept?",
+        options: [
+          {
+            id: "rwe-t1-metrics-q3-a",
+            label: "Nothing more - 90-day graphs are for trends, not incidents.",
+            correct: false,
+            explanationMd:
+              "A recurring incident is a trend. A rollup that cannot show it has decided in advance which questions old data may answer.",
+          },
+          {
+            id: "rwe-t1-metrics-q3-b",
+            label: "Min, max, sum and count per bucket, so the peak survives and the average is still exact.",
+            correct: true,
+            explanationMd:
+              "Averaging erases short spikes by construction. Max keeps the 100%, and sum and count reproduce the average exactly, for a few more numbers per bucket.",
+          },
+          {
+            id: "rwe-t1-metrics-q3-c",
+            label: "Raw points for 90 days instead of rollups.",
+            correct: false,
+            explanationMd:
+              "It would show the spike, at 777,600 points per series per graph and roughly six times the raw storage. Keeping the max costs one number per bucket.",
+          },
+          {
+            id: "rwe-t1-metrics-q3-d",
+            label: "The median instead of the mean.",
+            correct: false,
+            explanationMd:
+              "A spike that lasts 40 seconds of an hour moves the median even less than the mean. Any single summary statistic loses it.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t1-metrics-q4",
+        kind: "matching",
+        difficulty: 3,
+        prompt: "Every choice in this design accepts a cost. Match each choice to the one it accepts.",
+        options: [
+          {
+            id: "rwe-t1-metrics-q4-silence",
+            label: "A host that stops reporting looks like a host with nothing to say",
+            correct: true,
+            explanationMd:
+              "Push. Nothing expects the next batch, so its absence is not an event unless something else is built to notice it.",
+          },
+          {
+            id: "rwe-t1-metrics-q4-list",
+            label: "A current list of every target must be kept somewhere",
+            correct: true,
+            explanationMd:
+              "Pull. The collector can only scrape hosts it knows about - 3.9's registry problem.",
+          },
+          {
+            id: "rwe-t1-metrics-q4-scatter",
+            label: "A question about every series at once touches every partition",
+            correct: true,
+            explanationMd:
+              "Hash partitioning by series. One series is one partition; \"top 10 hosts by CPU\" is 3.13's scatter-gather.",
+          },
+          {
+            id: "rwe-t1-metrics-q4-storage",
+            label: "About 17 TB of storage for graphs nobody draws at that resolution",
+            correct: true,
+            explanationMd:
+              "Raw retention for two years: 24 GB a day compressed, times 730 days, to answer questions that a 1-hour rollup answers in 17,520 points per series.",
+          },
+        ],
+        pairs: [
+          ["Pull collection", "rwe-t1-metrics-q4-list"],
+          ["Partitioning by a hash of the series", "rwe-t1-metrics-q4-scatter"],
+          ["Keeping raw points for two years", "rwe-t1-metrics-q4-storage"],
+          ["Push collection", "rwe-t1-metrics-q4-silence"],
+        ],
+      },
+      {
+        id: "rwe-t1-metrics-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "A developer adds a `user_id` label to the request-latency measurement. There are 4 million users. " +
+          "Within an hour ingest runs out of memory, though points per second have barely changed. Why?",
+        options: [
+          {
+            id: "rwe-t1-metrics-q5-a",
+            label: "Each point is now larger, and the extra bytes exhausted memory.",
+            correct: false,
+            explanationMd:
+              "A label adds a few bytes to each series' identity, not to every point. The point rate barely moved, so the bytes per second barely moved.",
+          },
+          {
+            id: "rwe-t1-metrics-q5-b",
+            label: "The store's partitions became unbalanced.",
+            correct: false,
+            explanationMd:
+              "Hashing millions of new series spreads them evenly. What breaks is upstream of the store.",
+          },
+          {
+            id: "rwe-t1-metrics-q5-c",
+            label: "Every distinct label value is a new series, and ingest holds an index entry and open buckets for each one.",
+            correct: true,
+            explanationMd:
+              "Series count, not point rate, sizes ingest's memory: one series became up to 4 million. Cap series per measurement at ingest and refuse what exceeds it - cardinality is what takes these systems down.",
+          },
+          {
+            id: "rwe-t1-metrics-q5-d",
+            label: "Dashboards started querying per-user graphs and overloaded ingest.",
+            correct: false,
+            explanationMd:
+              "Queries do not run on ingest in this design, and nobody had built a per-user dashboard within the hour. The failure happens at write time.",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export function getChaptersForMode(mode: ChapterDefinition["mode"]): ChapterDefinition[] {
