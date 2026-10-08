@@ -3,65 +3,8 @@
 Consolidated leftovers from `pending*.md` docs that were assessed as >90% complete
 and retired. Each section keeps the source doc's own item wording so nothing gets
 lost in translation; the source file is deleted once its items land here.
-
-------------------------------------------------------------------------
-
-## From `pending-guided-tour.md` (Guided Tour + Chapter 0.1 "Welcome to ScaleCraft")
-
-Retired 2026-08-10 at ~95% complete - all engineering (Tracks A, the Submit/Validate
-split, resilience mechanisms) is merged to `main`. What's left:
-
-**1. Slice 4 - explicitly deferred, not started:**
-- `feature/tour-beacon` (anonymous completion-rate counter route) - no branch cut,
-  only build if beta evidence demands it.
-
-**2. Content staleness (chapter-author's domain, not engineering's):**
-- `content/chapters/index.ts`'s `problemStatement` and
-  `specs/bb-0-1-welcome.spec.md` both still describe the old fix-component/fix-edge
-  split that no longer exists.
-
-**3. Manual click-through never run - full checklist, unconfirmed:**
-
-*Setup*
-- Learning Path -> 0.1 -> Reader -> "Begin exercise" -> tour auto-starts on first visit
-- Reload mid-tour -> resumes at the same step, no re-narration from step 1
-- Second visit after finishing/skipping -> does not auto-start; replay pill visible in the sidebar footer
-- Replay pill restarts cleanly at step 1
-- "Start over" (two-step confirm) resets the starter graph, clears Validate/Submit outcomes, restarts at step 1, and does NOT un-pass an already-passed chapter
-
-*Every step, both themes (light/dark)*
-- Spotlight lands on the correct element for all 19 steps, no off-screen or clipped popovers
-- Step counter, Back, Next, "Skip tour" all present and correct; Esc pauses (not skip) with a resume pill
-- Popover repositions correctly if its own content grows (e.g. watchdog row or resolution-failed row appearing)
-
-*The 7 interactive steps (must advance on the real gesture, not just Next)*
-- `select-a-node` - clicking a node advances
-- `open-picker` - `/` or right-click empty canvas opens the picker and advances
-- `picker-tour` - placing AND connecting SQL Database advances (browsing alone should not)
-- `validate-click` - clicking Validate advances only after a chance to read the dropdown (no auto-advance eating the read)
-- `fix-edge` - fixing the Client -> App Server edge advances, including deleting the edge and drawing a fresh one (not just editing kind in place)
-- `revalidate-clean` - re-running Validate clean advances, no auto-advance eating the read
-- `submit-click` - Submit advances only once the board actually passes
-
-*Resilience mechanisms (hardest to catch by code review alone)*
-- Watchdog: sit idle ~70-75s on an interactive step -> exit row appears with "Skip this step" and "Report a problem"; "Skip this step" advances one step (not the whole tour)
-- Report-a-problem link opens a prefilled, reviewable GitHub issue (nothing auto-sent)
-- `requires` reconciliation: on `picker-tour` or `fix-edge`, satisfy the step then delete the thing that satisfied it while still on that step -> a truthful reconciling note appears, nothing auto-mutates the graph; redo it -> note clears
-- Focus mode: enter focus mode mid-step -> tour pauses (not stuck spotlighting a vanished sidebar); leave focus mode -> resumes silently at the same step
-- A deliberate Escape pause is NOT auto-resumed the same way (resume pill instead, unlike the silent focus-mode resume)
-- Hotkeys (Ctrl+Z, `/`, Ctrl+D, Shift+L) do nothing on a modal (non-interactive) step; work normally again once that step ends
-- Multi-tab: open the same chapter in two tabs, advance/skip in one -> the other tab reflects it (via `storage` event) without a manual refresh
-- Hard-gate completion: skip the tour early after satisfying all 5 `hard` steps out of order -> run registers as `completed`, not stuck at `skipped`
-- Throwing/broken predicate and unresolvable target (if forceable) both degrade to a manual Next with an honest note, never a silent stall
-
-*Cross-cutting*
-- `prefers-reduced-motion` - spotlight/popover jump instead of animating
-- Keyboard-only pass through at least the non-interactive steps (Tab/Enter/Esc)
-- Everything above still holds after `npm run build` (production build), not just dev
-
-**4. Two earlier-flagged "needs a real-browser re-check" items, likely subsumed by #3 above but never explicitly closed in the doc:**
-- Tour not rendering below ~1024px wide: needs a browser re-check at 900x700 and 768x1024.
-- z-index layering fixes: not assertable in jsdom, needs a browser re-check.
+Code comments still cite retired docs by name - read them from git history at
+the commit listed for each.
 
 ------------------------------------------------------------------------
 
@@ -74,16 +17,9 @@ the build log, its audit companion and the close-out list have all been overtake
 by merged code. The audit's S1-S11 findings were either fixed or converted into
 the "Explicitly NOT in 6.1.0" tradeoffs recorded in `ARCHITECTURE.md`.
 
-Two items were never ticked and outlive the docs:
+One item was never ticked and outlives the docs (the zones cross-device e2e case
+was confirmed working by the user, 2026-10-01):
 
-- **The zones cross-device e2e case was written but never run.** The test exists
-  in `e2e/multi-device-sync.spec.ts` ("a zone and a Start marker placed on one
-  device arrive intact on the other"). It was authored in a sandbox with no
-  outbound network, so global setup could not reach Clerk. Run
-  `npx playwright test e2e/multi-device-sync.spec.ts -g "zone and a Start marker"`
-  from a networked machine. This is the one unproven claim in release 6 - Phase 3.4
-  replaced the `graph` column with raw `canvasState` and TRUNCATEd `saved_graphs`
-  *specifically* because the old round trip could silently delete a learner's zones.
 - **The four Part 1 chapters authored in Phase 10 still have no Opus proofread
   pass recorded** in `pending-chapters.md`. Content-authoring work for the
   `chapter-author` skill, deliberately deferred by the engineering branch.
@@ -121,6 +57,44 @@ next to the prose. Typed TS modules referenced by id were rejected (breaks prose
 co-location; the invariants harness covers the real failure modes). This is the one
 decision worth revisiting if the harness proves too loose - and it gets more
 expensive to reverse as diagrams accumulate.
+
+------------------------------------------------------------------------
+
+## Retired 2026-10-01 (shipped in 5.0.0 / 7.1.0 / 7.2.0)
+
+All seven were deleted together. Their feature branches are merged and gone,
+and the user confirmed the guided tour, multi-device sync, sandbox
+checkpointing and the bug triage path all work in production. Read any of them
+from git at the commit shown (`git show <commit>:.claude/docs/<file>`):
+
+| Doc | Last commit | What it recorded |
+|---|---|---|
+| `pending.md` | `156ad83` | Release 5.0.0 content platform: MDX pipeline, walkthrough renderer, glossary |
+| `pending-design-editor-exercise.md` | `b27c2dc` | 320x160 starter-graph retrofit, `exerciseGoal`/`successCriteria` (superseded by the revamp) |
+| `pending-starter-decorators.md` | `b27c2dc` | `starterDecorators` schema, zone palette and geometry, Reset to Default |
+| `pending-streak-counter.md` | `b27c2dc` | `db.activeDays` + Clerk `publicMetadata` streak log and its decisions |
+| `pending-save-sync.md` | `b27c2dc` | 5-minute Postgres checkpoint, revisions/`graphHash`, best-only `exam_attempts` |
+| `pending-report-a-bug.md` | `5c630d0` | Bug data model, image-storage seam, `CenteredModal` portal, Escape stack |
+| `pending-design-editor-revamp.md` | `5c630d0` | Release 7.2.0: D1-D20, derived pitch/zone constants, edge routing, `ReferenceGraphCanvas` |
+
+What survives them:
+
+- **Prod migrations verified 2026-10-01.** `0007` was applied 2026-08-23
+  (hash, NOT NULL `total_attempts`, re-keyed PK all confirmed). `0008` had
+  never been applied to prod and was applied that day. Lesson: there is no
+  migrate-on-deploy, so check prod's migrations log at every release.
+- **Two invariant gates must stay on.** In `authoring-invariants.test.ts`, "no
+  starter graph packs two nodes closer than the minimum gap" and "no 4+ node
+  starter graph exceeds a 2.5:1 aspect ratio". If one fails, it is an authoring
+  regression - never skip it.
+- **Debrief reference diagrams need a pass.** Decided 2026-10-01: they adopt the
+  live canvas's direction-only handle rule (50 of the 57 same-side routes are in
+  these figures), and the user has spotted further edge-bounding issues and
+  inconsistencies across them. Needs its own scoping with the specific chapters.
+  Re-validate against `e2e/design-editor-geometry.spec.ts` afterwards.
+- **Re-measure `fitViewOptions.maxZoom: 1`** on the smallest starter graphs; 1.2
+  may be right. Do not change it speculatively.
+- **Quiz `diagram`-question upgrade** - deferred indefinitely (user call, 5.0.0).
 
 ------------------------------------------------------------------------
 
