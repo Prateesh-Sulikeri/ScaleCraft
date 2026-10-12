@@ -55,11 +55,11 @@ test("switching modes via client-side navigation never leaks canvas content betw
   await page.waitForURL("**/building-blocks/3-4-load-balancer/lesson");
   await expect(page.locator(".react-flow__node")).toHaveCount(0);
 
-  // The Reader page has no AppHeader (DESIGN.md) — its own back-link goes
-  // to the Learning Path, which is where the home "ScaleCraft" link lives.
+  // The Reader's sidebar back-link goes to the Learning Path; HomeHeader's
+  // brand link goes home.
   await page.getByRole("link", { name: "Learning Path" }).click();
   await page.waitForURL("**/building-blocks");
-  await page.getByRole("link", { name: "ScaleCraft", exact: true }).click();
+  await page.getByRole("link", { name: "ScaleCraft home" }).click();
   await page.waitForURL((url) => url.pathname === "/");
 
   await page.getByRole("link", { name: /Sandbox/ }).click();

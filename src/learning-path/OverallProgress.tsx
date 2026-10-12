@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ProgressBar } from "./ProgressBar";
 import type { CourseSummary } from "@/curriculum/progress";
 
@@ -9,7 +10,9 @@ import type { CourseSummary } from "@/curriculum/progress";
  * one card. Every SectionCard below stays neutral, so the accent still marks
  * exactly one thing here: overall progress.
  */
-export function OverallProgress({ summary }: { summary: CourseSummary }) {
+/** `extra` is a third item on the counts line (the course header puts the
+ *  day streak there). */
+export function OverallProgress({ summary, extra }: { summary: CourseSummary; extra?: ReactNode }) {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center gap-3">
@@ -38,6 +41,12 @@ export function OverallProgress({ summary }: { summary: CourseSummary }) {
           </span>{" "}
           sections
         </p>
+        {extra && (
+          <>
+            <span className="h-3 w-px shrink-0 bg-border" aria-hidden="true" />
+            {extra}
+          </>
+        )}
       </div>
     </div>
   );

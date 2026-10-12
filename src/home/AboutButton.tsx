@@ -17,7 +17,7 @@ export function AboutButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-panel px-4 text-sm font-medium text-foreground/80 transition-colors duration-150 ease-out hover:border-foreground/25 hover:text-foreground"
+        className="inline-flex h-11 items-center gap-2 rounded-md border border-border bg-panel px-5 text-[15px] font-medium text-foreground/80 transition-colors duration-150 ease-out hover:border-foreground/25 hover:text-foreground"
       >
         <Info size={14} aria-hidden="true" />
         About

@@ -50,6 +50,17 @@ describe("normalizeWalkthrough", () => {
     expect(issues.some((i) => i.code === "edge-endpoint-missing" && i.message.includes("ghost"))).toBe(true);
   });
 
+  it("flags fault ids that are not declared", () => {
+    const { issues } = normalizeWalkthrough(
+      baseProps({ steps: [
+        { caption: "One.", faultNodeIds: ["ghost-node"], faultEdgeIds: ["ghost-edge"] },
+        { caption: "Two." },
+      ] }),
+    );
+    expect(issues.some((i) => i.code === "fault-node-missing" && i.message.includes("ghost-node"))).toBe(true);
+    expect(issues.some((i) => i.code === "fault-edge-missing" && i.message.includes("ghost-edge"))).toBe(true);
+  });
+
   it("flags highlight-node-missing", () => {
     const { issues } = normalizeWalkthrough(
       baseProps({ steps: [
@@ -108,6 +119,26 @@ describe("normalizeWalkthrough", () => {
       }),
     );
     expect(issues.some((i) => i.code === "node-overlap")).toBe(true);
+  });
+
+  it("flags edge-crosses-node when a skip edge is drawn through a card", () => {
+    const APP: WalkthroughNode = { id: "app", kind: "component", componentId: "app-server" };
+    const { issues } = normalizeWalkthrough(
+      baseProps({
+        nodes: [CLIENT, LB, APP],
+        edges: [
+          E1,
+          { id: "e2", source: "lb", target: "app", kind: "request-flow" },
+          { id: "skip", source: "client", target: "app", kind: "request-flow" },
+        ],
+      }),
+    );
+    expect(issues).toContainEqual({ code: "edge-crosses-node", message: 'edge "skip" is drawn through node "lb"' });
+  });
+
+  it("does not flag edges between adjacent cards", () => {
+    const { issues } = normalizeWalkthrough(baseProps());
+    expect(issues.some((i) => i.code === "edge-crosses-node")).toBe(false);
   });
 
   it("flags node-outside-viewbox", () => {

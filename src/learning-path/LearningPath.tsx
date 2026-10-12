@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUp, Search } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
+import { DOT_PLANE_STYLE, DraftingBackdrop } from "@/app/DraftingBackdrop";
 import { PageEnter } from "@/app/PageEnter";
+import { HomeHeader } from "@/home/HomeHeader";
 import { courseAccentStyle } from "./accent";
 import { chapterStatusLabel } from "./ChapterStatusIcon";
 import { CourseHeader } from "./CourseHeader";
@@ -11,7 +13,6 @@ import { LEARNING_PATH_CONTAINER } from "./layout";
 import { SectionCard } from "./SectionCard";
 import { StatusFilter, type StatusFilterValue } from "./StatusFilter";
 import { ResetProgressDialog } from "./ResetProgressDialog";
-import { ReportBugButton } from "@/bugs/ReportBugButton";
 import { TipCard } from "./TipCard";
 import { UpNextCard } from "./UpNextCard";
 import { findEntry, getCourse } from "@/curriculum";
@@ -167,11 +168,20 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        style={courseAccentStyle(courseId)}
-        className="relative flex-1 overflow-y-auto"
+        style={{ ...DOT_PLANE_STYLE, ...courseAccentStyle(courseId) }}
+        className="relative isolate flex-1 overflow-y-auto"
       >
+        <DraftingBackdrop accent="var(--course-accent)" />
+        {/* Same header as Home, so moving between the two is one product. */}
+        <HomeHeader container={LEARNING_PATH_CONTAINER} />
         <div className={`${LEARNING_PATH_CONTAINER} py-8`}>
-          <CourseHeader course={course} summary={summary} dayStreak={dayStreak} streakKnown={streakKnown} />
+          <CourseHeader
+            course={course}
+            summary={summary}
+            dayStreak={dayStreak}
+            streakKnown={streakKnown}
+            isSignedIn={isSignedIn === true}
+          />
 
           <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-2">
@@ -212,10 +222,6 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
                   Reset progress
                 </button>
               )}
-              {/* Unlike Reset progress, this renders signed out too - the
-                  modal invites a sign-in rather than assuming an account,
-                  and a broken page is worth reporting whoever you are. */}
-              <ReportBugButton />
             </div>
 
             <StatusFilter value={statusFilter} onChange={setStatusFilter} />
@@ -245,8 +251,8 @@ export function LearningPath({ courseId }: { courseId: CourseId }) {
 
             {/* Sticky against this page's own scroll container, which is the
              * nearest scrolling ancestor - the rail stays with the learner
-             * through a 32-row course. */}
-            <aside className="flex flex-col gap-3 lg:sticky lg:top-2">
+             * through a 32-row course. top clears the sticky HomeHeader. */}
+            <aside className="flex flex-col gap-3 lg:sticky lg:top-[68px]">
               <UpNextCard courseId={courseId} target={upNext.target} entry={upNext.entry} />
               <TipCard courseId={courseId} />
             </aside>

@@ -1,6 +1,6 @@
 # Serverless Function
 
-Executes ephemeral compute logic in response to events without pro
+Executes ephemeral compute logic in response to events without
 provisioning or managing underlying infrastructure resources.
 
 ## What is it?
@@ -25,8 +25,8 @@ efficiency and resilience against unexpected load spikes.
 
 ## How does it work?
 
-The execution flow begins when a trigger source—such as an HTTP request, 
-message queue entry, or file upload to object storage—generates an event. 
+The execution flow begins when a trigger source - such as an HTTP request, 
+message queue entry, or file upload to object storage - generates an event. 
 The Serverless Platform detects this event and invokes the corresponding 
 function handler.
 
@@ -58,16 +58,11 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Time Limit** | Maximum execution time allowed for the function 
-invocation (e.g., 30 seconds). |
-| **Memory Allocation** | Amount of RAM assigned to the container, which 
-often dictates CPU power available. |
-| **Trigger Source Mapping** | Defines which specific events (e.g., object 
-type, queue depth) initiate execution. |
-| **Concurrency Limit** | Sets a hard cap on the number of simultaneous 
-instances that can run from this function. |
-| **VPC Integration** | Specifies network boundary requirements, forcing 
-the function to operate within a private subnet. |
+| **Time Limit** | Maximum execution time allowed for the function invocation (e.g., 30 seconds). |
+| **Memory Allocation** | Amount of RAM assigned to the container, which often dictates CPU power available. |
+| **Trigger Source Mapping** | Defines which specific events (e.g., object type, queue depth) initiate execution. |
+| **Concurrency Limit** | Sets a hard cap on the number of simultaneous instances that can run from this function. |
+| **VPC Integration** | Specifies network boundary requirements, forcing the function to operate within a private subnet. |
 
 ## Where is it used?
 

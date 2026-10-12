@@ -19,7 +19,7 @@ not need to be online or ready simultaneously for communication to occur.
 Direct synchronous calls create tight coupling; if a consumer service 
 fails, the producer call will also fail. Message queues solve this by 
 introducing temporal and spatial decoupling. They manage burst loads 
-gracefully, allowing consumers to process messages at their own su
+gracefully, allowing consumers to process messages at their own
 sustainable rate without overwhelming downstream services. This pattern 
 increases fault tolerance, improves overall system resilience, and allows 
 for ordered execution of background tasks.
@@ -52,24 +52,18 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Durable Queues** | Messages persist on disk even if the MQ broker 
-restarts. Essential for data reliability. |
-| **Message Acknowledgment (ACK)** | Consumer explicitly confirms 
-successful processing, triggering message removal. Prevents message loss 
-upon failure. |
-| **Dead Letter Exchange (DLX)** | Routes messages that fail multiple 
-retries to a specific queue for manual inspection and debugging. |
-| **Message Retention Policy** | Defines how long the MQ holds unconsumed 
-messages before automatically deleting them. |
-| **Topic/Queue Model** | Determines message routing: Topics support 
-fan-out to multiple subscribers; Queues are point-to-point. |
+| **Durable Queues** | Messages persist on disk even if the MQ broker restarts. Essential for data reliability. |
+| **Message Acknowledgment (ACK)** | Consumer explicitly confirms successful processing, triggering message removal. Prevents message loss upon failure. |
+| **Dead Letter Exchange (DLX)** | Routes messages that fail multiple retries to a specific queue for manual inspection and debugging. |
+| **Message Retention Policy** | Defines how long the MQ holds unconsumed messages before automatically deleting them. |
+| **Topic/Queue Model** | Determines message routing: Topics support fan-out to multiple subscribers; Queues are point-to-point. |
 
 ## Where is it used?
 
-*   **Asynchronous Task Processing:** Offloading non-critical, tim
+*   **Asynchronous Task Processing:** Offloading non-critical,
 time-insensitive tasks (e.g., sending email notifications, generating 
 reports).
-*   **Microservices Communication:** Implementing event-driven arc
+*   **Microservices Communication:** Implementing event-driven
 architectures where services communicate via domain events rather than 
 direct APIs.
 *   **High Throughput Data Ingestion:** Buffering massive incoming streams 

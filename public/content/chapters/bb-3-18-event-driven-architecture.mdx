@@ -49,12 +49,12 @@ The producer announces; interested parties subscribe.
   title="One event, three subscribers"
   description="A published listing is announced once and delivered to every service that asked for it."
   nodes={[
-    { id: "app", kind: "component", componentId: "app-server", label: "App Server" },
-    { id: "bus", kind: "component", componentId: "event-bus", label: "Event Bus" },
-    { id: "screen", kind: "component", componentId: "worker", label: "Fraud Screening" },
-    { id: "syndicate", kind: "component", componentId: "worker", label: "Partner Syndication" },
-    { id: "rollup", kind: "component", componentId: "worker", label: "Analytics Rollup" },
-    { id: "store", kind: "component", componentId: "nosql-database", label: "NoSQL Database" },
+    { id: "app", kind: "component", column: 0, componentId: "app-server", label: "App Server" },
+    { id: "bus", kind: "component", column: 1, componentId: "event-bus", label: "Event Bus" },
+    { id: "screen", kind: "component", column: 2, componentId: "worker", label: "Fraud Screening" },
+    { id: "syndicate", kind: "component", column: 2, componentId: "worker", label: "Partner Syndication" },
+    { id: "rollup", kind: "component", column: 2, componentId: "worker", label: "Analytics Rollup" },
+    { id: "store", kind: "component", column: 3, componentId: "nosql-database", label: "NoSQL Database" },
   ]}
   edges={[
     { id: "publish", source: "app", target: "bus", kind: "async" },

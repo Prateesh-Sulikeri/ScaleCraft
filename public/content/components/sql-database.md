@@ -10,8 +10,8 @@ of rows and columns. It defines explicit schemas that enforce data types
 and constraints, ensuring data consistency across the dataset. Operations 
 are conducted through Structured Query Language (SQL), which allows users 
 to define complex retrieval, insertion, modification, and deletion logic. 
-SQL databases prioritize adherence to ACID principles—Atomicity, C
-Consistency, Isolation, and Durability—making them suitable for managing 
+SQL databases prioritize adherence to ACID principles - Atomicity,
+Consistency, Isolation, and Durability - making them suitable for managing 
 mission-critical data where transactional integrity is non-negotiable.
 
 ## Why do we need it?
@@ -60,19 +60,13 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Replication Strategy** | Defines how write operations are synchronized 
-across multiple nodes (e.g., Master-Slave, Multi-Master). |
-| **Transaction Isolation Level** | Controls how transactions running 
-concurrently interact and affect each other's visibility (e.g., Se
-Serializable, Read Committed). |
-| **Connection Pool Size** | The maximum number of open connections the 
-application service maintains to prevent resource exhaustion. |
-| **Indexing Depth/Type** | Specifies metadata structures used by the 
-engine to accelerate query lookup times on specific columns or groups of 
-columns. |
-| **Backup Retention Policy** | Determines how long historical snapshots 
-of the dataset are maintained for recovery and point-in-time restoration. 
-|
+| **Replication Strategy** | Defines how write operations are synchronized across multiple nodes (e.g., Master-Slave, Multi-Master). |
+| **Transaction Isolation Level** | Controls how transactions running concurrently interact and affect each other's visibility (e.g., Serializable, Read Committed). |
+| **Connection Pool Size** | The maximum number of open connections the application service maintains to prevent resource exhaustion. |
+| **Indexing Depth/Type** | Specifies metadata structures used by the engine to accelerate query lookup times on specific columns or groups of columns. |
+| **Backup Retention Policy** | Determines how long historical snapshots of the dataset are maintained for recovery and point-in-time restoration. |
+
+On the canvas: `indexing` (whether the hot queries hit an index), `partitioning` (none, hash or range) and `shardKey`.
 
 ## Where is it used?
 

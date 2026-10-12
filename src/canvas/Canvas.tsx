@@ -29,7 +29,7 @@ import { toJpeg, toPng } from "html-to-image";
 import { useTheme } from "next-themes";
 import { useHasMounted } from "@/lib/use-has-mounted";
 import { getComponent } from "@/content/components/registry";
-import { pickDefaultKind } from "./legal-edge-kinds";
+import { pickDefaultKindFor } from "./legal-edge-kinds";
 import { CARD_HEIGHT, CARD_WIDTH, CONNECTION_RADIUS } from "./card-geometry";
 import { canConnect } from "./connection-rules";
 import { ArchitectureEdge } from "./ArchitectureEdge";
@@ -171,7 +171,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       const targetNode = storeNodes.find((n) => n.id === connection.target);
       const sourceDef = sourceNode?.type === "component" ? getComponent(sourceNode.data.componentId) : undefined;
       const targetDef = targetNode?.type === "component" ? getComponent(targetNode.data.componentId) : undefined;
-      const kind = sourceDef && targetDef ? pickDefaultKind(sourceDef.category, targetDef.category) : undefined;
+      const kind = sourceDef && targetDef ? pickDefaultKindFor(sourceDef, targetDef) : undefined;
       storeOnConnect(connection, kind);
     },
     [storeNodes, storeOnConnect],

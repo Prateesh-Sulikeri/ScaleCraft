@@ -21,6 +21,7 @@ vi.mock("./YourTurnCard", () => ({
   ),
 }));
 vi.mock("@/app/ThemeToggle", () => ({ ThemeToggle: () => null }));
+vi.mock("@/home/HomeHeader", () => ({ HomeHeader: () => null }));
 vi.mock("@/canvas/docs-panel/markdown/MarkdownRenderer", () => ({
   MarkdownRenderer: ({ content }: { content: string }) => <div>{content}</div>,
 }));
@@ -100,6 +101,7 @@ const {
     slug: "orphaned-definition-slug",
     chapterDefinitionId: "no-such-chapter-in-registry",
   };
+  const crossCourseEntry: CurriculumChapter = { ...targetEntry, slug: "cross-course-slug", prerequisiteSlugs: ["bb-checkpoint"] };
   const noNumberEntry: CurriculumChapter = { ...targetEntry, slug: "no-number-slug", number: null };
   const missingPrereqEntry: CurriculumChapter = {
     ...targetEntry,
@@ -136,6 +138,7 @@ const {
       "placeholder-slug": placeholderEntry,
       "orphaned-definition-slug": orphanedDefinitionEntry,
       "no-number-slug": noNumberEntry,
+      "cross-course-slug": crossCourseEntry,
       "missing-prereq-slug": missingPrereqEntry,
       "fresh-markdown-slug": freshMarkdownEntry,
       "next-section-slug": nextSectionEntry,
@@ -149,9 +152,9 @@ vi.mock("@/content/chapters", () => ({
 }));
 
 vi.mock("@/curriculum", () => ({
-  getCourse: (): Course => ({
-    id: "real-world-extraction",
-    title: "Real World Extraction",
+  getCourse: (id = "real-world-extraction"): Course => ({
+    id: id as Course["id"],
+    title: id === "building-blocks" ? "Building Blocks" : "Real World Extraction",
     subtitle: "",
     sections: [],
   }),
@@ -159,6 +162,15 @@ vi.mock("@/curriculum", () => ({
   // No test in this file asserts on "Next chapter" (see NextChapterLink.test.tsx
   // for that) - undefined keeps it a no-op so it doesn't affect this file's DOM.
   nextEntry: () => undefined,
+  previousEntry: () => undefined,
+  findSection: () => undefined,
+  locateEntry: (slug: string) =>
+    slug === "bb-checkpoint"
+      ? { courseId: "building-blocks", entry: { ...entriesBySlug["prereq-authored"], slug, number: null, title: "R1 Checkpoint" } }
+      : entriesBySlug[slug]
+        ? { courseId: "real-world-extraction", entry: entriesBySlug[slug] }
+        : undefined,
+  allEntries: () => [],
 }));
 
 describe("ChapterReader - prerequisite and domain tags", () => {
@@ -197,6 +209,15 @@ describe("ChapterReader - prerequisite and domain tags", () => {
     expect(screen.queryByText(/prerequisites/i)).not.toBeInTheDocument();
   });
 
+  it("shows the chapter number, time estimate, and what the chapter ends with", () => {
+    stubFetchNotFound();
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="target" />);
+    expect(screen.getByRole("heading", { level: 1, name: "Target Chapter" })).toBeInTheDocument();
+    expect(screen.getAllByText("2.3").length).toBeGreaterThan(0);
+    expect(screen.getByText(/~30 min/)).toBeInTheDocument();
+    expect(screen.getByText("Design exercise")).toBeInTheDocument();
+  });
+
   it("renders nothing for an unknown chapter slug", () => {
     stubFetchNotFound();
     const { container } = render(<ChapterReader mode="real-world-extraction" chapterSlug="no-such-slug" />);
@@ -231,10 +252,19 @@ describe("ChapterReader - prerequisite and domain tags", () => {
     expect(screen.getByText("Draft")).toBeInTheDocument();
   });
 
-  it("skips an unresolvable prerequisite slug without crashing", () => {
+  it("links a prerequisite from the other course, naming that course", () => {
+    stubFetchNotFound();
+    render(<ChapterReader mode="real-world-extraction" chapterSlug="cross-course-slug" />);
+    expect(screen.getByRole("link", { name: "R1 Checkpoint (Building Blocks)" })).toHaveAttribute(
+      "href",
+      "/building-blocks/bb-checkpoint/lesson",
+    );
+  });
+
+  it("drops the prerequisites row when no slug resolves", () => {
     stubFetchNotFound();
     render(<ChapterReader mode="real-world-extraction" chapterSlug="missing-prereq-slug" />);
-    expect(screen.getByText("Prerequisites")).toBeInTheDocument();
+    expect(screen.queryByText("Prerequisites")).not.toBeInTheDocument();
     expect(screen.queryByText(/truly-missing-slug/)).not.toBeInTheDocument();
   });
 

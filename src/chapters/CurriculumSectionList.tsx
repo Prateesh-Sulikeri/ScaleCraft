@@ -70,7 +70,7 @@ function CurriculumSectionListRow({
   const content = (
     <span className="flex min-w-0 flex-1 items-center gap-2">
       <ChapterStatusIcon status={status} />
-      <span className={`truncate text-xs ${isAuthored ? "text-foreground" : "text-foreground/40"}`}>
+      <span className={`row-title truncate text-[13px] ${isAuthored ? "text-foreground/75" : "text-foreground/40"}`}>
         {entry.number ? `${entry.number} ` : ""}
         {entry.title}
       </span>
@@ -83,8 +83,10 @@ function CurriculumSectionListRow({
         <Link
           href={`/${courseId}/${entry.slug}/lesson`}
           aria-current={isCurrent ? "page" : undefined}
-          className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 transition-colors hover:bg-border/40 ${
-            isCurrent ? "bg-border/60" : ""
+          className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 transition-colors ${
+            isCurrent
+              ? "bg-[var(--course-accent-soft)] font-medium [&_.row-title]:text-foreground"
+              : "hover:bg-border/40"
           }`}
         >
           {content}

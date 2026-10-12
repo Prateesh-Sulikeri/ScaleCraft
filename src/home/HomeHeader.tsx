@@ -60,10 +60,12 @@ function NavItem({ item }: { item: HomeNavItem }) {
  * There is no "Home" tab. The brand lockup on the left is already the link
  * home, and a tab sitting beside it was two controls for one destination.
  */
-export function HomeHeader() {
+/** `container` lets a page with a narrower column (the Learning Path) keep
+ *  the header aligned with its own content. */
+export function HomeHeader({ container = HOME_CONTAINER }: { container?: string }) {
   return (
     <header className="sticky top-0 z-[var(--z-dropdown)] border-b border-border bg-background/85 backdrop-blur">
-      <div className={`${HOME_CONTAINER} flex items-center justify-between gap-4 py-2.5`}>
+      <div className={`${container} flex items-center justify-between gap-4 py-2.5`}>
         <div className="flex min-w-0 items-center gap-4">
           <Link
             href="/"

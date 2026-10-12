@@ -3,8 +3,7 @@
  *
  * One isometric projection, 2:1 - a step along either ground axis is `+x,
  * +x/2`. Sharing it is what puts the cube and the system topology on the same
- * implied drawing rather than merely in the same style. Same projection Home's
- * announcement object uses (src/home/AlphaAnnouncement.tsx).
+ * implied drawing rather than merely in the same style.
  */
 
 /** Half-height of an isometric tile, given its half-width. */

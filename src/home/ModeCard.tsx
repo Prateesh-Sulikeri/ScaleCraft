@@ -24,6 +24,8 @@ type ModeCardProps = {
   /** Omitted for Sandbox: freeform, nothing to complete, so no progress to
    *  report - the footer shows a "free-form" metadata line instead. */
   progress?: CourseProgress;
+  /** A few real names from what the mode contains, plus how many more. */
+  includes?: { items: readonly string[]; more: number };
 };
 
 /** A thin flanking-tick dimension line - the drafting motif the workspace and
@@ -85,7 +87,7 @@ function DimensionLine() {
  * (The plain `transition-transform` utility does cover translate; an
  * explicit property list does not.)
  */
-export function ModeCard({ mode, href, progress }: ModeCardProps) {
+export function ModeCard({ mode, href, progress, includes }: ModeCardProps) {
   const color = modeColorVar[mode];
   const Icon = modeIcon[mode];
   const router = useRouter();
@@ -123,15 +125,15 @@ export function ModeCard({ mode, href, progress }: ModeCardProps) {
        * long as the pointer sat on that line. A hit area that never moves
        * cannot do that, and the designed motion survives. */}
       <Link href={href} onClick={handleClick} style={{ "--accent": color } as CSSProperties} className="group block rounded-lg">
-        <div className="relative flex h-full flex-col gap-3 rounded-lg border border-border bg-panel p-4 transition-[border-color,box-shadow,translate] duration-150 ease-out group-hover:-translate-y-0.5 group-hover:border-[color:color-mix(in_srgb,var(--accent)_45%,var(--border))] group-hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
+        <div className="relative flex h-full flex-col gap-3.5 rounded-lg border border-[color:color-mix(in_srgb,var(--accent)_22%,var(--border))] bg-[color:color-mix(in_srgb,var(--accent)_5%,var(--panel))] p-5 transition-[border-color,box-shadow,translate,background-color] duration-150 ease-out group-hover:-translate-y-0.5 group-hover:border-[color:color-mix(in_srgb,var(--accent)_55%,var(--border))] group-hover:bg-[color:color-mix(in_srgb,var(--accent)_8%,var(--panel))] group-hover:shadow-[0_10px_28px_-16px_rgba(0,0,0,0.35)] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
           <div className="flex items-start justify-between gap-3">
             {/* Tint and badge border read from --accent as classes rather than
              * inline style so each can carry a hover state; the icon's own
              * color stays inline, since it never changes. Both deepen on
              * hover - a paint on a 40px box and a 1px border, no geometry,
              * so nothing here can reflow the card. */}
-            <div className="flex h-10 w-10 items-center justify-center rounded-md border border-[color:var(--accent)] bg-[color:color-mix(in_srgb,var(--accent)_10%,transparent)] transition-colors duration-200 ease-out group-hover:bg-[color:color-mix(in_srgb,var(--accent)_20%,transparent)]">
-              <Icon size={20} style={{ color }} strokeWidth={1.5} aria-hidden="true" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-md border border-[color:var(--accent)] bg-[color:color-mix(in_srgb,var(--accent)_10%,transparent)] transition-colors duration-200 ease-out group-hover:bg-[color:color-mix(in_srgb,var(--accent)_20%,transparent)]">
+              <Icon size={22} style={{ color }} strokeWidth={1.5} aria-hidden="true" />
             </div>
             <span
               style={{ color }}
@@ -142,16 +144,32 @@ export function ModeCard({ mode, href, progress }: ModeCardProps) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <h3 style={{ color }} className="text-[17px] font-semibold tracking-tight">
+            <h3 style={{ color }} className="text-lg font-semibold tracking-tight">
               {modeLabel[mode]}
             </h3>
-            <p className="text-sm leading-snug text-foreground/65">{modeTagline[mode]}</p>
+            <p className="text-sm leading-snug text-foreground/70">{modeTagline[mode]}</p>
           </div>
+
+          {/* Real contents, so the card says what is inside, not just what kind
+           * of mode it is. */}
+          {includes && (
+            <ul className="flex flex-wrap gap-1.5" aria-label={`${modeLabel[mode]} includes`}>
+              {includes.items.map((item) => (
+                <li
+                  key={item}
+                  className="rounded-sm border border-[color:color-mix(in_srgb,var(--accent)_28%,var(--border))] bg-panel px-1.5 py-0.5 text-[11px] text-foreground/75"
+                >
+                  {item}
+                </li>
+              ))}
+              {includes.more > 0 && <li className="px-1 py-0.5 text-[11px] text-foreground/50">+{includes.more} more</li>}
+            </ul>
+          )}
 
           {/* Absorbs leftover vertical slack so the divider and footer stay
            * anchored to the bottom edge across all three cards, regardless of
            * how many lines each tagline wraps to. */}
-          <div className="min-h-2 flex-1" />
+          <div className="flex-1" />
 
           <DimensionLine />
 
