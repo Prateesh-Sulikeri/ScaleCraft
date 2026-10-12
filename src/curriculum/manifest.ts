@@ -779,7 +779,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Notification System",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-12.
+            chapterDefinitionId: "rwe-t2-notification-system",
             estimatedMinutes: 75,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r2-building-a-complete-backend"],
@@ -790,7 +791,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Job Scheduler",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-12.
+            chapterDefinitionId: "rwe-t2-job-scheduler",
             estimatedMinutes: 80,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r2-building-a-complete-backend"],
@@ -801,7 +803,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "LeetCode",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-12.
+            chapterDefinitionId: "rwe-t2-leetcode",
             estimatedMinutes: 75,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r2-building-a-complete-backend"],
@@ -812,7 +815,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Price Tracking Service",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-12.
+            chapterDefinitionId: "rwe-t2-price-tracking-service",
             estimatedMinutes: 80,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r2-building-a-complete-backend"],
@@ -823,7 +827,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Online Chess",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-12.
+            chapterDefinitionId: "rwe-t2-online-chess",
             estimatedMinutes: 90,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r2-building-a-complete-backend"],

@@ -1,0 +1,306 @@
+An online chess site: 15 million players a day, 250,000 games in progress at the
+evening peak. Its first version had each player's browser ask the server "any new
+move?" every 500 milliseconds. At peak that was a million requests a second, 99% of
+them answered "no".
+
+The cost players noticed was different. On average a move appeared 250 ms after it
+was played. In a bullet game with 60 seconds each and 40 moves, that is 10 seconds
+of a player's clock spent waiting for a move that had already been made.
+
+> [!NOTE]
+> Think first: to push a move the instant it is played, the server has to hold a
+> connection open to every player. What does that make true about the machine
+> holding each connection, and how does a move reach a player connected to a
+> different machine? Commit to an answer before reading on.
+
+## The numbers
+
+Interview steps 1 to 3. Spectating, puzzles and analysis are out of scope; live
+play and pairing are in.
+
+| Measured | Figure | What it forces |
+|---|---|---|
+| Live games at peak | 250,000, so 500,000 connected players | Half a million connections held open at once |
+| Moves | One every ~6 s per game on average: ~42,000/s | Each one relayed to one opponent, fast |
+| Relay budget | Under 100 ms move to screen | A bullet player's clock runs while the move is in flight |
+| Connections per machine | ~50,000 idle connections each | 10 machines at peak, plus headroom |
+| Waiting to be paired | ~20,000 players at peak, by time control and rating | A pool that changes every second and must never pair one player twice |
+| Ratings and finished games | 15 million players' ratings, every game ever played | The one dataset that must never be wrong |
+
+Two kinds of state with opposite needs sit side by side: the live game, which
+changes 42,000 times a second and matters for minutes, and the rating, which
+changes once per game and matters forever.
+
+## Holding the connection
+
+Polling makes every server interchangeable and every move late. The fix is to keep
+one connection open per player (a WebSocket) and push the move down it. That trades
+one problem for three:
+
+- **The connection is state, and it lives on exactly one machine.** 3.6 said keep
+  servers stateless. A live socket cannot be moved to a shared store, so it is the
+  one piece of state that stays put. The discipline becomes containing it: the
+  connection is pinned, and everything else about the game lives elsewhere.
+- **The two players are usually on different machines.** With 10 machines, nine
+  games in ten span two of them. Each machine subscribes, in a shared publish and
+  subscribe channel, to the games its players are in. A move is published on the
+  game's channel; whichever machine holds the opponent receives it and pushes it.
+- **Connections outlive the balancing.** A load balancer places a connection once,
+  when it opens, and then it stays for the length of a session. When a machine
+  restarts at peak, its 50,000 players reconnect to the others, and round-robin -
+  which spreads *new* connections evenly - leaves the restarted machine nearly empty
+  for hours. Least-connections sends each new connection to the emptiest machine,
+  and the fleet evens out within minutes.
+
+Dead connections are detected with a heartbeat: a ping every few seconds, and a
+player whose pings stop is marked disconnected. On reconnect the client says which
+move it last saw, and the server sends what it missed.
+
+> **Engineering lens.** Ask which state is irreducible. Here it is the socket, and
+> only the socket. Everything that can live in a shared store does, so losing a
+> machine costs a reconnect, never a game.
+
+## A move between two machines
+
+<Walkthrough
+  title="One move, two connection servers"
+  description="Switch between polling and pushing over held connections. White is on Connection server 1, Black on Connection server 2."
+  algorithms={[
+    { id: "poll", label: "Polling every 500 ms" },
+    { id: "push", label: "Pushed over open connections" },
+  ]}
+  nodes={[
+    { id: "white", kind: "component", componentId: "browser", label: "White" },
+    { id: "black", kind: "component", componentId: "browser", label: "Black" },
+    { id: "lb", kind: "component", componentId: "load-balancer", label: "Load Balancer" },
+    { id: "cs1", kind: "component", componentId: "app-server", label: "Connection server 1" },
+    { id: "cs2", kind: "component", componentId: "app-server", label: "Connection server 2" },
+    { id: "live", kind: "component", componentId: "distributed-cache", label: "Live games + channels" },
+    { id: "db", kind: "component", componentId: "sql-database", label: "Ratings + games" },
+  ]}
+  edges={[
+    { id: "w", source: "white", target: "lb", kind: "request-flow" },
+    { id: "b", source: "black", target: "lb", kind: "request-flow" },
+    { id: "to1", source: "lb", target: "cs1", kind: "request-flow" },
+    { id: "to2", source: "lb", target: "cs2", kind: "request-flow" },
+    { id: "s1", source: "cs1", target: "live", kind: "request-flow" },
+    { id: "s2", source: "cs2", target: "live", kind: "request-flow" },
+    { id: "save", source: "cs1", target: "db", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "White's and Black's browsers each reach a different machine through the Load Balancer: White on Connection server 1, Black on Connection server 2.",
+      focus: ["w", "b", "to1", "to2"],
+    },
+    {
+      caption: "White plays move 31.",
+      variants: {
+        poll: {
+          caption: "White's move is sent to Connection server 1, which writes it and the clocks to Live games. Black's server knows nothing about it yet.",
+          focus: ["w", "to1", "s1"],
+        },
+        push: {
+          caption: "Connection server 1 checks the move against the game in Live games, writes move 31 and both clocks, and publishes it on the game's channel.",
+          focus: "s1",
+        },
+      },
+    },
+    {
+      caption: "Black sees the move.",
+      variants: {
+        poll: {
+          caption: "Black's browser asks Connection server 2 every 500 ms. On average the move is 250 ms old when it arrives, and Black's clock has been running the whole time.",
+          focus: ["b", "to2", "s2"],
+        },
+        push: {
+          caption: "Connection server 2 is subscribed to the game's channel because it holds Black's connection. It receives move 31 and pushes it to Black: about 20 ms end to end.",
+          highlightNodeIds: ["live", "cs2", "black"],
+          highlightEdgeIds: ["s2", "to2", "b"],
+        },
+      },
+    },
+    {
+      caption: "Connection server 2 dies. Black's connection drops; the game itself is untouched, because it lives in Live games, not on the machine.",
+      faultNodeIds: ["cs2"],
+      faultEdgeIds: ["to2"],
+    },
+    {
+      caption: "Black's browser reconnects after a short random delay, and the Load Balancer sends it to Connection server 1. It reads the game from Live games: move 31, clocks intact.",
+      focus: ["b", "to1", "s1"],
+      faultNodeIds: ["cs2"],
+    },
+    {
+      caption: "When the game ends, Connection server 1 writes the result and the full move list to Ratings + games, and updates both ratings in one transaction.",
+      focus: "save",
+    },
+  ]}
+/>
+
+Note: the relay runs through the shared store because a store's publish and
+subscribe channels are how connection servers hear about each other's moves; the
+canvas has no edge for a store pushing into an app server, so it is drawn as both
+servers connecting to it.
+
+## Matchmaking state
+
+The second new concept is the waiting pool: players who clicked "play 3+0" and
+want an opponent of similar rating, now.
+
+- **It is a shared pool, not a per-machine one.** Two players waiting on different
+  connection servers must be able to meet, so the pool lives in the shared store: a
+  sorted set per time control, keyed by rating.
+- **Pairing must be atomic.** If two matchmakers each read the pool and both pick
+  Alice, she lands in two games. Pairing is one operation inside the store - find a
+  compatible pair and remove both - so a player can be taken only once.
+- **The window widens with time.** A player is first offered opponents within 50
+  rating points; every few seconds of waiting widens it. Pairing quality is traded
+  for wait time on purpose, and the curve is a product decision.
+- **Entries expire.** A player who closes the tab never says so. Each entry carries
+  a short TTL, refreshed by their heartbeat; a silent player falls out of the pool.
+
+> **Production lens.** The pool is the most volatile data in the system and the
+> least valuable: if it is lost, 20,000 people click "play" again. Spend durability
+> where losing data hurts.
+
+That is 3.22's point made concrete. The pool and the live game tolerate a brief loss
+(AP-ish: available, fast, occasionally one move re-sent). Ratings and finished games
+do not (CP-ish: written in a transaction, replicated, never guessed).
+
+## Trade-offs
+
+| Decision | One way | The other way |
+|---|---|---|
+| Where a live game's moves live | In a replicated in-memory store, written to the database when the game ends: sub-millisecond per move, and a failover can lose the last move, which the client re-sends | Appended to a durable move log before each move is relayed: no acknowledged move is ever lost, at the cost of a durable write on the path of 42,000 moves a second |
+| Delivery | Polling: any server answers, every move is late | Held connections: instant, and every connection is pinned to one machine |
+| Placing connections | Round-robin: even for new connections, uneven for hours after a restart | Least-connections: rebalances as connections open, at the cost of the balancer tracking counts |
+| Pairing | Strict rating window: better games, longer waits | Widening window: short waits, sometimes a mismatched game |
+| Clocks | Trust each client's clock: zero server work, and a modified client can stop its own clock | Server-authoritative clocks: the server timestamps each move, so a slow or tampered connection cannot buy time |
+
+## What breaks
+
+- **Reconnect storms.** A deploy restarts a machine and 50,000 clients reconnect in
+  the same second. Clients reconnect after a random delay, and deploys drain each
+  machine's connections gradually.
+- **Half-open connections.** A phone loses signal and the server still thinks the
+  player is there; their clock runs while nobody is watching. Heartbeats detect it in
+  seconds, and the game can pause or flag a disconnect.
+- **The same player paired twice.** A non-atomic pool read; the second game never
+  starts and its opponent waits.
+- **Rating races.** Two games ending at once update one player's rating from the
+  same old value. Rating updates are transactional, per player.
+
+## What changes at scale
+
+At **10x** (2.5 million live games), the shared store is partitioned by game id, so
+a game's state and channel live together on one node.
+
+At **100x**, cross-region play adds 100-200 ms of distance a relay cannot remove.
+Pairing prefers opponents in the same region, and the game is hosted in the region
+between the two players.
+
+At **1000x**, spectating dominates: one top game watched by a million people is a
+fan-out problem, not a relay problem, and it gets its own path.
+
+## In production
+
+**Lichess**, which is open source, runs its WebSocket handling as a separate
+service (lila-ws) from the main application (lila), and the two talk over Redis
+publish and subscribe. They split it so the connection tier, the part holding
+irreducible state, could be scaled and restarted independently of everything else.
+
+**Discord's gateway** holds millions of concurrent WebSocket connections and routes
+each community's events through the one process that owns that community, so a
+message is fanned out from a single place to whichever connection servers hold its
+members.
+
+A small chess site runs one server holding every connection, with games in memory
+and an in-process pool. It needs the shared store the day it adds a second machine,
+because that is the day two players can be on different ones.
+
+## Common mistakes
+
+- **Polling for real-time play.** Load in the millions per second and a clock tax on
+  every move.
+- **Keeping game state on the connection server.** The machine dies and the game
+  dies with it.
+- **Round-robin for long-lived connections.** The fleet stays unbalanced long after a
+  restart.
+- **One durability level for everything.** Either ratings are at risk or every move
+  pays for a guarantee it does not need.
+
+## In an interview
+
+"Design online chess" is graded on whether step 1 separates real-time play from
+everything else, and step 3 on the connection count and move rate. The deep dive
+(step 5) is the connection tier and the relay; the follow-ups are "what happens when
+a server dies mid-game?" and "how do two players on different servers find each
+other?"
+
+What that sounds like at a senior level: *"Players hold WebSockets to a connection
+tier behind a least-connections balancer, because connections are long-lived and
+round-robin never rebalances after a restart. The socket is the only state on those
+machines; live game state and the pairing pool are in a replicated in-memory store,
+and moves are relayed between servers on a per-game pub/sub channel. A dead server
+costs a reconnect: the client resumes from its last move number. Pairing pops two
+compatible players atomically, so no one is paired twice. Ratings and finished games
+go to the relational store in transactions - that's the one place I'd pay for strong
+consistency."*
+
+## Connections
+
+3.7 asked where session state lives and answered "outside the server"; this project
+keeps that answer for everything except the socket, which cannot move. 3.9's service
+discovery returns as "which machine holds this player", answered by subscribing to
+the game's channel instead of looking up a registry. 3.22's postures are assigned per
+data class: the pool and live moves AP-ish, ratings CP-ish. 3.4's least-connections
+algorithm finally has the workload it exists for. 3.14's Distributed Cache takes on
+two more jobs, the pool and the relay.
+
+Further out, marked for later: WhatsApp in Tier 4 takes this connection tier and asks
+it to hold hundreds of millions of connections, with messages that must be delivered
+even when the recipient is offline.
+
+## Recap
+
+- Push needs held connections, and a held connection is state pinned to one machine.
+- Contain it: the socket stays, the game lives in a shared store, so a dead machine
+  costs a reconnect.
+- Moves cross machines on a per-game publish and subscribe channel.
+- Least-connections, not round-robin, for connections that last a session.
+- Assign durability per data class: pool and live moves cheap, ratings strict.
+
+## Your turn
+
+**The product.** The chess site from the opening: browsers poll one application
+server, which keeps live games in its own memory and stores accounts, ratings and
+finished games in a relational database.
+
+What it has to do:
+
+- A move reaches the opponent in under 100 ms, whichever machines the two players
+  are connected to.
+- Players waiting for the same time control are paired with each other even when
+  connected to different machines, and no player is ever paired into two games.
+- If a machine holding live games dies, both players reconnect and continue from the
+  last move with clocks intact.
+- After a machine restarts at peak, connections even out across machines within
+  minutes, not hours.
+- Ratings and finished games are never lost. One public hostname resolves to
+  whatever fronts the site.
+
+**The exercise.** Build the real-time tier. How durable each move has to be is
+yours to decide; more than one answer passes, and each pays for something the other
+does not. Validate runs every rule in the registry.
+
+**Stretch, optional and not graded.** The world championship final is streamed with
+live move updates to two million spectators. Which part of your design breaks first,
+and why is that a different problem from relaying a move to one opponent?
+
+**What you are not told**: where live games live, how moves cross machines, or what
+each piece of data is stored in.
+
+## Next
+
+Tier 2's other projects, in any order. Notification System is the natural pair: a
+move here has one recipient and must arrive in 100 ms; a notification there has
+three channels, an outside provider in the way, and a user who may have said no.

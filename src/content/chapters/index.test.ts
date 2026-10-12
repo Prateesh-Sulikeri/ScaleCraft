@@ -60,6 +60,11 @@ describe("getChaptersForMode", () => {
       "rwe-t1-rate-limiter",
       "rwe-t1-distributed-cache",
       "rwe-t1-metrics-monitoring",
+      "rwe-t2-notification-system",
+      "rwe-t2-job-scheduler",
+      "rwe-t2-leetcode",
+      "rwe-t2-price-tracking-service",
+      "rwe-t2-online-chess",
     ]);
   });
 

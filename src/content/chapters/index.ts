@@ -20077,6 +20077,2392 @@ export const chapterRegistry: ChapterDefinition[] = [
       },
     ],
   },
+  {
+    id: "rwe-t2-notification-system",
+    mode: "real-world-extraction",
+    title: "Notification System",
+    // Spec: specs/rwe-t2-notification-system.spec.md. Lesson body:
+    // public/content/chapters/rwe-t2-notification-system.mdx. Tier 1's RWE
+    // precedent (one exercise, no curriculumContext, full registry) plus the
+    // first RWE ruleSeverity escalation, because the brief requires failed
+    // messages to be kept.
+    problemStatement:
+      "A food-delivery app's notification service: other teams' services call one Notification API (one " +
+      "machine), which puts push, email and SMS on one queue drained by one pool of senders. A hung SMS " +
+      "provider stopped every channel for 38 minutes, and its recovery sent 220,000 duplicate login codes.\n\n" +
+      "- A provider outage on one channel does not delay the other channels.\n" +
+      "- A message that keeps failing is kept for inspection, never retried forever and never silently dropped.\n" +
+      "- An event that arrives twice is sent once, and the 6,000 preference reads a second are not served by " +
+      "the relational database.\n" +
+      "- Losing the machine that runs the Notification API drops no calls.",
+    exerciseGoal:
+      "Stop one provider's outage from stalling every channel, and give the router a fast place to check what " +
+      "each user allows and which events it has already accepted.",
+    successCriteria: [
+      "An SMS provider outage delays SMS only: push and email keep sending.",
+      "A message that keeps failing is set aside for inspection rather than retried forever or dropped.",
+      "An event delivered twice is sent once, and preference reads do not reach the relational database.",
+      "Losing the machine that runs the Notification API drops no calls, and Validate reports zero errors.",
+    ],
+    // Objectives 1 and 2 are this project's declared new concepts (§15.2):
+    // multi-channel delivery, and the preference and dedup layer.
+    learningObjectives: [
+      "Explain why a shared queue and sender pool lets one slow provider stall every channel, using in-flight = rate x latency.",
+      "Place dedup for upstream retries and for queue redelivery, and choose per channel whether a crash should cost a duplicate or a loss.",
+      "Answer \"what happens when the SMS provider is down?\" by naming channel isolation, call timeouts, backoff and the dead-letter queue, in under a minute.",
+      "Build a notification pipeline whose channels fail independently, whose failed messages are kept, and whose hot reads skip the database, and pass Submit.",
+      "Defend a queue per channel or a log with a consumer group per channel by naming what the other buys.",
+    ],
+    // All 27 components: Tier 2 unlocks at Checkpoint G, after every home
+    // chapter in §16.
+    availableComponentIds: [
+      "client",
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "worker",
+      "cron-job",
+      "serverless-function",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "object-storage",
+      "search-engine",
+      "cache",
+      "distributed-cache",
+      "message-queue",
+      "kafka",
+      "event-bus",
+      "dead-letter-queue",
+      "coordinator",
+      "leader",
+      "follower",
+      "lock-service",
+    ],
+    requiredComponentIds: ["client", "load-balancer", "app-server", "dead-letter-queue"],
+    // Moot for RWE: the full registry runs (spec §6).
+    validationRuleIds: [],
+    // The brief makes keeping failed messages a requirement (§15.1), so a
+    // queue with no dead-letter queue fails Validate here.
+    ruleSeverity: {
+      "queue-without-dead-letter-queue": "error",
+    },
+    // Two transports that both isolate the channels. Three distinct queue and
+    // sender aliases because pattern bindings are injective: one queue or one
+    // pool shared by three channels cannot match.
+    blueprints: [
+      {
+        id: "rwe-t2-notify-blueprint-queues",
+        label: "A queue and a sender pool per channel",
+        require: {
+          id: "rwe-t2-notify-blueprint-queues",
+          nodes: [
+            { alias: "callers", componentId: "client" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "router", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "fast", componentId: ["cache", "distributed-cache"] },
+            { alias: "store", componentId: ["sql-database", "nosql-database"] },
+            { alias: "q1", componentId: "message-queue" },
+            { alias: "q2", componentId: "message-queue" },
+            { alias: "q3", componentId: "message-queue" },
+            { alias: "s1", componentId: ["worker", "serverless-function"] },
+            { alias: "s2", componentId: ["worker", "serverless-function"] },
+            { alias: "s3", componentId: ["worker", "serverless-function"] },
+            // The escalated rule already demands a DLQ on every queue; naming
+            // one here keeps drift from calling it "not part of this approach".
+            { alias: "parked", componentId: "dead-letter-queue" },
+          ],
+          edges: [
+            { from: "callers", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "router", kind: "request-flow" },
+            { from: "router", to: "fast", kind: "request-flow" },
+            { from: "router", to: "store", via: "path" },
+            { from: "q1", to: "parked", kind: "async" },
+            { from: "router", to: "q1" },
+            { from: "router", to: "q2" },
+            { from: "router", to: "q3" },
+            { from: "q1", to: "s1", kind: "async" },
+            { from: "q2", to: "s2", kind: "async" },
+            { from: "q3", to: "s3", kind: "async" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t2-nt-ref-q-callers", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t2-nt-ref-q-lb", componentId: "load-balancer", position: { x: 320, y: 0 }, config: { algorithm: "least-connections" } },
+            { id: "rwe-t2-nt-ref-q-router", componentId: "app-server", position: { x: 580, y: 0 }, config: { instances: 4, callTimeoutMs: 500 } },
+            { id: "rwe-t2-nt-ref-q-fast", componentId: "distributed-cache", position: { x: 580, y: 160 }, config: { replicationFactor: 2, consistency: "eventual" } },
+            { id: "rwe-t2-nt-ref-q-push", componentId: "message-queue", position: { x: 840, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "rwe-t2-nt-ref-q-email", componentId: "message-queue", position: { x: 840, y: 160 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "rwe-t2-nt-ref-q-sms", componentId: "message-queue", position: { x: 840, y: 320 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "rwe-t2-nt-ref-q-wpush", componentId: "worker", position: { x: 1100, y: 0 }, config: { concurrency: 50 } },
+            { id: "rwe-t2-nt-ref-q-wemail", componentId: "worker", position: { x: 1100, y: 160 }, config: { concurrency: 20 } },
+            { id: "rwe-t2-nt-ref-q-wsms", componentId: "worker", position: { x: 1100, y: 320 }, config: { concurrency: 20 } },
+            { id: "rwe-t2-nt-ref-q-dlq", componentId: "dead-letter-queue", position: { x: 840, y: 480 }, config: { maxRetries: 5 } },
+            { id: "rwe-t2-nt-ref-q-db", componentId: "sql-database", position: { x: 1360, y: 160 }, config: { engine: "postgres" } },
+          ],
+          edges: [
+            { id: "rwe-t2-nt-ref-q-e1", source: "rwe-t2-nt-ref-q-callers", target: "rwe-t2-nt-ref-q-lb", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-q-e2", source: "rwe-t2-nt-ref-q-lb", target: "rwe-t2-nt-ref-q-router", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-q-e3", source: "rwe-t2-nt-ref-q-router", target: "rwe-t2-nt-ref-q-fast", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-q-e4", source: "rwe-t2-nt-ref-q-fast", target: "rwe-t2-nt-ref-q-db", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-q-e5", source: "rwe-t2-nt-ref-q-router", target: "rwe-t2-nt-ref-q-push", kind: "async" },
+            { id: "rwe-t2-nt-ref-q-e6", source: "rwe-t2-nt-ref-q-router", target: "rwe-t2-nt-ref-q-email", kind: "async" },
+            { id: "rwe-t2-nt-ref-q-e7", source: "rwe-t2-nt-ref-q-router", target: "rwe-t2-nt-ref-q-sms", kind: "async" },
+            { id: "rwe-t2-nt-ref-q-e8", source: "rwe-t2-nt-ref-q-push", target: "rwe-t2-nt-ref-q-wpush", kind: "async" },
+            { id: "rwe-t2-nt-ref-q-e9", source: "rwe-t2-nt-ref-q-email", target: "rwe-t2-nt-ref-q-wemail", kind: "async" },
+            { id: "rwe-t2-nt-ref-q-e10", source: "rwe-t2-nt-ref-q-sms", target: "rwe-t2-nt-ref-q-wsms", kind: "async" },
+            { id: "rwe-t2-nt-ref-q-e11", source: "rwe-t2-nt-ref-q-push", target: "rwe-t2-nt-ref-q-dlq", kind: "async" },
+            { id: "rwe-t2-nt-ref-q-e12", source: "rwe-t2-nt-ref-q-email", target: "rwe-t2-nt-ref-q-dlq", kind: "async" },
+            { id: "rwe-t2-nt-ref-q-e13", source: "rwe-t2-nt-ref-q-sms", target: "rwe-t2-nt-ref-q-dlq", kind: "async" },
+            { id: "rwe-t2-nt-ref-q-e14", source: "rwe-t2-nt-ref-q-wpush", target: "rwe-t2-nt-ref-q-db", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-q-e15", source: "rwe-t2-nt-ref-q-wemail", target: "rwe-t2-nt-ref-q-db", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-q-e16", source: "rwe-t2-nt-ref-q-wsms", target: "rwe-t2-nt-ref-q-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t2-nt-ref-q-callers"],
+        },
+        commentary:
+          "The router (a stateless tier behind a Load Balancer, 3.4 and 3.6) dedups on event id and reads " +
+          "preferences from a Distributed Cache in front of the relational store (3.14, cache-aside), then " +
+          "fans one event out to a queue per allowed channel (3.18's fan-out, done by the producer). Each " +
+          "channel is 3.17's whole pattern - queue, senders, dead-letter queue - so an SMS outage fills the SMS " +
+          "queue and nothing else: 3.23's bulkhead, drawn as topology. Senders cap their own rate under each " +
+          "provider's account limit (3.24 from the client side) and check the delivery log before calling, " +
+          "which narrows the redelivery window without closing it. What this design pays is operations: three " +
+          "queues, three pools and their dead letters to size and watch, and no way to replay yesterday's " +
+          "messages after a bad template.",
+      },
+      {
+        id: "rwe-t2-notify-blueprint-log",
+        label: "One partitioned log, a consumer group per channel",
+        require: {
+          id: "rwe-t2-notify-blueprint-log",
+          nodes: [
+            { alias: "callers", componentId: "client" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "router", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "fast", componentId: ["cache", "distributed-cache"] },
+            { alias: "store", componentId: ["sql-database", "nosql-database"] },
+            { alias: "log", componentId: "kafka" },
+            { alias: "s1", componentId: ["worker", "serverless-function"] },
+            { alias: "s2", componentId: ["worker", "serverless-function"] },
+            { alias: "s3", componentId: ["worker", "serverless-function"] },
+            { alias: "parked", componentId: "dead-letter-queue" },
+          ],
+          edges: [
+            { from: "callers", to: "lb", kind: "request-flow" },
+            { from: "lb", to: "router", kind: "request-flow" },
+            { from: "router", to: "fast", kind: "request-flow" },
+            { from: "router", to: "store", via: "path" },
+            { from: "router", to: "log" },
+            { from: "log", to: "s1", kind: "async" },
+            { from: "log", to: "s2", kind: "async" },
+            { from: "log", to: "s3", kind: "async" },
+            { from: "log", to: "parked", kind: "async" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t2-nt-ref-l-callers", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t2-nt-ref-l-lb", componentId: "load-balancer", position: { x: 320, y: 0 }, config: { algorithm: "least-connections" } },
+            { id: "rwe-t2-nt-ref-l-router", componentId: "app-server", position: { x: 580, y: 0 }, config: { instances: 4, callTimeoutMs: 500 } },
+            { id: "rwe-t2-nt-ref-l-fast", componentId: "distributed-cache", position: { x: 580, y: 160 }, config: { replicationFactor: 2, consistency: "eventual" } },
+            { id: "rwe-t2-nt-ref-l-log", componentId: "kafka", position: { x: 840, y: 0 }, config: { partitions: 24, retentionHours: 72 } },
+            { id: "rwe-t2-nt-ref-l-dlq", componentId: "dead-letter-queue", position: { x: 840, y: 160 }, config: { maxRetries: 5 } },
+            { id: "rwe-t2-nt-ref-l-wpush", componentId: "worker", position: { x: 1100, y: 0 }, config: { concurrency: 50 } },
+            { id: "rwe-t2-nt-ref-l-wemail", componentId: "worker", position: { x: 1100, y: 160 }, config: { concurrency: 20 } },
+            { id: "rwe-t2-nt-ref-l-wsms", componentId: "worker", position: { x: 1100, y: 320 }, config: { concurrency: 20 } },
+            { id: "rwe-t2-nt-ref-l-db", componentId: "nosql-database", position: { x: 1360, y: 160 }, config: { model: "wide-column", partitioning: "hash", shardKey: "user_id" } },
+          ],
+          edges: [
+            { id: "rwe-t2-nt-ref-l-e1", source: "rwe-t2-nt-ref-l-callers", target: "rwe-t2-nt-ref-l-lb", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-l-e2", source: "rwe-t2-nt-ref-l-lb", target: "rwe-t2-nt-ref-l-router", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-l-e3", source: "rwe-t2-nt-ref-l-router", target: "rwe-t2-nt-ref-l-fast", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-l-e4", source: "rwe-t2-nt-ref-l-fast", target: "rwe-t2-nt-ref-l-db", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-l-e5", source: "rwe-t2-nt-ref-l-router", target: "rwe-t2-nt-ref-l-log", kind: "async" },
+            { id: "rwe-t2-nt-ref-l-e6", source: "rwe-t2-nt-ref-l-log", target: "rwe-t2-nt-ref-l-wpush", kind: "async" },
+            { id: "rwe-t2-nt-ref-l-e7", source: "rwe-t2-nt-ref-l-log", target: "rwe-t2-nt-ref-l-wemail", kind: "async" },
+            { id: "rwe-t2-nt-ref-l-e8", source: "rwe-t2-nt-ref-l-log", target: "rwe-t2-nt-ref-l-wsms", kind: "async" },
+            { id: "rwe-t2-nt-ref-l-e9", source: "rwe-t2-nt-ref-l-log", target: "rwe-t2-nt-ref-l-dlq", kind: "async" },
+            { id: "rwe-t2-nt-ref-l-e10", source: "rwe-t2-nt-ref-l-wpush", target: "rwe-t2-nt-ref-l-db", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-l-e11", source: "rwe-t2-nt-ref-l-wemail", target: "rwe-t2-nt-ref-l-db", kind: "request-flow" },
+            { id: "rwe-t2-nt-ref-l-e12", source: "rwe-t2-nt-ref-l-wsms", target: "rwe-t2-nt-ref-l-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t2-nt-ref-l-callers"],
+        },
+        commentary:
+          "The router writes each accepted notification once, to a partitioned log (3.18's Kafka), and every " +
+          "channel's senders are their own consumer group reading the whole stream and keeping what is theirs. " +
+          "Isolation comes from offsets instead of separate queues: an SMS outage makes the SMS group fall " +
+          "behind while push and email stay current. Retention buys what queues cannot - re-sending the last " +
+          "hour after a bad template ships. The dedup and preference reads are the same as the queue design " +
+          "(3.14). What the log pays is head-of-line blocking: a message a channel keeps failing on holds up " +
+          "its partition for that group until the consumer parks it, which is the dead-letter queue's job here, " +
+          "drawn as an edge from the log because the registry routes parked messages that way. Partition by " +
+          "user id (3.13) and one user's messages also stay in order.",
+      },
+    ],
+    hints: [
+      {
+        id: "rwe-t2-notify-hint-1",
+        body:
+          "Trace one SMS that hangs for 30 seconds through today's graph. List every other message that is now " +
+          "waiting on it, and where it is waiting.",
+      },
+      {
+        id: "rwe-t2-notify-hint-2",
+        body:
+          "Two questions are asked on every notification and their answers change rarely: what does this user " +
+          "allow, and has this event been seen before? Ask which tier has answered that kind of read since " +
+          "Group D.",
+      },
+      {
+        id: "rwe-t2-notify-hint-3",
+        body:
+          "If Submit fails and its report names nothing missing, count. Compare how many of each piece the " +
+          "brief implies with how many you drew.",
+      },
+      {
+        id: "rwe-t2-notify-hint-4",
+        body:
+          "Some requirements are answered by a setting, not a box. Open each component and read its fields " +
+          "against the requirement it is meant to answer.",
+      },
+    ],
+    readingLinks: [],
+    // Today's system: one queue and one sender pool for all three channels.
+    // Validates clean and cannot pass (one queue; no load-balancer).
+    starterGraph: {
+      nodes: [
+        { id: "rwe-t2-notify-starter-callers", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+        { id: "rwe-t2-notify-starter-api", componentId: "app-server", position: { x: 320, y: 0 }, config: { instances: 1 } },
+        { id: "rwe-t2-notify-starter-queue", componentId: "message-queue", position: { x: 580, y: 0 }, config: { deliveryGuarantee: "at-least-once" } },
+        { id: "rwe-t2-notify-starter-dlq", componentId: "dead-letter-queue", position: { x: 580, y: 160 }, config: { maxRetries: 5 } },
+        { id: "rwe-t2-notify-starter-senders", componentId: "worker", position: { x: 840, y: 0 }, config: { concurrency: 4 } },
+        { id: "rwe-t2-notify-starter-db", componentId: "sql-database", position: { x: 840, y: 160 }, config: { engine: "postgres" } },
+      ],
+      edges: [
+        { id: "rwe-t2-notify-starter-e1", source: "rwe-t2-notify-starter-callers", target: "rwe-t2-notify-starter-api", kind: "request-flow" },
+        { id: "rwe-t2-notify-starter-e2", source: "rwe-t2-notify-starter-api", target: "rwe-t2-notify-starter-queue", kind: "async" },
+        { id: "rwe-t2-notify-starter-e3", source: "rwe-t2-notify-starter-queue", target: "rwe-t2-notify-starter-senders", kind: "async" },
+        { id: "rwe-t2-notify-starter-e4", source: "rwe-t2-notify-starter-queue", target: "rwe-t2-notify-starter-dlq", kind: "async" },
+        { id: "rwe-t2-notify-starter-e5", source: "rwe-t2-notify-starter-senders", target: "rwe-t2-notify-starter-db", kind: "request-flow" },
+        { id: "rwe-t2-notify-starter-e6", source: "rwe-t2-notify-starter-api", target: "rwe-t2-notify-starter-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["rwe-t2-notify-starter-callers"],
+    },
+    // Tier zones only (RWE default: no gap zone on an open brief).
+    starterDecorators: [
+      { kind: "zone", id: "rwe-t2-notify-zone-client", label: "Callers", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "rwe-t2-notify-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t2-notify-zone-delivery", label: "Delivery", position: { x: 552, y: -40 }, width: 436, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t2-notify-zone-failed", label: "Failed sends", position: { x: 552, y: 120 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t2-notify-zone-data", label: "Data", position: { x: 812, y: 120 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "rwe-t2-notify-comment-today",
+        text: "One queue and one sender pool carry every channel. Peak is 6,000 a second: push 4,800, email 900, SMS 300.",
+        position: { x: 32, y: 288 },
+        width: 436,
+        height: 80,
+        color: "#64748b",
+      },
+    ],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    // No `curriculumContext` (RWE). Retrospective quiz, QUIZ_FRAMEWORK §16:
+    // Q1 re-casts the bank's Notification entry (§16 Q4) as arithmetic.
+    quiz: [
+      {
+        id: "rwe-t2-notify-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Push, email and SMS share one queue and one pool of 200 sender slots. The SMS provider starts hanging " +
+          "every call for 30 seconds while 300 SMS a second keep arriving. When does push delivery stall?",
+        options: [
+          {
+            id: "rwe-t2-notify-q1-a",
+            label: "It doesn't - push goes to a different provider, which is healthy.",
+            correct: false,
+            explanationMd:
+              "The providers are separate; the slots are not. A push message waits in the same queue for the same 200 slots the hung SMS calls are holding.",
+          },
+          {
+            id: "rwe-t2-notify-q1-b",
+            label: "Once the queue runs out of storage for the SMS backlog.",
+            correct: false,
+            explanationMd:
+              "Storage is not what runs out first. The queue can hold millions of messages; what it cannot do is hand them to a sender with no free slot.",
+          },
+          {
+            id: "rwe-t2-notify-q1-c",
+            label: "After 30 seconds, when the first SMS calls time out.",
+            correct: false,
+            explanationMd:
+              "Timing out frees a slot, but 300 new SMS arrive every second and each one takes a freed slot for another 30 seconds. The pool never recovers.",
+          },
+          {
+            id: "rwe-t2-notify-q1-d",
+            label: "Within about a second: 300 SMS a second each holding a slot for 30 seconds needs 9,000 slots.",
+            correct: true,
+            explanationMd:
+              "In flight equals rate times latency. The hung channel wants 45 times the whole pool, so every slot is an SMS call almost at once, and push waits behind them. A queue and pool per channel contain it.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-notify-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "An SMS sender calls the provider, the message goes out, and the sender is killed before it " +
+          "acknowledges the queue. The router already dedups on event id. What happens next?",
+        options: [
+          {
+            id: "rwe-t2-notify-q2-a",
+            label: "The queue redelivers it and it is sent again, unless the sender checks a delivery record or passes an idempotency key the provider honors.",
+            correct: true,
+            explanationMd:
+              "At-least-once delivery redelivers anything unacknowledged. The router's check ran once, before the enqueue, so it never sees this repeat. Only the send side can catch it.",
+          },
+          {
+            id: "rwe-t2-notify-q2-b",
+            label: "Nothing - the router's event-id check stops the duplicate.",
+            correct: false,
+            explanationMd:
+              "The router saw the event once and enqueued it once. The duplicate is created downstream by redelivery, after the router's check.",
+          },
+          {
+            id: "rwe-t2-notify-q2-c",
+            label: "The message moves to the dead-letter queue, because the attempt failed.",
+            correct: false,
+            explanationMd:
+              "One unacknowledged attempt is a retry, not a dead letter, and the attempt actually succeeded. The dead-letter queue is for messages that keep failing.",
+          },
+          {
+            id: "rwe-t2-notify-q2-d",
+            label: "The message is lost, because the sender that held it died.",
+            correct: false,
+            explanationMd:
+              "That is at-most-once behavior. An at-least-once queue keeps the message until a sender acknowledges it, which is exactly why it is sent twice instead of zero times.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-notify-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Preferences are cached for an hour. A user unsubscribes from promotional SMS at 10:00 and receives " +
+          "three more by 10:40. Which fix holds without putting 6,000 reads a second back on the database?",
+        options: [
+          {
+            id: "rwe-t2-notify-q3-a",
+            label: "Cut the cache TTL to one minute.",
+            correct: false,
+            explanationMd:
+              "Still a window, now a minute long, and 60 times as many misses reach the database. It shrinks the bug without removing it.",
+          },
+          {
+            id: "rwe-t2-notify-q3-b",
+            label: "Read preferences from the database on every send.",
+            correct: false,
+            explanationMd:
+              "Correct and exactly the load the brief rules out: 6,000 reads a second on the relational store for data that changes a few times a year per user.",
+          },
+          {
+            id: "rwe-t2-notify-q3-c",
+            label: "Delete the cached preferences in the same request that writes the change.",
+            correct: true,
+            explanationMd:
+              "The next read misses and loads the new preference. The cache keeps absorbing the read load, and the window between unsubscribe and effect closes to the length of one request.",
+          },
+          {
+            id: "rwe-t2-notify-q3-d",
+            label: "Check preferences at the sender instead of the router.",
+            correct: false,
+            explanationMd:
+              "Moving the check does not change what it reads. A sender reading the same hour-old cached copy sends the same three messages.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-notify-q4",
+        kind: "matching",
+        difficulty: 3,
+        prompt: "Every way of building this pipeline accepts a cost. Match each choice to the one it accepts.",
+        options: [
+          {
+            id: "rwe-t2-notify-q4-lost",
+            label: "A crash between the two steps loses the message",
+            correct: true,
+            explanationMd:
+              "Recording first means the record can exist without the send. Acceptable for promotions, never for a login code.",
+          },
+          {
+            id: "rwe-t2-notify-q4-operate",
+            label: "Three queues, three pools and their dead letters to size and watch",
+            correct: true,
+            explanationMd:
+              "A queue per channel isolates cleanly and multiplies what you operate.",
+          },
+          {
+            id: "rwe-t2-notify-q4-duplicate",
+            label: "A crash between the two steps sends the message twice",
+            correct: true,
+            explanationMd:
+              "Calling first means the send can happen without the record. Right for login codes, where a repeat beats a miss.",
+          },
+          {
+            id: "rwe-t2-notify-q4-partition",
+            label: "A message one channel keeps failing on holds up its partition until it is parked",
+            correct: true,
+            explanationMd:
+              "A log delivers in order within a partition, so a consumer cannot skip past a message without deliberately parking it.",
+          },
+        ],
+        pairs: [
+          ["A queue per channel", "rwe-t2-notify-q4-operate"],
+          ["One log with a consumer group per channel", "rwe-t2-notify-q4-partition"],
+          ["Record \"sent\", then call the provider", "rwe-t2-notify-q4-lost"],
+          ["Call the provider, then record \"sent\"", "rwe-t2-notify-q4-duplicate"],
+        ],
+      },
+      {
+        id: "rwe-t2-notify-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "The SMS provider comes back after 20 minutes with 360,000 messages queued, and fails again within a " +
+          "minute. Your senders retry immediately and run as fast as they can. What change helps most?",
+        options: [
+          {
+            id: "rwe-t2-notify-q5-a",
+            label: "Add more SMS senders so the backlog clears faster.",
+            correct: false,
+            explanationMd:
+              "More senders send faster into a provider that is already falling over. The bottleneck is the provider's capacity, not yours.",
+          },
+          {
+            id: "rwe-t2-notify-q5-b",
+            label: "Retry with jittered exponential backoff, and cap the senders' rate below the account limit.",
+            correct: true,
+            explanationMd:
+              "Backoff spreads retries out instead of firing them together, and the rate cap keeps the backlog draining at what the provider accepts: 360,000 at 400 a second is 15 minutes, not an instant wall.",
+          },
+          {
+            id: "rwe-t2-notify-q5-c",
+            label: "Move every queued SMS to the dead-letter queue and replay it by hand later.",
+            correct: false,
+            explanationMd:
+              "That throws away the queue's job. These messages are not poison; they are waiting on a recovering dependency, and login codes in them expire.",
+          },
+          {
+            id: "rwe-t2-notify-q5-d",
+            label: "Switch the SMS queue to at-most-once delivery so failed sends are dropped.",
+            correct: false,
+            explanationMd:
+              "It stops the retries by losing the messages, including every login code in the backlog.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "rwe-t2-job-scheduler",
+    mode: "real-world-extraction",
+    title: "Job Scheduler",
+    // Spec: specs/rwe-t2-job-scheduler.spec.md. Lesson body:
+    // public/content/chapters/rwe-t2-job-scheduler.mdx. Tier 2 precedent from
+    // Notification System: all 27 available, DLQ rule escalated.
+    problemStatement:
+      "A workflow product's job scheduler: customers' programs call one API that writes 2 million schedules to " +
+      "a relational database. A tick starts two dispatcher machines that read due schedules and enqueue runs on " +
+      "one queue, drained by one pool of executors. With one dispatcher, a reboot missed 31,000 runs; with two, " +
+      "every weekly invoice went out twice.\n\n" +
+      "- Every due run is enqueued once, even while either dispatcher machine is down.\n" +
+      "- An urgent run starts within 30 seconds of its time, including at 09:00:00 when 60,000 runs come due " +
+      "together.\n" +
+      "- A run that keeps failing is recorded and set aside, never retried forever.\n" +
+      "- A dispatcher that comes back after a gap finds every run that came due while it was away.",
+    exerciseGoal:
+      "Make two dispatchers safe to run side by side, so each due run is enqueued exactly once, and keep urgent " +
+      "runs on time when the hourly wall of 60,000 lands.",
+    successCriteria: [
+      "Each due run is enqueued once, whichever dispatcher machine is up.",
+      "An urgent run due at 09:00:01 starts within 30 seconds, however many normal runs are ahead of it.",
+      "A run that keeps failing is set aside for inspection, not retried forever.",
+      "Validate reports zero errors and Submit passes.",
+    ],
+    // Objectives 1-3 carry the three declared new concepts (§15.2): priority
+    // queues, exactly-once-ish execution, misfire handling.
+    learningObjectives: [
+      "Explain why an urgent run still waits behind the 09:00 wall with a priority queue but no reserved executors, and size the wait.",
+      "Name the three places a run can be duplicated (dispatch, delivery, execution) and the answer to each, including why execution can only be made effectively once.",
+      "Answer \"what if the scheduler is down from 01:58 to 02:21?\" by naming durable schedules, the failover path and a per-schedule misfire policy, in under a minute.",
+      "Build a scheduler whose two dispatchers never enqueue a run twice and whose urgent runs have their own capacity, and pass Submit.",
+      "Defend an elected dispatcher or a claim per run by naming what the other buys, in failover time and in coordination cost.",
+    ],
+    availableComponentIds: [
+      "client",
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "worker",
+      "cron-job",
+      "serverless-function",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "object-storage",
+      "search-engine",
+      "cache",
+      "distributed-cache",
+      "message-queue",
+      "kafka",
+      "event-bus",
+      "dead-letter-queue",
+      "coordinator",
+      "leader",
+      "follower",
+      "lock-service",
+    ],
+    requiredComponentIds: ["client", "cron-job", "app-server", "message-queue", "worker", "dead-letter-queue"],
+    // Moot for RWE: the full registry runs (spec §6).
+    validationRuleIds: [],
+    // The brief requires failed runs to be set aside (§15.1).
+    ruleSeverity: {
+      "queue-without-dead-letter-queue": "error",
+    },
+    // Two ways to keep two dispatchers from enqueueing one run. Both need a
+    // queue and executor pool per priority class: distinct aliases, so two
+    // queues draining into one shared pool cannot match.
+    blueprints: [
+      {
+        id: "rwe-t2-jobs-blueprint-claim",
+        label: "Every dispatcher active, each run claimed with a lock",
+        require: {
+          id: "rwe-t2-jobs-blueprint-claim",
+          nodes: [
+            { alias: "callers", componentId: "client" },
+            { alias: "api", componentId: "app-server" },
+            { alias: "tick", componentId: "cron-job" },
+            { alias: "disp", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "store", componentId: ["sql-database", "nosql-database"] },
+            { alias: "claims", componentId: "lock-service" },
+            { alias: "qUrgent", componentId: "message-queue" },
+            { alias: "qNormal", componentId: "message-queue" },
+            { alias: "wUrgent", componentId: "worker" },
+            { alias: "wNormal", componentId: "worker" },
+            { alias: "parked", componentId: "dead-letter-queue" },
+          ],
+          edges: [
+            { from: "callers", to: "api", kind: "request-flow", via: "path" },
+            { from: "api", to: "store", kind: "request-flow", via: "path" },
+            { from: "tick", to: "disp" },
+            { from: "disp", to: "store", kind: "request-flow" },
+            { from: "disp", to: "claims" },
+            { from: "disp", to: "qUrgent" },
+            { from: "disp", to: "qNormal" },
+            { from: "qUrgent", to: "wUrgent", kind: "async" },
+            { from: "qNormal", to: "wNormal", kind: "async" },
+            { from: "qUrgent", to: "parked", kind: "async" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t2-js-ref-c-callers", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t2-js-ref-c-tick", componentId: "cron-job", position: { x: 60, y: 160 }, config: { scheduleIntervalMinutes: 1 } },
+            { id: "rwe-t2-js-ref-c-api", componentId: "app-server", position: { x: 320, y: 0 }, config: { instances: 2 } },
+            { id: "rwe-t2-js-ref-c-disp", componentId: "app-server", position: { x: 320, y: 160 }, config: { instances: 3 } },
+            { id: "rwe-t2-js-ref-c-db", componentId: "sql-database", position: { x: 580, y: 0 }, config: { engine: "postgres", indexing: "covers-hot-queries" } },
+            { id: "rwe-t2-js-ref-c-lock", componentId: "lock-service", position: { x: 580, y: 160 }, config: { lockTtlSeconds: 30 } },
+            { id: "rwe-t2-js-ref-c-qurgent", componentId: "message-queue", position: { x: 840, y: 160 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "rwe-t2-js-ref-c-qnormal", componentId: "message-queue", position: { x: 840, y: 320 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "rwe-t2-js-ref-c-dlq", componentId: "dead-letter-queue", position: { x: 840, y: 480 }, config: { maxRetries: 5 } },
+            { id: "rwe-t2-js-ref-c-wurgent", componentId: "worker", position: { x: 1100, y: 160 }, config: { concurrency: 20 } },
+            { id: "rwe-t2-js-ref-c-wnormal", componentId: "worker", position: { x: 1100, y: 320 }, config: { concurrency: 100 } },
+          ],
+          edges: [
+            { id: "rwe-t2-js-ref-c-e1", source: "rwe-t2-js-ref-c-callers", target: "rwe-t2-js-ref-c-api", kind: "request-flow" },
+            { id: "rwe-t2-js-ref-c-e2", source: "rwe-t2-js-ref-c-api", target: "rwe-t2-js-ref-c-db", kind: "request-flow" },
+            { id: "rwe-t2-js-ref-c-e3", source: "rwe-t2-js-ref-c-tick", target: "rwe-t2-js-ref-c-disp", kind: "request-flow" },
+            { id: "rwe-t2-js-ref-c-e4", source: "rwe-t2-js-ref-c-disp", target: "rwe-t2-js-ref-c-db", kind: "request-flow" },
+            { id: "rwe-t2-js-ref-c-e5", source: "rwe-t2-js-ref-c-disp", target: "rwe-t2-js-ref-c-lock", kind: "control" },
+            { id: "rwe-t2-js-ref-c-e6", source: "rwe-t2-js-ref-c-disp", target: "rwe-t2-js-ref-c-qurgent", kind: "async" },
+            { id: "rwe-t2-js-ref-c-e7", source: "rwe-t2-js-ref-c-disp", target: "rwe-t2-js-ref-c-qnormal", kind: "async" },
+            { id: "rwe-t2-js-ref-c-e8", source: "rwe-t2-js-ref-c-qurgent", target: "rwe-t2-js-ref-c-wurgent", kind: "async" },
+            { id: "rwe-t2-js-ref-c-e9", source: "rwe-t2-js-ref-c-qnormal", target: "rwe-t2-js-ref-c-wnormal", kind: "async" },
+            { id: "rwe-t2-js-ref-c-e10", source: "rwe-t2-js-ref-c-qurgent", target: "rwe-t2-js-ref-c-dlq", kind: "async" },
+            { id: "rwe-t2-js-ref-c-e11", source: "rwe-t2-js-ref-c-qnormal", target: "rwe-t2-js-ref-c-dlq", kind: "async" },
+          ],
+          entryPointIds: ["rwe-t2-js-ref-c-callers", "rwe-t2-js-ref-c-tick"],
+        },
+        commentary:
+          "Every dispatcher instance runs every pass, and each due run is claimed in the Lock Service (3.23) under " +
+          "the key schedule id plus due time before it is enqueued - 3.19's overlap hazard closed per run rather " +
+          "than per job. A dispatcher can die at any moment without a failover gap: the others' next pass picks up " +
+          "whatever it never reached, and its held claims expire after the lock's TTL. Schedules are rows with an " +
+          "indexed next-run time (3.10), so a returning dispatcher finds overdue runs and applies each schedule's " +
+          "misfire policy. Urgent and normal runs have their own queue and their own executors (3.17), because " +
+          "priority without reserved capacity still waits for a slot. What this design pays is coordination on " +
+          "the hot path: 60,000 lock round trips in the first seconds of every hour, and fencing tokens so a " +
+          "paused dispatcher that outlived its lease cannot write over the one that replaced it.",
+      },
+      {
+        id: "rwe-t2-jobs-blueprint-elect",
+        label: "One dispatcher elected active, the rest on standby",
+        require: {
+          id: "rwe-t2-jobs-blueprint-elect",
+          nodes: [
+            { alias: "callers", componentId: "client" },
+            { alias: "api", componentId: "app-server" },
+            { alias: "tick", componentId: "cron-job" },
+            { alias: "disp", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "store", componentId: ["sql-database", "nosql-database"] },
+            { alias: "election", componentId: "coordinator" },
+            { alias: "qUrgent", componentId: "message-queue" },
+            { alias: "qNormal", componentId: "message-queue" },
+            { alias: "wUrgent", componentId: "worker" },
+            { alias: "wNormal", componentId: "worker" },
+            { alias: "parked", componentId: "dead-letter-queue" },
+          ],
+          edges: [
+            { from: "callers", to: "api", kind: "request-flow", via: "path" },
+            { from: "api", to: "store", kind: "request-flow", via: "path" },
+            { from: "tick", to: "disp" },
+            { from: "disp", to: "store", kind: "request-flow" },
+            { from: "disp", to: "election", kind: "control" },
+            { from: "disp", to: "qUrgent" },
+            { from: "disp", to: "qNormal" },
+            { from: "qUrgent", to: "wUrgent", kind: "async" },
+            { from: "qNormal", to: "wNormal", kind: "async" },
+            { from: "qUrgent", to: "parked", kind: "async" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t2-js-ref-e-callers", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t2-js-ref-e-tick", componentId: "cron-job", position: { x: 60, y: 160 }, config: { scheduleIntervalMinutes: 1 } },
+            { id: "rwe-t2-js-ref-e-api", componentId: "app-server", position: { x: 320, y: 0 }, config: { instances: 2 } },
+            { id: "rwe-t2-js-ref-e-disp", componentId: "app-server", position: { x: 320, y: 160 }, config: { instances: 2 } },
+            { id: "rwe-t2-js-ref-e-db", componentId: "sql-database", position: { x: 580, y: 0 }, config: { engine: "postgres", indexing: "covers-hot-queries" } },
+            { id: "rwe-t2-js-ref-e-coord", componentId: "coordinator", position: { x: 580, y: 160 }, config: { consensusProtocol: "raft" } },
+            { id: "rwe-t2-js-ref-e-qurgent", componentId: "message-queue", position: { x: 840, y: 160 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "rwe-t2-js-ref-e-qnormal", componentId: "message-queue", position: { x: 840, y: 320 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "rwe-t2-js-ref-e-dlq", componentId: "dead-letter-queue", position: { x: 840, y: 480 }, config: { maxRetries: 5 } },
+            { id: "rwe-t2-js-ref-e-wurgent", componentId: "worker", position: { x: 1100, y: 160 }, config: { concurrency: 20 } },
+            { id: "rwe-t2-js-ref-e-wnormal", componentId: "worker", position: { x: 1100, y: 320 }, config: { concurrency: 100 } },
+          ],
+          edges: [
+            { id: "rwe-t2-js-ref-e-e1", source: "rwe-t2-js-ref-e-callers", target: "rwe-t2-js-ref-e-api", kind: "request-flow" },
+            { id: "rwe-t2-js-ref-e-e2", source: "rwe-t2-js-ref-e-api", target: "rwe-t2-js-ref-e-db", kind: "request-flow" },
+            { id: "rwe-t2-js-ref-e-e3", source: "rwe-t2-js-ref-e-tick", target: "rwe-t2-js-ref-e-disp", kind: "request-flow" },
+            { id: "rwe-t2-js-ref-e-e4", source: "rwe-t2-js-ref-e-disp", target: "rwe-t2-js-ref-e-db", kind: "request-flow" },
+            { id: "rwe-t2-js-ref-e-e5", source: "rwe-t2-js-ref-e-disp", target: "rwe-t2-js-ref-e-coord", kind: "control" },
+            { id: "rwe-t2-js-ref-e-e6", source: "rwe-t2-js-ref-e-disp", target: "rwe-t2-js-ref-e-qurgent", kind: "async" },
+            { id: "rwe-t2-js-ref-e-e7", source: "rwe-t2-js-ref-e-disp", target: "rwe-t2-js-ref-e-qnormal", kind: "async" },
+            { id: "rwe-t2-js-ref-e-e8", source: "rwe-t2-js-ref-e-qurgent", target: "rwe-t2-js-ref-e-wurgent", kind: "async" },
+            { id: "rwe-t2-js-ref-e-e9", source: "rwe-t2-js-ref-e-qnormal", target: "rwe-t2-js-ref-e-wnormal", kind: "async" },
+            { id: "rwe-t2-js-ref-e-e10", source: "rwe-t2-js-ref-e-qurgent", target: "rwe-t2-js-ref-e-dlq", kind: "async" },
+            { id: "rwe-t2-js-ref-e-e11", source: "rwe-t2-js-ref-e-qnormal", target: "rwe-t2-js-ref-e-dlq", kind: "async" },
+          ],
+          entryPointIds: ["rwe-t2-js-ref-e-callers", "rwe-t2-js-ref-e-tick"],
+        },
+        commentary:
+          "The dispatchers register with a Coordinator (3.22), which elects one of them active - 3.26's leader " +
+          "role applied to a process rather than a database. Only the active dispatcher reads due rows and " +
+          "enqueues, so no run needs its own claim and the code is the single-machine scheduler unchanged. The " +
+          "standby takes over when the Coordinator sees the active one's heartbeats stop, and resumes from " +
+          "next_run_at in the schedule store (3.10), applying each schedule's misfire policy to whatever came due " +
+          "in between. Urgent and normal runs keep separate queues and executors (3.17). What this design pays " +
+          "is the failover gap - every run due during the election timeout starts late - and a ceiling: one " +
+          "machine dispatches everything until the schedules are partitioned (3.13) with an election per " +
+          "partition.",
+      },
+    ],
+    hints: [
+      {
+        id: "rwe-t2-jobs-hint-1",
+        body:
+          "Read the cold open as two failures with one cause. What does each dispatcher machine know about the " +
+          "other one today?",
+      },
+      {
+        id: "rwe-t2-jobs-hint-2",
+        body:
+          "Picture the 60,000 runs of 09:00 already queued when one urgent run arrives. What in your graph is " +
+          "guaranteed to be free to start it within 30 seconds?",
+      },
+      {
+        id: "rwe-t2-jobs-hint-3",
+        body:
+          "3.19 left a hazard open about schedules running on more than one machine. Group G closed it in two " +
+          "different ways, and either is a complete answer here.",
+      },
+      {
+        id: "rwe-t2-jobs-hint-4",
+        body:
+          "If Submit fails and its report names nothing missing, count. Compare how many of each piece the " +
+          "brief implies with how many you drew.",
+      },
+    ],
+    readingLinks: [],
+    // Today's system: two uncoordinated dispatchers, one queue, one pool.
+    // Validates clean (the DLQ is there) and cannot pass.
+    starterGraph: {
+      nodes: [
+        { id: "rwe-t2-jobs-starter-callers", componentId: "client", position: { x: 60, y: 0 }, config: {} },
+        { id: "rwe-t2-jobs-starter-tick", componentId: "cron-job", position: { x: 60, y: 160 }, config: { scheduleIntervalMinutes: 1 } },
+        { id: "rwe-t2-jobs-starter-api", componentId: "app-server", position: { x: 320, y: 0 }, config: { instances: 1 } },
+        { id: "rwe-t2-jobs-starter-disp", componentId: "app-server", position: { x: 320, y: 160 }, config: { instances: 2 } },
+        { id: "rwe-t2-jobs-starter-db", componentId: "sql-database", position: { x: 580, y: 0 }, config: { engine: "postgres", indexing: "covers-hot-queries" } },
+        { id: "rwe-t2-jobs-starter-queue", componentId: "message-queue", position: { x: 580, y: 160 }, config: { deliveryGuarantee: "at-least-once" } },
+        { id: "rwe-t2-jobs-starter-dlq", componentId: "dead-letter-queue", position: { x: 580, y: 320 }, config: { maxRetries: 5 } },
+        { id: "rwe-t2-jobs-starter-exec", componentId: "worker", position: { x: 840, y: 160 }, config: { concurrency: 100 } },
+      ],
+      edges: [
+        { id: "rwe-t2-jobs-starter-e1", source: "rwe-t2-jobs-starter-callers", target: "rwe-t2-jobs-starter-api", kind: "request-flow" },
+        { id: "rwe-t2-jobs-starter-e2", source: "rwe-t2-jobs-starter-api", target: "rwe-t2-jobs-starter-db", kind: "request-flow" },
+        { id: "rwe-t2-jobs-starter-e3", source: "rwe-t2-jobs-starter-tick", target: "rwe-t2-jobs-starter-disp", kind: "request-flow" },
+        { id: "rwe-t2-jobs-starter-e4", source: "rwe-t2-jobs-starter-disp", target: "rwe-t2-jobs-starter-db", kind: "request-flow" },
+        { id: "rwe-t2-jobs-starter-e5", source: "rwe-t2-jobs-starter-disp", target: "rwe-t2-jobs-starter-queue", kind: "async" },
+        { id: "rwe-t2-jobs-starter-e6", source: "rwe-t2-jobs-starter-queue", target: "rwe-t2-jobs-starter-exec", kind: "async" },
+        { id: "rwe-t2-jobs-starter-e7", source: "rwe-t2-jobs-starter-queue", target: "rwe-t2-jobs-starter-dlq", kind: "async" },
+      ],
+      entryPointIds: ["rwe-t2-jobs-starter-callers", "rwe-t2-jobs-starter-tick"],
+    },
+    starterDecorators: [
+      { kind: "zone", id: "rwe-t2-jobs-zone-triggers", label: "Triggers", position: { x: 32, y: -40 }, width: 176, height: 308, color: "#64748b" },
+      { kind: "zone", id: "rwe-t2-jobs-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 308, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t2-jobs-zone-data", label: "Data", position: { x: 552, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      { kind: "zone", id: "rwe-t2-jobs-zone-runs", label: "Runs", position: { x: 552, y: 120 }, width: 436, height: 308, color: "#a855f7" },
+      {
+        kind: "comment",
+        id: "rwe-t2-jobs-comment-today",
+        text: "Both dispatcher machines run the same pass every tick, unaware of each other. 70% of schedules are due at minute 0.",
+        position: { x: 32, y: 288 },
+        width: 436,
+        height: 80,
+        color: "#64748b",
+      },
+    ],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    // No `curriculumContext` (RWE). Retrospective quiz modeled on
+    // QUIZ_FRAMEWORK §16; the bank has no Job Scheduler entry, so all five are new.
+    quiz: [
+      {
+        id: "rwe-t2-jobs-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Two dispatcher machines each read due rows from the same schedules table every few seconds and enqueue " +
+          "a run for each. Nothing coordinates them. What happens to a run due at 09:00?",
+        options: [
+          {
+            id: "rwe-t2-jobs-q1-a",
+            label: "It is usually enqueued twice, once by each dispatcher.",
+            correct: true,
+            explanationMd:
+              "Both read the row before either advances it, and both act on what they read. Redundancy without coordination is duplication.",
+          },
+          {
+            id: "rwe-t2-jobs-q1-b",
+            label: "It is enqueued once, because the database locks a row while it is being read.",
+            correct: false,
+            explanationMd:
+              "A plain read takes no lock that excludes another reader. Locking a row for this purpose has to be asked for explicitly - which is a claim.",
+          },
+          {
+            id: "rwe-t2-jobs-q1-c",
+            label: "It is enqueued once, because whichever dispatcher advances next_run_at first wins.",
+            correct: false,
+            explanationMd:
+              "Advancing happens after both have already read the row as due. The second write just advances it again; nothing stops its enqueue.",
+          },
+          {
+            id: "rwe-t2-jobs-q1-d",
+            label: "It is skipped, because each dispatcher assumes the other one handled it.",
+            correct: false,
+            explanationMd:
+              "Neither knows the other exists. Each behaves exactly like the single-machine scheduler, which is why the run doubles rather than disappears.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-jobs-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A run calls a customer's webhook, which charges a card. The executor crashes after the call returns but " +
+          "before it records success, and the queue redelivers the run. What actually prevents a second charge?",
+        options: [
+          {
+            id: "rwe-t2-jobs-q2-a",
+            label: "Holding a lock for the run while it executes.",
+            correct: false,
+            explanationMd:
+              "The lock dies with the executor or expires, and the redelivered run takes it again. A lock prevents two runs at once, not one run twice in a row.",
+          },
+          {
+            id: "rwe-t2-jobs-q2-b",
+            label: "Switching the queue to exactly-once delivery.",
+            correct: false,
+            explanationMd:
+              "The broker cannot know the webhook succeeded; it only knows nobody acknowledged. Whatever it promises, the call and the acknowledgment are still two steps.",
+          },
+          {
+            id: "rwe-t2-jobs-q2-c",
+            label: "Passing the run id to the webhook as an idempotency key, so the customer's side recognizes the repeat.",
+            correct: true,
+            explanationMd:
+              "The gap is between the customer's side effect and your record of it, and only the side that performs the effect can close it. The run id makes the repeat detectable there.",
+          },
+          {
+            id: "rwe-t2-jobs-q2-d",
+            label: "Recording success before calling the webhook.",
+            correct: false,
+            explanationMd:
+              "Then a crash between the two loses the run: the record says done and the card was never charged. It trades a duplicate for a loss.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-jobs-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A health-check job runs every five minutes. The scheduler was down for 40 minutes; on return it ran all " +
+          "eight missed occurrences back to back and hit the customer's service eight times in ten seconds. Which " +
+          "misfire policy fits this job?",
+        options: [
+          {
+            id: "rwe-t2-jobs-q3-a",
+            label: "Run every missed occurrence, oldest first.",
+            correct: false,
+            explanationMd:
+              "That is what happened. It is right when each occurrence matters on its own, like an hourly billing rollup; eight stale health checks tell nobody anything.",
+          },
+          {
+            id: "rwe-t2-jobs-q3-b",
+            label: "Run once now, then resume the normal schedule.",
+            correct: true,
+            explanationMd:
+              "One catch-up run answers the only question a health check asks - is it healthy now - and the eight missed ones collapse into it.",
+          },
+          {
+            id: "rwe-t2-jobs-q3-c",
+            label: "Skip to the next scheduled time.",
+            correct: false,
+            explanationMd:
+              "Defensible, but it leaves the service unchecked for up to five more minutes after 40 already unchecked. A check that is overdue should run.",
+          },
+          {
+            id: "rwe-t2-jobs-q3-d",
+            label: "Raise the misfire threshold to an hour, so the runs count as late rather than missed.",
+            correct: false,
+            explanationMd:
+              "The threshold decides which runs get the policy; it is not a policy. Treated as merely late, all eight still run.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-jobs-q4",
+        kind: "matching",
+        difficulty: 3,
+        prompt: "Every way of building this scheduler accepts a cost. Match each choice to the one it accepts.",
+        options: [
+          {
+            id: "rwe-t2-jobs-q4-starve",
+            label: "Normal runs are never served while urgent load stays high",
+            correct: true,
+            explanationMd:
+              "Strict priority over one queue always picks urgent first, so a steady urgent stream starves everything else.",
+          },
+          {
+            id: "rwe-t2-jobs-q4-late",
+            label: "Runs due during a failover start late",
+            correct: true,
+            explanationMd:
+              "An elected dispatcher has a gap: nothing dispatches between its death and the end of the election timeout.",
+          },
+          {
+            id: "rwe-t2-jobs-q4-slot",
+            label: "An urgent run waits for a slot held by a 20-minute job",
+            correct: true,
+            explanationMd:
+              "Separate queues order the work; only separate executors reserve the capacity to start it.",
+          },
+          {
+            id: "rwe-t2-jobs-q4-trips",
+            label: "60,000 coordination round trips in the first seconds of the hour",
+            correct: true,
+            explanationMd:
+              "Claiming each run means one lock call per run, and the 09:00 wall is 60,000 runs.",
+          },
+        ],
+        pairs: [
+          ["One dispatcher elected active", "rwe-t2-jobs-q4-late"],
+          ["Every dispatcher active, claiming each run", "rwe-t2-jobs-q4-trips"],
+          ["One queue with strict priority", "rwe-t2-jobs-q4-starve"],
+          ["A queue per priority, one shared executor pool", "rwe-t2-jobs-q4-slot"],
+        ],
+      },
+      {
+        id: "rwe-t2-jobs-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Dispatcher A claims run 4471 with a 30-second lock, then stalls in a 45-second garbage-collection pause. " +
+          "Dispatcher B claims 4471 after the lock expires and enqueues it. A wakes up and enqueues it too. Which " +
+          "change stops this?",
+        options: [
+          {
+            id: "rwe-t2-jobs-q5-a",
+            label: "Raise the lock's TTL to five minutes.",
+            correct: false,
+            explanationMd:
+              "Pauses can outlast any TTL you pick, and a long TTL means a dispatcher that really died holds its claims for five minutes.",
+          },
+          {
+            id: "rwe-t2-jobs-q5-b",
+            label: "Have A check that it still holds the lock just before it enqueues.",
+            correct: false,
+            explanationMd:
+              "Check-then-act: the lock can expire between the check and the enqueue, which is exactly where A was paused.",
+          },
+          {
+            id: "rwe-t2-jobs-q5-c",
+            label: "Synchronize the dispatchers' clocks more tightly.",
+            correct: false,
+            explanationMd:
+              "No clock disagreed. A was simply not running while its lease ran out.",
+          },
+          {
+            id: "rwe-t2-jobs-q5-d",
+            label: "Issue an increasing number with each claim, and refuse writes carrying an older number than the latest seen.",
+            correct: true,
+            explanationMd:
+              "A fencing token makes the store the referee: A's number is older than B's, so its late write of the run is rejected and never reaches the queue, however long A slept.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "rwe-t2-leetcode",
+    mode: "real-world-extraction",
+    title: "LeetCode",
+    // Spec: specs/rwe-t2-leetcode.spec.md. Lesson body:
+    // public/content/chapters/rwe-t2-leetcode.mdx. Tier 2 precedent from
+    // Notification System: all 27 available, DLQ rule escalated.
+    problemStatement:
+      "An online judge: browsers call one API server, which compiles and runs every submission itself and " +
+      "stores submissions in a relational database. In the last contest one submission's memory bomb killed an " +
+      "API process and 300 other contestants' requests with it, and judging load made problem pages take 20 " +
+      "seconds.\n\n" +
+      "- Contestants' code never runs on a machine that serves other users' requests.\n" +
+      "- A burst of 150 submissions a second is absorbed without any submission request timing out, and a " +
+      "submission the judge itself keeps failing on is set aside, not retried forever.\n" +
+      "- Only signed-in contestants can submit, and each one's submission rate is limited before the request " +
+      "reaches application code.\n" +
+      "- Verdicts are stored durably, and losing one API machine drops no requests.\n" +
+      "- One public hostname resolves to whatever fronts the product.",
+    exerciseGoal:
+      "Take judging off the machines that serve contestants, so a hostile submission can only hurt itself and " +
+      "a contest-start burst waits in line instead of timing out.",
+    successCriteria: [
+      "A submission that loops forever or allocates without limit affects no other contestant's request.",
+      "150 submissions a second are accepted without timeouts, and a submission the judge keeps failing on is set aside.",
+      "Only signed-in contestants can submit, their rate is limited before application code runs, and losing one API machine drops no requests.",
+      "Validate reports zero errors and Submit passes.",
+    ],
+    // Objectives 1 and 2 are the declared new concepts (§15.2): sandboxed
+    // execution, fairness under contest spikes.
+    learningObjectives: [
+      "Name what each sandbox layer stops and what it leaves open, and explain why the judge fleet holds no credentials.",
+      "Make judging fair under a backlog: rank on accept time, cap work in flight per contestant, and limit CPU time rather than wall-clock time.",
+      "Answer \"it's 14:30 and 30,000 people just submitted - what happens?\" with the sandbox count, the async path and calendar-based provisioning, in under a minute.",
+      "Build a judge that runs code off the request path, absorbs a 150-per-second burst and stores verdicts durably, and pass Submit.",
+      "Defend a long-running judge fleet or a serverless function per submission by naming what the other buys.",
+    ],
+    availableComponentIds: [
+      "client",
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "worker",
+      "cron-job",
+      "serverless-function",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "object-storage",
+      "search-engine",
+      "cache",
+      "distributed-cache",
+      "message-queue",
+      "kafka",
+      "event-bus",
+      "dead-letter-queue",
+      "coordinator",
+      "leader",
+      "follower",
+      "lock-service",
+    ],
+    requiredComponentIds: ["browser", "dns", "api-gateway", "load-balancer", "app-server", "message-queue", "dead-letter-queue"],
+    // Moot for RWE: the full registry runs (spec §6).
+    validationRuleIds: [],
+    // The brief requires failed submissions to be set aside (§15.1).
+    ruleSeverity: {
+      "queue-without-dead-letter-queue": "error",
+    },
+    // Identical except for what runs the code: the project's central
+    // decision. The verdict reaches the store by any path, so a judge that
+    // reports back through the API (no credentials) and one that writes
+    // directly both pass.
+    blueprints: [
+      {
+        id: "rwe-t2-leetcode-blueprint-fleet",
+        label: "A long-running sandboxed judge fleet",
+        require: {
+          id: "rwe-t2-leetcode-blueprint-fleet",
+          nodes: [
+            { alias: "users", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "gw", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "api", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "store", componentId: ["sql-database", "nosql-database"] },
+            { alias: "queue", componentId: "message-queue" },
+            { alias: "judge", componentId: "worker" },
+            { alias: "parked", componentId: "dead-letter-queue" },
+          ],
+          edges: [
+            { from: "users", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "gw", kind: "request-flow", via: "path" },
+            { from: "gw", to: "lb", kind: "request-flow", via: "path" },
+            { from: "lb", to: "api", kind: "request-flow" },
+            { from: "api", to: "store", kind: "request-flow", via: "path" },
+            { from: "api", to: "queue" },
+            { from: "queue", to: "judge", kind: "async" },
+            { from: "queue", to: "parked", kind: "async" },
+            { from: "judge", to: "store", via: "path" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t2-lc-ref-f-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t2-lc-ref-f-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t2-lc-ref-f-cdn", componentId: "cdn", position: { x: 580, y: 0 }, config: { cacheTtlSeconds: 600, cacheDynamicContent: false } },
+            { id: "rwe-t2-lc-ref-f-gw", componentId: "api-gateway", position: { x: 840, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 30 } },
+            { id: "rwe-t2-lc-ref-f-lb", componentId: "load-balancer", position: { x: 1100, y: 0 }, config: { algorithm: "least-connections" } },
+            { id: "rwe-t2-lc-ref-f-api", componentId: "app-server", position: { x: 1360, y: 0 }, config: { instances: 4 } },
+            { id: "rwe-t2-lc-ref-f-db", componentId: "sql-database", position: { x: 1620, y: 0 }, config: { engine: "postgres" } },
+            { id: "rwe-t2-lc-ref-f-queue", componentId: "message-queue", position: { x: 1360, y: 160 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "rwe-t2-lc-ref-f-dlq", componentId: "dead-letter-queue", position: { x: 1360, y: 320 }, config: { maxRetries: 3 } },
+            { id: "rwe-t2-lc-ref-f-judge", componentId: "worker", position: { x: 1620, y: 160 }, config: { concurrency: 32 } },
+          ],
+          edges: [
+            { id: "rwe-t2-lc-ref-f-e1", source: "rwe-t2-lc-ref-f-browser", target: "rwe-t2-lc-ref-f-dns", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-f-e2", source: "rwe-t2-lc-ref-f-dns", target: "rwe-t2-lc-ref-f-cdn", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-f-e3", source: "rwe-t2-lc-ref-f-cdn", target: "rwe-t2-lc-ref-f-gw", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-f-e4", source: "rwe-t2-lc-ref-f-gw", target: "rwe-t2-lc-ref-f-lb", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-f-e5", source: "rwe-t2-lc-ref-f-lb", target: "rwe-t2-lc-ref-f-api", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-f-e6", source: "rwe-t2-lc-ref-f-api", target: "rwe-t2-lc-ref-f-db", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-f-e7", source: "rwe-t2-lc-ref-f-api", target: "rwe-t2-lc-ref-f-queue", kind: "async" },
+            { id: "rwe-t2-lc-ref-f-e8", source: "rwe-t2-lc-ref-f-queue", target: "rwe-t2-lc-ref-f-judge", kind: "async" },
+            { id: "rwe-t2-lc-ref-f-e9", source: "rwe-t2-lc-ref-f-queue", target: "rwe-t2-lc-ref-f-dlq", kind: "async" },
+            { id: "rwe-t2-lc-ref-f-e10", source: "rwe-t2-lc-ref-f-judge", target: "rwe-t2-lc-ref-f-api", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t2-lc-ref-f-browser"],
+        },
+        commentary:
+          "The API (stateless behind a Load Balancer, 3.4 and 3.6) records each submission with its accept time " +
+          "and answers immediately; judging happens behind a queue (3.17), on workers that serve nobody and hold " +
+          "nothing - their verdicts go back through the API, so a sandbox escape finds no database password. The " +
+          "API Gateway (3.5) authenticates contestants and limits each one's submission rate (3.24), and a CDN " +
+          "(3.15) takes the 14:30 burst of identical problem pages. A long-running fleet keeps language runtimes " +
+          "warm and timing consistent, which matters for CPU-time limits. What it pays is capacity between " +
+          "contests: the fleet is scaled up on the calendar before 14:30 and down after, and anything provisioned " +
+          "in between is idle.",
+      },
+      {
+        id: "rwe-t2-leetcode-blueprint-serverless",
+        label: "A serverless function per submission",
+        require: {
+          id: "rwe-t2-leetcode-blueprint-serverless",
+          nodes: [
+            { alias: "users", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "gw", componentId: "api-gateway" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "api", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "store", componentId: ["sql-database", "nosql-database"] },
+            { alias: "queue", componentId: "message-queue" },
+            { alias: "judge", componentId: "serverless-function" },
+            { alias: "parked", componentId: "dead-letter-queue" },
+          ],
+          edges: [
+            { from: "users", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "gw", kind: "request-flow", via: "path" },
+            { from: "gw", to: "lb", kind: "request-flow", via: "path" },
+            { from: "lb", to: "api", kind: "request-flow" },
+            { from: "api", to: "store", kind: "request-flow", via: "path" },
+            { from: "api", to: "queue" },
+            { from: "queue", to: "judge", kind: "async" },
+            { from: "queue", to: "parked", kind: "async" },
+            { from: "judge", to: "store", via: "path" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t2-lc-ref-s-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t2-lc-ref-s-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t2-lc-ref-s-cdn", componentId: "cdn", position: { x: 580, y: 0 }, config: { cacheTtlSeconds: 600, cacheDynamicContent: false } },
+            { id: "rwe-t2-lc-ref-s-gw", componentId: "api-gateway", position: { x: 840, y: 0 }, config: { requiresAuth: true, rateLimitPerMinute: 30 } },
+            { id: "rwe-t2-lc-ref-s-lb", componentId: "load-balancer", position: { x: 1100, y: 0 }, config: { algorithm: "least-connections" } },
+            { id: "rwe-t2-lc-ref-s-api", componentId: "app-server", position: { x: 1360, y: 0 }, config: { instances: 4 } },
+            { id: "rwe-t2-lc-ref-s-db", componentId: "sql-database", position: { x: 1620, y: 0 }, config: { engine: "postgres" } },
+            { id: "rwe-t2-lc-ref-s-queue", componentId: "message-queue", position: { x: 1360, y: 160 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "rwe-t2-lc-ref-s-dlq", componentId: "dead-letter-queue", position: { x: 1360, y: 320 }, config: { maxRetries: 3 } },
+            { id: "rwe-t2-lc-ref-s-judge", componentId: "serverless-function", position: { x: 1620, y: 160 }, config: { maxConcurrency: 2000, timeoutSeconds: 30 } },
+          ],
+          edges: [
+            { id: "rwe-t2-lc-ref-s-e1", source: "rwe-t2-lc-ref-s-browser", target: "rwe-t2-lc-ref-s-dns", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-s-e2", source: "rwe-t2-lc-ref-s-dns", target: "rwe-t2-lc-ref-s-cdn", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-s-e3", source: "rwe-t2-lc-ref-s-cdn", target: "rwe-t2-lc-ref-s-gw", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-s-e4", source: "rwe-t2-lc-ref-s-gw", target: "rwe-t2-lc-ref-s-lb", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-s-e5", source: "rwe-t2-lc-ref-s-lb", target: "rwe-t2-lc-ref-s-api", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-s-e6", source: "rwe-t2-lc-ref-s-api", target: "rwe-t2-lc-ref-s-db", kind: "request-flow" },
+            { id: "rwe-t2-lc-ref-s-e7", source: "rwe-t2-lc-ref-s-api", target: "rwe-t2-lc-ref-s-queue", kind: "async" },
+            { id: "rwe-t2-lc-ref-s-e8", source: "rwe-t2-lc-ref-s-queue", target: "rwe-t2-lc-ref-s-judge", kind: "async" },
+            { id: "rwe-t2-lc-ref-s-e9", source: "rwe-t2-lc-ref-s-queue", target: "rwe-t2-lc-ref-s-dlq", kind: "async" },
+            { id: "rwe-t2-lc-ref-s-e10", source: "rwe-t2-lc-ref-s-judge", target: "rwe-t2-lc-ref-s-api", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t2-lc-ref-s-browser"],
+        },
+        commentary:
+          "The same front half - gateway (3.5), load balancer (3.4), stateless API, CDN for the problem pages " +
+          "(3.15) - with the queue triggering a Serverless Function (3.19) per submission. Each invocation runs in " +
+          "its own fresh microVM, so isolation between submissions comes from the platform, and nothing is paid " +
+          "for between contests. 3.19's constraints are exactly what this design is judged on: a submission must " +
+          "finish inside `timeoutSeconds` (10 s of judging fits; a 20-minute job would not), cold starts add " +
+          "seconds for heavy runtimes like the JVM, and `maxConcurrency` has to cover the ~1,500 runs in flight at " +
+          "the cap, which means raising the account's quota before the contest rather than discovering it at " +
+          "14:30. Verdicts go back through the API, as in the fleet design.",
+      },
+    ],
+    hints: [
+      {
+        id: "rwe-t2-leetcode-hint-1",
+        body:
+          "List everything that shares a machine with a contestant's code today. That list is the blast radius of " +
+          "the worst submission anyone will ever send.",
+      },
+      {
+        id: "rwe-t2-leetcode-hint-2",
+        body:
+          "At 14:30, where does submission number 9,000 wait? If the answer is \"inside an open request\", that is " +
+          "where the timeouts come from.",
+      },
+      {
+        id: "rwe-t2-leetcode-hint-3",
+        body:
+          "A verdict has to end up somewhere durable. Trace the path from whatever runs the code to wherever " +
+          "submissions are stored.",
+      },
+      {
+        id: "rwe-t2-leetcode-hint-4",
+        body:
+          "Some requirements are answered by a setting, not a box. Open each component and read its fields " +
+          "against the requirement it is meant to answer.",
+      },
+    ],
+    readingLinks: [],
+    // Today's system: three nodes, judging inside the API. Validates clean and
+    // cannot pass - most of the required components are absent.
+    starterGraph: {
+      nodes: [
+        { id: "rwe-t2-leetcode-starter-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "rwe-t2-leetcode-starter-api", componentId: "app-server", position: { x: 320, y: 0 }, config: { instances: 1 } },
+        { id: "rwe-t2-leetcode-starter-db", componentId: "sql-database", position: { x: 580, y: 0 }, config: { engine: "postgres" } },
+      ],
+      edges: [
+        { id: "rwe-t2-leetcode-starter-e1", source: "rwe-t2-leetcode-starter-browser", target: "rwe-t2-leetcode-starter-api", kind: "request-flow" },
+        { id: "rwe-t2-leetcode-starter-e2", source: "rwe-t2-leetcode-starter-api", target: "rwe-t2-leetcode-starter-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["rwe-t2-leetcode-starter-browser"],
+    },
+    starterDecorators: [
+      { kind: "zone", id: "rwe-t2-leetcode-zone-client", label: "Contestants", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "rwe-t2-leetcode-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t2-leetcode-zone-data", label: "Data", position: { x: 552, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "rwe-t2-leetcode-comment-today",
+        text: "The API server compiles and runs every submission itself. Contest peak: 150 submissions a second, up to 10 s of judging each.",
+        position: { x: 32, y: 168 },
+        width: 436,
+        height: 80,
+        color: "#64748b",
+      },
+    ],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    // No `curriculumContext` (RWE). Retrospective quiz modeled on
+    // QUIZ_FRAMEWORK §16; the bank has no LeetCode entry, so all five are new.
+    quiz: [
+      {
+        id: "rwe-t2-leetcode-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "The judge's first version compiled and ran submissions on the API servers, inside a subprocess with a " +
+          "10-second timeout. What is the core problem with that?",
+        options: [
+          {
+            id: "rwe-t2-leetcode-q1-a",
+            label: "API servers are too slow to compile code quickly.",
+            correct: false,
+            explanationMd:
+              "Speed is not the issue; a compile takes the same CPU wherever it runs. The issue is what else is on the machine when it does.",
+          },
+          {
+            id: "rwe-t2-leetcode-q1-b",
+            label: "The judging cannot be load balanced across API machines.",
+            correct: false,
+            explanationMd:
+              "It is load balanced - every API machine judges. That is the problem: every machine serving users is also running hostile code.",
+          },
+          {
+            id: "rwe-t2-leetcode-q1-c",
+            label: "Untrusted code shares a machine with user requests and the API's credentials, so the worst submission's blast radius is everything on it.",
+            correct: true,
+            explanationMd:
+              "A memory bomb kills the process serving 300 other requests; an escape reads whatever the API can read. A separate judge fleet with no secrets shrinks the blast radius to one sandbox.",
+          },
+          {
+            id: "rwe-t2-leetcode-q1-d",
+            label: "A 10-second timeout is too short for some valid solutions.",
+            correct: false,
+            explanationMd:
+              "Time limits are a product decision per problem. Raising them makes the real problem last longer.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-leetcode-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "During a contest, contestant A submits at 14:41:10 and waits 90 seconds in the judge queue. Contestant " +
+          "B submits at 14:41:30 and is judged almost at once. Both are accepted. Who should rank higher on this " +
+          "problem?",
+        options: [
+          {
+            id: "rwe-t2-leetcode-q2-a",
+            label: "B, because B's verdict arrived first.",
+            correct: false,
+            explanationMd:
+              "That makes the queue's delay A's penalty. A did nothing slower than B; the platform did.",
+          },
+          {
+            id: "rwe-t2-leetcode-q2-b",
+            label: "They tie, since the order is unknowable once the judge is behind.",
+            correct: false,
+            explanationMd:
+              "The order is known exactly: the API stamped each submission when it accepted it.",
+          },
+          {
+            id: "rwe-t2-leetcode-q2-c",
+            label: "Whoever's code ran faster against the tests.",
+            correct: false,
+            explanationMd:
+              "Runtime decides pass or fail against the limit. Contest rank on a solved problem is about when you solved it.",
+          },
+          {
+            id: "rwe-t2-leetcode-q2-d",
+            label: "A, because rank uses the time the API accepted the submission, not the time it was judged.",
+            correct: true,
+            explanationMd:
+              "Stamping accept time at the API is what lets the judge fall behind without making the contest unfair - and it only works because acceptance and judging are separate steps.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-leetcode-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Judges time each test with the wall clock against a 2-second limit. At the contest peak, several " +
+          "correct solutions get Time Limit Exceeded that passed in practice. What is the cause and the fix?",
+        options: [
+          {
+            id: "rwe-t2-leetcode-q3-a",
+            label: "Wall-clock time includes waiting for a busy machine's CPU; give each run a dedicated core and limit CPU time.",
+            correct: true,
+            explanationMd:
+              "At the peak each judge machine runs more sandboxes, and a run that waits for the CPU is charged for waiting. CPU time measures the solution, not the neighbors.",
+          },
+          {
+            id: "rwe-t2-leetcode-q3-b",
+            label: "The limit is too tight; raise it to 4 seconds during contests.",
+            correct: false,
+            explanationMd:
+              "It masks the variance and lets genuinely slow solutions pass. The verdict still depends on load, just less visibly.",
+          },
+          {
+            id: "rwe-t2-leetcode-q3-c",
+            label: "There are too few judges; add machines until the queue is short.",
+            correct: false,
+            explanationMd:
+              "A shorter queue does not change how busy each machine is while a run executes. Contention inside the machine is the cause.",
+          },
+          {
+            id: "rwe-t2-leetcode-q3-d",
+            label: "Identical code is being judged repeatedly; cache verdicts by code hash.",
+            correct: false,
+            explanationMd:
+              "A real optimization at scale, and unrelated to why correct code is timing out.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-leetcode-q4",
+        kind: "matching",
+        difficulty: 3,
+        prompt: "Every way of building this judge accepts a cost. Match each choice to the one it accepts.",
+        options: [
+          {
+            id: "rwe-t2-leetcode-q4-quota",
+            label: "Cold starts, and a concurrency quota the first minutes of a contest can hit",
+            correct: true,
+            explanationMd:
+              "A serverless function per submission pays per run and idles at zero, and inherits the platform's start-up and concurrency limits.",
+          },
+          {
+            id: "rwe-t2-leetcode-q4-wait",
+            label: "A contestant waits for one verdict before the next submission is judged",
+            correct: true,
+            explanationMd:
+              "Capping work in flight per contestant keeps a script from occupying the judge, and slows down a legitimate contestant who submits twice quickly.",
+          },
+          {
+            id: "rwe-t2-leetcode-q4-idle",
+            label: "Capacity paid for between contests",
+            correct: true,
+            explanationMd:
+              "A long-running fleet keeps runtimes warm and timing steady, and costs money whether or not anyone is submitting.",
+          },
+          {
+            id: "rwe-t2-leetcode-q4-boot",
+            label: "Boot time and memory for every single run",
+            correct: true,
+            explanationMd:
+              "A microVM per run gives each submission its own kernel, which is the strongest isolation and the most expensive per run.",
+          },
+        ],
+        pairs: [
+          ["A long-running judge fleet", "rwe-t2-leetcode-q4-idle"],
+          ["A serverless function per submission", "rwe-t2-leetcode-q4-quota"],
+          ["A microVM per run", "rwe-t2-leetcode-q4-boot"],
+          ["One pending submission per contestant", "rwe-t2-leetcode-q4-wait"],
+        ],
+      },
+      {
+        id: "rwe-t2-leetcode-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "The judge fleet autoscales when the queue passes 1,000 submissions. At 14:30 the queue reaches 6,000, " +
+          "verdicts take four minutes, and the new machines are ready at 14:36. What fixes this best?",
+        options: [
+          {
+            id: "rwe-t2-leetcode-q5-a",
+            label: "Lower the autoscaling threshold to 100 submissions.",
+            correct: false,
+            explanationMd:
+              "It reacts sooner and still reacts: machines take minutes to boot whatever triggers them, and the spike is over the threshold within seconds.",
+          },
+          {
+            id: "rwe-t2-leetcode-q5-b",
+            label: "Scale the fleet up on a schedule before the contest starts.",
+            correct: true,
+            explanationMd:
+              "The spike's start time is on the calendar. Provisioning for a known event before it happens beats reacting to it after the queue is already deep.",
+          },
+          {
+            id: "rwe-t2-leetcode-q5-c",
+            label: "Make submission synchronous again, so contestants slow down on their own.",
+            correct: false,
+            explanationMd:
+              "Held-open requests time out, and timeouts produce resubmissions - the cold open's feedback loop.",
+          },
+          {
+            id: "rwe-t2-leetcode-q5-d",
+            label: "Lower each contestant's submission rate limit at the gateway.",
+            correct: false,
+            explanationMd:
+              "This burst is 30,000 legitimate first submissions, not abuse. A tighter limit refuses real contestants and leaves the capacity gap where it was.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "rwe-t2-price-tracking-service",
+    mode: "real-world-extraction",
+    title: "Price Tracking Service",
+    // Spec: specs/rwe-t2-price-tracking-service.spec.md. Lesson body:
+    // public/content/chapters/rwe-t2-price-tracking-service.mdx. Tier 2
+    // precedent from Notification System: all 27 available, DLQ rule escalated.
+    problemStatement:
+      "A price tracker: browsers reach one web server that stores 50 million watches in a relational database. " +
+      "An hourly cron job starts a fetcher that reads all 20 million tracked product pages as fast as it can. " +
+      "Retailers tolerate about 200 requests a second in total, and the largest one blocked the service for 48 " +
+      "hours during a sale.\n\n" +
+      "- Requests to retailers stay within their budget, however many products come due in the same minute, and " +
+      "a product whose page keeps failing to parse is set aside rather than retried forever.\n" +
+      "- A price change reaches the users whose target it crosses, and also feeds price history, without either " +
+      "one waiting on the other.\n" +
+      "- Losing one machine that serves the website drops no requests.\n" +
+      "- One public hostname resolves to whatever fronts the website.",
+    exerciseGoal:
+      "Replace the hourly fetch-everything run with checking that stays inside each retailer's budget, and turn " +
+      "observed price changes into alerts for exactly the watchers they affect.",
+    successCriteria: [
+      "Fetches to retailers never exceed their budget, however many products come due in the same minute.",
+      "A product page that keeps failing to parse is set aside, not retried forever.",
+      "Each price change reaches the watchers whose target it crosses and feeds price history, without either waiting on the other.",
+      "Losing one machine that serves the website drops no requests, and Validate reports zero errors.",
+    ],
+    // Objectives 1 and 2 are the declared new concepts (§15.2): polite
+    // polling cadence, change detection and alerting.
+    learningObjectives: [
+      "Size a fetch budget against a catalog and design a cadence that scores products by watchers, volatility and staleness and adapts each interval.",
+      "Turn a fetch into an alert correctly: normalize, publish only real changes, match watchers by an index on product and target, and alert once per crossing.",
+      "Answer \"a popular product just dropped - what happens?\" by tracing the change event to matched watchers and a rate-limited notification hand-off, in under a minute.",
+      "Build a tracker whose fetches are rate-governed by a queue, whose failed pages are set aside, and whose change events reach alerts and history independently, and pass Submit.",
+      "Defend carrying change events on an event bus or a partitioned log by naming what the other buys.",
+    ],
+    availableComponentIds: [
+      "client",
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "worker",
+      "cron-job",
+      "serverless-function",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "object-storage",
+      "search-engine",
+      "cache",
+      "distributed-cache",
+      "message-queue",
+      "kafka",
+      "event-bus",
+      "dead-letter-queue",
+      "coordinator",
+      "leader",
+      "follower",
+      "lock-service",
+    ],
+    requiredComponentIds: [
+      "browser",
+      "dns",
+      "load-balancer",
+      "app-server",
+      "cron-job",
+      "message-queue",
+      "worker",
+      "dead-letter-queue",
+    ],
+    // Moot for RWE: the full registry runs (spec §6).
+    validationRuleIds: [],
+    // The brief requires unparseable products to be set aside (§15.1).
+    ruleSeverity: {
+      "queue-without-dead-letter-queue": "error",
+    },
+    // Two carriers for change events. The tick reaches the fetch queue by any
+    // path: a planner worker in between, or the cron job enqueueing directly,
+    // are both honest. The matcher must read the same watches the website
+    // writes - that shared alias is what "exactly the watchers they affect"
+    // grades.
+    blueprints: [
+      {
+        id: "rwe-t2-price-blueprint-bus",
+        label: "Price changes fanned out on an event bus",
+        require: {
+          id: "rwe-t2-price-blueprint-bus",
+          nodes: [
+            { alias: "users", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "web", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "watches", componentId: ["sql-database", "nosql-database"] },
+            { alias: "tick", componentId: "cron-job" },
+            { alias: "fq", componentId: "message-queue" },
+            { alias: "fetchers", componentId: "worker" },
+            { alias: "parked", componentId: "dead-letter-queue" },
+            { alias: "changes", componentId: "event-bus" },
+            { alias: "matcher", componentId: ["worker", "serverless-function"] },
+          ],
+          edges: [
+            { from: "users", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow", via: "path" },
+            { from: "lb", to: "web", kind: "request-flow" },
+            { from: "web", to: "watches", kind: "request-flow", via: "path" },
+            { from: "tick", to: "fq", via: "path" },
+            { from: "fq", to: "fetchers", kind: "async" },
+            { from: "fq", to: "parked", kind: "async" },
+            { from: "fetchers", to: "changes" },
+            { from: "changes", to: "matcher", kind: "async" },
+            { from: "matcher", to: "watches", kind: "request-flow", via: "path" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t2-pt-ref-b-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t2-pt-ref-b-tick", componentId: "cron-job", position: { x: 60, y: 160 }, config: { scheduleIntervalMinutes: 1 } },
+            { id: "rwe-t2-pt-ref-b-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t2-pt-ref-b-planner", componentId: "worker", position: { x: 320, y: 160 }, config: { concurrency: 1 } },
+            { id: "rwe-t2-pt-ref-b-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+            { id: "rwe-t2-pt-ref-b-fq", componentId: "message-queue", position: { x: 580, y: 160 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "rwe-t2-pt-ref-b-dlq", componentId: "dead-letter-queue", position: { x: 580, y: 320 }, config: { maxRetries: 3 } },
+            { id: "rwe-t2-pt-ref-b-web", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 3 } },
+            { id: "rwe-t2-pt-ref-b-fetchers", componentId: "worker", position: { x: 840, y: 160 }, config: { concurrency: 40 } },
+            { id: "rwe-t2-pt-ref-b-watches", componentId: "sql-database", position: { x: 1100, y: 0 }, config: { engine: "postgres", indexing: "covers-hot-queries" } },
+            { id: "rwe-t2-pt-ref-b-bus", componentId: "event-bus", position: { x: 1100, y: 160 }, config: { deliveryMode: "fan-out" } },
+            { id: "rwe-t2-pt-ref-b-matcher", componentId: "worker", position: { x: 1360, y: 160 }, config: { concurrency: 8 } },
+            { id: "rwe-t2-pt-ref-b-history", componentId: "worker", position: { x: 1360, y: 320 }, config: { concurrency: 4 } },
+            { id: "rwe-t2-pt-ref-b-prices", componentId: "nosql-database", position: { x: 1620, y: 320 }, config: { model: "wide-column", partitioning: "hash", shardKey: "product_id" } },
+          ],
+          edges: [
+            { id: "rwe-t2-pt-ref-b-e1", source: "rwe-t2-pt-ref-b-browser", target: "rwe-t2-pt-ref-b-dns", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-b-e2", source: "rwe-t2-pt-ref-b-dns", target: "rwe-t2-pt-ref-b-lb", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-b-e3", source: "rwe-t2-pt-ref-b-lb", target: "rwe-t2-pt-ref-b-web", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-b-e4", source: "rwe-t2-pt-ref-b-web", target: "rwe-t2-pt-ref-b-watches", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-b-e5", source: "rwe-t2-pt-ref-b-tick", target: "rwe-t2-pt-ref-b-planner", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-b-e6", source: "rwe-t2-pt-ref-b-planner", target: "rwe-t2-pt-ref-b-fq", kind: "async" },
+            { id: "rwe-t2-pt-ref-b-e7", source: "rwe-t2-pt-ref-b-fq", target: "rwe-t2-pt-ref-b-fetchers", kind: "async" },
+            { id: "rwe-t2-pt-ref-b-e8", source: "rwe-t2-pt-ref-b-fq", target: "rwe-t2-pt-ref-b-dlq", kind: "async" },
+            { id: "rwe-t2-pt-ref-b-e9", source: "rwe-t2-pt-ref-b-fetchers", target: "rwe-t2-pt-ref-b-bus", kind: "async" },
+            { id: "rwe-t2-pt-ref-b-e10", source: "rwe-t2-pt-ref-b-bus", target: "rwe-t2-pt-ref-b-matcher", kind: "async" },
+            { id: "rwe-t2-pt-ref-b-e11", source: "rwe-t2-pt-ref-b-bus", target: "rwe-t2-pt-ref-b-history", kind: "async" },
+            { id: "rwe-t2-pt-ref-b-e12", source: "rwe-t2-pt-ref-b-matcher", target: "rwe-t2-pt-ref-b-watches", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-b-e13", source: "rwe-t2-pt-ref-b-history", target: "rwe-t2-pt-ref-b-prices", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-b-e14", source: "rwe-t2-pt-ref-b-planner", target: "rwe-t2-pt-ref-b-watches", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t2-pt-ref-b-browser", "rwe-t2-pt-ref-b-tick"],
+        },
+        commentary:
+          "The Cron Job (3.19) only starts the planner, which reads watch counts and each product's next check " +
+          "time and enqueues the products that are due, best first. The queue (3.17) absorbs whatever the planner " +
+          "produces and the fetch workers drain it at a fixed concurrency sized to each retailer's budget - 3.24's " +
+          "limit applied to yourself - while pages that keep failing to parse go to the dead-letter queue instead " +
+          "of burning the budget forever. Fetchers publish only real changes to an Event Bus (3.18), which fans " +
+          "each one out to the alert matcher, reading watches by an index on product and target, and to the " +
+          "history writer feeding a wide-column price store (3.11, 3.16's derived data). What the bus pays is " +
+          "memory: a subscriber that was down misses the changes it could not receive, and fixing a matcher bug " +
+          "cannot re-run yesterday's events.",
+      },
+      {
+        id: "rwe-t2-price-blueprint-log",
+        label: "Price changes appended to a partitioned log",
+        require: {
+          id: "rwe-t2-price-blueprint-log",
+          nodes: [
+            { alias: "users", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer" },
+            { alias: "web", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "watches", componentId: ["sql-database", "nosql-database"] },
+            { alias: "tick", componentId: "cron-job" },
+            { alias: "fq", componentId: "message-queue" },
+            { alias: "fetchers", componentId: "worker" },
+            { alias: "parked", componentId: "dead-letter-queue" },
+            { alias: "changes", componentId: "kafka" },
+            { alias: "matcher", componentId: ["worker", "serverless-function"] },
+          ],
+          edges: [
+            { from: "users", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow", via: "path" },
+            { from: "lb", to: "web", kind: "request-flow" },
+            { from: "web", to: "watches", kind: "request-flow", via: "path" },
+            { from: "tick", to: "fq", via: "path" },
+            { from: "fq", to: "fetchers", kind: "async" },
+            { from: "fq", to: "parked", kind: "async" },
+            { from: "fetchers", to: "changes" },
+            { from: "changes", to: "matcher", kind: "async" },
+            { from: "matcher", to: "watches", kind: "request-flow", via: "path" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t2-pt-ref-l-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t2-pt-ref-l-tick", componentId: "cron-job", position: { x: 60, y: 160 }, config: { scheduleIntervalMinutes: 1 } },
+            { id: "rwe-t2-pt-ref-l-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t2-pt-ref-l-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "round-robin" } },
+            { id: "rwe-t2-pt-ref-l-fq", componentId: "message-queue", position: { x: 320, y: 160 }, config: { deliveryGuarantee: "at-least-once" } },
+            { id: "rwe-t2-pt-ref-l-dlq", componentId: "dead-letter-queue", position: { x: 320, y: 320 }, config: { maxRetries: 3 } },
+            { id: "rwe-t2-pt-ref-l-web", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 3 } },
+            { id: "rwe-t2-pt-ref-l-fetchers", componentId: "worker", position: { x: 580, y: 160 }, config: { concurrency: 40 } },
+            { id: "rwe-t2-pt-ref-l-watches", componentId: "sql-database", position: { x: 1100, y: 0 }, config: { engine: "postgres", indexing: "covers-hot-queries" } },
+            { id: "rwe-t2-pt-ref-l-log", componentId: "kafka", position: { x: 840, y: 160 }, config: { partitions: 12, retentionHours: 168 } },
+            { id: "rwe-t2-pt-ref-l-matcher", componentId: "serverless-function", position: { x: 1100, y: 160 }, config: { maxConcurrency: 100, timeoutSeconds: 60 } },
+            { id: "rwe-t2-pt-ref-l-history", componentId: "worker", position: { x: 1100, y: 320 }, config: { concurrency: 4 } },
+            { id: "rwe-t2-pt-ref-l-prices", componentId: "nosql-database", position: { x: 1360, y: 320 }, config: { model: "wide-column", partitioning: "hash", shardKey: "product_id" } },
+          ],
+          edges: [
+            { id: "rwe-t2-pt-ref-l-e1", source: "rwe-t2-pt-ref-l-browser", target: "rwe-t2-pt-ref-l-dns", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-l-e2", source: "rwe-t2-pt-ref-l-dns", target: "rwe-t2-pt-ref-l-lb", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-l-e3", source: "rwe-t2-pt-ref-l-lb", target: "rwe-t2-pt-ref-l-web", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-l-e4", source: "rwe-t2-pt-ref-l-web", target: "rwe-t2-pt-ref-l-watches", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-l-e5", source: "rwe-t2-pt-ref-l-tick", target: "rwe-t2-pt-ref-l-fq", kind: "async" },
+            { id: "rwe-t2-pt-ref-l-e6", source: "rwe-t2-pt-ref-l-fq", target: "rwe-t2-pt-ref-l-fetchers", kind: "async" },
+            { id: "rwe-t2-pt-ref-l-e7", source: "rwe-t2-pt-ref-l-fq", target: "rwe-t2-pt-ref-l-dlq", kind: "async" },
+            { id: "rwe-t2-pt-ref-l-e8", source: "rwe-t2-pt-ref-l-fetchers", target: "rwe-t2-pt-ref-l-log", kind: "async" },
+            { id: "rwe-t2-pt-ref-l-e9", source: "rwe-t2-pt-ref-l-log", target: "rwe-t2-pt-ref-l-matcher", kind: "async" },
+            { id: "rwe-t2-pt-ref-l-e10", source: "rwe-t2-pt-ref-l-log", target: "rwe-t2-pt-ref-l-history", kind: "async" },
+            { id: "rwe-t2-pt-ref-l-e11", source: "rwe-t2-pt-ref-l-matcher", target: "rwe-t2-pt-ref-l-watches", kind: "request-flow" },
+            { id: "rwe-t2-pt-ref-l-e12", source: "rwe-t2-pt-ref-l-history", target: "rwe-t2-pt-ref-l-prices", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t2-pt-ref-l-browser", "rwe-t2-pt-ref-l-tick"],
+        },
+        commentary:
+          "Here the Cron Job (3.19) is the planner: each minute it runs the due-products query itself and enqueues " +
+          "the result, and the queue plus fixed-concurrency fetchers (3.17) hold every retailer to its budget, " +
+          "with unparseable pages parked in the dead-letter queue. Changes go to a partitioned log (3.18's Kafka) " +
+          "keyed by product id, so each product's changes stay in order (3.13). The alert matcher and the history " +
+          "writer are separate consumer groups with their own offsets: the matcher, a Serverless Function (3.19) " +
+          "that scales with bursts of changes, can fall behind or be fixed and replayed over the last week of " +
+          "events without touching history. What the log pays is operations - partitions and retention to size " +
+          "for a stream of a few hundred changes a second that a bus would carry fine - in exchange for replay.",
+      },
+    ],
+    hints: [
+      {
+        id: "rwe-t2-price-hint-1",
+        body:
+          "Divide the catalog by the budget. That is how often each product could be checked if every product were " +
+          "worth the same - and they are not.",
+      },
+      {
+        id: "rwe-t2-price-hint-2",
+        body:
+          "Something has to stand between a planner that can make 12,000 products due in one minute and a retailer " +
+          "that accepts 120 requests a second. Ask what has absorbed bursts and set a steady pace since Group E.",
+      },
+      {
+        id: "rwe-t2-price-hint-3",
+        body:
+          "A price change has more than one consumer, and they should not wait on each other. Ask which Group E " +
+          "shapes deliver one event to several independent readers.",
+      },
+      {
+        id: "rwe-t2-price-hint-4",
+        body:
+          "Some requirements are answered by a setting, not a box. Open each component and read its fields against " +
+          "the requirement it is meant to answer.",
+      },
+    ],
+    readingLinks: [],
+    // Today's system: a website and an hourly fetch-everything job sharing one
+    // database. Validates clean and cannot pass.
+    starterGraph: {
+      nodes: [
+        { id: "rwe-t2-price-starter-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "rwe-t2-price-starter-tick", componentId: "cron-job", position: { x: 60, y: 160 }, config: { scheduleIntervalMinutes: 60 } },
+        { id: "rwe-t2-price-starter-web", componentId: "app-server", position: { x: 320, y: 0 }, config: { instances: 1 } },
+        { id: "rwe-t2-price-starter-fetcher", componentId: "worker", position: { x: 320, y: 160 }, config: { concurrency: 100 } },
+        { id: "rwe-t2-price-starter-db", componentId: "sql-database", position: { x: 580, y: 0 }, config: { engine: "postgres" } },
+      ],
+      edges: [
+        { id: "rwe-t2-price-starter-e1", source: "rwe-t2-price-starter-browser", target: "rwe-t2-price-starter-web", kind: "request-flow" },
+        { id: "rwe-t2-price-starter-e2", source: "rwe-t2-price-starter-web", target: "rwe-t2-price-starter-db", kind: "request-flow" },
+        { id: "rwe-t2-price-starter-e3", source: "rwe-t2-price-starter-tick", target: "rwe-t2-price-starter-fetcher", kind: "request-flow" },
+        { id: "rwe-t2-price-starter-e4", source: "rwe-t2-price-starter-fetcher", target: "rwe-t2-price-starter-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["rwe-t2-price-starter-browser", "rwe-t2-price-starter-tick"],
+    },
+    starterDecorators: [
+      { kind: "zone", id: "rwe-t2-price-zone-triggers", label: "Triggers", position: { x: 32, y: -40 }, width: 176, height: 308, color: "#64748b" },
+      { kind: "zone", id: "rwe-t2-price-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 308, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t2-price-zone-data", label: "Data", position: { x: 552, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "rwe-t2-price-comment-today",
+        text: "Every hour the fetcher reads all 20 million product pages as fast as it can. Retailers tolerate about 200 requests a second in total.",
+        position: { x: 32, y: 288 },
+        width: 436,
+        height: 80,
+        color: "#64748b",
+      },
+    ],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    // No `curriculumContext` (RWE). Retrospective quiz modeled on
+    // QUIZ_FRAMEWORK §16; the bank has no Price Tracking entry, so all five are new.
+    quiz: [
+      {
+        id: "rwe-t2-price-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "You track 20 million products and the retailers allow about 200 requests a second in total. If every " +
+          "product were checked equally often, how often would each one be checked?",
+        options: [
+          {
+            id: "rwe-t2-price-q1-a",
+            label: "About every hour.",
+            correct: false,
+            explanationMd:
+              "Hourly for 20 million products is about 5,600 requests a second, 28 times the budget. That is the cold open's design.",
+          },
+          {
+            id: "rwe-t2-price-q1-b",
+            label: "About every 28 hours.",
+            correct: true,
+            explanationMd:
+              "20 million divided by 200 a second is 100,000 seconds. Too slow for anything popular, too fast for the long tail - which is why the cadence follows value, not equality.",
+          },
+          {
+            id: "rwe-t2-price-q1-c",
+            label: "About every 10 minutes.",
+            correct: false,
+            explanationMd:
+              "That would need over 33,000 requests a second. The budget is the binding constraint, not your hardware.",
+          },
+          {
+            id: "rwe-t2-price-q1-d",
+            label: "About once a week.",
+            correct: false,
+            explanationMd:
+              "Weekly is under 3 million requests a day; 200 a second allows 17 million. Equal checking is faster than weekly, just not fast enough where it matters.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-price-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Your planner makes 12,000 products due at 10:00, and the largest retailer accepts 120 requests a second. " +
+          "Why put the due products on a queue instead of having the planner call the fetchers directly?",
+        options: [
+          {
+            id: "rwe-t2-price-q2-a",
+            label: "A queue makes each fetch faster.",
+            correct: false,
+            explanationMd:
+              "A fetch takes as long as the retailer takes to answer. The queue changes when fetches start, not how long they take.",
+          },
+          {
+            id: "rwe-t2-price-q2-b",
+            label: "A queue removes duplicate products from the batch.",
+            correct: false,
+            explanationMd:
+              "A queue delivers what it is given. Deduplicating due products is the planner's job.",
+          },
+          {
+            id: "rwe-t2-price-q2-c",
+            label: "The cron job can only start work through a queue.",
+            correct: false,
+            explanationMd:
+              "A cron job can call compute directly, which is what today's system does - and why its bursts reach the retailer unchanged.",
+          },
+          {
+            id: "rwe-t2-price-q2-d",
+            label: "The queue absorbs the burst and the fetchers' fixed concurrency sets the rate the retailer sees.",
+            correct: true,
+            explanationMd:
+              "12,000 at once becomes 120 a second for 100 seconds. The producer's shape stops mattering, because the consumers decide the pace.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-price-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "A watch has a $100 target. The retailer is A/B testing, and the price flips between $101 and $99 four " +
+          "times in a day. The user gets four alerts. Which fix keeps real drops and stops the spam?",
+        options: [
+          {
+            id: "rwe-t2-price-q3-a",
+            label: "Check the product less often.",
+            correct: false,
+            explanationMd:
+              "It catches fewer flips and fewer real drops alike. The cadence is not what is wrong; the alerting rule is.",
+          },
+          {
+            id: "rwe-t2-price-q3-b",
+            label: "Only alert on drops of more than 10%.",
+            correct: false,
+            explanationMd:
+              "The user set a target, not a percentage. A drop from $101 to $99 crossing their target is exactly what they asked for, once.",
+          },
+          {
+            id: "rwe-t2-price-q3-c",
+            label: "Alert once per crossing, and re-arm only after the price rises back above the target by a margin or a cooldown passes.",
+            correct: true,
+            explanationMd:
+              "The first dip alerts; the flapping that follows does not, until the price has genuinely recovered. Hysteresis is the standard cure for a signal oscillating around a threshold.",
+          },
+          {
+            id: "rwe-t2-price-q3-d",
+            label: "Deduplicate alerts sent within one minute of each other.",
+            correct: false,
+            explanationMd:
+              "The flips are hours apart, so nothing falls inside the window.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-price-q4",
+        kind: "matching",
+        difficulty: 3,
+        prompt: "Every way of building this tracker accepts a cost. Match each choice to the one it accepts.",
+        options: [
+          {
+            id: "rwe-t2-price-q4-missed",
+            label: "A consumer that was down misses changes it can never replay",
+            correct: true,
+            explanationMd:
+              "An event bus delivers to whoever is subscribed now. Simple, and forgetful.",
+          },
+          {
+            id: "rwe-t2-price-q4-operate",
+            label: "Partitions and retention to run for a stream a simpler carrier could handle",
+            correct: true,
+            explanationMd:
+              "A log buys replay and per-product ordering, and costs a system to size and operate.",
+          },
+          {
+            id: "rwe-t2-price-q4-budget",
+            label: "Nearly 28 times the retailer's budget, and eventually a block",
+            correct: true,
+            explanationMd:
+              "Hourly checks of 20 million products need about 5,600 requests a second against 200 allowed.",
+          },
+          {
+            id: "rwe-t2-price-q4-late",
+            label: "A product that changes after months of stability is noticed late",
+            correct: true,
+            explanationMd:
+              "Adaptive intervals stretch toward the ceiling on quiet products, so the first change after a long calm waits for the next check.",
+          },
+        ],
+        pairs: [
+          ["Every product checked every hour", "rwe-t2-price-q4-budget"],
+          ["Adaptive cadence per product", "rwe-t2-price-q4-late"],
+          ["Price changes on an event bus", "rwe-t2-price-q4-missed"],
+          ["Price changes on a partitioned log", "rwe-t2-price-q4-operate"],
+        ],
+      },
+      {
+        id: "rwe-t2-price-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "The alert matcher scans all 50 million watches for each price change. With 3,000 changes a minute at " +
+          "peak, matching falls hours behind. Which change fixes it?",
+        options: [
+          {
+            id: "rwe-t2-price-q5-a",
+            label: "Index watches by product and target, so a change reads only that product's watches at or above the new price.",
+            correct: true,
+            explanationMd:
+              "Each change becomes a range read over one product's watches instead of a 50-million-row scan. The work now scales with the matches, not the table.",
+          },
+          {
+            id: "rwe-t2-price-q5-b",
+            label: "Load all 50 million watches into memory and scan them there.",
+            correct: false,
+            explanationMd:
+              "A faster scan is still a scan per change: 3,000 a minute times 50 million rows. Memory moves the constant, not the shape.",
+          },
+          {
+            id: "rwe-t2-price-q5-c",
+            label: "Partition watches by user id across several databases.",
+            correct: false,
+            explanationMd:
+              "One product's watchers are spread across every partition, so each change becomes a query to all of them. Partition by the key the read uses.",
+          },
+          {
+            id: "rwe-t2-price-q5-d",
+            label: "Batch changes and match them once an hour.",
+            correct: false,
+            explanationMd:
+              "It amortizes the scan and makes alerts up to an hour late, on sales that may last less than that.",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "rwe-t2-online-chess",
+    mode: "real-world-extraction",
+    title: "Online Chess",
+    // Spec: specs/rwe-t2-online-chess.spec.md. Lesson body:
+    // public/content/chapters/rwe-t2-online-chess.mdx. Tier 2 precedent from
+    // Notification System, all 27 available. No queue in the brief, so no
+    // ruleSeverity escalation here.
+    problemStatement:
+      "An online chess site: browsers poll one application server every 500 ms for new moves - a million " +
+      "requests a second at peak - and that server keeps live games in its own memory. Accounts, ratings and " +
+      "finished games are in a relational database. Bullet players lose about 10 seconds of a 60-second clock to " +
+      "the polling delay.\n\n" +
+      "- A move reaches the opponent in under 100 ms, whichever machines the two players are connected to.\n" +
+      "- Players waiting for the same time control are paired with each other even when connected to different " +
+      "machines, and no player is ever paired into two games.\n" +
+      "- If a machine holding live games dies, both players reconnect and continue from the last move with " +
+      "clocks intact.\n" +
+      "- After a machine restarts at peak, connections even out across machines within minutes, not hours.\n" +
+      "- Ratings and finished games are never lost. One public hostname resolves to whatever fronts the site.",
+    exerciseGoal:
+      "Replace polling with a real-time tier where a move reaches the opponent across any two machines in under " +
+      "100 ms, and where a live game survives the machine holding its players' connections.",
+    successCriteria: [
+      "A move reaches the opponent in under 100 ms, whichever machines the two players are connected to.",
+      "Players waiting on different machines can be paired with each other, and a game survives the loss of the machine holding it.",
+      "After a machine restarts at peak, connections spread back across every machine instead of staying where they landed.",
+      "Ratings and finished games are never lost, and Validate reports zero errors.",
+    ],
+    // Objectives 1 and 2 are the declared new concepts (§15.2): real-time
+    // move relay over long-lived connections, and matchmaking state.
+    learningObjectives: [
+      "Explain why a held connection is state pinned to one machine, how a move crosses machines on a per-game channel, and why long-lived connections need least-connections balancing.",
+      "Design a shared matchmaking pool whose pairing is atomic, whose rating window widens with wait time, and whose entries expire with their heartbeat.",
+      "Answer \"what happens when a server dies mid-game?\" with the reconnect, the resume from the last move number and where the game state lives, in under a minute.",
+      "Build a real-time tier whose games survive a machine loss and whose connections rebalance after a restart, and pass Submit.",
+      "Defend keeping live moves in replicated memory or appending each to a durable log, naming the guarantee and the cost each buys (3.22's postures per data class).",
+    ],
+    availableComponentIds: [
+      "client",
+      "browser",
+      "dns",
+      "cdn",
+      "firewall",
+      "reverse-proxy",
+      "api-gateway",
+      "load-balancer",
+      "app-server",
+      "worker",
+      "cron-job",
+      "serverless-function",
+      "sql-database",
+      "nosql-database",
+      "read-replica",
+      "object-storage",
+      "search-engine",
+      "cache",
+      "distributed-cache",
+      "message-queue",
+      "kafka",
+      "event-bus",
+      "dead-letter-queue",
+      "coordinator",
+      "leader",
+      "follower",
+      "lock-service",
+    ],
+    requiredComponentIds: ["browser", "dns", "load-balancer", "app-server", "distributed-cache"],
+    // Moot for RWE: the full registry runs (spec §6).
+    validationRuleIds: [],
+    // Two durability postures for live moves. The durable-log blueprint is
+    // listed first because its pattern contains the in-memory one: a design
+    // with a separate move store should get the commentary that describes it.
+    // `algorithm: least-connections` is the long-lived-connection concept made
+    // gradable (open decision 11's config-predicate shape; hint 4 covers it).
+    blueprints: [
+      {
+        id: "rwe-t2-chess-blueprint-durable",
+        label: "Every move appended to a durable log before it is relayed",
+        require: {
+          id: "rwe-t2-chess-blueprint-durable",
+          nodes: [
+            { alias: "players", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer", config: [{ field: "algorithm", op: "eq", value: "least-connections" }] },
+            { alias: "cs", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "live", componentId: "distributed-cache" },
+            { alias: "accounts", componentId: ["sql-database", "nosql-database"] },
+            { alias: "moves", componentId: ["sql-database", "nosql-database"] },
+          ],
+          edges: [
+            { from: "players", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow", via: "path" },
+            { from: "lb", to: "cs", kind: "request-flow" },
+            { from: "cs", to: "live", kind: "request-flow" },
+            { from: "cs", to: "accounts", kind: "request-flow", via: "path" },
+            { from: "cs", to: "moves", kind: "request-flow", via: "path" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t2-ch-ref-d-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t2-ch-ref-d-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t2-ch-ref-d-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "least-connections" } },
+            { id: "rwe-t2-ch-ref-d-cs", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 12 } },
+            { id: "rwe-t2-ch-ref-d-live", componentId: "distributed-cache", position: { x: 1100, y: 0 }, config: { replicationFactor: 2, consistency: "eventual" } },
+            { id: "rwe-t2-ch-ref-d-db", componentId: "sql-database", position: { x: 1100, y: 160 }, config: { engine: "postgres" } },
+            { id: "rwe-t2-ch-ref-d-moves", componentId: "nosql-database", position: { x: 1100, y: 320 }, config: { model: "wide-column", partitioning: "hash", shardKey: "game_id" } },
+          ],
+          edges: [
+            { id: "rwe-t2-ch-ref-d-e1", source: "rwe-t2-ch-ref-d-browser", target: "rwe-t2-ch-ref-d-dns", kind: "request-flow" },
+            { id: "rwe-t2-ch-ref-d-e2", source: "rwe-t2-ch-ref-d-dns", target: "rwe-t2-ch-ref-d-lb", kind: "request-flow" },
+            { id: "rwe-t2-ch-ref-d-e3", source: "rwe-t2-ch-ref-d-lb", target: "rwe-t2-ch-ref-d-cs", kind: "request-flow" },
+            { id: "rwe-t2-ch-ref-d-e4", source: "rwe-t2-ch-ref-d-cs", target: "rwe-t2-ch-ref-d-live", kind: "request-flow" },
+            { id: "rwe-t2-ch-ref-d-e5", source: "rwe-t2-ch-ref-d-cs", target: "rwe-t2-ch-ref-d-db", kind: "request-flow" },
+            { id: "rwe-t2-ch-ref-d-e6", source: "rwe-t2-ch-ref-d-cs", target: "rwe-t2-ch-ref-d-moves", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t2-ch-ref-d-browser"],
+        },
+        commentary:
+          "Connection servers hold each player's socket behind a least-connections Load Balancer (3.4), the " +
+          "algorithm built for connections that last a session. The socket is the only state on those machines " +
+          "(3.6 and 3.7, kept for everything that can move): the pairing pool and each game's channel live in a " +
+          "Distributed Cache (3.14), where an atomic pop pairs two players and a per-game publish and subscribe " +
+          "channel carries each move to whichever server holds the opponent (3.9's discovery, answered by " +
+          "subscription). Each move is also appended to a wide-column log partitioned by game id (3.11, 3.13) " +
+          "before it is relayed, so no acknowledged move is ever lost - 3.22's CP-ish posture applied to the " +
+          "game record. Ratings stay transactional in the relational store. What this pays is a durable write " +
+          "on the path of 42,000 moves a second, and a few milliseconds of every relay.",
+      },
+      {
+        id: "rwe-t2-chess-blueprint-memory",
+        label: "Live games in replicated memory, written down when they end",
+        require: {
+          id: "rwe-t2-chess-blueprint-memory",
+          nodes: [
+            { alias: "players", componentId: "browser" },
+            { alias: "dns", componentId: "dns" },
+            { alias: "lb", componentId: "load-balancer", config: [{ field: "algorithm", op: "eq", value: "least-connections" }] },
+            { alias: "cs", componentId: "app-server", config: [{ field: "instances", op: "gte", value: 2 }] },
+            { alias: "live", componentId: "distributed-cache", config: [{ field: "replicationFactor", op: "gte", value: 2 }] },
+            { alias: "accounts", componentId: ["sql-database", "nosql-database"] },
+          ],
+          edges: [
+            { from: "players", to: "dns", kind: "request-flow" },
+            { from: "dns", to: "lb", kind: "request-flow", via: "path" },
+            { from: "lb", to: "cs", kind: "request-flow" },
+            { from: "cs", to: "live", kind: "request-flow" },
+            { from: "cs", to: "accounts", kind: "request-flow", via: "path" },
+          ],
+        },
+        referenceGraph: {
+          nodes: [
+            { id: "rwe-t2-ch-ref-m-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+            { id: "rwe-t2-ch-ref-m-dns", componentId: "dns", position: { x: 320, y: 0 }, config: { recordType: "A", ttlSeconds: 300 } },
+            { id: "rwe-t2-ch-ref-m-lb", componentId: "load-balancer", position: { x: 580, y: 0 }, config: { algorithm: "least-connections" } },
+            { id: "rwe-t2-ch-ref-m-cs", componentId: "app-server", position: { x: 840, y: 0 }, config: { instances: 12 } },
+            { id: "rwe-t2-ch-ref-m-live", componentId: "distributed-cache", position: { x: 1100, y: 0 }, config: { replicationFactor: 2, consistency: "eventual" } },
+            { id: "rwe-t2-ch-ref-m-db", componentId: "sql-database", position: { x: 1100, y: 160 }, config: { engine: "postgres" } },
+          ],
+          edges: [
+            { id: "rwe-t2-ch-ref-m-e1", source: "rwe-t2-ch-ref-m-browser", target: "rwe-t2-ch-ref-m-dns", kind: "request-flow" },
+            { id: "rwe-t2-ch-ref-m-e2", source: "rwe-t2-ch-ref-m-dns", target: "rwe-t2-ch-ref-m-lb", kind: "request-flow" },
+            { id: "rwe-t2-ch-ref-m-e3", source: "rwe-t2-ch-ref-m-lb", target: "rwe-t2-ch-ref-m-cs", kind: "request-flow" },
+            { id: "rwe-t2-ch-ref-m-e4", source: "rwe-t2-ch-ref-m-cs", target: "rwe-t2-ch-ref-m-live", kind: "request-flow" },
+            { id: "rwe-t2-ch-ref-m-e5", source: "rwe-t2-ch-ref-m-cs", target: "rwe-t2-ch-ref-m-db", kind: "request-flow" },
+          ],
+          entryPointIds: ["rwe-t2-ch-ref-m-browser"],
+        },
+        commentary:
+          "The same connection tier - sockets pinned, everything else shared, least-connections placement (3.4) - " +
+          "with live games held only in the replicated Distributed Cache (3.14) alongside the pairing pool and " +
+          "the per-game channels. Every move is a sub-millisecond write to memory on two nodes; the full move list " +
+          "goes to the relational store when the game ends, with the rating update in the same transaction. This " +
+          "is 3.22's split made deliberately: the live game is AP-ish, the rating CP-ish. What it pays is a narrow " +
+          "window: if a cache node fails before replicating the last move, that move is gone, and the player's " +
+          "client re-sends it on reconnect, because the client knows its own last move number. Most production " +
+          "chess servers accept exactly this.",
+      },
+    ],
+    hints: [
+      {
+        id: "rwe-t2-chess-hint-1",
+        body:
+          "With polling, work out how much of a bullet player's clock goes to waiting for a move that has already " +
+          "been played, over a 40-move game.",
+      },
+      {
+        id: "rwe-t2-chess-hint-2",
+        body:
+          "Once each player holds an open connection, that connection lives on one machine. Ask how a machine " +
+          "learns about a move made on a different one, and where a game must live so any machine can pick it up.",
+      },
+      {
+        id: "rwe-t2-chess-hint-3",
+        body:
+          "Not every piece of data here deserves the same guarantees. Sort them by what losing each one would " +
+          "actually cost a player.",
+      },
+      {
+        id: "rwe-t2-chess-hint-4",
+        body:
+          "Some requirements are answered by a setting, not a box. Open each component and read its fields against " +
+          "the requirement it is meant to answer - including the one about a machine restarting at peak.",
+      },
+    ],
+    readingLinks: [],
+    // Today's system: polling, live games in one server's memory. Validates
+    // clean and cannot pass.
+    starterGraph: {
+      nodes: [
+        { id: "rwe-t2-chess-starter-browser", componentId: "browser", position: { x: 60, y: 0 }, config: {} },
+        { id: "rwe-t2-chess-starter-app", componentId: "app-server", position: { x: 320, y: 0 }, config: { instances: 1 } },
+        { id: "rwe-t2-chess-starter-db", componentId: "sql-database", position: { x: 580, y: 0 }, config: { engine: "postgres" } },
+      ],
+      edges: [
+        { id: "rwe-t2-chess-starter-e1", source: "rwe-t2-chess-starter-browser", target: "rwe-t2-chess-starter-app", kind: "request-flow" },
+        { id: "rwe-t2-chess-starter-e2", source: "rwe-t2-chess-starter-app", target: "rwe-t2-chess-starter-db", kind: "request-flow" },
+      ],
+      entryPointIds: ["rwe-t2-chess-starter-browser"],
+    },
+    starterDecorators: [
+      { kind: "zone", id: "rwe-t2-chess-zone-client", label: "Players", position: { x: 32, y: -40 }, width: 176, height: 148, color: "#64748b" },
+      { kind: "zone", id: "rwe-t2-chess-zone-app", label: "Application", position: { x: 292, y: -40 }, width: 176, height: 148, color: "#a855f7" },
+      { kind: "zone", id: "rwe-t2-chess-zone-data", label: "Data", position: { x: 552, y: -40 }, width: 176, height: 148, color: "#10b981" },
+      {
+        kind: "comment",
+        id: "rwe-t2-chess-comment-today",
+        text: "Browsers ask for new moves every 500 ms: a million requests a second at peak. Live games exist only in this server's memory.",
+        position: { x: 32, y: 168 },
+        width: 436,
+        height: 80,
+        color: "#64748b",
+      },
+    ],
+    lessonVersion: 1,
+    lessonFormat: "mdx",
+    // No `curriculumContext` (RWE). Retrospective quiz modeled on
+    // QUIZ_FRAMEWORK §16 (Q8's connection-is-state idea, seeded here for
+    // WhatsApp); all five are new.
+    quiz: [
+      {
+        id: "rwe-t2-chess-q1",
+        kind: "single",
+        difficulty: 1,
+        prompt:
+          "Browsers poll for the opponent's move every 500 ms. In a bullet game with 60 seconds each and about 40 " +
+          "moves per player, what does polling cost a player?",
+        options: [
+          {
+            id: "rwe-t2-chess-q1-a",
+            label: "Nothing, because the server keeps the clocks and adjusts for the delay.",
+            correct: false,
+            explanationMd:
+              "The server cannot know when the player actually saw the move, only when it was asked. The player's clock starts when the move is sent, not when it is seen.",
+          },
+          {
+            id: "rwe-t2-chess-q1-b",
+            label: "About 500 ms a move, so roughly 20 seconds.",
+            correct: false,
+            explanationMd:
+              "500 ms is the worst case, when the move lands just after a poll. Arrivals are spread across the interval, so the average is half.",
+          },
+          {
+            id: "rwe-t2-chess-q1-c",
+            label: "About 50 ms a move - negligible.",
+            correct: false,
+            explanationMd:
+              "That is a push design's network latency. Polling adds the wait until the next poll on top of it.",
+          },
+          {
+            id: "rwe-t2-chess-q1-d",
+            label: "About 250 ms a move on average, so roughly 10 seconds of a 60-second clock.",
+            correct: true,
+            explanationMd:
+              "Half the poll interval, 40 times. A sixth of the clock lost to the delivery mechanism is why real-time play needs moves pushed over a held connection.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-chess-q2",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Players hold WebSockets. White is connected to server 1 and Black to server 2. White moves. What has to " +
+          "exist for Black to see it at once?",
+        options: [
+          {
+            id: "rwe-t2-chess-q2-a",
+            label: "Sticky sessions on the load balancer.",
+            correct: false,
+            explanationMd:
+              "Stickiness keeps each player on their own server. White and Black are two different clients, so they are still on two different servers.",
+          },
+          {
+            id: "rwe-t2-chess-q2-b",
+            label: "A way for server 1 to get the move to server 2, such as a per-game publish and subscribe channel both servers use.",
+            correct: true,
+            explanationMd:
+              "Each connection lives on exactly one machine, so a move has to cross machines before it can be pushed. Server 2 subscribes to the games its players are in.",
+          },
+          {
+            id: "rwe-t2-chess-q2-c",
+            label: "The load balancer forwards the move to Black's connection.",
+            correct: false,
+            explanationMd:
+              "A load balancer places connections; it does not route messages between them after they are open.",
+          },
+          {
+            id: "rwe-t2-chess-q2-d",
+            label: "Server 2 checks the database for new moves every 100 ms.",
+            correct: false,
+            explanationMd:
+              "That is polling again, moved from the browser to the server: 100 ms average delay plus a constant query load.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-chess-q3",
+        kind: "single",
+        difficulty: 2,
+        prompt:
+          "Server 3 restarts at 20:00 and its 50,000 players reconnect to the other servers. The load balancer uses " +
+          "round-robin. At 21:00, server 3 holds 6,000 connections and the others about 60,000 each. Why, and what " +
+          "fixes it?",
+        options: [
+          {
+            id: "rwe-t2-chess-q3-a",
+            label: "Round-robin spreads only new connections evenly, and these last a session; least-connections sends new ones to the emptiest server.",
+            correct: true,
+            explanationMd:
+              "Existing connections never move, so an even split of new ones leaves the old imbalance in place for hours. Placing each new connection on the least-loaded server closes the gap within minutes.",
+          },
+          {
+            id: "rwe-t2-chess-q3-b",
+            label: "Server 3 came back slower than the others and is being skipped.",
+            correct: false,
+            explanationMd:
+              "Round-robin does not measure speed; it takes turns. Server 3 is getting its share of new connections - just not any of the old ones.",
+          },
+          {
+            id: "rwe-t2-chess-q3-c",
+            label: "There are too few servers; add instances until the load evens out.",
+            correct: false,
+            explanationMd:
+              "New servers would start empty too, under the same algorithm. The fleet has capacity; it is badly spread.",
+          },
+          {
+            id: "rwe-t2-chess-q3-d",
+            label: "Enable sticky sessions so returning players go back to server 3.",
+            correct: false,
+            explanationMd:
+              "Their connections were re-placed when server 3 went down. Stickiness would pin them where they landed, not move them back.",
+          },
+        ],
+      },
+      {
+        id: "rwe-t2-chess-q4",
+        kind: "matching",
+        difficulty: 3,
+        prompt: "Every way of building this site accepts a cost. Match each choice to the one it accepts.",
+        options: [
+          {
+            id: "rwe-t2-chess-q4-requeue",
+            label: "A restart empties it, and waiting players click play again",
+            correct: true,
+            explanationMd:
+              "The pairing pool is volatile and cheap to lose, so it lives in memory and its loss is a re-queue.",
+          },
+          {
+            id: "rwe-t2-chess-q4-empty",
+            label: "A million requests a second, nearly all answering \"nothing new\"",
+            correct: true,
+            explanationMd:
+              "Polling makes servers interchangeable and pays for it in load and delay.",
+          },
+          {
+            id: "rwe-t2-chess-q4-lastmove",
+            label: "A failover can lose the last move, which the client re-sends",
+            correct: true,
+            explanationMd:
+              "Live games in replicated memory are fast and AP-ish: the narrow window before replication is covered by the client's own move number.",
+          },
+          {
+            id: "rwe-t2-chess-q4-write",
+            label: "A durable write on the path of 42,000 moves a second",
+            correct: true,
+            explanationMd:
+              "Appending each move to a durable log before relaying it means no acknowledged move is lost, and every move pays for the guarantee.",
+          },
+        ],
+        pairs: [
+          ["Live games in replicated memory", "rwe-t2-chess-q4-lastmove"],
+          ["Every move appended to a durable log first", "rwe-t2-chess-q4-write"],
+          ["The pairing pool in memory", "rwe-t2-chess-q4-requeue"],
+          ["Polling for moves", "rwe-t2-chess-q4-empty"],
+        ],
+      },
+      {
+        id: "rwe-t2-chess-q5",
+        kind: "single",
+        difficulty: 3,
+        prompt:
+          "Matchmaking runs on every connection server. Two of them read the pool at the same moment, both see " +
+          "Alice, and each pairs her with a different opponent. Which fix keeps matchmaking running on every server?",
+        options: [
+          {
+            id: "rwe-t2-chess-q5-a",
+            label: "Wait a random moment before pairing, so two servers rarely act at once.",
+            correct: false,
+            explanationMd:
+              "It makes the race rarer, not impossible, and adds wait time to every pairing. At 20,000 waiting players, rare still happens every evening.",
+          },
+          {
+            id: "rwe-t2-chess-q5-b",
+            label: "Check for double pairings in the database afterwards and cancel one game.",
+            correct: false,
+            explanationMd:
+              "One opponent sees a game appear and vanish. Detecting the race after it happens is a worse product than preventing it.",
+          },
+          {
+            id: "rwe-t2-chess-q5-c",
+            label: "Make pairing one atomic operation in the shared store that finds a compatible pair and removes both.",
+            correct: true,
+            explanationMd:
+              "Read-decide-remove becomes one step the store performs, so whichever server asks first gets Alice and the other finds her gone. Every server keeps pairing.",
+          },
+          {
+            id: "rwe-t2-chess-q5-d",
+            label: "Lengthen the pool entries' TTL so players stay in the pool longer.",
+            correct: false,
+            explanationMd:
+              "The TTL removes players who left. It has nothing to do with two servers taking the same player.",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export function getChaptersForMode(mode: ChapterDefinition["mode"]): ChapterDefinition[] {
