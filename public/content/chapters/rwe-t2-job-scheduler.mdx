@@ -1,0 +1,338 @@
+A workflow product lets 40,000 business customers schedule jobs: export this
+report every Monday at 06:00, call this webhook every five minutes, run this
+cleanup at 02:00 in my time zone. All of it ran from one scheduler process on one
+machine. In March that machine rebooted for a kernel patch at 01:58 and came back
+at 02:21. The 31,000 runs due in between never happened, including a payroll
+export for 300 companies.
+
+The fix was a second machine running the same scheduler. The next Monday, 4,000
+customers sent every weekly invoice email twice. One machine misses work; two
+machines double it.
+
+> [!NOTE]
+> Think first: the machines that start runs can die, pause and come back. What has
+> to be true for each run to happen once - not zero times, not twice - and what
+> should happen to a run whose time passed while nothing was running? Commit to
+> an answer before reading on.
+
+## The numbers
+
+Interview steps 1 to 3. The customers' jobs are opaque: the scheduler runs them,
+it does not know what they do.
+
+| Measured | Figure | What it forces |
+|---|---|---|
+| Schedules | 2 million, cron-style or one-off | The schedule itself is durable data, not a timer in some process's memory |
+| Runs | 6 million a day, ~4,200 a minute on average | Modest on average; the average is not the problem |
+| Top of the hour | 70% of schedules use minute 0: 60,000 runs due in the same second | The peak is 14x the average and arrives all at once |
+| Run length | Median 4 s, p99 20 minutes | Executors are long-running; a run outlives a typical request by orders of magnitude |
+| Urgent runs | 2% of schedules, paid plans: start within 30 s of due | Some runs cannot wait behind the 09:00 wall |
+| Side effects | Webhooks, emails, exports | A duplicate run is visible to the customer's customers |
+
+The scheduler's real job splits in two: deciding *when* a run is due, which is a
+query over 2 million rows, and *doing* the run, which is minutes of compute. The
+cold open's failures both live in the first half.
+
+## Separating when from what
+
+A **dispatcher** decides when: every few seconds it reads the schedules whose
+`next_run_at` has passed (an indexed column, 3.10), writes a run row for each and
+advances `next_run_at` to the next occurrence in one transaction, then puts the
+run on a queue. A crash before the commit leaves the schedule untouched; a crash
+after it re-sends from the run row. **Executors** do the work, pulling runs from
+the queue (3.17). The dispatcher is cheap: 60,000
+enqueues is a few seconds of writes. Execution is not: 60,000 runs at 4 seconds
+each is 240,000 executor-seconds.
+
+That split is what makes misses recoverable. A schedule held as a timer in memory
+vanishes with the process; a schedule held as a row with a timestamp is still
+there, overdue, when anything comes back to look.
+
+## When two dispatchers see the same row
+
+<Walkthrough
+  title="Two dispatchers, one due run"
+  description="Switch between every dispatcher claiming runs and one elected dispatcher. Schedule 4471 is due at 09:00."
+  algorithms={[
+    { id: "claim", label: "Each run claimed" },
+    { id: "elect", label: "One dispatcher elected" },
+  ]}
+  nodes={[
+    { id: "tick", kind: "component", componentId: "cron-job", label: "Tick" },
+    { id: "dispa", kind: "component", componentId: "app-server", label: "Dispatcher A" },
+    { id: "db", kind: "component", componentId: "sql-database", label: "Schedules" },
+    { id: "dispb", kind: "component", componentId: "app-server", label: "Dispatcher B" },
+    { id: "lock", kind: "component", componentId: "lock-service", label: "Lock Service" },
+    { id: "coord", kind: "component", componentId: "coordinator", label: "Coordinator" },
+    { id: "queue", kind: "component", componentId: "message-queue", label: "Run queue" },
+    { id: "exec", kind: "component", componentId: "worker", label: "Executors" },
+  ]}
+  edges={[
+    { id: "ta", source: "tick", target: "dispa", kind: "request-flow" },
+    { id: "tb", source: "tick", target: "dispb", kind: "request-flow" },
+    { id: "ra", source: "dispa", target: "db", kind: "request-flow" },
+    { id: "rb", source: "dispb", target: "db", kind: "request-flow" },
+    { id: "la", source: "dispa", target: "lock", kind: "control" },
+    { id: "lb", source: "dispb", target: "lock", kind: "control" },
+    { id: "ca", source: "dispa", target: "coord", kind: "control" },
+    { id: "cb", source: "dispb", target: "coord", kind: "control" },
+    { id: "qa", source: "dispa", target: "queue", kind: "async" },
+    { id: "qb", source: "dispb", target: "queue", kind: "async" },
+    { id: "run", source: "queue", target: "exec", kind: "async" },
+  ]}
+  steps={[
+    {
+      caption: "The 09:00 Tick reaches Dispatcher A and Dispatcher B. Both are running so that either can die without runs being missed.",
+      focus: ["ta", "tb"],
+    },
+    {
+      caption: "Who reads the due row.",
+      variants: {
+        claim: {
+          caption: "Both dispatchers read Schedules and both see 4471 due. Without anything else, both would enqueue it: the cold open's double invoices.",
+          focus: ["ra", "rb"],
+        },
+        elect: {
+          caption: "The Coordinator holds an election and Dispatcher A wins. Only A reads Schedules; Dispatcher B keeps heartbeating and does nothing else.",
+          focus: ["ca", "cb", "ra"],
+        },
+      },
+    },
+    {
+      caption: "Deciding who enqueues 4471.",
+      variants: {
+        claim: {
+          caption: "Each asks the Lock Service for the key 4471@09:00. Dispatcher A gets it; Dispatcher B is refused and moves to the next due row.",
+          focus: ["la", "lb"],
+        },
+        elect: {
+          caption: "Dispatcher A records and enqueues 4471 without asking anyone, because it is the only dispatcher allowed to act. next_run_at advances with the record.",
+          focus: "qa",
+        },
+      },
+    },
+    {
+      caption: "Dispatcher A dies at 09:00:02 with half the due rows still unread.",
+      variants: {
+        claim: {
+          caption: "Dispatcher A dies with a few claims held. Dispatcher B's next pass, seconds later, claims every row A never reached; A's held keys expire after the lock's TTL and are retried.",
+          highlightNodeIds: ["dispb", "lock", "db"],
+          highlightEdgeIds: ["rb", "lb"],
+          faultNodeIds: ["dispa"],
+        },
+        elect: {
+          caption: "Dispatcher A dies. The Coordinator sees its heartbeats stop, and after the election timeout Dispatcher B is promoted and resumes from next_run_at in Schedules.",
+          highlightNodeIds: ["dispb", "coord", "db"],
+          highlightEdgeIds: ["cb", "rb"],
+          faultNodeIds: ["dispa"],
+        },
+      },
+    },
+    {
+      caption: "Whoever enqueued a run, the Executors take it from the Run queue. The queue is at-least-once, so the run itself still has to tolerate being delivered twice.",
+      focus: "run",
+    },
+  ]}
+/>
+
+Note: both designs stop two dispatchers from enqueueing one run. Neither stops the
+queue from delivering it twice, which is why the run carries an id of its own.
+
+## Exactly once, and what it really means
+
+Duplicates come from three places, and each needs its own answer:
+
+| Where | How it happens | Answer |
+|---|---|---|
+| Dispatch | Two dispatchers enqueue one due run | Coordination: an elected dispatcher, or a claim per run |
+| Delivery | The queue redelivers a run an executor never acknowledged (3.17) | The run has an id: (schedule id, scheduled time). An executor records it before starting and skips one it has seen finish |
+| Execution | The executor finishes the webhook call, then crashes before recording success | Nothing on your side can close this. Pass the run id to the customer's webhook as an idempotency key, so their side can |
+
+That third row is why "exactly once" is never quite true. Calling something and
+recording that you did cannot be one step. What a scheduler offers is at-least-once
+delivery plus an id that makes repeats detectable: effectively once, if the job
+cooperates.
+
+Claims carry their own trap. A claim is a lock with a TTL (3.23), so its owner can
+pause - a long garbage collection, a stalled disk - wake after the TTL, and carry on
+while another dispatcher holds the same key. Each claim comes with a number that
+increases on every grant (a fencing token), and Schedules refuses a write carrying
+an older number than it has seen.
+
+> **Production lens.** Promise customers at-least-once and give every run an id
+> they can dedup on. A scheduler that promises exactly once is making a promise
+> about the customer's code that it cannot keep.
+
+## Priority, and the 09:00 wall
+
+At 09:00:00 the dispatcher enqueues 60,000 runs. An urgent run due at 09:00:01 is
+behind all of them. With 2,000 executor slots at 4 seconds a run, that is a
+two-minute wait against a 30-second promise.
+
+Ordering alone does not fix it. A queue that always serves urgent first still has
+every slot occupied by a 20-minute normal run when the urgent one arrives, so it
+waits for a slot to free up. Three levers, in the order they are reached for:
+
+- **Spread the wall.** A customer who said "hourly" means hourly, not 09:00:00.000.
+  Assign non-urgent schedules a stable random offset within the minute or hour,
+  and the 60,000-run spike becomes a slope.
+- **A queue per priority.** Urgent runs go on their own queue, so nothing they
+  wait behind is normal work.
+- **Reserved capacity.** That queue gets its own executors, sized for urgent load
+  alone. Without them, a separate queue still waits for a shared slot.
+
+Strict priority over one shared pool has the opposite failure: under sustained
+urgent load, normal runs are never served. Per-priority pools trade some idle
+capacity for a guarantee that both classes make progress.
+
+> **Engineering lens.** Priority is a capacity statement, not an ordering one. If
+> the promise is "within 30 seconds", ask what is guaranteed to be free in 30
+> seconds, not what is first in line.
+
+## Misfires
+
+A misfire is a run whose due time passed while nothing could start it - the cold
+open's 23 minutes. Because schedules are rows, the returning dispatcher finds them
+overdue. What it should do depends on the job, so it is a per-schedule policy:
+
+| Policy | Behavior after a 23-minute gap | Right for |
+|---|---|---|
+| Run once now | One catch-up run, then the normal schedule | Every-five-minutes health checks and syncs: four missed runs collapse into one |
+| Run every missed occurrence | Each missed run, oldest first | Hourly billing aggregation, where each hour must exist |
+| Skip to the next | Nothing until the next due time | "Good morning" emails at 07:00 - wrong at 07:23 |
+
+A misfire threshold decides when "late" becomes "missed": a run starting 40 seconds
+after due is just late; one starting 23 minutes after is a misfire and gets the
+policy.
+
+## Trade-offs
+
+| Decision | One way | The other way |
+|---|---|---|
+| Who may dispatch | One elected dispatcher: no per-run coordination, the simplest code, but failover waits an election timeout (runs are late meanwhile) and one machine's dispatch rate is the ceiling | Every dispatcher claims each run: no failover gap and dispatch scales out, at the cost of a lock round trip per run - 60,000 claims in the first seconds of every hour |
+| Priority | A queue and executor pool per class: guaranteed progress for both, some idle capacity | One queue, strict priority: full utilization, starvation under urgent load |
+| Delivery promise | At-least-once plus a run id | "Exactly once": a promise about the customer's code you do not control |
+| Due-time precision | Spread offsets: a smooth load | Exact times: what some customers expect, and the 09:00 wall |
+
+## What breaks
+
+- **Timers in memory.** The process restarts and every pending run is gone, with no
+  record that it was ever due.
+- **Advancing the schedule and recording the run in separate transactions.** A
+  crash between the two either skips a run or doubles it.
+- **Lock TTL shorter than a pause.** Two dispatchers both believe they hold a claim.
+  Fencing tokens catch the late writer.
+- **Clock skew.** Dispatchers on two machines disagree on what "due" means by a few
+  seconds. Take "now" from the database's clock, not each machine's.
+- **Daylight saving.** In a zone that observes it, one hour of local time happens
+  twice in autumn and one never happens in spring. Store schedules in the
+  customer's time zone and compute each next occurrence from it.
+
+## What changes at scale
+
+At **10x** (600,000 runs at 09:00), one elected dispatcher's write rate becomes the
+ceiling. Schedules are partitioned by schedule id and each partition gets its own
+elected dispatcher - one active per partition, many active in total.
+
+At **100x**, polling 20 million rows is wasteful when almost none are due. Due runs
+move into a time-bucketed index (a bucket per minute, or a timing wheel), and the
+dispatcher reads only the bucket for now.
+
+At **1000x**, the executors are the system. Per-customer fairness matters as much
+as priority: one customer's 500,000 runs must not occupy every slot, which is
+3.24's per-key limit applied to compute.
+
+## In production
+
+**Airflow's scheduler** decides when, and executors do the work. Since Airflow 2 it
+can run several schedulers at once, each claiming work with row-level locks in its
+metadata database rather than relying on one elected instance - the claim design,
+chosen so a scheduler failure does not stall every pipeline.
+
+**Kubernetes CronJobs** expose the misfire policy directly: `startingDeadlineSeconds`
+is the threshold, and `concurrencyPolicy` decides whether a run may overlap the
+previous one. The defaults surprise people, which is the point: the right answer
+depends on the job.
+
+A small product runs one scheduler with a database row lock per run and an index
+on `next_run_at`. It does not need priority classes until a paying customer's run
+waits behind everyone else's 09:00.
+
+## Common mistakes
+
+- **Running the same scheduler on two machines for redundancy.** The cold open:
+  redundancy without coordination is duplication.
+- **Calling a priority queue a guarantee.** Without reserved executors, urgent work
+  still waits for a slot.
+- **Promising exactly once.** Promise at-least-once and hand the customer a run id.
+- **One misfire policy for every job.** Catch-up is right for some jobs and
+  harmful for others.
+
+## In an interview
+
+"Design a job scheduler" is decided in step 1: one-off or recurring, how precise,
+what happens on failure, and whether a job may run twice. Step 3 should find the
+top-of-the-hour spike, because it drives both priority and dispatch scaling. The
+deep dive (step 5) is dispatch coordination and delivery semantics; the follow-up
+is always "what if the scheduler dies at 01:58?"
+
+What that sounds like at a senior level: *"Schedules are rows with an indexed
+next-run time. Dispatchers poll due rows, record a run and advance the schedule in
+one transaction, and each run is claimed with a lock keyed on schedule id plus due
+time, so two dispatchers can't both enqueue it and either can die. Delivery is
+at-least-once; every run has that id and we pass it to the customer as an
+idempotency key. Urgent runs get their own queue and executors, because a priority
+flag without reserved capacity still waits behind a 20-minute job. Misfires are a
+per-schedule policy: run once now, run all missed, or skip."*
+
+## Connections
+
+3.19 introduced the Cron Job and planted the overlap hazard: a schedule running on
+more than one machine. 3.23 resolved it with a lock, and this project uses that
+lock per run, or replaces it with 3.26's single elected leader. 3.17's queue,
+workers and dead-letter queue are the execution half, unchanged. 3.10's index on a
+timestamp column is what makes "what is due?" cheap, and 3.13's partitioning is how
+dispatch scales past one machine.
+
+## Recap
+
+- A schedule is a row, not a timer. That is what makes a missed run detectable.
+- Dispatch decides when; executors do the work. The cold open broke the first half.
+- Coordinate dispatch with an elected dispatcher or a claim per run; then give
+  every run an id, because the queue can still deliver it twice.
+- Priority is reserved capacity. A separate queue with shared executors still waits.
+- Misfire handling is a per-schedule policy, not a global one.
+
+## Your turn
+
+**The product.** The scheduler from the opening: customers' programs call one API
+that writes schedules to a relational database. A tick starts two dispatcher
+machines that read due schedules and enqueue runs on one queue, drained by one pool
+of executors.
+
+What it has to do:
+
+- Every due run is enqueued once, even while either dispatcher machine is down.
+- An urgent run starts within 30 seconds of its time, including at 09:00:00 when
+  60,000 runs come due together.
+- A run that keeps failing is recorded and set aside, never retried forever.
+- A dispatcher that comes back after a gap finds every run that came due while it
+  was away.
+
+**The exercise.** Make dispatch safe with two dispatchers and make urgent runs
+independent of the hourly wall. How the dispatchers stay out of each other's way is
+yours to decide, and more than one answer passes. Validate runs every rule in the
+registry; a queue with nowhere for failed runs to go is an error on this project.
+
+**Stretch, optional and not graded.** A customer schedules 500,000 webhook calls
+for 09:00 every day. Every other customer's runs are now late. What do you change,
+and which earlier chapter did it come from?
+
+**What you are not told**: how the dispatchers coordinate, how many queues to run,
+or which runs share executors.
+
+## Next
+
+Tier 2's other projects, in any order. LeetCode runs other people's work too, but
+with a harder constraint: the job is code a stranger wrote a minute ago, and 30,000
+of them arrive in the first minutes of a contest.

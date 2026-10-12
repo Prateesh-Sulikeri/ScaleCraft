@@ -1,0 +1,301 @@
+A food-delivery app with 40 million users sends every notification through one
+service: order updates by push, login codes by SMS, receipts by email. On a
+Friday at 19:40 the SMS provider started hanging every call for 30 seconds before
+timing out. For the next 38 minutes no push notification went out either, though
+the push gateway never had a problem.
+
+When the SMS provider recovered, 220,000 people received the same login code two
+or three times. Each duplicate cost the company the same as the original.
+
+> [!NOTE]
+> Think first: one queue, one pool of senders, three channels. Why did a fault in
+> one provider stop the other two, and why did the recovery send duplicates?
+> Commit to an answer for both before reading on.
+
+## The numbers
+
+Interview steps 1 to 3, worked once. The service is called by other teams'
+services, never by end users directly. Marketing campaigns are out of scope for
+the build; the Stretch comes back to them.
+
+| Measured | Figure | What it forces |
+|---|---|---|
+| Notifications | 120 million a day, 6,000/s at the dinner peak | Each one is routed, filtered and sent: three steps, three places to fail |
+| Channel split at peak | Push 4,800/s, email 900/s, SMS 300/s | Three providers with different speeds, prices and failure modes |
+| SMS | $0.0075 per message, 6 million a day | A duplicate is a cost, not a cosmetic bug: $45,000 a day of spend to protect |
+| Login codes | Must arrive within 10 seconds | Some notifications are urgent; a backlog anywhere they wait is an outage |
+| Preferences | 40 million users, per category and per channel | Read on every notification: 6,000 lookups a second |
+| Upstream retries | Order service retries any call that takes over 2 s | The same event arrives more than once before you have sent anything |
+
+Every piece of this is familiar from Group E. What is new is that the expensive,
+slow, failure-prone part of the work happens on someone else's servers, and you
+pay for each attempt.
+
+## What changes when the send leaves your system
+
+Each channel is an external provider, and each one constrains the design
+differently:
+
+| | Push (APNs, FCM) | SMS (a carrier aggregator) | Email (a sending API) |
+|---|---|---|---|
+| Latency | ~100 ms | 300 ms, 30 s when degraded | ~200 ms |
+| Cost | Free | Per message | Fractions of a cent |
+| Rate limit on your account | Generous | 400/s | 1,000/s |
+| A send can fail because | The device token is stale | A carrier is down, the number is invalid | The address bounces, you are throttled |
+| Confirmation | None you can rely on | A delivery receipt, minutes later | Bounce and complaint callbacks |
+
+The cold open is arithmetic. In-flight sends equal rate times latency, so SMS at
+300 a second with a 30-second hang needs 9,000 sends in flight to keep up. The
+shared pool had 200 slots. Every slot was holding a hung SMS call within a
+second, and push messages waited in the same queue behind them.
+
+> **Engineering lens.** Ask what shares a fate. One queue and one pool means the
+> slowest provider sets the latency for all three. Separate them and a provider
+> outage costs you that channel, not the product.
+
+Isolation means a queue and a sender pool per channel, the bulkhead from 3.23
+drawn as topology. The SMS pool fills, the SMS queue grows, and push keeps
+moving. Two settings from 3.23 still apply inside each pool: a call timeout well
+under 30 seconds, and retries with backoff so a recovering provider is not hit by
+everything at once. And 3.24 runs in reverse here: you are the client of the
+provider's limit, so each pool caps its own send rate below the account limit
+instead of discovering it through 429s.
+
+## One order update, three channels
+
+<Walkthrough
+  title="One event through a pipeline per channel"
+  description="An order-delivered event for a user who allows push and SMS but has turned off email. The providers sit outside your system."
+  nodes={[
+    { id: "orders", kind: "component", componentId: "client", label: "Order service" },
+    { id: "router", kind: "component", componentId: "app-server", label: "Notification service" },
+    { id: "state", kind: "component", componentId: "distributed-cache", label: "Preferences + dedup keys" },
+    { id: "qpush", kind: "component", componentId: "message-queue", label: "Push queue" },
+    { id: "qsms", kind: "component", componentId: "message-queue", label: "SMS queue" },
+    { id: "wpush", kind: "component", componentId: "worker", label: "Push senders" },
+    { id: "wsms", kind: "component", componentId: "worker", label: "SMS senders" },
+    { id: "dlq", kind: "component", componentId: "dead-letter-queue", label: "SMS dead letters" },
+    { id: "apns", kind: "custom", icon: "radio", label: "Push gateway", category: "networking" },
+    { id: "carrier", kind: "custom", icon: "globe", label: "SMS provider", category: "networking" },
+  ]}
+  edges={[
+    { id: "call", source: "orders", target: "router", kind: "request-flow" },
+    { id: "check", source: "router", target: "state", kind: "request-flow" },
+    { id: "topush", source: "router", target: "qpush", kind: "async" },
+    { id: "tosms", source: "router", target: "qsms", kind: "async" },
+    { id: "takepush", source: "qpush", target: "wpush", kind: "async" },
+    { id: "takesms", source: "qsms", target: "wsms", kind: "async" },
+    { id: "park", source: "qsms", target: "dlq", kind: "async" },
+    { id: "sendpush", source: "wpush", target: "apns", kind: "request-flow" },
+    { id: "sendsms", source: "wsms", target: "carrier", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "The Order service calls the Notification service with event 81f3, order delivered. It will retry the call if no answer comes within 2 seconds.",
+      focus: "call",
+    },
+    {
+      caption: "The Notification service records 81f3 as seen in the dedup store; a retried call with the same id stops here. It reads the user's preferences from the same tier: push and SMS yes, email no.",
+      focus: "check",
+    },
+    {
+      caption: "It renders one message per allowed channel and enqueues each on its own queue: the Push queue and the SMS queue. Email gets nothing, because the user said no.",
+      focus: ["topush", "tosms"],
+    },
+    {
+      caption: "The Push senders take the push message and call the Push gateway. Delivered in about 100 ms.",
+      focus: ["takepush", "sendpush"],
+    },
+    {
+      caption: "The SMS provider is hanging. The SMS senders' calls time out, and the message goes back on the SMS queue to retry with backoff.",
+      highlightNodeIds: ["qsms", "wsms"],
+      highlightEdgeIds: ["takesms"],
+      faultNodeIds: ["carrier"],
+      faultEdgeIds: ["sendsms"],
+    },
+    {
+      caption: "Meanwhile the Push queue and Push senders keep moving. The SMS backlog is in the SMS queue only: nothing shares a slot with it.",
+      highlightNodeIds: ["qpush", "wpush", "apns"],
+      highlightEdgeIds: ["takepush", "sendpush"],
+    },
+    {
+      caption: "After five failed attempts the SMS queue moves the message to SMS dead letters, where it can be inspected and replayed, instead of retrying forever.",
+      focus: "park",
+    },
+  ]}
+/>
+
+Note: the queues are where the channels separate, and the dedup check happens
+before anything is enqueued. Where a duplicate can still slip through after that
+is the next section.
+
+## Preferences and duplicates
+
+The router's job, before anything is sent, is to decide what should be sent at
+all. That is the second new concept, and it has two halves.
+
+**Preferences.** Per user, per category (orders, security, promotions), per
+channel, plus quiet hours in the user's own time zone. At 6,000 reads a second
+the lookup sits behind a cache, which creates the trap: an unsubscribe has to
+take effect before the next send, not after the next cache expiry. Changing a
+preference invalidates the cached copy in the same request that writes it.
+Security alerts ignore quiet hours; promotions never do.
+
+**Duplicates arrive from two directions.**
+
+- *Upstream*: the Order service retried. The router keeps every event id it has
+  accepted for a day, with a TTL, and drops a repeat. This check has to be atomic
+  (set the key only if it is absent), or two copies of one retry both pass.
+- *Downstream*: the queue is at-least-once (3.17). A sender calls the provider,
+  the SMS goes out, and the sender dies or times out before acknowledging. The
+  queue redelivers. That is the cold open's 220,000.
+
+The downstream case has no clean fix, because "call the provider" and "record
+that I did" cannot happen as one step. You pick which failure you prefer:
+
+| Order | If the sender dies in between | Right for |
+|---|---|---|
+| Record "sent", then call the provider | The message is never sent | Promotions: a lost one costs nothing |
+| Call the provider, then record "sent" | The message is sent twice | Login codes and security alerts: a missing one is worse than a repeat |
+| Pass an idempotency key the provider honors | The provider drops the repeat | Any channel whose provider supports it, which is the best case |
+
+Each sender checks the delivery log for its (notification id, channel) before
+calling. That closes most of the window, not all of it.
+
+> **Production lens.** Exactly-once delivery to a phone does not exist. What
+> exists is at-least-once with the duplicate window made small, and an
+> idempotency key wherever the provider accepts one.
+
+## Trade-offs
+
+| Decision | One way | The other way |
+|---|---|---|
+| How channels separate | A queue per channel: retries, backoff and a dead-letter queue per channel, all built in | One partitioned log read by a consumer group per channel: replay after a bad template, at the cost of a stuck message holding up its whole partition until it is parked |
+| Where dedup runs | At the router on event id: cheap, catches upstream retries | At the sender on (notification, channel): catches redelivery, costs a lookup per send. Production runs both |
+| Preference reads | Cached with a long TTL: cheap | Invalidated on write: an unsubscribe is honored immediately, at the cost of a write path that knows about the cache |
+| Sender compute | A long-running worker pool: steady, cheap at 6,000/s | Serverless functions per message: no idle capacity, but a cold start and a per-account concurrency ceiling at peak |
+| Failure posture per channel | Send-then-record: duplicates | Record-then-send: losses |
+
+## What breaks
+
+- **A provider hangs, not fails.** A fast failure frees the slot; a 30-second
+  hang holds it. Without a call timeout, one degraded provider eats a pool.
+- **Retry storms after recovery.** Every queued message retries at the same
+  moment the provider comes back, and it goes back down. Backoff with jitter.
+- **Stale device tokens.** Users reinstall the app. The push gateway answers
+  "unregistered", and a sender that ignores it keeps paying latency on dead
+  tokens forever. Delete the token on that answer.
+- **The preference cache.** An unsubscribed user receives three more promotional
+  SMS. That is a legal problem, not a latency one.
+
+## What changes at scale
+
+At **10x** (60,000/s), push dominates and the pools grow. The router is stateless
+and scales behind its load balancer; the dedup store is partitioned by event id.
+
+At **100x**, the SMS account limit binds before your hardware does. Traffic is
+spread over several providers, which turns the SMS pool into a router of its
+own: by country, by price, and away from whichever provider is failing.
+
+At **1000x**, per-user aggregation matters more than throughput: 40 likes in a
+minute become one notification, which means holding messages briefly and merging
+them. That is a stateful stage with its own windowing.
+
+## In production
+
+**LinkedIn** routes member notifications through one service (Air Traffic
+Controller) that decides whether, when and on which channel each one goes, rather
+than letting every team send directly. Teams sending independently was flooding
+members; one decision point is also one place to apply preferences and limits.
+
+**APNs accepts a collapse identifier**: notifications carrying the same one are
+shown as a single notification, so a redelivered push replaces itself instead of
+appearing twice. SMS has no equivalent, which is why duplicates concentrate on the
+one channel that costs money per message.
+
+A small product sends from inside its own request handler for a year, then hits
+the cold open and moves the sends to a queue. The per-channel split comes the
+first time one provider takes the others down.
+
+## Common mistakes
+
+- **One queue for every channel.** The slowest provider sets everyone's latency.
+- **Treating at-least-once as at-most-once.** No dedup, and every redelivery is a
+  duplicate the user sees and you pay for.
+- **No call timeout on the send.** A hang is worse than an error.
+- **Caching preferences without invalidation.** The unsubscribe works an hour later.
+
+## In an interview
+
+"Design a notification system" is graded on step 1 more than it looks: which
+channels, which notifications are urgent, and what the user controls. Step 3
+should surface the split (4,800 push against 300 SMS) and the cost per SMS,
+because that is what makes duplicates matter. The deep dive (step 5) is channel
+isolation and the dedup layer; the failure question (step 6) is always "what if a
+provider is down?"
+
+What that sounds like at a senior level: *"The router dedups on event id, applies
+preferences and quiet hours, and fans out to a queue per channel, so an SMS
+outage backs up SMS and nothing else. Each channel's senders cap their rate under
+the provider's limit, time out at two seconds, retry with jittered backoff, and
+dead-letter after five attempts. Delivery is at-least-once, so senders check a
+delivery log before calling and pass an idempotency key where the provider takes
+one. For login codes I'd accept a rare duplicate over a lost code; for
+promotions, the other way round."*
+
+## Connections
+
+3.17's queue, worker and dead-letter queue are the whole delivery pipeline, run
+three times instead of once. 3.18's fan-out happens twice: one event becomes
+several channel messages at the router, and in the log-based design each
+channel's consumer group reads the same stream independently. 3.23's bulkheads,
+timeouts and backoff are what keep a provider outage contained to its channel.
+3.24 appears with the roles reversed: here you respect someone else's limit. And
+3.14's Distributed Cache takes another job: remembering which events have
+already been accepted.
+
+## Recap
+
+- In-flight equals rate times latency: one hung provider fills any shared pool.
+- A queue and a sender pool per channel turn a provider outage into a channel outage.
+- Preferences are read on every send, so they are cached, and an unsubscribe
+  invalidates the cache in the same request.
+- Duplicates come from upstream retries and queue redelivery. Dedup both;
+  exactly-once to a phone does not exist.
+- Choose per channel whether a crash means a duplicate or a loss.
+
+## Your turn
+
+**The product.** The notification service from the opening: other teams' services
+call one Notification API (one machine today), which puts every message on one
+queue drained by one pool of senders. Senders write delivery records to a
+relational database, which also holds preferences.
+
+What it has to do:
+
+- A provider outage on one channel does not delay the other channels.
+- A message that keeps failing is kept for inspection, never retried forever and
+  never silently dropped.
+- An event that arrives twice is sent once, and the 6,000 preference reads a
+  second are not served by the relational database.
+- Losing the machine that runs the Notification API drops no calls.
+
+**The exercise.** Split the pipeline so channels stop sharing a fate, and give the
+router somewhere fast to keep preferences and seen event ids. More than one
+transport passes. Validate runs every rule in the registry; on this project, a
+queue with nowhere for failed messages to go is an error, not a warning, because
+the brief requires it.
+
+**Stretch, optional and not graded.** Marketing wants to send a 20-million-user
+promotion at 18:00 through the same pipeline. What happens to a login code sent
+at 18:01, and what would you add so it still arrives in 10 seconds?
+
+**What you are not told**: which transport separates the channels, what holds the
+seen event ids, or how many senders each channel gets.
+
+## Next
+
+Tier 2's other projects, in any order. Job Scheduler is the closest: it starts
+from the same queue and pool, and asks what happens when work has to run at a
+specific time, exactly once, even while the machine that was supposed to start it
+is down.

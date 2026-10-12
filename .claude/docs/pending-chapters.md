@@ -93,6 +93,14 @@ full CI green. See `.claude/docs/pending-6.1.0-poa.md` Phase 10.
 | **Checkpoint E - Off the Request Path** (after 3.19) | **Authored (one-shot pass)** - Extend flavor, empty async zone, one blueprint with componentId alternatives | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
 | **Checkpoint F - Where the Bytes Live** (after 3.22) | **Authored (one-shot pass)** - Extend flavor, empty storage zone, CDN removed from the edge | 2026-10-05 | uncommitted on `feature/content-groups-f-g` |
 | **RWE Tier 1: Bitly (URL Shortener)** (the curriculum's first Real World Extraction project, closing `pending-content.md`'s Wave 2) | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - manifest row repointed off `rwe-dummy-1`, which is deleted along with its lesson file; first chapter in `mode: "real-world-extraction"`, so first to run the full rule registry unscoped and first with no `curriculumContext`; CURRICULUM §15.1's Phase A/Phase B split collapsed into one exercise because the shell has no phase mechanism (new open decision 25); first pair of blueprints that are genuinely different systems rather than one system drawn two ways; two tests break on the dummy's removal and are flagged, not fixed (this skill does not write tests); pipeline not run (content-only pass) | 2026-09-19 | uncommitted, working tree (`staging/v7.3.0-content-release`) |
+| **RWE Tier 1: Rate Limiter** | **Authored (one-shot `chapter-author` pass, no cold second read yet)** - two placements (gateway vs application tier), counter store forbidden from falling through to a database via labelled `absent` blocks; first RWE palette with `client` | 2026-10-08 | uncommitted on `feature/content-rwe-tier-1` |
+| **RWE Tier 1: Distributed Cache (Design One)** | **Authored (one-shot pass)** - replicated tier vs four plain caches, the count of four derived from the brief's arithmetic; verified a duplicate-count drift report that lists nothing (open decision 27) | 2026-10-08 | uncommitted on `feature/content-rwe-tier-1` |
+| **RWE Tier 1: Metrics Monitoring** (Tier 1 complete) | **Authored (one-shot pass)** - push vs pull as the first edge's direction; store gated on `wide-column` + `partitioning: hash`; two browsers | 2026-10-08 | uncommitted on `feature/content-rwe-tier-1` |
+| **RWE Tier 2: Notification System** | **Authored (one-shot pass)** - queue per channel vs one log with a consumer group per channel; first RWE `ruleSeverity` (DLQ rule escalated); first RWE palette of all 27 | 2026-10-12 | uncommitted on `feature/content-rwe` |
+| **RWE Tier 2: Job Scheduler** | **Authored (one-shot pass)** - claim per run (lock service) vs elected dispatcher (coordinator); per-priority queues each with its own executor pool; three new concepts, §15.1's ceiling | 2026-10-12 | uncommitted on `feature/content-rwe` |
+| **RWE Tier 2: LeetCode** | **Authored (one-shot pass)** - judge fleet vs serverless function per submission; three-node starter | 2026-10-12 | uncommitted on `feature/content-rwe` |
+| **RWE Tier 2: Price Tracking Service** | **Authored (one-shot pass)** - change events on an event bus vs a partitioned log; matcher must read the same watches store the website writes | 2026-10-12 | uncommitted on `feature/content-rwe` |
+| **RWE Tier 2: Online Chess** (Tier 2 complete) | **Authored (one-shot pass)** - live moves in replicated memory vs a durable move log; `least-connections` graded as the long-lived-connection concept; open decision 28 | 2026-10-12 | uncommitted on `feature/content-rwe` |
 Everything else in the 77 rows is unauthored (`chapterDefinitionId: null`).
 
 **Wave 1 progress: 4 of 4 authored, all four through an Opus pass, merged into
@@ -6155,6 +6163,187 @@ instance, partly mitigated and partly worse than R1's. Decision 5's
 made over 2.1-3.19 to name it; that is a cross-cutting edit, not this chapter's
 business.
 
+## RWE Tier 1 - Rate Limiter, Distributed Cache, Metrics Monitoring
+
+- **Authored 2026-10-08** - one-shot `chapter-author` pass, all three in one
+  session, no cold second read yet - uncommitted on `feature/content-rwe-tier-1`
+  (cut from `staging/v7.3.0-polish`). Closes `pending-content.md`'s Wave 5 RWE
+  item and Tier 1.
+- Ids = manifest slugs: `rwe-t1-rate-limiter`, `rwe-t1-distributed-cache`,
+  `rwe-t1-metrics-monitoring`. Each has a spec in `specs/`, an `.mdx` lesson, a
+  `ChapterDefinition` appended after Bitly in `index.ts`, and its manifest row
+  flipped off `null`.
+- Bitly's RWE precedents carried unchanged: no `curriculumContext`, inert
+  `validationRuleIds`, one exercise, tier zones with no gap zone, five-question
+  retrospective quiz (4 single + 1 matching), Groups A-D palette.
+
+**Deliverables (each project):**
+
+| # | Deliverable | Rate Limiter | Distributed Cache | Metrics Monitoring |
+|---|---|---|---|---|
+| 1 | Spec | 12 sections | 12 sections | 12 sections |
+| 2 | Lesson | ~2,100 words + 1 walkthrough (local vs shared counter) | ~1,900 + 1 walkthrough (mod N vs ring, with failure) | ~2,000 + 1 walkthrough (15-minute vs 90-day read) |
+| 3 | Definition | 2 blueprints, 4 hints | 2 blueprints, 4 hints | 2 blueprints, 4 hints |
+| 4 | Validation rules | None new | None new | None new |
+| 5 | Quiz | 5 (singles at 2,0,3,1) | 5 (3,1,2,0) | 5 (0,3,1,2) |
+| 6 | Playtest | Spec §10 | Spec §10 | Spec §10 |
+
+Every Tier 1 project now opens its quiz on a different answer letter (Bitly b,
+RL c, DC d, MM a) - the cross-chapter positional check the skill asks for by eye.
+
+**Verified in-session (not just designed):** a throwaway probe (deleted) ran
+`evaluateChapter` on every reference graph and starter, plus four wrong designs.
+All six reference graphs pass Validate with zero errors and match their own
+blueprint; all three starters fail; an app-tier data cache with no limiter fails
+naming "A counter store that falls through to a database"; a NoSQL store left at
+`document` fails with "model should be wide-column (is document)".
+
+**Judgment calls:**
+
+- **Rate Limiter: the counter store is defined by having nothing behind it.**
+  Without that, blueprint 2 (`app -> distributed-cache`) passes any design with an
+  ordinary read cache and no limiter at all. Encoded as two labelled `absent`
+  blocks (one per possible origin) because an absent block cannot re-bind a node
+  the outer pattern already bound (`pattern.ts` seeds `used` with the outer
+  binding). First authored use of `absent` in RWE.
+- **Rate Limiter: `distributed-cache`, not `cache`, is required**, from the brief
+  line "losing one machine that holds counters must not switch limiting off for
+  every key". `client` joins the palette (home 1.2) because the callers are
+  programs; that makes `no-direct-client-database` live in RWE for the first time.
+- **Rate Limiter: `rateLimitPerMinute` is not graded.** One number per gateway card
+  cannot represent per-plan limits, and the project's point is where the count
+  lives, not its value.
+- **Distributed Cache: four `cache` nodes is arithmetic, not taste.** Three hold
+  180 GB but let 46,000 reads/s through when one dies against a 40,000 ceiling;
+  four is the smallest count under it. Shown in the lesson's trade-off section.
+- **Distributed Cache: neither key placement nor eviction is graded.** Placement
+  has no canvas field; `evictionPolicy` exists on `cache` but not
+  `distributed-cache`, so grading it would make the blueprints unequal. Both are
+  quiz-assessed (Q1-Q3), Bitly's split again.
+- **Metrics: push vs pull is the edge's direction.** `fleet -> ingest` vs
+  `collector -> fleet`. The pull collector needs an inbound edge to satisfy
+  `missing-input-connection`, so the engineers' browser feeds it - the Prometheus
+  shape, where the scraper answers queries. Disclosed in the lesson and hint 4.
+- **Metrics: `key-value` is rejected**, unlike Bitly, because 3.11 defines it as
+  "fetched by exact key, nothing else" and every query here is a range.
+- **Metrics: no Group E components**, so the stream between agents and store and
+  the scheduled rollup job are described, not drawn. Rollups are computed in
+  ingest; the fleet pushes straight to ingest because `load-balancer` accepts no
+  compute input.
+- **Forward teases are marked and out-of-chain**: Rate Limiter to 3.24 (Group G),
+  Distributed Cache to 3.22 (Group F), Metrics to 3.25 (Group G), each "if you have
+  not taken it".
+- **Bitly's cold open still said "R1"**, missed by the 2026-10-05 rename. Changed to
+  "Checkpoint D"; `lessonVersion` not bumped for a one-word fix.
+
+**Test edit (outside the skill's no-tests rule, at the user's CI-green
+preference):** `src/content/chapters/index.test.ts` asserted the RWE registry held
+exactly Bitly; now asserts the four Tier 1 ids in order.
+
+**New open decisions: 26** (Tier 1 rows cite out-of-chain chapters) **and 27**
+(duplicate-count drift lists nothing).
+
+## RWE Tier 2 - Notification System, Job Scheduler, LeetCode, Price Tracking Service, Online Chess
+
+- **Authored 2026-10-12** - one-shot `chapter-author` pass, all five in one
+  session, no cold second read yet - uncommitted on `feature/content-rwe`
+  (authored in a separate worktree, `../ScaleCraft-rwe`, because the main checkout
+  was switched to `feature/ui-improvements` mid-session). Closes Tier 2 and the RWE
+  item of `pending-content.md`'s Wave 7.
+- Ids = manifest slugs: `rwe-t2-notification-system`, `rwe-t2-job-scheduler`,
+  `rwe-t2-leetcode`, `rwe-t2-price-tracking-service`, `rwe-t2-online-chess`. Each
+  has a spec in `specs/`, an `.mdx` lesson with one `<Walkthrough>`, a
+  `ChapterDefinition` appended after Metrics Monitoring in `index.ts`, and its
+  manifest row flipped off `null`.
+- Tier 1's RWE precedents carried unchanged: no `curriculumContext`, inert
+  `validationRuleIds`, one exercise, tier zones with no gap zone, five-question
+  retrospective quiz (4 single + 1 matching), two genuinely different blueprints.
+
+**Deliverables (each project):**
+
+| # | Deliverable | Notification | Job Scheduler | LeetCode | Price Tracking | Online Chess |
+|---|---|---|---|---|---|---|
+| 1 | Spec | 12 sections | 12 | 12 | 12 | 12 |
+| 2 | Lesson | ~2,300 words + walkthrough (one event, SMS provider hanging) | ~2,400 + walkthrough (claim vs elect, dispatcher dies) | ~2,100 + walkthrough (judged inline vs fleet) | ~2,300 + walkthrough (hourly vs adaptive, change fan-out) | ~2,200 + walkthrough (poll vs push, server dies) |
+| 3 | Definition | 2 blueprints, 4 hints | 2, 4 | 2, 4 | 2, 4 | 2, 4 |
+| 4 | Validation rules | None new | None new | None new | None new | None new |
+| 5 | Quiz | 5 (singles 3,0,2,1) | 5 (0,2,1,3) | 5 (2,3,0,1) | 5 (1,3,2,0) | 5 (3,1,0,2) |
+| 6 | Playtest | Spec §10 | Spec §10 | Spec §10 | Spec §10 | Spec §10 |
+
+Tier 2 quizzes open on d, a, c, b, d (Tier 1: b, c, d, a). Every matching question
+is a full derangement (Notification's was not on first draft - pair 3 sat on option
+3 - and was reordered).
+
+**Verified in-session (not just designed):** a throwaway probe (deleted) ran
+`evaluateChapter` on all ten reference graphs, all five starters and fourteen wrong
+designs. Every reference passes with zero errors and zero warnings and matches its
+own blueprint; every starter fails with zero errors; every wrong design fails. Shapes
+worth keeping: one queue or two queues into one pool fail silently (decision 27);
+removing a channel DLQ fails Validate on the escalated rule; a round-robin chess
+balancer fails naming the algorithm; a `cache` in place of `distributed-cache` fails
+as a missing required component; a price matcher reading a store other than the one
+the website writes fails on the connection. `walkthrough-invariants`,
+`authoring-invariants`, `quiz-invariants` and `index.test` green.
+
+**Judgment calls:**
+
+- **All 27 components available.** Tier 2 unlocks at Checkpoint G, after every
+  home chapter in §16, so nothing is pre-home. Checkpoint G's precedent.
+- **First RWE `ruleSeverity`.** `queue-without-dead-letter-queue` is an error on
+  the four projects whose brief says failed work must be kept (Notification, Job
+  Scheduler, LeetCode, Price Tracking), per §15.1's "unless the brief makes one a
+  requirement". Not on Online Chess, which has no queue. The rule ignores Kafka, so
+  Notification's log blueprint requires the log -> DLQ edge explicitly.
+- **Isolation graded by injective binding.** Three distinct queue and sender aliases
+  (Notification) and two distinct queue and executor aliases (Job Scheduler) mean a
+  shared queue or a shared pool cannot match. The cost is decision 27's silent drift,
+  mitigated by a counting hint in both.
+- **ComponentId arrays instead of extra blueprints** for genuinely equivalent slots
+  (senders `worker` or `serverless-function`, fast store `cache` or
+  `distributed-cache`, data stores `sql` or `nosql`), Checkpoint G's precedent. Two
+  blueprints are reserved for the project's central decision.
+- **LeetCode's two blueprints differ only in the judge's component**, kept as two
+  rather than an array because what runs untrusted code is the project's central
+  decision and each answer has its own debrief.
+- **Price Tracking grades "exactly the watchers they affect" with a shared alias**:
+  the matcher must reach the same store the website writes. The tick reaches the
+  fetch queue by any path, so a planner worker or a cron job enqueueing directly
+  both pass. The history writer is in both references and in neither pattern.
+- **Online Chess grades `least-connections`.** The first RWE config predicate that
+  carries a declared new concept: it is the one canvas-visible consequence of
+  long-lived connections. The durable blueprint is listed first because its pattern
+  contains the in-memory one.
+- **Job Scheduler's executors are `worker` only**: p99 runs are 20 minutes and 3.19
+  taught the function's 15-minute ceiling. A database row lock (`SKIP LOCKED`) is a
+  real third answer to dispatch coordination and cannot pass, because on canvas it is
+  indistinguishable from no coordination; declared in its spec §11.
+- **Job Scheduler's Interview objective** was missing on first draft (three new
+  concepts crowded it out); §5.2 requires every category, so the misfire objective
+  was rewritten as the interview answer to "the scheduler is down from 01:58 to
+  02:21".
+- **External providers and retailers are `custom` walkthrough nodes** (Notification,
+  Price Tracking), because the registry admits no compute -> external edge; both
+  lessons and specs say the providers are outside the canvas.
+- **Zone labels avoid component names.** LeetCode and Chess first used "Client";
+  `client` is in the palette and absent from their starters, so the spoiler gate
+  failed. Renamed to Contestants and Players.
+- **Facts checked and corrected in self-check:** Twilio idempotency on message
+  create (not confident; replaced with APNs' collapse identifier), Uber's
+  notification platform (replaced with LinkedIn's Air Traffic Controller),
+  Googlebot and `Crawl-delay` (Googlebot ignores it; rewritten to rate set from
+  responses), DST wording (the repeated hour is 01:00-02:00 in the US, not 02:30;
+  rewritten generically), and Job Scheduler's "enqueue and advance in one
+  transaction" (only true with an outbox; rewritten as run row plus advance, then
+  send). Arithmetic recomputed: 9,000 in-flight SMS slots, 120 s urgent wait, 28x
+  fetch budget, 11.3 million fetches a day, 10 s polling tax.
+
+**Test edit (the user's CI-green preference, Tier 1's precedent):**
+`src/content/chapters/index.test.ts` now expects the nine RWE ids in order.
+
+**New open decision: 28** (app servers accept no async input). Decision 27 bites on
+Notification and Job Scheduler, mitigated by hints; decision 11's shape on Job
+Scheduler (verified, low risk).
+
 ---
 ## Cross-cutting revisions (post-authoring)
 
@@ -7099,6 +7288,39 @@ doc edit or a build decision.
     settled before Tier 2 is authored, not after five more projects have copied
     Bitly's workaround.
     **Resolved 2026-10-07.** Decided: no phases. §15.1, §4, §2, §10.1, §11, §18 and §21 now define an RWE project as a lesson that teaches plus one editor exercise. Bitly's brief and spec no longer name phases.
+
+26. **CURRICULUM §15.2's Tier 1 rows cite chapters outside Tier 1's prerequisite
+    chain, raised 2026-10-08.** Rate Limiter's Reinforces lists 3.24 (Group G)
+    and Metrics Monitoring's lists 3.19 (Group E), but Tier 1 unlocks at
+    Checkpoint D (§17), before both groups. Same class as decision 21. **Not
+    hacked around**: both projects teach their own new concepts standalone and
+    name the out-of-chain chapter only as a marked forward tease. **Needs a doc
+    edit** to the two rows (drop the citations or mark them "if taken"); doc-only
+    commit.
+27. **Blueprint drift does not count duplicates, so a short count reports
+    nothing, raised 2026-10-08 (Distributed Cache, verified).** A blueprint
+    needing four `cache` nodes, matched against a graph with one to three, yields a
+    drift report with every list empty; the learner fails Submit with nothing
+    named. Decision 11 described this shape as a misleading "Missing: X"; it is
+    now silent instead, which is worse. Very likely the same on Metrics Monitoring
+    (two `browser`, two `app-server`) and R1's two-app-server blueprint - not
+    probed. Mitigated by
+    DC hint 4. **Engine fix**: report a short count ("needs 4 Cache, has 2") as its
+    own category in `blueprint-drift.ts`.
+
+28. **`app-server` accepts no `async` input, so a request-serving tier cannot be
+    drawn subscribing to an Event Bus or Kafka, raised 2026-10-12 (Online Chess).**
+    `app-server.relations.inputs.allowedKinds` is `["request-flow"]` (plus the load
+    balancer's `control` exception). Chess's connection servers hear about each
+    other's moves by subscribing to a per-game channel; the only drawable shape is
+    both servers connecting to a Distributed Cache (Redis pub/sub, which is also the
+    common production answer). A learner who reaches for the Event Bus gets a
+    `component-relations` error with no lesson-side reason. **Not hacked around**:
+    the lesson draws the relay through the shared store and says why under the
+    diagram. **Blocks:** nothing today; **bites Tier 4 WhatsApp and Tier 5 Facebook
+    Live Comments**, whose connection tiers are subscribers by design. Same class as
+    decisions 8 and 20. Likely fix: admit `async` from `messaging` on `app-server`
+    inputs.
 
 ---
 
