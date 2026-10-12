@@ -54,9 +54,11 @@ const data: HomeData = {
   },
   now: NOW,
   isSignedIn: true,
+  authResolved: true,
 };
 
-vi.mock("./use-home-data", () => ({ useHomeData: () => data }));
+let current: HomeData = data;
+vi.mock("./use-home-data", () => ({ useHomeData: () => current }));
 
 describe("HomeDashboard", () => {
   it("composes header, hero, modes, activity, stats, and footer", () => {
@@ -90,5 +92,28 @@ describe("HomeDashboard", () => {
     render(<HomeDashboard />);
     expect(screen.getByText("1h ago")).toBeInTheDocument();
     expect(screen.getByText("of 69")).toBeInTheDocument();
+  });
+
+  it("shows the loop to everyone", () => {
+    render(<HomeDashboard />);
+    expect(screen.getByText("How a chapter works")).toBeInTheDocument();
+  });
+
+  it("signed out, keeps the stat cards as a skeleton behind a sign-in prompt", () => {
+    current = { ...data, isSignedIn: false };
+    render(<HomeDashboard />);
+    expect(screen.getByText("At a glance")).toBeInTheDocument();
+    expect(screen.getByText("Chapters completed")).toBeInTheDocument();
+    expect(screen.queryByText("of 69")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in?redirect_url=%2F");
+    current = data;
+  });
+
+  it("holds the stats row back until auth resolves", () => {
+    current = { ...data, authResolved: false };
+    render(<HomeDashboard />);
+    expect(screen.queryByText("At a glance")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Sign in" })).not.toBeInTheDocument();
+    current = data;
   });
 });

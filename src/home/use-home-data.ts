@@ -38,6 +38,8 @@ export type HomeData = {
   /** Clerk's tri-state collapsed to a boolean once loaded. Cards use it to
    *  distinguish "nothing here yet" from "sign in to track this". */
   isSignedIn: boolean;
+  /** Clerk has resolved the session, so `isSignedIn` is a real answer. */
+  authResolved: boolean;
 };
 
 /**
@@ -67,7 +69,7 @@ export function useHomeData(): HomeData {
   // inference from timestamps. See persistence/active-days.ts.
   const activeDays = useCurriculumProgressStore((s) => s.activeDays);
   const activeDaysLoaded = useCurriculumProgressStore((s) => s.activeDaysLoaded);
-  const { isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
 
   // null until the client takes over, so a server-rendered relative
   // timestamp can never disagree with the first client paint.
@@ -125,6 +127,7 @@ export function useHomeData(): HomeData {
       stats: computeStats(inputs, now ?? 0, activeDays, activeDaysLoaded || isSignedIn !== true),
       now,
       isSignedIn: isSignedIn === true,
+      authResolved: isLoaded,
     };
-  }, [inputs, sandboxUpdatedAt, now, isSignedIn, activeDays, activeDaysLoaded]);
+  }, [inputs, sandboxUpdatedAt, now, isSignedIn, isLoaded, activeDays, activeDaysLoaded]);
 }
