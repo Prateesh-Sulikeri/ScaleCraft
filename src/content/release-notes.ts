@@ -56,6 +56,39 @@ export type ReleaseNote = {
  */
 export const releaseNotes: ReleaseNote[] = [
   {
+    version: "7.3.0-alpha",
+    date: "2026-10-12",
+    title: "Building Blocks is complete. Real systems begin.",
+    highlights: [
+      {
+        title: "Building Blocks is finished",
+        body: "Storage and reliability chapters 3.20 through 3.26 are live, and every group now closes with a lettered checkpoint, ending in an open Final design.",
+        icon: "content",
+      },
+      {
+        title: "Nine Real World Extraction projects",
+        body: "Design Bitly, a rate limiter, a distributed cache, metrics monitoring, notifications, a job scheduler, LeetCode, price tracking and online chess end to end.",
+        icon: "content",
+      },
+      {
+        title: "A new home, catalogue and reader",
+        body: "Home previews a real board, the Learning Path shows each chapter's components and time, and lessons read long-form with a table of contents and pager.",
+        icon: "navigation",
+      },
+      {
+        title: "Submit names the anti-pattern",
+        body: "When your design matches a known anti-pattern, Submit says which one instead of a generic mismatch, and wrong config values are reported too.",
+        icon: "validation",
+      },
+    ],
+    qualityOfLife: [
+      "Walkthrough diagrams no longer draw edges through cards",
+      "More real connections are drawable, like browser to DNS",
+      "Component docs are rewritten and refresh automatically",
+      "Fixed a hydration error on the home page illustration",
+    ],
+  },
+  {
     version: "7.2.0-alpha",
     date: "2026-09-15",
     title: "The Design Editor is easier to draw in.",

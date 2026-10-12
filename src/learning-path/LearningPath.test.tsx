@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { useAuth } from "@clerk/nextjs";
 import { LearningPath } from "./LearningPath";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
@@ -37,7 +37,7 @@ beforeEach(async () => {
 });
 
 describe("LearningPath", () => {
-  it("renders Building Blocks' 10 sections and all 40 chapter rows", () => {
+  it("renders Building Blocks' 10 sections and all 45 chapter rows", () => {
     render(<LearningPath courseId="building-blocks" />);
     expect(screen.getByRole("heading", { level: 1, name: "Building Blocks" })).toBeInTheDocument();
 
@@ -46,15 +46,19 @@ describe("LearningPath", () => {
 
     // Every section defaults expanded (D5) — every chapter's status icon is
     // present, one per curriculum entry (40 for BB, after Release 6.1.0-alpha
-    // Phase 10 condensed Part 1 from 11 chapters to 4: 47 - 11 + 4 = 40).
-    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(40);
+    // Phase 10 condensed Part 1 from 11 chapters to 4: 47 - 11 + 4 = 40; 45
+    // since the five group checkpoints, pending-checkpoints.md).
+    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(45);
   });
 
-  it("renders Real World Extraction's 5 sections and all 32 chapter rows", () => {
+  it("renders Real World Extraction's 5 sections, folding tiers with nothing authored", () => {
     render(<LearningPath courseId="real-world-extraction" />);
     expect(screen.getByRole("heading", { level: 1, name: "Real World Extraction" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^tier /i })).toHaveLength(5);
-    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(32);
+    // Tiers 1 and 2 have authored briefs, so their 9 entries are full rows;
+    // tiers 3-5 have none, so theirs are a compact list without status rows.
+    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(9);
+    expect(screen.getByText("Notification System")).toBeInTheDocument();
   });
 
   it("the authored Load Balancer row is a real link to its lesson (Chapter Reader) route; an unauthored row is not", () => {
@@ -63,6 +67,10 @@ describe("LearningPath", () => {
       "href",
       "/building-blocks/3-4-load-balancer/lesson",
     );
+    // Every Building Blocks row is authored as of R3, so the unauthored half
+    // is checked against Real World Extraction.
+    cleanup();
+    render(<LearningPath courseId="real-world-extraction" />);
     expect(screen.getAllByText("Coming soon").length).toBeGreaterThan(0);
   });
 
@@ -149,7 +157,7 @@ describe("LearningPath", () => {
     expect(screen.getByText(/no chapters match/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Not started" }));
-    expect(screen.getAllByRole("img", { name: /not started/i })).toHaveLength(40);
+    expect(screen.getAllByRole("img", { name: /not started/i })).toHaveLength(45);
 
     fireEvent.change(screen.getByRole("textbox", { name: /search chapters/i }), {
       target: { value: "load balancer" },

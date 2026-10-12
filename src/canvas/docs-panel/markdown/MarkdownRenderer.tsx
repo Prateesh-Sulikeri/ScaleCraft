@@ -8,9 +8,10 @@ export { codeText } from "./markdown-plugins";
  * react-markdown with the GFM (tables/checklists/strikethrough/footnotes),
  * raw-HTML (collapsible `<details>`), sanitize, and heading-anchor plugins,
  * plus custom renderers for code/mermaid/callouts/links. */
-export function MarkdownRenderer({ content }: { content: string }) {
+/** `className` swaps the body scale (the Reader passes LESSON_BODY_CLASSNAME). */
+export function MarkdownRenderer({ content, className = MARKDOWN_BODY_CLASSNAME }: { content: string; className?: string }) {
   return (
-    <div className={MARKDOWN_BODY_CLASSNAME}>
+    <div className={className}>
       <ReactMarkdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}

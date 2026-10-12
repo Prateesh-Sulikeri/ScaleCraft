@@ -9,6 +9,13 @@ const appServerDef = getComponent("app-server")!; // number field: instances
 const sqlDatabaseDef = getComponent("sql-database")!; // enum field: engine
 const followerDef = getComponent("follower")!; // boolean field: readOnly
 
+/** One field's control by its `name`: components have several of each kind. */
+function field(role: "spinbutton" | "combobox", name: string): HTMLElement {
+  const el = screen.getAllByRole(role).find((e) => e.getAttribute("name") === name);
+  if (!el) throw new Error(`no ${role} named ${name}`);
+  return el;
+}
+
 describe("ConfigForm", () => {
   it("shows a 'no configuration options' message for a component with an empty config shape", () => {
     // The client component has no config fields at all.
@@ -19,14 +26,14 @@ describe("ConfigForm", () => {
 
   it("renders a number input for a numeric field, seeded from the current value", () => {
     render(<ConfigForm definition={appServerDef} value={{ instances: 3 }} onChange={vi.fn()} />);
-    const input = screen.getByRole("spinbutton") as HTMLInputElement;
+    const input = field("spinbutton", "instances") as HTMLInputElement;
     expect(input).toHaveValue(3);
   });
 
   it("calls onChange with the parsed number after editing a numeric field", async () => {
     const onChange = vi.fn();
     render(<ConfigForm definition={appServerDef} value={{ instances: 1 }} onChange={onChange} />);
-    const input = screen.getByRole("spinbutton");
+    const input = field("spinbutton", "instances");
     fireEvent.change(input, { target: { value: "5" } });
 
     await waitFor(() => {
@@ -36,7 +43,7 @@ describe("ConfigForm", () => {
 
   it("renders a select with every enum option for an enum field, seeded from the current value", () => {
     render(<ConfigForm definition={sqlDatabaseDef} value={{ engine: "mysql" }} onChange={vi.fn()} />);
-    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    const select = field("combobox", "engine") as HTMLSelectElement;
     expect(select).toHaveValue("mysql");
     expect(screen.getByRole("option", { name: "postgres" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "mysql" })).toBeInTheDocument();
@@ -45,10 +52,20 @@ describe("ConfigForm", () => {
   it("calls onChange with the new enum value after selecting a different option", async () => {
     const onChange = vi.fn();
     render(<ConfigForm definition={sqlDatabaseDef} value={{ engine: "postgres" }} onChange={onChange} />);
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "mysql" } });
+    fireEvent.change(field("combobox", "engine"), { target: { value: "mysql" } });
 
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ engine: "mysql" }));
+    });
+  });
+
+  it("still saves edits on a node saved before newer fields existed", async () => {
+    const onChange = vi.fn();
+    render(<ConfigForm definition={appServerDef} value={{ instances: 1 }} onChange={onChange} />);
+    fireEvent.change(field("spinbutton", "instances"), { target: { value: "3" } });
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ instances: 3, retries: 0 }));
     });
   });
 
@@ -57,12 +74,10 @@ describe("ConfigForm", () => {
     expect(screen.getByText("Instances")).toBeInTheDocument();
   });
 
-  it("renders a plain text input for a string field (no built-in component has one, so this uses a synthetic definition)", async () => {
-    // No component in the current registry declares a `kind: "string"`
-    // field — that fallback branch (any ZodType that isn't
-    // ZodEnum/ZodNumber/ZodBoolean) still needs coverage, so this
-    // constructs a minimal definition with one directly, matching the same
-    // shape CreateComponentModal.tsx's custom "Text" field kind produces.
+  it("renders a plain text input for a string field (synthetic definition)", async () => {
+    // A synthetic one-field definition keeps this test independent of the
+    // registry, matching the shape CreateComponentModal.tsx's custom "Text"
+    // field kind produces.
     const stringFieldDef: ComponentDefinition = {
       id: "synthetic-string-field",
       category: "networking",

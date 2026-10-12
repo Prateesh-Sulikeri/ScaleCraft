@@ -42,6 +42,7 @@ export const courses: Record<CourseId, Course> = {
             title: "Welcome to ScaleCraft",
             kind: "chapter",
             chapterDefinitionId: "bb-0-1-welcome",
+            focusComponentIds: ["client", "app-server", "sql-database"],
             estimatedMinutes: 10,
             difficulty: "foundational",
             prerequisiteSlugs: [],
@@ -89,8 +90,9 @@ export const courses: Record<CourseId, Course> = {
         summary:
           "The defining structural bet of the curriculum: the design method is taught on tiny, " +
           "familiar systems using only the three primitive components, so the method itself " +
-          "is the only new material. Condensed from 11 chapters to 4 (3 mandatory + 1 optional) " +
-          "in Release 6.1.0-alpha Phase 10 - see .claude/docs/pending-6.1.0-poa.md.",
+          "is the only new material.",
+        // Condensed from 11 chapters to 4 (3 mandatory + 1 optional) in
+        // 6.1.0-alpha Phase 10 - see pending-6.1.0-poa.md (retired, in git).
         chapters: [
           {
             slug: "1-1-framing-the-problem",
@@ -109,6 +111,7 @@ export const courses: Record<CourseId, Course> = {
             title: "Designing the System",
             kind: "chapter",
             chapterDefinitionId: "bb-1-2-designing-the-system",
+            focusComponentIds: ["client", "app-server", "sql-database"],
             estimatedMinutes: 25,
             difficulty: "foundational",
             prerequisiteSlugs: ["1-1-framing-the-problem"],
@@ -202,6 +205,7 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-22 (Wave 3, first Group A
             // chapter). See pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-1-networking-fundamentals",
+            focusComponentIds: ["client", "firewall"],
             estimatedMinutes: 25,
             difficulty: "foundational",
             prerequisiteSlugs: ["2-3-evolution-of-modern-architectures"],
@@ -215,6 +219,7 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-22 (Wave 3, second Group A
             // chapter). See pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-2-dns",
+            focusComponentIds: ["browser", "dns"],
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-1-networking-fundamentals"],
@@ -228,6 +233,7 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-22 (Wave 3, third Group A
             // chapter). See pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-3-reverse-proxy",
+            focusComponentIds: ["reverse-proxy"],
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-2-dns"],
@@ -242,6 +248,7 @@ export const courses: Record<CourseId, Course> = {
             // table (1.2 -> 3.4). Real content authored 2026-08-11, pulled
             // forward per pending-content.md (replaces bb-dummy-1).
             chapterDefinitionId: "bb-3-4-load-balancer",
+            focusComponentIds: ["load-balancer"],
             estimatedMinutes: 35,
             difficulty: "foundational",
             // Declared exception (chapter spec §0, pending-chapters.md):
@@ -264,9 +271,24 @@ export const courses: Record<CourseId, Course> = {
             // chapter - Group A complete). See pending-chapters.md for the
             // ledger entry.
             chapterDefinitionId: "bb-3-5-api-gateway",
+            focusComponentIds: ["api-gateway"],
             estimatedMinutes: 25,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-4-load-balancer"],
+            domain: null,
+          },
+          {
+            slug: "checkpoint-a-the-front-door",
+            number: "A",
+            title: "Checkpoint · The Front Door",
+            kind: "checkpoint",
+            // Group checkpoint authored 2026-10-05 (pending-checkpoints.md).
+            // Numbered by its group's letter, like every checkpoint.
+            chapterDefinitionId: "bb-cp-a-the-front-door",
+            focusComponentIds: ["dns", "firewall", "reverse-proxy", "api-gateway", "load-balancer"],
+            estimatedMinutes: 25,
+            difficulty: "foundational",
+            prerequisiteSlugs: ["3-5-api-gateway"],
             domain: null,
           },
         ],
@@ -287,9 +309,10 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-22 (first Group B chapter). See
             // pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-6-stateless-services",
+            focusComponentIds: ["load-balancer", "app-server"],
             estimatedMinutes: 20,
             difficulty: "foundational",
-            prerequisiteSlugs: ["3-5-api-gateway"],
+            prerequisiteSlugs: ["checkpoint-a-the-front-door"],
             domain: null,
           },
           {
@@ -300,6 +323,7 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-23 (second Group B chapter). See
             // pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-7-sessions-and-state-management",
+            focusComponentIds: ["load-balancer", "app-server", "sql-database"],
             estimatedMinutes: 25,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-6-stateless-services"],
@@ -313,6 +337,7 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-23 (third Group B chapter). See
             // pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-8-horizontal-scaling",
+            focusComponentIds: ["load-balancer", "app-server"],
             estimatedMinutes: 25,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-7-sessions-and-state-management"],
@@ -326,9 +351,24 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-23 (fourth and final Group B
             // chapter). See pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-9-service-discovery",
+            focusComponentIds: ["dns", "load-balancer", "app-server"],
             estimatedMinutes: 20,
             difficulty: "foundational",
             prerequisiteSlugs: ["3-8-horizontal-scaling"],
+            domain: null,
+          },
+          {
+            slug: "checkpoint-b-inherited-fleet",
+            number: "B",
+            title: "Checkpoint · Inherited Fleet",
+            kind: "checkpoint",
+            // Group checkpoint authored 2026-10-05 (pending-checkpoints.md).
+            // Numbered by its group's letter, like every checkpoint.
+            chapterDefinitionId: "bb-cp-b-inherited-fleet",
+            focusComponentIds: ["load-balancer", "app-server"],
+            estimatedMinutes: 25,
+            difficulty: "foundational",
+            prerequisiteSlugs: ["3-9-service-discovery"],
             domain: null,
           },
         ],
@@ -349,9 +389,10 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-23 (first Group C chapter). See
             // pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-10-databases",
+            focusComponentIds: ["sql-database"],
             estimatedMinutes: 25,
             difficulty: "intermediate",
-            prerequisiteSlugs: ["3-9-service-discovery"],
+            prerequisiteSlugs: ["checkpoint-b-inherited-fleet"],
             domain: null,
           },
           {
@@ -362,6 +403,7 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-23 (second Group C chapter). See
             // pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-11-sql-vs-nosql",
+            focusComponentIds: ["sql-database", "nosql-database"],
             estimatedMinutes: 25,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-10-databases"],
@@ -375,6 +417,7 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-23 (third Group C chapter). See
             // pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-12-replication",
+            focusComponentIds: ["sql-database", "read-replica"],
             estimatedMinutes: 30,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-11-sql-vs-nosql"],
@@ -388,9 +431,24 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-23 (fourth and final Group C
             // chapter). See pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-13-sharding",
+            focusComponentIds: ["sql-database", "nosql-database"],
             estimatedMinutes: 30,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-12-replication"],
+            domain: null,
+          },
+          {
+            slug: "checkpoint-c-the-data-tier",
+            number: "C",
+            title: "Checkpoint · The Data Tier",
+            kind: "checkpoint",
+            // Group checkpoint authored 2026-10-05 (pending-checkpoints.md).
+            // Numbered by its group's letter, like every checkpoint.
+            chapterDefinitionId: "bb-cp-c-the-data-tier",
+            focusComponentIds: ["sql-database", "nosql-database", "read-replica"],
+            estimatedMinutes: 30,
+            difficulty: "intermediate",
+            prerequisiteSlugs: ["3-13-sharding"],
             domain: null,
           },
         ],
@@ -411,9 +469,10 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-26 (first Group D chapter). See
             // pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-14-caching",
+            focusComponentIds: ["cache"],
             estimatedMinutes: 35,
             difficulty: "intermediate",
-            prerequisiteSlugs: ["3-13-sharding"],
+            prerequisiteSlugs: ["checkpoint-c-the-data-tier"],
             domain: null,
           },
           {
@@ -424,6 +483,7 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-26 (second Group D chapter). See
             // pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-15-cdn",
+            focusComponentIds: ["cdn"],
             estimatedMinutes: 25,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-14-caching"],
@@ -437,6 +497,7 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-08-27 (third Group D chapter, Group D
             // complete). See pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-16-search-systems",
+            focusComponentIds: ["search-engine"],
             estimatedMinutes: 30,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-15-cdn"],
@@ -444,13 +505,14 @@ export const courses: Record<CourseId, Course> = {
           },
           {
             slug: "checkpoint-r1-a-site-that-stays-up",
-            number: "R1",
+            number: "D",
             title: "Checkpoint · A Site That Stays Up",
             kind: "checkpoint",
             // Real content authored 2026-09-07 (the curriculum's first
             // checkpoint - blank canvas, no quiz). See pending-chapters.md
             // for the ledger entry.
             chapterDefinitionId: "bb-r1-a-site-that-stays-up",
+            focusComponentIds: ["cdn", "load-balancer", "cache", "read-replica"],
             estimatedMinutes: 45,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-16-search-systems"],
@@ -474,6 +536,7 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-09-10 (first Group E chapter). See
             // pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-17-message-queues",
+            focusComponentIds: ["message-queue", "worker", "dead-letter-queue"],
             estimatedMinutes: 35,
             difficulty: "intermediate",
             // §17: Groups E and F are both gated on R1 only, not on each
@@ -489,6 +552,7 @@ export const courses: Record<CourseId, Course> = {
             // Real content authored 2026-09-16 (second Group E chapter). See
             // pending-chapters.md for the ledger entry.
             chapterDefinitionId: "bb-3-18-event-driven-architecture",
+            focusComponentIds: ["event-bus"],
             estimatedMinutes: 35,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-17-message-queues"],
@@ -503,9 +567,24 @@ export const courses: Record<CourseId, Course> = {
             // completes the group). See pending-chapters.md for the ledger
             // entry.
             chapterDefinitionId: "bb-3-19-background-jobs-and-scheduling",
+            focusComponentIds: ["cron-job", "serverless-function", "worker"],
             estimatedMinutes: 25,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-18-event-driven-architecture"],
+            domain: null,
+          },
+          {
+            slug: "checkpoint-e-off-the-request-path",
+            number: "E",
+            title: "Checkpoint · Off the Request Path",
+            kind: "checkpoint",
+            // Group checkpoint authored 2026-10-05 (pending-checkpoints.md).
+            // Numbered by its group's letter, like every checkpoint.
+            chapterDefinitionId: "bb-cp-e-off-the-request-path",
+            focusComponentIds: ["message-queue", "dead-letter-queue", "cron-job", "serverless-function"],
+            estimatedMinutes: 35,
+            difficulty: "intermediate",
+            prerequisiteSlugs: ["3-19-background-jobs-and-scheduling"],
             domain: null,
           },
         ],
@@ -523,7 +602,8 @@ export const courses: Record<CourseId, Course> = {
             number: "3.20",
             title: "Object Storage",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-3-20-object-storage",
+            focusComponentIds: ["object-storage"],
             estimatedMinutes: 25,
             difficulty: "intermediate",
             // §17: parallel-eligible with Group E - both hang off R1.
@@ -535,7 +615,8 @@ export const courses: Record<CourseId, Course> = {
             number: "3.21",
             title: "File Storage",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-3-21-file-storage",
+            focusComponentIds: ["object-storage"],
             estimatedMinutes: 20,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-20-object-storage"],
@@ -546,10 +627,25 @@ export const courses: Record<CourseId, Course> = {
             number: "3.22",
             title: "Distributed Storage Concepts",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-3-22-distributed-storage-concepts",
+            focusComponentIds: ["nosql-database", "coordinator"],
             estimatedMinutes: 30,
             difficulty: "intermediate",
             prerequisiteSlugs: ["3-21-file-storage"],
+            domain: null,
+          },
+          {
+            slug: "checkpoint-f-where-the-bytes-live",
+            number: "F",
+            title: "Checkpoint · Where the Bytes Live",
+            kind: "checkpoint",
+            // Group checkpoint authored 2026-10-05 (pending-checkpoints.md).
+            // Numbered by its group's letter, like every checkpoint.
+            chapterDefinitionId: "bb-cp-f-where-the-bytes-live",
+            focusComponentIds: ["object-storage", "nosql-database", "coordinator"],
+            estimatedMinutes: 30,
+            difficulty: "intermediate",
+            prerequisiteSlugs: ["3-22-distributed-storage-concepts"],
             domain: null,
           },
         ],
@@ -567,13 +663,15 @@ export const courses: Record<CourseId, Course> = {
             number: "3.23",
             title: "Reliability Patterns",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-3-23-reliability-patterns",
+            focusComponentIds: ["lock-service", "cron-job"],
             estimatedMinutes: 30,
             difficulty: "advanced",
-            // §17: Group G needs both Group E and Group F complete.
+            // §17: Group G needs both Group E and Group F complete - now
+            // gated on each group's checkpoint.
             prerequisiteSlugs: [
-              "3-19-background-jobs-and-scheduling",
-              "3-22-distributed-storage-concepts",
+              "checkpoint-e-off-the-request-path",
+              "checkpoint-f-where-the-bytes-live",
             ],
             domain: null,
           },
@@ -582,7 +680,8 @@ export const courses: Record<CourseId, Course> = {
             number: "3.24",
             title: "Rate Limiting",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-3-24-rate-limiting",
+            focusComponentIds: ["api-gateway"],
             estimatedMinutes: 25,
             difficulty: "advanced",
             prerequisiteSlugs: ["3-23-reliability-patterns"],
@@ -593,7 +692,7 @@ export const courses: Record<CourseId, Course> = {
             number: "3.25",
             title: "Observability",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-3-25-observability",
             estimatedMinutes: 20,
             difficulty: "advanced",
             prerequisiteSlugs: ["3-24-rate-limiting"],
@@ -604,7 +703,8 @@ export const courses: Record<CourseId, Course> = {
             number: "3.26",
             title: "Fault Tolerance",
             kind: "chapter",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-3-26-fault-tolerance",
+            focusComponentIds: ["leader", "follower", "coordinator"],
             estimatedMinutes: 35,
             difficulty: "advanced",
             prerequisiteSlugs: ["3-25-observability"],
@@ -612,10 +712,11 @@ export const courses: Record<CourseId, Course> = {
           },
           {
             slug: "checkpoint-r2-building-a-complete-backend",
-            number: "R2",
+            number: "G",
             title: "Checkpoint · Building a Complete Backend",
             kind: "checkpoint",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-r2-building-a-complete-backend",
+            focusComponentIds: ["api-gateway", "load-balancer", "cache", "message-queue", "object-storage"],
             estimatedMinutes: 60,
             difficulty: "advanced",
             prerequisiteSlugs: ["3-26-fault-tolerance"],
@@ -623,10 +724,10 @@ export const courses: Record<CourseId, Course> = {
           },
           {
             slug: "checkpoint-r3-open-system-design",
-            number: "R3",
+            number: "Final",
             title: "Checkpoint · Open System Design",
             kind: "checkpoint",
-            chapterDefinitionId: null,
+            chapterDefinitionId: "bb-r3-open-system-design",
             estimatedMinutes: 60,
             difficulty: "advanced",
             prerequisiteSlugs: ["checkpoint-r2-building-a-complete-backend"],
@@ -655,7 +756,8 @@ export const courses: Record<CourseId, Course> = {
             title: "Bitly (URL Shortener)",
             kind: "chapter",
             // Re-homed from v1's RWE-1 bit.ly per §21.4 - same project.
-            chapterDefinitionId: "rwe-dummy-1",
+            // Authored 2026-09-19, replacing the `rwe-dummy-1` placeholder.
+            chapterDefinitionId: "rwe-t1-bitly-url-shortener",
             estimatedMinutes: 75,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r1-a-site-that-stays-up"],
@@ -666,7 +768,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Rate Limiter",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-08.
+            chapterDefinitionId: "rwe-t1-rate-limiter",
             estimatedMinutes: 60,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r1-a-site-that-stays-up"],
@@ -677,7 +780,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Distributed Cache (Design One)",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-08.
+            chapterDefinitionId: "rwe-t1-distributed-cache",
             estimatedMinutes: 70,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r1-a-site-that-stays-up"],
@@ -688,7 +792,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Metrics Monitoring",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-08.
+            chapterDefinitionId: "rwe-t1-metrics-monitoring",
             estimatedMinutes: 65,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r1-a-site-that-stays-up"],
@@ -709,7 +814,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Notification System",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-12.
+            chapterDefinitionId: "rwe-t2-notification-system",
             estimatedMinutes: 75,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r2-building-a-complete-backend"],
@@ -720,7 +826,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Job Scheduler",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-12.
+            chapterDefinitionId: "rwe-t2-job-scheduler",
             estimatedMinutes: 80,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r2-building-a-complete-backend"],
@@ -731,7 +838,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "LeetCode",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-12.
+            chapterDefinitionId: "rwe-t2-leetcode",
             estimatedMinutes: 75,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r2-building-a-complete-backend"],
@@ -742,7 +850,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Price Tracking Service",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-12.
+            chapterDefinitionId: "rwe-t2-price-tracking-service",
             estimatedMinutes: 80,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r2-building-a-complete-backend"],
@@ -753,7 +862,8 @@ export const courses: Record<CourseId, Course> = {
             number: null,
             title: "Online Chess",
             kind: "chapter",
-            chapterDefinitionId: null,
+            // Authored 2026-10-12.
+            chapterDefinitionId: "rwe-t2-online-chess",
             estimatedMinutes: 90,
             difficulty: "intermediate",
             prerequisiteSlugs: ["checkpoint-r2-building-a-complete-backend"],

@@ -137,6 +137,17 @@ describe("evaluateChapter", () => {
     expect(outcome.driftReport).toBeNull();
   });
 
+  it("fails on a warning the chapter escalates through ruleSeverity", () => {
+    getRulesMock.mockReturnValue([rule("r-warn", "warning")]);
+    const graph: ArchitectureGraph = { nodes: [], edges: [], entryPointIds: [] };
+
+    const outcome = evaluateChapter(graph, chapter({ ruleSeverity: { "r-warn": "error" } }));
+
+    expect(outcome.passed).toBe(false);
+    expect(outcome.errorCount).toBe(1);
+    expect(outcome.violations[0].severity).toBe("error");
+  });
+
   it("passes with only warning/note severity violations present, zero errors, and a matching blueprint", () => {
     getRulesMock.mockReturnValue([rule("r-warn", "warning"), rule("r-note", "note")]);
     const graph: ArchitectureGraph = { nodes: [node("n1", "cache")], edges: [], entryPointIds: [] };

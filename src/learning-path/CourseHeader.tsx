@@ -1,9 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { ThemeToggle } from "@/app/ThemeToggle";
-import { AppUserButton } from "@/app/AppUserButton";
+import { Flame, LogIn } from "lucide-react";
+import { Tooltip } from "@/app/Tooltip";
 import { CourseIllustration } from "./CourseIllustration";
-import { CourseStats } from "./CourseStats";
 import { DownloadCurriculumButton } from "./DownloadCurriculumButton";
 import { OverallProgress } from "./OverallProgress";
 import { modeIcon } from "@/lib/modes";
@@ -16,67 +14,90 @@ type CourseHeaderProps = {
   /** Consecutive active days, from the same timestamps Home reads. Passed in
    *  rather than derived here so the page has one clock. */
   dayStreak: number;
-  /** Threaded straight through to CourseStats - see its prop doc. */
+  /** False until the account's day log has been read - an unknown streak
+   *  renders as a dash, never a confident number (see AtAGlanceCard). */
   streakKnown: boolean;
+  /** Signed out there is nothing to show, so the progress block becomes a
+   *  sign-in prompt instead of a 0% bar. */
+  isSignedIn: boolean;
 };
 
-/** The Learning Path's entire header region: the page's own header strip
- *  (home link, Download Curriculum, theme toggle, account - there is no
- *  AppHeader or SidebarShell here to carry them) plus the elevated course
- *  card below it.
+/** Signed-out stand-in for the progress block: the bar's shape, no data. */
+function SignedOutProgress({ courseId }: { courseId: string }) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div aria-hidden="true" className="h-2 w-full rounded-full bg-border/70" />
+      <Link
+        href={`/sign-in?redirect_url=${encodeURIComponent(`/${courseId}`)}`}
+        className="inline-flex items-center gap-1.5 self-start text-[13px] font-medium text-[var(--course-accent)] hover:underline"
+      >
+        <LogIn size={13} aria-hidden="true" />
+        Sign in to track your progress
+      </Link>
+    </div>
+  );
+}
+
+/**
+ * The course card at the top of the Learning Path. The page's top bar is
+ * HomeHeader, shared with Home; Download Curriculum moved into this card.
  *
- *  The card is three columns on a wide screen - blueprint illustration,
- *  identity + progress, stat tiles - collapsing to illustration + identity
- *  with the tiles below, then to a single stack. The illustration is the only
- *  thing that drops out entirely (below `sm`), since it is the one piece
- *  carrying no information. */
-export function CourseHeader({ course, summary, dayStreak, streakKnown }: CourseHeaderProps) {
+ * It used to carry four stat tiles (chapters, sections, overall %, streak),
+ * three of which repeated the progress line beside them. The streak, the
+ * one number not stated elsewhere, now rides on that line.
+ */
+export function CourseHeader({ course, summary, dayStreak, streakKnown, isSignedIn }: CourseHeaderProps) {
   const CourseIcon = modeIcon[course.id];
 
   return (
-    <div className="flex flex-col gap-5 pb-6">
-      <div className="flex items-center justify-between gap-4">
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 rounded-md border border-border bg-panel px-3 py-1.5 text-sm font-medium text-foreground/70 transition-colors duration-150 ease-out hover:text-foreground"
-        >
-          <ArrowLeft size={14} />
-          ScaleCraft
-        </Link>
-        <div className="flex items-center gap-2">
-          <DownloadCurriculumButton />
-          <ThemeToggle />
-          <AppUserButton />
-        </div>
+    <section className="mb-6 grid grid-cols-1 items-center gap-6 rounded-xl border border-[var(--course-accent-line)] bg-[color:color-mix(in_srgb,var(--course-accent)_4%,var(--panel))] p-5 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)] sm:gap-8 lg:p-7 xl:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="hidden h-[170px] sm:block xl:h-[200px]">
+        <CourseIllustration courseId={course.id} />
       </div>
 
-      <section className="grid grid-cols-1 items-center gap-6 rounded-xl border border-border bg-panel p-5 sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)] sm:gap-7 lg:p-6 xl:grid-cols-[200px_minmax(0,1fr)_auto] xl:gap-8">
-        <div className="hidden h-[150px] sm:block xl:h-[170px]">
-          <CourseIllustration courseId={course.id} />
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-3.5">
-          <div className="flex items-center gap-2.5">
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
             <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[var(--course-accent-line)] bg-[var(--course-accent-soft)] text-[var(--course-accent)]"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[var(--course-accent-line)] bg-[var(--course-accent-soft)] text-[var(--course-accent)]"
               aria-hidden="true"
             >
-              <CourseIcon size={16} />
+              <CourseIcon size={20} strokeWidth={1.5} />
             </span>
-            <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">{course.title}</h1>
+            <h1 className="text-[30px] font-semibold leading-tight tracking-tight text-foreground">{course.title}</h1>
           </div>
-
-          <p className="max-w-xl text-pretty text-sm leading-relaxed text-foreground/60">{course.subtitle}</p>
-
-          <OverallProgress summary={summary} />
+          <DownloadCurriculumButton />
         </div>
 
-        {/* Spans both columns while it sits under the illustration+identity
-         * row, and becomes its own third column only once there is room. */}
-        <div className="sm:col-span-2 xl:col-span-1">
-          <CourseStats summary={summary} dayStreak={dayStreak} streakKnown={streakKnown} />
+        <p className="max-w-xl text-pretty text-[15px] leading-relaxed text-foreground/65">{course.subtitle}</p>
+
+        <div className="max-w-2xl">
+          {isSignedIn ? (
+            <OverallProgress
+              summary={summary}
+              extra={
+                <Tooltip
+                  label={
+                    streakKnown
+                      ? "Consecutive days you've worked on something, counted across every course."
+                      : "Your activity history hasn't loaded yet. Check your connection."
+                  }
+                >
+                  <p className="flex items-center gap-1">
+                    <Flame size={13} className="text-foreground/45" aria-hidden="true" />
+                    <span className="font-medium tabular-nums text-foreground/80">
+                      {streakKnown ? dayStreak : "-"}
+                    </span>{" "}
+                    day streak
+                  </p>
+                </Tooltip>
+              }
+            />
+          ) : (
+            <SignedOutProgress courseId={course.id} />
+          )}
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }

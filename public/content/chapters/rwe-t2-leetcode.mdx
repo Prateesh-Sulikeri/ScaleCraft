@@ -1,0 +1,317 @@
+An online judge: contestants write code in the browser, submit it, and get a
+verdict once it has run against hidden test cases. Its API servers judged each
+submission themselves, compiling and running it in a subprocess. At 14:31 in
+weekly contest 412, one submission allocated memory until the kernel killed the
+API process, and the 300 other contestants' requests on that machine failed with
+it.
+
+By 14:35 every API server was spending its CPU on judging. Problem pages took 20
+seconds to load, contestants watching a spinner submitted again, and the load
+doubled.
+
+> [!NOTE]
+> Think first: the job here is code a stranger wrote a minute ago, and 30,000 of
+> those strangers submit in the same 20 minutes. Where should that code run, and
+> what decides who ranks first when the judge is behind? Commit to an answer
+> before reading on.
+
+## The numbers
+
+Interview steps 1 to 3. Practice traffic runs all week; contests are the stress
+case.
+
+| Measured | Figure | What it forces |
+|---|---|---|
+| Practice submissions | 30/s at the weekday peak | The steady state is small |
+| Contest | 30,000 contestants, 4 problems, 90 minutes, ~150,000 submissions | Front-loaded: 150/s in the peak minutes, 5x practice |
+| Judge time per submission | Compile plus ~100 tests: median 3 s, capped at 10 s | At 150/s that is 450 sandboxes busy at the median, 1,500 at the cap |
+| Problem pages at 14:30:00 | 30,000 people open the same four pages within seconds | Identical content, requested all at once |
+| Verdict | Expected within seconds; tolerated within a minute | A contestant can wait, as long as the wait does not cost them rank |
+| Code | Arbitrary, from anyone with an account | Every submission is an attack until proven otherwise |
+
+The judge is a CPU-bound, untrusted, bursty workload sitting behind an ordinary
+web product. The product half is Groups A to D. The judge half is this project.
+
+## Running a stranger's code
+
+A submission can loop forever, fork until the process table is full, allocate
+until the machine swaps, read files and environment variables, open network
+connections to fetch the hidden tests or reach internal services, or try a kernel
+exploit. Each layer of a sandbox stops some of these and not others:
+
+| Layer | Stops | Does not stop |
+|---|---|---|
+| Resource limits per run (CPU time, memory, process count, wall-clock cap) | Infinite loops, memory bombs, fork bombs | Reading anything the process can see |
+| Isolated filesystem and no network, as an unprivileged user | Reading the host's files, fetching tests, calling internal services | An exploit of the kernel it shares with the host |
+| Syscall filtering, or a kernel reimplemented in user space | Most of the kernel's attack surface | Bugs in the filter itself |
+| A microVM per run, with its own kernel | A kernel exploit reaching the host | Nothing above, at ~100 ms of boot and some memory per run |
+
+Production judges stack several of these, and then add the one that is
+architecture rather than configuration: **untrusted code never runs on a machine
+that serves users or holds secrets.** The judges are their own fleet, fed
+asynchronously, holding no database credentials. A run that escapes every layer
+lands on a disposable machine with nothing worth taking, and a memory bomb kills
+its own sandbox, not 300 other contestants' requests.
+
+> **Engineering lens.** Ask what the blast radius of the worst input is. On the API
+> servers it was every request on the machine plus every credential the API holds;
+> on an isolated judge it is one sandbox.
+
+## One submission, two places to judge it
+
+<Walkthrough
+  title="Where the code runs"
+  viewBoxWidth={820}
+  viewBoxHeight={378}
+  description="Switch between judging on the API server and judging in a separate sandbox fleet. DNS is left out: it resolves the hostname once. The Judge queue and Sandboxed judges exist only in the fleet design."
+  algorithms={[
+    { id: "inline", label: "Judged on the API server" },
+    { id: "fleet", label: "Judged in a sandbox fleet" },
+  ]}
+  nodes={[
+    { id: "browser", kind: "component", componentId: "browser", label: "Contestant", position: { x: 80, y: 63 } },
+    { id: "gw", kind: "component", componentId: "api-gateway", label: "API Gateway", position: { x: 80, y: 189 } },
+    { id: "lb", kind: "component", componentId: "load-balancer", label: "Load Balancer", position: { x: 300, y: 189 } },
+    { id: "api", kind: "component", componentId: "app-server", label: "API", position: { x: 520, y: 189 } },
+    { id: "db", kind: "component", componentId: "sql-database", label: "Submissions", position: { x: 520, y: 63 } },
+    { id: "queue", kind: "component", componentId: "message-queue", label: "Judge queue", position: { x: 520, y: 315 } },
+    { id: "judge", kind: "component", componentId: "worker", label: "Sandboxed judges", position: { x: 740, y: 315 } },
+  ]}
+  edges={[
+    { id: "submit", source: "browser", target: "gw", kind: "request-flow" },
+    { id: "route", source: "gw", target: "lb", kind: "request-flow" },
+    { id: "serve", source: "lb", target: "api", kind: "request-flow" },
+    { id: "record", source: "api", target: "db", kind: "request-flow" },
+    { id: "enqueue", source: "api", target: "queue", kind: "async" },
+    { id: "take", source: "queue", target: "judge", kind: "async" },
+    { id: "verdict", source: "judge", target: "api", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "The Contestant submits a solution at 14:41:10. The API Gateway checks the session and the contestant's submission rate before anything else sees the request.",
+      focus: "submit",
+    },
+    {
+      caption: "The Load Balancer hands the submission to one API machine.",
+      focus: ["route", "serve"],
+    },
+    {
+      caption: "What the API does with the code.",
+      variants: {
+        inline: {
+          caption: "The API compiles and runs the code in a subprocess on its own machine, holding the contestant's request open for up to 10 seconds.",
+          highlightNodeIds: ["api"],
+        },
+        fleet: {
+          caption: "The API records the submission in Submissions with accepted_at 14:41:10 and answers at once with a submission id. Nothing has run yet.",
+          focus: "record",
+        },
+      },
+    },
+    {
+      caption: "The submission allocates memory without limit.",
+      variants: {
+        inline: {
+          caption: "The kernel kills the API process. Every other request on this machine fails with it, and the code could have read anything the API can read.",
+          faultNodeIds: ["api"],
+          faultEdgeIds: ["serve"],
+        },
+        fleet: {
+          caption: "Then the API puts the submission id on the Judge queue. At 14:30 this is where the burst waits, instead of in held-open requests.",
+          focus: "enqueue",
+        },
+      },
+    },
+    {
+      caption: "Judging.",
+      variants: {
+        inline: {
+          caption: "Contestants see errors and spinners and submit again, so the surviving API machines get more judging work, not less. More API machines only add more places for this to happen.",
+          highlightNodeIds: ["browser", "gw", "lb"],
+          highlightEdgeIds: ["submit", "route", "serve"],
+          faultNodeIds: ["api"],
+        },
+        fleet: {
+          caption: "A Sandboxed judge takes it and runs it with no network, capped CPU and memory, and its own kernel. The memory bomb kills that sandbox and nothing else.",
+          focus: "take",
+        },
+      },
+    },
+    {
+      caption: "The verdict.",
+      variants: {
+        inline: {
+          caption: "Any verdict that does arrive comes back on the original request. Nothing in this design can be scaled without also scaling the risk.",
+          highlightNodeIds: ["api", "browser"],
+        },
+        fleet: {
+          caption: "The judge reports the verdict to the API, which writes it to Submissions; the judge itself holds no database credentials. Rank uses accepted_at, not the time the verdict landed.",
+          focus: ["verdict", "record"],
+        },
+      },
+    },
+  ]}
+/>
+
+Note: in the fleet design the contestant's request ends at "accepted", seconds
+before anything runs. That gap is what makes the next section possible.
+
+## Fairness when the judge is behind
+
+At 14:30 the judge will be behind; the only question is whether that is fair. Four
+decisions make it so:
+
+- **Rank on the time the submission was accepted, not the time it was judged.** The
+  API stamps `accepted_at` when it records the submission. A contestant whose code
+  waited 90 seconds in the queue loses nothing to the wait, because the wait was the
+  platform's, not theirs.
+- **Answer immediately, deliver the verdict later.** The browser polls for the
+  verdict (or holds a connection for it). A request that is never held open cannot
+  time out, so contestants have no reason to submit again.
+- **Cap each contestant's work in flight.** One pending submission per contestant
+  per problem: a script submitting every second gets one judge slot, not sixty. The
+  gateway's per-contestant limit (3.24) catches the rest.
+- **Measure CPU time, not wall-clock time.** A judge that times each test on a
+  machine busy with other runs makes the verdict depend on the neighbors. Give each
+  run a dedicated core and limit the CPU time it actually used.
+
+And capacity: the spike starts at a known minute. Autoscaling reacts to a queue
+that is already deep and adds machines minutes later; the judge fleet is scaled up
+on a schedule before 14:30 and back down after 16:00.
+
+> **Production lens.** A contest is a scheduled load spike. Provision for it on the
+> calendar, and use autoscaling for the surprises.
+
+## Trade-offs
+
+| Decision | One way | The other way |
+|---|---|---|
+| What runs the code | A long-running judge fleet: warm language runtimes, predictable timing, capacity you pay for between contests | A serverless function per submission: fresh isolation per run and nothing idle, at the cost of cold starts (a JVM is slow to start) and an account concurrency quota that 1,500 simultaneous runs can hit |
+| Isolation depth | Containers with syscall filtering: fast, shares the kernel | A microVM per run: its own kernel, ~100 ms boot and memory per run |
+| Contest vs practice | One queue: simple, practice traffic slows contest verdicts | Separate queues and judges: contest verdicts are independent of practice load, at the cost of idle contest capacity all week |
+| Verdict delivery | Polling: simple, a request every few seconds per waiting contestant | A held connection: instant, one open connection per waiting contestant |
+| Problem pages at 14:30 | Served by the application tier with a cache | Served from a CDN: the 30,000 identical requests never reach your servers |
+
+## What breaks
+
+- **A CDN that cached "contest not started".** Pages requested at 14:29:58 are
+  cached with a 60-second TTL, and 30,000 people stare at the wrong page until
+  14:31. Pre-contest responses get a TTL of zero, or the release is a new URL.
+- **Wall-clock time limits.** Correct solutions fail at the peak, when machines are
+  busiest.
+- **Judges with credentials.** One sandbox escape and the attacker holds the
+  database password.
+- **Hidden tests inside the sandbox image.** A submission that can list its working
+  directory reads the expected outputs. Tests are fed through standard input, one at
+  a time, never mounted.
+
+## What changes at scale
+
+At **10x** (a 300,000-person contest), judging is 15,000 sandboxes at the cap. The
+fleet is partitioned by language so each machine keeps its runtimes warm, and the
+queue is partitioned by contest.
+
+At **100x**, identical submissions matter: thousands of contestants submit the same
+canonical solution. Hash the code plus problem and reuse the verdict, which turns a
+popular problem's judging load into a cache hit rate.
+
+At **1000x**, the expensive part is the test data itself: problems with gigabyte
+inputs are pre-staged on the judges, and scheduling sends each run to a machine
+that already holds its problem's data.
+
+## In production
+
+**Judge0**, an open-source judge, runs submissions inside **isolate**, the sandbox
+built for programming olympiads, which applies per-run limits on CPU time, memory
+and processes with no network. They chose a purpose-built sandbox over a plain
+container because a judge needs CPU-time accounting and hard limits, not just
+filesystem isolation.
+
+**AWS Lambda** runs every function in a Firecracker microVM. That is why
+serverless is a credible judge: each invocation gets VM-level isolation from other
+tenants. The cost is the cold start and the per-account concurrency limit, which a
+contest's first minutes will find.
+
+A small judge runs containers with limits and no network on two dedicated
+machines, one queue, and accepts slow verdicts at contest start. That is fine until
+the contest is popular enough to need the 14:30 provisioning.
+
+## Common mistakes
+
+- **Judging on the API servers.** The cold open: blast radius is the whole machine.
+- **Ranking by verdict time.** The queue's delay becomes the contestant's penalty.
+- **Holding the submit request open until the verdict.** Timeouts produce resubmits,
+  which produce more timeouts.
+- **Trusting containers alone.** A shared kernel is a shared attack surface; stack
+  another layer or remove the secrets an escape would find.
+
+## In an interview
+
+"Design LeetCode" is graded on whether step 1 surfaces untrusted code and the
+contest spike - most candidates design a CRUD app with a "run" button. Step 3
+should produce the sandbox count (rate times judge time). The deep dive (step 5) is
+isolation layers and the async judge path; the follow-up is "it's 14:30, what
+happens?"
+
+What that sounds like at a senior level: *"Submissions are accepted and stamped
+immediately, then judged asynchronously by a separate fleet that holds no
+credentials. Each run gets CPU-time and memory limits, no network, and its own
+microVM, and tests are streamed in, never mounted. Ranking uses the accept
+timestamp, so judge lag never costs a contestant. At 150 a second and three seconds
+each we need about 450 sandboxes busy, so we pre-scale for the contest window rather
+than waiting for autoscaling, and cap each contestant at one pending submission per
+problem."*
+
+## Connections
+
+3.5's API Gateway authenticates contestants and limits their submission rate, the
+per-key limit 3.24 explained. 3.17's queue and workers carry the judging, with the
+work being someone else's code instead of yours. 3.19's serverless function becomes
+the second judge design, and its timeout and concurrency ceiling are exactly the
+constraints it is judged on. 3.15's CDN absorbs the 14:30 page burst, and its TTL is
+the failure mode. 2.2's question of where things go wrong becomes "where does a
+hostile input do the least damage".
+
+## Recap
+
+- Untrusted code runs on its own fleet, with no secrets, behind layered limits.
+- Sandbox layers each stop something different; a shared kernel is the gap
+  containers leave.
+- Accept immediately, judge asynchronously, rank on the accept time.
+- CPU time, not wall-clock time, or the verdict depends on the neighbors.
+- A contest is a scheduled spike: provision on the calendar.
+
+## Your turn
+
+**The product.** The judge from the opening: browsers call one API server, which
+compiles and runs every submission itself and stores submissions in a relational
+database.
+
+What it has to do:
+
+- Contestants' code never runs on a machine that serves other users' requests.
+- A burst of 150 submissions a second is absorbed without any submission request
+  timing out, and a submission the judge itself keeps failing on is set aside, not
+  retried forever.
+- Only signed-in contestants can submit, and each one's submission rate is limited
+  before the request reaches application code.
+- Verdicts are stored durably, and losing one API machine drops no requests.
+- One public hostname resolves to whatever fronts the product.
+
+**The exercise.** Move judging off the request path and onto something that can
+run a stranger's code. What runs it is yours to decide; more than one answer
+passes. Validate runs every rule in the registry; a queue with nowhere for failed
+work to go is an error on this project.
+
+**Stretch, optional and not graded.** A contestant discovers that submissions in
+one language are judged on faster machines than another. What would you change so
+the language choice never affects a verdict?
+
+**What you are not told**: what executes the code, how verdicts get back, or what
+sits in front of the API.
+
+## Next
+
+Tier 2's other projects, in any order. Price Tracking Service turns this around:
+instead of strangers sending you work, you go out to someone else's site 20 million
+times, and it can block you for asking too often.

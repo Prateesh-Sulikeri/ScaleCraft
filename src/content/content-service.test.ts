@@ -115,8 +115,8 @@ describe("search", () => {
   });
 
   it("matches chapters by title", () => {
-    const results = search("placeholder project");
-    expect(results.some((r) => r.type === "chapter" && r.id === "rwe-dummy-1")).toBe(true);
+    const results = search("url shortener");
+    expect(results.some((r) => r.type === "chapter" && r.id === "rwe-t1-bitly-url-shortener")).toBe(true);
   });
 
   it("returns no results for a query that matches nothing", () => {

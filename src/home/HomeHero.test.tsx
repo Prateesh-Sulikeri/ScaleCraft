@@ -18,7 +18,7 @@ describe("HomeHero", () => {
   it("states what ScaleCraft is", () => {
     render(<HomeHero continueTarget={chapterTarget} now={Date.now()} />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Design real systems.Understand every trade-off.");
-    expect(screen.getByText(/system design playground/)).toBeInTheDocument();
+    expect(screen.getByText(/get told exactly why a design breaks/)).toBeInTheDocument();
   });
 
   it("points the primary CTA at the resume target and names it", () => {
@@ -58,14 +58,14 @@ describe("HomeHero", () => {
     expect(screen.queryByText("Picking up at")).not.toBeInTheDocument();
   });
 
-  it("offers exactly one hero action - the changelog lives on the announcement card", () => {
+  it("offers exactly one hero link, plus the release chip", () => {
     render(<HomeHero continueTarget={chapterTarget} now={Date.now()} />);
     expect(screen.getAllByRole("link")).toHaveLength(1);
-    expect(screen.getAllByRole("button", { name: /Check Updates/ })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /What's new/ })).toHaveLength(1);
   });
 
-  it("includes the alpha announcement", () => {
+  it("shows a board with a validation explanation", () => {
     render(<HomeHero continueTarget={chapterTarget} now={Date.now()} />);
-    expect(screen.getByText("Alpha is live")).toBeInTheDocument();
+    expect(screen.getByText("Every read hits the database")).toBeInTheDocument();
   });
 });

@@ -7,7 +7,7 @@ improving latency and reliability for web applications.
 
 A Content Delivery Network (CDN) is a geographically distributed network 
 of proxy servers and cached data centers. It caches copies of frequently 
-accessed assets—such as images, videos, CSS, and JavaScript files—at 
+accessed assets - such as images, videos, CSS, and JavaScript files - at 
 various Point-of-Presence (PoP) locations worldwide. When a user makes a 
 request for content, the CDN directs that request to the closest available 
 edge node rather than forcing it back to the primary origin server. This 
@@ -16,7 +16,7 @@ reduces the load placed on the core infrastructure.
 
 ## Why do we need it?
 
-CDNs solve the problem of distance-dependent latency inherent in c
+CDNs solve the problem of distance-dependent latency inherent in
 centralized architectures. As user bases grow globally, relying solely on 
 a single origin data center introduces unacceptable delays (high Time To 
 First Byte) for distant users. Furthermore, high traffic volume can 
@@ -58,17 +58,10 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Cache Control Headers** | Defines TTLs and caching rules (e.g., 
-`Cache-Control: max-age`) for cached assets, determining cache validity at 
-the edge. |
-| **Origin Shielding** | Implements an intermediate layer of caching 
-between the PoPs and the origin to minimize redundant requests hitting the 
-core infrastructure. |
-| **Custom Error Handling** | Allows redirection or serving specific 
-static content when accessing non-existent resources (404 handling). |
-| **WAF Integration** | Deploys Web Application Firewalls at the edge 
-layer to inspect traffic and mitigate common attack vectors like XSS or 
-DDoS. |
+| **Cache Control Headers** | Defines TTLs and caching rules (e.g., `Cache-Control: max-age`) for cached assets, determining cache validity at the edge. |
+| **Origin Shielding** | Implements an intermediate layer of caching between the PoPs and the origin to minimize redundant requests hitting the core infrastructure. |
+| **Custom Error Handling** | Allows redirection or serving specific static content when accessing non-existent resources (404 handling). |
+| **WAF Integration** | Deploys Web Application Firewalls at the edge layer to inspect traffic and mitigate common attack vectors like XSS or DDoS. |
 
 ## Where is it used?
 
@@ -78,7 +71,7 @@ quality and low buffering times.
 and static asset bundles for rapid deployment.
 *   **Global APIs:** Caching read-only or infrequently changing API 
 responses to reduce latency for backend service calls.
-*   **E-commerce Platforms:** Serving product images, logos, and s
+*   **E-commerce Platforms:** Serving product images, logos, and
 stylesheet assets during high-traffic sales events.
 
 ## Key Points
@@ -91,7 +84,7 @@ headers (e.g., ETag, Cache-Control).
 topologically nearest PoP.
 *   Typically enhances availability by absorbing a significant portion of 
 volumetric DDoS attack traffic at the edge.
-*   Edge processing allows for running simple logic (like header m
+*   Edge processing allows for running simple logic (like header
 manipulation or A/B routing) without involving the origin compute layer.
 
 ## Related Components

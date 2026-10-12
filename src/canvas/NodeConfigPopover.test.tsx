@@ -99,6 +99,6 @@ describe("NodeConfigPopover", () => {
       api.getState().openConfigPopover("n2", { x: 10, y: 10 });
     });
     expect(screen.getByText("Instances")).toBeInTheDocument();
-    expect(screen.getByRole("spinbutton")).toHaveValue(2);
+    expect(screen.getAllByRole("spinbutton").find((e) => e.getAttribute("name") === "instances")).toHaveValue(2);
   });
 });

@@ -1,0 +1,61 @@
+Every exercise so far had an expected shape, with a few accepted variations,
+and Submit checked your graph against it. That is how a course teaches a
+component. It is not how a design is judged in an interview or in a review,
+where many designs are acceptable and the question is whether yours contains a
+mistake you should have known better than to make.
+
+This checkpoint switches to that posture. The brief is deliberately incomplete.
+Many designs pass. Submit fails a design only for a mistake this course has
+already taught - and when it does, the explanation is the one you read when you
+learned it. It is the same posture every Real World Extraction project uses from
+here on, met first with a palette you already know.
+
+## Connections
+
+What changes is not the material but what counts as wrong:
+
+| | Every earlier checkpoint | This one |
+|---|---|---|
+| The brief | Complete: every requirement stated | Incomplete: you decide what matters and say so |
+| What passes | A design containing the expected shape | Any design with no taught anti-pattern in it |
+| What fails | A missing, misplaced or misconfigured component | A mistake the course named: a split brain, a queue whose failures vanish, a load balancer in front of one instance, a perimeter that filters nothing, a client wired to a database, a request path that loops, a connection the components themselves refuse |
+| A warning | A note you could ignore | Taught anti-patterns fail; a stray unconnected card stays a note |
+
+Two habits matter more than any component here. **Write your assumptions down** -
+in a comment on the canvas, the way you would say them aloud to an interviewer -
+because an incomplete brief means some of your decisions are guesses, and a
+stated guess is a design decision while an unstated one is a gap. And **build
+the smallest design that answers what you assumed**, then grow it only where a
+requirement pushes: a palette of 27 does not mean a design of 27.
+
+## Your turn
+
+**The product.** A ticketing service for concerts and sports. Venues publish
+events with seat maps; fans browse, search and buy tickets. Most of the year it
+is quiet. When a major tour goes on sale, two million fans arrive in the first
+ten minutes for 60,000 seats.
+
+What you know:
+
+- A seat can never be sold to two people.
+- Fans receive their tickets by email.
+- Venues need sales reports.
+- When a big sale opens, the system must stay up for the fans who are buying,
+  even if it cannot serve everyone who arrived.
+
+That is all. How many venues, how fresh search must be, how long a seat may be
+held at checkout, what happens to a fan who does not get in - you decide, and the
+first thing on your canvas should be a comment saying what you decided.
+
+**How it is judged**: Submit passes any design that takes requests in through
+networking, does work in compute, and keeps or hands off data somewhere - and
+contains none of the anti-patterns in the table above. Validate shows every
+warning with its full explanation before you submit. The Debrief shows one
+reference design afterwards; it is one answer, not the answer.
+
+## Next
+
+This checkpoint completes Building Blocks. Checkpoint G already opened the
+second tier of Real World Extraction; this one opens the third and beyond, where
+every project is built this way - a real product, a brief that leaves things out
+on purpose, and a design that is yours to defend.
