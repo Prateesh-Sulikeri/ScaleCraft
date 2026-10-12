@@ -40,6 +40,11 @@ export type CurriculumChapter = {
    *  entry — domain groups only exist to help learners follow an RWE thread
    *  vertically across tiers. */
   domain: string | null;
+  /** Components this chapter is about, shown as icon plates on its Learning
+   *  Path row. Authored, because palettes are cumulative and cannot say what
+   *  a chapter focuses on. Omitted: the row falls back to the components the
+   *  chapter introduces (BB) or requires (RWE). Keep it to 1-5 ids. */
+  focusComponentIds?: readonly string[];
 };
 
 export type CurriculumSection = {
