@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { releaseNotes } from "@/content/release-notes";
 import { SeeWhatsNewButton } from "./SeeWhatsNewButton";
 
@@ -10,15 +10,16 @@ describe("SeeWhatsNewButton", () => {
   it("opens the changelog, latest release first", () => {
     render(<SeeWhatsNewButton now={RELEASED_AT} />);
     expect(screen.queryByText("Release notes")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Check Updates/ }));
+    fireEvent.click(screen.getByRole("button", { name: /What's new/ }));
     expect(screen.getByText("Release notes")).toBeInTheDocument();
-    expect(screen.getByText(`v${releaseNotes[0].version}`)).toBeInTheDocument();
-    expect(screen.getByText(releaseNotes[0].highlights[0].title)).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(`v${releaseNotes[0].version}`)).toBeInTheDocument();
+    expect(within(dialog).getByText(releaseNotes[0].highlights[0].title)).toBeInTheDocument();
   });
 
   it("closes the changelog again", () => {
     render(<SeeWhatsNewButton now={RELEASED_AT} />);
-    fireEvent.click(screen.getByRole("button", { name: /Check Updates/ }));
+    fireEvent.click(screen.getByRole("button", { name: /What's new/ }));
     fireEvent.click(screen.getByRole("button", { name: /close/i }));
     expect(screen.queryByText("Release notes")).not.toBeInTheDocument();
   });
@@ -36,6 +37,6 @@ describe("SeeWhatsNewButton", () => {
   it("holds the NEW marker back until the client knows the date", () => {
     render(<SeeWhatsNewButton now={null} />);
     expect(screen.queryByText("New")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Check Updates/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /What's new/ })).toBeInTheDocument();
   });
 });

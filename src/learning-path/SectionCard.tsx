@@ -2,6 +2,7 @@
 
 import { CheckCircle2, ChevronDown } from "lucide-react";
 import { ChapterRow } from "./ChapterRow";
+import { DifficultyDots } from "./DifficultyDots";
 import { summarizeSection, deriveStatus, type ProgressInputs } from "@/curriculum/progress";
 import type { CourseId, CurriculumChapter, CurriculumSection } from "@/curriculum/types";
 
@@ -39,6 +40,12 @@ export function SectionCard({
 }: SectionCardProps) {
   const summary = summarizeSection(section, inputs);
   const isComplete = summary.total > 0 && summary.completed === summary.total;
+  // Stated once in the header when every row shares it - "foundational" on
+  // all 45 Building Blocks rows was noise, not information.
+  const difficulties = new Set(section.chapters.map((c) => c.difficulty));
+  const sharedDifficulty = difficulties.size === 1 ? section.chapters[0].difficulty : null;
+  // A tier with nothing to open reads as one compact list, not N greyed rows.
+  const allComingSoon = section.chapters.every((c) => c.chapterDefinitionId === null);
 
   return (
     <div
@@ -57,6 +64,17 @@ export function SectionCard({
         </span>
         <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-foreground">{section.title}</span>
 
+        {sharedDifficulty && (
+          <span className="hidden shrink-0 items-center gap-1.5 text-xs text-foreground/45 sm:flex">
+            <DifficultyDots difficulty={sharedDifficulty} />
+            {sharedDifficulty}
+          </span>
+        )}
+        {allComingSoon && (
+          <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/50">
+            Coming soon
+          </span>
+        )}
         <span className="shrink-0 text-xs tabular-nums text-foreground/55">
           {summary.completed} / {summary.total}
         </span>
@@ -74,7 +92,22 @@ export function SectionCard({
         <div className="border-t border-border motion-safe:animate-[dropdown-enter_180ms_ease-out] motion-reduce:opacity-100">
           {/* Outside the toggle button on purpose: inside, every section's
            * accessible name would carry its whole summary sentence. */}
-          <p className="px-4 pt-3 pb-2 text-[13px] leading-relaxed text-foreground/55">{section.summary}</p>
+          <p className="max-w-[75ch] px-4 pt-2.5 pb-2.5 text-[12.5px] leading-relaxed text-foreground/50">
+            {section.summary}
+          </p>
+          {allComingSoon ? (
+            <ul className="flex flex-wrap gap-1.5 border-t border-border/60 px-4 py-3">
+              {visibleChapters.map((entry) => (
+                <li
+                  key={entry.slug}
+                  className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground/55"
+                >
+                  {entry.title}
+                  {entry.domain && <span className="text-foreground/35"> · {entry.domain}</span>}
+                </li>
+              ))}
+            </ul>
+          ) : (
           <ul className="flex flex-col border-t border-border/60">
             {visibleChapters.map((entry) => (
               <li key={entry.slug} className="border-b border-border/40 last:border-b-0">
@@ -87,10 +120,12 @@ export function SectionCard({
                     inputs.validationPassedDefinitionIds.has(entry.chapterDefinitionId)
                   }
                   isNext={entry.slug === upNextSlug}
+                  showDifficulty={!sharedDifficulty}
                 />
               </li>
             ))}
           </ul>
+          )}
         </div>
       )}
     </div>

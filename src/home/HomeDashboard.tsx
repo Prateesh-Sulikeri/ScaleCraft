@@ -1,10 +1,13 @@
 "use client";
 
+import { DOT_PLANE_STYLE, DraftingBackdrop } from "@/app/DraftingBackdrop";
 import { PageEnter } from "@/app/PageEnter";
 import { AtAGlanceCard } from "./AtAGlanceCard";
 import { HomeFooter } from "./HomeFooter";
 import { HomeHeader } from "./HomeHeader";
 import { HomeHero } from "./HomeHero";
+import { HowItWorks } from "./HowItWorks";
+import { SignInPrompt } from "./SignInPrompt";
 import { HOME_CONTAINER } from "./layout";
 import { ModeSection } from "./ModeSection";
 import { RecentActivityCard } from "./RecentActivityCard";
@@ -29,17 +32,16 @@ import { useHomeData } from "./use-home-data";
  * none of the graph machinery.
  */
 export function HomeDashboard() {
-  const { progressByCourse, continueTarget, activity, allActivity, stats, now, isSignedIn } = useHomeData();
+  const { progressByCourse, continueTarget, activity, allActivity, stats, now, isSignedIn, authResolved } =
+    useHomeData();
 
   return (
     <PageEnter>
       <div
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden"
-        style={{
-          backgroundImage: "radial-gradient(color-mix(in srgb, var(--border) 85%, transparent) 1px, transparent 1px)",
-          backgroundSize: "26px 26px",
-        }}
+        className="relative isolate flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden"
+        style={DOT_PLANE_STYLE}
       >
+        <DraftingBackdrop />
         <HomeHeader />
 
         {/* justify-center, not top-packed: on a 1440p-tall window the content is
@@ -48,16 +50,34 @@ export function HomeDashboard() {
            * viewport too - a column flex item never shrinks below its content,
            * so there is no spare space left for centering to distribute and
            * nothing can be pushed out of reach above the scroll origin. */}
-        <main className={`${HOME_CONTAINER} flex flex-1 flex-col justify-center gap-6 py-6`}>
+        <main className={`${HOME_CONTAINER} flex flex-1 flex-col justify-center gap-10 py-8`}>
           <HomeHero continueTarget={continueTarget} now={now} />
           <ModeSection progressByCourse={progressByCourse} />
 
-          {/* Activity is the narrower of the two - four stat tiles need more
-           * horizontal room than three activity rows do. */}
-          <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-            <RecentActivityCard activity={activity} allActivity={allActivity} now={now} isSignedIn={isSignedIn} />
-            <AtAGlanceCard stats={stats} />
-          </section>
+          {/* Held as reserved space until Clerk answers, so the signed-out
+           * skeleton never flashes in for a signed-in user. Signed out, the
+           * cards keep their labels so a visitor sees what gets tracked. */}
+          {!authResolved ? (
+            <div aria-hidden="true" className="min-h-[200px]" />
+          ) : (
+            <section className="relative">
+              {/* Activity is the narrower of the two - four stat tiles need
+               * more horizontal room than three activity rows do. */}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
+                <RecentActivityCard
+                  activity={activity}
+                  allActivity={allActivity}
+                  now={now}
+                  isSignedIn={isSignedIn}
+                  locked={!isSignedIn}
+                />
+                <AtAGlanceCard stats={stats} locked={!isSignedIn} />
+              </div>
+              {!isSignedIn && <SignInPrompt />}
+            </section>
+          )}
+
+          <HowItWorks />
         </main>
 
         <HomeFooter />

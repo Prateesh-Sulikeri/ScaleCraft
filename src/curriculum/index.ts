@@ -32,6 +32,13 @@ export function nextEntry(courseId: CourseId, slug: string): CurriculumChapter |
   return entries[index + 1];
 }
 
+/** The entry immediately before `slug`, the mirror of nextEntry. */
+export function previousEntry(courseId: CourseId, slug: string): CurriculumChapter | undefined {
+  const entries = allEntries(getCourse(courseId));
+  const index = entries.findIndex((c) => c.slug === slug);
+  return index > 0 ? entries[index - 1] : undefined;
+}
+
 /** Built once at module scope, same reason as slugByChapterDefinitionId
  * below. Slugs are globally unique across both courses (see manifest.ts), so
  * one flat map is safe. */

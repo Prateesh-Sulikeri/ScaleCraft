@@ -15,7 +15,23 @@ type RecentActivityCardProps = {
    *  since every row's timestamp is relative to it. */
   now: number | null;
   isSignedIn: boolean;
+  /** Signed out: static skeleton rows under Home's sign-in prompt. */
+  locked?: boolean;
 };
+
+/** Shape of an ActivityRow, no data. Static on purpose - nothing is loading. */
+function SkeletonRow() {
+  return (
+    <li className="flex items-center gap-3 py-3">
+      <span className="h-7 w-7 shrink-0 rounded-md bg-border/60" />
+      <span className="flex flex-1 flex-col gap-1.5">
+        <span className="h-2.5 w-2/5 rounded-sm bg-border/70" />
+        <span className="h-2 w-1/4 rounded-sm bg-border/45" />
+      </span>
+      <span className="h-2 w-10 rounded-sm bg-border/45" />
+    </li>
+  );
+}
 
 /**
  * What the learner last touched, drawn from state the app already writes -
@@ -26,7 +42,7 @@ type RecentActivityCardProps = {
  * touch of each thing, so a row is a current-state readout that happens to be
  * navigable. Row markup lives in ActivityRow.tsx, shared with the dialog.
  */
-export function RecentActivityCard({ activity, allActivity, now, isSignedIn }: RecentActivityCardProps) {
+export function RecentActivityCard({ activity, allActivity, now, isSignedIn, locked }: RecentActivityCardProps) {
   const [showAll, setShowAll] = useState(false);
   const ready = now != null;
 
@@ -38,7 +54,13 @@ export function RecentActivityCard({ activity, allActivity, now, isSignedIn }: R
       </h2>
 
       <div className="flex flex-1 flex-col px-5 py-2">
-        {!ready || activity.length === 0 ? (
+        {locked ? (
+          <ul aria-hidden="true" className="flex flex-col divide-y divide-border/70">
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
+          </ul>
+        ) : !ready || activity.length === 0 ? (
           <p className="px-1 py-6 text-sm leading-relaxed text-foreground/50">
             {isSignedIn
               ? "Nothing yet. Open a chapter or a board and it shows up here."
@@ -56,8 +78,9 @@ export function RecentActivityCard({ activity, allActivity, now, isSignedIn }: R
       <div className="mt-auto border-t border-border px-5 py-3">
         <button
           type="button"
+          disabled={locked}
           onClick={() => setShowAll(true)}
-          className="group inline-flex items-center gap-1.5 text-xs font-medium text-foreground/60 transition-colors duration-150 ease-out hover:text-foreground"
+          className="group inline-flex items-center gap-1.5 text-xs font-medium text-foreground/60 transition-colors duration-150 ease-out hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
         >
           View all activity
           <ArrowRight

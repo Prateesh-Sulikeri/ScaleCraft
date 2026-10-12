@@ -55,18 +55,26 @@ describe("MermaidBlock", () => {
     expect(container.textContent).toContain("diagram");
   });
 
-  it("initializes mermaid with the dark theme by default", async () => {
+  it("initializes mermaid's base theme from the app's color tokens", async () => {
+    document.documentElement.style.setProperty("--foreground", "#ededed");
+    document.documentElement.style.setProperty("--background", "#0a0a0a");
     renderBlock("graph TD; A-->B;", "dark");
     await waitFor(() =>
       expect(initialize).toHaveBeenCalledWith(
-        expect.objectContaining({ theme: "dark", startOnLoad: false, securityLevel: "strict" }),
+        expect.objectContaining({
+          theme: "base",
+          startOnLoad: false,
+          securityLevel: "strict",
+          themeVariables: expect.objectContaining({ primaryTextColor: "#ededed", background: "#0a0a0a" }),
+        }),
       ),
     );
+    document.documentElement.removeAttribute("style");
   });
 
-  it("initializes mermaid with the default (light) theme when resolvedTheme is light", async () => {
+  it("uses the base theme in light mode too", async () => {
     renderBlock("graph TD; A-->B;", "light");
-    await waitFor(() => expect(initialize).toHaveBeenCalledWith(expect.objectContaining({ theme: "default" })));
+    await waitFor(() => expect(initialize).toHaveBeenCalledWith(expect.objectContaining({ theme: "base" })));
   });
 
   it("shows an error message when mermaid.render rejects", async () => {

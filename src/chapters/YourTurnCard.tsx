@@ -3,6 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@clerk/nextjs";
+import { Boxes, ListChecks, type LucideIcon } from "lucide-react";
 import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { useRequireAuthAction } from "@/auth/useRequireAuthAction";
@@ -21,6 +22,17 @@ type YourTurnCardProps = {
   mode: ChapterDefinition["mode"];
   chapterSlug: string;
 };
+
+function TaskIcon({ Icon }: { Icon: LucideIcon }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--course-accent-line)] bg-[var(--course-accent-soft)] text-[var(--course-accent)]"
+    >
+      <Icon size={17} strokeWidth={1.75} />
+    </span>
+  );
+}
 
 const NEUTRAL_BUTTON =
   "border-border bg-background text-foreground hover:bg-border/40";
@@ -104,61 +116,67 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
   }
 
   return (
-    <div className="mt-8">
-      <div className="rounded-lg border border-border bg-panel">
+    <div className="mt-10">
+      <div data-testid="your-turn" className="rounded-xl border border-[var(--course-accent-line)] bg-[color:color-mix(in_srgb,var(--course-accent)_4%,var(--panel))]">
         {hasQuiz && (
-          <div className="flex items-center justify-between gap-4 px-5 py-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 id="knowledge-check" className="text-sm font-semibold text-foreground">
-                  Knowledge check
-                </h2>
-                {/* Same Draft treatment as the chapter title/QuestionPane —
-                 * dummy quiz content on a placeholder chapter must never read
-                 * as finished curriculum. */}
-                {chapter.placeholder && (
-                  <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70">
-                    Draft
-                  </span>
+          <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 gap-3.5">
+              <TaskIcon Icon={ListChecks} />
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 id="knowledge-check" className="scroll-mt-8 text-[15px] font-semibold text-foreground">
+                    Knowledge check
+                  </h2>
+                  {/* Same Draft treatment as the chapter title/QuestionPane —
+                   * dummy quiz content on a placeholder chapter must never read
+                   * as finished curriculum. */}
+                  {chapter.placeholder && (
+                    <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70">
+                      Draft
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-0.5 text-[13px] text-foreground/60">
+                  {chapter.quiz!.length} question{chapter.quiz!.length === 1 ? "" : "s"} · {EXAM_PASS_THRESHOLD}% to pass
+                </p>
+
+                {attemptCount > 0 && (
+                  <p className="mt-0.5 text-[13px] text-foreground/60">
+                    {passed ? `Passed · ${best}%` : `Attempt ${attemptCount} · Best score ${best}%`}
+                  </p>
                 )}
               </div>
-
-              <p className="mt-0.5 text-xs text-foreground/60">
-                {chapter.quiz!.length} question{chapter.quiz!.length === 1 ? "" : "s"} · {EXAM_PASS_THRESHOLD}% to pass
-              </p>
-
-              {attemptCount > 0 && (
-                <p className="mt-0.5 text-xs text-foreground/60">
-                  {passed ? `Passed · ${best}%` : `Attempt ${attemptCount} · Best score ${best}%`}
-                </p>
-              )}
             </div>
 
             <button
               type="button"
               onClick={() => requireAuth(locked ? handleViewResult : () => setView("exam"))}
-              className={`shrink-0 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${quizButtonClass}`}
+              className={`shrink-0 self-start rounded-md border px-4 py-2 sm:self-auto text-sm font-medium transition-colors ${quizButtonClass}`}
             >
               {locked ? "View your result" : attemptCount > 0 ? "Retake the quiz" : "Take the quiz"}
             </button>
           </div>
         )}
 
-        {hasQuiz && hasExercise && <div className="border-t border-border" />}
+        {hasQuiz && hasExercise && <div role="separator" className="border-t border-[var(--course-accent-line)]" />}
 
         {hasExercise && (
-          <div className="flex items-center justify-between gap-4 px-5 py-4">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Design exercise</h2>
-              <p className="mt-0.5 text-xs text-foreground/60">
-                Build it on the canvas and get validated against this chapter&apos;s target design.
-              </p>
+          <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 gap-3.5">
+              <TaskIcon Icon={Boxes} />
+              <div>
+                <h2 className="text-[15px] font-semibold text-foreground">Design exercise</h2>
+                <p className="mt-0.5 max-w-[42ch] text-[13px] text-foreground/60">
+                  Build it on the canvas and get validated against this chapter&apos;s target design.
+                </p>
+              </div>
             </div>
             {isSignedIn ? (
               <HeldTransitionLink
                 href={`/${mode}/${chapterSlug}`}
                 label="Opening the Design Editor…"
-                className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${exerciseButtonClass}`}
+                className={`inline-flex shrink-0 self-start items-center sm:self-auto justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${exerciseButtonClass}`}
               >
                 Begin exercise <span aria-hidden="true">&#8594;</span>
               </HeldTransitionLink>
@@ -166,7 +184,7 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
               <button
                 type="button"
                 onClick={() => requireAuth(() => {})}
-                className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${exerciseButtonClass}`}
+                className={`inline-flex shrink-0 self-start items-center sm:self-auto justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${exerciseButtonClass}`}
               >
                 Begin exercise <span aria-hidden="true">&#8594;</span>
               </button>
