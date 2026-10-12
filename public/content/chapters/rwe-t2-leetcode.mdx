@@ -61,19 +61,21 @@ its own sandbox, not 300 other contestants' requests.
 
 <Walkthrough
   title="Where the code runs"
-  description="Switch between judging on the API server and judging in a separate sandbox fleet. DNS is left out: it resolves the hostname once."
+  viewBoxWidth={820}
+  viewBoxHeight={378}
+  description="Switch between judging on the API server and judging in a separate sandbox fleet. DNS is left out: it resolves the hostname once. The Judge queue and Sandboxed judges exist only in the fleet design."
   algorithms={[
     { id: "inline", label: "Judged on the API server" },
     { id: "fleet", label: "Judged in a sandbox fleet" },
   ]}
   nodes={[
-    { id: "browser", kind: "component", componentId: "browser", label: "Contestant" },
-    { id: "gw", kind: "component", componentId: "api-gateway", label: "API Gateway" },
-    { id: "lb", kind: "component", componentId: "load-balancer", label: "Load Balancer" },
-    { id: "api", kind: "component", componentId: "app-server", label: "API" },
-    { id: "db", kind: "component", componentId: "sql-database", label: "Submissions" },
-    { id: "queue", kind: "component", componentId: "message-queue", label: "Judge queue" },
-    { id: "judge", kind: "component", componentId: "worker", label: "Sandboxed judges" },
+    { id: "browser", kind: "component", componentId: "browser", label: "Contestant", position: { x: 80, y: 63 } },
+    { id: "gw", kind: "component", componentId: "api-gateway", label: "API Gateway", position: { x: 80, y: 189 } },
+    { id: "lb", kind: "component", componentId: "load-balancer", label: "Load Balancer", position: { x: 300, y: 189 } },
+    { id: "api", kind: "component", componentId: "app-server", label: "API", position: { x: 520, y: 189 } },
+    { id: "db", kind: "component", componentId: "sql-database", label: "Submissions", position: { x: 520, y: 63 } },
+    { id: "queue", kind: "component", componentId: "message-queue", label: "Judge queue", position: { x: 520, y: 315 } },
+    { id: "judge", kind: "component", componentId: "worker", label: "Sandboxed judges", position: { x: 740, y: 315 } },
   ]}
   edges={[
     { id: "submit", source: "browser", target: "gw", kind: "request-flow" },
@@ -115,7 +117,7 @@ its own sandbox, not 300 other contestants' requests.
           faultEdgeIds: ["serve"],
         },
         fleet: {
-          caption: "First the API puts the submission id on the Judge queue. At 14:30 this is where the burst waits, instead of in held-open requests.",
+          caption: "Then the API puts the submission id on the Judge queue. At 14:30 this is where the burst waits, instead of in held-open requests.",
           focus: "enqueue",
         },
       },
@@ -125,8 +127,9 @@ its own sandbox, not 300 other contestants' requests.
       variants: {
         inline: {
           caption: "Contestants see errors and spinners and submit again, so the surviving API machines get more judging work, not less. More API machines only add more places for this to happen.",
-          faultEdgeIds: ["route"],
-          highlightNodeIds: ["browser", "gw"],
+          highlightNodeIds: ["browser", "gw", "lb"],
+          highlightEdgeIds: ["submit", "route", "serve"],
+          faultNodeIds: ["api"],
         },
         fleet: {
           caption: "A Sandboxed judge takes it and runs it with no network, capped CPU and memory, and its own kernel. The memory bomb kills that sandbox and nothing else.",

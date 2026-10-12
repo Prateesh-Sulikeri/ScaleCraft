@@ -36,12 +36,12 @@ a pool that scales.
   title="Four triggers, one system"
   description="A request, a clock, and a burst of uploads, each reaching the shape that fits it."
   nodes={[
-    { id: "gateway", kind: "component", componentId: "api-gateway", label: "API Gateway" },
-    { id: "app", kind: "component", componentId: "app-server", label: "App Server" },
-    { id: "db", kind: "component", componentId: "sql-database", label: "SQL Database" },
-    { id: "cron", kind: "component", componentId: "cron-job", label: "Cron Job" },
-    { id: "fn", kind: "component", componentId: "serverless-function", label: "Serverless Function" },
-    { id: "nosql", kind: "component", componentId: "nosql-database", label: "Listing Store" },
+    { id: "gateway", kind: "component", column: 0, componentId: "api-gateway", label: "API Gateway" },
+    { id: "app", kind: "component", column: 1, componentId: "app-server", label: "App Server" },
+    { id: "db", kind: "component", column: 2, componentId: "sql-database", label: "SQL Database" },
+    { id: "cron", kind: "component", column: 1, componentId: "cron-job", label: "Cron Job" },
+    { id: "fn", kind: "component", column: 1, componentId: "serverless-function", label: "Serverless Function" },
+    { id: "nosql", kind: "component", column: 2, componentId: "nosql-database", label: "Listing Store" },
   ]}
   edges={[
     { id: "serve", source: "gateway", target: "app", kind: "request-flow" },

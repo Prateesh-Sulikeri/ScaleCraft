@@ -24,12 +24,12 @@ server does not cook, they put a ticket on the rail and go take the next table.
   title="One publish, with the work moved off the request path"
   description="A listing is published, a job is retried, and a job that always fails is set aside."
   nodes={[
-    { id: "browser", kind: "component", componentId: "browser", label: "Browser" },
-    { id: "app", kind: "component", componentId: "app-server", label: "App Server" },
-    { id: "db", kind: "component", componentId: "sql-database", label: "SQL Database" },
-    { id: "queue", kind: "component", componentId: "message-queue", label: "Message Queue" },
-    { id: "worker", kind: "component", componentId: "worker", label: "Worker" },
-    { id: "dlq", kind: "component", componentId: "dead-letter-queue", label: "Dead Letter Queue" },
+    { id: "browser", kind: "component", column: 0, componentId: "browser", label: "Browser" },
+    { id: "app", kind: "component", column: 1, componentId: "app-server", label: "App Server" },
+    { id: "db", kind: "component", column: 2, componentId: "sql-database", label: "SQL Database" },
+    { id: "queue", kind: "component", column: 2, componentId: "message-queue", label: "Message Queue" },
+    { id: "worker", kind: "component", column: 3, componentId: "worker", label: "Worker" },
+    { id: "dlq", kind: "component", column: 3, componentId: "dead-letter-queue", label: "Dead Letter Queue" },
   ]}
   edges={[
     { id: "ask", source: "browser", target: "app", kind: "request-flow" },

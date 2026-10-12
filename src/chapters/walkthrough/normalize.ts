@@ -2,7 +2,7 @@ import type { XY } from "@/lib/graph";
 import type { ComponentCategory } from "@/content/components/types";
 import { getComponent } from "@/content/components/registry";
 import { computeLayout } from "./layout";
-import { NODE_HEIGHT, NODE_WIDTH } from "./geometry";
+import { computeEdgeGeometry, NODE_HEIGHT, NODE_WIDTH, parseCubic, pointOnCubic } from "./geometry";
 import type {
   WalkthroughAlgorithm,
   WalkthroughEdge,
@@ -27,6 +27,7 @@ export type WalkthroughIssue = {
     | "fault-edge-missing"
     | "variant-unknown-algorithm"
     | "node-overlap"
+    | "edge-crosses-node"
     | "node-outside-viewbox"
     | "caption-too-long"
     | "too-few-steps"
@@ -69,6 +70,24 @@ export type ResolvedWalkthrough = {
 
 function rectsOverlap(a: XY, b: XY): boolean {
   return Math.abs(a.x - b.x) < NODE_WIDTH && Math.abs(a.y - b.y) < NODE_HEIGHT;
+}
+
+/** Ids of cards (other than its own endpoints) that an edge's drawn curve
+ * passes through. Sampled, not solved: 1/50 steps is finer than a card. */
+function nodesCrossedByEdge(path: string, edge: WalkthroughEdge, nodes: ResolvedWalkthroughNode[]): string[] {
+  const segment = parseCubic(path);
+  if (!segment) return [];
+  const crossed = new Set<string>();
+  for (let i = 1; i < 50; i++) {
+    const point = pointOnCubic(segment, i / 50);
+    for (const node of nodes) {
+      if (node.id === edge.source || node.id === edge.target) continue;
+      if (Math.abs(point.x - node.position.x) < NODE_WIDTH / 2 && Math.abs(point.y - node.position.y) < NODE_HEIGHT / 2) {
+        crossed.add(node.id);
+      }
+    }
+  }
+  return [...crossed];
 }
 
 function withinViewBox(center: XY, viewBoxWidth: number, viewBoxHeight: number): boolean {
@@ -299,6 +318,15 @@ export function normalizeWalkthrough(props: WalkthroughProps): {
       if (rectsOverlap(resolvedNodes[i].position, resolvedNodes[j].position)) {
         issues.push({ code: "node-overlap", message: `nodes "${resolvedNodes[i].id}" and "${resolvedNodes[j].id}" overlap` });
       }
+    }
+  }
+  // An edge drawn through a card reads as passing through that component.
+  const paths = computeEdgeGeometry(resolvedNodes, props.edges);
+  for (const edge of props.edges) {
+    const path = paths.get(edge.id);
+    if (!path) continue;
+    for (const nodeId of nodesCrossedByEdge(path, edge, resolvedNodes)) {
+      issues.push({ code: "edge-crosses-node", message: `edge "${edge.id}" is drawn through node "${nodeId}"` });
     }
   }
   for (const node of resolvedNodes) {

@@ -52,20 +52,22 @@ there, overdue, when anything comes back to look.
 
 <Walkthrough
   title="Two dispatchers, one due run"
+  viewBoxWidth={820}
+  viewBoxHeight={630}
   description="Switch between every dispatcher claiming runs and one elected dispatcher. Schedule 4471 is due at 09:00."
   algorithms={[
     { id: "claim", label: "Each run claimed" },
     { id: "elect", label: "One dispatcher elected" },
   ]}
   nodes={[
-    { id: "tick", kind: "component", componentId: "cron-job", label: "Tick" },
-    { id: "dispa", kind: "component", componentId: "app-server", label: "Dispatcher A" },
-    { id: "db", kind: "component", componentId: "sql-database", label: "Schedules" },
-    { id: "dispb", kind: "component", componentId: "app-server", label: "Dispatcher B" },
-    { id: "lock", kind: "component", componentId: "lock-service", label: "Lock Service" },
-    { id: "coord", kind: "component", componentId: "coordinator", label: "Coordinator" },
-    { id: "queue", kind: "component", componentId: "message-queue", label: "Run queue" },
-    { id: "exec", kind: "component", componentId: "worker", label: "Executors" },
+    { id: "tick", kind: "component", componentId: "cron-job", label: "Tick", position: { x: 80, y: 252 } },
+    { id: "dispa", kind: "component", componentId: "app-server", label: "Dispatcher A", position: { x: 410, y: 189 } },
+    { id: "db", kind: "component", componentId: "sql-database", label: "Schedules", position: { x: 740, y: 63 } },
+    { id: "dispb", kind: "component", componentId: "app-server", label: "Dispatcher B", position: { x: 410, y: 315 } },
+    { id: "lock", kind: "component", componentId: "lock-service", label: "Lock Service", position: { x: 740, y: 189 } },
+    { id: "coord", kind: "component", componentId: "coordinator", label: "Coordinator", position: { x: 740, y: 315 } },
+    { id: "queue", kind: "component", componentId: "message-queue", label: "Run queue", position: { x: 740, y: 441 } },
+    { id: "exec", kind: "component", componentId: "worker", label: "Executors", position: { x: 740, y: 567 } },
   ]}
   edges={[
     { id: "ta", source: "tick", target: "dispa", kind: "request-flow" },
@@ -102,12 +104,12 @@ there, overdue, when anything comes back to look.
       caption: "Deciding who enqueues 4471.",
       variants: {
         claim: {
-          caption: "Each asks the Lock Service for the key 4471@09:00. Dispatcher A gets it; Dispatcher B is refused and moves to the next due row.",
-          focus: ["la", "lb"],
+          caption: "Each asks the Lock Service for the key 4471@09:00. Dispatcher A gets it and enqueues 4471 on the Run queue; Dispatcher B is refused and moves to the next due row.",
+          focus: ["la", "lb", "qa"],
         },
         elect: {
-          caption: "Dispatcher A records and enqueues 4471 without asking anyone, because it is the only dispatcher allowed to act. next_run_at advances with the record.",
-          focus: "qa",
+          caption: "Dispatcher A records the run in Schedules and enqueues 4471 without asking anyone, because it is the only dispatcher allowed to act. next_run_at advances with the record.",
+          focus: ["ra", "qa"],
         },
       },
     },

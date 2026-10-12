@@ -38,13 +38,15 @@ histories of the same data cannot be merged safely after the fact.
 
 <Walkthrough
   title="Losing the leader without losing the database"
+  viewBoxWidth={600}
+  viewBoxHeight={378}
   description="Three database nodes, a coordinator group and the app tier, through one failover."
   nodes={[
-    { id: "app", kind: "component", componentId: "app-server", label: "App Server", column: 0 },
-    { id: "coord", kind: "component", componentId: "coordinator", label: "Coordinator group", column: 0 },
-    { id: "a", kind: "custom", icon: "database", label: "Node A", category: "distributed-systems", column: 1 },
-    { id: "b", kind: "custom", icon: "database", label: "Node B", category: "distributed-systems", column: 2 },
-    { id: "c", kind: "custom", icon: "database", label: "Node C", category: "distributed-systems", column: 2 },
+    { id: "app", kind: "component", componentId: "app-server", label: "App Server", position: { x: 80, y: 63 } },
+    { id: "coord", kind: "component", componentId: "coordinator", label: "Coordinator group", position: { x: 80, y: 315 } },
+    { id: "a", kind: "custom", icon: "database", label: "Node A", category: "distributed-systems", position: { x: 300, y: 63 } },
+    { id: "b", kind: "custom", icon: "database", label: "Node B", category: "distributed-systems", position: { x: 300, y: 315 } },
+    { id: "c", kind: "custom", icon: "database", label: "Node C", category: "distributed-systems", position: { x: 520, y: 63 } },
   ]}
   edges={[
     { id: "ask", source: "app", target: "coord", kind: "control" },
