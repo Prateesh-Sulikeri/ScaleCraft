@@ -86,6 +86,7 @@ move it last saw, and the server sends what it missed.
     { id: "s1", source: "cs1", target: "live", kind: "request-flow" },
     { id: "s2", source: "cs2", target: "live", kind: "request-flow" },
     { id: "save", source: "cs1", target: "db", kind: "request-flow" },
+    { id: "save2", source: "cs2", target: "db", kind: "request-flow" },
   ]}
   steps={[
     {
@@ -115,7 +116,6 @@ move it last saw, and the server sends what it missed.
         push: {
           caption: "Connection server 2 is subscribed to the game's channel because it holds Black's connection. It receives move 31 and pushes it to Black: about 20 ms end to end.",
           highlightNodeIds: ["live", "cs2", "black"],
-          highlightEdgeIds: ["s2", "to2", "b"],
         },
       },
     },

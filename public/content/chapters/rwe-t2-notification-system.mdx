@@ -65,18 +65,20 @@ instead of discovering it through 429s.
 
 <Walkthrough
   title="One event through a pipeline per channel"
+  viewBoxWidth={820}
+  viewBoxHeight={504}
   description="An order-delivered event for a user who allows push and SMS but has turned off email. The providers sit outside your system."
   nodes={[
-    { id: "orders", kind: "component", componentId: "client", label: "Order service" },
-    { id: "router", kind: "component", componentId: "app-server", label: "Notification service" },
-    { id: "state", kind: "component", componentId: "distributed-cache", label: "Preferences + dedup keys" },
-    { id: "qpush", kind: "component", componentId: "message-queue", label: "Push queue" },
-    { id: "qsms", kind: "component", componentId: "message-queue", label: "SMS queue" },
-    { id: "wpush", kind: "component", componentId: "worker", label: "Push senders" },
-    { id: "wsms", kind: "component", componentId: "worker", label: "SMS senders" },
-    { id: "dlq", kind: "component", componentId: "dead-letter-queue", label: "SMS dead letters" },
-    { id: "apns", kind: "custom", icon: "radio", label: "Push gateway", category: "networking" },
-    { id: "carrier", kind: "custom", icon: "globe", label: "SMS provider", category: "networking" },
+    { id: "orders", kind: "component", componentId: "client", label: "Order service", position: { x: 80, y: 63 } },
+    { id: "router", kind: "component", componentId: "app-server", label: "Notification service", position: { x: 80, y: 189 } },
+    { id: "state", kind: "component", componentId: "distributed-cache", label: "Preferences + dedup keys", position: { x: 300, y: 63 } },
+    { id: "qpush", kind: "component", componentId: "message-queue", label: "Push queue", position: { x: 300, y: 189 } },
+    { id: "qsms", kind: "component", componentId: "message-queue", label: "SMS queue", position: { x: 300, y: 315 } },
+    { id: "wpush", kind: "component", componentId: "worker", label: "Push senders", position: { x: 520, y: 189 } },
+    { id: "wsms", kind: "component", componentId: "worker", label: "SMS senders", position: { x: 520, y: 315 } },
+    { id: "dlq", kind: "component", componentId: "dead-letter-queue", label: "SMS dead letters", position: { x: 520, y: 441 } },
+    { id: "apns", kind: "custom", icon: "radio", label: "Push gateway", category: "networking", position: { x: 740, y: 189 } },
+    { id: "carrier", kind: "custom", icon: "globe", label: "SMS provider", category: "networking", position: { x: 740, y: 315 } },
   ]}
   edges={[
     { id: "call", source: "orders", target: "router", kind: "request-flow" },

@@ -52,7 +52,7 @@ cleanest answer that question has ever had.
     { id: "arrive", source: "browser", target: "lb", kind: "request-flow" },
     { id: "distribute", source: "lb", target: "app", kind: "request-flow" },
     { id: "lookup", source: "app", target: "cache", kind: "request-flow" },
-    { id: "miss", source: "cache", target: "store", kind: "request-flow" },
+    { id: "miss", source: "app", target: "store", kind: "request-flow" },
     { id: "write", source: "app", target: "store", kind: "request-flow" },
   ]}
   steps={[
@@ -83,8 +83,8 @@ cleanest answer that question has ever had.
           focus: "lookup",
         },
         shorten: {
-          caption: "A write has nothing to look up. The App Server generates a short key and goes straight to the store - the Cache is not on this path.",
-          focus: "write",
+          caption: "A write has nothing to look up, so the Cache is not on this path. The App Server makes a short key: hashed from the URL or taken from a counter, the choice the next section is about.",
+          highlightNodeIds: ["app"],
         },
       },
     },
@@ -93,11 +93,12 @@ cleanest answer that question has ever had.
       focus: "miss",
       variants: {
         redirect: {
-          caption: "On a miss the Cache falls through to the store, and the App Server keeps the answer under that key. The next click on this link stops one hop earlier.",
+          caption: "On a miss the App Server reads the store itself, then keeps the answer in the Cache under that key. The next click on this link stops at the Cache.",
           focus: "miss",
+          highlightNodeIds: ["cache"],
         },
         shorten: {
-          caption: "Before the key is kept, the store is read once to confirm nothing already owns it. A read on the write path costs nothing at 15 writes a second.",
+          caption: "The App Server writes the new row to the store. A hashed key reads the store first to check nothing owns it; a counter key skips that read. At 15 writes a second, either is cheap.",
           focus: "write",
         },
       },

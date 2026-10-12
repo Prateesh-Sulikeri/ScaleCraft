@@ -71,22 +71,24 @@ products and the rationing problem shrinks.
 
 <Walkthrough
   title="One check, one price drop"
+  viewBoxWidth={600}
+  viewBoxHeight={630}
   description="Switch between checking everything every hour and an adaptive, rate-governed cadence. Product 88213 drops from $249 to $199."
   algorithms={[
     { id: "hourly", label: "Every product, every hour" },
     { id: "adaptive", label: "Adaptive, within budget" },
   ]}
   nodes={[
-    { id: "tick", kind: "component", componentId: "cron-job", label: "Tick" },
-    { id: "planner", kind: "component", componentId: "worker", label: "Planner" },
-    { id: "fq", kind: "component", componentId: "message-queue", label: "Fetch queue" },
-    { id: "fetch", kind: "component", componentId: "worker", label: "Fetchers" },
-    { id: "site", kind: "custom", icon: "globe", label: "Retailer site", category: "networking" },
-    { id: "bus", kind: "component", componentId: "event-bus", label: "Price changes" },
-    { id: "match", kind: "component", componentId: "worker", label: "Alert matcher" },
-    { id: "watches", kind: "component", componentId: "sql-database", label: "Watches" },
-    { id: "hist", kind: "component", componentId: "worker", label: "History writer" },
-    { id: "prices", kind: "component", componentId: "nosql-database", label: "Price history" },
+    { id: "tick", kind: "component", componentId: "cron-job", label: "Tick", position: { x: 80, y: 63 } },
+    { id: "planner", kind: "component", componentId: "worker", label: "Planner", position: { x: 300, y: 63 } },
+    { id: "fq", kind: "component", componentId: "message-queue", label: "Fetch queue", position: { x: 300, y: 189 } },
+    { id: "fetch", kind: "component", componentId: "worker", label: "Fetchers", position: { x: 300, y: 315 } },
+    { id: "site", kind: "custom", icon: "globe", label: "Retailer site", category: "networking", position: { x: 520, y: 315 } },
+    { id: "bus", kind: "component", componentId: "event-bus", label: "Price changes", position: { x: 300, y: 441 } },
+    { id: "match", kind: "component", componentId: "worker", label: "Alert matcher", position: { x: 80, y: 441 } },
+    { id: "watches", kind: "component", componentId: "sql-database", label: "Watches", position: { x: 80, y: 567 } },
+    { id: "hist", kind: "component", componentId: "worker", label: "History writer", position: { x: 520, y: 441 } },
+    { id: "prices", kind: "component", componentId: "nosql-database", label: "Price history", position: { x: 520, y: 567 } },
   ]}
   edges={[
     { id: "start", source: "tick", target: "planner", kind: "request-flow" },
