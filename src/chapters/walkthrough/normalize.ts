@@ -2,7 +2,7 @@ import type { XY } from "@/lib/graph";
 import type { ComponentCategory } from "@/content/components/types";
 import { getComponent } from "@/content/components/registry";
 import { computeLayout } from "./layout";
-import { NODE_HEIGHT, NODE_WIDTH } from "./geometry";
+import { computeEdgeGeometry, NODE_HEIGHT, NODE_WIDTH, parseCubic, pointOnCubic } from "./geometry";
 import type {
   WalkthroughAlgorithm,
   WalkthroughEdge,
@@ -23,8 +23,11 @@ export type WalkthroughIssue = {
     | "highlight-node-missing"
     | "highlight-edge-missing"
     | "focus-edge-missing"
+    | "fault-node-missing"
+    | "fault-edge-missing"
     | "variant-unknown-algorithm"
     | "node-overlap"
+    | "edge-crosses-node"
     | "node-outside-viewbox"
     | "caption-too-long"
     | "too-few-steps"
@@ -41,12 +44,16 @@ export type ResolvedWalkthroughStepVariant = {
   caption: string;
   highlightNodeIds: string[];
   highlightEdgeIds: string[];
+  faultNodeIds: string[];
+  faultEdgeIds: string[];
 };
 
 export type ResolvedWalkthroughStep = {
   caption: string;
   highlightNodeIds: string[];
   highlightEdgeIds: string[];
+  faultNodeIds: string[];
+  faultEdgeIds: string[];
   variants?: Record<string, ResolvedWalkthroughStepVariant>;
 };
 
@@ -63,6 +70,24 @@ export type ResolvedWalkthrough = {
 
 function rectsOverlap(a: XY, b: XY): boolean {
   return Math.abs(a.x - b.x) < NODE_WIDTH && Math.abs(a.y - b.y) < NODE_HEIGHT;
+}
+
+/** Ids of cards (other than its own endpoints) that an edge's drawn curve
+ * passes through. Sampled, not solved: 1/50 steps is finer than a card. */
+function nodesCrossedByEdge(path: string, edge: WalkthroughEdge, nodes: ResolvedWalkthroughNode[]): string[] {
+  const segment = parseCubic(path);
+  if (!segment) return [];
+  const crossed = new Set<string>();
+  for (let i = 1; i < 50; i++) {
+    const point = pointOnCubic(segment, i / 50);
+    for (const node of nodes) {
+      if (node.id === edge.source || node.id === edge.target) continue;
+      if (Math.abs(point.x - node.position.x) < NODE_WIDTH / 2 && Math.abs(point.y - node.position.y) < NODE_HEIGHT / 2) {
+        crossed.add(node.id);
+      }
+    }
+  }
+  return [...crossed];
 }
 
 function withinViewBox(center: XY, viewBoxWidth: number, viewBoxHeight: number): boolean {
@@ -123,12 +148,18 @@ function detectRequestFlowCycle(nodes: { id: string }[], edges: WalkthroughEdge[
  * endpoints, merged with any explicit arrays - then validates every id in
  * the result resolves. Shared by steps and their variants. */
 function expandHighlights(
-  input: { focus?: string | string[]; highlightNodeIds?: string[]; highlightEdgeIds?: string[] },
+  input: {
+    focus?: string | string[];
+    highlightNodeIds?: string[];
+    highlightEdgeIds?: string[];
+    faultNodeIds?: string[];
+    faultEdgeIds?: string[];
+  },
   edgeById: Map<string, WalkthroughEdge>,
   declaredNodeIds: Set<string>,
   issues: WalkthroughIssue[],
   location: string,
-): { highlightNodeIds: string[]; highlightEdgeIds: string[] } {
+): { highlightNodeIds: string[]; highlightEdgeIds: string[]; faultNodeIds: string[]; faultEdgeIds: string[] } {
   const focusIds = input.focus === undefined ? [] : Array.isArray(input.focus) ? input.focus : [input.focus];
   const edgeIds = new Set(input.highlightEdgeIds ?? []);
   const nodeIds = new Set(input.highlightNodeIds ?? []);
@@ -155,7 +186,20 @@ function expandHighlights(
     }
   }
 
-  return { highlightNodeIds: [...nodeIds], highlightEdgeIds: [...edgeIds] };
+  const faultNodeIds = input.faultNodeIds ?? [];
+  const faultEdgeIds = input.faultEdgeIds ?? [];
+  for (const id of faultEdgeIds) {
+    if (!edgeById.has(id)) {
+      issues.push({ code: "fault-edge-missing", message: `${location}: faulted edge id "${id}" is not declared` });
+    }
+  }
+  for (const id of faultNodeIds) {
+    if (!declaredNodeIds.has(id)) {
+      issues.push({ code: "fault-node-missing", message: `${location}: faulted node id "${id}" is not declared` });
+    }
+  }
+
+  return { highlightNodeIds: [...nodeIds], highlightEdgeIds: [...edgeIds], faultNodeIds, faultEdgeIds };
 }
 
 function resolveStep(
@@ -274,6 +318,15 @@ export function normalizeWalkthrough(props: WalkthroughProps): {
       if (rectsOverlap(resolvedNodes[i].position, resolvedNodes[j].position)) {
         issues.push({ code: "node-overlap", message: `nodes "${resolvedNodes[i].id}" and "${resolvedNodes[j].id}" overlap` });
       }
+    }
+  }
+  // An edge drawn through a card reads as passing through that component.
+  const paths = computeEdgeGeometry(resolvedNodes, props.edges);
+  for (const edge of props.edges) {
+    const path = paths.get(edge.id);
+    if (!path) continue;
+    for (const nodeId of nodesCrossedByEdge(path, edge, resolvedNodes)) {
+      issues.push({ code: "edge-crosses-node", message: `edge "${edge.id}" is drawn through node "${nodeId}"` });
     }
   }
   for (const node of resolvedNodes) {

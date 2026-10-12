@@ -126,14 +126,18 @@ export function TableOfContents({ headings, targetRef, onNavigate }: TableOfCont
 
   return (
     <nav aria-label="On this page">
-      <ul className="flex flex-col gap-1.5 text-sm">
+      <ul className="flex flex-col border-l border-border text-[13px] leading-snug">
         {items.map((h) => (
-          <li key={h.id} style={{ paddingLeft: Math.max(0, h.level - 2) * 12 }}>
+          <li key={h.id}>
             <a
               href={`#${h.id}`}
               onClick={onNavigate}
-              className={`block truncate transition-colors ${
-                activeId === h.id ? "font-medium text-foreground" : "text-foreground/60 hover:text-foreground"
+              aria-current={activeId === h.id ? "location" : undefined}
+              style={{ paddingLeft: 12 + Math.max(0, h.level - 2) * 12 }}
+              className={`-ml-px line-clamp-2 border-l py-1 pr-1 transition-colors duration-150 ease-out ${
+                activeId === h.id
+                  ? "border-[var(--course-accent)] font-medium text-foreground"
+                  : "border-transparent text-foreground/55 hover:text-foreground"
               }`}
             >
               {h.text}

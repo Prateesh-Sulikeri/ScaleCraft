@@ -203,6 +203,8 @@ composition gate means - verified against
 
 Two notes a reviewer should weigh:
 
+- **Superseded 2026-10-07:** `ruleSeverity` now makes both warnings errors here,
+  so each fails Submit. The original note follows.
 - **The two warnings do not block Submit** (`runChapterValidation` gates on
   `errorCount`). `single-instance-load-balancer` is therefore not what enforces
   the redundancy requirement - the blueprint's config predicate is (§8). The
@@ -345,6 +347,7 @@ no replication edge; and the instance count left at 1.
   progress mid-build other than Validate, which cannot see missing
   requirements. Not a content problem and not fixed here; flagged because R1 is
   the first exercise long enough for it to matter.
+- **Resolved 2026-10-07** by `ruleSeverity` (both rules are errors here). Original:
 - **The two warning-severity rules cannot fail this chapter.** A design with an
   `allow-all` firewall passes R1 while the lesson's own Connections section says
   a firewall that filters nothing earns nothing. Making that an error is a rule

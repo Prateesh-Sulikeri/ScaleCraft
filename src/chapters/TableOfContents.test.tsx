@@ -125,8 +125,8 @@ describe("TableOfContents", () => {
     const { container } = render(
       <TableOfContents headings={headings} targetRef={createRef<HTMLElement>()} />,
     );
-    const li = container.querySelector("li");
-    expect(li?.getAttribute("style")).toContain("0px");
+    const link = container.querySelector("a");
+    expect(link?.getAttribute("style")).toContain("padding-left: 12px");
   });
 
   it("renders all h2+ headings as links", () => {
@@ -140,15 +140,9 @@ describe("TableOfContents", () => {
     const { container } = render(
       <TableOfContents headings={testHeadings} targetRef={createRef<HTMLElement>()} />,
     );
-    const lis = container.querySelectorAll("li");
-    const overviewLi = lis[0];
-    const detailsLi = lis[1];
-
-    const overviewStyle = overviewLi.getAttribute("style");
-    const detailsStyle = detailsLi.getAttribute("style");
-
-    expect(overviewStyle).toContain("0px");
-    expect(detailsStyle).toContain("12px");
+    const links = container.querySelectorAll("a");
+    expect(links[0].getAttribute("style")).toContain("padding-left: 12px");
+    expect(links[1].getAttribute("style")).toContain("padding-left: 24px");
   });
 
   it("does not set up observer when targetRef is null", () => {
@@ -171,7 +165,7 @@ describe("TableOfContents", () => {
     expect(list).toBeInTheDocument();
   });
 
-  it("truncates long heading text", () => {
+  it("clamps long heading text to two lines", () => {
     const longHeadings = [
       {
         id: "long",
@@ -183,13 +177,13 @@ describe("TableOfContents", () => {
       <TableOfContents headings={longHeadings} targetRef={createRef<HTMLElement>()} />,
     );
     const link = container.querySelector("a");
-    expect(link).toHaveClass("truncate");
+    expect(link).toHaveClass("line-clamp-2");
   });
 
   it("applies hover styling to inactive links", () => {
     render(<TableOfContents headings={testHeadings} targetRef={createRef<HTMLElement>()} />);
     const link = screen.getByRole("link", { name: "Overview" });
-    expect(link).toHaveClass("text-foreground/60", "hover:text-foreground");
+    expect(link).toHaveClass("text-foreground/55", "hover:text-foreground");
   });
 
   it("renders navigation list items correctly", () => {

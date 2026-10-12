@@ -1,4 +1,4 @@
-import type { ComponentCategory } from "@/content/components/types";
+import { portAllows, type ComponentCategory, type ComponentDefinition } from "@/content/components/types";
 import type { EdgeKind } from "@/lib/graph";
 
 /**
@@ -77,4 +77,26 @@ export function legalKindsFor(source: ComponentCategory, target: ComponentCatego
  * component-relations.ts's precedence logic just for a cosmetic default. */
 export function pickDefaultKind(source: ComponentCategory, target: ComponentCategory): EdgeKind {
   return legalKindsFor(source, target)[0] ?? "request-flow";
+}
+
+const KIND_ORDER: EdgeKind[] = ["request-flow", "async", "replication", "control"];
+
+/** Like pickDefaultKind, but honours both components' declared contracts
+ * (including named exceptions), so a storage node -> Coordinator heartbeat
+ * defaults to `control`. Falls back to the category table. */
+export function pickDefaultKindFor(source: ComponentDefinition, target: ComponentDefinition): EdgeKind {
+  const out = source.relations?.outputs;
+  const inp = target.relations?.inputs;
+  if (out || inp) {
+    // The category table's own order first, so existing defaults hold.
+    const tableKinds = legalKindsFor(source.category, target.category);
+    const candidates = [...tableKinds, ...KIND_ORDER.filter((k) => !tableKinds.includes(k))];
+    const legal = candidates.find((kind) => {
+      const o = portAllows(out, target, kind);
+      const i = portAllows(inp, source, kind);
+      return o.categoryOk && o.kindOk && i.categoryOk && i.kindOk;
+    });
+    if (legal) return legal;
+  }
+  return pickDefaultKind(source.category, target.category);
 }

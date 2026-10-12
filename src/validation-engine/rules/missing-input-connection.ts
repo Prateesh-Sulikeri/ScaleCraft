@@ -33,12 +33,12 @@ export const missingInputConnection: ValidationRule = {
       const hasOutgoing = graph.edges.some((e) => e.source === n.id);
       if (!hasOutgoing) continue; // fully isolated — orphan-component.ts's job, not this rule's
 
-      results.push({ offendingNodeIds: [n.id], offendingEdgeIds: [] });
+      results.push({ offendingNodeIds: [n.id], offendingEdgeIds: [], detail: def.label });
     }
 
     return results;
   },
-  message: () => "Component has no incoming connection, despite requiring one.",
+  message: (match) => `${match.detail ?? "Component"} has no incoming connection, despite requiring one.`,
   explanation: () =>
     "This component declares that it needs an incoming connection, but nothing feeds into it - " +
     "only outgoing connections exist. It looks wired into the diagram, but no request can ever " +

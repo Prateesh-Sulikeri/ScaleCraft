@@ -5,6 +5,8 @@ import { parseCubic } from "./geometry";
 import { WalkthroughPacket } from "./WalkthroughPacket";
 import type { WalkthroughEdge } from "./types";
 
+const FAULT_COLOR = "var(--state-error)";
+
 /** Arrowhead size in viewBox units. `markerUnits="userSpaceOnUse"` below
  * pins it to this regardless of stroke width, so a highlighted edge's
  * thicker stroke doesn't also inflate its arrow. */
@@ -27,6 +29,7 @@ export function WalkthroughEdges({
   pathById,
   edges,
   highlightEdgeIds,
+  faultEdgeIds,
   dimmed,
   runId,
   playing,
@@ -41,6 +44,7 @@ export function WalkthroughEdges({
   pathById: Map<string, string>;
   edges: WalkthroughEdge[];
   highlightEdgeIds: ReadonlySet<string>;
+  faultEdgeIds: ReadonlySet<string>;
   dimmed: boolean;
   /** Changes whenever the active step or algorithm selection changes -
    * restarts each packet's trip from its source. */
@@ -64,7 +68,7 @@ export function WalkthroughEdges({
       <defs>
         {edges.map((edge) => {
           const isHighlighted = highlightEdgeIds.has(edge.id);
-          const color = isHighlighted ? HIGHLIGHT_GOLD : EDGE_COLOR_VAR[edge.kind];
+          const color = faultEdgeIds.has(edge.id) ? FAULT_COLOR : isHighlighted ? HIGHLIGHT_GOLD : EDGE_COLOR_VAR[edge.kind];
           return (
             <marker
               key={edge.id}
@@ -86,8 +90,10 @@ export function WalkthroughEdges({
         const d = pathById.get(edge.id);
         if (!d) return null;
         const isHighlighted = highlightEdgeIds.has(edge.id);
-        const color = isHighlighted ? HIGHLIGHT_GOLD : EDGE_COLOR_VAR[edge.kind];
-        const segment = isHighlighted && edge.kind === "request-flow" ? parseCubic(d) : null;
+        const isFaulted = faultEdgeIds.has(edge.id);
+        const color = isFaulted ? FAULT_COLOR : isHighlighted ? HIGHLIGHT_GOLD : EDGE_COLOR_VAR[edge.kind];
+        // A failed hop carries nothing, so no packet.
+        const segment = isHighlighted && !isFaulted && edge.kind === "request-flow" ? parseCubic(d) : null;
         return (
           <g key={edge.id}>
             <path
@@ -95,7 +101,7 @@ export function WalkthroughEdges({
               fill="none"
               stroke={color}
               strokeWidth={isHighlighted ? 2.5 : 1.5}
-              strokeDasharray={EDGE_DASH_ARRAY[edge.kind]}
+              strokeDasharray={isFaulted ? "4 4" : EDGE_DASH_ARRAY[edge.kind]}
               opacity={dimmed && !isHighlighted ? 0.4 : 1}
               markerEnd={`url(#${uid}-arrow-${edge.id})`}
               className="transition-[opacity,stroke,stroke-width] duration-200 ease-out motion-reduce:transition-none"

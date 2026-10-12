@@ -1,8 +1,12 @@
 "use client";
 
-import { ArrowRight, Flag } from "lucide-react";
+import type { CSSProperties } from "react";
+import { ArrowRight, Flag, Server } from "lucide-react";
 import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { preloadChapterLesson } from "@/content/content-service";
+import { categoryColorVar } from "@/canvas/category-colors";
+import { iconMap } from "@/canvas/icon-map";
+import { chapterComponents } from "./chapter-components";
 import { ChapterStatusIcon } from "./ChapterStatusIcon";
 import { DifficultyDots } from "./DifficultyDots";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
@@ -24,9 +28,53 @@ type ChapterRowProps = {
    *  accent rule and a tinted surface so the card and the list agree about
    *  where the learner is. */
   isNext?: boolean;
+  /** False when every row in the section shares one difficulty - the section
+   *  header states it once instead of repeating it per row. */
+  showDifficulty?: boolean;
 };
 
-export function ChapterRow({ entry, courseId, status, completedByValidation, isNext = false }: ChapterRowProps) {
+const MAX_PLATES = 4;
+
+/** Small category-tinted icon plates - the node card's icon plate at row
+ *  scale - for the components a chapter is about (see chapter-components.ts). */
+function ComponentPlates({ courseId, slug }: { courseId: CourseId; slug: string }) {
+  const defs = chapterComponents(courseId, slug);
+  if (defs.length === 0) return null;
+  const shown = defs.slice(0, MAX_PLATES);
+
+  return (
+    <span aria-hidden="true" className="hidden shrink-0 items-center gap-1 sm:flex">
+      {shown.map((def) => {
+        const Icon = iconMap[def.icon] ?? Server;
+        return (
+          <span
+            key={def.id}
+            aria-hidden="true"
+            title={def.label}
+            style={{ "--accent": categoryColorVar[def.category] } as CSSProperties}
+            className="flex h-6 w-6 items-center justify-center rounded-[5px] border border-[color:color-mix(in_srgb,var(--accent)_40%,transparent)] bg-[color:color-mix(in_srgb,var(--accent)_12%,transparent)]"
+          >
+            <Icon size={13} strokeWidth={1.75} style={{ color: "var(--accent)" }} />
+          </span>
+        );
+      })}
+      {defs.length > MAX_PLATES && (
+        <span aria-hidden="true" className="pl-0.5 text-[11px] tabular-nums text-foreground/45">
+          +{defs.length - MAX_PLATES}
+        </span>
+      )}
+    </span>
+  );
+}
+
+export function ChapterRow({
+  entry,
+  courseId,
+  status,
+  completedByValidation,
+  isNext = false,
+  showDifficulty = true,
+}: ChapterRowProps) {
   const setManualComplete = useCurriculumProgressStore((s) => s.setManualComplete);
   const resetChapter = useCurriculumProgressStore((s) => s.resetChapter);
   const { requireAuth, dialog } = useRequireAuthAction();
@@ -36,6 +84,10 @@ export function ChapterRow({ entry, courseId, status, completedByValidation, isN
   // not just another row (CURRICULUM.md Part 4) - shape-distinct (icon +
   // bordered number chip), not color-only, per DESIGN.md's signal rule.
   const isCheckpoint = entry.kind === "checkpoint";
+  // Outside the link and referenced by aria-describedby, so the components
+  // describe the row without becoming part of the link's name.
+  const components = chapterComponents(courseId, entry.slug);
+  const describedById = components.length > 0 ? `components-${entry.slug}` : undefined;
 
   // Sits outside the navigation element (not nested inside it) — a button
   // nested in an anchor is invalid HTML and would fight the anchor's own
@@ -95,17 +147,28 @@ export function ChapterRow({ entry, courseId, status, completedByValidation, isN
           {isCheckpoint && <Flag size={12} className="shrink-0 text-foreground/50" aria-hidden="true" />}
           {entry.title}
         </p>
-        <p className="flex shrink-0 items-center gap-1.5 text-xs text-foreground/45">
-          <DifficultyDots difficulty={entry.difficulty} />
-          {entry.difficulty}
-          {entry.domain && (
-            <>
-              <span aria-hidden="true">&middot;</span>
-              <span>{entry.domain}</span>
-            </>
-          )}
-        </p>
+        {isNext && (
+          <span className="shrink-0 rounded-sm border border-[var(--course-accent-line)] bg-[var(--course-accent-soft)] px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-[var(--course-accent)]">
+            Up next
+          </span>
+        )}
+        {(showDifficulty || entry.domain) && (
+          <p className="flex shrink-0 items-center gap-1.5 text-xs text-foreground/45">
+            {showDifficulty && (
+              <>
+                <DifficultyDots difficulty={entry.difficulty} />
+                {entry.difficulty}
+              </>
+            )}
+            {showDifficulty && entry.domain && <span aria-hidden="true">&middot;</span>}
+            {entry.domain && <span>{entry.domain}</span>}
+          </p>
+        )}
       </div>
+      <ComponentPlates courseId={courseId} slug={entry.slug} />
+      <span className="hidden w-14 shrink-0 text-right text-xs tabular-nums text-foreground/45 sm:block">
+        ~{entry.estimatedMinutes} min
+      </span>
       {!isAuthored && (
         <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/50">
           Coming soon
@@ -125,14 +188,15 @@ export function ChapterRow({ entry, courseId, status, completedByValidation, isN
 
   return (
     // The whole row is the hit area (the status toggle excepted - it is a
-    // separate control and cannot nest inside an anchor), with a 2px left rule
-    // reserved for the up-next chapter. Rows that are not next still occupy
-    // that column via a transparent border, so nothing shifts sideways when
-    // the marker moves to another row.
+    // separate control and cannot nest inside an anchor). Up next is a tinted
+    // surface, an inset accent outline and an "Up next" chip - not a colored
+    // left rule, which DESIGN.md bans as a side stripe.
     <div
       data-up-next={isNext || undefined}
-      className={`group/row flex items-center gap-2.5 border-l-2 py-2.5 pr-4 pl-[calc(1rem-2px)] transition-colors duration-150 ease-out ${
-        isNext ? "border-l-[var(--course-accent)] bg-[var(--course-accent-wash)]" : "border-l-transparent"
+      className={`group/row flex items-center gap-2.5 px-4 py-2.5 transition-colors duration-150 ease-out ${
+        isNext
+          ? "bg-[color:color-mix(in_srgb,var(--course-accent)_9%,transparent)] shadow-[inset_0_0_0_1px_var(--course-accent-line)]"
+          : ""
       } ${isCheckpoint && !isNext ? "bg-border/20" : ""} ${isAuthored ? "hover:bg-border/40" : ""}`}
     >
       {toggleButton}
@@ -141,12 +205,18 @@ export function ChapterRow({ entry, courseId, status, completedByValidation, isN
           href={`/${courseId}/${entry.slug}/lesson`}
           label={`Opening ${entry.title}\u2026`}
           preload={() => preloadChapterLesson(entry.chapterDefinitionId ?? undefined)}
+          aria-describedby={describedById}
           className="flex min-w-0 flex-1 items-center gap-2.5"
         >
           {mainContent}
         </HeldTransitionLink>
       ) : (
         <div className="flex min-w-0 flex-1 items-center gap-2.5">{mainContent}</div>
+      )}
+      {describedById && (
+        <span id={describedById} className="sr-only">
+          Components: {components.map((d) => d.label).join(", ")}
+        </span>
       )}
       {dialog}
     </div>

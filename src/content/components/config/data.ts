@@ -12,10 +12,22 @@ export default [
     outputs: [{ id: "out", label: "Replication" }],
     fields: [
       { kind: "enum", name: "engine", label: "Engine", default: "postgres", options: ["postgres", "mysql"] },
+      // Whether the hot queries hit an index (3.10).
+      {
+        kind: "enum",
+        name: "indexing",
+        label: "Indexing",
+        default: "primary-key-only",
+        options: ["primary-key-only", "covers-hot-queries"],
+      },
+      // Partitioning and shard key (3.13). Not gated by any rule yet.
+      { kind: "enum", name: "partitioning", label: "Partitioning", default: "none", options: ["none", "hash", "range"] },
+      { kind: "string", name: "shardKey", label: "Shard key", default: "" },
     ],
     summary: "Durable, structured relational storage",
     docs: "Durable, structured, relational storage. Exposing this directly to clients bypasses the application server's authentication, authorization, and business logic.",
     docsFile: "/content/components/sql-database.md",
+    docsVersion: 3,
     // inputs restricted to compute (+ caching, for a cache-aside miss
     // forwarding straight to the origin store) — the compute-only part
     // already structurally reproduces no-direct-client-database.ts's exact
@@ -26,7 +38,8 @@ export default [
     // to this generic one.
     relations: {
       inputs: { allowedCategories: ["compute", "caching"], allowedKinds: ["request-flow"] },
-      outputs: { allowedCategories: ["data"], allowedKinds: ["replication"] },
+      // Storage-node heartbeats to the placement owner (3.22).
+      outputs: { allowedCategories: ["data"], allowedKinds: ["replication"], exceptions: [{ componentIds: ["coordinator"], kinds: ["control"] }] },
     },
   },
   {
@@ -44,13 +57,18 @@ export default [
         default: "document",
         options: ["key-value", "document", "wide-column", "graph"],
       },
+      // Partitioning and shard key (3.13). Not gated by any rule yet.
+      { kind: "enum", name: "partitioning", label: "Partitioning", default: "none", options: ["none", "hash", "range"] },
+      { kind: "string", name: "shardKey", label: "Shard key", default: "" },
     ],
     summary: "Flexible-schema storage for high-scale workloads",
     docs: "Non-relational storage that trades some of a SQL database's consistency and query flexibility for horizontal scalability and a flexible schema. `model` determines the actual data shape and access pattern - a key-value store and a graph database solve very different problems.",
     docsFile: "/content/components/nosql-database.md",
+    docsVersion: 3,
     relations: {
       inputs: { allowedCategories: ["compute", "caching"], allowedKinds: ["request-flow"] },
-      outputs: { allowedCategories: ["data"], allowedKinds: ["replication"] },
+      // Storage-node heartbeats to the placement owner (3.22).
+      outputs: { allowedCategories: ["data"], allowedKinds: ["replication"], exceptions: [{ componentIds: ["coordinator"], kinds: ["control"] }] },
     },
   },
   {
@@ -74,6 +92,7 @@ export default [
     summary: "A read-only copy kept in sync via replication",
     docs: 'A read-only copy of a primary database, kept up to date via a replication stream rather than serving writes itself. Offloads read traffic from the primary, at the cost of `replicationLagBudgetMs` - however much staleness reads from it are allowed to tolerate. Needs a "replication"-kind edge in from a SQL or NoSQL Database, or it never receives any data.',
     docsFile: "/content/components/read-replica.md",
+    docsVersion: 2,
     // Mirrors orphan-read-replica.ts's own requirement declaratively —
     // deliberate overlap, same reasoning as sql-database.ts above.
     relations: {
@@ -100,9 +119,11 @@ export default [
     summary: "Durable storage for large, unstructured blobs",
     docs: "Stores files, images, backups, and other large binary blobs as opaque objects rather than structured rows - not queryable the way a database is, but far cheaper at scale. `storageClass` trades retrieval latency for cost.",
     docsFile: "/content/components/object-storage.md",
+    docsVersion: 3,
     // No `outputs` relations — no output port at all.
     relations: {
-      inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
+      // Presigned uploads and CDN origin fetches (3.20).
+      inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"], exceptions: [{ componentIds: ["browser", "cdn"], kinds: ["request-flow"] }] },
     },
   },
   {
@@ -116,6 +137,7 @@ export default [
     summary: "Indexed full-text and faceted search",
     docs: "A separately indexed store optimized for full-text search, filtering, and ranking - the kind of querying a relational database's indexes weren't built for. `shards` splits the index across nodes for scale.",
     docsFile: "/content/components/search-engine.md",
+    docsVersion: 2,
     relations: {
       inputs: { allowedCategories: ["compute"], allowedKinds: ["request-flow"] },
     },

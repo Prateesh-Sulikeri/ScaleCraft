@@ -36,7 +36,9 @@ export function ConfigForm({ definition, value, onChange }: ConfigFormProps) {
     // an arbitrary component's config shape — this is inherently dynamic, a
     // static type here would be a fiction.
     resolver: zodResolver(schema as never),
-    defaultValues: value as Record<string, unknown>,
+    // Defaults underneath: a node saved before a field existed would
+    // otherwise fail validation and silently drop every edit.
+    defaultValues: { ...(definition.defaultConfig as Record<string, unknown>), ...(value as Record<string, unknown>) },
     mode: "onChange",
   });
 

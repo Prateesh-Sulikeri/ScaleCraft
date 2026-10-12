@@ -6,21 +6,15 @@ import { requireAuthorToken } from "@/bugs/author-auth";
 import { closeBugSchema } from "@/bugs/types";
 
 /**
- * Closes a report: sets its status and closing notes and starts the retention
- * clocks (7 days to the screenshot, 15 to the report).
+ * Closes a report: sets its status, closing notes and `closedAt`.
  *
  * This is the author's path, not the reporter's - guarded by CRON_SECRET rather
  * than `requireUserId`, and with no ownership filter in the WHERE clause,
  * because closing someone else's report is the entire function. Every other
  * /api/bugs route does the opposite; that asymmetry is the point.
  *
- * It deletes nothing itself. With a grace window there is nothing to do in this
- * request that the nightly sweep will not do on the right day, and the sweep
- * has to handle a hand-SQL close correctly regardless - so having one code path
- * do the deleting beats two that must agree. What this route buys is an exact
- * `closedAt` (rather than one rounded up to the next sweep) and closing notes
- * written through app code. It is also the seam the eventual triage UI calls
- * instead of a shell. See .claude/docs/pending-bug-retention.md.
+ * It deletes nothing. Automatic cleanup was removed 2026-10-01 pending a
+ * redesign, see .claude/docs/pending-bug-retention.md.
  *
  * `seenStatus` is deliberately untouched - leaving it behind the new status is
  * what lights up the reporter's unread badge, with no extra bookkeeping.
