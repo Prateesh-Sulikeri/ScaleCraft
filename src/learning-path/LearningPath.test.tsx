@@ -55,9 +55,9 @@ describe("LearningPath", () => {
     render(<LearningPath courseId="real-world-extraction" />);
     expect(screen.getByRole("heading", { level: 1, name: "Real World Extraction" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^tier /i })).toHaveLength(5);
-    // Tier 1 has an authored brief, so its 4 entries are full rows; tiers 2-5
-    // have none, so their 28 entries are a compact list without status rows.
-    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(4);
+    // Tiers 1 and 2 have authored briefs, so their 9 entries are full rows;
+    // tiers 3-5 have none, so theirs are a compact list without status rows.
+    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(9);
     expect(screen.getByText("Notification System")).toBeInTheDocument();
   });
 
