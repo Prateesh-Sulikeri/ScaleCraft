@@ -16,7 +16,13 @@ import { mdxComponents } from "./mdx-components";
  * once, server-side, at compile time - this is the "cost gone from the
  * client" half of the MDX migration.
  */
-export function MdxContent({ compiledSource }: { compiledSource: string }) {
+export function MdxContent({
+  compiledSource,
+  className = MARKDOWN_BODY_CLASSNAME,
+}: {
+  compiledSource: string;
+  className?: string;
+}) {
   const [Content, setContent] = useState<MDXContent | null>(null);
 
   useEffect(() => {
@@ -32,7 +38,7 @@ export function MdxContent({ compiledSource }: { compiledSource: string }) {
   if (!Content) return null;
 
   return (
-    <div className={MARKDOWN_BODY_CLASSNAME}>
+    <div className={className}>
       <Content components={{ ...markdownComponents, ...mdxComponents }} />
     </div>
   );

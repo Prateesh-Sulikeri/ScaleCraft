@@ -135,18 +135,18 @@ describe("YourTurnCard", () => {
   });
 
   it("renders both rows in one shared card when the chapter has a quiz and an exercise", () => {
-    const { container } = renderCard(makeChapter({ quiz: [makeQuestion()] }));
-    const card = container.querySelector(".rounded-lg.border.border-border.bg-panel");
+    renderCard(makeChapter({ quiz: [makeQuestion()] }));
+    const card = screen.getByTestId("your-turn");
     expect(card).toBeInTheDocument();
     expect(card).toContainElement(screen.getByRole("heading", { name: "Knowledge check" }));
     expect(card).toContainElement(screen.getByRole("heading", { name: "Design exercise" }));
     // one shared card, not two independently-bordered ones
-    expect(container.querySelectorAll(".rounded-lg.border.border-border.bg-panel")).toHaveLength(1);
+    expect(screen.getAllByTestId("your-turn")).toHaveLength(1);
   });
 
   it("renders a divider between the two rows when both are present", () => {
     const { container } = renderCard(makeChapter({ quiz: [makeQuestion()] }));
-    expect(container.querySelector(".border-t.border-border")).toBeInTheDocument();
+    expect(container.querySelector("[role=separator]")).toBeInTheDocument();
   });
 
   it("renders only the exercise row for a chapter with no quiz", () => {

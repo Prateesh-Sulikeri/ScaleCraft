@@ -59,10 +59,15 @@ describe("ReaderSidebar", () => {
     expect(screen.getByRole("link", { name: /Learning Path/ })).toHaveAttribute("href", "/building-blocks");
   });
 
-  it("shows the panel title and course name", () => {
+  it("titles the panel with the course name", () => {
     render(<ReaderSidebar course={course} chapterSlug="ch-1" />);
-    expect(screen.getByRole("heading", { name: "Curriculum" })).toBeInTheDocument();
-    expect(screen.getByText("Building Blocks")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Building Blocks" })).toBeInTheDocument();
+  });
+
+  it("shows course progress when signed in", () => {
+    render(<ReaderSidebar course={course} chapterSlug="ch-1" />);
+    expect(screen.getByRole("progressbar", { name: "Building Blocks progress" })).toBeInTheDocument();
+    expect(screen.getByText("0/1")).toBeInTheDocument();
   });
 
   it("renders the course's curriculum section list", () => {
