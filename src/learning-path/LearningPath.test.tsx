@@ -51,11 +51,14 @@ describe("LearningPath", () => {
     expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(45);
   });
 
-  it("renders Real World Extraction's 5 sections and all 32 chapter rows", () => {
+  it("renders Real World Extraction's 5 sections, folding tiers with nothing authored", () => {
     render(<LearningPath courseId="real-world-extraction" />);
     expect(screen.getByRole("heading", { level: 1, name: "Real World Extraction" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^tier /i })).toHaveLength(5);
-    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(32);
+    // Tier 1 has an authored brief, so its 4 entries are full rows; tiers 2-5
+    // have none, so their 28 entries are a compact list without status rows.
+    expect(screen.getAllByRole("img", { name: /completed|in progress|not started/i })).toHaveLength(4);
+    expect(screen.getByText("Notification System")).toBeInTheDocument();
   });
 
   it("the authored Load Balancer row is a real link to its lesson (Chapter Reader) route; an unauthored row is not", () => {

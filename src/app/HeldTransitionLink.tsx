@@ -19,6 +19,7 @@ type HeldTransitionLinkProps = {
   children: ReactNode;
   "aria-current"?: "page";
   "aria-label"?: string;
+  "aria-describedby"?: string;
   /** Optional work that must be ready before navigation. Used by lesson
    * links to fetch/compile the reader body behind the branded overlay. */
   preload?: () => Promise<unknown>;
@@ -39,6 +40,7 @@ export function HeldTransitionLink({
   children,
   "aria-current": ariaCurrent,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
   preload,
 }: HeldTransitionLinkProps) {
   const router = useRouter();
@@ -68,6 +70,7 @@ export function HeldTransitionLink({
       onPointerEnter={handlePointerEnter}
       aria-current={ariaCurrent}
       aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
       className={className}
     >
       {children}
