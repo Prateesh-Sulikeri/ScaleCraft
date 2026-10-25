@@ -19,8 +19,10 @@ function makeDrift(overrides: Partial<BlueprintDriftReport> = {}): BlueprintDrif
     blueprintId: "bp-1",
     blueprintLabel: "Taught approach",
     missingComponents: [],
+    misconfiguredComponents: [],
     extraComponentIds: [],
     mismatchedConnections: [],
+    forbiddenPatterns: [],
     ...overrides,
   };
 }
@@ -83,6 +85,37 @@ describe("chapterDisplayViolations", () => {
     expect(result[0].explanation).toMatch(/Missing: Cache/);
     expect(result[0].explanation).toMatch(/Client -> Load Balancer/);
     expect(result[0].explanation).toMatch(/Message Queue/);
+  });
+
+  it("names a tripped forbid pattern in the blueprint-drift entry", () => {
+    const drift = makeDrift({
+      forbiddenPatterns: ["two Leaders with nothing deciding between them"],
+      missingComponents: ["Cache"],
+    });
+    const result = chapterDisplayViolations(makeOutcome({ driftReport: drift }), []);
+
+    expect(result[0].explanation).toMatch(/rules out: two Leaders with nothing deciding between them/);
+  });
+
+  it("leads with the anti-pattern, not the closest approach, when a forbid is the only drift", () => {
+    const drift = makeDrift({
+      forbiddenPatterns: ["two Leaders with nothing deciding between them"],
+      missingComponents: [],
+      mismatchedConnections: [],
+    });
+    const result = chapterDisplayViolations(makeOutcome({ driftReport: drift }), []);
+
+    expect(result[0].message).toBe("This design contains something this chapter rules out.");
+    expect(result[0].explanation).toBe("It contains two Leaders with nothing deciding between them.");
+  });
+
+  it("uses \"an\" before a missing component label that starts with a vowel", () => {
+    const result = chapterDisplayViolations(makeOutcome({ missingRequiredComponentIds: ["api-gateway", "cache"] }), []);
+
+    expect(result.map((v) => v.explanation)).toEqual([
+      "This chapter requires an API Gateway. Add one to the diagram to continue.",
+      "This chapter requires a Cache. Add one to the diagram to continue.",
+    ]);
   });
 
   it("omits the blueprint-drift entry when driftReport is null", () => {

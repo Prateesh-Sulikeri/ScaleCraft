@@ -4,11 +4,5 @@
   "outputDirectory": ".next",
   "env": {
     "NODE_ENV": "production"
-  },
-  "crons": [
-    {
-      "path": "/api/cron/bug-retention",
-      "schedule": "0 4 * * *"
-    }
-  ]
+  }
 }

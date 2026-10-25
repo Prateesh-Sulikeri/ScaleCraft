@@ -60,7 +60,10 @@ export function runChapterValidation(
   // Blocks keeps author-curated scoping — a chapter shouldn't flag concepts
   // it hasn't taught yet.
   const rules = chapter.mode === "real-world-extraction" ? ruleRegistry : getRules(chapter.validationRuleIds);
-  const violations = runValidation(graph, rules);
+  const violations = runValidation(graph, rules).map((v) => {
+    const severity = chapter.ruleSeverity?.[v.ruleId];
+    return severity ? { ...v, severity } : v;
+  });
   const errorCount = violations.filter((v) => v.severity === "error").length;
 
   const connected = connectedNodeIds(graph);

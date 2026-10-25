@@ -8,15 +8,15 @@ abstracting the client from the internal infrastructure topology.
 A reverse proxy acts as an intermediary point between external clients and 
 one or more backend services. Instead of connecting directly to a 
 service's endpoint, the client connects to the proxy. The proxy intercepts 
-incoming HTTP/HTTPS requests and routes them based on predefined r
-rules—such as URL path or hostname—to the appropriate internal server 
+incoming HTTP/HTTPS requests and routes them based on predefined
+rules - such as URL path or hostname - to the appropriate internal server 
 cluster. This mechanism shields the backend architecture from direct 
 external exposure, providing an essential layer of network abstraction and 
 routing logic within a modern distributed system.
 
 ## Why do we need it?
 
-A reverse proxy solves the complexity inherent in microservice arc
+A reverse proxy solves the complexity inherent in microservice
 architectures where clients interact with numerous services exposed at 
 different ports or paths. It centralizes entry points, allowing operators 
 to manage multiple services under a single domain name without requiring 
@@ -51,20 +51,15 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| `listen_ports` | Defines the external ports (e.g., 80, 443) the proxy 
-accepts traffic on. |
-| `upstream_group` | Maps a hostname or URI path to a pool of backend IP 
-addresses/ports. |
-| `rate_limiting` | Applies request limits (e.g., X requests per minute) 
-globally or per endpoint. |
-| `tls_certificate` | Specifies the cryptographic certificate and key used 
-for SSL termination. |
-| `request_headers` | Overrides or injects headers (e.g., `X-Forwa
-`X-Forwarded-For`) before sending to backends. |
+| `listen_ports` | Defines the external ports (e.g., 80, 443) the proxy accepts traffic on. |
+| `upstream_group` | Maps a hostname or URI path to a pool of backend IP addresses/ports. |
+| `rate_limiting` | Applies request limits (e.g., X requests per minute) globally or per endpoint. |
+| `tls_certificate` | Specifies the cryptographic certificate and key used for SSL termination. |
+| `request_headers` | Overrides or injects headers (e.g., `X-Forwa `X-Forwarded-For`) before sending to backends. |
 
 ## Where is it used?
 
-*   **API Gateways:** Centralizing external access to internal mic
+*   **API Gateways:** Centralizing external access to internal
 microservice APIs, handling authentication and rate limiting universally.
 *   **Web Hosting:** Serving static assets or routing requests for 
 multiple distinct websites from a single IP address.

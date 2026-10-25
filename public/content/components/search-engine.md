@@ -10,7 +10,7 @@ index, and query large volumes of textual data. Unlike traditional
 databases that prioritize transactional integrity for records, a search 
 engine focuses on rapid information retrieval across indexes built from 
 documents. It processes document content through tokenization and analysis 
-pipelines to create an inverted index—a mapping from indexed terms 
+pipelines to create an inverted index - a mapping from indexed terms 
 (tokens) back to the documents containing them. This structure allows 
 complex Boolean queries and relevance scoring without full table scans.
 
@@ -58,16 +58,11 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Sharding Count** | The number of independent partitions the index is 
-split into, distributing data load and improving scalability. |
-| **Replication Factor** | Determines how many copies of each shard exist 
-for fault tolerance and read scaling. |
-| **Index Mapping** | Defines the specific field types (e.g., text, 
-integer, geo) and analyzers applied to ingested documents. |
-| **Analyzers/Tokenizers** | Specifies pre-processing rules—such as 
-stemming or stopword removal—applied to raw input text during indexing. |
-| **Time-to-Live (TTL)** | Defines the automatic expiration policy for 
-indexed data segments, managing index growth and resource consumption. |
+| **Sharding Count** | The number of independent partitions the index is split into, distributing data load and improving scalability. |
+| **Replication Factor** | Determines how many copies of each shard exist for fault tolerance and read scaling. |
+| **Index Mapping** | Defines the specific field types (e.g., text, integer, geo) and analyzers applied to ingested documents. |
+| **Analyzers/Tokenizers** | Specifies pre-processing rules - such as stemming or stopword removal - applied to raw input text during indexing. |
+| **Time-to-Live (TTL)** | Defines the automatic expiration policy for indexed data segments, managing index growth and resource consumption. |
 
 ## Where is it used?
 
@@ -88,7 +83,7 @@ between records and terms.
 results based on term frequency and inverse document frequency.
 *   Indexing is a separate process from querying, allowing background 
 updates without impacting read latency.
-*   Scalability relies heavily on sharding data across multiple in
+*   Scalability relies heavily on sharding data across multiple
 independent nodes (clusters).
 *   Typo tolerance and natural language processing (NLP) capabilities 
 enhance the precision of query matching.

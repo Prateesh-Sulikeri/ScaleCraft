@@ -19,7 +19,7 @@ rate limiting, and request transformation.
 In distributed systems composed of many small services (microservices), 
 exposing each service endpoint directly creates significant management 
 overhead and security risk. The API Gateway addresses the problem of 
-cross-cutting concerns—logic that needs to be applied to every request but 
+cross-cutting concerns - logic that needs to be applied to every request but 
 belongs nowhere specific. Without a gateway, common tasks like enforcing 
 rate limits, validating JSON schemas, or handling token introspection must 
 be replicated across dozens of services, leading to inconsistency, 
@@ -58,22 +58,16 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| **Request Routing** | Maps external paths (e.g., `/v1/users`) to 
-internal service names and ports. |
-| **Authentication Scheme** | Specifies the required mechanism (e.g., JWT 
-validation, API Key lookup) for request authorization. |
-| **Rate Limiting Policy** | Defines thresholds (e.g., 100 request
-requests/minute) and strategies (e.g., Leaky Bucket, Token Bucket). |
-| **Request Transformation** | Allows modification of HTTP headers or 
-payload bodies before forwarding the request to the backend service. |
-| **Circuit Breaker Settings** | Configures thresholds (failure pe
-percentage, delay time) that trigger fallback mechanisms upon service 
-instability. |
+| **Request Routing** | Maps external paths (e.g., `/v1/users`) to internal service names and ports. |
+| **Authentication Scheme** | Specifies the required mechanism (e.g., JWT validation, API Key lookup) for request authorization. |
+| **Rate Limiting Policy** | Defines thresholds (e.g., 100 request requests/minute) and strategies (e.g., Leaky Bucket, Token Bucket). |
+| **Request Transformation** | Allows modification of HTTP headers or payload bodies before forwarding the request to the backend service. |
+| **Circuit Breaker Settings** | Configures thresholds (failure percentage, delay time) that trigger fallback mechanisms upon service instability. |
 
 ## Where is it used?
 
 *   Managing external client interactions for SaaS platforms.
-*   Implementing unified security policies across heterogeneous mi
+*   Implementing unified security policies across heterogeneous
 microservice backends.
 *   Routing traffic based on tenant IDs or subscription tiers (mul
 (multi-tenancy).
@@ -86,7 +80,7 @@ deprecated API endpoints while newer services use updated versions.
 system.
 *   It is responsible for cross-cutting concerns like security and 
 observability.
-*   Effective gateways introduce necessary latency due to policy p
+*   Effective gateways introduce necessary latency due to policy
 processing and transformation overhead.
 *   Design requires careful consideration of failure modes (e.g., should 
 throttling fail open or fail closed?).

@@ -9,8 +9,8 @@ attempts or due to structural invalidity.
 A Dead Letter Queue is an auxiliary endpoint within an asynchronous 
 messaging architecture. It captures specific types of message failures, 
 preventing them from being continuously retried in the main processing 
-queue. DLQs typically store messages that consumers deem "poison m
-messages"—messages that consistently fail due to unrecoverable data 
+queue. DLQs typically store messages that consumers deem "poison
+messages" - messages that consistently fail due to unrecoverable data 
 corruption or schema mismatch. The component facilitates manual inspection 
 and systematic re-ingestion, separating transient system errors from 
 persistent data defects.
@@ -18,7 +18,7 @@ persistent data defects.
 ## Why do we need it?
 
 Standard message queues utilize retries for handling transient failures 
-(e.g., database deadlock, network outage). However, if a message p
+(e.g., database deadlock, network outage). However, if a message
 perpetually fails due to inherent data problems, continuous retry attempts 
 will consume resources and potentially block the entire queue's processing 
 stream. DLQs solve this by providing an automatic bypass mechanism for 
@@ -36,8 +36,8 @@ requeues the message. If the consumer reaches a defined maximum retry
 limit (or if the failure criteria specify data malformation), the 
 messaging broker or consumer middleware intercepts the failed event. 
 Instead of returning the message to the main queue, it routes the 
-payload—along with metadata like the failure timestamp and exception 
-type—to the dedicated Dead Letter Queue. Operators monitor the DLQ for 
+payload - along with metadata like the failure timestamp and exception 
+type - to the dedicated Dead Letter Queue. Operators monitor the DLQ for 
 actionable failures requiring code fixes or manual data correction before 
 re-publishing them.
 
@@ -56,14 +56,10 @@ graph LR
 
 | Configuration | Description |
 | :--- | :--- |
-| `max-retries` | Defines the maximum number of processing attempts before 
-a message is deemed failed and routed to the DLQ. |
-| `retry-delay-seconds` | Specifies an exponential backoff period or fixed 
-delay used during automatic retries before escalating failure handling. |
-| `dlq-topic-suffix` | A naming convention appended to the original queue 
-name (e.g., `orders-main.dlq`) ensuring clear lineage. |
-| `failure-type-filter` | Allows routing only specific exception types 
-(e.g., `SchemaViolationException`) rather than all failures to the DLQ. |
+| `max-retries` | Defines the maximum number of processing attempts before a message is deemed failed and routed to the DLQ. |
+| `retry-delay-seconds` | Specifies an exponential backoff period or fixed delay used during automatic retries before escalating failure handling. |
+| `dlq-topic-suffix` | A naming convention appended to the original queue name (e.g., `orders-main.dlq`) ensuring clear lineage. |
+| `failure-type-filter` | Allows routing only specific exception types (e.g., `SchemaViolationException`) rather than all failures to the DLQ. |
 
 ## Where is it used?
 
@@ -73,7 +69,7 @@ invalid account formats.
 *   **E-commerce Order Fulfillment:** Capturing order event messages that 
 repeatedly fail processing because product inventory data violates 
 business constraints.
-*   **IoT Device Ingestion:** Isolating telemetry readings from co
+*   **IoT Device Ingestion:** Isolating telemetry readings from
 constrained devices that arrive with malformed or non-standard schema 
 payloads.
 

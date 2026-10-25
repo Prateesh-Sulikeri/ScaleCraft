@@ -2,20 +2,14 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
 /**
- * The guard on the two author-side bug routes (the retention cron and the close
- * endpoint). Deliberately not `requireUserId`: closing somebody else's report
- * and purging every user's expired rows are the whole point of these routes, so
- * a Clerk session is the wrong credential entirely.
- *
- * `CRON_SECRET` is the same variable Vercel sends as `Authorization: Bearer ...`
- * on every cron invocation, so the cron route needs no special case - it
- * authenticates exactly like a manual call does.
+ * The guard on the author-side close route. Deliberately not `requireUserId`:
+ * closing somebody else's report is the whole point, so a Clerk session is the
+ * wrong credential. The variable keeps its `CRON_SECRET` name from the removed
+ * retention cron.
  */
 
-/** Fails closed when the secret is unset. An unconfigured deployment must not
- *  expose a route that deletes rows to anyone who finds the path - and the cron
- *  cannot authenticate without it either, so allowing it through would buy
- *  nothing. */
+/** Fails closed when the secret is unset, so an unconfigured deployment never
+ *  exposes an author-only write. */
 export function requireAuthorToken(request: Request): NextResponse | null {
   const secret = process.env.CRON_SECRET;
   if (!secret) {

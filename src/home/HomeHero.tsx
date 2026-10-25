@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowUpRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { preloadChapterLesson } from "@/content/content-service";
 import { AboutButton } from "./AboutButton";
-import { AlphaAnnouncement } from "./AlphaAnnouncement";
+import { BlueprintPreview } from "./BlueprintPreview";
 import type { ContinueTarget } from "./home-data";
+import { SeeWhatsNewButton } from "./SeeWhatsNewButton";
 
 /**
  * "Continue Learning" is the page's one primary action, so it is the only
@@ -47,11 +48,11 @@ function ContinueButton({ target }: { target: ContinueTarget }) {
           : undefined
       }
       aria-label={`${CTA_LABEL[target.kind]}: ${label}`}
-      className="group inline-flex h-10 items-center gap-2 rounded-md border border-hero-accent bg-hero-accent/15 px-4 text-sm font-semibold text-hero-accent transition-[background-color,border-color] duration-150 ease-out hover:bg-hero-accent/25"
+      className="group inline-flex h-11 items-center gap-2 rounded-md border border-hero-accent bg-hero-accent/15 px-5 text-[15px] font-semibold text-hero-accent transition-[background-color,border-color] duration-150 ease-out hover:bg-hero-accent/25"
     >
       {CTA_LABEL[target.kind]}
-      <ArrowUpRight
-        size={15}
+      <ArrowRight
+        size={16}
         aria-hidden="true"
         className="transition-transform duration-150 ease-out group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0"
       />
@@ -66,45 +67,41 @@ type HomeHeroProps = {
 
 export function HomeHero({ continueTarget, now }: HomeHeroProps) {
   return (
-    <section className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-      <div className="flex flex-col justify-center gap-3.5">
-        <h1 className="text-balance text-4xl font-semibold leading-[1.12] tracking-tight xl:text-[2.75rem] min-[2200px]:text-5xl">
+    <section className="grid grid-cols-1 items-center gap-8 py-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] xl:gap-12">
+      <div className="flex flex-col items-start gap-5">
+        <SeeWhatsNewButton now={now} />
+
+        <h1 className="text-balance text-4xl font-semibold leading-[1.08] tracking-tight xl:text-[2.75rem] min-[2200px]:text-5xl">
           Design real systems.
           <br />
-          {/* The accent lands on the second line only - the promise the
-           * product is actually about. `--hero-accent` (globals.css) is the
-           * one hue for this whole section: this line, the CTA below, and the
-           * announcement card's illustration. Not a mode hue - the three mode
-           * colors own the cool band, and borrowing one made the hero read as
-           * an accidental extension of that mode. */}
-          <span className="text-hero-accent">Understand every trade-off.</span>
+          {/* `--hero-accent` is the one hue for this section: this line, the
+           * CTA, and the release chip. Not a mode hue - see globals.css. */}
+          <span className="text-hero-accent">
+            Understand every <span className="whitespace-nowrap">trade-off.</span>
+          </span>
         </h1>
 
-        <p className="max-w-xl text-pretty text-[15px] leading-relaxed text-foreground/65">
-          ScaleCraft is your system design playground. 
-          Learn the fundamentals. Architect real systems. Master the craft. 
-          For interviews and beyond 
-        
+        <p className="max-w-[34rem] text-pretty text-base leading-relaxed text-foreground/70">
+          Build architectures from real components, validate them, and get told exactly why a design breaks. Learn
+          the fundamentals, then apply them to full systems.
         </p>
 
-        {/* Continue/Start Learning stays the only accent-filled control.
-         * "See what's new" used to sit here too, which was the same button,
-         * opening the same dialog, as the announcement card immediately to
-         * the right - About is a distinct action, not that duplicate. */}
-        <div className="flex flex-wrap items-center gap-3 pt-1">
-          <ContinueButton target={continueTarget} />
-          <AboutButton />
+        {/* Continue/Start Learning stays the only accent-filled control. */}
+        <div className="flex flex-col items-start gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <ContinueButton target={continueTarget} />
+            <AboutButton />
+          </div>
+          {continueTarget.chapterLabel && (
+            <p className="text-xs text-foreground/50">
+              {CTA_HINT[continueTarget.kind]}{" "}
+              <span className="font-medium text-foreground/80">{continueTarget.chapterLabel}</span>
+            </p>
+          )}
         </div>
-
-        {continueTarget.chapterLabel && (
-          <p className="text-xs text-foreground/45">
-            {CTA_HINT[continueTarget.kind]}{" "}
-            <span className="text-foreground/70">{continueTarget.chapterLabel}</span>
-          </p>
-        )}
       </div>
 
-      <AlphaAnnouncement now={now} />
+      <BlueprintPreview />
     </section>
   );
 }

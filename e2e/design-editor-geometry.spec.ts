@@ -36,8 +36,8 @@ const LAB = "/dev/starter-layout-lab";
  *  pass by never running - the exact shape of vacuous guard the e2e audit
  *  (pending-e2e-quarantine.md) found ~106 of. These make the count itself
  *  the assertion. Update them when a chapter gains or loses a graph. */
-const AUTHORED_STARTER_CHAPTERS = 20;
-const AUTHORED_REFERENCE_GRAPHS = 19;
+const AUTHORED_STARTER_CHAPTERS = 37;
+const AUTHORED_REFERENCE_GRAPHS = 37;
 
 /** Screen-space boxes of every component card currently on the live canvas. */
 async function cardBoxes(page: Page) {

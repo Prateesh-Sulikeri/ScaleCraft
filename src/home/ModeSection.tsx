@@ -1,7 +1,9 @@
 "use client";
 
 import { Code2 } from "lucide-react";
+import { allEntries, getCourse } from "@/curriculum";
 import type { CourseId } from "@/curriculum/types";
+import { getAllComponents } from "@/content/components/registry";
 import { ModeCard } from "./ModeCard";
 import { ModeHelpPopover } from "./ModeHelpPopover";
 import type { CourseProgress } from "./home-data";
@@ -17,6 +19,20 @@ const MODES = [
   { mode: "real-world-extraction", href: "/real-world-extraction" },
   { mode: "sandbox", href: "/sandbox" },
 ] as const;
+
+const SHOWN = 3;
+
+function preview(names: readonly string[]) {
+  return { items: names.slice(0, SHOWN), more: Math.max(0, names.length - SHOWN) };
+}
+
+/** Building Blocks names its sections from Part 2 on - Parts 0-1 are
+ *  orientation, the rest name what you build. RWE names its first briefs. */
+const INCLUDES = {
+  "building-blocks": preview(getCourse("building-blocks").sections.slice(2).map((s) => s.title)),
+  "real-world-extraction": preview(allEntries(getCourse("real-world-extraction")).map((c) => c.title)),
+  sandbox: { items: [`${getAllComponents().length} components`, "Blank canvas", "No objectives"], more: 0 },
+} as const;
 
 export function ModeSection({ progressByCourse }: ModeSectionProps) {
   return (
@@ -39,6 +55,7 @@ export function ModeSection({ progressByCourse }: ModeSectionProps) {
             mode={mode}
             href={href}
             progress={mode === "sandbox" ? undefined : progressByCourse[mode]}
+            includes={INCLUDES[mode]}
           />
         ))}
       </div>

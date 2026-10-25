@@ -17,19 +17,23 @@ type Metric = {
   note?: string;
 };
 
-function MetricTile({ metric }: { metric: Metric }) {
+function MetricTile({ metric, locked }: { metric: Metric; locked?: boolean }) {
   const { label, Icon, value, detail, note } = metric;
 
   const tile = (
     <div className="flex flex-col items-center gap-1.5 rounded-md border border-border bg-background px-3 py-3 text-center">
       <Icon size={15} className="text-foreground/35" aria-hidden="true" />
-      <span className="text-[22px] font-semibold leading-none tracking-tight tabular-nums">{value}</span>
+      {locked ? (
+        <span aria-hidden="true" className="my-0.5 h-[18px] w-8 rounded-sm bg-border/70" />
+      ) : (
+        <span className="text-[22px] font-semibold leading-none tracking-tight tabular-nums">{value}</span>
+      )}
       <span className="text-[11px] leading-tight text-foreground/55">{label}</span>
-      {detail && <span className="font-mono text-[10px] text-foreground/35">{detail}</span>}
+      {detail && !locked && <span className="font-mono text-[10px] text-foreground/35">{detail}</span>}
     </div>
   );
 
-  return note ? <Tooltip label={note}>{tile}</Tooltip> : tile;
+  return note && !locked ? <Tooltip label={note}>{tile}</Tooltip> : tile;
 }
 
 /**
@@ -45,7 +49,7 @@ function MetricTile({ metric }: { metric: Metric }) {
  * per-day counter, and neither a placeholder dash nor the manifest's
  * per-chapter estimate dressed up as a measurement was worth the slot.
  */
-export function AtAGlanceCard({ stats }: { stats: HomeStats }) {
+export function AtAGlanceCard({ stats, locked }: { stats: HomeStats; locked?: boolean }) {
   const metrics: Metric[] = [
     {
       label: "Chapters completed",
@@ -92,13 +96,17 @@ export function AtAGlanceCard({ stats }: { stats: HomeStats }) {
 
       <div className="grid flex-1 grid-cols-2 gap-3 px-5 py-3.5 lg:grid-cols-4">
         {metrics.map((metric) => (
-          <MetricTile key={metric.label} metric={metric} />
+          <MetricTile key={metric.label} metric={metric} locked={locked} />
         ))}
       </div>
 
-      <p className="mt-auto border-t border-border px-5 py-3 text-xs text-success">
-        Keep going. <span className="text-foreground/70">Consistency builds mastery.</span>
-      </p>
+      {locked ? (
+        <p className="mt-auto border-t border-border px-5 py-3 text-xs text-foreground/55">Tracked once you sign in.</p>
+      ) : (
+        <p className="mt-auto border-t border-border px-5 py-3 text-xs text-success">
+          Keep going. <span className="text-foreground/70">Consistency builds mastery.</span>
+        </p>
+      )}
     </section>
   );
 }

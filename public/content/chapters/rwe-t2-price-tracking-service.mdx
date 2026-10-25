@@ -1,0 +1,333 @@
+A price tracker: users paste a product link, set a target price, and get an alert
+when the price drops below it. Version one ran a cron job every hour that fetched
+every tracked product page from the retailer. At 300,000 products that took 20
+minutes. At 2 million it took three hours, the runs overlapped, and the
+retailer's bot defense blocked the service's addresses for 48 hours.
+
+The block landed during a two-day sale. 140,000 users had alerts set on products
+that dropped below their targets and came back up, and none of them heard about
+it.
+
+> [!NOTE]
+> Think first: you are a guest on someone else's site, and it decides how often you
+> may ask. With far more products than requests you are allowed, which products
+> should be checked, how often, and how do you notice a drop without re-reading
+> every user's alert? Commit to an answer before reading on.
+
+## The numbers
+
+Interview steps 1 to 3. One retailer carries most of the catalog; the rest are
+smaller sites with their own limits.
+
+| Measured | Figure | What it forces |
+|---|---|---|
+| Tracked products | 20 million distinct pages | The unit of work is a fetch, and fetches are rationed |
+| Watches | 50 million (user, product, target price) | Matching a price change to watchers is its own problem |
+| Fetch budget | ~200 requests/s across all retailers, 120/s for the largest | 17 million fetches a day. Checking every product hourly would need 5,600/s, 28x the budget |
+| Popularity | 1% of products carry 60% of watches | Uniform checking wastes the budget on pages nobody is waiting on |
+| Price changes | Popular products: about daily. The tail: monthly | Most fetches find nothing new |
+| Freshness | A drop on a popular product should alert within an hour | Sales are short; an alert after the price came back is worthless |
+
+The website half (users, watches, the alert settings page) is a few hundred
+requests a second and entirely familiar. The constraint that shapes everything is
+on the other side: a budget you do not control, against a catalog 28 times too big
+for it.
+
+## Spending a fetch budget
+
+Divided evenly, 200 fetches a second checks each product once every 28 hours. The
+cadence has to follow value instead:
+
+- **Score each product.** Watchers, how often its price has moved, and how long
+  since it was checked. The planner checks products whose next check time has
+  come, highest score first.
+- **Adapt the interval.** A check that finds a change halves that product's
+  interval (to a floor of 30 minutes); a check that finds nothing doubles it (to a
+  ceiling of 7 days). The budget drifts toward products that are actually moving.
+- **Govern the rate per retailer.** The planner may make 12,000 products due in one
+  minute. They go on a queue, and the fetch workers for each retailer run at a
+  fixed concurrency sized to its budget. The queue absorbs the burst; the
+  consumers decide the rate. This is 3.24's token bucket applied to yourself.
+- **Listen when told to slow down.** A 429 or 503 from a retailer backs off the
+  whole retailer, not just that request, and honors `Retry-After`. Repeated errors
+  open a circuit (3.23) for that retailer while the others continue.
+
+| Tier | Products | Interval | Fetches a day |
+|---|---|---|---|
+| Popular (1%) | 200,000 | 1 hour | 4.8 million |
+| Middle | 2 million | 12 hours | 4 million |
+| Tail | 17.8 million | 7 days | 2.5 million |
+| **Total** | 20 million | | **11.3 million, ~130/s** |
+
+That leaves a third of the budget for adaptive rechecks and new products. Where a
+retailer publishes a product feed or an affiliate API, one call covers thousands of
+products and the rationing problem shrinks.
+
+> **Engineering lens.** When a resource you depend on is rationed, the design
+> question changes from "how fast can we go" to "what is each unit of the ration
+> worth". The planner is a prioritization function, not a loop.
+
+## From a fetch to an alert
+
+<Walkthrough
+  title="One check, one price drop"
+  viewBoxWidth={600}
+  viewBoxHeight={630}
+  description="Switch between checking everything every hour and an adaptive, rate-governed cadence. Product 88213 drops from $249 to $199."
+  algorithms={[
+    { id: "hourly", label: "Every product, every hour" },
+    { id: "adaptive", label: "Adaptive, within budget" },
+  ]}
+  nodes={[
+    { id: "tick", kind: "component", componentId: "cron-job", label: "Tick", position: { x: 80, y: 63 } },
+    { id: "planner", kind: "component", componentId: "worker", label: "Planner", position: { x: 300, y: 63 } },
+    { id: "fq", kind: "component", componentId: "message-queue", label: "Fetch queue", position: { x: 300, y: 189 } },
+    { id: "fetch", kind: "component", componentId: "worker", label: "Fetchers", position: { x: 300, y: 315 } },
+    { id: "site", kind: "custom", icon: "globe", label: "Retailer site", category: "networking", position: { x: 520, y: 315 } },
+    { id: "bus", kind: "component", componentId: "event-bus", label: "Price changes", position: { x: 300, y: 441 } },
+    { id: "match", kind: "component", componentId: "worker", label: "Alert matcher", position: { x: 80, y: 441 } },
+    { id: "watches", kind: "component", componentId: "sql-database", label: "Watches", position: { x: 80, y: 567 } },
+    { id: "hist", kind: "component", componentId: "worker", label: "History writer", position: { x: 520, y: 441 } },
+    { id: "prices", kind: "component", componentId: "nosql-database", label: "Price history", position: { x: 520, y: 567 } },
+  ]}
+  edges={[
+    { id: "start", source: "tick", target: "planner", kind: "request-flow" },
+    { id: "plan", source: "planner", target: "fq", kind: "async" },
+    { id: "take", source: "fq", target: "fetch", kind: "async" },
+    { id: "get", source: "fetch", target: "site", kind: "request-flow" },
+    { id: "publish", source: "fetch", target: "bus", kind: "async" },
+    { id: "tomatch", source: "bus", target: "match", kind: "async" },
+    { id: "tohist", source: "bus", target: "hist", kind: "async" },
+    { id: "lookup", source: "match", target: "watches", kind: "request-flow" },
+    { id: "append", source: "hist", target: "prices", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "At 10:00 the Tick starts the Planner.",
+      focus: "start",
+    },
+    {
+      caption: "What the Planner enqueues.",
+      variants: {
+        hourly: {
+          caption: "The Planner puts all 20 million products on the Fetch queue at once, the same as every hour.",
+          focus: "plan",
+        },
+        adaptive: {
+          caption: "The Planner enqueues only products whose next check has come, about 12,000 this minute, highest score first. Product 88213 has 300,000 watchers and an hourly interval.",
+          focus: "plan",
+        },
+      },
+    },
+    {
+      caption: "The Fetchers drain the Fetch queue.",
+      variants: {
+        hourly: {
+          caption: "The Fetchers run as fast as they can: 1,200 requests a second at the Retailer site, ten times its tolerance. It blocks every address they use.",
+          focus: "take",
+          faultNodeIds: ["site"],
+          faultEdgeIds: ["get"],
+        },
+        adaptive: {
+          caption: "The Fetchers run at a fixed concurrency sized to 120 requests a second for this retailer. The rest wait on the Fetch queue: the queue absorbs, the consumers set the rate.",
+          focus: ["take", "get"],
+        },
+      },
+    },
+    {
+      caption: "Detecting the change.",
+      variants: {
+        hourly: {
+          caption: "Blocked, the Fetchers get nothing to parse. The sale on 88213 starts and ends unseen, and no event is ever published to Price changes.",
+          faultEdgeIds: ["publish"],
+          highlightNodeIds: ["fetch"],
+        },
+        adaptive: {
+          caption: "The Fetchers parse $199 against the last observed $249 and publish one event to Price changes. A page that has not changed publishes nothing.",
+          focus: "publish",
+        },
+      },
+    },
+    {
+      caption: "Price changes fans the event out: the Alert matcher and the History writer each get their own copy and proceed independently.",
+      focus: ["tomatch", "tohist"],
+    },
+    {
+      caption: "The Alert matcher reads Watches for 88213 with targets of $199 or more, an index range rather than a scan: 3,400 of the 300,000 watchers. Their alerts go out.",
+      focus: "lookup",
+    },
+    {
+      caption: "The History writer appends ($199, 10:00:41) to Price history. Only changes are stored, so a quiet product costs nothing.",
+      focus: "append",
+    },
+  ]}
+/>
+
+Note: the queue between the Planner and the Fetchers is what makes the budget
+enforceable. Without it, the Planner's burst becomes the retailer's burst.
+
+## Detecting change and alerting
+
+A fetch is only useful if it notices something real, and only then does the
+expensive work begin. Four steps, each with a trap:
+
+- **Normalize.** The same page shows a different price to a different region, a
+  logged-in user, or an A/B bucket, and a third-party seller's offer can replace the
+  main one. The fetcher extracts price, currency, availability and seller under one
+  fixed context, or it detects changes that are artifacts of how it looked.
+- **Compare to the last observation.** The fetcher reads the last known price and
+  publishes an event only when it differs. 95% of fetches end here, quietly.
+- **Match watchers by index.** A drop to $199 on product 88213 matches the watches
+  on 88213 whose target is $199 or more. Watches are indexed by (product, target),
+  so that is a range read over one product's watches, not a scan of 50 million
+  rows.
+- **Alert once per crossing.** A price that flaps between $99 and $101 around a
+  $100 target would alert every time it dips. Each watch alerts on a crossing and
+  re-arms only after the price rises back above target by a margin, or after a
+  cooldown.
+
+The change event has more than one consumer: alerts, the price-history chart, and
+the "biggest drops today" page. Each is derived data built from the same stream
+(3.16's idea), and each should be able to fall behind or be rebuilt without holding
+up the others.
+
+> **Production lens.** Most of a tracker's bugs are false changes, not missed ones:
+> a currency switch, a regional price, a seller swap. Every one becomes an alert a
+> user did not ask for.
+
+## Trade-offs
+
+| Decision | One way | The other way |
+|---|---|---|
+| How change events reach their consumers | An event bus fanning out to each subscriber: simple, and a subscriber that was down misses what it could not receive | A partitioned log with a consumer group per use: each consumer replays from its own offset, so the alert matcher can be fixed and re-run over yesterday's changes, at the cost of a log to operate |
+| Cadence | Fixed tiers by popularity: predictable load | Adaptive per product: the budget follows actual movement, but a product that changes after months of stability is caught late |
+| Where the last price lives | Read from the history store per fetch: one source of truth | Kept in a fast store keyed by product: cheaper per fetch, one more thing to keep consistent |
+| Fetching | Scraping pages: works for any retailer, fragile to layout changes | A retailer's feed or API: cheap and stable, but only where one is offered |
+| Alert timing | Immediately on each crossing | Batched into a digest: fewer messages, and a short sale may end before the digest goes out |
+
+## What breaks
+
+- **Overlapping runs.** The cold open: a fetch-everything job that takes longer than
+  its interval runs twice at once and doubles the request rate.
+- **Layout changes.** The retailer ships a new page template and every parse fails.
+  Without a dead-letter path, failing products retry forever and burn the budget on
+  pages that cannot be read; with one, they are set aside and a parser fix replays
+  them.
+- **False drops.** A page served in another currency reads as a 70% drop and
+  alerts 300,000 people.
+- **The popular-product burst.** A real drop on a product with 300,000 watchers
+  produces 300,000 alerts in a second. They go to a notification pipeline at a
+  rate it can take, not straight to the providers.
+
+## What changes at scale
+
+At **10x** products (200 million), the budget is the system: you cannot buy more of
+someone else's tolerance. Feeds, partnerships and crowd-sourced observations (users'
+browser extensions reporting the prices they see) replace fetching for most of the
+catalog.
+
+At **100x** watches, matching moves from the database index to an in-memory
+structure per hot product, rebuilt from the watches table, because the top products'
+watcher lists are read thousands of times a minute.
+
+At **1000x** events, price history stops being rows: it is downsampled into hourly
+and daily points after a week, the same retention trade every time-series store
+makes.
+
+## In production
+
+**Camelcamelcamel**, the long-running Amazon price tracker, alerts on target prices
+and charts history, and relies heavily on Amazon's affiliate product data rather
+than scraping every page. The budget problem is solved by not fetching where the
+retailer will hand you the data.
+
+**Googlebot** sets its crawl rate per host from how the host responds, and slows
+down when it starts seeing 429s, 500s or 503s, because a crawler that overloads a
+site gets blocked and then has no data at all. Politeness is not courtesy; it is how
+the crawler keeps working.
+
+A small tracker checks its few thousand products every few hours from one machine
+with a per-host delay, and needs none of the scoring until the catalog outgrows the
+budget.
+
+## Common mistakes
+
+- **Checking everything on a fixed timer.** The budget runs out at a catalog size you
+  will reach.
+- **Enforcing politeness in the scheduler instead of at the fetchers.** The planner's
+  bursts reach the retailer unless something with a fixed rate sits in between.
+- **Scanning watches on every change.** Index by product and target.
+- **Alerting on every dip.** A flapping price becomes spam without re-arm logic.
+
+## In an interview
+
+"Design a price tracker" sounds like CRUD plus a cron job, and step 1 is where that
+reading is corrected: whose limits apply, how many products, how fresh. Step 3 is
+the decisive moment - products times frequency against the budget - and the answer
+"28 times over" reshapes the design. The deep dive (step 5) is cadence and change
+detection; the follow-up is "a popular product just dropped, what happens?"
+
+What that sounds like at a senior level: *"Fetches are rationed by the retailer, so
+the planner is a priority function: watchers, volatility and staleness, with
+intervals that halve on change and double on no change. Due products go on a queue,
+and the fetchers for each retailer run at a concurrency matched to its budget and
+back off the whole host on 429s. A fetch publishes an event only when the normalized
+price changes; the alert matcher reads watches indexed by product and target, alerts
+once per crossing, and hands alerts to the notification pipeline. Price history is
+another consumer of the same events."*
+
+## Connections
+
+3.19's Cron Job is still the clock, but it now starts a planner rather than the
+work itself, which is the same split 3.17 made between accepting work and doing it.
+3.17's queue and workers become a rate governor: the queue absorbs whatever the
+planner produces, the fixed worker pool sets the pace. 3.18's fan-out carries one
+change to several consumers, and 3.16's derived data is what those consumers build.
+3.24 and 3.23 show up turned around: you obey someone else's limit and open a
+circuit when they push back.
+
+## Recap
+
+- A fetch budget you do not control, against a catalog 28 times too big: the planner
+  decides what each fetch is worth.
+- Score by watchers, volatility and staleness; halve the interval on change, double
+  it on silence.
+- A queue plus fixed-concurrency fetchers turns any burst into the retailer's
+  allowed rate.
+- Publish only real changes; match watchers by an index on product and target.
+- Alert once per crossing, or a flapping price becomes spam.
+
+## Your turn
+
+**The product.** The tracker from the opening: browsers reach one web server that
+stores watches in a relational database. An hourly cron job starts a fetcher that
+reads every product page as fast as it can and writes prices to the same database.
+
+What it has to do:
+
+- Requests to retailers stay within their budget, however many products come due in
+  the same minute, and a product whose page keeps failing to parse is set aside
+  rather than retried forever.
+- A price change reaches the users whose target it crosses, and also feeds price
+  history, without either one waiting on the other.
+- Losing one machine that serves the website drops no requests.
+- One public hostname resolves to whatever fronts the website.
+
+**The exercise.** Replace fetch-everything with checking that respects the budget,
+and connect observed changes to the people waiting on them. How change events reach
+their consumers is yours to decide; more than one answer passes. Validate runs every
+rule in the registry; a queue with nowhere for failed work to go is an error on this
+project.
+
+**Stretch, optional and not graded.** The largest retailer cuts your budget from
+120 to 40 requests a second. Which products lose freshness first under your planner,
+and what would you ask the retailer for instead?
+
+**What you are not told**: what plans the checks, how change events are carried, or
+how many consumers they have.
+
+## Next
+
+Tier 2's other projects, in any order. Online Chess is the opposite workload: no
+rationing, no batches, just two players whose every move has to reach the other in
+under a tenth of a second, on whichever machine each of them is connected to.

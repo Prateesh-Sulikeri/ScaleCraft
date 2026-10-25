@@ -1,107 +1,86 @@
-# Leader Election Component
+# Leader
 
-Mechanisms used by a distributed cluster to deterministically select a 
-single node responsible for managing shared state or coordinating 
-operations.
+The one node in a replicated group currently allowed to accept writes. Leader
+is a role, not a machine: it moves to another node when the current holder
+fails.
 
 ## What is it?
 
-Leader election is a fundamental synchronization primitive in distributed 
-systems that solves the problem of determining which participating member 
-should act as the primary coordinator. When multiple nodes need to perform 
-an exclusive write operation, only one node must be designated as the 
-leader. The component manages the process of achieving consensus on this 
-single active participant, ensuring all other non-leader nodes maintain 
-awareness of the current operational state and failover procedures. It is 
-critical for maintaining data consistency in replicated services.
+In a replicated store, every node holds a copy of the data but only one may
+accept writes at a time. That node is the **leader**; the others are
+**followers**, which replicate from it and may serve reads. The leader orders
+every write, sends it to the followers, and acknowledges it to the client once
+enough copies have it.
+
+The role is held on a lease and stamped with a **term** number. When the leader
+stops renewing, a new one is elected for a higher term, and nodes refuse
+anything from an older term.
 
 ## Why do we need it?
 
-Distributed systems require consistent coordination to manage shared 
-resources. Without a leader election mechanism, multiple nodes could 
-independently attempt write operations or modify state simultaneously (the 
-"split-brain" scenario), leading to severe data corruption and logical 
-inconsistencies. The component ensures atomicity for critical sections of 
-code by funneling all primary requests through an agreed-upon single point 
-of authority. It activates when any service requires deterministic 
-coordination or fault tolerance based on a single source of truth.
+Two nodes accepting writes to the same data at the same time produce two
+histories that cannot be merged safely afterwards: split brain. A single leader
+makes the order of writes unambiguous.
+
+The hard part is not having a leader but replacing one. A leader that is
+unreachable looks exactly like a leader that is dead, so the decision to move
+the role cannot be made by the nodes involved. It is made by majority, through
+a coordinator group or a consensus protocol among the nodes themselves.
 
 ## How does it work?
 
-1. A node initiates the election process, becoming a candidate and 
-broadcasting its intent to neighboring nodes.
-2. Other nodes receiving this request evaluate the candidacy, potentially 
-participating in a voting round if they are convinced the current leader 
-is unavailable or corrupt.
-3. The system enters a consensus phase, where nodes exchange votes to 
-determine quorum—a majority agreement of participants—that confirms a 
-single node's leadership status.
-4. Once a candidate receives sufficient confirmation (the quorum vote), it 
-assumes the role of the leader and acquires control over the shared 
-resource or write lock.
-5. The successful leader then publishes its status, and all followers 
-transition into a read-only or standby state until manual intervention or 
-failure detection triggers a new election cycle.
+1. The leader accepts a write, appends it to its log, and replicates it to the
+   followers.
+2. With majority acknowledgement, the write is confirmed once the leader and
+   enough followers have it, so no confirmed write is lost on failover.
+   With asynchronous replication, the last few hundred milliseconds can be.
+3. The leader keeps renewing its lease. If it stops, followers wait out the
+   election timeout, then a majority elects the follower with the most recent
+   data as leader for the next term.
+4. When the old leader returns, its term is stale. Its writes are refused and
+   it rejoins as a follower.
 
 ## Architecture Diagram
 
 ```mermaid
 graph LR
-    A[Client] --> B[Leader]
-    B --> C[Follower]
-    B --> D[Follower]
-    C --> B
-    D --> B
+    A[App Server] -->|writes| L[Leader]
+    L -->|replication| F1[Follower]
+    L -->|replication| F2[Follower]
+    C[Coordinator] -.->|lease, term| L
 ```
 
 ## Common Configurations
 
 | Configuration | Description |
 | :--- | :--- |
-| `quorum_size` | The minimum number of nodes required to agree on the 
-leader's status. |
-| `election_timeout` | Duration a node waits before declaring an election 
-necessary due to inactivity. |
-| `heartbeat_interval` | Frequency with which the active leader reports 
-its presence and availability. |
-| `vote_period` | The time delay enforced between successive attempts at 
-voting in an election cycle. |
-| `split_brain_detection` | Mechanism thresholds defining failure 
-detection parameters to prevent conflicting leadership claims. |
+| **Election Timeout Ms** | How long followers wait without hearing from the leader before electing a new one. Short timeouts fail over fast but trigger needless elections on a GC pause or network blip; long ones mean seconds of refused writes on every real failure. |
 
 ## Where is it used?
 
-*   Distributed Key-Value Stores (e.g., electing the primary replica).
-*   Resource Scheduling Systems (assigning a single scheduler instance for 
-coordination).
-*   Service Mesh Gateways (determining which gateway instance processes 
-incoming traffic).
-*   Stateful Workloads (managing leader failover within replicated 
-databases or message queues).
+*   Replicated databases: one primary, automatic failover (3.26).
+*   Coordinator groups themselves: Raft and ZAB each elect a leader internally.
+*   Partitioned stores and logs: every shard or partition has its own leader.
 
 ## Key Points
 
-*   Leader election relies on fault tolerance mechanisms, often im
-implementing time-based retries.
-*   The consensus process prevents the "split-brain" scenario by requiring 
-majority agreement.
-*   Follower nodes should only execute writes upon explicit confirmation 
-of leadership status.
-*   High availability requires multiple redundant services dedicated 
-solely to managing consensus state.
-*   Election overhead increases with cluster size, necessitating efficient 
-voting protocols.
+*   Exactly one leader per group at a time; more than one is split brain.
+*   Leadership is a lease plus a term: the lease bounds how long a dead leader
+    blocks writes, the term fences one that comes back.
+*   Elections need a majority, so a group of 3 survives one failure and 5
+    survive two.
+*   Whether failover loses writes depends on how writes are acknowledged, not
+    on the election.
 
 ## Related Components
 
 *   Follower
 *   Coordinator
-*   Lock Service
+*   Read Replica
 
 ## Learn More
 
-Idempotency
-Quorum Consensus
-Total Ordering
-
-
+Raft
+Split Brain
+Quorum
+Fencing Tokens

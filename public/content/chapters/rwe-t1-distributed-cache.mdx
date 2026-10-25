@@ -1,0 +1,293 @@
+Last Tuesday the one machine that caches product pages was rebooted for a kernel
+patch. For four minutes every product read went to the database: 120,000 a second
+against a database sized for 40,000. Checkout went down with it, because checkout
+shares that database.
+
+3.14 named this failure - the cache becomes load-bearing - and said what replaces
+the single box: a tier that is partitioned and replicated. This project designs
+that tier rather than placing it.
+
+> [!NOTE]
+> Think first: you split the cache across four machines by taking each key's hash
+> mod 4. One of them dies. What fraction of reads miss on the next request, and is
+> the answer "a quarter"? Commit to a number before reading on.
+
+## The numbers
+
+| Measured | Figure | What it forces |
+|---|---|---|
+| Product reads | 120,000/s at peak | A miss costs the database; a lost machine costs it all at once |
+| Working set | 40 M products at ~4.5 KB cached = 180 GB | Three times one 64 GB machine. Partitioning is not optional |
+| Hit ratio | 95% when it fit; 80% now | 24,000 misses/s today, against a ceiling of 40,000 |
+| Database ceiling | 40,000 reads/s | The budget every failure is measured against |
+| Freshness | A price change visible within 60 s | Staleness is allowed, and bounded by TTL (3.14) |
+
+Every design here is judged by one subtraction: what reaches the database when one
+machine disappears. At a 95% hit ratio 6,000 reads a second miss anyway, which
+leaves 34,000 for whatever a failure adds.
+
+## Losing one of four
+
+<Walkthrough
+  title="Which keys move when a machine dies"
+  description="Switch between hash mod N and a hash ring. Same four machines, same failure, same 120,000 reads a second."
+  algorithms={[
+    { id: "modulo", label: "hash mod N" },
+    { id: "ring", label: "Consistent hashing" },
+  ]}
+  nodes={[
+    { id: "app", kind: "component", componentId: "app-server", label: "App Server" },
+    { id: "ca", kind: "component", componentId: "cache", label: "Cache A" },
+    { id: "cb", kind: "component", componentId: "cache", label: "Cache B" },
+    { id: "cc", kind: "component", componentId: "cache", label: "Cache C" },
+    { id: "cd", kind: "component", componentId: "cache", label: "Cache D" },
+    { id: "db", kind: "component", componentId: "sql-database", label: "Database" },
+  ]}
+  edges={[
+    { id: "ra", source: "app", target: "ca", kind: "request-flow" },
+    { id: "rb", source: "app", target: "cb", kind: "request-flow" },
+    { id: "rc", source: "app", target: "cc", kind: "request-flow" },
+    { id: "rd", source: "app", target: "cd", kind: "request-flow" },
+    { id: "ma", source: "ca", target: "db", kind: "request-flow" },
+    { id: "mb", source: "cb", target: "db", kind: "request-flow" },
+    { id: "mc", source: "cc", target: "db", kind: "request-flow" },
+    { id: "md", source: "cd", target: "db", kind: "request-flow" },
+  ]}
+  steps={[
+    {
+      caption: "The App Server hashes each key to one of Cache A, B, C or D. Each holds a quarter of the 180 GB, and 95% of reads end there.",
+      highlightNodeIds: ["app", "ca", "cb", "cc", "cd"],
+      highlightEdgeIds: ["ra", "rb", "rc", "rd"],
+    },
+    {
+      caption: "Cache C dies.",
+      faultNodeIds: ["cc"],
+      faultEdgeIds: ["rc"],
+    },
+    {
+      caption: "The App Server recomputes where each key lives.",
+      faultNodeIds: ["cc"],
+      variants: {
+        modulo: {
+          caption: "N is now 3. A key stays put only if its hash mod 3 equals its hash mod 4, which holds for one key in four. Three quarters now point at a node that has never held them.",
+          highlightNodeIds: ["app", "ca", "cb", "cd"],
+          faultNodeIds: ["cc"],
+        },
+        ring: {
+          caption: "Only Cache C's keys move, to the next machine around the ring. Every key that lived on A, B or D still lives there.",
+          highlightNodeIds: ["app", "cd"],
+          highlightEdgeIds: ["rd"],
+          faultNodeIds: ["cc"],
+        },
+      },
+    },
+    {
+      caption: "The misses reach the Database.",
+      faultNodeIds: ["cc"],
+      variants: {
+        modulo: {
+          caption: "About 90,000 reads a second miss at once and the Database takes 96,000 against a ceiling of 40,000. Last Tuesday, again, with four machines instead of one.",
+          faultNodeIds: ["cc", "db"],
+          faultEdgeIds: ["ma", "mb", "md"],
+        },
+        ring: {
+          caption: "A quarter of reads miss: 30,000 plus the usual 6,000 reach the Database, under its 40,000, while Cache D warms up.",
+          highlightNodeIds: ["cd", "db"],
+          highlightEdgeIds: ["md"],
+          faultNodeIds: ["cc"],
+        },
+      },
+    },
+    {
+      caption: "Same machines, same failure. How keys were assigned decided whether it was an incident or an outage.",
+    },
+  ]}
+/>
+
+Note: under mod N the failure of one machine is paid by all of them. Adding a fifth
+machine for growth does the same - four keys in five move - so mod N turns routine
+capacity work into a cold cache.
+
+## Consistent hashing
+
+Hash every machine onto a circle of, say, 2^32 positions, and hash every key onto
+the same circle. A key belongs to the first machine clockwise from it. When a
+machine leaves, only the keys on its arc move, to its clockwise neighbor; when one
+joins, it takes over part of one neighbor's arc. A change in N moves about 1/N of
+the keys instead of nearly all of them.
+
+One level down, two details decide whether it works:
+
+- **Virtual nodes.** With one point per machine, C's whole arc lands on D and D's
+  load doubles at the worst moment. Give each machine 100-200 points instead, and
+  C's keys scatter across all three survivors, a third each.
+- **Agreement on membership.** Every App Server computes the ring itself, so every
+  one must have the same member list. If two disagree, they send the same key to
+  two machines, and one of those copies goes stale on the next update. This is
+  3.9's registry problem: the member list is pushed from one place, never
+  configured per server.
+
+Redis Cluster solves the same problem with a fixed table instead of a ring: 16,384
+hash slots, each owned by one machine. Adding capacity moves whole slots; the key
+to slot mapping never changes.
+
+> **Engineering lens.** Consistent hashing does not make a failure free. It makes
+> the cost of a failure proportional to the failed machine's share, which is what
+> lets you size the database for one lost machine instead of for all of them.
+
+## Eviction is a bet on the access pattern
+
+180 GB fits; growth will not, and something will be evicted. Each policy is a
+claim about how this catalog is read:
+
+| Policy | Evicts | Right when | Wrong when |
+|---|---|---|---|
+| LRU | Least recently read | Popularity drifts - today's trending products | A nightly export reads all 40 M products once and pushes the whole daytime hot set out |
+| LFU | Least often read | Popularity is stable | A new product starts with a count of 1 and is evicted before it can earn a place; last year's bestseller never leaves |
+| TTL only | Oldest written | Staleness is the real constraint | It evicts the hottest key on schedule, every time - 3.14's stampede |
+
+Production caches blend them: Redis offers sampled LRU and an LFU whose counts
+decay, so old popularity fades. The question that picks one is not "which is
+best" but "what does our worst read pattern look like", and for this catalog it is
+the 02:00 export.
+
+## Trade-offs
+
+The exercise leaves one decision open: make a lost machine cheap by having its
+data elsewhere, or by having it hold very little.
+
+| Decision | What it buys | What it costs |
+|---|---|---|
+| Partition only, four machines, the App Server picks the node | Every byte of RAM holds a distinct key: 4 x 64 GB covers 180 GB | A lost machine's quarter is cold until it warms; the database must absorb 30,000 extra reads a second for minutes |
+| Partition and replicate each key twice | A lost machine's keys are served by their replica; the database barely notices | Twice the memory: 360 GB, six machines instead of four. Every fill writes twice |
+| Replicas eventually consistent | Writes do not wait for the replica | A read right after a price change can see the old price on the replica - inside the 60 s the brief already allows |
+| Replicas strongly consistent | No read sees a value older than the last write | Every write waits for two machines, for a guarantee a 60-second TTL already gave away |
+
+The arithmetic under the first row: 120,000 / N extra reads when one of N machines
+dies, plus 6,000. Three machines would let 46,000 through. Four is the smallest
+fleet that fits under 40,000, and only if keys are assigned by a ring.
+
+## What breaks
+
+- **The hot key.** A flash-sale product takes 30,000 reads a second, all on the
+  one machine that owns it: about 135 MB a second out of one network card while
+  three machines idle. 3.13's hot partition - more machines do not help, because
+  it is one key. Copy that key to every machine, or hold it in each App Server's
+  own memory for a few seconds.
+- **The scan.** The 02:00 export flushes an LRU cache, and the 08:00 traffic finds
+  it cold. Have the export bypass the cache.
+- **Split membership.** A deploy rolls out a new member list to half the App
+  Servers. For ten minutes keys have two homes, and one of each pair is wrong.
+- **The cold restart, still.** Replication protects against losing one machine,
+  not against restarting all of them in one deploy. Roll restarts one machine at a
+  time.
+
+## What changes at scale
+
+At **10x** the working set is 1.8 TB: thirty-odd machines, and virtual nodes stop
+being optional, because uneven arcs now mean some machines hold twice their share.
+
+At **100x** the hit ratio's last few percent cost more memory than the misses cost
+the database. Caching the top 99% of reads is cheap; the long tail is where the
+RAM goes.
+
+At **1000x** the catalog is read from several continents, and each region keeps
+its own cache tier. Invalidating a price change becomes a message to every region,
+and the 60-second freshness promise is now a cross-region one.
+
+## In production
+
+**Facebook's memcache tier** assigns keys with consistent hashing in the client and
+mostly does not replicate. When a cache server fails, its requests go to a small
+"gutter" pool of spare servers rather than to the database, so a lost machine costs
+a short burst of misses against spare capacity, not a database incident. They chose
+cheap memory over replicas and paid for it with a second, smaller tier.
+
+**Redis Cluster** replicates every slot to a replica and promotes it on failure.
+Replication is asynchronous, so a write acknowledged just before a failover can be
+lost - unacceptable for a database, routinely accepted for a cache whose data can be
+re-read from its origin.
+
+## Common mistakes
+
+- **Hash mod N.** It works until the first time N changes, and N changes on every
+  failure and every scale-up.
+- **Sizing the database for the hit ratio.** It must survive the hit ratio minus
+  one machine. That subtraction is the design.
+- **Replicating to make the cache "durable".** A cache's data has an origin.
+  Replicate to survive a machine's loss without a burst, not to avoid losing data.
+- **Picking an eviction policy by default.** LRU is right until your largest batch
+  job runs.
+
+## In an interview
+
+"Design a distributed cache" is the interviewer asking you to build Memcached or
+Redis. Step 2 is the API (`get`, `set` with a TTL, `delete`) and step 3 decides
+everything after it: working set against one machine's memory, and the read rate
+against what the origin can take. The deep dive (step 5) is almost always key
+placement, and the follow-up at step 6 is "a node dies - what happens?"
+
+What that sounds like at a senior level: *"Working set is 180 GB, so it's
+partitioned. I'd use consistent hashing with virtual nodes so a lost machine moves
+only its share, spread across the rest. Then I size for failure: 120,000 reads
+over N machines has to fit the database's headroom, which means four nodes without
+replication or replicas if we'd rather the database never notice - that's a
+memory-cost call. Eviction is LFU with decay because our nightly export would
+flush an LRU. And the hot-key answer is replicating that one key everywhere, not
+adding nodes."*
+
+## Connections
+
+3.14 said that once the working set outgrows one machine, or losing the box takes
+the database with it, the cache tier is partitioned and replicated - and put a
+Distributed Cache on the palette as that tier. This project is the inside of that
+box. The partitioning is 3.13's, with the one change 3.13's hash mod N could not
+survive: the number of partitions moves every time a machine fails. The member list
+every App Server needs is 3.9's registry, and the hot key is 3.13's hot partition
+with a product page instead of a celebrity.
+
+Coming in Group F, if you have not taken it: 3.22 Distributed Storage Concepts
+treats the consistency choice in the trade-off table as a general property of every
+replicated store, not just this one.
+
+## Recap
+
+- Judge every design by what reaches the origin when one machine disappears.
+- Hash mod N moves almost every key when N changes; a ring moves about 1/N.
+- Virtual nodes spread a lost machine's keys across all survivors.
+- Partition-only spends RAM on distinct keys and accepts a burst; replication spends
+  twice the RAM to avoid it.
+- Eviction is a bet on the worst access pattern, usually a scan.
+
+## Your turn
+
+**The product.** The catalog's read path from the opening: a browser, one public
+hostname, a load balancer, six application servers, one caching machine, and the
+relational database that checkout also depends on.
+
+What it has to do:
+
+- Hold the whole 180 GB working set in memory, so about 95% of reads end there.
+- Losing any one machine in the caching tier keeps the database under 40,000 reads
+  a second.
+- Adding a machine for growth must not do worse than losing one.
+- A product read still completes in single-digit milliseconds.
+- A price change is visible within 60 seconds.
+
+**The exercise.** Replace the single caching machine with a tier that meets those
+numbers. Two different tiers pass, and they disagree about what to spend: one buys
+safety with memory, the other buys memory with a burst the database can absorb.
+Validate runs every rule in the registry.
+
+**Stretch, optional and not graded.** Black Friday: one product takes a quarter of
+all reads. Which of your design's machines is the first to fail, and what would you
+change before the morning?
+
+**What you are not told**: how many of anything, which component is the tier, or
+which settings matter.
+
+## Next
+
+Tier 1's other open briefs: Rate Limiter, where this same store holds counters with
+no origin behind them at all, and Metrics Monitoring, a system whose writes outnumber
+its reads a thousand to one - a URL shortener turned upside down.

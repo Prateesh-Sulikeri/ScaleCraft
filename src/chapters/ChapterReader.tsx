@@ -1,22 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useAuth } from "@clerk/nextjs";
 import { ListTree, Menu } from "lucide-react";
 import { PageEnter } from "@/app/PageEnter";
-import { ThemeToggle } from "@/app/ThemeToggle";
-import { AppUserButton } from "@/app/AppUserButton";
 import { MobileDrawer } from "@/app/MobileDrawer";
-import { ReportBugButton } from "@/bugs/ReportBugButton";
+import { HomeHeader } from "@/home/HomeHeader";
+import { courseAccentStyle } from "@/learning-path/accent";
+import { LESSON_BODY_CLASSNAME } from "@/canvas/docs-panel/markdown/markdown-plugins";
 import { ReaderSidebar } from "./ReaderSidebar";
 import { ReadingProgress } from "./ReadingProgress";
 import { TableOfContents } from "./TableOfContents";
-import { NextChapterLink } from "./NextChapterLink";
+import { ChapterPager } from "./ChapterPager";
+import { LessonHeader } from "./LessonHeader";
 import { YourTurnCard } from "./YourTurnCard";
-import { DifficultyDots } from "@/learning-path/DifficultyDots";
-import { getCourse, findEntry, nextEntry } from "@/curriculum";
+import { getCourse, findEntry } from "@/curriculum";
 import { getChapter, useChapterLesson } from "@/content/content-service";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import { appendKnowledgeCheckHeading, extractHeadings } from "./extract-headings";
@@ -40,23 +39,15 @@ type ChapterReaderProps = {
 
 /**
  * The documentation-style reading page between the Learning Path and the
- * Design Editor canvas — `/<mode>/<chapterSlug>/lesson`. No AppHeader (same
- * posture as the Learning Path itself): a fixed, always-expanded
- * ReaderSidebar on the left (curriculum-only nav — not collapsible or
- * resizable, unlike the Design Editor's SidebarShell), the lesson prose
- * center (its own sticky reading-progress bar pinned to the top), "On this
- * page" TOC on the right. The canvas route (`/<mode>/<chapterSlug>`) and its
- * ChapterWorkspace/QuestionPane are untouched — this page never renders
- * problem statement/objectives/hints, that's still the workspace's job once
- * a learner clicks through.
+ * Design Editor canvas - `/<mode>/<chapterSlug>/lesson`. HomeHeader on top
+ * (shared with Home and the Learning Path, so the account controls sit in one
+ * place), then three columns: ReaderSidebar (curriculum), the article
+ * (LessonHeader, the lesson body, YourTurnCard, ChapterPager), and the
+ * "On this page" TOC. Problem statement, objectives and hints stay in the
+ * Design Editor's QuestionPane.
  *
- * Below `lg` (pending-responsive.md Phase 3.4) the left aside becomes a
- * MobileDrawer instead of a permanent column — at phone width a fixed 240px
- * nav left the article too narrow to read. The right ToC aside is already
- * `hidden ... xl:flex`, and below `xl` its three controls
- * (ReportBugButton/ThemeToggle/AppUserButton) move into the same mobile top
- * bar that opens the nav drawer, so they stay reachable at every width
- * instead of disappearing between `lg` and `xl`.
+ * Below `lg` the sidebar becomes a MobileDrawer; below `xl` the TOC does too.
+ * A slim bar under the header opens whichever rail is hidden.
  */
 export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   const course = getCourse(mode);
@@ -64,7 +55,6 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
   // lookup so a stale/bad slug degrades to the defensive null return below.
   const entry = findEntry(mode, chapterSlug);
   const chapter = entry?.chapterDefinitionId ? (getChapter(entry.chapterDefinitionId) ?? null) : null;
-  const hasNextEntry = nextEntry(mode, chapterSlug) !== undefined;
 
   const articleRef = useRef<HTMLDivElement>(null);
   const [navOpen, setNavOpen] = useState(false);
@@ -105,41 +95,40 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
 
   return (
     <PageEnter>
-      <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        {/* Mobile top bar: hidden at xl, where the permanent left nav (lg+)
-         * and right ToC aside (xl+) both cover what it carries. Below that,
-         * it's the only way to reach chapter navigation, the on-page ToC,
-         * and the account controls. */}
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2 xl:hidden">
+      <main style={courseAccentStyle(mode)} className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        <HomeHeader container="w-full px-4 md:px-6" />
+
+        {/* Below xl one of the two rails is gone, so this bar opens it as a
+         * drawer. The account controls already live in HomeHeader. */}
+        <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-1.5 xl:hidden">
           <button
             type="button"
             onClick={() => setNavOpen(true)}
             aria-label="Chapter navigation"
             aria-haspopup="dialog"
-            className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/70 hover:text-foreground lg:hidden"
+            className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/70 hover:bg-border/40 hover:text-foreground lg:hidden"
           >
             <Menu size={16} />
           </button>
-          <div className="flex items-center gap-2 lg:ml-auto">
-            {tocHeadings.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setTocOpen(true)}
-                aria-label="On this page"
-                aria-haspopup="dialog"
-                className="flex h-8 w-8 items-center justify-center rounded-md text-foreground/70 hover:text-foreground"
-              >
-                <ListTree size={16} />
-              </button>
-            )}
-            <ReportBugButton />
-            <ThemeToggle />
-            <AppUserButton />
-          </div>
+          <p className="min-w-0 truncate text-[13px] text-foreground/60">
+            {entry.number && <span className="font-mono text-[var(--course-accent)]">{entry.number} </span>}
+            {chapter.title}
+          </p>
+          {tocHeadings.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setTocOpen(true)}
+              aria-label="On this page"
+              aria-haspopup="dialog"
+              className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-foreground/70 hover:bg-border/40 hover:text-foreground"
+            >
+              <ListTree size={16} />
+            </button>
+          )}
         </div>
 
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          <aside className="hidden w-60 shrink-0 flex-col overflow-hidden border-r border-border lg:flex">
+          <aside className="hidden w-64 shrink-0 flex-col overflow-hidden border-r border-border lg:flex">
             <ReaderSidebar course={course} chapterSlug={chapterSlug} />
           </aside>
 
@@ -151,102 +140,39 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
 
           <div ref={articleRef} className="relative min-h-0 flex-1 overflow-y-auto">
             <ReadingProgress targetRef={articleRef} />
-            {/* 42rem reads well through 1080p; past ~1800px the two asides leave
-                enough room that it looks narrow, so widen to 64rem. Stock
-                Tailwind stops at 2xl (1536px), which 1080p already clears - hence
-                the arbitrary breakpoint. */}
-            <div className="mx-auto max-w-2xl px-6 py-10 min-[1800px]:max-w-5xl">
-              <p className="text-xs font-medium tracking-wide text-foreground/50 uppercase">
-                {entry.number ? `${entry.number} · ` : ""}
-                {course.title}
-              </p>
-              <div className="mt-1 flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-foreground">{chapter.title}</h1>
-                {chapter.placeholder && (
-                  <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70">
-                    Draft
-                  </span>
-                )}
-              </div>
-              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-foreground/60">
-                <DifficultyDots difficulty={entry.difficulty} />
-                {entry.difficulty}
-              </p>
+            {/* 44rem minus the gutter keeps a 17px line near 75ch; the 2K step is a
+                deliberate wider call (DESIGN.md, Measure). */}
+            <article className="mx-auto max-w-[44rem] px-6 pb-20 pt-10 min-[1800px]:max-w-5xl">
+              <LessonHeader course={course} entry={entry} chapter={chapter} />
 
-              {entry.domain && (
-                <div className="mt-3">
-                  <span className="inline-block rounded-md bg-border/40 px-2 py-1 text-xs font-medium text-foreground/80">
-                    {entry.domain}
-                  </span>
-                </div>
-              )}
-
-              {entry.prerequisiteSlugs.length > 0 && (
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] font-medium tracking-wide text-foreground/50 uppercase">
-                    Prerequisites
-                  </span>
-                  {entry.prerequisiteSlugs.map((slug) => {
-                    const prereq = findEntry(mode, slug);
-                    if (!prereq) return null;
-                    const label = prereq.number ? `${prereq.number} ${prereq.title}` : prereq.title;
-                    return prereq.chapterDefinitionId ? (
-                      <Link
-                        key={slug}
-                        href={`/${mode}/${slug}/lesson`}
-                        className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/70 transition-colors hover:border-foreground/40 hover:text-foreground"
-                      >
-                        {label}
-                      </Link>
-                    ) : (
-                      <span
-                        key={slug}
-                        className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-foreground/40"
-                      >
-                        {label}
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="mt-8">
+              <div className="mt-10">
                 {isMdx ? (
-                  lessonMdx && <MdxContent compiledSource={lessonMdx.beforeCompiled} />
+                  lessonMdx && <MdxContent compiledSource={lessonMdx.beforeCompiled} className={LESSON_BODY_CLASSNAME} />
                 ) : (
-                  <MarkdownRenderer content={beforeNext} />
+                  <MarkdownRenderer content={beforeNext} className={LESSON_BODY_CLASSNAME} />
                 )}
               </div>
 
               <YourTurnCard chapter={chapter} mode={mode} chapterSlug={chapterSlug} />
 
               {hasNextSection && (
-                <div className="mt-8">
+                <div className="mt-12">
                   {isMdx ? (
-                    lessonMdx?.nextCompiled && <MdxContent compiledSource={lessonMdx.nextCompiled} />
+                    lessonMdx?.nextCompiled && (
+                      <MdxContent compiledSource={lessonMdx.nextCompiled} className={LESSON_BODY_CLASSNAME} />
+                    )
                   ) : (
-                    <MarkdownRenderer content={nextSection} />
+                    <MarkdownRenderer content={nextSection} className={LESSON_BODY_CLASSNAME} />
                   )}
                 </div>
               )}
 
-              {hasNextEntry && (
-                <div className="mt-10 border-t border-border pt-6">
-                  <NextChapterLink courseId={mode} chapterSlug={chapterSlug} variant="card" />
-                </div>
-              )}
-            </div>
+              <ChapterPager courseId={mode} chapterSlug={chapterSlug} />
+            </article>
           </div>
 
-          <aside className="hidden w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border px-4 py-10 xl:flex">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">On this page</p>
-              <div className="flex items-center gap-2">
-                <ReportBugButton />
-                <ThemeToggle />
-                <AppUserButton />
-              </div>
-            </div>
+          <aside className="hidden w-60 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border px-5 py-10 xl:flex">
+            <p className="text-[13px] font-semibold text-foreground">On this page</p>
             {/* Keyed on the chapter so scrollspy state (activeId) resets on
                 navigation instead of carrying over a stale section from the
                 previous chapter - see TableOfContents.tsx's docstring. */}
@@ -255,8 +181,8 @@ export function ChapterReader({ mode, chapterSlug }: ChapterReaderProps) {
 
           {tocOpen && (
             <MobileDrawer onClose={() => setTocOpen(false)} title="On this page" side="right">
-              <div className="flex flex-col gap-3 px-4 py-10">
-                <p className="text-[11px] font-semibold tracking-wide text-foreground/50 uppercase">On this page</p>
+              <div className="flex flex-col gap-3 px-5 py-10">
+                <p className="text-[13px] font-semibold text-foreground">On this page</p>
                 <TableOfContents
                   key={chapterSlug}
                   headings={tocHeadings}

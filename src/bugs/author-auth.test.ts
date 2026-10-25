@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { requireAuthorToken } from "./author-auth";
 
 const request = (authorization?: string) =>
-  new Request("https://scalecraft.test/api/cron/bug-retention", {
+  new Request("https://scalecraft.test/api/bugs/bug-1/close", {
     headers: authorization ? { authorization } : {},
   });
 

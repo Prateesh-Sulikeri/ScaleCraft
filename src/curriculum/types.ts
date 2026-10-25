@@ -20,7 +20,8 @@ export type CurriculumChapter = {
    *  persistence key (see CurriculumProgress) and a bookmarkable URL. */
   slug: string;
   /** Display number from CURRICULUM.md §14/§23, e.g. "1.2". Checkpoints use
-   *  "R1"/"R2"/"R3" (CURRICULUM.md Part 4) instead of a section number. */
+   *  their group's letter ("A"-"G") or "Final" (CURRICULUM.md Part 4)
+   *  instead of a section number. Slugs keep the older r1/r2/r3 names. */
   number: string | null;
   title: string;
   kind: "chapter" | "checkpoint";
@@ -39,6 +40,11 @@ export type CurriculumChapter = {
    *  entry — domain groups only exist to help learners follow an RWE thread
    *  vertically across tiers. */
   domain: string | null;
+  /** Components this chapter is about, shown as icon plates on its Learning
+   *  Path row. Authored, because palettes are cumulative and cannot say what
+   *  a chapter focuses on. Omitted: the row falls back to the components the
+   *  chapter introduces (BB) or requires (RWE). Keep it to 1-5 ids. */
+  focusComponentIds?: readonly string[];
 };
 
 export type CurriculumSection = {

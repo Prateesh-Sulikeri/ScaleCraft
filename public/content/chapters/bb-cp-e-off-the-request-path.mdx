@@ -1,0 +1,63 @@
+Group E's three exercises each moved one kind of work off the request path, on
+a board where the previous chapter's fix was already in place. This
+checkpoint starts from a system where none of it has been done. Everything
+happens while a diner waits for a booking to confirm, and the booking takes
+3.4 seconds because of it.
+
+The skill being tested is sorting, before drawing anything. A brief like this
+one mixes four kinds of work in one list: a job that follows a request, news
+that several teams need, work nobody asked for, and a burst that arrives at the
+front door. Each has a different shape in Group E. Getting the shapes right is
+most of the design; drawing them is the easy part.
+
+## Connections
+
+| Chapter | The question it answered |
+|---|---|
+| 3.17 Message Queues | How does work outlive the request that started it, and where does work that keeps failing go? |
+| 3.18 Event-Driven Architecture | Is this message a task for one consumer, or a fact every interested team should get? |
+| 3.19 Background Jobs & Scheduling | What starts work that has no caller, and where does bursty work run so it does not size the pool? |
+
+Two earlier ideas come back. 3.16's search index is a copy of data that has to
+be kept up to date, and updating it inside the request is exactly the kind of
+work this group exists to move. And 3.17's rule decides which work is allowed
+to leave: if the diner's success depends on a result, that work stays on the
+request path. Everything else is a candidate to go.
+
+## Your turn
+
+**The product.** A restaurant-reservations platform. Diners search restaurants
+and book tables; restaurants manage their tables from a till system and a
+tablet. Everything on the canvas answers a diner while they wait, and right now
+everything else is crammed into that same path.
+
+What it has to do:
+
+- Booking a table answers in under 300 ms. The confirmation text goes through
+  an SMS provider that takes 2 to 5 seconds and sometimes fails for an hour.
+  It must not slow the booking down, and no confirmation may be silently lost.
+- Every confirmed booking matters to three teams: the restaurant's tablet shows
+  it, the loyalty programme awards points for it, and search's "tables free
+  tonight" count has to drop by one. Each needs every booking. A fourth team,
+  analytics, starts next quarter, and the booking code must not change when it
+  does.
+- At 03:00 every night, no-shows are counted and restaurants are billed for
+  them. It runs exactly once a night, however many application instances are
+  running.
+- When dinner service opens, restaurants' till systems push table-status
+  updates in a burst: 40% of a day's writes in fifteen minutes. That burst must
+  not decide how big the diner-facing pool is, and handling it should cost
+  nothing the rest of the day.
+
+**What you are not told**: how many new components there are, which kind of
+hand-off each piece of work needs, or where each new path starts. More than one
+component can answer some of these lines; Submit accepts any taught shape that
+meets the requirement. Watch the line styles as you draw: the canvas only lets
+you use the dashed kind where a hand-off is genuinely one-way.
+
+## Next
+
+3.20 Object Storage, if Group F is still ahead of you. Every byte in this
+system so far has been a row or a document. The first time a restaurant uploads
+a menu PDF or a diner adds a photo, the obvious place to put it is the database
+you already have, and it is the wrong place.

@@ -1,0 +1,68 @@
+Most systems you work on, you did not build. You join a team, someone shows
+you a diagram, and the diagram looks fine: every box is connected, nothing is
+red, and the site is up. The faults that matter in a system like that are not
+broken wiring. They are the places where the drawing quietly disagrees with
+what the system is supposed to do.
+
+Group B taught four properties a fleet has to keep, one per chapter, and
+breaking any of them leaves every box in place. This checkpoint hands you a
+system with four faults in it: three of those properties broken, plus the most
+common fault Group A taught.
+
+There is no lesson above this canvas naming the fault, and no rule that will
+find most of them. You get the requirements, the system, and a count. Auditing
+a design against its requirements one line at a time is the skill, and it is
+the same skill an interviewer is testing when they point at your diagram and
+ask "is this ready for Monday?"
+
+## Connections
+
+Group B added no new boxes. Every chapter in it was about a property the boxes
+you already had must keep:
+
+| Chapter | The property it taught |
+|---|---|
+| 3.6 Stateless Services | Copies behind a load balancer are only interchangeable if none of them keeps anything the next request needs. |
+| 3.7 Sessions & State Management | Whatever a request does need from earlier - a login, a cart - lives in a store every copy can reach. |
+| 3.8 Horizontal Scaling | Capacity is planned for peak with one copy lost, not for peak. |
+| 3.9 Service Discovery | A cached answer about where something lives must not outlive the window in which that answer changes. |
+
+And one from Group A, because it is the most common way an inherited system goes
+wrong: 3.1's firewall set to `allow-all` is drawn, connected and doing nothing.
+Somebody always meant to change it back.
+
+Two of these are numbers, and the brief gives you what you need for both. For
+capacity: what one instance carries, what peak needs, and what happens when one
+instance is gone. For the cached address: how long it is reused, against how long
+the change takes.
+
+## Your turn
+
+**The system.** Last week you joined the team that runs a clinic
+appointment-booking service. The diagram on the canvas is the system as it runs
+today. It works, mostly, and four things in it are wrong.
+
+What it is supposed to do:
+
+- Patients reach it at one domain name, and the perimeter refuses anything it
+  has not been told to allow.
+- A patient who logs in stays logged in on their next request, whichever
+  machine serves it.
+- Peak is 450 requests a second, Monday at 08:00. One application instance
+  handles 150, measured. Losing any one instance at peak must not drop
+  requests.
+- On Tuesday the whole stack moves to new infrastructure, with a 30-second
+  cutover window. No patient may still be sent to the old address once the
+  window has closed.
+
+**How it is judged**: fix all four faults without rebuilding what already works.
+Validate will point at one of them. The other three are legal drawings that
+contradict a line of the brief, so no rule can see them; Submit checks each one
+against the brief and names any setting that does not match.
+
+## Next
+
+3.10 Databases. Every fault you just fixed lived in front of the same single
+database, and the fix for the lost logins was to lean on it harder. Group C
+asks what that database actually promises, why it is the one thing in this
+system you could not simply copy, and what it costs once you have to.
