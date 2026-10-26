@@ -18,10 +18,9 @@ function isReadableMode(segment: string | undefined): segment is ReadableMode {
  * responsive.md) - only the Design Editor, sandbox, and dev canvas tools are
  * gated now, so this only ever interrupts an exercise, never reading.
  *
- * Hard block, no "continue anyway" — MVP_SCOPE.md already defers touch/mobile
- * support to a later phase rather than a half-working desktop UI, so letting
- * someone past this into the drag/connect/configure canvas on a phone would
- * just trade one bad experience for a worse, unsupported one.
+ * Hard block, no "continue anyway". Tablets got full touch support in
+ * release 7.4.0; phones are out of the editor permanently (the reader is
+ * the phone product), so there is nothing to continue into.
  *
  * Gated on `mounted` (see use-has-mounted.ts) rather than blocking during SSR:
  * there's no `window` on the server to measure, and defaulting to "blocked"
@@ -49,8 +48,8 @@ export function ScreenSizeGate({ children }: { children: React.ReactNode }) {
         <div className="max-w-sm space-y-2">
           <h1 className="text-base font-semibold text-foreground">The Design Editor needs a larger screen</h1>
           <p className="text-pretty text-sm leading-relaxed text-foreground/70">
-            Assembling and connecting components precisely is a desktop task - this canvas isn&apos;t built for a
-            phone-sized or narrow browser window. Open ScaleCraft on a tablet, or maximize your desktop browser.
+            The canvas works on a tablet or a computer, not a phone. On a phone, the lesson is the place to be.
+            On a computer, widen your browser window.
           </p>
         </div>
         <p className="font-mono text-[11px] text-foreground/50">

@@ -43,7 +43,7 @@ export function ModeBadge({ mode }: ModeBadgeProps) {
           backgroundColor: `color-mix(in srgb, ${color} 14%, transparent)`,
           color,
         }}
-        className="rounded-full border px-2.5 py-0.5 text-xs font-semibold"
+        className="whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-semibold"
       >
         {modeLabel[mode]}
       </button>

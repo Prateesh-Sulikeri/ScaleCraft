@@ -63,7 +63,7 @@ describe("useIsLargeScreen", () => {
 
   it("is false on a fine-pointer window narrower than the desktop minimum", () => {
     installMatchMedia(false);
-    setViewport({ width: 900, screenWidth: 900, screenHeight: 700 });
+    setViewport({ width: 700, screenWidth: 700, screenHeight: 700 });
     const { result } = renderHook(() => useIsLargeScreen());
     expect(result.current).toBe(false);
   });
@@ -87,7 +87,7 @@ describe("useIsLargeScreen", () => {
 
   it("re-evaluates on window resize", () => {
     installMatchMedia(false);
-    setViewport({ width: 900, screenWidth: 900, screenHeight: 700 });
+    setViewport({ width: 700, screenWidth: 700, screenHeight: 700 });
     const { result } = renderHook(() => useIsLargeScreen());
     expect(result.current).toBe(false);
 
@@ -112,16 +112,16 @@ describe("useIsLargeScreen", () => {
   });
 
   it("re-evaluates on pointer type change (e.g. a 2-in-1 switching modes)", () => {
-    installMatchMedia(false);
-    setViewport({ width: 900, screenWidth: 900, screenHeight: 900 });
+    // Only touch also checks the device's short side (430 here).
+    installMatchMedia(true);
+    setViewport({ width: 900, screenWidth: 900, screenHeight: 430 });
     const { result } = renderHook(() => useIsLargeScreen());
-    expect(result.current).toBe(false); // fine pointer, width 900 < DESKTOP_MIN_WIDTH
+    expect(result.current).toBe(false);
 
-    pointerMock.matches = true;
+    pointerMock.matches = false;
     act(() => {
       pointerMock.fire();
     });
-    // now coarse: width 900 >= TABLET_MIN_WIDTH and deviceMin 900 >= TABLET_MIN_WIDTH
     expect(result.current).toBe(true);
   });
 

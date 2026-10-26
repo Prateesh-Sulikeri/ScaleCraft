@@ -65,6 +65,10 @@ directory misses which ones are live vs. retired:
   gated-vs-open route split, and a surface-by-surface inventory. Read before
   touching `ScreenSizeGate`, `use-large-screen.ts`, `CenteredModal` sizing, or
   any page/layout shell.
+- `.claude/docs/pending-design-editor-tablet.md` - release 7.4.0: full Design
+  Editor on tablets (touch + compact layout), phones permanently out. Decisions,
+  touch-blocker audit, what's built, known gaps. Read before touching the canvas
+  dock/toolbar, `SidebarShell`, the header overflow, or the editor gate.
 - `.claude/docs/pending-checkpoints.md` - the Building Blocks checkpoint
   contract (product brief, interleaving, traceable debrief), the Build/Extend/
   Review/Open flavors, and the 8-checkpoint roster. Group checkpoints A, B, C,

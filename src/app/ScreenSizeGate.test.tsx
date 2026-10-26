@@ -57,7 +57,7 @@ describe("ScreenSizeGate", () => {
   });
 
   it("blocks with the desktop-required message on a narrow mouse-primary window", () => {
-    mockViewport({ width: 800, coarsePointer: false });
+    mockViewport({ width: 700, coarsePointer: false });
     render(
       <ScreenSizeGate>
         <p>the real app</p>
@@ -65,8 +65,18 @@ describe("ScreenSizeGate", () => {
     );
     expect(screen.queryByText("the real app")).not.toBeInTheDocument();
     expect(screen.getByText("The Design Editor needs a larger screen")).toBeInTheDocument();
-    expect(screen.getByText(/current width: 800px/)).toBeInTheDocument();
-    expect(screen.getByText(/minimum: 1024px/)).toBeInTheDocument();
+    expect(screen.getByText(/current width: 700px/)).toBeInTheDocument();
+    expect(screen.getByText(/minimum: 768px/)).toBeInTheDocument();
+  });
+
+  it("lets a tablet-width mouse window through to the compact editor (7.4.0)", () => {
+    mockViewport({ width: 800, coarsePointer: false });
+    render(
+      <ScreenSizeGate>
+        <p>the real app</p>
+      </ScreenSizeGate>,
+    );
+    expect(screen.getByText("the real app")).toBeInTheDocument();
   });
 
   it("blocks a touch-primary (coarse pointer) device below the tablet minimum", () => {
@@ -83,7 +93,7 @@ describe("ScreenSizeGate", () => {
   it("offers a lesson link plus Learning Path and Home when blocked on a chapter route", () => {
     mockUsePathname.mockReturnValue("/building-blocks/load-balancing");
     mockUseParams.mockReturnValue({ chapterSlug: "load-balancing" });
-    mockViewport({ width: 800, coarsePointer: false });
+    mockViewport({ width: 700, coarsePointer: false });
     render(
       <ScreenSizeGate>
         <p>the real app</p>
@@ -100,7 +110,7 @@ describe("ScreenSizeGate", () => {
   it("omits the lesson link but still offers Learning Path and Home on a non-chapter route", () => {
     mockUsePathname.mockReturnValue("/sandbox");
     mockUseParams.mockReturnValue({});
-    mockViewport({ width: 800, coarsePointer: false });
+    mockViewport({ width: 700, coarsePointer: false });
     render(
       <ScreenSizeGate>
         <p>the real app</p>

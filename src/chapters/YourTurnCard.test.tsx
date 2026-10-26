@@ -155,6 +155,24 @@ describe("YourTurnCard", () => {
     expect(screen.getByRole("heading", { name: "Design exercise" })).toBeInTheDocument();
   });
 
+  it("on a phone, says the exercise needs a tablet or computer instead of linking into the block screen", () => {
+    const original = { innerWidth: window.innerWidth, matchMedia: window.matchMedia };
+    Object.defineProperty(window, "innerWidth", { value: 390, configurable: true });
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes("coarse"),
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+    try {
+      renderCard(makeChapter({ quiz: undefined }));
+      expect(screen.getByText(/Open on a tablet or computer/)).toBeInTheDocument();
+      expect(screen.queryByText(/Begin exercise/)).not.toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, "innerWidth", { value: original.innerWidth, configurable: true });
+      window.matchMedia = original.matchMedia;
+    }
+  });
+
   it("renders only the quiz row for a chapter with hasEditorExercise: false", () => {
     renderCard(makeChapter({ quiz: [makeQuestion()], hasEditorExercise: false }));
     expect(screen.getByRole("heading", { name: "Knowledge check" })).toBeInTheDocument();

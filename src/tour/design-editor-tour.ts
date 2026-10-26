@@ -73,14 +73,14 @@ export const designEditorTour: TourStep[] = [
     id: "header-tools",
     target: "header-tools",
     title: "Save, docs, and shortcuts",
-    body: "Your work saves automatically. This cluster also opens the documentation panel and the keyboard shortcuts reference.",
+    body: "Your work saves automatically. This cluster also opens the documentation panel and the keyboard shortcuts reference. On a smaller screen it lives under the ··· button.",
     placement: "bottom",
   },
   {
     id: "open-picker",
     target: "canvas",
     title: "Try it: open the component picker",
-    body: "Press / or right-click anywhere on the canvas to open the component picker.",
+    body: "Press Add component at the bottom of the canvas to open the component picker. On a keyboard, / or a right-click on the canvas does the same.",
     placement: "bottom",
     waitFor: (ctx) => ctx.isComponentPickerOpen,
     allowsComponentPicker: true,
@@ -102,7 +102,7 @@ export const designEditorTour: TourStep[] = [
     highlightComponentId: "sql-database",
     title: "Try it: add the SQL Database",
     body:
-      "Search the component picker, or browse by category. Choosing something here doesn't drop it immediately - it arms it, and your next click on the canvas decides exactly where it lands. " +
+      "Search the component picker, or browse by category. Choosing something here doesn't drop it immediately - it arms it, and your next tap or click on the canvas decides exactly where it lands. " +
       "This chapter needs a SQL Database - it's highlighted below - find it, place it on the canvas, then draw an edge connecting it to the Application Server.",
     placement: "right",
     waitFor: hasSqlDatabase,

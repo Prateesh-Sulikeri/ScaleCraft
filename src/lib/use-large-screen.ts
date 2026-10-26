@@ -14,13 +14,13 @@ import { useSyncExternalStore } from "react";
  * see adapt.md's "detect input method, not just screen size"):
  * - Touch-primary devices (tablets): iPad-and-up, matching Tailwind's own
  *   `md` breakpoint / the conventional tablet-starts-at-768 line.
- * - Mouse/trackpad-primary devices (desktop/laptop): a genuinely large
- *   window, not just tablet-width — matches the conventional
- *   desktop-starts-at-1024 line, so someone floating/resizing a browser
- *   window down to iPad-width on a desktop still gets blocked.
+ * - Mouse/trackpad-primary devices: was 1024 until release 7.4.0. The
+ *   editor now has a compact layout down to tablet width, so a narrow
+ *   desktop window gets that instead of the block screen. Kept as its own
+ *   constant: only touch also checks the device's short side.
  */
 export const TABLET_MIN_WIDTH = 768;
-export const DESKTOP_MIN_WIDTH = 1024;
+export const DESKTOP_MIN_WIDTH = 768;
 
 function isCoarsePointer(): boolean {
   // Guarded: jsdom (unit tests) has no matchMedia.

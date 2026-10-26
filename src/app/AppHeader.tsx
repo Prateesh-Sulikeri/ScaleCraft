@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type RefObject } from "react";
 import Link from "next/link";
-import { AlertTriangle, BookOpen, Check, CheckCheck, Loader2, Redo2, RefreshCw, Save, Undo2 } from "lucide-react";
+import { AlertTriangle, BookOpen, Check, CheckCheck, Loader2, MoreHorizontal, Redo2, RefreshCw, Save, Undo2 } from "lucide-react";
 import type { CanvasHandle } from "@/canvas/Canvas";
 import { Tooltip } from "@/app/Tooltip";
 import { ThemeToggle } from "@/app/ThemeToggle";
@@ -115,6 +115,9 @@ export function AppHeader({
   // doc comment). Auto-disarms after a few seconds so an armed-but-abandoned
   // button doesn't sit as a trap for a later, unrelated click.
   const [confirmingReset, setConfirmingReset] = useState(false);
+  // Below xl the secondary tools fold into one "More" popover so the row
+  // fits an iPad in portrait. At xl and up they sit inline as before.
+  const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => {
     if (!confirmingReset) return;
     const timeout = setTimeout(() => setConfirmingReset(false), 4000);
@@ -133,7 +136,7 @@ export function AppHeader({
   return (
     <header
       style={{ borderBottomColor: modeColorVar[mode] }}
-      className="flex items-center justify-between border-b-2 px-6 py-3"
+      className="relative flex items-center justify-between gap-3 border-b-2 px-4 py-3 xl:px-6"
     >
       <div className="flex items-center gap-2.5">
         <Link href="/" className="flex items-center gap-2.5 opacity-100 transition-opacity hover:opacity-70">
@@ -199,7 +202,34 @@ export function AppHeader({
           </Tooltip>
         )}
         <DeepCheckButton ctx={deepCheckCtx} saveId={saveId} />
-        <div data-tour="header-tools" className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setMoreOpen((open) => !open)}
+          aria-expanded={moreOpen}
+          aria-controls="header-tools"
+          aria-label="More tools"
+          className={`flex h-8 w-8 touch:h-10 touch:w-10 items-center justify-center rounded-md border border-border hover:text-foreground xl:hidden ${
+            moreOpen ? "bg-border text-foreground" : "bg-panel text-foreground/70"
+          }`}
+        >
+          <MoreHorizontal size={16} />
+        </button>
+        {moreOpen && (
+          <div
+            aria-hidden="true"
+            className="fixed inset-0 z-[var(--z-dropdown-backdrop)] xl:hidden"
+            onClick={() => setMoreOpen(false)}
+          />
+        )}
+        <div
+          id="header-tools"
+          data-tour="header-tools"
+          className={`${
+            moreOpen
+              ? "absolute right-4 top-full z-[var(--z-dropdown)] mt-2 flex w-[min(19rem,calc(100vw-2rem))] flex-wrap rounded-md border border-border bg-panel p-2 shadow-lg"
+              : "hidden"
+          } items-center gap-2 xl:static xl:mt-0 xl:flex xl:w-auto xl:flex-nowrap xl:border-0 xl:bg-transparent xl:p-0 xl:shadow-none`}
+        >
           <Tooltip label={saveId ? saveTooltipLabel[saveStatus] : "Select a chapter to enable Save"}>
             <button
               onClick={onSave}

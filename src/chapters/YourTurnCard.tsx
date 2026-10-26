@@ -3,10 +3,11 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@clerk/nextjs";
-import { Boxes, ListChecks, type LucideIcon } from "lucide-react";
+import { Boxes, ListChecks, Tablet, type LucideIcon } from "lucide-react";
 import { HeldTransitionLink } from "@/app/HeldTransitionLink";
 import { useCurriculumProgressStore } from "@/curriculum/progress-store";
 import { useRequireAuthAction } from "@/auth/useRequireAuthAction";
+import { useIsLargeScreen } from "@/lib/use-large-screen";
 import { bestExamScore, examLocked, examPassed, EXAM_PASS_THRESHOLD } from "@/curriculum/progress";
 import type { ChapterDefinition } from "@/content/chapters/types";
 import type { SubmittedExamAttempt } from "@/persistence/db";
@@ -80,6 +81,9 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
   const validationPassedDefinitionIds = useCurriculumProgressStore((s) => s.validationPassedDefinitionIds);
   const { requireAuth, dialog } = useRequireAuthAction();
   const { isSignedIn } = useAuth();
+  // Same check as ScreenSizeGate: on a phone, say why instead of linking
+  // straight into the block screen.
+  const canOpenEditor = useIsLargeScreen();
 
   const [view, setView] = useState<null | "exam" | "results">(null);
   const [viewedAttempt, setViewedAttempt] = useState<SubmittedExamAttempt | null>(null);
@@ -172,7 +176,12 @@ export function YourTurnCard({ chapter, mode, chapterSlug }: YourTurnCardProps) 
                 </p>
               </div>
             </div>
-            {isSignedIn ? (
+            {!canOpenEditor ? (
+              <p className="inline-flex shrink-0 items-center gap-2 self-start text-[13px] text-foreground/60 sm:self-auto">
+                <Tablet size={15} aria-hidden="true" />
+                Open on a tablet or computer to build it
+              </p>
+            ) : isSignedIn ? (
               <HeldTransitionLink
                 href={`/${mode}/${chapterSlug}`}
                 label="Opening the Design Editor…"

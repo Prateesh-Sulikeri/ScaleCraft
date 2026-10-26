@@ -3,6 +3,7 @@
 import { BookOpen, Maximize2, Minus } from "lucide-react";
 import { useCanvasStore } from "../store";
 import { useResizableWidth } from "@/lib/use-resizable-width";
+import { useViewportWidth } from "@/lib/use-large-screen";
 import { Tooltip } from "@/app/Tooltip";
 import { DocsTabBar } from "./DocsTabBar";
 import { DocsTabContent } from "./DocsTabContent";
@@ -23,11 +24,18 @@ export function DocsPanel() {
   const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
 
   const { width, onPointerDown } = useResizableWidth(storedWidth, 320, 720, "left", setDocsPanelWidth);
+  // Narrow screens: slide over the canvas from the right instead of taking
+  // a column from it (same threshold as SidebarShell's overlay).
+  const overlay = useViewportWidth() < 1024 && !focusMode;
 
   return (
     <div
       className={
-        focusMode ? "absolute inset-0 z-[var(--z-modal)] flex bg-background" : "flex min-w-0 shrink-0"
+        focusMode
+          ? "absolute inset-0 z-[var(--z-modal)] flex bg-background"
+          : overlay
+            ? "absolute inset-y-0 right-0 z-[var(--z-modal-backdrop)] flex max-w-[90%] shadow-lg"
+            : "flex min-w-0 shrink-0"
       }
     >
       {!focusMode && (
@@ -55,7 +63,7 @@ export function DocsPanel() {
                 <button
                   onClick={toggleFocusMode}
                   aria-label="Enter focus notes mode"
-                  className="rounded p-1 text-foreground/50 hover:bg-border hover:text-foreground"
+                  className="rounded p-1 touch:p-2.5 text-foreground/50 hover:bg-border hover:text-foreground"
                 >
                   <Maximize2 size={14} />
                 </button>
@@ -64,7 +72,7 @@ export function DocsPanel() {
                 <button
                   onClick={() => setDocsPanelMinimized(true)}
                   aria-label="Minimize documentation panel"
-                  className="rounded p-1 text-foreground/50 hover:bg-border hover:text-foreground"
+                  className="rounded p-1 touch:p-2.5 text-foreground/50 hover:bg-border hover:text-foreground"
                 >
                   <Minus size={14} />
                 </button>
@@ -77,7 +85,7 @@ export function DocsPanel() {
 
         {tabs.length === 0 || !activeTabId ? (
           <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-foreground/50">
-            No documentation open - right-click a component and choose &quot;Open Documentation&quot;.
+            No documentation open - pick &quot;Open Documentation&quot; from a component&apos;s More menu.
           </div>
         ) : (
           <DocsTabContent key={activeTabId} componentId={activeTabId} />

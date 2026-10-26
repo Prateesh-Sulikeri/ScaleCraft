@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { ArrowLeft, ArrowRight, FileText, Server } from "lucide-react";
 import { useCanvasStore } from "./store";
+import { useIsCoarsePointer } from "@/lib/use-large-screen";
 import { getComponent } from "@/content/components/registry";
 import { ConfigForm } from "./ConfigForm";
 import { Popover, PopoverAnchor, PopoverArrow, PopoverContent } from "@/components/ui/popover";
@@ -131,9 +132,12 @@ export function NodeConfigPopover({ nodeStates, violations }: NodeConfigPopoverP
   );
   const validationState = component ? nodeStates?.[component.id] : undefined;
 
+  // Not on touch: focusing pops the on-screen keyboard over the popover
+  // the user opened to read, not necessarily to rename.
+  const isCoarse = useIsCoarsePointer();
   useEffect(() => {
-    if (configPopoverNodeId) nameInputRef.current?.focus();
-  }, [configPopoverNodeId]);
+    if (configPopoverNodeId && !isCoarse) nameInputRef.current?.focus();
+  }, [configPopoverNodeId, isCoarse]);
 
   if (!configPopover || !component || !definition) return null;
 

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { MouseRight, X } from "lucide-react";
 import { Canvas, type CanvasHandle } from "@/canvas/Canvas";
 import { FocusModeBar } from "@/canvas/docs-panel/FocusModeBar";
 import { UndoToast } from "@/app/UndoToast";
@@ -11,7 +10,6 @@ import { AppHeader } from "@/app/AppHeader";
 import { ShortcutsModal } from "@/app/ShortcutsModal";
 import { PageEnter } from "@/app/PageEnter";
 import { useCanvasShortcuts } from "@/canvas/use-canvas-shortcuts";
-import { useDismissedFlag } from "@/lib/use-dismissed-flag";
 import {
   useCanvasStore,
   useCanvasStoreApi,
@@ -176,8 +174,6 @@ function SandboxPageContent() {
   // never actually see an empty board, so this shows regardless of node
   // count until dismissed once (localStorage, not session state — a user
   // who's already learned the gesture shouldn't see it again next visit).
-  const [hintDismissed, dismissHint] = useDismissedFlag("sc-insert-hint-dismissed");
-  const showInsertHint = !hintDismissed;
 
   useCanvasShortcuts(() => void saveNow());
 
@@ -259,20 +255,6 @@ function SandboxPageContent() {
 
       <main className="relative flex min-h-0 flex-1 overflow-hidden">
         <div className="relative flex flex-1 flex-col">
-          {!focusMode && showInsertHint && (
-            <div className="absolute left-1/2 top-4 z-[var(--z-dropdown)] flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
-              <MouseRight size={14} className="shrink-0 text-foreground/70" />
-              <span>Right-click the canvas or press / to add a component</span>
-              <button
-                type="button"
-                onClick={dismissHint}
-                aria-label="Dismiss hint"
-                className="text-foreground/50 hover:text-foreground"
-              >
-                <X size={12} />
-              </button>
-            </div>
-          )}
           {/* Stays mounted across focus-mode toggles — see DocsPanel.tsx. */}
           <Canvas
             ref={canvasRef}

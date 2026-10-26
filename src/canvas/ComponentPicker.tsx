@@ -259,6 +259,9 @@ export function ComponentPicker() {
     lastFocusedRef.current = document.activeElement as HTMLElement | null;
     // Focus after the dialog paints, not synchronously — the input isn't
     // in the DOM yet on the render that flips `isOpen` true.
+    // Not on touch: the on-screen keyboard would cover half the list, and
+    // a finger browses by category more than it searches.
+    if (window.matchMedia?.("(pointer: coarse)").matches) return;
     const id = requestAnimationFrame(() => inputRef.current?.focus());
     return () => cancelAnimationFrame(id);
   }, [isOpen]);
