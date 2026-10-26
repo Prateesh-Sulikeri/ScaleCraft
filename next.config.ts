@@ -27,6 +27,10 @@ const nextConfig: NextConfig = {
   // there's an actual settings/user menu to put in that corner.
   devIndicators: false,
 
+  // Lets a tablet on the home Wi-Fi load the dev server by LAN IP (Next
+  // blocks cross-origin dev assets and HMR otherwise). Dev-only setting.
+  allowedDevOrigins: ["192.168.*.*"],
+
   async redirects() {
     return Object.entries(RETIRED_BUILDING_BLOCKS_SLUGS).flatMap(([oldSlug, newSlug]) => [
       {
