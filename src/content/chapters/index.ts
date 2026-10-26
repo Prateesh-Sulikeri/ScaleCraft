@@ -34,7 +34,7 @@ export const chapterRegistry: ChapterDefinition[] = [
       "Your first look at the Design Editor. The starter design on the canvas " +
       "has two real faults in it, on purpose: run Validate to see what and " +
       "why, fix both, then Submit to complete the chapter. A guided tour " +
-      "walks you through it - press Esc to pause it, or replay it from the " +
+      "walks you through it - pause it anytime, or replay it from the " +
       "buttons at the bottom of this sidebar.",
     exerciseGoal: "Run Validate to find what's broken, fix both faults, then Submit.",
     successCriteria: [

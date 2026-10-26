@@ -18,7 +18,13 @@ export type TourStepTarget =
   | "hint-toggle"
   | "chapter-complete"
   | "debrief"
-  | "component-picker";
+  | "component-picker"
+  /** Touch tour anchors (release 7.4.0): the bottom canvas dock, the header's
+   * "More tools" button (below xl), and the chapter sidebar's open/close
+   * toggle, which stays visible while the sidebar is collapsed. */
+  | "canvas-dock"
+  | "header-more"
+  | "sidebar-toggle";
 
 /** Live app state a step's `waitFor` predicate can read — assembled by
  * TourController from the canvas store plus ChapterWorkspace's own

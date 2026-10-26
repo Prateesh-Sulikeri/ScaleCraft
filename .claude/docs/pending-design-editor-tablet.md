@@ -6,8 +6,13 @@ real-iPad pass (Q5), and the known gaps below.
 
 Known gaps after phases 1-4:
 - Header `...` popover is icon-only; touch users get aria-labels but no visible text.
-- Tour steps targeting `question-pane` / `hint-toggle` show unanchored when the
-  sidebar is collapsed (portrait); copy no longer assumes right-click.
+- Tour: touch devices get `design-editor-touch-tour.ts` (2026-10-26) - same 19
+  step ids/order as the desktop tour (run state is index-based), touch copy and
+  anchors (`canvas-dock`, `header-more`, `sidebar-toggle`). Sidebar steps light
+  the toggle while it's collapsed. Docked card now clears the canvas dock.
+- Fixed 2026-10-26 (user report): the node inspector couldn't be closed on iPad -
+  Radix's outside-tap dismissal waits for a click xyflow swallows. Now has a
+  close button and closes on a canvas tap or tapping another node.
 - Shift-click "place another" has no touch equivalent (re-open the picker).
 - Long-press has no unit test (jsdom has no PointerEvent.pointerType); covered manually.
 Branches: `staging/7.4.0-responsive-release`, `feat/responsive-release-design-editor`.

@@ -204,6 +204,8 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   const setPlacementMode = useCanvasStore((s) => s.setPlacementMode);
   const openAnnotationEditor = useCanvasStore((s) => s.openAnnotationEditor);
   const openConfigPopover = useCanvasStore((s) => s.openConfigPopover);
+  const closeConfigPopover = useCanvasStore((s) => s.closeConfigPopover);
+  const configPopoverNodeId = useCanvasStore((s) => s.configPopover?.nodeId);
   const setSelectedEdgeId = useCanvasStore((s) => s.setSelectedEdgeId);
   const setSelectedNodeId = useCanvasStore((s) => s.setSelectedNodeId);
   const highlight = useCanvasStore((s) => s.highlight);
@@ -1007,6 +1009,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
             completeConnectFrom(node.id);
             return;
           }
+          if (configPopoverNodeId && configPopoverNodeId !== node.id) closeConfigPopover();
           setSelectedNodeId(node.id);
           setSelectedEdgeId(null);
         }}
@@ -1016,6 +1019,9 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         }}
         onPaneClick={() => {
           if (connectFrom) cancelConnectFrom();
+          // Belt and braces for touch, where the inspector's own
+          // outside-tap dismissal never sees a click (see NodeConfigPopover).
+          closeConfigPopover();
           setSelectedEdgeId(null);
           setSelectedNodeId(null);
           clearHighlight();

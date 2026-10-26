@@ -208,6 +208,7 @@ export function AppHeader({
           aria-expanded={moreOpen}
           aria-controls="header-tools"
           aria-label="More tools"
+          data-tour="header-more"
           className={`flex h-8 w-8 touch:h-10 touch:w-10 items-center justify-center rounded-md border border-border hover:text-foreground xl:hidden ${
             moreOpen ? "bg-border text-foreground" : "bg-panel text-foreground/70"
           }`}

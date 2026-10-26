@@ -22,9 +22,11 @@ type SidebarShellProps = {
  * takes `children` instead of baking in Sandbox's old intro text + Palette.
  */
 export function SidebarShell({ children }: SidebarShellProps) {
-  const [collapsed, setCollapsed] = useState(false);
   const { width, onPointerDown } = useResizableWidth(320, 220, 480, "right");
   const overlay = useViewportWidth() < OVERLAY_BELOW;
+  // Seeded from `overlay`: a client-side mount already knows the width,
+  // and the change check below would never fire for it.
+  const [collapsed, setCollapsed] = useState(overlay);
 
   // Collapse on entering overlay width (first load in portrait, or a
   // rotation), so the canvas is what a narrow screen opens on. Adjusted
@@ -70,6 +72,7 @@ export function SidebarShell({ children }: SidebarShellProps) {
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-expanded={!collapsed}
+            data-tour="sidebar-toggle"
             className="text-foreground/60 hover:text-foreground touch:p-2"
           >
             {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={14} />}

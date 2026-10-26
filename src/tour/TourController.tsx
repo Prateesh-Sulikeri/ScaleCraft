@@ -6,12 +6,19 @@ import { useCanvasStore } from "@/canvas/store";
 import type { ComponentNodeType } from "@/canvas/types";
 import { TourOverlay, type TourInteractionState } from "./TourOverlay";
 import { designEditorTour } from "./design-editor-tour";
+import { designEditorTouchTour } from "./design-editor-touch-tour";
+import { useIsCoarsePointer } from "@/lib/use-large-screen";
 import { logTourEvent } from "./tour-log";
 import { useTourState, type TourRunState } from "./tour-state";
 import { useWatchdog } from "./use-watchdog";
 import type { TourContext } from "./types";
 
 const TOUR_SCRIPTS = { "design-editor": designEditorTour } as const;
+/** Touch variants: same step ids and order (run state is index-based), copy
+ * and anchors for a finger and the compact layout. */
+const TOUCH_TOUR_SCRIPTS: Record<keyof typeof TOUR_SCRIPTS, typeof designEditorTour> = {
+  "design-editor": designEditorTouchTour,
+};
 export type TourId = keyof typeof TOUR_SCRIPTS;
 
 /** Pure function of persisted state -> this tab's local `active`/`stepIndex`.
@@ -112,7 +119,8 @@ export function TourController({
   idleSlot,
   focusMode = false,
 }: TourControllerProps) {
-  const steps = TOUR_SCRIPTS[tourId];
+  const isCoarse = useIsCoarsePointer();
+  const steps = (isCoarse ? TOUCH_TOUR_SCRIPTS : TOUR_SCRIPTS)[tourId];
   const { state: runState, hydrated, setState: setRunState } = useTourState(tourId);
 
   // One piece of state, not two, and derived during render rather than in an

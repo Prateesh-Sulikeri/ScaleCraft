@@ -271,7 +271,7 @@ describe("TourOverlay", () => {
     // centre of a 1024x768 viewport. The extra 40px clears xyflow's Controls
     // widget, which is pinned to that same corner (see DOCK_CONTROLS_CLEARANCE).
     expect(card.style.left).toBe(`${1024 - 16 - 40}px`);
-    expect(card.style.top).toBe(`${768 - 16}px`);
+    expect(card.style.top).toBe(`${768 - 16 - 72}px`);
   });
 
   it("repositions when the card's own rendered size changes after mount — a row appearing must not push content off-screen", () => {
@@ -283,13 +283,13 @@ describe("TourOverlay", () => {
     // has to fake the resize rather than rely on a real layout engine.
     render(<TourOverlay {...baseProps()} step={step({ target: "component-picker", placement: "right" })} />, { wrapper });
     const card = screen.getByRole("dialog").querySelector<HTMLElement>(".w-80")!;
-    expect(card.style.top).toBe(`${768 - 16}px`); // jsdom measures 0-height initially, so it docks flush to the bottom
+    expect(card.style.top).toBe(`${768 - 16 - 72}px`); // jsdom measures 0-height initially, so it docks flush to the bottom
 
     card.getBoundingClientRect = () =>
       ({ top: 0, left: 0, width: 320, height: 400, right: 320, bottom: 400, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
     triggerResize();
 
-    expect(card.style.top).toBe(`${768 - 400 - 16}px`);
+    expect(card.style.top).toBe(`${768 - 400 - 16 - 72}px`);
   });
 
   describe("resolution-failure airbag (waiting step, target never mounts)", () => {
@@ -624,7 +624,7 @@ describe("computePopoverPosition", () => {
     const pos = computePopoverPosition(null, "right", popover, viewport, "dock");
     // left leaves an extra 40px clear of xyflow's Controls widget, which is
     // pinned to this same corner (see DOCK_CONTROLS_CLEARANCE).
-    expect(pos).toEqual({ top: 900 - 190 - 16, left: 1440 - 320 - 16 - 40 });
+    expect(pos).toEqual({ top: 900 - 190 - 16 - 72, left: 1440 - 320 - 16 - 40 });
   });
 
   it("places the card just clear of a normal anchor on the requested side", () => {
@@ -646,7 +646,7 @@ describe("computePopoverPosition", () => {
     const pos = computePopoverPosition(canvas, "bottom", popover, viewport);
 
     expect(pos.left).toBe(1440 - 320 - 16 - 40);
-    expect(pos.top).toBe(900 - 190 - 16);
+    expect(pos.top).toBe(900 - 190 - 16 - 72);
   });
 
   it("never positions the card off-screen, at any viewport size tested in the walkthrough", () => {

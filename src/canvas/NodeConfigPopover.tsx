@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, type CSSProperties } from "react";
-import { ArrowLeft, ArrowRight, FileText, Server } from "lucide-react";
+import { ArrowLeft, ArrowRight, FileText, Server, X } from "lucide-react";
 import { useCanvasStore } from "./store";
 import { useIsCoarsePointer } from "@/lib/use-large-screen";
 import { getComponent } from "@/content/components/registry";
@@ -184,13 +184,26 @@ export function NodeConfigPopover({ nodeStates, violations }: NodeConfigPopoverP
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1.5">
-            <button
-              onClick={() => openDocTab(definition.id)}
-              className="flex items-center gap-1 text-xs text-foreground/60 hover:text-foreground"
-            >
-              <FileText size={12} />
-              Docs
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => openDocTab(definition.id)}
+                className="flex items-center gap-1 rounded px-1 py-0.5 touch:px-2 touch:py-2 text-xs text-foreground/60 hover:text-foreground"
+              >
+                <FileText size={12} />
+                Docs
+              </button>
+              {/* Explicit close: on touch, Radix's outside-tap dismissal waits
+                * for a click that xyflow's pane gesture swallows, so tapping
+                * the canvas alone can't be relied on. */}
+              <button
+                onClick={closeConfigPopover}
+                aria-label="Close inspector"
+                title="Close"
+                className="rounded p-0.5 touch:p-2 text-foreground/50 hover:bg-border hover:text-foreground"
+              >
+                <X size={14} />
+              </button>
+            </div>
             {validationState && StateIcon && (
               <span
                 className="flex items-center gap-1 text-[11px] font-medium"

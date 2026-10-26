@@ -203,6 +203,9 @@ const VIEWPORT_MARGIN = 16;
 // EdgeInspector's clearance so both float flush with each other in the
 // corner.
 const DOCK_CONTROLS_CLEARANCE = 40;
+/** Lifts the docked card above CanvasDock's row (release 7.4.0), which
+ * spans the bottom of the canvas: 44px touch button + padding + margin. */
+const DOCK_TOOLBAR_CLEARANCE = 72;
 
 /**
  * Above this share of the viewport, a "spotlight" stops being a highlight.
@@ -337,7 +340,7 @@ export function computePopoverPosition(
   const dock = () =>
     clampToViewport(
       {
-        top: viewport.height - popover.height - VIEWPORT_MARGIN,
+        top: viewport.height - popover.height - VIEWPORT_MARGIN - DOCK_TOOLBAR_CLEARANCE,
         left: viewport.width - popover.width - VIEWPORT_MARGIN - DOCK_CONTROLS_CLEARANCE,
       },
       popover,
@@ -706,19 +709,25 @@ export function TourOverlay({
         <h2 className="mt-1 text-sm font-semibold">{step.title}</h2>
         <p className="mt-2 text-sm whitespace-pre-line text-foreground/80">{step.body}</p>
         <div className="mt-4 flex items-center justify-between gap-3">
-          <button onClick={onSkip} className="text-xs text-foreground/60 hover:text-foreground">
-            Skip tour
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={onSkip} className="text-xs touch:py-2 text-foreground/60 hover:text-foreground">
+              Skip tour
+            </button>
+            {/* Esc pauses too; this is the route for a tablet with no keyboard. */}
+            <button onClick={onPause} className="text-xs touch:py-2 text-foreground/60 hover:text-foreground">
+              Pause
+            </button>
+          </div>
           <div className="flex items-center gap-3">
             {stepIndex > 0 && (
-              <button onClick={onBack} className="text-xs text-foreground/60 hover:text-foreground">
+              <button onClick={onBack} className="text-xs touch:py-2 text-foreground/60 hover:text-foreground">
                 Back
               </button>
             )}
             {interactionState === "none" || showsManualOverride ? (
               <button
                 onClick={onNext}
-                className="rounded-md border border-border bg-background px-3 py-1 text-xs font-medium hover:bg-border"
+                className="rounded-md border border-border bg-background px-3 py-1 touch:py-2.5 text-xs font-medium hover:bg-border"
               >
                 {stepIndex === stepCount - 1 ? "Done" : "Next"}
               </button>
@@ -758,7 +767,7 @@ export function TourOverlay({
             </div>
           </div>
         )}
-        <p className="mt-2 text-[11px] text-foreground/40">Esc pauses - resume from the pill anytime.</p>
+        <p className="mt-2 text-[11px] text-foreground/40 touch:hidden">Esc pauses - resume from the pill anytime.</p>
       </div>
     </div>,
     document.body,

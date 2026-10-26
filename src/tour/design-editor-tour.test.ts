@@ -284,3 +284,23 @@ describe("designEditorTour", () => {
     }
   });
 });
+
+describe("designEditorTouchTour (release 7.4.0)", () => {
+  it("keeps the desktop tour's step ids, order and gating - run state is index-based", async () => {
+    const { designEditorTouchTour } = await import("./design-editor-touch-tour");
+    expect(designEditorTouchTour.map((s) => s.id)).toEqual(designEditorTour.map((s) => s.id));
+    designEditorTouchTour.forEach((s, i) => {
+      const desktop = designEditorTour[i];
+      expect(!!s.waitFor, s.id).toBe(!!desktop.waitFor);
+      expect(!!s.hard, s.id).toBe(!!desktop.hard);
+      expect(!!s.allowsComponentPicker, s.id).toBe(!!desktop.allowsComponentPicker);
+    });
+  });
+
+  it("never tells a finger to click, right-click, scroll or press a key", async () => {
+    const { designEditorTouchTour } = await import("./design-editor-touch-tour");
+    for (const s of designEditorTouchTour) {
+      expect(s.body, s.id).not.toMatch(/\bclick|right-click|scroll|\bEsc\b|press \/|Ctrl|middle-mouse|Space/i);
+    }
+  });
+});
