@@ -12,7 +12,7 @@ describe("Tooltip", () => {
     expect(screen.queryByText("Undo (Ctrl+Z)")).not.toBeInTheDocument();
   });
 
-  it("shows the label on mouse enter and hides it on mouse leave", () => {
+  it("shows the label on pointer enter and hides it on pointer leave", () => {
     render(
       <Tooltip label="Undo (Ctrl+Z)">
         <button>Undo</button>
@@ -20,10 +20,23 @@ describe("Tooltip", () => {
     );
     const trigger = screen.getByRole("button", { name: "Undo" });
 
-    fireEvent.mouseEnter(trigger);
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
     expect(screen.getByText("Undo (Ctrl+Z)")).toBeInTheDocument();
 
-    fireEvent.mouseLeave(trigger);
+    fireEvent.pointerLeave(trigger);
+    expect(screen.queryByText("Undo (Ctrl+Z)")).not.toBeInTheDocument();
+  });
+
+  it("never shows for touch, where there is no leave to hide it again", () => {
+    render(
+      <Tooltip label="Undo (Ctrl+Z)">
+        <button>Undo</button>
+      </Tooltip>,
+    );
+    const trigger = screen.getByRole("button", { name: "Undo" });
+    const event = new Event("pointerover", { bubbles: true });
+    Object.defineProperty(event, "pointerType", { value: "touch" });
+    fireEvent(trigger, event);
     expect(screen.queryByText("Undo (Ctrl+Z)")).not.toBeInTheDocument();
   });
 

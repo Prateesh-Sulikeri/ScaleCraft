@@ -1,10 +1,10 @@
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useResizableWidth } from "./use-resizable-width";
 
-function mouseDownEvent(clientX: number) {
-  return { preventDefault: vi.fn(), clientX } as unknown as ReactMouseEvent;
+function pointerDownEvent(clientX: number) {
+  return { preventDefault: vi.fn(), clientX } as unknown as ReactPointerEvent;
 }
 
 describe("useResizableWidth", () => {
@@ -15,9 +15,9 @@ describe("useResizableWidth", () => {
 
   it("calls preventDefault on mouse down", () => {
     const { result } = renderHook(() => useResizableWidth(200, 100, 400, "right"));
-    const event = mouseDownEvent(100);
+    const event = pointerDownEvent(100);
     act(() => {
-      result.current.onMouseDown(event);
+      result.current.onPointerDown(event);
     });
     expect(event.preventDefault).toHaveBeenCalled();
   });
@@ -25,10 +25,10 @@ describe("useResizableWidth", () => {
   it("grows the width when dragging right with grows='right'", () => {
     const { result } = renderHook(() => useResizableWidth(200, 100, 400, "right"));
     act(() => {
-      result.current.onMouseDown(mouseDownEvent(100));
+      result.current.onPointerDown(pointerDownEvent(100));
     });
     act(() => {
-      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 150 }));
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 150 }));
     });
     expect(result.current.width).toBe(250);
   });
@@ -36,10 +36,10 @@ describe("useResizableWidth", () => {
   it("reverses the delta when grows='left'", () => {
     const { result } = renderHook(() => useResizableWidth(200, 100, 400, "left"));
     act(() => {
-      result.current.onMouseDown(mouseDownEvent(100));
+      result.current.onPointerDown(pointerDownEvent(100));
     });
     act(() => {
-      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 150 }));
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 150 }));
     });
     expect(result.current.width).toBe(150);
   });
@@ -47,16 +47,16 @@ describe("useResizableWidth", () => {
   it("clamps to the min and max bounds", () => {
     const { result } = renderHook(() => useResizableWidth(200, 100, 400, "right"));
     act(() => {
-      result.current.onMouseDown(mouseDownEvent(100));
+      result.current.onPointerDown(pointerDownEvent(100));
     });
 
     act(() => {
-      window.dispatchEvent(new MouseEvent("mousemove", { clientX: -1000 }));
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: -1000 }));
     });
     expect(result.current.width).toBe(100);
 
     act(() => {
-      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 10000 }));
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 10000 }));
     });
     expect(result.current.width).toBe(400);
   });
@@ -67,13 +67,13 @@ describe("useResizableWidth", () => {
     const { result } = renderHook(() => useResizableWidth(200, 100, 400, "right"));
 
     act(() => {
-      result.current.onMouseDown(mouseDownEvent(100));
+      result.current.onPointerDown(pointerDownEvent(100));
     });
     expect(document.body.style.cursor).toBe("col-resize");
     expect(document.body.style.userSelect).toBe("none");
 
     act(() => {
-      window.dispatchEvent(new MouseEvent("mouseup"));
+      window.dispatchEvent(new MouseEvent("pointerup"));
     });
     expect(document.body.style.cursor).toBe("default");
     expect(document.body.style.userSelect).toBe("auto");
@@ -84,13 +84,13 @@ describe("useResizableWidth", () => {
     const { result } = renderHook(() => useResizableWidth(200, 100, 400, "right", onCommit));
 
     act(() => {
-      result.current.onMouseDown(mouseDownEvent(100));
+      result.current.onPointerDown(pointerDownEvent(100));
     });
     act(() => {
-      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 150 }));
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 150 }));
     });
     act(() => {
-      window.dispatchEvent(new MouseEvent("mouseup"));
+      window.dispatchEvent(new MouseEvent("pointerup"));
     });
 
     expect(onCommit).toHaveBeenCalledTimes(1);
@@ -100,11 +100,11 @@ describe("useResizableWidth", () => {
   it("does not throw when onCommit is omitted", () => {
     const { result } = renderHook(() => useResizableWidth(200, 100, 400, "right"));
     act(() => {
-      result.current.onMouseDown(mouseDownEvent(100));
+      result.current.onPointerDown(pointerDownEvent(100));
     });
     expect(() => {
       act(() => {
-        window.dispatchEvent(new MouseEvent("mouseup"));
+        window.dispatchEvent(new MouseEvent("pointerup"));
       });
     }).not.toThrow();
   });
@@ -112,12 +112,12 @@ describe("useResizableWidth", () => {
   it("ignores mousemove after mouseup has ended the drag", () => {
     const { result } = renderHook(() => useResizableWidth(200, 100, 400, "right"));
     act(() => {
-      result.current.onMouseDown(mouseDownEvent(100));
-      window.dispatchEvent(new MouseEvent("mouseup"));
+      result.current.onPointerDown(pointerDownEvent(100));
+      window.dispatchEvent(new MouseEvent("pointerup"));
     });
 
     act(() => {
-      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 150 }));
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 150 }));
     });
     expect(result.current.width).toBe(200);
   });
@@ -126,21 +126,21 @@ describe("useResizableWidth", () => {
     const { result } = renderHook(() => useResizableWidth(200, 100, 400, "right"));
 
     act(() => {
-      result.current.onMouseDown(mouseDownEvent(100));
+      result.current.onPointerDown(pointerDownEvent(100));
     });
     act(() => {
-      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 150 }));
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 150 }));
     });
     act(() => {
-      window.dispatchEvent(new MouseEvent("mouseup"));
+      window.dispatchEvent(new MouseEvent("pointerup"));
     });
     expect(result.current.width).toBe(250);
 
     act(() => {
-      result.current.onMouseDown(mouseDownEvent(50));
+      result.current.onPointerDown(pointerDownEvent(50));
     });
     act(() => {
-      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 70 }));
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 70 }));
     });
     expect(result.current.width).toBe(270);
   });

@@ -35,10 +35,10 @@ describe("ReportBugButton", () => {
     const button = screen.getByRole("button", { name: "Report a bug" });
     expect(screen.queryByText("Report a bug")).not.toBeInTheDocument();
 
-    fireEvent.mouseEnter(button);
+    fireEvent.pointerEnter(button, { pointerType: "mouse" });
     expect(screen.getByText("Report a bug")).toBeInTheDocument();
 
-    fireEvent.mouseLeave(button);
+    fireEvent.pointerLeave(button);
     expect(screen.queryByText("Report a bug")).not.toBeInTheDocument();
   });
 

@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* `touch:` = any touch-capable input (iPad, touchscreen laptop). Sizes
+ * targets up to 44px; layout never keys off it, width does. */
+@custom-variant touch (@media (any-pointer: coarse));
+
 /*
  * Dark mode is the default posture (see .claude/docs/DESIGN_LANGUAGE.md,
  * "Theming") — :root below is the dark palette (also the pre-hydration/no-JS
@@ -593,6 +597,32 @@ body > div[id^="ddocs-mermaid-"] {
   .react-flow__handle {
     transition: none;
   }
+}
+
+/* Touch (release 7.4.0). No hover on a finger, so ports show on the
+ * selected card only, drawn big enough to see and aim at. */
+@media (any-pointer: coarse) {
+  .react-flow__handle {
+    width: 14px;
+    height: 14px;
+  }
+  .react-flow__handle.connectionindicator:hover {
+    width: 14px;
+    height: 14px;
+  }
+  .react-flow__resize-control.handle {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+/* The canvas owns every gesture on it: no page pinch-zoom, rubber-band
+ * scroll, text selection or iOS long-press callout. */
+.sc-canvas {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* xyflow's default box-select uses a hardcoded blue

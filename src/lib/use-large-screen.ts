@@ -23,7 +23,8 @@ export const TABLET_MIN_WIDTH = 768;
 export const DESKTOP_MIN_WIDTH = 1024;
 
 function isCoarsePointer(): boolean {
-  return window.matchMedia("(pointer: coarse)").matches;
+  // Guarded: jsdom (unit tests) has no matchMedia.
+  return typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
 }
 
 function isLargeScreen(): boolean {
@@ -41,16 +42,16 @@ function isLargeScreen(): boolean {
 }
 
 function subscribe(callback: () => void) {
-  const pointerQuery = window.matchMedia("(pointer: coarse)");
+  const pointerQuery = typeof window.matchMedia === "function" ? window.matchMedia("(pointer: coarse)") : null;
   window.addEventListener("resize", callback);
   window.addEventListener("orientationchange", callback);
   // Covers a 2-in-1 switching between keyboard/mouse and tablet mode
   // mid-session, not just resize/rotation.
-  pointerQuery.addEventListener("change", callback);
+  pointerQuery?.addEventListener("change", callback);
   return () => {
     window.removeEventListener("resize", callback);
     window.removeEventListener("orientationchange", callback);
-    pointerQuery.removeEventListener("change", callback);
+    pointerQuery?.removeEventListener("change", callback);
   };
 }
 
@@ -62,6 +63,12 @@ export function useIsLargeScreen(): boolean {
 
 /** Primitive (not derived per-render from `window` directly) so it's safe to
  * read during render — only for the blocked screen's own diagnostic text. */
+/** True when the primary input is a finger. Picks gesture defaults (one-
+ * finger pan vs box select); hit-target sizing uses CSS `any-pointer`. */
+export function useIsCoarsePointer(): boolean {
+  return useSyncExternalStore(subscribe, isCoarsePointer, () => false);
+}
+
 export function useViewportWidth(): number {
   return useSyncExternalStore(
     subscribe,

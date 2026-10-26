@@ -22,7 +22,7 @@ export function DocsPanel() {
   const toggleFocusMode = useCanvasStore((s) => s.toggleFocusMode);
   const focusMode = useCanvasStore((s) => s.docsPanel.focusMode);
 
-  const { width, onMouseDown } = useResizableWidth(storedWidth, 320, 720, "left", setDocsPanelWidth);
+  const { width, onPointerDown } = useResizableWidth(storedWidth, 320, 720, "left", setDocsPanelWidth);
 
   return (
     <div
@@ -32,8 +32,8 @@ export function DocsPanel() {
     >
       {!focusMode && (
         <div
-          onMouseDown={onMouseDown}
-          className="w-1 shrink-0 cursor-col-resize bg-transparent hover:bg-foreground/20 active:bg-foreground/30"
+          onPointerDown={onPointerDown}
+          className="w-1 touch:w-3 shrink-0 cursor-col-resize touch-none bg-transparent hover:bg-foreground/20 active:bg-foreground/30"
         />
       )}
       <aside

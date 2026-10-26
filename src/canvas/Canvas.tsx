@@ -47,6 +47,11 @@ import { ContextMenu, type ContextMenuTarget } from "./ContextMenu";
 import { AnnotationEditor } from "./AnnotationEditor";
 import { NodeConfigPopover } from "./NodeConfigPopover";
 import { ComponentPicker } from "./ComponentPicker";
+import { CanvasDock, type DragMode } from "./CanvasDock";
+import { SelectionToolbar } from "./SelectionToolbar";
+import { CanvasHint } from "./CanvasHint";
+import { componentDisplayNames } from "./component-display-name";
+import { useIsCoarsePointer } from "@/lib/use-large-screen";
 import { HIGHLIGHT_GOLD } from "./selection-style";
 import { useCanvasStore, type PlacementMode } from "./store";
 import { isEditableTarget } from "./use-canvas-shortcuts";
@@ -72,10 +77,15 @@ const ANNOTATION_DEFAULTS = {
 } as const;
 
 const PLACEMENT_HINT: Record<Exclude<PlacementMode, null>, string> = {
-  zone: "Click and drag to place a zone · Esc to cancel",
-  comment: "Click and drag to place a comment · Esc to cancel",
-  start: "Click to place a start marker · Esc to cancel",
+  zone: "Drag to place a zone",
+  comment: "Drag to place a comment",
+  start: "Tap or click to place a flag",
 };
+
+/** How long a still finger must rest before it counts as a long-press
+ * (the touch stand-in for right-click), and how far it may drift. */
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_SLOP = 10;
 
 const EXPORT_IMAGE_WIDTH = 1600;
 const EXPORT_IMAGE_HEIGHT = 1200;
@@ -359,6 +369,102 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     document.addEventListener("pointerdown", onPointerDown, true);
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [isArmed, cancelArmedConnection]);
+
+  // What a drag on empty canvas does. A finger defaults to pan (there is no
+  // middle button or wheel), a mouse to box select as before; the dock flips it.
+  const isCoarse = useIsCoarsePointer();
+  const [dragModeChoice, setDragModeChoice] = useState<DragMode | null>(null);
+  const dragMode: DragMode = dragModeChoice ?? (isCoarse ? "pan" : "select");
+
+  // Toolbar "Connect": the source card is picked, the next card tapped is
+  // the target. No port to aim at; edge-routing picks the sides.
+  const [connectFrom, setConnectFrom] = useState<string | null>(null);
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const cancelConnectFrom = useCallback(() => {
+    setConnectFrom(null);
+    setConnectError(null);
+  }, []);
+  const completeConnectFrom = (targetId: string) => {
+    if (!connectFrom || targetId === connectFrom) return;
+    const connection: Connection = { source: connectFrom, target: targetId, sourceHandle: null, targetHandle: null };
+    if (!isValidConnection(connection)) {
+      setConnectError("These two can't connect in this direction. Pick another component, or Cancel.");
+      return;
+    }
+    onConnect(connection);
+    cancelConnectFrom();
+  };
+
+  // Long-press = right-click for a finger. iOS never fires `contextmenu`
+  // on touch and Android fires it late, so touch gets its own timer and
+  // the native event is ignored for touch (see `lastPointerType`).
+  const lastPointerType = useRef("mouse");
+  const longPress = useRef<{ timer: ReturnType<typeof setTimeout>; x: number; y: number; fired: boolean } | null>(null);
+  const clearLongPress = () => {
+    if (longPress.current) clearTimeout(longPress.current.timer);
+  };
+  const fireLongPress = (target: Element, x: number, y: number) => {
+    if (target.closest(".react-flow__handle, .react-flow__node-toolbar, [role='toolbar'], .react-flow__controls")) return false;
+    const nodeEl = target.closest<HTMLElement>(".react-flow__node");
+    if (nodeEl?.dataset.id) {
+      const selectedIds = storeNodes.filter((n) => n.selected).map((n) => n.id);
+      if (selectedIds.length > 1 && selectedIds.includes(nodeEl.dataset.id)) {
+        setMenu({ type: "selection", ids: selectedIds, x, y });
+      } else {
+        if (highlight && highlight.id !== nodeEl.dataset.id) clearHighlight();
+        setMenu({ type: "node", id: nodeEl.dataset.id, x, y });
+      }
+      return true;
+    }
+    const edgeEl = target.closest<SVGElement>(".react-flow__edge");
+    if (edgeEl?.dataset.id) {
+      setMenu({ type: "edge", id: edgeEl.dataset.id, x, y });
+      return true;
+    }
+    if (target.closest(".react-flow__pane")) {
+      openComponentPicker();
+      return true;
+    }
+    return false;
+  };
+  const onPointerDownCapture = (event: React.PointerEvent) => {
+    lastPointerType.current = event.pointerType;
+    clearLongPress();
+    longPress.current = null;
+    // A second finger is a pinch, never a long-press.
+    if (event.pointerType !== "touch" || !event.isPrimary || placementMode || pendingComponentPlacement) return;
+    const target = event.target as Element;
+    const { clientX: x, clientY: y } = event;
+    const state = {
+      x,
+      y,
+      fired: false,
+      timer: setTimeout(() => {
+        state.fired = fireLongPress(target, x, y);
+      }, LONG_PRESS_MS),
+    };
+    longPress.current = state;
+  };
+  const onPointerMoveCapture = (event: React.PointerEvent) => {
+    const lp = longPress.current;
+    if (!lp || lp.fired) return;
+    if (!event.isPrimary || Math.hypot(event.clientX - lp.x, event.clientY - lp.y) > LONG_PRESS_SLOP) clearLongPress();
+  };
+  const onPointerUpCapture = () => {
+    clearLongPress();
+    if (!longPress.current?.fired) return;
+    longPress.current = null;
+    // Swallow the click the lifted finger is about to produce, or it lands
+    // on the menu/picker backdrop that just opened under it and closes it.
+    const swallow = (e: MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+    };
+    window.addEventListener("click", swallow, { capture: true, once: true });
+    setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), 400);
+  };
+  const isTouchContextMenu = () => lastPointerType.current === "touch";
+
   const [previewRect, setPreviewRect] = useState<{
     left: number;
     top: number;
@@ -428,6 +534,10 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         cancelArmedConnection();
         return;
       }
+      if (connectFrom) {
+        cancelConnectFrom();
+        return;
+      }
       if (pendingComponentPlacement) {
         setPendingComponentPlacement(null);
         return;
@@ -439,7 +549,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       }
       if (highlight) clearHighlight();
     },
-    [zoomIn, zoomOut, zoomTo, fitView, fitGraphIntoView, getNodes, componentPicker, pendingComponentPlacement, setPendingComponentPlacement, placementMode, setPlacementMode, highlight, clearHighlight, isArmed, cancelArmedConnection],
+    [zoomIn, zoomOut, zoomTo, fitView, fitGraphIntoView, getNodes, componentPicker, pendingComponentPlacement, setPendingComponentPlacement, placementMode, setPlacementMode, highlight, clearHighlight, isArmed, cancelArmedConnection, connectFrom, cancelConnectFrom],
   );
 
   useEffect(() => {
@@ -491,7 +601,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
   // type's fixed default size, centered on the click point, so a quick click
   // still works without requiring the drag. "start" is fixed-size and never
   // drag-sized — a single click places it immediately, no rectangle at all.
-  const startPlacementDrag = (event: React.MouseEvent) => {
+  const startPlacementDrag = (event: React.PointerEvent) => {
     const mode = placementMode;
     if (!mode) return;
 
@@ -513,7 +623,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     const start = { x: event.clientX, y: event.clientY };
     setPreviewRect({ left: start.x, top: start.y, width: 0, height: 0 });
 
-    function onMove(moveEvent: MouseEvent) {
+    function onMove(moveEvent: PointerEvent) {
       setPreviewRect({
         left: Math.min(start.x, moveEvent.clientX),
         top: Math.min(start.y, moveEvent.clientY),
@@ -523,13 +633,14 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     }
 
     function cleanup() {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", cleanup);
       dragCleanupRef.current = null;
       setPreviewRect(null);
     }
 
-    function onUp(upEvent: MouseEvent) {
+    function onUp(upEvent: PointerEvent) {
       const screenLeft = Math.min(start.x, upEvent.clientX);
       const screenTop = Math.min(start.y, upEvent.clientY);
       const screenWidth = Math.abs(upEvent.clientX - start.x);
@@ -561,8 +672,9 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
     }
 
     dragCleanupRef.current = cleanup;
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", cleanup);
   };
 
   // Picking a component from ComponentPicker.tsx arms this instead of
@@ -579,14 +691,14 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       setGhostPos(null);
       return;
     }
-    function onMove(event: MouseEvent) {
+    function onMove(event: PointerEvent) {
       setGhostPos({ x: event.clientX, y: event.clientY });
     }
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
+    window.addEventListener("pointermove", onMove);
+    return () => window.removeEventListener("pointermove", onMove);
   }, [pendingComponentPlacement]);
 
-  const placeComponent = (event: React.MouseEvent) => {
+  const placeComponent = (event: React.PointerEvent) => {
     if (!pendingComponentPlacement) return;
     const flowPos = screenToFlowPosition({ x: event.clientX, y: event.clientY });
     addNode(pendingComponentPlacement, flowPos);
@@ -860,7 +972,11 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       // classes but nothing on the container saying a drag is in flight.
       // An armed click-to-connect gets the same treatment: it is a connection
       // in progress too, and until it showed something it was invisible.
-      className={`relative h-full w-full${isConnecting || isArmed ? " sc-canvas-connecting" : ""}`}
+      className={`sc-canvas relative h-full w-full${isConnecting || isArmed || connectFrom ? " sc-canvas-connecting" : ""}`}
+      onPointerDownCapture={onPointerDownCapture}
+      onPointerMoveCapture={onPointerMoveCapture}
+      onPointerUpCapture={onPointerUpCapture}
+      onPointerCancelCapture={clearLongPress}
     >
       <ReactFlow
         colorMode={colorMode}
@@ -887,6 +1003,10 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
           setSelectedNodeId(null);
         }}
         onNodeClick={(_, node) => {
+          if (connectFrom) {
+            completeConnectFrom(node.id);
+            return;
+          }
           setSelectedNodeId(node.id);
           setSelectedEdgeId(null);
         }}
@@ -895,6 +1015,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
           openConfigPopover(node.id, { x: event.clientX, y: event.clientY });
         }}
         onPaneClick={() => {
+          if (connectFrom) cancelConnectFrom();
           setSelectedEdgeId(null);
           setSelectedNodeId(null);
           clearHighlight();
@@ -902,6 +1023,7 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         }}
         onNodeContextMenu={(event, node) => {
           event.preventDefault();
+          if (isTouchContextMenu()) return;
           // Right-clicking a different node than the one currently
           // highlighted clears the old highlight — see the Phase 4
           // "Highlight Connections" clear-triggers list in pending.md.
@@ -913,10 +1035,12 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         }}
         onEdgeContextMenu={(event, edge) => {
           event.preventDefault();
+          if (isTouchContextMenu()) return;
           setMenu({ type: "edge", id: edge.id, x: event.clientX, y: event.clientY });
         }}
         onSelectionContextMenu={(event, selectedNodes) => {
           event.preventDefault();
+          if (isTouchContextMenu()) return;
           setMenu({
             type: "selection",
             ids: selectedNodes.map((n) => n.id),
@@ -926,11 +1050,14 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
         }}
         onPaneContextMenu={(event) => {
           event.preventDefault();
+          if (isTouchContextMenu()) return;
           openComponentPicker();
         }}
         deleteKeyCode={["Backspace", "Delete"]}
-        selectionOnDrag={!isConnecting}
-        panOnDrag={[1]}
+        selectionOnDrag={dragMode === "select" && !isConnecting}
+        // Middle button always pans; in pan mode a plain drag does too (a
+        // finger's only way to move the board). Shift+drag still box-selects.
+        panOnDrag={dragMode === "pan" ? true : [1]}
         nodesDraggable={!spaceHeld}
         // xyflow's default (true) bumps a selected node's z-index by 1000
         // above everything else — for a Zone, whose whole rectangle is one
@@ -969,6 +1096,14 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
          * reserved app-wide for the persistent Release Notes button (see
          * ReleaseNotesButton.tsx, mounted in the root layout). */}
         <Controls position="bottom-right" />
+        <SelectionToolbar
+          hidden={placementMode !== null || pendingComponentPlacement !== null || connectFrom !== null || isConnecting}
+          onConnectFrom={(id) => {
+            setConnectError(null);
+            setConnectFrom(id);
+          }}
+          onMore={setMenu}
+        />
       </ReactFlow>
       <EdgeInspector violations={violations} />
       <ContextMenu target={menu} onClose={() => setMenu(null)} centerOnNode={centerOnNode} />
@@ -977,28 +1112,35 @@ const FlowCanvas = forwardRef<CanvasHandle, FlowCanvasProps>(function FlowCanvas
       <ComponentPicker />
 
       {placementMode && (
-        <>
-          <div className="pointer-events-none absolute left-1/2 top-4 z-[var(--z-canvas-overlay)] -translate-x-1/2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
-            {PLACEMENT_HINT[placementMode]}
-          </div>
-          <div
-            onMouseDown={startPlacementDrag}
-            className="absolute inset-0 z-[var(--z-canvas-overlay)] cursor-crosshair"
-          />
-        </>
+        <div
+          onPointerDown={startPlacementDrag}
+          className="absolute inset-0 z-[var(--z-canvas-overlay)] cursor-crosshair"
+        />
+      )}
+      {pendingComponentPlacement && (
+        <div
+          onPointerDown={placeComponent}
+          className="absolute inset-0 z-[var(--z-canvas-overlay)] cursor-pointer"
+        />
       )}
 
-      {pendingComponentPlacement && (
-        <>
-          <div className="pointer-events-none absolute left-1/2 top-4 z-[var(--z-canvas-overlay)] -translate-x-1/2 rounded-full border border-border bg-panel px-3 py-1.5 text-xs text-foreground/80 shadow-lg">
-            Click to place {pendingComponentPlacement.label} · Hold Shift to place another · Esc to cancel
-          </div>
-          <div
-            onMouseDown={placeComponent}
-            className="absolute inset-0 z-[var(--z-canvas-overlay)] cursor-pointer"
-          />
-        </>
+      {placementMode && (
+        <CanvasHint onCancel={() => setPlacementMode(null)}>{PLACEMENT_HINT[placementMode]}</CanvasHint>
       )}
+      {pendingComponentPlacement && (
+        <CanvasHint onCancel={() => setPendingComponentPlacement(null)}>
+          Tap or click to place {pendingComponentPlacement.label}
+          {!isCoarse && " · Shift to place another"}
+        </CanvasHint>
+      )}
+      {connectFrom && (
+        <CanvasHint onCancel={cancelConnectFrom} tone={connectError ? "error" : "neutral"}>
+          {connectError ??
+            `Tap the component ${componentDisplayNames(storeNodes).get(connectFrom) ?? "this"} should connect to`}
+        </CanvasHint>
+      )}
+
+      <CanvasDock dragMode={dragMode} onDragModeChange={setDragModeChoice} />
 
       {pendingComponentPlacement &&
         ghostPos &&

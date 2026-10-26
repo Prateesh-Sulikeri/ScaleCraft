@@ -19,7 +19,7 @@ type SidebarShellProps = {
  */
 export function SidebarShell({ children }: SidebarShellProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const { width, onMouseDown } = useResizableWidth(320, 220, 480, "right");
+  const { width, onPointerDown } = useResizableWidth(320, 220, 480, "right");
 
   return (
     <div className="flex shrink-0">
@@ -58,8 +58,8 @@ export function SidebarShell({ children }: SidebarShellProps) {
       </aside>
       {!collapsed && (
         <div
-          onMouseDown={onMouseDown}
-          className="w-1 shrink-0 cursor-col-resize bg-transparent hover:bg-foreground/20 active:bg-foreground/30"
+          onPointerDown={onPointerDown}
+          className="w-1 touch:w-3 shrink-0 cursor-col-resize touch-none bg-transparent hover:bg-foreground/20 active:bg-foreground/30"
         />
       )}
     </div>

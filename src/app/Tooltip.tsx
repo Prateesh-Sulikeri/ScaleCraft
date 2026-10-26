@@ -37,8 +37,14 @@ export function Tooltip({ label, children }: { label: string; children: ReactEle
     <>
       {cloneElement(children as ReactElement<Record<string, unknown>>, {
         ref: anchorRef,
-        onMouseEnter: show,
-        onMouseLeave: hide,
+        // Pointer, not mouse, events: a tap fires a compat mouseenter with no
+        // mouseleave, which left the tooltip stuck on screen on a tablet.
+        // Touch gets none; the control's own label/aria-label carries it.
+        onPointerEnter: (e: React.PointerEvent) => {
+          if (e.pointerType !== "touch") show();
+        },
+        onPointerLeave: hide,
+        onPointerDown: hide,
       })}
       {pos &&
         createPortal(

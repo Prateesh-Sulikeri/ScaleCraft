@@ -15,7 +15,7 @@ export function useResizableWidth(
   min: number,
   max: number,
   grows: "left" | "right",
-  /** Fired once, on mouseup, with the final width — for a caller that wants
+  /** Fired once, on pointerup, with the final width — for a caller that wants
    * to persist the committed width somewhere external (e.g. the docs
    * panel's width in the Zustand store, so it survives minimize/restore)
    * without routing every drag pixel through that store. */
@@ -25,7 +25,7 @@ export function useResizableWidth(
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const latestWidthRef = useRef(width);
 
-  const onMouseDown = (event: React.MouseEvent) => {
+  const onPointerDown = (event: React.PointerEvent) => {
     event.preventDefault();
     dragRef.current = { startX: event.clientX, startWidth: width };
     const prevCursor = document.body.style.cursor;
@@ -33,7 +33,7 @@ export function useResizableWidth(
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
+    const onPointerMove = (moveEvent: PointerEvent) => {
       if (!dragRef.current) return;
       const delta = moveEvent.clientX - dragRef.current.startX;
       const signedDelta = grows === "right" ? delta : -delta;
@@ -42,18 +42,20 @@ export function useResizableWidth(
       setWidth(next);
     };
 
-    const onMouseUp = () => {
+    const onPointerUp = () => {
       dragRef.current = null;
       document.body.style.cursor = prevCursor;
       document.body.style.userSelect = prevUserSelect;
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
       onCommit?.(latestWidthRef.current);
     };
 
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
   };
 
-  return { width, onMouseDown };
+  return { width, onPointerDown };
 }

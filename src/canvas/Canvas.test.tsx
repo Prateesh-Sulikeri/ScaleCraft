@@ -81,10 +81,17 @@ describe("Canvas", () => {
   it("shows a placement hint overlay while a zone/comment/start placement mode is armed", () => {
     const { api } = renderWithCanvasStore(<Canvas />);
     act(() => api.getState().setPlacementMode("zone"));
-    expect(screen.getByText(/Click and drag to place a zone/)).toBeInTheDocument();
+    expect(screen.getByText(/Drag to place a zone/)).toBeInTheDocument();
 
     act(() => api.getState().setPlacementMode("start"));
-    expect(screen.getByText(/Click to place a start marker/)).toBeInTheDocument();
+    expect(screen.getByText(/Tap or click to place a flag/)).toBeInTheDocument();
+  });
+
+  it("the placement hint carries its own Cancel, for a keyboard-less tablet", () => {
+    const { api } = renderWithCanvasStore(<Canvas />);
+    act(() => api.getState().setPlacementMode("zone"));
+    fireEvent.click(screen.getByRole("button", { name: /Cancel/ }));
+    expect(api.getState().placementMode).toBeNull();
   });
 
   it("Escape cancels an active placement mode", () => {
@@ -117,7 +124,7 @@ describe("Canvas", () => {
       ReturnType<typeof api.getState>["setPendingComponentPlacement"]
     >[0];
     act(() => api.getState().setPendingComponentPlacement(definition));
-    expect(screen.getByText(/Click to place/)).toBeInTheDocument();
+    expect(screen.getByText(/Tap or click to place/)).toBeInTheDocument();
 
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
@@ -162,9 +169,9 @@ describe("Canvas", () => {
       act(() => api.getState().setPlacementMode("zone"));
       const overlay = container.querySelector(".cursor-crosshair") as HTMLElement;
 
-      fireEvent.mouseDown(overlay, { clientX: 100, clientY: 100 });
-      fireEvent.mouseMove(window, { clientX: 300, clientY: 250 });
-      fireEvent.mouseUp(window, { clientX: 300, clientY: 250 });
+      fireEvent.pointerDown(overlay, { clientX: 100, clientY: 100 });
+      fireEvent.pointerMove(window, { clientX: 300, clientY: 250 });
+      fireEvent.pointerUp(window, { clientX: 300, clientY: 250 });
 
       const state = api.getState();
       expect(state.placementMode).toBeNull();
@@ -182,8 +189,8 @@ describe("Canvas", () => {
       act(() => api.getState().setPlacementMode("zone"));
       const overlay = container.querySelector(".cursor-crosshair") as HTMLElement;
 
-      fireEvent.mouseDown(overlay, { clientX: 150, clientY: 150 });
-      fireEvent.mouseUp(window, { clientX: 151, clientY: 151 });
+      fireEvent.pointerDown(overlay, { clientX: 150, clientY: 150 });
+      fireEvent.pointerUp(window, { clientX: 151, clientY: 151 });
 
       const zone = api.getState().nodes[0];
       expect(zone.type === "zone" && zone.data.width).toBe(320);
@@ -195,8 +202,8 @@ describe("Canvas", () => {
       act(() => api.getState().setPlacementMode("comment"));
       const overlay = container.querySelector(".cursor-crosshair") as HTMLElement;
 
-      fireEvent.mouseDown(overlay, { clientX: 0, clientY: 0 });
-      fireEvent.mouseUp(window, { clientX: 0, clientY: 0 });
+      fireEvent.pointerDown(overlay, { clientX: 0, clientY: 0 });
+      fireEvent.pointerUp(window, { clientX: 0, clientY: 0 });
 
       const comment = api.getState().nodes[0];
       expect(comment.type).toBe("comment");
@@ -209,7 +216,7 @@ describe("Canvas", () => {
       act(() => api.getState().setPlacementMode("start"));
       const overlay = container.querySelector(".cursor-crosshair") as HTMLElement;
 
-      fireEvent.mouseDown(overlay, { clientX: 80, clientY: 80 });
+      fireEvent.pointerDown(overlay, { clientX: 80, clientY: 80 });
 
       const state = api.getState();
       expect(state.placementMode).toBeNull();
@@ -223,8 +230,8 @@ describe("Canvas", () => {
       act(() => api.getState().setPlacementMode("zone"));
       const overlay = container.querySelector(".cursor-crosshair") as HTMLElement;
 
-      fireEvent.mouseDown(overlay, { clientX: 100, clientY: 100 });
-      fireEvent.mouseMove(window, { clientX: 300, clientY: 250 });
+      fireEvent.pointerDown(overlay, { clientX: 100, clientY: 100 });
+      fireEvent.pointerMove(window, { clientX: 300, clientY: 250 });
 
       act(() => {
         window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
@@ -232,7 +239,7 @@ describe("Canvas", () => {
 
       // A further mouseup after Escape shouldn't place anything — the
       // window listeners were torn down by the cleanup Escape triggered.
-      fireEvent.mouseUp(window, { clientX: 300, clientY: 250 });
+      fireEvent.pointerUp(window, { clientX: 300, clientY: 250 });
 
       expect(api.getState().placementMode).toBeNull();
       expect(api.getState().nodes).toHaveLength(0);
@@ -247,7 +254,7 @@ describe("Canvas", () => {
       act(() => api.getState().setPendingComponentPlacement(clientDef));
       const overlay = container.querySelector(".cursor-pointer") as HTMLElement;
 
-      fireEvent.mouseDown(overlay, { clientX: 120, clientY: 60 });
+      fireEvent.pointerDown(overlay, { clientX: 120, clientY: 60 });
 
       const state = api.getState();
       expect(state.pendingComponentPlacement).toBeNull();
@@ -260,7 +267,7 @@ describe("Canvas", () => {
       act(() => api.getState().setPendingComponentPlacement(clientDef));
       const overlay = container.querySelector(".cursor-pointer") as HTMLElement;
 
-      fireEvent.mouseDown(overlay, { clientX: 10, clientY: 10, shiftKey: true });
+      fireEvent.pointerDown(overlay, { clientX: 10, clientY: 10, shiftKey: true });
 
       const state = api.getState();
       expect(state.nodes).toHaveLength(1);
@@ -270,7 +277,7 @@ describe("Canvas", () => {
     it("shows a ghost preview tile that follows the cursor while a placement is pending", () => {
       const { api } = renderWithCanvasStore(<Canvas />);
       act(() => api.getState().setPendingComponentPlacement(clientDef));
-      fireEvent.mouseMove(window, { clientX: 222, clientY: 111 });
+      fireEvent.pointerMove(window, { clientX: 222, clientY: 111 });
       // The ghost is a fixed, cursor-following tile portalled to document.body.
       const ghost = document.body.querySelector(".pointer-events-none.fixed") as HTMLElement;
       expect(ghost).toBeInTheDocument();
@@ -652,5 +659,85 @@ describe("Canvas", () => {
         }),
       ).resolves.not.toThrow();
     });
+  });
+});
+
+describe("touch-ready controls (release 7.4.0)", () => {
+  // loadCanvasState clears selection, so select the way xyflow does.
+  type Api = ReturnType<typeof renderWithCanvasStore>["api"];
+  const select = (api: Api, id: string) =>
+    act(() => api.getState().onNodesChange([{ id, type: "select", selected: true }]));
+
+  it("the dock opens the component picker without a right-click", () => {
+    const { api } = renderWithCanvasStore(<Canvas />);
+    fireEvent.click(screen.getByRole("button", { name: /Add component/ }));
+    expect(api.getState().componentPicker).toBe(true);
+  });
+
+  it("a dock tool arms placement, and pressing it again disarms it", () => {
+    const { api } = renderWithCanvasStore(<Canvas />);
+    const zone = screen.getByRole("button", { name: "Add zone" });
+    fireEvent.click(zone);
+    expect(api.getState().placementMode).toBe("zone");
+    // The overlay covers the canvas but not the dock, which sits above it.
+    fireEvent.click(screen.getByRole("button", { name: "Add zone" }));
+    expect(api.getState().placementMode).toBeNull();
+  });
+
+  it("drag mode defaults to box select for a mouse and can be switched to pan", () => {
+    renderWithCanvasStore(<Canvas />);
+    const pan = screen.getByRole("radio", { name: "Drag to pan" });
+    const select = screen.getByRole("radio", { name: "Drag to select" });
+    expect(select).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(pan);
+    expect(pan).toHaveAttribute("aria-checked", "true");
+    expect(select).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("selecting a node shows its toolbar, and Delete removes it", () => {
+    const { api } = renderWithCanvasStore(<Canvas />);
+    act(() => api.getState().loadCanvasState([clientNode, appServerNode], []));
+    select(api, "n1");
+    const toolbar = screen.getByRole("toolbar", { name: "Selection actions" });
+    fireEvent.click(within(toolbar).getByRole("button", { name: "Delete" }));
+    expect(api.getState().nodes.map((n) => n.id)).toEqual(["n2"]);
+  });
+
+  it("toolbar Connect then tapping another card draws the edge, routed automatically", () => {
+    const { api } = renderWithCanvasStore(<Canvas />);
+    act(() => api.getState().loadCanvasState([clientNode, appServerNode], []));
+    select(api, "n1");
+    fireEvent.click(within(screen.getByRole("toolbar", { name: "Selection actions" })).getByRole("button", { name: /Connect/ }));
+    expect(screen.getByText(/should connect to/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Application Server"));
+    const edges = api.getState().edges;
+    expect(edges).toHaveLength(1);
+    expect(edges[0]).toMatchObject({ source: "n1", target: "n2", sourceHandle: null, targetHandle: null });
+    expect(screen.queryByText(/should connect to/)).not.toBeInTheDocument();
+  });
+
+  it("an illegal tap-to-connect explains itself and stays armed", () => {
+    const { api } = renderWithCanvasStore(<Canvas />);
+    // Client declares no inputs, so nothing can connect into it.
+    act(() => api.getState().loadCanvasState([clientNode, appServerNode], []));
+    select(api, "n2");
+    fireEvent.click(within(screen.getByRole("toolbar", { name: "Selection actions" })).getByRole("button", { name: /Connect/ }));
+    fireEvent.click(screen.getByText("Client"));
+    expect(api.getState().edges).toHaveLength(0);
+    expect(screen.getByText(/can't connect in this direction/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Cancel/ }));
+    expect(screen.queryByText(/can't connect/)).not.toBeInTheDocument();
+  });
+
+  it("the edge inspector has an on-screen Delete", () => {
+    const { api } = renderWithCanvasStore(<Canvas />);
+    const edge: ArchitectureEdgeType = { id: "e1", source: "n1", target: "n2", data: { kind: "request-flow" } };
+    act(() => {
+      api.getState().loadCanvasState([clientNode, appServerNode], [edge]);
+      api.getState().setSelectedEdgeId("e1");
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Delete the connection/ }));
+    expect(api.getState().edges).toHaveLength(0);
   });
 });

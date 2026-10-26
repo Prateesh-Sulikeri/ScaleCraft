@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, Spline } from "lucide-react";
+import { ArrowLeftRight, Spline, Trash2 } from "lucide-react";
 import { useCanvasStore } from "./store";
 import { isHandPlaced } from "./edge-routing";
 import { EDGE_KINDS, EDGE_KIND_CAPTIONS, EDGE_COLOR_VAR } from "./edge-styles";
@@ -39,6 +39,7 @@ export function EdgeInspector({ violations }: EdgeInspectorProps) {
   const setEdgeKind = useCanvasStore((s) => s.setEdgeKind);
   const reverseEdge = useCanvasStore((s) => s.reverseEdge);
   const autoRouteEdge = useCanvasStore((s) => s.autoRouteEdge);
+  const deleteEdge = useCanvasStore((s) => s.deleteEdge);
 
   const edge = edges.find((e) => e.id === selectedEdgeId);
   if (!edge) return null;
@@ -72,7 +73,8 @@ export function EdgeInspector({ violations }: EdgeInspectorProps) {
       // an unanchored tour card docks, which made the edge-kind select
       // unreachable.
       data-tour="edge-inspector"
-      className="absolute bottom-4 right-14 z-[var(--z-dropdown)] w-72 rounded-md border border-border bg-panel p-3 shadow-sm"
+      // bottom-20 clears the CanvasDock row, which owns bottom-centre.
+      className="absolute bottom-20 right-14 z-[var(--z-dropdown)] w-72 max-w-[calc(100%-4.5rem)] rounded-md border border-border bg-panel p-3 shadow-sm"
     >
       <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
         <span
@@ -95,7 +97,7 @@ export function EdgeInspector({ violations }: EdgeInspectorProps) {
             onClick={() => autoRouteEdge(edge.id)}
             title="Re-route automatically"
             aria-label="Re-route this connection automatically, from where the components now sit"
-            className="ml-auto shrink-0 rounded border border-border p-1 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground"
+            className="ml-auto shrink-0 rounded border border-border p-1 touch:p-2.5 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground"
           >
             <Spline size={12} aria-hidden="true" />
           </button>
@@ -105,9 +107,20 @@ export function EdgeInspector({ violations }: EdgeInspectorProps) {
           onClick={() => reverseEdge(edge.id)}
           title="Reverse direction"
           aria-label={`Reverse direction: make this ${targetLabel} to ${sourceLabel}`}
-          className={`${placedByHand ? "" : "ml-auto "}shrink-0 rounded border border-border p-1 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground`}
+          className={`${placedByHand ? "" : "ml-auto "}shrink-0 rounded border border-border p-1 touch:p-2.5 text-foreground/60 transition-colors hover:border-foreground/40 hover:text-foreground`}
         >
           <ArrowLeftRight size={12} aria-hidden="true" />
+        </button>
+        {/* On-screen delete: Backspace and right-click aren't available to
+          * a finger. Undoable via UndoToast like every delete. */}
+        <button
+          type="button"
+          onClick={() => deleteEdge(edge.id)}
+          title="Delete connection"
+          aria-label={`Delete the connection from ${sourceLabel} to ${targetLabel}`}
+          className="shrink-0 rounded border border-border p-1 touch:p-2.5 text-state-error/80 transition-colors hover:border-state-error hover:text-state-error"
+        >
+          <Trash2 size={12} aria-hidden="true" />
         </button>
       </div>
 
@@ -116,7 +129,7 @@ export function EdgeInspector({ violations }: EdgeInspectorProps) {
         <select
           value={kind}
           onChange={(event) => setEdgeKind(edge.id, event.target.value as EdgeKind)}
-          className="rounded border border-border bg-background px-2 py-1 font-mono text-xs"
+          className="rounded border border-border bg-background px-2 py-1 touch:py-2.5 font-mono text-xs"
         >
           {EDGE_KINDS.map((k) => (
             <option key={k} value={k}>
