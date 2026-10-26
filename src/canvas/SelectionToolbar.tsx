@@ -48,7 +48,10 @@ export function SelectionToolbar({ hidden, onConnectFrom, onMore }: SelectionToo
   const locked = isAnnotation && single.data.locked === true;
 
   return (
-    <NodeToolbar nodeId={ids} isVisible position={Position.Top} offset={10}>
+    // Own z-index: NodeToolbar defaults to the node's z + 1, and zones sit at
+    // -1 (behind components), so their toolbar rendered under the pane -
+    // visible but every tap landed on the canvas.
+    <NodeToolbar nodeId={ids} isVisible position={Position.Top} offset={10} style={{ zIndex: 1001 }}>
       <div
         role="toolbar"
         aria-label="Selection actions"
